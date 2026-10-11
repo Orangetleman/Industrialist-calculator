@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
     "fetch-wiki": "node scripts/fetch-wiki.ts",
     "build-data": "node scripts/build-data.ts",
-    "data": "node scripts/fetch-wiki.ts && node scripts/build-data.ts"
+    "data": "node scripts/fetch-wiki.ts && node scripts/build-data.ts",
+    "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/deployer.ps1",
+    "deploy:retour": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/deployer.ps1 -Retour"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

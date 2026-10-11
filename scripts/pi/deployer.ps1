@@ -14,6 +14,8 @@ param(
   [string]$Pi = "myprism@myprism.local"
 )
 $ErrorActionPreference = "Stop"
+# Accents corrects même lancé via « npm run deploy » (console en page de code OEM).
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 $racine = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $envoi = "~/industrialist-envoi"
 
