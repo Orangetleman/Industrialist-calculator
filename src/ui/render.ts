@@ -49,7 +49,7 @@ export function renderSummary(ctx: Ctx): string {
   const e = p.economy;
   const energyNote = t.energyUnknownSteps ? ` <small>(≥, ${t.energyUnknownSteps} inconnue(s))</small>` : "";
   const cards: [string, string][] = [
-    [`${fmt(p.target.ratePerMin, 2)}`, `${esc(itemN(ctx, p.target.item))} / min`],
+    [p.status === "impossible" && !p.target.ratePerMin ? "—" : fmt(p.target.ratePerMin, 2), `${esc(itemN(ctx, p.target.item))} / min`],
     [String(t.machines), "machines"],
     ...(t.farms ? ([[`≈ ${t.farms}`, "arbres (indicatif)"]] as [string, string][]) : []),
     [fmtMF(t.energyAvg) + energyNote, "énergie moyenne"],
@@ -71,9 +71,11 @@ export function renderSummary(ctx: Ctx): string {
   const research = e.nodesToUnlock.length
     ? `<p class="list-line"><b>Recherche à débloquer :</b> ${e.nodesToUnlock.map((n) => `<span class="chip">${esc(nodeN(ctx, n))} <span class="num">${fmt(ctx.data.nodes.get(n)?.rp ?? 0, 0)} RP</span></span>`).join(" ")}${
         e.reqItems.length ? ` — et vendre : ${e.reqItems.map((r) => `${r.amount} ${esc(itemN(ctx, r.item))}${r.done ? " ✓" : ""}`).join(", ")}` : ""
-      }</p>`
+      } ${unlockButton(e.nodesToUnlock, "Je les ai débloquées")}</p>`
     : "";
-  const own = e.machinesToOwn.length ? `<p class="list-line"><b>Machines à posséder :</b> ${e.machinesToOwn.map((m) => esc(machineN(ctx, m))).join(", ")}</p>` : "";
+  const own = e.machinesToOwn.length
+    ? `<p class="list-line"><b>Machines à posséder :</b> ${e.machinesToOwn.map((m) => esc(machineN(ctx, m))).join(", ")} ${ownButton(e.machinesToOwn)}</p>`
+    : "";
   return `<div class="stats">${stats}</div>${raw}${surplus}${research}${own}`;
 }
 
@@ -162,13 +164,25 @@ function stepCard(ctx: Ctx, s: Step, i: number): string {
     }</div>
     ${by ? `<div class="meta"><span>Sous-produits à évacuer : <span class="num">${by}</span> /min</span></div>` : ""}
     ${s.growth ? `<div class="meta"><span>${esc(s.growth.detail)}</span></div>` : ""}
-    ${!s.access.available ? `<div class="meta warn-text">${esc(lockText(ctx, s.access))}</div>` : ""}
+    ${!s.access.available ? `<div class="meta warn-text">${esc(lockText(ctx, s.access))} ${accessButton(s.access)}</div>` : ""}
     <div class="meta"><span>Calcul exact : <span class="num">${fmt(s.machinesExact, 2)}</span> → utilisation <span class="num">${util} %</span></span>${s.buildCost !== null ? `<span>Coût : <span class="num">${fmtMoney(s.buildCost)}</span></span>` : ""}${
       s.footprint !== null ? `<span>Surface : <span class="num">${fmt(s.footprint, 0)}</span> cases</span>` : ""
     }</div>
     <div class="bar" aria-hidden="true"><i class="${util < 60 ? "low" : ""}" style="width:${util}%"></i></div>
     ${recipeSelect(ctx, s.item, s.recipeId, s.alternatives)}
   </div></li>`;
+}
+
+/** Boutons qui mettent à jour la progression depuis le plan (gérés par main.ts). */
+function unlockButton(nodes: string[], label: string): string {
+  return nodes.length ? `<button type="button" class="link" data-unlock="${esc(nodes.join(","))}">${esc(label)}</button>` : "";
+}
+function ownButton(machines: string[]): string {
+  return machines.length ? `<button type="button" class="link" data-own="${esc(machines.join(","))}">Je la possède</button>` : "";
+}
+function accessButton(a: Step["access"]): string {
+  if (a.available) return "";
+  return a.needsOwnership ? ownButton([a.machine]) : unlockButton(a.missingNodes, "Je les ai débloquées");
 }
 
 function lockText(ctx: Ctx, a: Step["access"]): string {
@@ -195,9 +209,9 @@ function unresolvedCard(ctx: Ctx, u: Unresolved, i: number): string {
   }
   return `<li class="step unresolved" id="step-${esc(u.item)}"><div class="n">${String(i + 1).padStart(2, "0")}</div><div class="body">
     <div class="tags"><span class="tag warn">Non produit</span></div>
-    <div class="top"><h3>${esc(itemN(ctx, u.item))}</h3><span class="count">${fmt(u.perMin, 2)}/min</span></div>
+    <div class="top"><h3>${esc(itemN(ctx, u.item))}</h3><span class="count">${u.perMin ? `${fmt(u.perMin, 2)}/min` : "—"}</span></div>
     <div class="meta"><span>${esc(LEAF_TEXT[u.reason] ?? u.reason)}</span></div>
-    ${u.unlock ? `<div class="meta warn-text">${esc(lockText(ctx, u.unlock))}</div>` : ""}
+    ${u.unlock ? `<div class="meta warn-text">${esc(lockText(ctx, u.unlock))} ${accessButton(u.unlock)}</div>` : ""}
     ${recipeSelect(ctx, u.item, null, u.candidates)}
   </div></li>`;
 }

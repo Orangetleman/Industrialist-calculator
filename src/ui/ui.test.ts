@@ -10,6 +10,7 @@ import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
 import { renderGraph, renderPlan, renderSummary, renderVerify } from "./render.ts";
+import { parseOptional, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress } from "./progress.ts";
 import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, removeCorrection, setCorrection } from "./state.ts";
 
 describe("mise en forme", () => {
@@ -59,6 +60,47 @@ describe("corrections locales", () => {
     expect(isOverridesFile({ recipes: {} })).toBe(true);
     expect(isOverridesFile([])).toBe(false);
     expect(isOverridesFile({ recipes: [] })).toBe(false);
+  });
+});
+
+describe("progression et « Ma partie »", () => {
+  const d = makeData({
+    nodes: [
+      { id: "a", rp: 10 },
+      { id: "b", rp: 20, parents: ["a"], reqItems: [{ item: "x", amount: 5 }] },
+    ],
+    machines: [{ id: "mb", unlockedBy: "b" }, { id: "limited", unlockedBy: null }],
+    recipes: [
+      { id: "rx", machine: "mb", t: 10, out: { x: 1 } },
+      { id: "rz", machine: "limited", t: 10, out: { z: 1 } },
+    ],
+  });
+
+  it("saisie facultative : vide → null, virgule acceptée, texte refusé", () => {
+    expect(parseOptional("")).toBeNull();
+    expect(parseOptional(" 2,5 ")).toBe(2.5);
+    expect(parseOptional("12 000")).toBe(12000);
+    expect(parseOptional("abc")).toBe("invalide");
+  });
+
+  it("nettoie une progression enregistrée avec des ids disparus", () => {
+    expect(sanitizeProgress(d, { unlocked: ["a", "ancien"], reqItemsDone: ["zz"], owned: ["limited", "?"] })).toEqual({ unlocked: ["a"], reqItemsDone: [], owned: ["limited"] });
+  });
+
+  it("états des nœuds : débloqué, disponible, verrouillé, incohérent", () => {
+    const html = (unlocked: string[]) => renderTree(d, toEngineProgress({ unlocked, reqItemsDone: [], owned: [] }), { category: "Production", filter: "" });
+    expect(html([])).toMatch(/class="node available"[\s\S]*data-node="a"/);
+    expect(html([])).toMatch(/class="node locked"[\s\S]*data-node="b"/);
+    expect(html(["a"])).toMatch(/class="node done"[\s\S]*data-node="a"/);
+    expect(html(["b"])).toMatch(/class="node incoherent"[\s\S]*data-node="b"/);
+    expect(html([])).toContain('data-req="b"'); // condition « vendre 5 x »
+    expect(renderTree(d, toEngineProgress({ unlocked: [], reqItemsDone: [], owned: [] }), { category: "Production", filter: "mb" })).not.toContain('data-node="a"');
+  });
+
+  it("résumé et machines possédées", () => {
+    const p = toEngineProgress({ unlocked: ["a"], reqItemsDone: [], owned: ["limited"] });
+    expect(progressSummary(d, p)).toBe("1 / 2 recherches débloquées · 10 RP investis");
+    expect(renderOwned(d, p)).toMatch(/data-owned="limited" checked/);
   });
 });
 

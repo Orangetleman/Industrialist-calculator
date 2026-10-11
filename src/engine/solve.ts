@@ -135,6 +135,10 @@ export type Plan = {
 const ceilTol = (x: number) => Math.ceil(x - 1e-9);
 
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
+  return solveInner(data, player, req, false);
+}
+
+function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nested: boolean): Plan {
   const criterion = req.criterion ?? "machines";
   const chooser = new Chooser(data, player, {
     criterion,
@@ -413,6 +417,18 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
     if (!u.unlock) continue;
     if (u.unlock.needsOwnership) machinesToOwn.add(u.unlock.machine);
     for (const n of u.unlock.missingNodes) nodeSet.add(n);
+  }
+  // Un item verrouillé cache ses propres ingrédients : on simule les déblocages
+  // pour lister ce qu'il faut pour TOUTE la chaîne, pas seulement le premier niveau.
+  if (!nested && unresolved.some((u) => u.reason === "verrouillé")) {
+    for (let i = 0; i < 12; i++) {
+      const extended: PlayerState = { ...player, unlocked: new Set([...player.unlocked, ...nodeSet]) };
+      const sub = solveInner(data, extended, req, true);
+      const added = sub.economy.nodesToUnlock.filter((n) => !nodeSet.has(n));
+      for (const m of sub.economy.machinesToOwn) machinesToOwn.add(m);
+      if (!added.length) break;
+      for (const n of added) nodeSet.add(n);
+    }
   }
   const nodesToUnlock = orderByDepth(data, [...nodeSet]);
   const rpNeeded = rpCost(data, nodesToUnlock);

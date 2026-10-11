@@ -11,8 +11,6 @@ export type Settings = {
   criterion: Criterion;
   useUnverified: boolean;
   forced: Record<string, string>;
-  /** Provisoire jusqu'à l'étape (d) : considérer toute la recherche comme débloquée. */
-  allUnlocked: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,7 +21,6 @@ export const DEFAULT_SETTINGS: Settings = {
   criterion: "energy",
   useUnverified: false,
   forced: {},
-  allUnlocked: true,
 };
 
 const KEY_SETTINGS = "ind-calc:v1:settings";
@@ -47,7 +44,9 @@ function write(key: string, value: unknown): void {
 
 export function loadSettings(): Settings {
   const s = read<Partial<Settings>>(KEY_SETTINGS) ?? {};
-  const out = { ...DEFAULT_SETTINGS, ...s };
+  // « allUnlocked » : réglage provisoire de l'étape (c), ignoré désormais.
+  const { allUnlocked: _ancien, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown };
+  const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
   if (!["machines", "energy", "raw"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
   if (out.mode !== "rate" && out.mode !== "machines") out.mode = DEFAULT_SETTINGS.mode;
   if (!(out.rate > 0)) out.rate = DEFAULT_SETTINGS.rate;

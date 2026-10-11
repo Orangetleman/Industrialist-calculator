@@ -8,10 +8,25 @@ import overridesJson from "../../data/overrides.json";
 import recipesJson from "../../data/recipes.json";
 import researchJson from "../../data/research.json";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
-import { solve, type Plan } from "../engine/solve.ts";
+import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
-import type { Progress } from "../engine/unlock.ts";
-import { esc, fmt, parseInput } from "./format.ts";
+import { dependentsOf, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
+import { esc, fmt, fmtMoney, fmtRP, parseInput } from "./format.ts";
+import {
+  loadPlayer,
+  loadProgress,
+  parseOptional,
+  progressSummary,
+  renderOwned,
+  renderTree,
+  sanitizeProgress,
+  savePlayer,
+  saveProgress,
+  toEngineProgress,
+  type PlayerInfo,
+  type ProgressState,
+  type TreeView,
+} from "./progress.ts";
 import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
 import {
   countCorrections,
@@ -37,6 +52,9 @@ let corrections: OverridesFile = loadCorrections();
 let data: GameData = buildGameData(files, []).data;
 let dataErrors: string[] = [];
 let plan: Plan | undefined;
+let prog: ProgressState = loadProgress();
+let player: PlayerInfo = loadPlayer();
+const treeView: TreeView = { category: "Production", filter: "" };
 
 function rebuildData(): void {
   const r = buildGameData(files, [repoOverrides, corrections]);
@@ -44,10 +62,8 @@ function rebuildData(): void {
   dataErrors = r.errors;
 }
 
-function progress(): Progress {
-  // Étape (c) : progression simplifiée. L'arbre de recherche arrive à l'étape (d).
-  // Les machines « Limited » sans nœud ne sont jamais supposées possédées.
-  return settings.allUnlocked ? { unlocked: new Set(data.nodes.keys()) } : { unlocked: new Set() };
+function playerState(): PlayerState {
+  return { ...toEngineProgress(prog), ...player };
 }
 
 // ---------------------------------------------------------------- recherche d'item
@@ -73,13 +89,12 @@ function syncForm(): void {
   ($("item") as HTMLInputElement).value = data.items.get(settings.item)?.name ?? settings.item;
   ($("criterion") as HTMLSelectElement).value = settings.criterion;
   ($("unverified") as HTMLInputElement).checked = settings.useUnverified;
-  ($("all-unlocked") as HTMLInputElement).checked = settings.allUnlocked;
   ($("rate") as HTMLInputElement).value = String(settings.rate);
   ($("machines") as HTMLInputElement).value = String(settings.machines);
 }
 
 function render(): void {
-  plan = solve(data, progress(), {
+  plan = solve(data, playerState(), {
     item: settings.item,
     ...(settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }),
     criterion: settings.criterion,
@@ -109,6 +124,185 @@ function render(): void {
   $("warnings").innerHTML = renderWarnings(ctx);
   $("forced-reset").hidden = !Object.keys(settings.forced).length;
   saveSettings(settings);
+  renderProgress();
+}
+
+// ---------------------------------------------------------------- progression et « Ma partie »
+function renderProgress(): void {
+  const p = toEngineProgress(prog);
+  $("progress-summary").textContent = progressSummary(data, p);
+  const focused = (document.activeElement as HTMLElement | null)?.dataset;
+  const focusKey = focused?.node ? `[data-node="${focused.node}"]` : focused?.req ? `[data-req="${focused.req}"]` : null;
+  $("tree").innerHTML = renderTree(data, p, treeView);
+  $("owned").innerHTML = renderOwned(data, p);
+  if (focusKey) $("tree").querySelector<HTMLElement>(focusKey)?.focus();
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) tab.setAttribute("aria-selected", String(tab.dataset.cat === treeView.category));
+  const parts = [
+    player.pollutionPct !== null ? `pollution ${fmt(player.pollutionPct, 1)} %` : null,
+    player.money !== null ? fmtMoney(player.money) : null,
+    player.rp !== null ? fmtRP(player.rp) : null,
+    player.rpPerSec !== null ? `${fmt(player.rpPerSec, 2)} RP/s` : null,
+  ].filter(Boolean);
+  $("player-summary").textContent = parts.length ? parts.join(" · ") : "non renseignée";
+}
+
+function fillNodeList(): void {
+  $("node-list").innerHTML = [...data.nodes.values()]
+    .filter((n) => !n.isRoot)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((n) => `<option value="${esc(n.name)}">${esc(n.category)} · ${fmt(n.rp, 0)} RP</option>`)
+    .join("");
+}
+
+function syncPlayerForm(): void {
+  const set = (id: string, v: number | null) => {
+    ($(id) as HTMLInputElement).value = v === null ? "" : String(v).replace(".", ",");
+  };
+  set("p-pollution", player.pollutionPct);
+  set("p-money", player.money);
+  set("p-rp", player.rp);
+  set("p-rps", player.rpPerSec);
+}
+
+function setProgress(next: ProgressState): void {
+  prog = next;
+  saveProgress(prog);
+  render();
+}
+
+const nodeName = (id: string) => data.nodes.get(id)?.name ?? id;
+
+/** Petite boîte de dialogue : renvoie la valeur du bouton choisi ("" si fermée). */
+function ask(title: string, bodyHtml: string, buttons: { value: string; label: string; primary?: boolean }[]): Promise<string> {
+  const dlg = $("ask") as HTMLDialogElement;
+  $("ask-title").textContent = title;
+  $("ask-body").innerHTML = bodyHtml;
+  $("ask-actions").innerHTML = buttons.map((b) => `<button value="${esc(b.value)}"${b.primary ? ` class="primary"` : ""}>${esc(b.label)}</button>`).join("");
+  return new Promise((resolve) => {
+    dlg.addEventListener("close", () => resolve(dlg.returnValue), { once: true });
+    dlg.returnValue = "";
+    dlg.showModal();
+    dlg.querySelector<HTMLButtonElement>("button.primary")?.focus();
+  });
+}
+
+async function toggleNode(id: string, checked: boolean): Promise<void> {
+  const p = toEngineProgress(prog);
+  if (checked) {
+    const missing = missingNodes(data, p, id).filter((x) => x !== id);
+    let add = [id];
+    if (missing.length) {
+      const choice = await ask(
+        "Prérequis non cochés",
+        `<p><b>${esc(nodeName(id))}</b> demande ${missing.length} recherche(s) que tu n'as pas cochée(s) (${esc(fmtRP(rpCost(data, missing)))}) :</p><ul>${missing.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
+        [
+          { value: "all", label: "Tout débloquer", primary: true },
+          { value: "one", label: "Seulement celle-ci" },
+          { value: "", label: "Annuler" },
+        ],
+      );
+      if (!choice) return renderProgress();
+      if (choice === "all") add = [...missing, id];
+    }
+    setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, ...add])] });
+  } else {
+    const deps = dependentsOf(data, p, id);
+    let remove = [id];
+    if (deps.length) {
+      const choice = await ask(
+        "Recherches qui en dépendent",
+        `<p>${deps.length} recherche(s) cochée(s) dépendent de <b>${esc(nodeName(id))}</b> :</p><ul>${deps.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
+        [
+          { value: "all", label: "Tout décocher", primary: true },
+          { value: "one", label: "Seulement celle-ci" },
+          { value: "", label: "Annuler" },
+        ],
+      );
+      if (!choice) return renderProgress();
+      if (choice === "all") remove = [id, ...deps];
+    }
+    setProgress({ ...prog, unlocked: prog.unlocked.filter((x) => !remove.includes(x)) });
+  }
+}
+
+function bindProgress(): void {
+  $("tree").addEventListener("change", (e) => {
+    const input = e.target as HTMLInputElement;
+    if (input.dataset.node) void toggleNode(input.dataset.node, input.checked);
+    else if (input.dataset.req) {
+      const id = input.dataset.req;
+      setProgress({ ...prog, reqItemsDone: input.checked ? [...new Set([...prog.reqItemsDone, id])] : prog.reqItemsDone.filter((x) => x !== id) });
+    }
+  });
+  $("owned").addEventListener("change", (e) => {
+    const input = e.target as HTMLInputElement;
+    const id = input.dataset.owned;
+    if (id) setProgress({ ...prog, owned: input.checked ? [...new Set([...prog.owned, id])] : prog.owned.filter((x) => x !== id) });
+  });
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) {
+    tab.addEventListener("click", () => {
+      treeView.category = tab.dataset.cat as TreeView["category"];
+      renderProgress();
+    });
+  }
+  $("tree-filter").addEventListener("input", (e) => {
+    treeView.filter = (e.target as HTMLInputElement).value;
+    renderProgress();
+  });
+  $("upto-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = ($("upto") as HTMLInputElement).value.trim().toLowerCase();
+    const nodes = [...data.nodes.values()].filter((n) => !n.isRoot);
+    const node = nodes.find((n) => n.name.toLowerCase() === text) ?? (text ? nodes.filter((n) => n.name.toLowerCase().includes(text)).at(0) : undefined);
+    if (!node) {
+      $("upto-hint").textContent = "Recherche introuvable : choisis un nom dans la liste.";
+      return;
+    }
+    const before = new Set(prog.unlocked);
+    const next = unlockUpTo(data, toEngineProgress(prog), node.id);
+    const added = [...next].filter((x) => !before.has(x)).length;
+    $("upto-hint").textContent = `${node.name} : ${added} recherche(s) cochée(s).`;
+    treeView.category = node.category;
+    setProgress({ ...prog, unlocked: [...next] });
+  });
+  $("progress-reset").addEventListener("click", async () => {
+    const choice = await ask("Réinitialiser la progression", "<p>Décocher toutes les recherches et toutes les machines possédées ?</p>", [
+      { value: "yes", label: "Réinitialiser", primary: true },
+      { value: "", label: "Annuler" },
+    ]);
+    if (choice === "yes") setProgress({ unlocked: [], reqItemsDone: [], owned: [] });
+  });
+
+  const playerFields: [string, keyof PlayerInfo][] = [
+    ["p-pollution", "pollutionPct"],
+    ["p-money", "money"],
+    ["p-rp", "rp"],
+    ["p-rps", "rpPerSec"],
+  ];
+  for (const [id, key] of playerFields) {
+    $(id).addEventListener("input", (e) => {
+      const v = parseOptional((e.target as HTMLInputElement).value);
+      $(id).setAttribute("aria-invalid", String(v === "invalide"));
+      $("player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+      if (v === "invalide") return;
+      player = { ...player, [key]: v };
+      savePlayer(player);
+      renderSoon();
+    });
+  }
+
+  // Boutons du plan : « Je les ai débloquées », « Je la possède »
+  document.querySelector(".wrap")!.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-unlock], button[data-own]");
+    if (!btn) return;
+    if (btn.dataset.unlock) {
+      let next = new Set(prog.unlocked);
+      for (const id of btn.dataset.unlock.split(",")) next = unlockUpTo(data, { ...toEngineProgress(prog), unlocked: next }, id);
+      setProgress({ ...prog, unlocked: [...next] });
+    } else if (btn.dataset.own) {
+      setProgress({ ...prog, owned: [...new Set([...prog.owned, ...btn.dataset.own.split(",")])] });
+    }
+  });
 }
 
 let timer: number | undefined;
@@ -155,10 +349,6 @@ function bind(): void {
   });
   $("unverified").addEventListener("change", (e) => {
     settings.useUnverified = (e.target as HTMLInputElement).checked;
-    render();
-  });
-  $("all-unlocked").addEventListener("change", (e) => {
-    settings.allUnlocked = (e.target as HTMLInputElement).checked;
     render();
   });
   $("forced-reset").addEventListener("click", () => {
@@ -243,7 +433,13 @@ function bind(): void {
 
 rebuildData();
 if (!data.items.has(settings.item)) settings.item = "crankshaft";
+prog = sanitizeProgress(data, prog);
 fillItemList();
+fillNodeList();
 syncForm();
+syncPlayerForm();
 bind();
+bindProgress();
 render();
+// Première visite : on ouvre la progression pour inviter à la remplir.
+if (!prog.unlocked.length) ($("progress-panel") as HTMLDetailsElement).open = true;

@@ -16,6 +16,64 @@
     <p class="lead">Choisis un item et un débit : le plan donne toute la chaîne, des machines finales jusqu'aux matières premières, avec seulement ce que tu as débloqué.</p>
   </header>
 
+  <details class="panel fold" id="player-panel">
+    <summary><h2>Ma partie <span class="muted">· facultatif</span></h2><span class="fold-sub" id="player-summary"></span></summary>
+    <p class="hint">Laisse vide ce que tu ne veux pas renseigner : le plan donnera alors simplement les prix et les coûts de recherche, sans les comparer à ce que tu as.</p>
+    <div class="fields">
+      <label for="p-pollution">Pollution actuelle (%)
+        <input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12">
+      </label>
+      <label for="p-money">Argent ($)
+        <input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000">
+      </label>
+      <label for="p-rp">RP disponibles
+        <input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000">
+      </label>
+      <label for="p-rps">Production de RP (/s)
+        <input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5">
+      </label>
+    </div>
+    <p class="hint" id="player-hint" role="status"></p>
+  </details>
+
+  <details class="panel fold" id="progress-panel">
+    <summary><h2>Progression</h2><span class="fold-sub" id="progress-summary"></span></summary>
+    <p class="hint">Coche les recherches que tu as débloquées en jeu. Le plan n'utilise que les machines correspondantes.</p>
+    <div class="tree-tools">
+      <div class="tabs" role="tablist" aria-label="Catégories de recherche">
+        <button type="button" role="tab" data-cat="Production" aria-selected="true">Production</button>
+        <button type="button" role="tab" data-cat="Energy" aria-selected="false">Energy</button>
+        <button type="button" role="tab" data-cat="Utility" aria-selected="false">Utility</button>
+      </div>
+      <label class="tree-filter" for="tree-filter"><span class="sr-only">Filtrer les recherches</span>
+        <input id="tree-filter" type="search" placeholder="Filtrer (recherche ou machine)…" autocomplete="off">
+      </label>
+    </div>
+    <form class="upto" id="upto-form">
+      <label for="upto">Tout débloquer jusqu'à
+        <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche">
+      </label>
+      <datalist id="node-list"></datalist>
+      <button type="submit">Débloquer avec ses prérequis</button>
+      <button type="button" id="progress-reset" class="link">Réinitialiser la progression</button>
+      <span class="hint" id="upto-hint" role="status"></span>
+    </form>
+    <div id="tree" role="tabpanel"></div>
+    <div class="owned-panel">
+      <h3>Machines spéciales possédées</h3>
+      <p class="hint">Ces machines (éditions « Limited », variantes) ne se débloquent pas dans l'arbre de recherche : coche celles que tu possèdes.</p>
+      <div id="owned"></div>
+    </div>
+  </details>
+
+  <dialog id="ask" aria-labelledby="ask-title">
+    <form method="dialog">
+      <h3 id="ask-title">Confirmer</h3>
+      <div id="ask-body"></div>
+      <div class="actions" id="ask-actions"></div>
+    </form>
+  </dialog>
+
   <section class="panel" aria-labelledby="h-set">
     <h2 id="h-set">Réglage</h2>
     <div class="fields">
@@ -40,9 +98,7 @@
     </div>
     <p id="mode-hint" class="hint"></p>
     <div class="checks">
-      <label><input type="checkbox" id="unverified"> Utiliser aussi les recettes « à vérifier » (valeurs variables ou manquantes)</label>
-      <label><input type="checkbox" id="all-unlocked"> Considérer toute la recherche comme débloquée <span class="muted">(provisoire : l'arbre de progression arrive à l'étape suivante)</span></label>
-    </div>
+      <label><input type="checkbox" id="unverified"> Utiliser aussi les recettes « à vérifier » (valeurs variables ou manquantes)</label>    </div>
     <button type="button" id="forced-reset" class="link" hidden>Annuler toutes les recettes forcées</button>
   </section>
 

@@ -1,0 +1,145 @@
+// Progression du joueur (arbre de recherche, machines possédées) et « Ma partie »
+// (pollution, argent, RP, RP/s). Persistance locale + rendu HTML (pur).
+
+import type { GameData } from "../engine/data.ts";
+import type { ResearchCategory } from "../engine/types.ts";
+import { isNodeUnlocked, nodeDepths, type Progress } from "../engine/unlock.ts";
+import { esc, fmt } from "./format.ts";
+
+// ---------------------------------------------------------------- état
+
+export type ProgressState = { unlocked: string[]; reqItemsDone: string[]; owned: string[] };
+export type PlayerInfo = { pollutionPct: number | null; money: number | null; rp: number | null; rpPerSec: number | null };
+
+const KEY_PROGRESS = "ind-calc:v1:progress";
+const KEY_PLAYER = "ind-calc:v1:player";
+
+export const EMPTY_PROGRESS: ProgressState = { unlocked: [], reqItemsDone: [], owned: [] };
+export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null };
+
+const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
+const numOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
+
+export function loadProgress(): ProgressState {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY_PROGRESS) ?? "null");
+    if (!raw || typeof raw !== "object") return { ...EMPTY_PROGRESS };
+    return { unlocked: strings(raw.unlocked), reqItemsDone: strings(raw.reqItemsDone), owned: strings(raw.owned) };
+  } catch {
+    return { ...EMPTY_PROGRESS };
+  }
+}
+export function saveProgress(p: ProgressState): void {
+  try {
+    localStorage.setItem(KEY_PROGRESS, JSON.stringify(p));
+  } catch {
+    // stockage indisponible : la progression vaut pour la session seulement
+  }
+}
+export function loadPlayer(): PlayerInfo {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
+    if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
+    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec) };
+  } catch {
+    return { ...EMPTY_PLAYER };
+  }
+}
+export function savePlayer(p: PlayerInfo): void {
+  try {
+    localStorage.setItem(KEY_PLAYER, JSON.stringify(p));
+  } catch {
+    // idem
+  }
+}
+
+/** Ne garde que les ids qui existent encore dans les données (après une mise à jour du wiki). */
+export function sanitizeProgress(data: GameData, p: ProgressState): ProgressState {
+  return {
+    unlocked: p.unlocked.filter((id) => data.nodes.has(id)),
+    reqItemsDone: p.reqItemsDone.filter((id) => data.nodes.has(id)),
+    owned: p.owned.filter((id) => data.machines.has(id)),
+  };
+}
+
+export function toEngineProgress(p: ProgressState): Progress {
+  return { unlocked: new Set(p.unlocked), reqItemsDone: new Set(p.reqItemsDone), owned: new Set(p.owned) };
+}
+
+/** Saisie facultative : vide → null ; virgule décimale acceptée. */
+export function parseOptional(raw: string): number | null | "invalide" {
+  const t = raw.trim().replace(/\s/g, "").replace(",", ".");
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : "invalide";
+}
+
+// ---------------------------------------------------------------- rendu
+
+export type TreeView = { category: ResearchCategory; filter: string };
+
+export function progressSummary(data: GameData, p: Progress): string {
+  const nodes = [...data.nodes.values()].filter((n) => !n.isRoot);
+  const done = nodes.filter((n) => p.unlocked.has(n.id));
+  const rp = done.reduce((s, n) => s + n.rp, 0);
+  return `${done.length} / ${nodes.length} recherches débloquées · ${fmt(rp, 0)} RP investis`;
+}
+
+export function renderTree(data: GameData, p: Progress, view: TreeView): string {
+  const depth = nodeDepths(data);
+  const q = view.filter.trim().toLowerCase();
+  const machineName = (id: string) => data.machines.get(id)?.name ?? id;
+  const itemName = (id: string) => data.items.get(id)?.name ?? id;
+  const nodeName = (id: string) => data.nodes.get(id)?.name ?? id;
+  const nodes = [...data.nodes.values()]
+    .filter((n) => n.category === view.category && !n.isRoot)
+    .filter((n) => !q || n.name.toLowerCase().includes(q) || n.unlocksMachines.some((m) => machineName(m).toLowerCase().includes(q)))
+    .sort((a, b) => depth.get(a.id)! - depth.get(b.id)! || a.name.localeCompare(b.name));
+  if (!nodes.length) return `<p class="muted">Aucune recherche ne correspond.</p>`;
+
+  const levels = new Map<number, string[]>();
+  for (const n of nodes) {
+    const unlocked = p.unlocked.has(n.id);
+    const parentsOk = n.requires === "any" ? n.parents.some((x) => isNodeUnlocked(data, p, x)) : n.parents.every((x) => isNodeUnlocked(data, p, x));
+    const missingParents = n.parents.filter((x) => !isNodeUnlocked(data, p, x));
+    const state = unlocked ? (parentsOk ? "done" : "incoherent") : parentsOk ? "available" : "locked";
+    const stateLabel = { done: "débloquée", incoherent: "cochée, mais un prérequis ne l'est pas", available: "disponible", locked: "verrouillée" }[state];
+    const machines = n.unlocksMachines.map(machineName);
+    const parentsText = n.parents.length
+      ? `Requiert ${n.requires === "any" && n.parents.length > 1 ? "l'un de" : ""} : ${n.parents
+          .map((x) => `<span class="${missingParents.includes(x) ? "miss" : ""}">${esc(nodeName(x))}</span>`)
+          .join(n.requires === "any" ? " ou " : " + ")}`
+      : "";
+    const req = n.reqItems.length
+      ? `<label class="req"><input type="checkbox" data-req="${esc(n.id)}"${p.reqItemsDone?.has(n.id) ? " checked" : ""}> Vendre ${n.reqItems
+          .map((r) => `${r.amount} ${esc(itemName(r.item))}`)
+          .join(" + ")}</label>`
+      : "";
+    const row = `<li class="node ${state}">
+      <label class="node-main"><input type="checkbox" data-node="${esc(n.id)}"${unlocked ? " checked" : ""} aria-describedby="nd-${esc(n.id)}">
+        <span class="node-name">${esc(n.name)}</span><span class="node-rp num">${fmt(n.rp, 0)} RP</span></label>
+      <div class="node-meta" id="nd-${esc(n.id)}"><span class="sr-only">${stateLabel}. </span>${machines.length ? `<span>Débloque : ${esc(machines.join(", "))}</span>` : ""}${
+        n.unlocksOther.length ? `<span class="muted">${esc(n.unlocksOther.join(", "))}</span>` : ""
+      }${parentsText ? `<span>${parentsText}</span>` : ""}${state === "incoherent" ? `<span class="warn-text">⚠ prérequis non coché</span>` : ""}</div>
+      ${req}</li>`;
+    const d = depth.get(n.id)!;
+    if (!levels.has(d)) levels.set(d, []);
+    levels.get(d)!.push(row);
+  }
+  return [...levels]
+    .map(([d, rows]) => `<div class="level"><h4 class="eyebrow">Palier ${d}</h4><ul class="nodes">${rows.join("")}</ul></div>`)
+    .join("");
+}
+
+/** Machines qu'aucun nœud ne débloque (Limited, variantes) : à cocher si on les possède. */
+export function renderOwned(data: GameData, p: Progress): string {
+  const list = [...data.machines.values()].filter((m) => m.unlockedBy === null).sort((a, b) => a.name.localeCompare(b.name));
+  if (!list.length) return "";
+  return `<ul class="owned">${list
+    .map(
+      (m) => `<li><label><input type="checkbox" data-owned="${esc(m.id)}"${p.owned?.has(m.id) ? " checked" : ""}> ${esc(m.name)}${
+        m.variantOf ? ` <span class="muted">(variante de ${esc(data.machines.get(m.variantOf)?.name ?? m.variantOf)})</span>` : ""
+      }${m.limited ? ` <span class="muted">· Limited</span>` : ""}</label></li>`,
+    )
+    .join("")}</ul>`;
+}

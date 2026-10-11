@@ -129,8 +129,14 @@ describe("vraies données (Miraheze)", () => {
     const plan = solve(real, progress(), { item: "crankshaft", ratePerMin: 10 });
     expect(plan.status).toBe("impossible");
     expect(plan.unresolved[0]?.reason).toBe("verrouillé");
-    expect(plan.economy.nodesToUnlock.length).toBeGreaterThan(0);
-    expect(plan.economy.rpNeeded).toBeGreaterThan(0);
+    // Toute la chaîne, pas seulement la machine du Crankshaft : l'acier (Blast Furnace) en fait partie.
+    expect(plan.economy.nodesToUnlock).toEqual(expect.arrayContaining(["craft-assembler", "steel"]));
+    expect(plan.economy.rpNeeded).toBeGreaterThan(real.nodes.get("craft-assembler")!.rp);
+    // Et cette liste suffit : une fois cochée, le plan est complet.
+    const unlocked = progress(plan.economy.nodesToUnlock);
+    const after = solve(real, unlocked, { item: "crankshaft", ratePerMin: 10 });
+    expect(after.status).toBe("ok");
+    expect(after.economy.nodesToUnlock).toEqual([]);
   });
 
   it("le moteur ne plante sur aucun item, quels que soient le critère et l'option", () => {

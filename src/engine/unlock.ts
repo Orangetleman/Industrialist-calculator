@@ -109,6 +109,41 @@ export function unlockUpTo(data: GameData, progress: Progress, nodeId: string): 
   return next;
 }
 
+/** Profondeur de chaque nœud (plus long chemin depuis la racine de sa catégorie). */
+export function nodeDepths(data: GameData): Map<string, number> {
+  const depth = new Map<string, number>();
+  const visit = (id: string, seen: Set<string>): number => {
+    const known = depth.get(id);
+    if (known !== undefined) return known;
+    const n = data.nodes.get(id);
+    if (!n || !n.parents.length || seen.has(id)) return 0;
+    seen.add(id);
+    const d = 1 + Math.max(...n.parents.map((p) => visit(p, seen)));
+    seen.delete(id);
+    depth.set(id, d);
+    return d;
+  };
+  for (const id of data.nodes.keys()) depth.set(id, visit(id, new Set()));
+  return depth;
+}
+
+/** Nœuds cochés qui dépendent (directement ou non) de `nodeId` : à décocher avec lui. */
+export function dependentsOf(data: GameData, progress: Progress, nodeId: string): string[] {
+  const out = new Set<string>();
+  const stack = [...(data.nodes.get(nodeId)?.children ?? [])];
+  while (stack.length) {
+    const id = stack.pop()!;
+    if (out.has(id)) continue;
+    const n = data.nodes.get(id);
+    if (!n) continue;
+    // Avec « un seul parent requis », le nœud reste valide si un autre parent coché le porte.
+    if (n.requires === "any" && n.parents.some((p) => p !== nodeId && !out.has(p) && isNodeUnlocked(data, progress, p))) continue;
+    if (progress.unlocked.has(id)) out.add(id);
+    stack.push(...n.children);
+  }
+  return orderByDepth(data, [...out]);
+}
+
 /** Nœuds cochés dont un prérequis n'est pas coché (incohérence à signaler dans l'interface). */
 export function inconsistentNodes(data: GameData, progress: Progress): string[] {
   const out: string[] = [];

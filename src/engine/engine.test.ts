@@ -3,7 +3,7 @@ import { makeData, progress, SRC } from "../../tests/engine-helpers.ts";
 import { formulaSeconds, treeGrowthSeconds } from "./pollution.ts";
 import { solve } from "./solve.ts";
 import type { TreeGrowth, TreeGrowthFormula } from "./types.ts";
-import { inconsistentNodes, machineAccess, missingNodes, unlockUpTo } from "./unlock.ts";
+import { dependentsOf, inconsistentNodes, machineAccess, missingNodes, nodeDepths, unlockUpTo } from "./unlock.ts";
 
 const all = progress();
 const step = (plan: ReturnType<typeof solve>, item: string) => plan.steps.find((s) => s.item === item)!;
@@ -315,6 +315,18 @@ describe("recherche et déblocage", () => {
 
   it("« tout débloquer jusqu'à » coche le nœud et ses ancêtres", () => {
     expect([...unlockUpTo(data, progress(), "sell")].sort()).toEqual(["n1", "n2", "sell"]);
+  });
+
+  it("profondeur des nœuds (plus long chemin depuis la racine)", () => {
+    const d = nodeDepths(data);
+    expect([d.get("production"), d.get("n1"), d.get("n2"), d.get("sell"), d.get("both")]).toEqual([0, 1, 2, 3, 2]);
+  });
+
+  it("décocher un nœud : liste les nœuds cochés qui en dépendent", () => {
+    const p = progress(["n1", "n2", "sell", "cheap", "costly", "both", "either"]);
+    expect(dependentsOf(data, p, "n1")).toEqual(["n2", "sell"]);
+    expect(dependentsOf(data, p, "cheap")).toEqual(["both"]); // « either » reste porté par « costly »
+    expect(dependentsOf(data, p, "sell")).toEqual([]);
   });
 
   it("repère les nœuds cochés sans leurs prérequis", () => {
