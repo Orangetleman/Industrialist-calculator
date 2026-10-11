@@ -1,0 +1,4590 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-11T01:04:20.581Z",
+  "primary": "miraheze",
+  "counts": {
+   "nodes": 149,
+   "aVerifier": 24
+  }
+ },
+ "nodes": [
+  {
+   "id": "advanced-hv-power-controls",
+   "name": "Advanced HV Power Controls",
+   "category": "Energy",
+   "rp": 400000,
+   "children": [],
+   "parents": [
+    "hv-pole"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "HV Power Control",
+    "HV Power Dump"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-mv-pole",
+   "name": "Advanced MV Pole",
+   "category": "Energy",
+   "rp": 2500,
+   "children": [
+    "high-capacity-infrastructure"
+   ],
+   "parents": [
+    "mv-poles"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Advanced MV Pole"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-power-controls",
+   "name": "Advanced Power Controls",
+   "category": "Energy",
+   "rp": 35000,
+   "children": [],
+   "parents": [
+    "breaker-box"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Power Control",
+    "Power Dump"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "boiler",
+   "name": "Boiler",
+   "category": "Energy",
+   "rp": 1000,
+   "children": [
+    "geothermal-plant",
+    "electric-water-heater",
+    "gasoline-generator",
+    "diesel-generator",
+    "large-turbines",
+    "firebox"
+   ],
+   "parents": [
+    "coal-generator"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "boiler"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "breaker",
+   "name": "Breaker",
+   "category": "Energy",
+   "rp": 2500,
+   "children": [],
+   "parents": [
+    "medium-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Breaker"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "breaker-box",
+   "name": "Breaker Box",
+   "category": "Energy",
+   "rp": 35000,
+   "children": [
+    "advanced-power-controls"
+   ],
+   "parents": [
+    "high-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Breaker Box"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-generator",
+   "name": "Coal Generator",
+   "category": "Energy",
+   "rp": 100,
+   "children": [
+    "compact-coal-generator",
+    "boiler",
+    "turbines"
+   ],
+   "parents": [
+    "energy"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "coal-generator"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-power-plant",
+   "name": "Coal Power Plant",
+   "category": "Energy",
+   "rp": 1000000,
+   "children": [
+    "nuclear-power-plant"
+   ],
+   "parents": [
+    "large-scale-power-production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "heat-exchanger",
+    "polisher",
+    "steam-condenser",
+    "vertical-heat-exchanger",
+    "water-treatment-plant"
+   ],
+   "unlocksOther": [
+    "Coal Power Plant",
+    "Cooling Tower",
+    "Exhaust Stack"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "compact-coal-generator",
+   "name": "Compact Coal Generator",
+   "category": "Energy",
+   "rp": 350,
+   "children": [],
+   "parents": [
+    "coal-generator"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "compact-coal-power-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-generator",
+   "name": "Diesel Generator",
+   "category": "Energy",
+   "rp": 2500,
+   "children": [
+    "large-diesel-engine",
+    "modular-diesel-engines"
+   ],
+   "parents": [
+    "boiler"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "diesel-generator"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "double-mv-battery",
+   "name": "Double MV Battery",
+   "category": "Energy",
+   "rp": 3000,
+   "children": [
+    "hv-battery"
+   ],
+   "parents": [
+    "mv-battery"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Double MV Battery"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electric-water-heater",
+   "name": "Electric Water Heater",
+   "category": "Energy",
+   "rp": 8000,
+   "children": [],
+   "parents": [
+    "boiler"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Electric Water Heater"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "energy",
+   "name": "Energy",
+   "category": "Energy",
+   "rp": 0,
+   "children": [
+    "renewables",
+    "coal-generator",
+    "low-capacity-infrastructure"
+   ],
+   "parents": [],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "energy-storage",
+   "name": "Energy Storage",
+   "category": "Energy",
+   "rp": 10,
+   "children": [
+    "rusty-battery"
+   ],
+   "parents": [
+    "low-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "extreme-capacity-infrastructure",
+   "name": "Extreme Capacity Infrastructure",
+   "category": "Energy",
+   "rp": 100000,
+   "children": [
+    "power-rate-calculator-3",
+    "hv-pole",
+    "hv-battery-mk2"
+   ],
+   "parents": [
+    "hmv-tower"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "firebox",
+   "name": "Firebox",
+   "category": "Energy",
+   "rp": 500,
+   "children": [],
+   "parents": [
+    "boiler",
+    "turbines"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "firebox"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "gas-burner",
+   "name": "Gas Burner",
+   "category": "Energy",
+   "rp": 20000,
+   "children": [
+    "large-scale-power-production"
+   ],
+   "parents": [
+    "large-turbines"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "gas-burner"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gasoline-generator",
+   "name": "Gasoline Generator",
+   "category": "Energy",
+   "rp": 500,
+   "children": [],
+   "parents": [
+    "boiler"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "gasoline-generator"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "geothermal-plant",
+   "name": "Geothermal Plant",
+   "category": "Energy",
+   "rp": 1500,
+   "children": [],
+   "parents": [
+    "boiler"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "geothermal-well"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hand-crank",
+   "name": "Hand Crank",
+   "category": "Energy",
+   "rp": 10,
+   "children": [],
+   "parents": [
+    "renewables"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Hand Crank",
+    "Hand Pump"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "high-capacity-infrastructure",
+   "name": "High Capacity Infrastructure",
+   "category": "Energy",
+   "rp": 10000,
+   "children": [
+    "power-rate-calculator-2",
+    "hmv-tower",
+    "breaker-box",
+    "hv-battery"
+   ],
+   "parents": [
+    "advanced-mv-pole"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hmv-tower",
+   "name": "HMV Tower",
+   "category": "Energy",
+   "rp": 13500,
+   "children": [
+    "extreme-capacity-infrastructure"
+   ],
+   "parents": [
+    "high-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "HMVT"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-battery",
+   "name": "HV Battery",
+   "category": "Energy",
+   "rp": 30000,
+   "children": [
+    "hv-battery-mk2"
+   ],
+   "parents": [
+    "double-mv-battery",
+    "high-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "HV Battery"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "hv-battery-mk2",
+   "name": "HV battery MK2",
+   "category": "Energy",
+   "rp": 200001,
+   "children": [],
+   "parents": [
+    "hv-battery",
+    "extreme-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "HV Battery MK2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "hv-pole",
+   "name": "HV Pole",
+   "category": "Energy",
+   "rp": 150000,
+   "children": [
+    "advanced-hv-power-controls"
+   ],
+   "parents": [
+    "extreme-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "HV Pole",
+    "HV Transformer"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-diesel-engine",
+   "name": "Large Diesel Engine",
+   "category": "Energy",
+   "rp": 13500,
+   "children": [
+    "large-scale-power-production"
+   ],
+   "parents": [
+    "diesel-generator"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "large-diesel-engine"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-scale-power-production",
+   "name": "Large Scale Power Production",
+   "category": "Energy",
+   "rp": 500000,
+   "children": [
+    "coal-power-plant",
+    "modular-turbines"
+   ],
+   "parents": [
+    "large-diesel-engine",
+    "modular-diesel-engines",
+    "gas-burner"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "3 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "large-turbines",
+   "name": "Large Turbines",
+   "category": "Energy",
+   "rp": 1500,
+   "children": [
+    "gas-burner"
+   ],
+   "parents": [
+    "boiler",
+    "turbines"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Large Turbine"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "low-capacity-infrastructure",
+   "name": "Low Capacity Infrastructure",
+   "category": "Energy",
+   "rp": 5,
+   "children": [
+    "lv-pole",
+    "energy-storage"
+   ],
+   "parents": [
+    "energy"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lv-pole",
+   "name": "LV Pole",
+   "category": "Energy",
+   "rp": 10,
+   "children": [
+    "medium-capacity-infrastructure"
+   ],
+   "parents": [
+    "low-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "LV Pole"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "medium-capacity-infrastructure",
+   "name": "Medium Capacity Infrastructure",
+   "category": "Energy",
+   "rp": 1000,
+   "children": [
+    "power-rate-calculator",
+    "mv-poles",
+    "breaker",
+    "mv-battery"
+   ],
+   "parents": [
+    "lv-pole"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "modular-diesel-engines",
+   "name": "Modular Diesel Engines",
+   "category": "Energy",
+   "rp": 30000,
+   "children": [
+    "large-scale-power-production"
+   ],
+   "parents": [
+    "diesel-generator"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Diesel Engine Controller",
+    "Diesel Engine Crankshaft",
+    "Diesel Engine Cylinder",
+    "Diesel Engine Fuel Input",
+    "Diesel Engine Air Input",
+    "Diesel Engine Generator",
+    "Diesel Engine Exhaust",
+    "Diesel Engine Decoration",
+    "Diesel Engine Crankshaft Sideways",
+    "Diesel Engine Info Panel",
+    "Diesel Engine Flywheel",
+    "Diesel Engine Flywheel"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "modular-turbines",
+   "name": "Modular Turbines",
+   "category": "Energy",
+   "rp": 1000000,
+   "children": [
+    "nuclear-power-plant"
+   ],
+   "parents": [
+    "large-scale-power-production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "High Pressure Turbine",
+    "Intermediate Pressure Turbine",
+    "Low Pressure Turbine",
+    "Turbine Generator",
+    "Turbine Input",
+    "Turbine Output"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mv-battery",
+   "name": "MV Battery",
+   "category": "Energy",
+   "rp": 1500,
+   "children": [
+    "double-mv-battery"
+   ],
+   "parents": [
+    "medium-capacity-infrastructure",
+    "rusty-battery"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "MV Battery"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "mv-poles",
+   "name": "MV Poles",
+   "category": "Energy",
+   "rp": 1000,
+   "children": [
+    "advanced-mv-pole"
+   ],
+   "parents": [
+    "medium-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "MV Pole",
+    "Small MV Pole"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "nuclear-power-plant",
+   "name": "Nuclear Power Plant",
+   "category": "Energy",
+   "rp": 5001984,
+   "children": [],
+   "parents": [
+    "coal-power-plant",
+    "modular-turbines"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Nuclear Power Plant"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "power-rate-calculator",
+   "name": "Power Rate Calculator",
+   "category": "Energy",
+   "rp": 2500,
+   "children": [],
+   "parents": [
+    "medium-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Power Rate Calculator"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator-2",
+   "name": "Power Rate Calculator 2",
+   "category": "Energy",
+   "rp": 45000,
+   "children": [],
+   "parents": [
+    "high-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Power Rate Calculator2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator-3",
+   "name": "Power Rate Calculator 3",
+   "category": "Energy",
+   "rp": 400000,
+   "children": [],
+   "parents": [
+    "extreme-capacity-infrastructure"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Power Rate Calculator3"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "renewables",
+   "name": "Renewables",
+   "category": "Energy",
+   "rp": 0,
+   "children": [
+    "hand-crank",
+    "solar-panel-1",
+    "wind-turbine-1"
+   ],
+   "parents": [
+    "energy"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-battery",
+   "name": "Rusty Battery",
+   "category": "Energy",
+   "rp": 25,
+   "children": [
+    "mv-battery"
+   ],
+   "parents": [
+    "energy-storage"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Rusty Battery"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-farm-1",
+   "name": "Solar Farm 1",
+   "category": "Energy",
+   "rp": 50000,
+   "children": [],
+   "parents": [
+    "solar-panel-3"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Solar Farm1"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-panel-1",
+   "name": "Solar Panel 1",
+   "category": "Energy",
+   "rp": 30,
+   "children": [
+    "solar-panel-2"
+   ],
+   "parents": [
+    "renewables"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Solar Panel"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-panel-2",
+   "name": "Solar Panel 2",
+   "category": "Energy",
+   "rp": 250,
+   "children": [
+    "solar-panel-3"
+   ],
+   "parents": [
+    "solar-panel-1"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Solar Panel2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-panel-3",
+   "name": "Solar Panel 3",
+   "category": "Energy",
+   "rp": 7500,
+   "children": [
+    "solar-farm-1"
+   ],
+   "parents": [
+    "solar-panel-2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Solar Panel3"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "turbines",
+   "name": "Turbines",
+   "category": "Energy",
+   "rp": 100,
+   "children": [
+    "large-turbines",
+    "firebox"
+   ],
+   "parents": [
+    "coal-generator"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Steam Turbine"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine-1",
+   "name": "Wind Turbine 1",
+   "category": "Energy",
+   "rp": 25,
+   "children": [
+    "wind-turbine-2"
+   ],
+   "parents": [
+    "renewables"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Wind Turbine1"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine-2",
+   "name": "Wind Turbine 2",
+   "category": "Energy",
+   "rp": 500,
+   "children": [
+    "wind-turbine-3"
+   ],
+   "parents": [
+    "wind-turbine-1"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Wind Turbine2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine-3",
+   "name": "Wind Turbine 3",
+   "category": "Energy",
+   "rp": 15000,
+   "children": [],
+   "parents": [
+    "wind-turbine-2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Wind Turbine3"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-assembler",
+   "name": "Advanced Assembler",
+   "category": "Production",
+   "rp": 100000,
+   "children": [
+    "logic-assembler"
+   ],
+   "parents": [
+    "industrial-plastic-molding"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "advanced-assembler"
+   ],
+   "unlocksOther": [],
+   "reqItems": [
+    {
+     "item": "crankshaft",
+     "amount": 20
+    }
+   ],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-chemical-plant",
+   "name": "Advanced Chemical Plant",
+   "category": "Production",
+   "rp": 2000000,
+   "children": [],
+   "parents": [
+    "research-station-4"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "chemical-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-coal-extraction",
+   "name": "Advanced Coal Extraction",
+   "category": "Production",
+   "rp": 1000,
+   "children": [
+    "mineshaft-drill"
+   ],
+   "parents": [
+    "research-station-2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "advanced-coal-drill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-copper-extraction",
+   "name": "Advanced Copper Extraction",
+   "category": "Production",
+   "rp": 350,
+   "children": [
+    "mineshaft-drill"
+   ],
+   "parents": [
+    "research-station-2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "advanced-copper-drill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-oil-refining",
+   "name": "Advanced Oil Refining",
+   "category": "Production",
+   "rp": 25000,
+   "children": [
+    "chemical-reactor"
+   ],
+   "parents": [
+    "diesel-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "advanced-oil-separator",
+    "coal-liquefaction-plant",
+    "industrial-oil-separator"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-oxidation-plant",
+   "name": "Advanced Oxidation Plant",
+   "category": "Production",
+   "rp": 1500000,
+   "children": [],
+   "parents": [
+    "air-separation-unit"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "advanced-oxidation-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-processing",
+   "name": "Advanced Processing",
+   "category": "Production",
+   "rp": 5000,
+   "children": [
+    "industrial-electric-furnace",
+    "industrial-roller",
+    "alloyer",
+    "pressurized-water-filter"
+   ],
+   "parents": [
+    "industrial-firebox"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "air-separation-unit",
+   "name": "Air Separation Unit",
+   "category": "Production",
+   "rp": 125000,
+   "children": [
+    "advanced-oxidation-plant"
+   ],
+   "parents": [
+    "lng-plant",
+    "plastic-molding"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "air-separation-unit",
+    "vaporizer"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "alloyer",
+   "name": "Alloyer",
+   "category": "Production",
+   "rp": 32000,
+   "children": [
+    "gold-acid-refinery"
+   ],
+   "parents": [
+    "advanced-processing"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "alloyer"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "blast-furnace-mk2",
+   "name": "Blast Furnace MK2",
+   "category": "Production",
+   "rp": 50000,
+   "children": [],
+   "parents": [
+    "press-mk2",
+    "roller-mk2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "blast-furnace-mk2"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "brick-production",
+   "name": "Brick Production",
+   "category": "Production",
+   "rp": 1500,
+   "children": [
+    "concrete-production"
+   ],
+   "parents": [
+    "quarry"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "concrete-plant",
+    "kiln"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "centrifuge",
+   "name": "Centrifuge",
+   "category": "Production",
+   "rp": 4000000,
+   "children": [],
+   "parents": [
+    "ore-enrichment-facility"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "gas-centrifuge"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "charger",
+   "name": "Charger",
+   "category": "Production",
+   "rp": 100002,
+   "children": [
+    "logic-assembler"
+   ],
+   "parents": [
+    "lithium"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "battery-charger"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "chemical-reactor",
+   "name": "Chemical Reactor",
+   "category": "Production",
+   "rp": 80000,
+   "children": [],
+   "parents": [
+    "industrial-diesel-refining",
+    "advanced-oil-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "chemical-reactor"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "coal-extracting",
+   "name": "Coal Extracting",
+   "category": "Production",
+   "rp": 10,
+   "children": [
+    "copper-extracting",
+    "oil-extraction"
+   ],
+   "parents": [
+    "production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "coal-drill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "concrete-production",
+   "name": "Concrete Production",
+   "category": "Production",
+   "rp": 1500,
+   "children": [
+    "radioactive-waste-storage"
+   ],
+   "parents": [
+    "brick-production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-kiln",
+    "raw-mill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-extracting",
+   "name": "Copper Extracting",
+   "category": "Production",
+   "rp": 50,
+   "children": [
+    "electric-furnace-and-molding"
+   ],
+   "parents": [
+    "coal-extracting"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "copper-drill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "craft-assembler",
+   "name": "Craft Assembler",
+   "category": "Production",
+   "rp": 3000,
+   "children": [],
+   "parents": [
+    "sawmill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "craft-assembler"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-refining",
+   "name": "Diesel Refining",
+   "category": "Production",
+   "rp": 750,
+   "children": [
+    "quarry",
+    "industrial-diesel-refining",
+    "advanced-oil-refining",
+    "natural-gas-well",
+    "research-station-3"
+   ],
+   "parents": [
+    "oil-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "diesel-refinery"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electric-furnace-and-molding",
+   "name": "Electric Furnace & Molding",
+   "category": "Production",
+   "rp": 50,
+   "children": [
+    "iron-extracting",
+    "press"
+   ],
+   "parents": [
+    "copper-extracting"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "electric-furnace",
+    "ingot-molder"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electrolysis-plant",
+   "name": "Electrolysis Plant",
+   "category": "Production",
+   "rp": 290000,
+   "children": [
+    "ore-enrichment-facility"
+   ],
+   "parents": [
+    "mineshaft-drill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "electrolysis-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "foundry",
+   "name": "Foundry",
+   "category": "Production",
+   "rp": 100000,
+   "children": [
+    "ore-enrichment-facility"
+   ],
+   "parents": [
+    "mineshaft-drill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "foundry"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gas-refining",
+   "name": "Gas Refining",
+   "category": "Production",
+   "rp": 8000,
+   "children": [
+    "large-oil-rig",
+    "lng-plant"
+   ],
+   "parents": [
+    "natural-gas-well"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "condenser",
+    "gas-refinery"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-acid-refinery",
+   "name": "Gold Acid Refinery",
+   "category": "Production",
+   "rp": 15000,
+   "children": [
+    "lithium",
+    "research-station-4"
+   ],
+   "parents": [
+    "alloyer",
+    "pressurized-water-filter"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "gold-acid-refinery"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "gold-refining",
+   "name": "Gold Refining",
+   "category": "Production",
+   "rp": 20000,
+   "children": [
+    "lithium",
+    "research-station-4"
+   ],
+   "parents": [
+    "industrial-electric-furnace",
+    "industrial-roller"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "trommel"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "grinder",
+   "name": "Grinder",
+   "category": "Production",
+   "rp": 1000,
+   "children": [],
+   "parents": [
+    "sawmill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "grinder"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "grinder-mk2",
+   "name": "Grinder MK2",
+   "category": "Production",
+   "rp": 40000,
+   "children": [],
+   "parents": [
+    "press-mk2",
+    "roller-mk2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "grinder-mk2"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "industrial-diesel-refining",
+   "name": "Industrial Diesel Refining",
+   "category": "Production",
+   "rp": 40000,
+   "children": [
+    "chemical-reactor",
+    "oil-fracking"
+   ],
+   "parents": [
+    "diesel-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-diesel-refinery"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-electric-furnace",
+   "name": "Industrial Electric Furnace",
+   "category": "Production",
+   "rp": 20000,
+   "children": [
+    "gold-refining"
+   ],
+   "parents": [
+    "advanced-processing"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-electric-furnace"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-firebox",
+   "name": "Industrial Firebox",
+   "category": "Production",
+   "rp": 10000,
+   "children": [
+    "advanced-processing"
+   ],
+   "parents": [
+    "quarry"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-firebox"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-plastic-molding",
+   "name": "Industrial Plastic Molding",
+   "category": "Production",
+   "rp": 50000,
+   "children": [
+    "advanced-assembler"
+   ],
+   "parents": [
+    "plastic-molding"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-plastic-molder"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-roller",
+   "name": "Industrial Roller",
+   "category": "Production",
+   "rp": 10000,
+   "children": [
+    "gold-refining"
+   ],
+   "parents": [
+    "advanced-processing"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-roller"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-sawmill",
+   "name": "Industrial Sawmill",
+   "category": "Production",
+   "rp": 12000,
+   "children": [],
+   "parents": [
+    "sawmill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "industrial-sawmill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-extracting",
+   "name": "Iron Extracting",
+   "category": "Production",
+   "rp": 250,
+   "children": [
+    "research-station-2"
+   ],
+   "parents": [
+    "electric-furnace-and-molding"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "iron-drill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-oil-rig",
+   "name": "Large Oil Rig",
+   "category": "Production",
+   "rp": 20000,
+   "children": [],
+   "parents": [
+    "oil-fracking",
+    "gas-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "large-pumpjack"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "lithium",
+   "name": "Lithium",
+   "category": "Production",
+   "rp": 100000,
+   "children": [
+    "charger"
+   ],
+   "parents": [
+    "gold-refining",
+    "gold-acid-refinery"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "lithium-brine-extractor",
+    "lithium-ore-drill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "lng-plant",
+   "name": "LNG Plant",
+   "category": "Production",
+   "rp": 15000,
+   "children": [
+    "air-separation-unit"
+   ],
+   "parents": [
+    "gas-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "lng-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-assembler",
+   "name": "Logic Assembler",
+   "category": "Production",
+   "rp": 3000000,
+   "children": [],
+   "parents": [
+    "charger",
+    "precision-assembler",
+    "advanced-assembler"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "logic-assembler"
+   ],
+   "unlocksOther": [],
+   "reqItems": [
+    {
+     "item": "lithium-battery-pack",
+     "amount": 10
+    }
+   ],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "3 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "mineshaft-drill",
+   "name": "Mineshaft Drill",
+   "category": "Production",
+   "rp": 175000,
+   "children": [
+    "electrolysis-plant",
+    "foundry",
+    "press-mk2",
+    "roller-mk2",
+    "radioactive-waste-storage"
+   ],
+   "parents": [
+    "advanced-copper-extraction",
+    "advanced-coal-extraction",
+    "steel"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "lathe"
+   ],
+   "unlocksOther": [
+    "Mineshaft Drill"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "3 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "modular-tree-farm",
+   "name": "Modular Tree Farm",
+   "category": "Production",
+   "rp": 1000,
+   "children": [
+    "sawmill"
+   ],
+   "parents": [
+    "water-pump"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "tree"
+   ],
+   "unlocksOther": [
+    "Farm Harvester",
+    "Tree Farm Controller",
+    "Tree Farm Output",
+    "Tree Farm Sprinkler",
+    "Tree Farm Water Tank"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "natural-gas-well",
+   "name": "Natural Gas Well",
+   "category": "Production",
+   "rp": 15000,
+   "children": [
+    "gas-refining"
+   ],
+   "parents": [
+    "diesel-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "natural-gas-well"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "oil-extraction",
+   "name": "Oil Extraction",
+   "category": "Production",
+   "rp": 1500,
+   "children": [
+    "oil-refining"
+   ],
+   "parents": [
+    "coal-extracting",
+    "water-pump"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "oil-rig"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "oil-fracking",
+   "name": "Oil Fracking",
+   "category": "Production",
+   "rp": 60000,
+   "children": [
+    "large-oil-rig"
+   ],
+   "parents": [
+    "quarry",
+    "industrial-diesel-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "atmospheric-distillation-plant",
+    "oil-fracking-tower"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "oil-refining",
+   "name": "Oil Refining",
+   "category": "Production",
+   "rp": 1000,
+   "children": [
+    "diesel-refining"
+   ],
+   "parents": [
+    "oil-extraction"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "crude-oil-separator",
+    "liquid-boiler"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ore-enrichment-facility",
+   "name": "Ore Enrichment Facility",
+   "category": "Production",
+   "rp": 750000,
+   "children": [
+    "centrifuge"
+   ],
+   "parents": [
+    "electrolysis-plant",
+    "foundry"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "ore-enrichment-facility"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "paper-mill",
+   "name": "Paper Mill",
+   "category": "Production",
+   "rp": 2000,
+   "children": [],
+   "parents": [
+    "sawmill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "paper-mill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-molding",
+   "name": "Plastic Molding",
+   "category": "Production",
+   "rp": 7500,
+   "children": [
+    "air-separation-unit",
+    "industrial-plastic-molding",
+    "water-bottling"
+   ],
+   "parents": [
+    "plastics"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "plastic-molding-machine"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastics",
+   "name": "Plastics",
+   "category": "Production",
+   "rp": 25000,
+   "children": [
+    "plastic-molding"
+   ],
+   "parents": [
+    "research-station-3"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "oxidation-plant",
+    "plastic-production-facility",
+    "plastic-refinery",
+    "steam-cracking-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "precision-assembler",
+   "name": "Precision Assembler",
+   "category": "Production",
+   "rp": 500000,
+   "children": [
+    "logic-assembler"
+   ],
+   "parents": [
+    "research-station-4"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "precision-assembler"
+   ],
+   "unlocksOther": [],
+   "reqItems": [
+    {
+     "item": "purple-gold-ingot",
+     "amount": 40
+    }
+   ],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "press",
+   "name": "Press",
+   "category": "Production",
+   "rp": 150,
+   "children": [
+    "roller"
+   ],
+   "parents": [
+    "electric-furnace-and-molding"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "press"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "press-mk2",
+   "name": "Press MK2",
+   "category": "Production",
+   "rp": 40000,
+   "children": [
+    "grinder-mk2",
+    "blast-furnace-mk2"
+   ],
+   "parents": [
+    "mineshaft-drill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "press-mk2"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pressurized-water-filter",
+   "name": "Pressurized Water Filter",
+   "category": "Production",
+   "rp": 20000,
+   "children": [
+    "gold-acid-refinery"
+   ],
+   "parents": [
+    "advanced-processing"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "pressurized-water-filter"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "production",
+   "name": "Production",
+   "category": "Production",
+   "rp": 0,
+   "children": [
+    "coal-extracting",
+    "water-pump",
+    "research-station-1"
+   ],
+   "parents": [],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "quarry",
+   "name": "Quarry",
+   "category": "Production",
+   "rp": 350,
+   "children": [
+    "brick-production",
+    "industrial-firebox",
+    "oil-fracking"
+   ],
+   "parents": [
+    "diesel-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "quarry"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "radioactive-waste-storage",
+   "name": "Radioactive Waste Storage",
+   "category": "Production",
+   "rp": 250000,
+   "children": [],
+   "parents": [
+    "mineshaft-drill",
+    "concrete-production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Underground Waste Facility"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "research-station-1",
+   "name": "Research Station 1",
+   "category": "Production",
+   "rp": 10,
+   "children": [],
+   "parents": [
+    "production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Research Station1",
+    "Research Tracking Panel"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-station-2",
+   "name": "Research Station 2",
+   "category": "Production",
+   "rp": 750,
+   "children": [
+    "advanced-copper-extraction",
+    "advanced-coal-extraction",
+    "steel"
+   ],
+   "parents": [
+    "iron-extracting"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Research Station2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-station-3",
+   "name": "Research Station 3",
+   "category": "Production",
+   "rp": 15000,
+   "children": [
+    "plastics",
+    "satellite-dishes"
+   ],
+   "parents": [
+    "diesel-refining"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Research Station3"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-station-4",
+   "name": "Research Station 4",
+   "category": "Production",
+   "rp": 250000,
+   "children": [
+    "advanced-chemical-plant",
+    "precision-assembler"
+   ],
+   "parents": [
+    "gold-refining",
+    "gold-acid-refinery"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Research Station4"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "roller",
+   "name": "Roller",
+   "category": "Production",
+   "rp": 150,
+   "children": [],
+   "parents": [
+    "press"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "roller"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "roller-mk2",
+   "name": "Roller MK2",
+   "category": "Production",
+   "rp": 40000,
+   "children": [
+    "grinder-mk2",
+    "blast-furnace-mk2"
+   ],
+   "parents": [
+    "mineshaft-drill"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "roller-mk2"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "satellite-dishes",
+   "name": "Satellite Dishes",
+   "category": "Production",
+   "rp": 40000,
+   "children": [],
+   "parents": [
+    "research-station-3"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Satellite Dish Controller",
+    "Satellite Dish"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sawmill",
+   "name": "Sawmill",
+   "category": "Production",
+   "rp": 800,
+   "children": [
+    "craft-assembler",
+    "paper-mill",
+    "industrial-sawmill",
+    "grinder"
+   ],
+   "parents": [
+    "modular-tree-farm"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "sawmill"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steel",
+   "name": "Steel",
+   "category": "Production",
+   "rp": 3500,
+   "children": [
+    "mineshaft-drill"
+   ],
+   "parents": [
+    "research-station-2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "blast-furnace"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-bottling",
+   "name": "Water Bottling",
+   "category": "Production",
+   "rp": 5000,
+   "children": [],
+   "parents": [
+    "plastic-molding"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "bottling-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-filtering",
+   "name": "Water Filtering",
+   "category": "Production",
+   "rp": 2500,
+   "children": [],
+   "parents": [
+    "water-pump-2"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "filtration-plant"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-pump",
+   "name": "Water Pump",
+   "category": "Production",
+   "rp": 25,
+   "children": [
+    "oil-extraction",
+    "modular-tree-farm",
+    "water-pump-2"
+   ],
+   "parents": [
+    "production"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "water-pump"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-pump-2",
+   "name": "Water Pump 2",
+   "category": "Production",
+   "rp": 5000,
+   "children": [
+    "water-filtering"
+   ],
+   "parents": [
+    "water-pump"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "water-pump2"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-logic",
+   "name": "Advanced Logic",
+   "category": "Utility",
+   "rp": 15000,
+   "children": [],
+   "parents": [
+    "logic"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Logic Dabble",
+    "Color LED",
+    "Seven Segment Display",
+    "Logic Adder"
+   ],
+   "reqItems": [
+    {
+     "item": "8x-microchip",
+     "amount": 1
+    }
+   ],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "better-fluid-pipes",
+   "name": "Better Fluid Pipes",
+   "category": "Utility",
+   "rp": 1500,
+   "children": [
+    "better-intersection-pipes",
+    "long-fluid-pipes",
+    "large-liquid-pipes"
+   ],
+   "parents": [
+    "pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Tier_III; Fluid Pipe Junction2",
+    "Pipes#tabber-Tier_III; Fluid Pipe Section2",
+    "Pipes#tabber-Tier_III; Fluid Pipe Turn2",
+    "Pipes#tabber-Tier_III; Short Fluid Pipe2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "better-intersection-pipes",
+   "name": "Better Intersection Pipes",
+   "category": "Utility",
+   "rp": 2500,
+   "children": [
+    "valve-control"
+   ],
+   "parents": [
+    "intersection-pipes",
+    "better-fluid-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Intersections; Fluid Pipe Intersection",
+    "Pipes#tabber-Intersections; Pipe Intersection",
+    "Pipes#tabber-Intersections; Fluid Pipe And Item Intersection"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "requires",
+     "reason": "non-sourcé",
+     "detail": "2 parents ; règle « tous requis » déduite d'une capture du jeu (Oil Fracking), le wiki ne la précise pas"
+    }
+   ]
+  },
+  {
+   "id": "better-item-pipes",
+   "name": "Better Item Pipes",
+   "category": "Utility",
+   "rp": 1500,
+   "children": [
+    "long-pipes"
+   ],
+   "parents": [
+    "pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Tier_III; Pipe Junction2",
+    "Pipes#tabber-Tier_III; Pipe Section2",
+    "Pipes#tabber-Tier_III; Pipe Turn2",
+    "Pipes#tabber-Tier_III; Short Pipe2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "children",
+     "reason": "manquant",
+     "detail": "enfant « Better Intersecction Pipes » introuvable dans RS/Data"
+    }
+   ]
+  },
+  {
+   "id": "cold-bypass-pipe",
+   "name": "Cold Bypass Pipe",
+   "category": "Utility",
+   "rp": 2000,
+   "children": [],
+   "parents": [
+    "liquid-overflow-gate"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Special_Pipes; Cold Bypass Pipe"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-fluid-storage-silo",
+   "name": "Gold Fluid Storage Silo",
+   "category": "Utility",
+   "rp": 25000,
+   "children": [],
+   "parents": [
+    "medium-fluid-storage-silo"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Gold Fluid Storage Silo"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-item-storage-silo",
+   "name": "Gold Item Storage Silo",
+   "category": "Utility",
+   "rp": 25000,
+   "children": [],
+   "parents": [
+    "medium-item-storage-silo"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Gold Item Storage Silo"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "huge-truck-depot",
+   "name": "Huge Truck Depot",
+   "category": "Utility",
+   "rp": 5500,
+   "children": [],
+   "parents": [
+    "van-depot"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Huge Truck Depot"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "intersection-pipes",
+   "name": "Intersection Pipes",
+   "category": "Utility",
+   "rp": 250,
+   "children": [
+    "better-intersection-pipes"
+   ],
+   "parents": [
+    "pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Intersections; Rusty Fluid Pipe And Item Intersection",
+    "Pipes#tabber-Intersections; Rusty Fluid Pipe Intersection",
+    "Pipes#tabber-Intersections; Rusty Pipe Intersection"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "item-overflow-gate",
+   "name": "Item Overflow Gate",
+   "category": "Utility",
+   "rp": 1000,
+   "children": [],
+   "parents": [
+    "long-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Special_Pipes; Item Overflow Gate"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-liquid-pipes",
+   "name": "Large Liquid Pipes",
+   "category": "Utility",
+   "rp": 50000,
+   "children": [
+    "large-liquid-valve-control"
+   ],
+   "parents": [
+    "better-fluid-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Tier_IV; Large Fluid Pipe",
+    "Pipes#tabber-Special_Pipes; Large Fluid Pipe Conversion",
+    "Pipes#tabber-Special_Pipes; Long Fluid Pipe Fluid Passthrough",
+    "Pipes#tabber-Intersections; Large Fluid Pipe Intersection",
+    "Pipes#tabber-Special_Pipes; Large Fluid Pipe Fluid Passthrough",
+    "Pipes#tabber-Special_Pipes; Large Fluid Pipe Item Passthrough",
+    "Pipes#tabber-Tier_IV; Large Fluid Pipe Junction",
+    "Pipes#tabber-Tier_IV; Large Fluid Pipe Section",
+    "Pipes#tabber-Tier_IV; Large Fluid Pipe Turn",
+    "Pipes#tabber-Tier_IV; Long Large Fluid Pipe",
+    "Pipes#tabber-Tier_IV; Short Large Fluid Pipe"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-liquid-truck-depot",
+   "name": "Large Liquid Truck Depot",
+   "category": "Utility",
+   "rp": 15000,
+   "children": [],
+   "parents": [
+    "liquid-truck-depot"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Large Liquid Truck Depot"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-liquid-valve-control",
+   "name": "Large Liquid Valve Control",
+   "category": "Utility",
+   "rp": 50000,
+   "children": [],
+   "parents": [
+    "large-liquid-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Special_Pipes; Large Fluid Valve Control"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-burner-dump",
+   "name": "Liquid Burner (dump)",
+   "category": "Utility",
+   "rp": 1200,
+   "children": [],
+   "parents": [
+    "pollution"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Liquid Burner"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-overflow-gate",
+   "name": "Liquid Overflow Gate",
+   "category": "Utility",
+   "rp": 1000,
+   "children": [
+    "cold-bypass-pipe"
+   ],
+   "parents": [
+    "long-fluid-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Special_Pipes; Overflow Gate"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-truck-depot",
+   "name": "Liquid Truck Depot",
+   "category": "Utility",
+   "rp": 500,
+   "children": [
+    "large-liquid-truck-depot"
+   ],
+   "parents": [
+    "transportation"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Liquid Truck Depot"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic",
+   "name": "Logic",
+   "category": "Utility",
+   "rp": 2500,
+   "children": [
+    "advanced-logic"
+   ],
+   "parents": [
+    "utility"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "AND Gate",
+    "Logic Clock",
+    "Logic Item Pipe Valve",
+    "Logic Fluid Pipe Valve",
+    "Logic Knot",
+    "Logic Memory",
+    "Logic Relay",
+    "Logic Switch",
+    "NOT Gate",
+    "Resistor",
+    "White LED",
+    "XOR Gate",
+    "OR Gate",
+    "Pollution Gate",
+    "Logic Button",
+    "Logic Delay",
+    "Time Gate",
+    "Fluid Meter",
+    "Logic Breaker",
+    "NAND Gate",
+    "NOR Gate",
+    "Item Meter",
+    "Logic Pulse",
+    "Logic Pole",
+    "Huge Spotlight",
+    "Logic Random"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-fluid-pipes",
+   "name": "Long Fluid Pipes",
+   "category": "Utility",
+   "rp": 3000,
+   "children": [
+    "liquid-overflow-gate"
+   ],
+   "parents": [
+    "better-fluid-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Tier_III; Long Fluid Pipe2",
+    "Pipes#tabber-Tier_III; Fluid Pipe2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-pipes",
+   "name": "Long Pipes",
+   "category": "Utility",
+   "rp": 3000,
+   "children": [
+    "item-overflow-gate"
+   ],
+   "parents": [
+    "better-item-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Tier_III; Long Pipe2",
+    "Pipes#tabber-Tier_III; Pipe2"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "medium-fluid-storage-silo",
+   "name": "Medium Fluid Storage Silo",
+   "category": "Utility",
+   "rp": 1500,
+   "children": [
+    "gold-fluid-storage-silo"
+   ],
+   "parents": [
+    "small-fluid-storage-silo"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Medium Fluid Storage Silo"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "medium-item-storage-silo",
+   "name": "Medium Item Storage Silo",
+   "category": "Utility",
+   "rp": 1500,
+   "children": [
+    "gold-item-storage-silo"
+   ],
+   "parents": [
+    "small-item-storage-silo"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Medium Item Storage Silo"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipes",
+   "name": "Pipes",
+   "category": "Utility",
+   "rp": 50,
+   "children": [
+    "better-item-pipes",
+    "intersection-pipes",
+    "better-fluid-pipes"
+   ],
+   "parents": [
+    "utility"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Tier_I; Fluid Pipe Junction",
+    "Pipes#tabber-Tier_I; Fluid Pipe Section",
+    "Pipes#tabber-Tier_I; Fluid Pipe Turn",
+    "Pipes#tabber-Tier_I; Pipe Junction",
+    "Pipes#tabber-Tier_I; Pipe Section",
+    "Pipes#tabber-Tier_I; Pipe Turn",
+    "Pipes#tabber-Tier_I; Short Fluid Pipe",
+    "Pipes#tabber-Tier_I; Short Pipe"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pollution",
+   "name": "Pollution",
+   "category": "Utility",
+   "rp": 25,
+   "children": [
+    "liquid-burner-dump",
+    "scrubber"
+   ],
+   "parents": [
+    "utility"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pollution Meter",
+    "Liquid Dump"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "scrubber",
+   "name": "Scrubber",
+   "category": "Utility",
+   "rp": 9000,
+   "children": [],
+   "parents": [
+    "pollution"
+   ],
+   "requires": "all",
+   "unlocksMachines": [
+    "scrubber"
+   ],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "silos-and-tanks",
+   "name": "Silos & Tanks",
+   "category": "Utility",
+   "rp": 5,
+   "children": [
+    "small-item-storage-silo",
+    "small-fluid-storage-silo"
+   ],
+   "parents": [
+    "utility"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "small-fluid-storage-silo",
+   "name": "Small Fluid Storage Silo",
+   "category": "Utility",
+   "rp": 25,
+   "children": [
+    "medium-fluid-storage-silo"
+   ],
+   "parents": [
+    "silos-and-tanks"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Small Fluid Storage Silo"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "small-item-storage-silo",
+   "name": "Small Item Storage Silo",
+   "category": "Utility",
+   "rp": 10,
+   "children": [
+    "medium-item-storage-silo"
+   ],
+   "parents": [
+    "silos-and-tanks"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Small Item Storage Silo"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "transportation",
+   "name": "Transportation",
+   "category": "Utility",
+   "rp": 20,
+   "children": [
+    "liquid-truck-depot",
+    "truck-depot"
+   ],
+   "parents": [
+    "utility"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "truck-depot",
+   "name": "Truck Depot",
+   "category": "Utility",
+   "rp": 10,
+   "children": [
+    "van-depot"
+   ],
+   "parents": [
+    "transportation"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Truck Depot"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "utility",
+   "name": "Utility",
+   "category": "Utility",
+   "rp": 0,
+   "children": [
+    "pollution",
+    "logic",
+    "transportation",
+    "silos-and-tanks",
+    "pipes"
+   ],
+   "parents": [],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Time Tracker",
+    "Decoration",
+    "Metal Sign",
+    "Flag",
+    "Light2",
+    "Light",
+    "Inclined Light",
+    "Inclined Light2"
+   ],
+   "reqItems": [],
+   "isRoot": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "valve-control",
+   "name": "Valve Control",
+   "category": "Utility",
+   "rp": 500,
+   "children": [],
+   "parents": [
+    "better-intersection-pipes"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Pipes#tabber-Special_Pipes; Item Valve Control",
+    "Pipes#tabber-Special_Pipes; Valve Control",
+    "Pipes#tabber-Special_Pipes; Pipe Value"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "van-depot",
+   "name": "Van Depot",
+   "category": "Utility",
+   "rp": 250,
+   "children": [
+    "huge-truck-depot"
+   ],
+   "parents": [
+    "truck-depot"
+   ],
+   "requires": "all",
+   "unlocksMachines": [],
+   "unlocksOther": [
+    "Van Depot"
+   ],
+   "reqItems": [],
+   "isRoot": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+     "page": "Module:RS/Data",
+     "revisionId": 42735,
+     "fetchedAt": "2026-10-11T01:03:23.483Z"
+    }
+   ],
+   "verify": []
+  }
+ ]
+}

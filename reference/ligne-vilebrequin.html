@@ -1,0 +1,286 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Ligne Vilebrequin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: une colonne de travail — réglage, résumé, graphe, plan d'action de la fin vers la matière première, recettes */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#17212b; --muted:#5b6876; --line:#c9d1da;
+  --accent:#b4530a; --accent-soft:#f6e3d3; --steel:#2f5d7c; --steel-soft:#e1eaf1;
+  --ok:#2e7d4f; --warn:#a86a00;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171c; --surface:#1b222a; --ink:#e6ebf0; --muted:#9aa7b4; --line:#34404c;
+  --accent:#f0913a; --accent-soft:#3a2614; --steel:#8fb8d6; --steel-soft:#1f2d39;
+  --ok:#6cc792; --warn:#e3b25a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171c; --surface:#1b222a; --ink:#e6ebf0; --muted:#9aa7b4; --line:#34404c;
+  --accent:#f0913a; --accent-soft:#3a2614; --steel:#8fb8d6; --steel-soft:#1f2d39;
+  --ok:#6cc792; --warn:#e3b25a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:2rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.3rem;font-weight:600}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+section{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+
+/* réglage */
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.presets button{font:inherit;font-size:.9rem;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.presets button small{display:block;color:var(--muted);font-size:.75rem}
+.presets button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.presets button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
+.fields input,.fields select{font:inherit;font-family:var(--f-mono);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+
+/* résumé */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.stat .v{font-family:var(--f-mono);font-size:1.35rem;font-weight:500}
+.stat .k{font-size:.78rem;color:var(--muted)}
+
+/* graphe */
+.graph{overflow-x:auto}
+.graph svg{display:block;width:100%;max-width:560px;margin:0 auto;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:10px;border-radius:3px;display:inline-block}
+
+/* plan */
+ol.plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.step .n{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);padding-top:4px}
+.step .body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.step .top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px}
+.step h3{font-size:1.1rem;font-weight:600}
+.count{font-family:var(--f-mono);font-size:1.05rem;font-weight:500;color:var(--steel);background:var(--steel-soft);padding:2px 10px;border-radius:6px;white-space:nowrap}
+.meta{font-size:.84rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.recipe{font-family:var(--f-mono);font-size:.8rem;color:var(--ink);overflow-wrap:anywhere}
+.bar{height:6px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}
+.bar i.low{background:var(--warn)}
+.tag{font-size:.72rem;font-family:var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+
+/* notes & table */
+ul.notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;max-width:68ch}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.82rem;min-width:560px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:600;color:var(--muted)}
+td.num{white-space:nowrap}
+.src{font-size:.78rem;color:var(--muted)}
+.src a{color:var(--steel)}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .3s ease}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Industrialist · Roblox · ligne de production</div>
+    <h1>Ligne Vilebrequin</h1>
+    <p class="lead">Du Raw Iron, du Coal et des Oak Logs jusqu'au Crankshaft. Choisis la taille de la ligne : le graphe et le plan recalculent le nombre de machines à chaque étape.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="h-set">
+    <h2 id="h-set">Taille de la ligne</h2>
+    <div class="presets" role="group" aria-label="Configurations">
+      <button type="button" id="p4" data-a="4">Module compact<small>4 assembleurs · ≈14 /min</small></button>
+      <button type="button" id="p15" data-a="15">Ratio quasi parfait<small>15 assembleurs · ≈52 /min</small></button>
+      <button type="button" id="p30" data-a="30">Double ligne<small>30 assembleurs · ≈105 /min</small></button>
+    </div>
+    <div class="fields">
+      <label for="asm">Craft Assemblers
+        <input id="asm" type="number" min="1" max="200" step="1" value="15" inputmode="numeric">
+      </label>
+      <label for="cpm">ou vilebrequins par minute
+        <input id="cpm" type="number" min="0.1" step="0.1" value="52.33" inputmode="decimal">
+      </label>
+      <label for="mixm">Machine pour l'Iron Mix
+        <select id="mixm">
+          <option value="kiln">Industrial Kiln (ton croquis)</option>
+          <option value="bf">Blast Furnace (même débit, plus petit)</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-sum">
+    <h2 id="h-sum" class="eyebrow">Résumé</h2>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section aria-labelledby="h-graph">
+    <h2 id="h-graph">Graphe de production</h2>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--steel-soft);border:1px solid var(--steel)"></i>Nœud : item · machine × nombre · énergie de l'étape</span>
+      <span><i class="sw" style="background:var(--accent)"></i>Flèche : quantité qui circule, par minute</span>
+    </div>
+    <div class="graph panel" id="graph"></div>
+  </section>
+
+  <section aria-labelledby="h-plan">
+    <h2 id="h-plan">Plan d'action, de la fin vers la matière première</h2>
+    <ol class="plan" id="plan"></ol>
+  </section>
+
+  <section aria-labelledby="h-opt">
+    <h2 id="h-opt">Pourquoi ces ratios</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+
+  <section aria-labelledby="h-rec">
+    <h2 id="h-rec">Recettes utilisées</h2>
+    <div class="tablewrap panel"><table>
+      <thead><tr><th>Produit</th><th>Machine</th><th>Entrées → sorties</th><th>Durée</th><th>Énergie</th></tr></thead>
+      <tbody id="rec"></tbody>
+    </table></div>
+    <p class="src">Données relevées sur le wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a> et <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>), octobre 2026. Les recettes peuvent changer avec les mises à jour du jeu : vérifie dans le Recipe Book en cas d'écart.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+  // Recettes (par cycle). p = MF/s pendant le fonctionnement.
+  const R = {
+    crank:{name:"Crankshaft", m:"Craft Assembler", t:17.2, p:3488, inp:{rod:2,gear:4}, out:1},
+    rod:  {name:"Steel Rod", m:"Roller", t:8, p:6250, inp:{steel:2}, out:2},
+    gear: {name:"Gear", m:"Roller", t:8, p:750, inp:{plate:2}, out:2},
+    plate:{name:"Steel Plate", m:"Press", t:5.1, p:9804, inp:{steel:1}, out:1},
+    steel:{name:"Steel Ingot", m:"Blast Furnace", t:5, p:15000, inp:{coke:1.5,mix:19.2}, out:24},
+    mix:  {name:"Iron Mix", m:"Industrial Kiln", t:20, p:15000, inp:{coke:4,powder:19.2}, out:51.2},
+    powder:{name:"Iron Powder", m:"Grinder", t:12, p:33000, inp:{raw:3.2}, out:1.9},
+    coke: {name:"Coke Fuel", m:"Blast Furnace", t:5, p:15000, inp:{coal:4,oak:2}, out:6},
+    raw:  {name:"Raw Iron", m:"Iron Drill", t:15, p:1200, inp:{}, out:1},
+    coal: {name:"Coal", m:"Coal Drill", t:4, p:120, inp:{}, out:1},
+    oak:  {name:"Oak Log", m:"Arbre", t:345, p:0, inp:{}, out:2}
+  };
+  const MIX = {
+    kiln:{m:"Industrial Kiln", t:20, inp:{coke:4,powder:19.2}, out:51.2},
+    bf:  {m:"Blast Furnace", t:5, inp:{coke:1,powder:4.8}, out:12.8}
+  };
+  const ORDER = ["crank","rod","gear","plate","steel","mix","powder","coke","raw","coal","oak"];
+  const CRANK_RATE = 1/17.2; // par assembleur, /s
+
+  const $ = id => document.getElementById(id);
+  const fmt = (x,d=1) => (Math.round(x*10**d)/10**d).toLocaleString("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:d});
+  const mf = w => w>=1e6 ? fmt(w/1e6,2)+" MMF/s" : w>=1e3 ? fmt(w/1e3,1)+" kMF/s" : fmt(w,0)+" MF/s";
+  const ceilE = x => Math.ceil(x-1e-9);
+
+  function compute(cps, mixKey){
+    R.mix = Object.assign({}, R.mix, MIX[mixKey], {name:"Iron Mix", p:15000});
+    const dem = {}; ORDER.forEach(k=>dem[k]=0);
+    dem.crank = cps;
+    const st = {}, edges = [];
+    ORDER.forEach(k=>{
+      const r = R[k], perM = r.out/r.t, exact = dem[k]/perM, n = ceilE(exact);
+      st[k] = {exact, n, util: n? exact/n : 0, rate: dem[k], pAvg: exact*r.p, pMax: n*r.p};
+      for (const [i,q] of Object.entries(r.inp)){
+        const f = exact*q/r.t; dem[i]+=f; edges.push({from:i,to:k,f});
+      }
+    });
+    return {st, edges};
+  }
+
+  function render(){
+    const A = Math.max(0.01, parseFloat($("asm").value)||0);
+    const cps = A*CRANK_RATE;
+    const mixKey = $("mixm").value;
+    const {st, edges} = compute(cps, mixKey);
+    ["p4","p15","p30"].forEach(id=>$(id).setAttribute("aria-pressed", String(+$(id).dataset.a===A && Number.isInteger(A))));
+
+    // Résumé
+    const machines = ORDER.filter(k=>k!=="oak").reduce((s,k)=>s+st[k].n,0);
+    const pAvg = ORDER.reduce((s,k)=>s+st[k].pAvg,0), pMax = ORDER.reduce((s,k)=>s+st[k].pMax,0);
+    $("stats").innerHTML = [
+      [fmt(cps*60,1), "vilebrequins / min"],
+      [machines, "machines (hors arbres)"],
+      [mf(pAvg), "énergie moyenne consommée"],
+      [mf(pMax), "pic si tout tourne en même temps"]
+    ].map(([v,k])=>`<div class="stat"><span class="v">${v}</span><span class="k">${k}</span></div>`).join("");
+
+    // Graphe
+    const W=360, NW=112, NH=58, col={L:60,M:180,R:300}, row=[14,108,202,296,390,484,578];
+    const pos = {crank:["M",0],rod:["L",1],gear:["R",1],plate:["R",2],steel:["M",3],mix:["L",4],coke:["R",4],powder:["L",5],coal:["M",5],oak:["R",5],raw:["L",6]};
+    const P = k => ({x:col[pos[k][0]], y:row[pos[k][1]]});
+    let s = `<svg viewBox="0 0 ${W} 650" role="img" aria-label="Graphe de production du Crankshaft"><defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker></defs>`;
+    let labels="";
+    edges.forEach(e=>{
+      const a=P(e.from), b=P(e.to); let x1,y1,x2,y2;
+      if (pos[e.from][1]===pos[e.to][1]){ x1=a.x-NW/2; y1=a.y+NH/2; x2=b.x+NW/2+2; y2=b.y+NH/2; }
+      else { x1=a.x; y1=a.y; x2=b.x; y2=b.y+NH+2;
+        if (a.x!==b.x){ x1 += (b.x>a.x? 18:-18); } }
+      s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar)"/>`;
+      const mx=(x1+x2)/2, my=(y1+y2)/2, txt=fmt(e.f*60,1)+"/min", w=txt.length*5.6+10;
+      labels += `<rect x="${mx-w/2}" y="${my-8}" width="${w}" height="16" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width=".8"/><text x="${mx}" y="${my+3.5}" text-anchor="middle" font-family="var(--f-mono)" font-size="9.5" fill="var(--ink)">${txt}</text>`;
+    });
+    ORDER.forEach(k=>{
+      const {x,y}=P(k), r=R[k], t=st[k], raw = !Object.keys(r.inp).length;
+      const mline = k==="oak" ? `≈${t.n} arbres` : `${r.m} ×${t.n}`;
+      const pline = k==="oak" ? "selon la pollution" : mf(t.pAvg);
+      s += `<g><rect x="${x-NW/2}" y="${y}" width="${NW}" height="${NH}" rx="8" fill="${raw?'var(--bg)':'var(--steel-soft)'}" stroke="var(--steel)" stroke-width="${k==='crank'?2:1}"/>
+        <text x="${x}" y="${y+17}" text-anchor="middle" font-family="var(--f-display)" font-weight="600" font-size="12.5" fill="var(--ink)">${r.name}</text>
+        <text x="${x}" y="${y+33}" text-anchor="middle" font-family="var(--f-body)" font-size="10.5" fill="var(--steel)">${mline}</text>
+        <text x="${x}" y="${y+48}" text-anchor="middle" font-family="var(--f-mono)" font-size="9.5" fill="var(--muted)">${pline}</text></g>`;
+    });
+    s += labels + `</svg>`;
+    $("graph").innerHTML = s;
+
+    // Plan
+    const consumers = {}; edges.forEach(e=>{(consumers[e.from]=consumers[e.from]||[]).push(e)});
+    const inputsOf = {}; edges.forEach(e=>{(inputsOf[e.to]=inputsOf[e.to]||[]).push(e)});
+    const tags = {crank:"Produit final",raw:"Matière première",coal:"Matière première",oak:"Matière première"};
+    $("plan").innerHTML = ORDER.map((k,i)=>{
+      const r=R[k], t=st[k], u=Math.round(t.util*100);
+      const ins = (inputsOf[k]||[]).map(e=>`${fmt(e.f*60,1)} ${R[e.from].name}`).join(" + ");
+      const outs = (consumers[k]||[]).map(e=>`${fmt(e.f*60,1)} → ${R[e.to].name}`).join(" · ");
+      const recipe = Object.keys(r.inp).length
+        ? Object.entries(r.inp).map(([i,q])=>`${q}× ${R[i].name}`).join(" + ")+` → ${r.out}× ${r.name} · ${r.t} s`
+        : (k==="oak" ? "1 arbre → 2 Oak Logs toutes les ~345 s (plus lent si la pollution monte)" : `→ ${r.out}× ${r.name} toutes les ${r.t} s`);
+      const count = k==="oak" ? `≈${t.n} arbres` : `${t.n} × ${r.m}`;
+      return `<li class="step"><div class="n">${String(i+1).padStart(2,"0")}</div><div class="body">
+        ${tags[k]?`<span class="tag">${tags[k]}</span>`:""}
+        <div class="top"><h3>${r.name}</h3><span class="count">${count}</span></div>
+        <div class="recipe">${recipe}</div>
+        <div class="meta"><span>Produit : <b class="num">${fmt(t.rate*60,1)}/min</b></span>${ins?`<span>Consomme : <span class="num">${ins}</span> /min</span>`:""}${outs?`<span>Envoie : <span class="num">${outs}</span></span>`:""}${k!=="oak"?`<span>Énergie : <span class="num">${mf(t.pAvg)}</span> (pic ${mf(t.pMax)})</span>`:""}</div>
+        <div class="meta"><span>Calcul exact : <span class="num">${fmt(t.exact,2)}</span> → utilisation <span class="num">${u}%</span></span></div>
+        <div class="bar" aria-hidden="true"><i class="${u<60?'low':''}" style="width:${u}%"></i></div>
+      </div></li>`;
+    }).join("");
+
+    // Notes dynamiques
+    const capS = 4.8/(2*CRANK_RATE+4*CRANK_RATE);
+    $("notes").innerHTML = [
+      `Le goulot est côté Roller et Press. Un Craft Assembler consomme 0,93 Roller d'engrenages, 0,47 Roller de tiges et 1,19 Press. À 15 assembleurs on tombe sur 7 / 14 / 18 machines à plus de 98 % d'utilisation, d'où le préréglage.`,
+      `Garde toujours 2 Rollers à engrenages pour 1 Roller à tiges : les deux recettes ont la même vitesse et l'assembleur demande 4 Gears pour 2 Steel Rods.`,
+      `Un seul Blast Furnace d'acier peut alimenter environ ${fmt(capS,1)} Craft Assemblers. Il est donc presque toujours sous-utilisé ; c'est normal, il ne coûte rien de le laisser attendre.`,
+      `Pour l'Iron Mix, l'Industrial Kiln et le Blast Furnace ont exactement le même débit (2,56 Iron Mix/s) et la même consommation. Le Blast Furnace prend moins de place et pollue moins.`,
+      `Le Coke Fuel demande aussi du Coal (4 Coal + 2 Oak Logs), absent de ton croquis. Le coke est partagé moitié-moitié entre l'Iron Mix et l'acier.`,
+      `Les Iron Drills sont le plus gros poste (1 Raw Iron toutes les 15 s). Pour grossir la ligne, un Grinder MK2 ou une Mineshaft Drill réduira fortement ce nombre.`,
+      `Le nombre d'arbres est indicatif : un arbre pousse en ~345 s à pollution nulle et ralentit quand la pollution monte. Prévois de la marge.`
+    ].map(n=>`<li>${n}</li>`).join("");
+
+    // Table recettes
+    $("rec").innerHTML = ORDER.map(k=>{const r=R[k];
+      const io = Object.keys(r.inp).length ? Object.entries(r.inp).map(([i,q])=>`${q} ${R[i].name}`).join(" + ")+` → ${r.out} ${r.name}` : `→ ${r.out} ${r.name}`;
+      return `<tr><td>${r.name}</td><td>${r.m}</td><td class="mono">${io}</td><td class="num">${r.t} s</td><td class="num">${r.p?mf(r.p):"—"}</td></tr>`}).join("");
+    try{ localStorage.setItem("crank-line",JSON.stringify({a:$("asm").value,m:mixKey})); }catch(e){}
+  }
+
+  $("asm").addEventListener("input",()=>{ const A=parseFloat($("asm").value)||0; $("cpm").value = fmt(A*CRANK_RATE*60,2).replace(",","."); render(); });
+  $("cpm").addEventListener("input",()=>{ const c=parseFloat($("cpm").value)||0; $("asm").value = Math.max(1,Math.ceil(c/60/CRANK_RATE-1e-9)); render(); });
+  $("mixm").addEventListener("change",render);
+  document.querySelectorAll(".presets button").forEach(b=>b.addEventListener("click",()=>{ $("asm").value=b.dataset.a; $("asm").dispatchEvent(new Event("input")); }));
+  try{ const s=JSON.parse(localStorage.getItem("crank-line")||"null"); if(s){ $("asm").value=s.a; $("mixm").value=s.m; $("cpm").value=fmt(s.a*CRANK_RATE*60,2).replace(",","."); } }catch(e){}
+  render();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,30 @@
+{
+  "source": "reference/ligne-vilebrequin.html (objets R et MIX du script)",
+  "note": "Valeurs recopiées telles quelles depuis la référence. Elles ne sont PAS une source de données : certaines ne correspondent à aucun wiki (voir data/a-verifier.md). Cette fixture sert à tester le moteur.",
+  "recipes": [
+    { "key": "crank", "product": "Crankshaft", "machine": "Craft Assembler", "durationS": 17.2, "energyMFps": 3488, "inputs": { "Steel Rod": 2, "Gear": 4 }, "outputs": { "Crankshaft": 1 } },
+    { "key": "rod", "product": "Steel Rod", "machine": "Roller", "durationS": 8, "energyMFps": 6250, "inputs": { "Steel Ingot": 2 }, "outputs": { "Steel Rod": 2 } },
+    { "key": "gear", "product": "Gear", "machine": "Roller", "durationS": 8, "energyMFps": 750, "inputs": { "Steel Plate": 2 }, "outputs": { "Gear": 2 } },
+    { "key": "plate", "product": "Steel Plate", "machine": "Press", "durationS": 5.1, "energyMFps": 9804, "inputs": { "Steel Ingot": 1 }, "outputs": { "Steel Plate": 1 } },
+    { "key": "steel", "product": "Steel Ingot", "machine": "Blast Furnace", "durationS": 5, "energyMFps": 15000, "inputs": { "Coke Fuel": 1.5, "Iron Mix": 19.2 }, "outputs": { "Steel Ingot": 24 } },
+    { "key": "mix-kiln", "product": "Iron Mix", "machine": "Industrial Kiln", "durationS": 20, "energyMFps": 15000, "inputs": { "Coke Fuel": 4, "Iron Powder": 19.2 }, "outputs": { "Iron Mix": 51.2 } },
+    { "key": "mix-bf", "product": "Iron Mix", "machine": "Blast Furnace", "durationS": 5, "energyMFps": 15000, "inputs": { "Coke Fuel": 1, "Iron Powder": 4.8 }, "outputs": { "Iron Mix": 12.8 } },
+    { "key": "powder", "product": "Iron Powder", "machine": "Grinder", "durationS": 12, "energyMFps": 33000, "inputs": { "Raw Iron": 3.2 }, "outputs": { "Iron Powder": 1.9 } },
+    { "key": "coke", "product": "Coke Fuel", "machine": "Blast Furnace", "durationS": 5, "energyMFps": 15000, "inputs": { "Coal": 4, "Oak Log": 2 }, "outputs": { "Coke Fuel": 6 } },
+    { "key": "raw", "product": "Raw Iron", "machine": "Iron Drill", "durationS": 15, "energyMFps": 1200, "inputs": {}, "outputs": { "Raw Iron": 1 } },
+    { "key": "coal", "product": "Coal", "machine": "Coal Drill", "durationS": 4, "energyMFps": 120, "inputs": {}, "outputs": { "Coal": 1 } },
+    { "key": "oak", "product": "Oak Log", "machine": "Tree", "durationS": 345, "energyMFps": 0, "inputs": {}, "outputs": { "Oak Log": 2 } }
+  ],
+  "scenario": {
+    "description": "15 Craft Assemblers, Iron Mix à l'Industrial Kiln (réglage par défaut de la référence)",
+    "finalMachines": 15,
+    "ironMix": "mix-kiln",
+    "expected": {
+      "crankshaftPerMin": 52.3256,
+      "machines": { "crank": 15, "rod": 7, "gear": 14, "plate": 18, "steel": 2, "mix-kiln": 2, "powder": 10, "coke": 1, "raw": 40, "coal": 2, "oak": 38 },
+      "totalMachinesExcludingTrees": 111,
+      "energyAvgMFps": 704836,
+      "energyPeakMFps": 736282
+    }
+  }
+}

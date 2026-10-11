@@ -1,0 +1,3628 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-11T01:04:20.581Z",
+  "primary": "miraheze",
+  "counts": {
+   "items": 212,
+   "aVerifier": 2
+  }
+ },
+ "items": [
+  {
+   "id": "10-karat-gold",
+   "name": "10 Karat Gold",
+   "isFluid": false,
+   "sellValue": 300,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/10_Karat_Gold",
+     "page": "10 Karat Gold",
+     "revisionId": 40513,
+     "fetchedAt": "2026-10-11T01:03:43.091Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "12-karat-gold",
+   "name": "12 Karat Gold",
+   "isFluid": false,
+   "sellValue": 500,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/12_Karat_Gold",
+     "page": "12 Karat Gold",
+     "revisionId": 42782,
+     "fetchedAt": "2026-10-11T01:03:43.093Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "18-karat-gold",
+   "name": "18 Karat Gold",
+   "isFluid": false,
+   "sellValue": 800,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/18_Karat_Gold",
+     "page": "18 Karat Gold",
+     "revisionId": 40512,
+     "fetchedAt": "2026-10-11T01:03:43.093Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "24-karat-gold",
+   "name": "24 Karat Gold",
+   "isFluid": false,
+   "sellValue": 1200,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/24_Karat_Gold",
+     "page": "24 Karat Gold",
+     "revisionId": 40489,
+     "fetchedAt": "2026-10-11T01:03:43.094Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "2x-microchip",
+   "name": "2x Microchip",
+   "isFluid": false,
+   "sellValue": 4000,
+   "researchValue": "1-300",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Microchip",
+     "page": "Microchip",
+     "revisionId": 42847,
+     "fetchedAt": "2026-10-11T01:03:43.097Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "researchValue",
+     "reason": "approximatif",
+     "detail": "plage « 1-300 »"
+    }
+   ]
+  },
+  {
+   "id": "8-karat-gold",
+   "name": "8 Karat Gold",
+   "isFluid": false,
+   "sellValue": 160,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/8_Karat_Gold",
+     "page": "8 Karat Gold",
+     "revisionId": 42353,
+     "fetchedAt": "2026-10-11T01:03:43.096Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "8x-microchip",
+   "name": "8x Microchip",
+   "isFluid": false,
+   "sellValue": 4000,
+   "researchValue": "1-300",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Microchip",
+     "page": "Microchip",
+     "revisionId": 42847,
+     "fetchedAt": "2026-10-11T01:03:43.097Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "researchValue",
+     "reason": "approximatif",
+     "detail": "plage « 1-300 »"
+    }
+   ]
+  },
+  {
+   "id": "acetic-acid",
+   "name": "Acetic Acid",
+   "isFluid": true,
+   "sellValue": 14.5,
+   "researchValue": 7,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Acetic_Acid",
+     "page": "Acetic Acid",
+     "revisionId": 43287,
+     "fetchedAt": "2026-10-11T01:03:43.097Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "aggregate",
+   "name": "Aggregate",
+   "isFluid": false,
+   "sellValue": 14.59,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Aggregate",
+     "page": "Aggregate",
+     "revisionId": 42864,
+     "fetchedAt": "2026-10-11T01:03:43.098Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "alumina",
+   "name": "Alumina",
+   "isFluid": false,
+   "sellValue": 100,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Alumina",
+     "page": "Alumina",
+     "revisionId": 41979,
+     "fetchedAt": "2026-10-11T01:03:43.099Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "alumina-dust",
+   "name": "Alumina Dust",
+   "isFluid": false,
+   "sellValue": 90,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Alumina_Dust",
+     "page": "Alumina Dust",
+     "revisionId": 42851,
+     "fetchedAt": "2026-10-11T01:03:43.099Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "aluminium-ingot",
+   "name": "Aluminium Ingot",
+   "isFluid": false,
+   "sellValue": 800,
+   "researchValue": 65,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Aluminium_Ingot",
+     "page": "Aluminium Ingot",
+     "revisionId": 40686,
+     "fetchedAt": "2026-10-11T01:03:43.100Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ammonia",
+   "name": "Ammonia",
+   "isFluid": true,
+   "sellValue": 1,
+   "researchValue": 15,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ammonia",
+     "page": "Ammonia",
+     "revisionId": 42539,
+     "fetchedAt": "2026-10-11T01:03:43.101Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "argon",
+   "name": "Argon",
+   "isFluid": true,
+   "sellValue": 2,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Argon",
+     "page": "Argon",
+     "revisionId": 42475,
+     "fetchedAt": "2026-10-11T01:03:43.101Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "bauxite-residue",
+   "name": "Bauxite Residue",
+   "isFluid": false,
+   "sellValue": 50,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Bauxite_Residue",
+     "page": "Bauxite Residue",
+     "revisionId": 42454,
+     "fetchedAt": "2026-10-11T01:03:43.102Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "black-dye",
+   "name": "Black Dye",
+   "isFluid": false,
+   "sellValue": 8.7,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Black_Dye",
+     "page": "Black Dye",
+     "revisionId": 42713,
+     "fetchedAt": "2026-10-11T01:03:43.103Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "boric-acid",
+   "name": "Boric Acid",
+   "isFluid": true,
+   "sellValue": 1500,
+   "researchValue": 12,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boric_Acid",
+     "page": "Boric Acid",
+     "revisionId": 43289,
+     "fetchedAt": "2026-10-11T01:03:43.103Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "boron",
+   "name": "Boron",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boron",
+     "page": "Boron",
+     "revisionId": 42800,
+     "fetchedAt": "2026-10-11T01:03:43.104Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "brass-ingot",
+   "name": "Brass Ingot",
+   "isFluid": false,
+   "sellValue": 80,
+   "researchValue": 35,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Brass_Ingot",
+     "page": "Brass Ingot",
+     "revisionId": 42704,
+     "fetchedAt": "2026-10-11T01:03:43.105Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "brick",
+   "name": "Brick",
+   "isFluid": false,
+   "sellValue": 50,
+   "researchValue": 2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Brick",
+     "page": "Brick",
+     "revisionId": 42426,
+     "fetchedAt": "2026-10-11T01:03:43.106Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cat",
+   "name": "Cat",
+   "isFluid": false,
+   "sellValue": 20000,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cat",
+     "page": "Cat",
+     "revisionId": 41360,
+     "fetchedAt": "2026-10-11T01:03:44.559Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cement",
+   "name": "Cement",
+   "isFluid": false,
+   "sellValue": 30,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cement",
+     "page": "Cement",
+     "revisionId": 42779,
+     "fetchedAt": "2026-10-11T01:03:44.560Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "chair",
+   "name": "Chair",
+   "isFluid": false,
+   "sellValue": 1029.5,
+   "researchValue": 30,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Chair",
+     "page": "Chair",
+     "revisionId": 41573,
+     "fetchedAt": "2026-10-11T01:03:44.561Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "charged-lithium-ion-battery",
+   "name": "Charged Lithium-Ion Battery",
+   "isFluid": false,
+   "sellValue": 4000,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Charged_Lithium-Ion_Battery",
+     "page": "Charged Lithium-Ion Battery",
+     "revisionId": 40781,
+     "fetchedAt": "2026-10-11T01:03:44.563Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cheap-water-bottle",
+   "name": "Cheap Water Bottle",
+   "isFluid": false,
+   "sellValue": 130.5,
+   "researchValue": 5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cheap_Water_Bottle",
+     "page": "Cheap Water Bottle",
+     "revisionId": 40015,
+     "fetchedAt": "2026-10-11T01:03:44.563Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "chlorine",
+   "name": "Chlorine",
+   "isFluid": true,
+   "sellValue": 0.2,
+   "researchValue": 0.5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Chlorine",
+     "page": "Chlorine",
+     "revisionId": 42466,
+     "fetchedAt": "2026-10-11T01:03:44.564Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "chunk-plank",
+   "name": "Chunk Plank",
+   "isFluid": false,
+   "sellValue": 3.48,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Chunk_Plank",
+     "page": "Chunk Plank",
+     "revisionId": 40017,
+     "fetchedAt": "2026-10-11T01:03:44.565Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "clay",
+   "name": "Clay",
+   "isFluid": false,
+   "sellValue": 2,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Clay",
+     "page": "Clay",
+     "revisionId": 42892,
+     "fetchedAt": "2026-10-11T01:03:44.566Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "clay-brick",
+   "name": "Clay Brick",
+   "isFluid": false,
+   "sellValue": 28,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Clay_Brick",
+     "page": "Clay Brick",
+     "revisionId": 42601,
+     "fetchedAt": "2026-10-11T01:03:44.567Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal",
+   "name": "Coal",
+   "isFluid": false,
+   "sellValue": 5.22,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal",
+     "page": "Coal",
+     "revisionId": 42935,
+     "fetchedAt": "2026-10-11T01:03:44.568Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coke-fuel",
+   "name": "Coke Fuel",
+   "isFluid": false,
+   "sellValue": 18,
+   "researchValue": 9,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coke_Fuel",
+     "page": "Coke Fuel",
+     "revisionId": 40021,
+     "fetchedAt": "2026-10-11T01:03:44.568Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "concentrated-salt-solution",
+   "name": "Concentrated Salt Solution",
+   "isFluid": true,
+   "sellValue": 2,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Concentrated_Salt_Solution",
+     "page": "Concentrated Salt Solution",
+     "revisionId": 42308,
+     "fetchedAt": "2026-10-11T01:03:44.569Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "concrete-block",
+   "name": "Concrete Block",
+   "isFluid": false,
+   "sellValue": 150,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Concrete_Block",
+     "page": "Concrete Block",
+     "revisionId": 40346,
+     "fetchedAt": "2026-10-11T01:03:44.570Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "condensate",
+   "name": "Condensate",
+   "isFluid": true,
+   "sellValue": 0.1,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Condensate",
+     "page": "Condensate",
+     "revisionId": 43118,
+     "fetchedAt": "2026-10-11T01:03:44.571Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "contaminated-water",
+   "name": "Contaminated Water",
+   "isFluid": true,
+   "sellValue": -241,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Contaminated_Water",
+     "page": "Contaminated Water",
+     "revisionId": 42374,
+     "fetchedAt": "2026-10-11T01:03:44.572Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "control-rod",
+   "name": "Control Rod",
+   "isFluid": false,
+   "sellValue": 150000,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Control_Rod",
+     "page": "Control Rod",
+     "revisionId": 42351,
+     "fetchedAt": "2026-10-11T01:03:44.573Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-drill-head",
+   "name": "Copper Drill Head",
+   "isFluid": false,
+   "sellValue": 20000,
+   "researchValue": 25,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Drill_Head",
+     "page": "Copper Drill Head",
+     "revisionId": 40365,
+     "fetchedAt": "2026-10-11T01:03:44.575Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-ingot",
+   "name": "Copper Ingot",
+   "isFluid": false,
+   "sellValue": 26.68,
+   "researchValue": 1.5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Ingot",
+     "page": "Copper Ingot",
+     "revisionId": 42776,
+     "fetchedAt": "2026-10-11T01:03:44.576Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-mix",
+   "name": "Copper Mix",
+   "isFluid": false,
+   "sellValue": 3,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Mix",
+     "page": "Copper Mix",
+     "revisionId": 41694,
+     "fetchedAt": "2026-10-11T01:03:44.577Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-plate",
+   "name": "Copper Plate",
+   "isFluid": false,
+   "sellValue": 32.86,
+   "researchValue": 6,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Plate",
+     "page": "Copper Plate",
+     "revisionId": 42586,
+     "fetchedAt": "2026-10-11T01:03:44.578Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-powder",
+   "name": "Copper Powder",
+   "isFluid": false,
+   "sellValue": 7,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Powder",
+     "page": "Copper Powder",
+     "revisionId": 40031,
+     "fetchedAt": "2026-10-11T01:03:46.093Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-wire",
+   "name": "Copper Wire",
+   "isFluid": false,
+   "sellValue": 7.31,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Wire",
+     "page": "Copper Wire",
+     "revisionId": 41136,
+     "fetchedAt": "2026-10-11T01:03:46.094Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "crankshaft",
+   "name": "Crankshaft",
+   "isFluid": false,
+   "sellValue": 754,
+   "researchValue": 35,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Crankshaft",
+     "page": "Crankshaft",
+     "revisionId": 43423,
+     "fetchedAt": "2026-10-11T01:03:46.095Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "crude-diesel",
+   "name": "Crude Diesel",
+   "isFluid": true,
+   "sellValue": 13.05,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Crude_Diesel",
+     "page": "Crude Diesel",
+     "revisionId": 42523,
+     "fetchedAt": "2026-10-11T01:03:46.096Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "crude-oil",
+   "name": "Crude Oil",
+   "isFluid": true,
+   "sellValue": 11.6,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Crude_Oil",
+     "page": "Crude Oil",
+     "revisionId": 42412,
+     "fetchedAt": "2026-10-11T01:03:46.096Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "crushed-bauxite",
+   "name": "Crushed Bauxite",
+   "isFluid": false,
+   "sellValue": 75,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Crushed_Bauxite",
+     "page": "Crushed Bauxite",
+     "revisionId": 42860,
+     "fetchedAt": "2026-10-11T01:03:46.097Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cut-oak-log",
+   "name": "Cut Oak Log",
+   "isFluid": false,
+   "sellValue": 3.48,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cut_Oak_Log",
+     "page": "Cut Oak Log",
+     "revisionId": 40037,
+     "fetchedAt": "2026-10-11T01:03:46.097Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "deep-earth-fragment",
+   "name": "Deep Earth Fragment",
+   "isFluid": false,
+   "sellValue": 200,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Deep_Earth_Fragment",
+     "page": "Deep Earth Fragment",
+     "revisionId": 43237,
+     "fetchedAt": "2026-10-11T01:03:46.098Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "depleted-uf6-waste",
+   "name": "Depleted UF6 Waste",
+   "isFluid": true,
+   "sellValue": -250,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Depleted_UF6_Waste",
+     "page": "Depleted UF6 Waste",
+     "revisionId": 42532,
+     "fetchedAt": "2026-10-11T01:03:46.098Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel",
+   "name": "Diesel",
+   "isFluid": true,
+   "sellValue": 30.45,
+   "researchValue": 2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel",
+     "page": "Diesel",
+     "revisionId": 41728,
+     "fetchedAt": "2026-10-11T01:03:46.099Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "dirty-lithium-sulfate",
+   "name": "Dirty Lithium Sulfate",
+   "isFluid": false,
+   "sellValue": 60,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Dirty_Lithium_Sulfate",
+     "page": "Dirty Lithium Sulfate",
+     "revisionId": 43185,
+     "fetchedAt": "2026-10-11T01:03:46.100Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "distilled-water",
+   "name": "Distilled Water",
+   "isFluid": true,
+   "sellValue": 1,
+   "researchValue": 0.3,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Distilled_Water",
+     "page": "Distilled Water",
+     "revisionId": 42409,
+     "fetchedAt": "2026-10-11T01:03:46.101Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "dynamite",
+   "name": "Dynamite",
+   "isFluid": false,
+   "sellValue": 120,
+   "researchValue": 25,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Dynamite",
+     "page": "Dynamite",
+     "revisionId": 41901,
+     "fetchedAt": "2026-10-11T01:03:46.102Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electric-motor",
+   "name": "Electric Motor",
+   "isFluid": false,
+   "sellValue": 4500,
+   "researchValue": 200,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Electric_Motor",
+     "page": "Electric Motor",
+     "revisionId": 41860,
+     "fetchedAt": "2026-10-11T01:03:46.102Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electromagnet",
+   "name": "Electromagnet",
+   "isFluid": false,
+   "sellValue": 950,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Electromagnet",
+     "page": "Electromagnet",
+     "revisionId": 40045,
+     "fetchedAt": "2026-10-11T01:03:46.103Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "enriched-uf6-gas",
+   "name": "Enriched UF6 Gas",
+   "isFluid": true,
+   "sellValue": 150,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Enriched_UF6_Gas",
+     "page": "Enriched UF6 Gas",
+     "revisionId": 41998,
+     "fetchedAt": "2026-10-11T01:03:46.104Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "enriched-uo2-pellets",
+   "name": "Enriched UO2 Pellets",
+   "isFluid": false,
+   "sellValue": 256,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Enriched_UO2_Pellets",
+     "page": "Enriched UO2 Pellets",
+     "revisionId": 41235,
+     "fetchedAt": "2026-10-11T01:03:46.105Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ethanol",
+   "name": "Ethanol",
+   "isFluid": true,
+   "sellValue": 5.8,
+   "researchValue": 2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ethanol",
+     "page": "Ethanol",
+     "revisionId": 42377,
+     "fetchedAt": "2026-10-11T01:03:46.106Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ethylene",
+   "name": "Ethylene",
+   "isFluid": true,
+   "sellValue": 14.5,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ethylene",
+     "page": "Ethylene",
+     "revisionId": 42815,
+     "fetchedAt": "2026-10-11T01:03:46.107Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ferroaluminium-alloy-ingot",
+   "name": "Ferroaluminium Alloy Ingot",
+   "isFluid": false,
+   "sellValue": 2500,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ferroaluminium_Alloy_Ingot",
+     "page": "Ferroaluminium Alloy Ingot",
+     "revisionId": 42678,
+     "fetchedAt": "2026-10-11T01:03:46.107Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ferroaluminium-magnet",
+   "name": "Ferroaluminium Magnet",
+   "isFluid": false,
+   "sellValue": 8500,
+   "researchValue": 120,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ferroaluminium_Magnet",
+     "page": "Ferroaluminium Magnet",
+     "revisionId": 41944,
+     "fetchedAt": "2026-10-11T01:03:47.623Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "filter",
+   "name": "Filter",
+   "isFluid": false,
+   "sellValue": 20,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Filter",
+     "page": "Filter",
+     "revisionId": 40053,
+     "fetchedAt": "2026-10-11T01:03:47.625Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "filtered-water",
+   "name": "Filtered Water",
+   "isFluid": true,
+   "sellValue": 0.55,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Filtered_Water",
+     "page": "Filtered Water",
+     "revisionId": 42366,
+     "fetchedAt": "2026-10-11T01:03:47.626Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fission-byproducts",
+   "name": "Fission Byproducts",
+   "isFluid": false,
+   "sellValue": -5000000,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Fission_Byproducts",
+     "page": "Fission Byproducts",
+     "revisionId": 40055,
+     "fetchedAt": "2026-10-11T01:03:47.627Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fracking-oil",
+   "name": "Fracking Oil",
+   "isFluid": true,
+   "sellValue": 1,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Fracking_Oil",
+     "page": "Fracking Oil",
+     "revisionId": 40056,
+     "fetchedAt": "2026-10-11T01:03:47.628Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "galvanized-steel",
+   "name": "Galvanized Steel",
+   "isFluid": false,
+   "sellValue": 123,
+   "researchValue": 33,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Galvanized_Steel",
+     "page": "Galvanized Steel",
+     "revisionId": 40057,
+     "fetchedAt": "2026-10-11T01:03:47.628Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gasoline",
+   "name": "Gasoline",
+   "isFluid": true,
+   "sellValue": 40.6,
+   "researchValue": 7.5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gasoline",
+     "page": "Gasoline",
+     "revisionId": 43139,
+     "fetchedAt": "2026-10-11T01:03:47.629Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gasolinee10",
+   "name": "GasolineE10",
+   "isFluid": true,
+   "sellValue": 57,
+   "researchValue": 13,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/GasolineE10",
+     "page": "GasolineE10",
+     "revisionId": 42323,
+     "fetchedAt": "2026-10-11T01:03:47.630Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gear",
+   "name": "Gear",
+   "isFluid": false,
+   "sellValue": 98.6,
+   "researchValue": 20,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gear",
+     "page": "Gear",
+     "revisionId": 41725,
+     "fetchedAt": "2026-10-11T01:03:47.631Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gearbox",
+   "name": "Gearbox",
+   "isFluid": false,
+   "sellValue": 2552,
+   "researchValue": 50,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gearbox",
+     "page": "Gearbox",
+     "revisionId": 40061,
+     "fetchedAt": "2026-10-11T01:03:47.632Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "glass",
+   "name": "Glass",
+   "isFluid": false,
+   "sellValue": 80,
+   "researchValue": 14,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Glass",
+     "page": "Glass",
+     "revisionId": 40062,
+     "fetchedAt": "2026-10-11T01:03:47.633Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-ingot",
+   "name": "Gold Ingot",
+   "isFluid": false,
+   "sellValue": 4250,
+   "researchValue": 70,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Ingot",
+     "page": "Gold Ingot",
+     "revisionId": 40063,
+     "fetchedAt": "2026-10-11T01:03:47.634Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-wire",
+   "name": "Gold Wire",
+   "isFluid": false,
+   "sellValue": 200,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Wire",
+     "page": "Gold Wire",
+     "revisionId": 42816,
+     "fetchedAt": "2026-10-11T01:03:47.634Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "graphite-iron-electrode",
+   "name": "Graphite-Iron Electrode",
+   "isFluid": false,
+   "sellValue": 80,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Graphite-Iron_Electrode",
+     "page": "Graphite-Iron Electrode",
+     "revisionId": 42668,
+     "fetchedAt": "2026-10-11T01:03:47.635Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "graphite-zinc-electrode",
+   "name": "Graphite-Zinc Electrode",
+   "isFluid": false,
+   "sellValue": 60,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Graphite-Zinc_Electrode",
+     "page": "Graphite-Zinc Electrode",
+     "revisionId": 40066,
+     "fetchedAt": "2026-10-11T01:03:47.636Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gravel",
+   "name": "Gravel",
+   "isFluid": false,
+   "sellValue": 4,
+   "researchValue": 0.1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gravel",
+     "page": "Gravel",
+     "revisionId": 41826,
+     "fetchedAt": "2026-10-11T01:03:47.637Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gunpowder",
+   "name": "Gunpowder",
+   "isFluid": false,
+   "sellValue": 70,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gunpowder",
+     "page": "Gunpowder",
+     "revisionId": 41535,
+     "fetchedAt": "2026-10-11T01:03:47.637Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hardened-plastic-casing",
+   "name": "Hardened Plastic Casing",
+   "isFluid": false,
+   "sellValue": 200,
+   "researchValue": 20,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hardened_Plastic_Casing",
+     "page": "Hardened Plastic Casing",
+     "revisionId": 40069,
+     "fetchedAt": "2026-10-11T01:03:47.638Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hardened-plastic-pellets",
+   "name": "Hardened Plastic Pellets",
+   "isFluid": false,
+   "sellValue": 2.5,
+   "researchValue": 10,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hardened_Plastic_Pellets",
+     "page": "Hardened Plastic Pellets",
+     "revisionId": 42427,
+     "fetchedAt": "2026-10-11T01:03:47.640Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "heavy-oil",
+   "name": "Heavy Oil",
+   "isFluid": true,
+   "sellValue": 5,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Heavy_Oil",
+     "page": "Heavy Oil",
+     "revisionId": 43243,
+     "fetchedAt": "2026-10-11T01:03:47.641Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "high-pressure-steam",
+   "name": "High Pressure Steam",
+   "isFluid": true,
+   "sellValue": 0.03,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/High_Pressure_Steam",
+     "page": "High Pressure Steam",
+     "revisionId": 42379,
+     "fetchedAt": "2026-10-11T01:03:49.218Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hot-crude-oil",
+   "name": "Hot Crude Oil",
+   "isFluid": true,
+   "sellValue": 0.14,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hot_Crude_Oil",
+     "page": "Hot Crude Oil",
+     "revisionId": 40073,
+     "fetchedAt": "2026-10-11T01:03:49.220Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hydrochloric-acid",
+   "name": "Hydrochloric Acid",
+   "isFluid": true,
+   "sellValue": 80,
+   "researchValue": 10,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hydrochloric_Acid",
+     "page": "Hydrochloric Acid",
+     "revisionId": 43291,
+     "fetchedAt": "2026-10-11T01:03:49.221Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hydrofluoric-acid",
+   "name": "Hydrofluoric Acid",
+   "isFluid": true,
+   "sellValue": 600,
+   "researchValue": 13,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hydrofluoric_Acid",
+     "page": "Hydrofluoric Acid",
+     "revisionId": 42381,
+     "fetchedAt": "2026-10-11T01:03:49.222Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hydrogen",
+   "name": "Hydrogen",
+   "isFluid": true,
+   "sellValue": 0.02,
+   "researchValue": 0.5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hydrogen",
+     "page": "Hydrogen",
+     "revisionId": 43419,
+     "fetchedAt": "2026-10-11T01:03:49.223Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hydrogen-sulfide",
+   "name": "Hydrogen Sulfide",
+   "isFluid": true,
+   "sellValue": 8,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hydrogen_Sulfide",
+     "page": "Hydrogen Sulfide",
+     "revisionId": 42869,
+     "fetchedAt": "2026-10-11T01:03:49.224Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "impure-boron",
+   "name": "Impure Boron",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Impure_Boron",
+     "page": "Impure Boron",
+     "revisionId": 42912,
+     "fetchedAt": "2026-10-11T01:03:49.225Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "insulated-wire",
+   "name": "Insulated Wire",
+   "isFluid": false,
+   "sellValue": 40,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Insulated_Wire",
+     "page": "Insulated Wire",
+     "revisionId": 42592,
+     "fetchedAt": "2026-10-11T01:03:49.226Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-coil",
+   "name": "Iron Coil",
+   "isFluid": false,
+   "sellValue": 43.85,
+   "researchValue": 4,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Coil",
+     "page": "Iron Coil",
+     "revisionId": 41635,
+     "fetchedAt": "2026-10-11T01:03:49.226Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-drill-head",
+   "name": "Iron Drill Head",
+   "isFluid": false,
+   "sellValue": 145000,
+   "researchValue": 30,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Drill_Head",
+     "page": "Iron Drill Head",
+     "revisionId": 42400,
+     "fetchedAt": "2026-10-11T01:03:49.227Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-ingot",
+   "name": "Iron Ingot",
+   "isFluid": false,
+   "sellValue": 65.54,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Ingot",
+     "page": "Iron Ingot",
+     "revisionId": 42485,
+     "fetchedAt": "2026-10-11T01:03:49.228Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-mix",
+   "name": "Iron Mix",
+   "isFluid": false,
+   "sellValue": 10,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Mix",
+     "page": "Iron Mix",
+     "revisionId": 40083,
+     "fetchedAt": "2026-10-11T01:03:49.229Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-plate",
+   "name": "Iron Plate",
+   "isFluid": false,
+   "sellValue": 70.18,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Plate",
+     "page": "Iron Plate",
+     "revisionId": 40084,
+     "fetchedAt": "2026-10-11T01:03:49.230Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-plate-2",
+   "name": "Iron Plate^2",
+   "isFluid": false,
+   "sellValue": 295.8,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Plate%5E2",
+     "page": "Iron Plate^2",
+     "revisionId": 43069,
+     "fetchedAt": "2026-10-11T01:03:49.231Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-powder",
+   "name": "Iron Powder",
+   "isFluid": false,
+   "sellValue": 15,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Powder",
+     "page": "Iron Powder",
+     "revisionId": 41696,
+     "fetchedAt": "2026-10-11T01:03:49.231Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lead-ingot",
+   "name": "Lead Ingot",
+   "isFluid": false,
+   "sellValue": 25,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lead_Ingot",
+     "page": "Lead Ingot",
+     "revisionId": 41988,
+     "fetchedAt": "2026-10-11T01:03:49.233Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "leaded-gasoline",
+   "name": "Leaded Gasoline",
+   "isFluid": true,
+   "sellValue": 112,
+   "researchValue": 23,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Leaded_Gasoline",
+     "page": "Leaded Gasoline",
+     "revisionId": 43040,
+     "fetchedAt": "2026-10-11T01:03:49.234Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "light-oil",
+   "name": "Light Oil",
+   "isFluid": true,
+   "sellValue": 7,
+   "researchValue": 0.1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Light_Oil",
+     "page": "Light Oil",
+     "revisionId": 43362,
+     "fetchedAt": "2026-10-11T01:03:49.234Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "limestone",
+   "name": "Limestone",
+   "isFluid": false,
+   "sellValue": 1,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Limestone",
+     "page": "Limestone",
+     "revisionId": 40090,
+     "fetchedAt": "2026-10-11T01:03:49.235Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-aluminium",
+   "name": "Liquid Aluminium",
+   "isFluid": true,
+   "sellValue": 200,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Aluminium",
+     "page": "Liquid Aluminium",
+     "revisionId": 41990,
+     "fetchedAt": "2026-10-11T01:03:50.641Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-argon",
+   "name": "Liquid Argon",
+   "isFluid": true,
+   "sellValue": 50,
+   "researchValue": 3,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Argon",
+     "page": "Liquid Argon",
+     "revisionId": 40092,
+     "fetchedAt": "2026-10-11T01:03:50.643Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-brass",
+   "name": "Liquid Brass",
+   "isFluid": true,
+   "sellValue": 30,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Brass",
+     "page": "Liquid Brass",
+     "revisionId": 40712,
+     "fetchedAt": "2026-10-11T01:03:50.644Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-copper",
+   "name": "Liquid Copper",
+   "isFluid": true,
+   "sellValue": 7.54,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Copper",
+     "page": "Liquid Copper",
+     "revisionId": 42446,
+     "fetchedAt": "2026-10-11T01:03:50.645Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-glass",
+   "name": "Liquid Glass",
+   "isFluid": true,
+   "sellValue": 10,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Glass",
+     "page": "Liquid Glass",
+     "revisionId": 40095,
+     "fetchedAt": "2026-10-11T01:03:50.645Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-gold",
+   "name": "Liquid Gold",
+   "isFluid": true,
+   "sellValue": 1000,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Gold",
+     "page": "Liquid Gold",
+     "revisionId": 42771,
+     "fetchedAt": "2026-10-11T01:03:50.646Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-iron",
+   "name": "Liquid Iron",
+   "isFluid": true,
+   "sellValue": 23.2,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Iron",
+     "page": "Liquid Iron",
+     "revisionId": 43134,
+     "fetchedAt": "2026-10-11T01:03:50.647Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-lead",
+   "name": "Liquid Lead",
+   "isFluid": true,
+   "sellValue": 5,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Lead",
+     "page": "Liquid Lead",
+     "revisionId": 42333,
+     "fetchedAt": "2026-10-11T01:03:50.647Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-nitrogen",
+   "name": "Liquid Nitrogen",
+   "isFluid": true,
+   "sellValue": 4,
+   "researchValue": 3,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Nitrogen",
+     "page": "Liquid Nitrogen",
+     "revisionId": 41976,
+     "fetchedAt": "2026-10-11T01:03:50.648Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-oxygen",
+   "name": "Liquid Oxygen",
+   "isFluid": true,
+   "sellValue": 6,
+   "researchValue": 3,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Oxygen",
+     "page": "Liquid Oxygen",
+     "revisionId": 42823,
+     "fetchedAt": "2026-10-11T01:03:50.649Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-sulfur",
+   "name": "Liquid Sulfur",
+   "isFluid": true,
+   "sellValue": 12,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Sulfur",
+     "page": "Liquid Sulfur",
+     "revisionId": 40101,
+     "fetchedAt": "2026-10-11T01:03:50.649Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-battery-pack",
+   "name": "Lithium Battery Pack",
+   "isFluid": false,
+   "sellValue": 85000,
+   "researchValue": 180,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Battery_Pack",
+     "page": "Lithium Battery Pack",
+     "revisionId": 40780,
+     "fetchedAt": "2026-10-11T01:03:50.650Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-brine",
+   "name": "Lithium Brine",
+   "isFluid": true,
+   "sellValue": 25,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Brine",
+     "page": "Lithium Brine",
+     "revisionId": 40103,
+     "fetchedAt": "2026-10-11T01:03:50.650Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-carbonate",
+   "name": "Lithium Carbonate",
+   "isFluid": false,
+   "sellValue": 200,
+   "researchValue": 40,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Carbonate",
+     "page": "Lithium Carbonate",
+     "revisionId": 40104,
+     "fetchedAt": "2026-10-11T01:03:50.651Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-ore",
+   "name": "Lithium Ore",
+   "isFluid": false,
+   "sellValue": 10,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Ore",
+     "page": "Lithium Ore",
+     "revisionId": 40105,
+     "fetchedAt": "2026-10-11T01:03:50.652Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-sulfate",
+   "name": "Lithium Sulfate",
+   "isFluid": false,
+   "sellValue": 100,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Sulfate",
+     "page": "Lithium Sulfate",
+     "revisionId": 40106,
+     "fetchedAt": "2026-10-11T01:03:50.652Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lng",
+   "name": "LNG",
+   "isFluid": true,
+   "sellValue": 160,
+   "researchValue": 2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/LNG",
+     "page": "LNG",
+     "revisionId": 42799,
+     "fetchedAt": "2026-10-11T01:03:49.232Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-plate",
+   "name": "Logic Plate",
+   "isFluid": false,
+   "sellValue": 65,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Plate",
+     "page": "Logic Plate",
+     "revisionId": 42965,
+     "fetchedAt": "2026-10-11T01:03:50.653Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "low-enrichment-fuel-rod",
+   "name": "Low Enrichment Fuel Rod",
+   "isFluid": false,
+   "sellValue": 20000,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Low_Enrichment_Fuel_Rod",
+     "page": "Low Enrichment Fuel Rod",
+     "revisionId": 42966,
+     "fetchedAt": "2026-10-11T01:03:50.654Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "low-pressure-steam",
+   "name": "Low Pressure Steam",
+   "isFluid": true,
+   "sellValue": 0.03,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Low_Pressure_Steam",
+     "page": "Low Pressure Steam",
+     "revisionId": 40110,
+     "fetchedAt": "2026-10-11T01:03:50.655Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "machine-oil",
+   "name": "Machine Oil",
+   "isFluid": true,
+   "sellValue": 29,
+   "researchValue": 4,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Machine_Oil",
+     "page": "Machine Oil",
+     "revisionId": 42535,
+     "fetchedAt": "2026-10-11T01:03:52.083Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "medium-earth-fragment",
+   "name": "Medium Earth Fragment",
+   "isFluid": false,
+   "sellValue": 120,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Medium_Earth_Fragment",
+     "page": "Medium Earth Fragment",
+     "revisionId": 43236,
+     "fetchedAt": "2026-10-11T01:03:52.084Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "meg",
+   "name": "MEG",
+   "isFluid": true,
+   "sellValue": 2.9,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MEG",
+     "page": "MEG",
+     "revisionId": 42368,
+     "fetchedAt": "2026-10-11T01:03:50.656Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "microchip-scrap",
+   "name": "Microchip Scrap",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Microchip_Scrap",
+     "page": "Microchip Scrap",
+     "revisionId": 40744,
+     "fetchedAt": "2026-10-11T01:03:52.085Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mixed-fissile-nitrates",
+   "name": "Mixed Fissile Nitrates",
+   "isFluid": true,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Mixed_Fissile_Nitrates",
+     "page": "Mixed Fissile Nitrates",
+     "revisionId": 42763,
+     "fetchedAt": "2026-10-11T01:03:52.086Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mixed-fissile-oxides",
+   "name": "Mixed Fissile Oxides",
+   "isFluid": true,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Mixed_Fissile_Oxides",
+     "page": "Mixed Fissile Oxides",
+     "revisionId": 42542,
+     "fetchedAt": "2026-10-11T01:03:52.086Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mixed-uranium-oxides",
+   "name": "Mixed Uranium Oxides",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Mixed_Uranium_Oxides",
+     "page": "Mixed Uranium Oxides",
+     "revisionId": 42543,
+     "fetchedAt": "2026-10-11T01:03:52.087Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "molten-ferroaluminium-alloy",
+   "name": "Molten Ferroaluminium Alloy",
+   "isFluid": true,
+   "sellValue": 1100,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Molten_Ferroaluminium_Alloy",
+     "page": "Molten Ferroaluminium Alloy",
+     "revisionId": 40119,
+     "fetchedAt": "2026-10-11T01:03:52.089Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "molten-purple-gold",
+   "name": "Molten Purple Gold",
+   "isFluid": true,
+   "sellValue": 580,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Molten_Purple_Gold",
+     "page": "Molten Purple Gold",
+     "revisionId": 42602,
+     "fetchedAt": "2026-10-11T01:03:52.089Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mox-fuel-rod",
+   "name": "MOX Fuel Rod",
+   "isFluid": false,
+   "sellValue": 1000000,
+   "researchValue": 100,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MOX_Fuel_Rod",
+     "page": "MOX Fuel Rod",
+     "revisionId": 43286,
+     "fetchedAt": "2026-10-11T01:03:52.082Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "nails",
+   "name": "Nails",
+   "isFluid": false,
+   "sellValue": 2.9,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Nails",
+     "page": "Nails",
+     "revisionId": 42447,
+     "fetchedAt": "2026-10-11T01:03:52.090Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "naphtha",
+   "name": "Naphtha",
+   "isFluid": true,
+   "sellValue": 15.6,
+   "researchValue": 0.1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Naphtha",
+     "page": "Naphtha",
+     "revisionId": 41726,
+     "fetchedAt": "2026-10-11T01:03:52.091Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "nitrogen",
+   "name": "Nitrogen",
+   "isFluid": true,
+   "sellValue": 0.15,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Nitrogen",
+     "page": "Nitrogen",
+     "revisionId": 42011,
+     "fetchedAt": "2026-10-11T01:03:52.092Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "oak-log",
+   "name": "Oak Log",
+   "isFluid": false,
+   "sellValue": 5.8,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Oak_Log",
+     "page": "Oak Log",
+     "revisionId": 42423,
+     "fetchedAt": "2026-10-11T01:03:52.093Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "oil-bottle",
+   "name": "Oil Bottle",
+   "isFluid": false,
+   "sellValue": 208.8,
+   "researchValue": 20,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Oil_Bottle",
+     "page": "Oil Bottle",
+     "revisionId": 42557,
+     "fetchedAt": "2026-10-11T01:03:52.093Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "oxygen",
+   "name": "Oxygen",
+   "isFluid": true,
+   "sellValue": 0.1,
+   "researchValue": 0.5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Oxygen",
+     "page": "Oxygen",
+     "revisionId": 42010,
+     "fetchedAt": "2026-10-11T01:03:52.094Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "paper",
+   "name": "Paper",
+   "isFluid": false,
+   "sellValue": 14.5,
+   "researchValue": 7,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Paper",
+     "page": "Paper",
+     "revisionId": 40719,
+     "fetchedAt": "2026-10-11T01:03:52.095Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "paraxylene",
+   "name": "Paraxylene",
+   "isFluid": true,
+   "sellValue": 14.5,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Paraxylene",
+     "page": "Paraxylene",
+     "revisionId": 41582,
+     "fetchedAt": "2026-10-11T01:03:52.096Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "phosphorus-oxychloride",
+   "name": "Phosphorus Oxychloride",
+   "isFluid": true,
+   "sellValue": 0,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Phosphorus_Oxychloride",
+     "page": "Phosphorus Oxychloride",
+     "revisionId": 43169,
+     "fetchedAt": "2026-10-11T01:03:52.097Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plank-2",
+   "name": "Plank^2",
+   "isFluid": false,
+   "sellValue": 40.6,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plank%5E2",
+     "page": "Plank^2",
+     "revisionId": 43045,
+     "fetchedAt": "2026-10-11T01:03:52.098Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "planks",
+   "name": "Planks",
+   "isFluid": false,
+   "sellValue": 13.05,
+   "researchValue": 5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Planks",
+     "page": "Planks",
+     "revisionId": 40133,
+     "fetchedAt": "2026-10-11T01:03:54.030Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-bottle",
+   "name": "Plastic Bottle",
+   "isFluid": false,
+   "sellValue": 72.5,
+   "researchValue": 30,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plastic_Bottle",
+     "page": "Plastic Bottle",
+     "revisionId": 40134,
+     "fetchedAt": "2026-10-11T01:03:54.032Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-casing",
+   "name": "Plastic Casing",
+   "isFluid": false,
+   "sellValue": 145,
+   "researchValue": 7,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plastic_Casing",
+     "page": "Plastic Casing",
+     "revisionId": 40135,
+     "fetchedAt": "2026-10-11T01:03:54.033Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-pellets",
+   "name": "Plastic Pellets",
+   "isFluid": false,
+   "sellValue": 0.87,
+   "researchValue": 25,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plastic_Pellets",
+     "page": "Plastic Pellets",
+     "revisionId": 42362,
+     "fetchedAt": "2026-10-11T01:03:54.034Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plutonium-oxide-pellets",
+   "name": "Plutonium Oxide Pellets",
+   "isFluid": false,
+   "sellValue": 1250,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plutonium_Oxide_Pellets",
+     "page": "Plutonium Oxide Pellets",
+     "revisionId": 40137,
+     "fetchedAt": "2026-10-11T01:03:54.035Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "poor-quality-diesel",
+   "name": "Poor Quality Diesel",
+   "isFluid": true,
+   "sellValue": 21.75,
+   "researchValue": 1.5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Poor_Quality_Diesel",
+     "page": "Poor Quality Diesel",
+     "revisionId": 42531,
+     "fetchedAt": "2026-10-11T01:03:54.035Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "powdered-tungsten",
+   "name": "Powdered Tungsten",
+   "isFluid": false,
+   "sellValue": 150,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Powdered_Tungsten",
+     "page": "Powdered Tungsten",
+     "revisionId": 42769,
+     "fetchedAt": "2026-10-11T01:03:54.036Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "powdered-tungsten-carbide",
+   "name": "Powdered Tungsten Carbide",
+   "isFluid": false,
+   "sellValue": 210,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Powdered_Tungsten_Carbide",
+     "page": "Powdered Tungsten Carbide",
+     "revisionId": 43397,
+     "fetchedAt": "2026-10-11T01:03:54.037Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "present-box",
+   "name": "Present Box",
+   "isFluid": false,
+   "sellValue": 174,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Present_Box",
+     "page": "Present Box",
+     "revisionId": 40141,
+     "fetchedAt": "2026-10-11T01:03:54.038Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pta",
+   "name": "PTA",
+   "isFluid": true,
+   "sellValue": 2.9,
+   "researchValue": 0.2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/PTA",
+     "page": "PTA",
+     "revisionId": 40271,
+     "fetchedAt": "2026-10-11T01:03:52.095Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "purple-gold-ingot",
+   "name": "Purple Gold Ingot",
+   "isFluid": false,
+   "sellValue": 20000,
+   "researchValue": 100,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Purple_Gold_Ingot",
+     "page": "Purple Gold Ingot",
+     "revisionId": 43171,
+     "fetchedAt": "2026-10-11T01:03:54.039Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-copper",
+   "name": "Raw Copper",
+   "isFluid": false,
+   "sellValue": 5.51,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Copper",
+     "page": "Raw Copper",
+     "revisionId": 41992,
+     "fetchedAt": "2026-10-11T01:03:54.040Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-gas",
+   "name": "Raw Gas",
+   "isFluid": true,
+   "sellValue": 0.03,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Gas",
+     "page": "Raw Gas",
+     "revisionId": 40145,
+     "fetchedAt": "2026-10-11T01:03:54.041Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-iron",
+   "name": "Raw Iron",
+   "isFluid": false,
+   "sellValue": 5.8,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Iron",
+     "page": "Raw Iron",
+     "revisionId": 40146,
+     "fetchedAt": "2026-10-11T01:03:54.042Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-lead",
+   "name": "Raw Lead",
+   "isFluid": false,
+   "sellValue": 10,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Lead",
+     "page": "Raw Lead",
+     "revisionId": 43085,
+     "fetchedAt": "2026-10-11T01:03:54.043Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-uranium",
+   "name": "Raw Uranium",
+   "isFluid": false,
+   "sellValue": 54,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Uranium",
+     "page": "Raw Uranium",
+     "revisionId": 41845,
+     "fetchedAt": "2026-10-11T01:03:54.044Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-zinc",
+   "name": "Raw Zinc",
+   "isFluid": false,
+   "sellValue": 5,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Zinc",
+     "page": "Raw Zinc",
+     "revisionId": 40149,
+     "fetchedAt": "2026-10-11T01:03:54.045Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-zirconium",
+   "name": "Raw Zirconium",
+   "isFluid": false,
+   "sellValue": 32,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Zirconium",
+     "page": "Raw Zirconium",
+     "revisionId": 40150,
+     "fetchedAt": "2026-10-11T01:03:54.046Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rawmix",
+   "name": "Rawmix",
+   "isFluid": false,
+   "sellValue": 2,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rawmix",
+     "page": "Rawmix",
+     "revisionId": 42920,
+     "fetchedAt": "2026-10-11T01:03:54.046Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "refined-diesel",
+   "name": "Refined Diesel",
+   "isFluid": true,
+   "sellValue": 40.6,
+   "researchValue": 3,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Refined_Diesel",
+     "page": "Refined Diesel",
+     "revisionId": 42940,
+     "fetchedAt": "2026-10-11T01:03:54.047Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "refined-diesel-bottle",
+   "name": "Refined Diesel Bottle",
+   "isFluid": false,
+   "sellValue": 449.5,
+   "researchValue": 15,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Refined_Diesel_Bottle",
+     "page": "Refined Diesel Bottle",
+     "revisionId": 42556,
+     "fetchedAt": "2026-10-11T01:03:54.048Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "refined-gas",
+   "name": "Refined Gas",
+   "isFluid": true,
+   "sellValue": 0.29,
+   "researchValue": 0.01,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Refined_Gas",
+     "page": "Refined Gas",
+     "revisionId": 42761,
+     "fetchedAt": "2026-10-11T01:03:55.234Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "reinforced-concrete-block",
+   "name": "Reinforced Concrete Block",
+   "isFluid": false,
+   "sellValue": 630,
+   "researchValue": 4,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Reinforced_Concrete_Block",
+     "page": "Reinforced Concrete Block",
+     "revisionId": 42533,
+     "fetchedAt": "2026-10-11T01:03:55.234Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "reprocessed-uranium",
+   "name": "Reprocessed Uranium",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Reprocessed_Uranium",
+     "page": "Reprocessed Uranium",
+     "revisionId": 43282,
+     "fetchedAt": "2026-10-11T01:03:55.235Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "residue",
+   "name": "Residue",
+   "isFluid": true,
+   "sellValue": -5.8,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Residue",
+     "page": "Residue",
+     "revisionId": 42233,
+     "fetchedAt": "2026-10-11T01:03:55.236Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "residue-bottle",
+   "name": "Residue Bottle",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Residue_Bottle",
+     "page": "Residue Bottle",
+     "revisionId": 40158,
+     "fetchedAt": "2026-10-11T01:03:55.237Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rich-soil",
+   "name": "Rich Soil",
+   "isFluid": false,
+   "sellValue": 4,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rich_Soil",
+     "page": "Rich Soil",
+     "revisionId": 42359,
+     "fetchedAt": "2026-10-11T01:03:55.238Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rock",
+   "name": "Rock",
+   "isFluid": false,
+   "sellValue": 4,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rock",
+     "page": "Rock",
+     "revisionId": 40160,
+     "fetchedAt": "2026-10-11T01:03:55.239Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rubber",
+   "name": "Rubber",
+   "isFluid": false,
+   "sellValue": 19.4,
+   "researchValue": 90,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rubber",
+     "page": "Rubber",
+     "revisionId": 42345,
+     "fetchedAt": "2026-10-11T01:03:55.240Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sand",
+   "name": "Sand",
+   "isFluid": false,
+   "sellValue": 4,
+   "researchValue": 0.1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sand",
+     "page": "Sand",
+     "revisionId": 42407,
+     "fetchedAt": "2026-10-11T01:03:55.241Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "semiconductor",
+   "name": "Semiconductor",
+   "isFluid": false,
+   "sellValue": 650,
+   "researchValue": 30,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Semiconductor",
+     "page": "Semiconductor",
+     "revisionId": 40163,
+     "fetchedAt": "2026-10-11T01:03:55.242Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "shallow-earth-fragment",
+   "name": "Shallow Earth Fragment",
+   "isFluid": false,
+   "sellValue": 30,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Shallow_Earth_Fragment",
+     "page": "Shallow Earth Fragment",
+     "revisionId": 43143,
+     "fetchedAt": "2026-10-11T01:03:55.243Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "silicon",
+   "name": "Silicon",
+   "isFluid": false,
+   "sellValue": 50,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Silicon",
+     "page": "Silicon",
+     "revisionId": 42628,
+     "fetchedAt": "2026-10-11T01:03:55.244Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "slightly-enriched-uf6-gas",
+   "name": "Slightly Enriched UF6 Gas",
+   "isFluid": true,
+   "sellValue": 45,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Slightly_Enriched_UF6_Gas",
+     "page": "Slightly Enriched UF6 Gas",
+     "revisionId": 43284,
+     "fetchedAt": "2026-10-11T01:03:55.245Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sodium-carbonate",
+   "name": "Sodium Carbonate",
+   "isFluid": false,
+   "sellValue": 8,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sodium_Carbonate",
+     "page": "Sodium Carbonate",
+     "revisionId": 43133,
+     "fetchedAt": "2026-10-11T01:03:55.246Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sodium-hydroxide-solution",
+   "name": "Sodium Hydroxide Solution",
+   "isFluid": true,
+   "sellValue": 10,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sodium_Hydroxide_Solution",
+     "page": "Sodium Hydroxide Solution",
+     "revisionId": 41967,
+     "fetchedAt": "2026-10-11T01:03:55.246Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "soil",
+   "name": "Soil",
+   "isFluid": false,
+   "sellValue": 2,
+   "researchValue": 0.1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Soil",
+     "page": "Soil",
+     "revisionId": 43003,
+     "fetchedAt": "2026-10-11T01:03:55.247Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "spent-fuel",
+   "name": "Spent Fuel",
+   "isFluid": false,
+   "sellValue": -1000000,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Spent_Fuel",
+     "page": "Spent Fuel",
+     "revisionId": 42498,
+     "fetchedAt": "2026-10-11T01:03:55.248Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "standard-fuel-rod",
+   "name": "Standard Fuel Rod",
+   "isFluid": false,
+   "sellValue": 150000,
+   "researchValue": 100,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Standard_Fuel_Rod",
+     "page": "Standard Fuel Rod",
+     "revisionId": 40172,
+     "fetchedAt": "2026-10-11T01:03:55.248Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steam",
+   "name": "Steam",
+   "isFluid": true,
+   "sellValue": 0.03,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steam",
+     "page": "Steam",
+     "revisionId": 41732,
+     "fetchedAt": "2026-10-11T01:03:55.249Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steel-coil",
+   "name": "Steel Coil",
+   "isFluid": false,
+   "sellValue": 75,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steel_Coil",
+     "page": "Steel Coil",
+     "revisionId": 40174,
+     "fetchedAt": "2026-10-11T01:03:55.250Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steel-drill-head",
+   "name": "Steel Drill Head",
+   "isFluid": false,
+   "sellValue": 190000,
+   "researchValue": 125,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steel_Drill_Head",
+     "page": "Steel Drill Head",
+     "revisionId": 40175,
+     "fetchedAt": "2026-10-11T01:03:56.898Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steel-ingot",
+   "name": "Steel Ingot",
+   "isFluid": false,
+   "sellValue": 48.72,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steel_Ingot",
+     "page": "Steel Ingot",
+     "revisionId": 40176,
+     "fetchedAt": "2026-10-11T01:03:56.899Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steel-plate",
+   "name": "Steel Plate",
+   "isFluid": false,
+   "sellValue": 89.9,
+   "researchValue": 18,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steel_Plate",
+     "page": "Steel Plate",
+     "revisionId": 42751,
+     "fetchedAt": "2026-10-11T01:03:56.900Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steel-rod",
+   "name": "Steel Rod",
+   "isFluid": false,
+   "sellValue": 92.8,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steel_Rod",
+     "page": "Steel Rod",
+     "revisionId": 43388,
+     "fetchedAt": "2026-10-11T01:03:56.901Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sulfur",
+   "name": "Sulfur",
+   "isFluid": false,
+   "sellValue": 30,
+   "researchValue": 12,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sulfur",
+     "page": "Sulfur",
+     "revisionId": 40179,
+     "fetchedAt": "2026-10-11T01:03:56.901Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sulfur-dioxide",
+   "name": "Sulfur Dioxide",
+   "isFluid": true,
+   "sellValue": 2,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sulfur_Dioxide",
+     "page": "Sulfur Dioxide",
+     "revisionId": 42801,
+     "fetchedAt": "2026-10-11T01:03:56.902Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sulfur-trioxide",
+   "name": "Sulfur Trioxide",
+   "isFluid": true,
+   "sellValue": 2.5,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sulfur_Trioxide",
+     "page": "Sulfur Trioxide",
+     "revisionId": 40181,
+     "fetchedAt": "2026-10-11T01:03:56.903Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sulfuric-acid",
+   "name": "Sulfuric Acid",
+   "isFluid": true,
+   "sellValue": 65,
+   "researchValue": 4,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sulfuric_Acid",
+     "page": "Sulfuric Acid",
+     "revisionId": 42822,
+     "fetchedAt": "2026-10-11T01:03:56.904Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "table-salt",
+   "name": "Table Salt",
+   "isFluid": false,
+   "sellValue": 4,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Table_Salt",
+     "page": "Table Salt",
+     "revisionId": 42007,
+     "fetchedAt": "2026-10-11T01:03:56.904Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tetraethyllead",
+   "name": "Tetraethyllead",
+   "isFluid": true,
+   "sellValue": 21,
+   "researchValue": 7,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tetraethyllead",
+     "page": "Tetraethyllead",
+     "revisionId": 43057,
+     "fetchedAt": "2026-10-11T01:03:56.905Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tire",
+   "name": "Tire",
+   "isFluid": false,
+   "sellValue": 2000,
+   "researchValue": 40,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tire",
+     "page": "Tire",
+     "revisionId": 42867,
+     "fetchedAt": "2026-10-11T01:03:56.906Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tire-rim",
+   "name": "Tire Rim",
+   "isFluid": false,
+   "sellValue": 1800,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tire_Rim",
+     "page": "Tire Rim",
+     "revisionId": 43137,
+     "fetchedAt": "2026-10-11T01:03:56.907Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "toy",
+   "name": "Toy",
+   "isFluid": false,
+   "sellValue": 101.5,
+   "researchValue": 2,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Toy",
+     "page": "Toy",
+     "revisionId": 41853,
+     "fetchedAt": "2026-10-11T01:03:56.907Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "treated-raw-copper",
+   "name": "Treated Raw Copper",
+   "isFluid": false,
+   "sellValue": 6,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Treated_Raw_Copper",
+     "page": "Treated Raw Copper",
+     "revisionId": 42853,
+     "fetchedAt": "2026-10-11T01:03:56.908Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "treated-raw-iron",
+   "name": "Treated Raw Iron",
+   "isFluid": false,
+   "sellValue": 8,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Treated_Raw_Iron",
+     "page": "Treated Raw Iron",
+     "revisionId": 42854,
+     "fetchedAt": "2026-10-11T01:03:56.909Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "treated-rock",
+   "name": "Treated Rock",
+   "isFluid": false,
+   "sellValue": 15,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Treated_Rock",
+     "page": "Treated Rock",
+     "revisionId": 42309,
+     "fetchedAt": "2026-10-11T01:03:56.910Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tributyl-phosphate",
+   "name": "Tributyl Phosphate",
+   "isFluid": true,
+   "sellValue": 0,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tributyl_Phosphate",
+     "page": "Tributyl Phosphate",
+     "revisionId": 42616,
+     "fetchedAt": "2026-10-11T01:03:56.911Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tungsten-carbide-drill-head",
+   "name": "Tungsten Carbide Drill Head",
+   "isFluid": false,
+   "sellValue": 800000,
+   "researchValue": 225,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tungsten_Carbide_Drill_Head",
+     "page": "Tungsten Carbide Drill Head",
+     "revisionId": 42054,
+     "fetchedAt": "2026-10-11T01:03:56.912Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tungsten-carbide-plate",
+   "name": "Tungsten Carbide Plate",
+   "isFluid": false,
+   "sellValue": 600,
+   "researchValue": 70,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tungsten_Carbide_Plate",
+     "page": "Tungsten Carbide Plate",
+     "revisionId": 40193,
+     "fetchedAt": "2026-10-11T01:03:56.913Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "uncharged-lithium-ion-battery",
+   "name": "Uncharged Lithium-Ion Battery",
+   "isFluid": false,
+   "sellValue": 2000,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Uncharged_Lithium-Ion_Battery",
+     "page": "Uncharged Lithium-Ion Battery",
+     "revisionId": 42335,
+     "fetchedAt": "2026-10-11T01:03:56.913Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "unenriched-uf6-gas",
+   "name": "Unenriched UF6 Gas",
+   "isFluid": true,
+   "sellValue": 30,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Unenriched_UF6_Gas",
+     "page": "Unenriched UF6 Gas",
+     "revisionId": 43285,
+     "fetchedAt": "2026-10-11T01:03:58.129Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "uranium",
+   "name": "Uranium",
+   "isFluid": false,
+   "sellValue": 8120,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Uranium",
+     "page": "Uranium",
+     "revisionId": 41846,
+     "fetchedAt": "2026-10-11T01:03:58.130Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water",
+   "name": "Water",
+   "isFluid": true,
+   "sellValue": 0.23,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Water",
+     "page": "Water",
+     "revisionId": 41147,
+     "fetchedAt": "2026-10-11T01:03:58.131Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-bottle",
+   "name": "Water Bottle",
+   "isFluid": false,
+   "sellValue": 174,
+   "researchValue": 20,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Water_Bottle",
+     "page": "Water Bottle",
+     "revisionId": 42559,
+     "fetchedAt": "2026-10-11T01:03:58.132Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-free-gas",
+   "name": "Water-Free Gas",
+   "isFluid": true,
+   "sellValue": 0.14,
+   "researchValue": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Water-Free_Gas",
+     "page": "Water-Free Gas",
+     "revisionId": 42418,
+     "fetchedAt": "2026-10-11T01:03:58.132Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wet-concrete",
+   "name": "Wet Concrete",
+   "isFluid": false,
+   "sellValue": 120,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wet_Concrete",
+     "page": "Wet Concrete",
+     "revisionId": 40200,
+     "fetchedAt": "2026-10-11T01:03:58.133Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "yellowcake",
+   "name": "Yellowcake",
+   "isFluid": false,
+   "sellValue": 0,
+   "researchValue": 5,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Yellowcake",
+     "page": "Yellowcake",
+     "revisionId": 41950,
+     "fetchedAt": "2026-10-11T01:03:58.134Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "zinc",
+   "name": "Zinc",
+   "isFluid": false,
+   "sellValue": 20,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Zinc",
+     "page": "Zinc",
+     "revisionId": 40202,
+     "fetchedAt": "2026-10-11T01:03:58.135Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "zinc-sulfate",
+   "name": "Zinc Sulfate",
+   "isFluid": false,
+   "sellValue": 10,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Zinc_Sulfate",
+     "page": "Zinc Sulfate",
+     "revisionId": 40203,
+     "fetchedAt": "2026-10-11T01:03:58.136Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "zirconium-chloride",
+   "name": "Zirconium Chloride",
+   "isFluid": false,
+   "sellValue": 30,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Zirconium_Chloride",
+     "page": "Zirconium Chloride",
+     "revisionId": 42401,
+     "fetchedAt": "2026-10-11T01:03:58.136Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "zirconium-dioxide",
+   "name": "Zirconium Dioxide",
+   "isFluid": false,
+   "sellValue": 45,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Zirconium_Dioxide",
+     "page": "Zirconium Dioxide",
+     "revisionId": 40205,
+     "fetchedAt": "2026-10-11T01:03:58.137Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "zirconium-rod",
+   "name": "Zirconium Rod",
+   "isFluid": false,
+   "sellValue": 180,
+   "researchValue": 1,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Zirconium_Rod",
+     "page": "Zirconium Rod",
+     "revisionId": 40206,
+     "fetchedAt": "2026-10-11T01:03:58.138Z"
+    }
+   ],
+   "verify": []
+  }
+ ]
+}

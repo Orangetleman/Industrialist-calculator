@@ -1,0 +1,7 @@
+{
+ "_lisezMoi": "Corrections prioritaires sur les données du wiki. Format : { recipes|machines|items|research : { <id> : { <champ> : { value, source: { wiki: 'jeu'|'saisie', fetchedAt, note } } } } }. Ex. champ « durationS » ou « inputs.steel-ingot ». Le plus simple : corriger dans l'appli puis « Exporter mes corrections ».",
+ "recipes": {},
+ "machines": {},
+ "items": {},
+ "research": {}
+}

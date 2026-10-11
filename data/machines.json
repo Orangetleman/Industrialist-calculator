@@ -1,0 +1,2734 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-11T01:04:20.581Z",
+  "primary": "miraheze",
+  "counts": {
+   "machines": 100,
+   "aVerifier": 17
+  }
+ },
+ "machines": [
+  {
+   "id": "advanced-assembler",
+   "name": "Advanced Assembler",
+   "kind": "machine",
+   "unlockedBy": "advanced-assembler",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 150000,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Assembler",
+     "page": "Advanced Assembler",
+     "revisionId": 43427,
+     "fetchedAt": "2026-10-11T01:03:28.131Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-coal-drill",
+   "name": "Advanced Coal Drill",
+   "kind": "machine",
+   "unlockedBy": "advanced-coal-extraction",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1000,
+   "size": {
+    "w": 10,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Coal_Drill",
+     "page": "Advanced Coal Drill",
+     "revisionId": 41768,
+     "fetchedAt": "2026-10-11T01:03:28.132Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-copper-drill",
+   "name": "Advanced Copper Drill",
+   "kind": "machine",
+   "unlockedBy": "advanced-copper-extraction",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 520,
+   "size": {
+    "w": 8,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Copper_Drill",
+     "page": "Advanced Copper Drill",
+     "revisionId": 41767,
+     "fetchedAt": "2026-10-11T01:03:28.133Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-diesel-refinery",
+   "name": "Advanced Diesel Refinery",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": "diesel-refinery",
+   "limited": true,
+   "tier": 2,
+   "cost": 10000,
+   "size": {
+    "w": 14,
+    "l": 14
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Diesel_Refinery",
+     "page": "Advanced Diesel Refinery",
+     "revisionId": 42163,
+     "fetchedAt": "2026-10-11T01:03:28.134Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "advanced-electric-furnace",
+   "name": "Advanced Electric Furnace",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": "electric-furnace",
+   "limited": true,
+   "tier": 2,
+   "cost": 100000,
+   "size": {
+    "w": 9,
+    "l": 9
+   },
+   "pollutionPerHour": 0.32,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Electric_Furnace",
+     "page": "Advanced Electric Furnace",
+     "revisionId": 42604,
+     "fetchedAt": "2026-10-11T01:03:28.135Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "advanced-oil-separator",
+   "name": "Advanced Oil Separator",
+   "kind": "machine",
+   "unlockedBy": "advanced-oil-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1250000,
+   "size": {
+    "w": 22,
+    "l": 22
+   },
+   "pollutionPerHour": 0.324,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Oil_Separator",
+     "page": "Advanced Oil Separator",
+     "revisionId": 42077,
+     "fetchedAt": "2026-10-11T01:03:28.136Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "advanced-oxidation-plant",
+   "name": "Advanced Oxidation Plant",
+   "kind": "machine",
+   "unlockedBy": "advanced-oxidation-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2000000,
+   "size": {
+    "w": 28,
+    "l": 24
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_Oxidation_Plant",
+     "page": "Advanced Oxidation Plant",
+     "revisionId": 42544,
+     "fetchedAt": "2026-10-11T01:03:28.137Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "air-separation-unit",
+   "name": "Air Separation Unit",
+   "kind": "machine",
+   "unlockedBy": "air-separation-unit",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1500000,
+   "size": {
+    "w": 29,
+    "l": 24
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Air_Separation_Unit",
+     "page": "Air Separation Unit",
+     "revisionId": 43367,
+     "fetchedAt": "2026-10-11T01:03:28.138Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "alloyer",
+   "name": "Alloyer",
+   "kind": "machine",
+   "unlockedBy": "alloyer",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 999999,
+   "size": {
+    "w": 10,
+    "l": 6
+   },
+   "pollutionPerHour": 0.324,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Alloyer",
+     "page": "Alloyer",
+     "revisionId": 42749,
+     "fetchedAt": "2026-10-11T01:03:28.138Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "american-oil-rig",
+   "name": "American Oil Rig",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": "oil-rig",
+   "limited": true,
+   "tier": 2,
+   "cost": 5000,
+   "size": {
+    "w": 8,
+    "l": 2
+   },
+   "pollutionPerHour": 0.0216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/American_Oil_Rig",
+     "page": "American Oil Rig",
+     "revisionId": 42060,
+     "fetchedAt": "2026-10-11T01:03:28.139Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "atmospheric-distillation-plant",
+   "name": "Atmospheric Distillation Plant",
+   "kind": "machine",
+   "unlockedBy": "oil-fracking",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1000000,
+   "size": {
+    "w": 16,
+    "l": 16
+   },
+   "pollutionPerHour": 6.48,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Atmospheric_Distillation_Plant",
+     "page": "Atmospheric Distillation Plant",
+     "revisionId": 42840,
+     "fetchedAt": "2026-10-11T01:03:28.140Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "battery-charger",
+   "name": "Battery Charger",
+   "kind": "machine",
+   "unlockedBy": "charger",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Battery_Charger",
+     "page": "Battery Charger",
+     "revisionId": 43280,
+     "fetchedAt": "2026-10-11T01:03:28.141Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "blast-furnace",
+   "name": "Blast Furnace",
+   "kind": "machine",
+   "unlockedBy": "steel",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 60000,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0.216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Blast_Furnace",
+     "page": "Blast Furnace",
+     "revisionId": 39882,
+     "fetchedAt": "2026-10-11T01:03:28.142Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "blast-furnace-mk2",
+   "name": "Blast Furnace MK2",
+   "kind": "machine",
+   "unlockedBy": "blast-furnace-mk2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 5000000,
+   "size": {
+    "w": 16,
+    "l": 16
+   },
+   "pollutionPerHour": 0.36,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Blast_Furnace_MK2",
+     "page": "Blast Furnace MK2",
+     "revisionId": 39870,
+     "fetchedAt": "2026-10-11T01:03:28.143Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "boiler",
+   "name": "Boiler",
+   "kind": "machine",
+   "unlockedBy": "boiler",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 900,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boiler",
+     "page": "Boiler",
+     "revisionId": 43219,
+     "fetchedAt": "2026-10-11T01:03:28.144Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "bottling-plant",
+   "name": "Bottling Plant",
+   "kind": "machine",
+   "unlockedBy": "water-bottling",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Bottling_Plant",
+     "page": "Bottling Plant",
+     "revisionId": 42567,
+     "fetchedAt": "2026-10-11T01:03:28.145Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cat-assembler",
+   "name": "Cat Assembler",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": null,
+   "limited": true,
+   "tier": 4,
+   "cost": 16180339,
+   "size": {
+    "w": 5,
+    "l": 5
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cat_Assembler",
+     "page": "Cat Assembler",
+     "revisionId": 38043,
+     "fetchedAt": "2026-10-11T01:03:28.145Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "chemical-plant",
+   "name": "Chemical Plant",
+   "kind": "machine",
+   "unlockedBy": "advanced-chemical-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2340000,
+   "size": {
+    "w": 23,
+    "l": 24
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Chemical_Plant",
+     "page": "Chemical Plant",
+     "revisionId": 42600,
+     "fetchedAt": "2026-10-11T01:03:28.147Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "pollutionPerHour",
+     "reason": "variable",
+     "detail": "Pollution : \"Depends on recipes\""
+    }
+   ]
+  },
+  {
+   "id": "chemical-reactor",
+   "name": "Chemical Reactor",
+   "kind": "machine",
+   "unlockedBy": "chemical-reactor",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 750000,
+   "size": {
+    "w": 10,
+    "l": 10
+   },
+   "pollutionPerHour": 1.62,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Chemical_Reactor",
+     "page": "Chemical Reactor",
+     "revisionId": 42918,
+     "fetchedAt": "2026-10-11T01:03:28.148Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-drill",
+   "name": "Coal Drill",
+   "kind": "machine",
+   "unlockedBy": "coal-extracting",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 50,
+   "size": {
+    "w": 6,
+    "l": 2
+   },
+   "pollutionPerHour": 0.864,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal_Drill",
+     "page": "Coal Drill",
+     "revisionId": 42394,
+     "fetchedAt": "2026-10-11T01:03:28.149Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-generator",
+   "name": "Coal Generator",
+   "kind": "machine",
+   "unlockedBy": "coal-generator",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 160,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0.27,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal_Generator",
+     "page": "Coal Generator",
+     "revisionId": 43058,
+     "fetchedAt": "2026-10-11T01:03:29.675Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-liquefaction-plant",
+   "name": "Coal Liquefaction Plant",
+   "kind": "machine",
+   "unlockedBy": "advanced-oil-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 750000,
+   "size": {
+    "w": 20,
+    "l": 20
+   },
+   "pollutionPerHour": 6.48,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal_Liquefaction_Plant",
+     "page": "Coal Liquefaction Plant",
+     "revisionId": 43376,
+     "fetchedAt": "2026-10-11T01:03:29.677Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "compact-coal-power-plant",
+   "name": "Compact Coal Power Plant",
+   "kind": "machine",
+   "unlockedBy": "compact-coal-generator",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 550,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "pollutionPerHour": 0.821,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Compact_Coal_Power_Plant",
+     "page": "Compact Coal Power Plant",
+     "revisionId": 39868,
+     "fetchedAt": "2026-10-11T01:03:29.679Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "concrete-plant",
+   "name": "Concrete Plant",
+   "kind": "machine",
+   "unlockedBy": "brick-production",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 2000,
+   "size": {
+    "w": 16,
+    "l": 10
+   },
+   "pollutionPerHour": 0.396,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Concrete_Plant",
+     "page": "Concrete Plant",
+     "revisionId": 43039,
+     "fetchedAt": "2026-10-11T01:03:29.681Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "condenser",
+   "name": "Condenser",
+   "kind": "machine",
+   "unlockedBy": "gas-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 75000,
+   "size": {
+    "w": 14,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Condenser",
+     "page": "Condenser",
+     "revisionId": 41843,
+     "fetchedAt": "2026-10-11T01:03:29.681Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "copper-drill",
+   "name": "Copper Drill",
+   "kind": "machine",
+   "unlockedBy": "copper-extracting",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 190,
+   "size": {
+    "w": 6,
+    "l": 2
+   },
+   "pollutionPerHour": 0.108,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Copper_Drill",
+     "page": "Copper Drill",
+     "revisionId": 41766,
+     "fetchedAt": "2026-10-11T01:03:29.682Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "craft-assembler",
+   "name": "Craft Assembler",
+   "kind": "machine",
+   "unlockedBy": "craft-assembler",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 1000,
+   "size": {
+    "w": 8,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Craft_Assembler",
+     "page": "Craft Assembler",
+     "revisionId": 39215,
+     "fetchedAt": "2026-10-11T01:03:29.683Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "crude-oil-separator",
+   "name": "Crude Oil Separator",
+   "kind": "machine",
+   "unlockedBy": "oil-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1500,
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "pollutionPerHour": 0.432,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Crude_Oil_Separator",
+     "page": "Crude Oil Separator",
+     "revisionId": 42009,
+     "fetchedAt": "2026-10-11T01:03:29.683Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-generator",
+   "name": "Diesel Generator",
+   "kind": "machine",
+   "unlockedBy": "diesel-generator",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4500,
+   "size": {
+    "w": 8,
+    "l": 4
+   },
+   "pollutionPerHour": 0.648,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Generator",
+     "page": "Diesel Generator",
+     "revisionId": 42267,
+     "fetchedAt": "2026-10-11T01:03:29.684Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-refinery",
+   "name": "Diesel Refinery",
+   "kind": "machine",
+   "unlockedBy": "diesel-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1000,
+   "size": {
+    "w": 12,
+    "l": 10
+   },
+   "pollutionPerHour": 0.216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Refinery",
+     "page": "Diesel Refinery",
+     "revisionId": 39875,
+     "fetchedAt": "2026-10-11T01:03:29.685Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electric-furnace",
+   "name": "Electric Furnace",
+   "kind": "machine",
+   "unlockedBy": "electric-furnace-and-molding",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 190,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "pollutionPerHour": 0.158,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Electric_Furnace",
+     "page": "Electric Furnace",
+     "revisionId": 43054,
+     "fetchedAt": "2026-10-11T01:03:29.686Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electrolysis-plant",
+   "name": "Electrolysis Plant",
+   "kind": "machine",
+   "unlockedBy": "electrolysis-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 650000,
+   "size": {
+    "w": 10,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Electrolysis_Plant",
+     "page": "Electrolysis Plant",
+     "revisionId": 39253,
+     "fetchedAt": "2026-10-11T01:03:29.687Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fancy-coal-drill",
+   "name": "Fancy Coal Drill",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": "coal-drill",
+   "limited": true,
+   "tier": 1,
+   "cost": 50,
+   "size": {
+    "w": 6,
+    "l": 2
+   },
+   "pollutionPerHour": 0.015,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Fancy_Coal_Drill",
+     "page": "Fancy Coal Drill",
+     "revisionId": 42165,
+     "fetchedAt": "2026-10-11T01:03:29.688Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "filtration-plant",
+   "name": "Filtration Plant",
+   "kind": "machine",
+   "unlockedBy": "water-filtering",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 20000,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Filtration_Plant",
+     "page": "Filtration Plant",
+     "revisionId": 43087,
+     "fetchedAt": "2026-10-11T01:03:29.688Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "firebox",
+   "name": "Firebox",
+   "kind": "machine",
+   "unlockedBy": "firebox",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 550,
+   "size": {
+    "w": 6,
+    "l": 4
+   },
+   "pollutionPerHour": 1.08,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Firebox",
+     "page": "Firebox",
+     "revisionId": 43042,
+     "fetchedAt": "2026-10-11T01:03:29.689Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "foundry",
+   "name": "Foundry",
+   "kind": "machine",
+   "unlockedBy": "foundry",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2000000,
+   "size": {
+    "w": 27,
+    "l": 21
+   },
+   "pollutionPerHour": [
+    0.05,
+    0.29
+   ],
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Foundry",
+     "page": "Foundry",
+     "revisionId": 41738,
+     "fetchedAt": "2026-10-11T01:03:29.691Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "pollutionPerHour",
+     "reason": "approximatif",
+     "detail": "plage 0.05-0.29%/h"
+    }
+   ]
+  },
+  {
+   "id": "gas-burner",
+   "name": "Gas Burner",
+   "kind": "machine",
+   "unlockedBy": "gas-burner",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "pollutionPerHour": 0.173,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+     "page": "Gas Burner",
+     "revisionId": 42041,
+     "fetchedAt": "2026-10-11T01:03:29.692Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gas-centrifuge",
+   "name": "Gas Centrifuge",
+   "kind": "machine",
+   "unlockedBy": "centrifuge",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 3000000,
+   "size": {
+    "w": 14,
+    "l": 16
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gas_Centrifuge",
+     "page": "Gas Centrifuge",
+     "revisionId": 43167,
+     "fetchedAt": "2026-10-11T01:03:29.693Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gas-refinery",
+   "name": "Gas Refinery",
+   "kind": "machine",
+   "unlockedBy": "gas-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 175000,
+   "size": {
+    "w": 7,
+    "l": 6
+   },
+   "pollutionPerHour": 0.216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gas_Refinery",
+     "page": "Gas Refinery",
+     "revisionId": 42576,
+     "fetchedAt": "2026-10-11T01:03:29.694Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gasoline-generator",
+   "name": "Gasoline Generator",
+   "kind": "machine",
+   "unlockedBy": "gasoline-generator",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 900,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0.648,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gasoline_Generator",
+     "page": "Gasoline Generator",
+     "revisionId": 42322,
+     "fetchedAt": "2026-10-11T01:03:29.695Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "geothermal-well",
+   "name": "Geothermal Well",
+   "kind": "machine",
+   "unlockedBy": "geothermal-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1500,
+   "size": {
+    "w": 8,
+    "l": 5
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Geothermal_Well",
+     "page": "Geothermal Well",
+     "revisionId": 43018,
+     "fetchedAt": "2026-10-11T01:03:31.167Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-acid-refinery",
+   "name": "Gold Acid Refinery",
+   "kind": "machine",
+   "unlockedBy": "gold-acid-refinery",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1000000,
+   "size": {
+    "w": 18,
+    "l": 10
+   },
+   "pollutionPerHour": 0.216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Acid_Refinery",
+     "page": "Gold Acid Refinery",
+     "revisionId": 43189,
+     "fetchedAt": "2026-10-11T01:03:31.168Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "grinder",
+   "name": "Grinder",
+   "kind": "machine",
+   "unlockedBy": "grinder",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 10000,
+   "size": {
+    "w": 6,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Grinder",
+     "page": "Grinder",
+     "revisionId": 42006,
+     "fetchedAt": "2026-10-11T01:03:31.169Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "grinder-mk2",
+   "name": "Grinder MK2",
+   "kind": "machine",
+   "unlockedBy": "grinder-mk2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 125000,
+   "size": {
+    "w": 20,
+    "l": 15
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Grinder_MK2",
+     "page": "Grinder MK2",
+     "revisionId": 42865,
+     "fetchedAt": "2026-10-11T01:03:31.169Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "heat-exchanger",
+   "name": "Heat Exchanger",
+   "kind": "machine",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2718281,
+   "size": {
+    "w": 26,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Heat_Exchanger",
+     "page": "Heat Exchanger",
+     "revisionId": 42611,
+     "fetchedAt": "2026-10-11T01:03:31.170Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-diesel-refinery",
+   "name": "Industrial Diesel Refinery",
+   "kind": "machine",
+   "unlockedBy": "industrial-diesel-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 150000,
+   "size": {
+    "w": 8,
+    "l": 5
+   },
+   "pollutionPerHour": 0.32,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Diesel_Refinery",
+     "page": "Industrial Diesel Refinery",
+     "revisionId": 43190,
+     "fetchedAt": "2026-10-11T01:03:31.171Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "contradiction",
+     "detail": "RS/Data : « Industrial Diesel Refining » ; infobox : « Industrial Diesel Refinery »",
+     "alternatives": [
+      {
+       "value": "Industrial Diesel Refinery",
+       "source": {
+        "wiki": "miraheze",
+        "url": "https://industrialist.miraheze.org/wiki/Industrial_Diesel_Refinery",
+        "page": "Industrial Diesel Refinery",
+        "revisionId": 43190,
+        "fetchedAt": "2026-10-11T01:03:31.171Z"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "industrial-drill",
+   "name": "Industrial Drill",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 10,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Drill",
+     "page": "Industrial Drill",
+     "revisionId": 42047,
+     "fetchedAt": "2026-10-11T01:03:31.172Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "industrial-electric-furnace",
+   "name": "Industrial Electric Furnace",
+   "kind": "machine",
+   "unlockedBy": "industrial-electric-furnace",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1000000,
+   "size": {
+    "w": 12,
+    "l": 12
+   },
+   "pollutionPerHour": 0.158,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Electric_Furnace",
+     "page": "Industrial Electric Furnace",
+     "revisionId": 43034,
+     "fetchedAt": "2026-10-11T01:03:31.173Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-firebox",
+   "name": "Industrial Firebox",
+   "kind": "machine",
+   "unlockedBy": "industrial-firebox",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 250000,
+   "size": {
+    "w": 9,
+    "l": 4
+   },
+   "pollutionPerHour": 1.8,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Firebox",
+     "page": "Industrial Firebox",
+     "revisionId": 38141,
+     "fetchedAt": "2026-10-11T01:03:31.174Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-kiln",
+   "name": "Industrial Kiln",
+   "kind": "machine",
+   "unlockedBy": "concrete-production",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 7500,
+   "size": {
+    "w": 20,
+    "l": 10
+   },
+   "pollutionPerHour": 0.864,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Kiln",
+     "page": "Industrial Kiln",
+     "revisionId": 39164,
+     "fetchedAt": "2026-10-11T01:03:31.175Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-oil-separator",
+   "name": "Industrial Oil Separator",
+   "kind": "machine",
+   "unlockedBy": "advanced-oil-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 150000,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0.32,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Oil_Separator",
+     "page": "Industrial Oil Separator",
+     "revisionId": 42953,
+     "fetchedAt": "2026-10-11T01:03:31.177Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-plastic-molder",
+   "name": "Industrial Plastic Molder",
+   "kind": "machine",
+   "unlockedBy": "industrial-plastic-molding",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 200000,
+   "size": {
+    "w": 12,
+    "l": 5
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Plastic_Molder",
+     "page": "Industrial Plastic Molder",
+     "revisionId": 43428,
+     "fetchedAt": "2026-10-11T01:03:31.178Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-press",
+   "name": "Industrial Press",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": null,
+   "limited": true,
+   "tier": 3,
+   "cost": 150000,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Press",
+     "page": "Industrial Press",
+     "revisionId": 40265,
+     "fetchedAt": "2026-10-11T01:03:31.179Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "industrial-roller",
+   "name": "Industrial Roller",
+   "kind": "machine",
+   "unlockedBy": "industrial-roller",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 150000,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Roller",
+     "page": "Industrial Roller",
+     "revisionId": 38832,
+     "fetchedAt": "2026-10-11T01:03:31.180Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-sawmill",
+   "name": "Industrial Sawmill",
+   "kind": "machine",
+   "unlockedBy": "industrial-sawmill",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 75000,
+   "size": {
+    "w": 14,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Sawmill",
+     "page": "Industrial Sawmill",
+     "revisionId": 42825,
+     "fetchedAt": "2026-10-11T01:03:31.182Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ingot-molder",
+   "name": "Ingot Molder",
+   "kind": "machine",
+   "unlockedBy": "electric-furnace-and-molding",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 150,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ingot_Molder",
+     "page": "Ingot Molder",
+     "revisionId": 40978,
+     "fetchedAt": "2026-10-11T01:03:31.182Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "iron-drill",
+   "name": "Iron Drill",
+   "kind": "machine",
+   "unlockedBy": "iron-extracting",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 350,
+   "size": {
+    "w": 6,
+    "l": 2
+   },
+   "pollutionPerHour": 0.432,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Iron_Drill",
+     "page": "Iron Drill",
+     "revisionId": 41765,
+     "fetchedAt": "2026-10-11T01:03:31.183Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "kiln",
+   "name": "Kiln",
+   "kind": "machine",
+   "unlockedBy": "brick-production",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 3200,
+   "size": {
+    "w": 14,
+    "l": 8
+   },
+   "pollutionPerHour": 0.144,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Kiln",
+     "page": "Kiln",
+     "revisionId": 43142,
+     "fetchedAt": "2026-10-11T01:03:31.184Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-diesel-engine",
+   "name": "Large Diesel Engine",
+   "kind": "machine",
+   "unlockedBy": "large-diesel-engine",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 14,
+    "l": 8
+   },
+   "pollutionPerHour": [
+    0.432,
+    0.648
+   ],
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Diesel_Engine",
+     "page": "Large Diesel Engine",
+     "revisionId": 43068,
+     "fetchedAt": "2026-10-11T01:03:31.186Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "pollutionPerHour",
+     "reason": "approximatif",
+     "detail": "plage 0.648 - 0.432%/h"
+    }
+   ]
+  },
+  {
+   "id": "large-pumpjack",
+   "name": "Large Pumpjack",
+   "kind": "machine",
+   "unlockedBy": "large-oil-rig",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 120000,
+   "size": {
+    "w": 20,
+    "l": 8
+   },
+   "pollutionPerHour": 1.44,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Pumpjack",
+     "page": "Large Pumpjack",
+     "revisionId": 41962,
+     "fetchedAt": "2026-10-11T01:03:32.691Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lathe",
+   "name": "Lathe",
+   "kind": "machine",
+   "unlockedBy": "mineshaft-drill",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 5000000,
+   "size": {
+    "w": 17,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lathe",
+     "page": "Lathe",
+     "revisionId": 41980,
+     "fetchedAt": "2026-10-11T01:03:32.692Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-boiler",
+   "name": "Liquid Boiler",
+   "kind": "machine",
+   "unlockedBy": "oil-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 900,
+   "size": {
+    "w": 6,
+    "l": 4
+   },
+   "pollutionPerHour": 0.184,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Boiler",
+     "page": "Liquid Boiler",
+     "revisionId": 38168,
+     "fetchedAt": "2026-10-11T01:03:32.693Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-brine-extractor",
+   "name": "Lithium Brine Extractor",
+   "kind": "machine",
+   "unlockedBy": "lithium",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 18,
+    "l": 18
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Brine_Extractor",
+     "page": "Lithium Brine Extractor",
+     "revisionId": 43394,
+     "fetchedAt": "2026-10-11T01:03:32.694Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lithium-ore-drill",
+   "name": "Lithium Ore Drill",
+   "kind": "machine",
+   "unlockedBy": "lithium",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 250000,
+   "size": {
+    "w": 10,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Lithium_Ore_Drill",
+     "page": "Lithium Ore Drill",
+     "revisionId": 38173,
+     "fetchedAt": "2026-10-11T01:03:32.695Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lng-plant",
+   "name": "LNG Plant",
+   "kind": "machine",
+   "unlockedBy": "lng-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1250000,
+   "size": {
+    "w": 22,
+    "l": 14
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/LNG_Plant",
+     "page": "LNG Plant",
+     "revisionId": 42404,
+     "fetchedAt": "2026-10-11T01:03:31.185Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-assembler",
+   "name": "Logic Assembler",
+   "kind": "machine",
+   "unlockedBy": "logic-assembler",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 25000000,
+   "size": {
+    "w": 22,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Assembler",
+     "page": "Logic Assembler",
+     "revisionId": 43235,
+     "fetchedAt": "2026-10-11T01:03:32.696Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "natural-gas-well",
+   "name": "Natural Gas Well",
+   "kind": "machine",
+   "unlockedBy": "natural-gas-well",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 60000,
+   "size": {
+    "w": 12,
+    "l": 12
+   },
+   "pollutionPerHour": 0.432,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Natural_Gas_Well",
+     "page": "Natural Gas Well",
+     "revisionId": 42666,
+     "fetchedAt": "2026-10-11T01:03:32.696Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "og-oil-rig",
+   "name": "OG Oil Rig",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": "oil-rig",
+   "limited": true,
+   "tier": 2,
+   "cost": 1200,
+   "size": {
+    "w": 8,
+    "l": 2
+   },
+   "pollutionPerHour": 0.0216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/OG_Oil_Rig",
+     "page": "OG Oil Rig",
+     "revisionId": 38205,
+     "fetchedAt": "2026-10-11T01:03:32.697Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "oil-fracking-tower",
+   "name": "Oil Fracking Tower",
+   "kind": "machine",
+   "unlockedBy": "oil-fracking",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 500000,
+   "size": {
+    "w": 12,
+    "l": 12
+   },
+   "pollutionPerHour": 0.0013,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Oil_Fracking_Tower",
+     "page": "Oil Fracking Tower",
+     "revisionId": 42481,
+     "fetchedAt": "2026-10-11T01:03:32.706Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "oil-rig",
+   "name": "Oil Rig",
+   "kind": "machine",
+   "unlockedBy": "oil-extraction",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1200,
+   "size": {
+    "w": 8,
+    "l": 2
+   },
+   "pollutionPerHour": 0.0288,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Oil_Rig",
+     "page": "Oil Rig",
+     "revisionId": 42833,
+     "fetchedAt": "2026-10-11T01:03:32.707Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "ore-enrichment-facility",
+   "name": "Ore Enrichment Facility",
+   "kind": "machine",
+   "unlockedBy": "ore-enrichment-facility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 4000000,
+   "size": {
+    "w": 32,
+    "l": 36
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Ore_Enrichment_Facility",
+     "page": "Ore Enrichment Facility",
+     "revisionId": 43281,
+     "fetchedAt": "2026-10-11T01:03:32.708Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "oxidation-plant",
+   "name": "Oxidation Plant",
+   "kind": "machine",
+   "unlockedBy": "plastics",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 200000,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Oxidation_Plant",
+     "page": "Oxidation Plant",
+     "revisionId": 42398,
+     "fetchedAt": "2026-10-11T01:03:32.709Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "paper-mill",
+   "name": "Paper Mill",
+   "kind": "machine",
+   "unlockedBy": "paper-mill",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 80000,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Paper_Mill",
+     "page": "Paper Mill",
+     "revisionId": 42962,
+     "fetchedAt": "2026-10-11T01:03:32.709Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-molding-machine",
+   "name": "Plastic Molding Machine",
+   "kind": "machine",
+   "unlockedBy": "plastic-molding",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plastic_Molding_Machine",
+     "page": "Plastic Molding Machine",
+     "revisionId": 40259,
+     "fetchedAt": "2026-10-11T01:03:32.710Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-production-facility",
+   "name": "Plastic Production Facility",
+   "kind": "machine",
+   "unlockedBy": "plastics",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 15,
+    "l": 8
+   },
+   "pollutionPerHour": 0.432,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plastic_Production_Facility",
+     "page": "Plastic Production Facility",
+     "revisionId": 43429,
+     "fetchedAt": "2026-10-11T01:03:32.711Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "plastic-refinery",
+   "name": "Plastic Refinery",
+   "kind": "machine",
+   "unlockedBy": "plastics",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 14,
+    "l": 10
+   },
+   "pollutionPerHour": 0.216,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Plastic_Refinery",
+     "page": "Plastic Refinery",
+     "revisionId": 40269,
+     "fetchedAt": "2026-10-11T01:03:32.711Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "polisher",
+   "name": "Polisher",
+   "kind": "machine",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 1200000,
+   "size": {
+    "w": 28,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Polisher",
+     "page": "Polisher",
+     "revisionId": 40299,
+     "fetchedAt": "2026-10-11T01:03:32.712Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "precision-assembler",
+   "name": "Precision Assembler",
+   "kind": "machine",
+   "unlockedBy": "precision-assembler",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 1000000,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Precision_Assembler",
+     "page": "Precision Assembler",
+     "revisionId": 43422,
+     "fetchedAt": "2026-10-11T01:03:32.713Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "press",
+   "name": "Press",
+   "kind": "machine",
+   "unlockedBy": "press",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 409,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Press",
+     "page": "Press",
+     "revisionId": 41983,
+     "fetchedAt": "2026-10-11T01:03:32.714Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "press-mk2",
+   "name": "Press MK2",
+   "kind": "machine",
+   "unlockedBy": "press-mk2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 333333,
+   "size": {
+    "w": 15,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Press_MK2",
+     "page": "Press MK2",
+     "revisionId": 39667,
+     "fetchedAt": "2026-10-11T01:03:32.714Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pressurized-water-filter",
+   "name": "Pressurized Water Filter",
+   "kind": "machine",
+   "unlockedBy": "pressurized-water-filter",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 350000,
+   "size": {
+    "w": 9,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pressurized_Water_Filter",
+     "page": "Pressurized Water Filter",
+     "revisionId": 39180,
+     "fetchedAt": "2026-10-11T01:03:34.193Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "quarry",
+   "name": "Quarry",
+   "kind": "machine",
+   "unlockedBy": "quarry",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1500,
+   "size": {
+    "w": 24,
+    "l": 24
+   },
+   "pollutionPerHour": 0.504,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Quarry",
+     "page": "Quarry",
+     "revisionId": 43392,
+     "fetchedAt": "2026-10-11T01:03:34.194Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "raw-mill",
+   "name": "Raw Mill",
+   "kind": "machine",
+   "unlockedBy": "concrete-production",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1250,
+   "size": {
+    "w": 13,
+    "l": 9
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Raw_Mill",
+     "page": "Raw Mill",
+     "revisionId": 38231,
+     "fetchedAt": "2026-10-11T01:03:34.195Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "residue-refinery",
+   "name": "Residue Refinery",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": null,
+   "limited": true,
+   "tier": 4,
+   "cost": 200000,
+   "size": {
+    "w": 7,
+    "l": 5
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Residue_Refinery",
+     "page": "Residue Refinery",
+     "revisionId": 38239,
+     "fetchedAt": "2026-10-11T01:03:34.196Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "roller",
+   "name": "Roller",
+   "kind": "machine",
+   "unlockedBy": "roller",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 411,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Roller",
+     "page": "Roller",
+     "revisionId": 39202,
+     "fetchedAt": "2026-10-11T01:03:34.197Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "roller-mk2",
+   "name": "Roller MK2",
+   "kind": "machine",
+   "unlockedBy": "roller-mk2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 150000,
+   "size": {
+    "w": 15,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Roller_MK2",
+     "page": "Roller MK2",
+     "revisionId": 42061,
+     "fetchedAt": "2026-10-11T01:03:34.197Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "sand-excavator",
+   "name": "Sand Excavator",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": null,
+   "limited": true,
+   "tier": 3,
+   "cost": 10000,
+   "size": {
+    "w": 9,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sand_Excavator",
+     "page": "Sand Excavator",
+     "revisionId": 39871,
+     "fetchedAt": "2026-10-11T01:03:34.198Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "sawmill",
+   "name": "Sawmill",
+   "kind": "machine",
+   "unlockedBy": "sawmill",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 800,
+   "size": {
+    "w": 8,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Sawmill",
+     "page": "Sawmill",
+     "revisionId": 38249,
+     "fetchedAt": "2026-10-11T01:03:34.198Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "scrubber",
+   "name": "Scrubber",
+   "kind": "machine",
+   "unlockedBy": "scrubber",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 30000,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+     "page": "Scrubber",
+     "revisionId": 43395,
+     "fetchedAt": "2026-10-11T01:03:34.199Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "pollutionPerHour",
+     "reason": "variable",
+     "detail": "Pollution : \"Depends on input\""
+    }
+   ]
+  },
+  {
+   "id": "soil-excavator",
+   "name": "Soil Excavator",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": null,
+   "limited": true,
+   "tier": 3,
+   "cost": 250000,
+   "size": {
+    "w": 10,
+    "l": 5
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Soil_Excavator",
+     "page": "Soil Excavator",
+     "revisionId": 43041,
+     "fetchedAt": "2026-10-11T01:03:34.200Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "steam-condenser",
+   "name": "Steam Condenser",
+   "kind": "machine",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2400000,
+   "size": {
+    "w": 52,
+    "l": 16
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steam_Condenser",
+     "page": "Steam Condenser",
+     "revisionId": 43283,
+     "fetchedAt": "2026-10-11T01:03:34.201Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steam-cracking-plant",
+   "name": "Steam Cracking Plant",
+   "kind": "machine",
+   "unlockedBy": "plastics",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 150000,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0.432,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steam_Cracking_Plant",
+     "page": "Steam Cracking Plant",
+     "revisionId": 42070,
+     "fetchedAt": "2026-10-11T01:03:34.201Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree",
+   "name": "Tree",
+   "kind": "farm",
+   "unlockedBy": "modular-tree-farm",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 80,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree",
+     "page": "Tree",
+     "revisionId": 43254,
+     "fetchedAt": "2026-10-11T01:03:34.202Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "trommel",
+   "name": "Trommel",
+   "kind": "machine",
+   "unlockedBy": "gold-refining",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 1000000,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Trommel",
+     "page": "Trommel",
+     "revisionId": 42683,
+     "fetchedAt": "2026-10-11T01:03:34.203Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "uranium-drill",
+   "name": "Uranium Drill",
+   "kind": "machine",
+   "unlockedBy": null,
+   "variantOf": "iron-drill",
+   "limited": true,
+   "tier": 2,
+   "cost": 3500000,
+   "size": {
+    "w": 6,
+    "l": 2
+   },
+   "pollutionPerHour": 2.16,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Uranium_Drill",
+     "page": "Uranium Drill",
+     "revisionId": 42515,
+     "fetchedAt": "2026-10-11T01:03:34.204Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "manquant",
+     "detail": "aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox)"
+    }
+   ]
+  },
+  {
+   "id": "vaporizer",
+   "name": "Vaporizer",
+   "kind": "machine",
+   "unlockedBy": "air-separation-unit",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 10000,
+   "size": {
+    "w": 6,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Vaporizer",
+     "page": "Vaporizer",
+     "revisionId": 43426,
+     "fetchedAt": "2026-10-11T01:03:34.205Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "vertical-heat-exchanger",
+   "name": "Vertical Heat Exchanger",
+   "kind": "machine",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2718281,
+   "size": {
+    "w": 14,
+    "l": 14
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Vertical_Heat_Exchanger",
+     "page": "Vertical Heat Exchanger",
+     "revisionId": 41951,
+     "fetchedAt": "2026-10-11T01:03:34.205Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-pump",
+   "name": "Water Pump",
+   "kind": "machine",
+   "unlockedBy": "water-pump",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 60,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Water_Pump",
+     "page": "Water Pump",
+     "revisionId": 38303,
+     "fetchedAt": "2026-10-11T01:03:34.206Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-pump2",
+   "name": "Water Pump2",
+   "kind": "machine",
+   "unlockedBy": "water-pump-2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 6000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Water_Pump2",
+     "page": "Water Pump2",
+     "revisionId": 42415,
+     "fetchedAt": "2026-10-11T01:03:34.207Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "water-treatment-plant",
+   "name": "Water Treatment Plant",
+   "kind": "machine",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 700001,
+   "size": {
+    "w": 30,
+    "l": 30
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Water_Treatment_Plant",
+     "page": "Water Treatment Plant",
+     "revisionId": 42244,
+     "fetchedAt": "2026-10-11T01:03:34.208Z"
+    }
+   ],
+   "verify": []
+  }
+ ],
+ "treeGrowth": {
+  "bands": [
+   {
+    "minPct": 100,
+    "maxPct": null,
+    "seconds": [
+     696,
+     696
+    ],
+    "label": "100%+ (Max) → ~696s (Max)"
+   },
+   {
+    "minPct": 51,
+    "maxPct": 99,
+    "seconds": [
+     370,
+     689
+    ],
+    "label": "51% - 99% → ~370s - ~689s"
+   },
+   {
+    "minPct": 45,
+    "maxPct": 50,
+    "seconds": [
+     363,
+     363
+    ],
+    "label": "45% - 50% → ~363s"
+   },
+   {
+    "minPct": 38,
+    "maxPct": 44,
+    "seconds": [
+     355,
+     355
+    ],
+    "label": "38% - 44% → ~355s"
+   },
+   {
+    "minPct": 13,
+    "maxPct": 37,
+    "seconds": [
+     348,
+     348
+    ],
+    "label": "13% - 37% → ~348s (min)"
+   },
+   {
+    "minPct": 6,
+    "maxPct": 12,
+    "seconds": [
+     355,
+     355
+    ],
+    "label": "6% - 12% → ~355s"
+   },
+   {
+    "minPct": 0,
+    "maxPct": 5,
+    "seconds": [
+     363,
+     363
+    ],
+    "label": "0% - 5% (Normal) → ~363s (Normal)"
+   },
+   {
+    "minPct": -60,
+    "maxPct": 0,
+    "seconds": [
+     363,
+     363
+    ],
+    "label": "-60% - 0% → ~363s"
+   },
+   {
+    "minPct": -148,
+    "maxPct": -61,
+    "seconds": [
+     385,
+     689
+    ],
+    "label": "-61% - -148% → ~385s - ~689s"
+   },
+   {
+    "minPct": null,
+    "maxPct": -149,
+    "seconds": [
+     696,
+     696
+    ],
+    "label": "-149%- (Min) → ~696s (Max)"
+   }
+  ],
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Tree",
+   "page": "Tree",
+   "revisionId": 43254,
+   "fetchedAt": "2026-10-11T01:03:34.202Z"
+  },
+  "calculatorUrl": "https://www.desmos.com/calculator/u6sonlrwl9"
+ }
+}
