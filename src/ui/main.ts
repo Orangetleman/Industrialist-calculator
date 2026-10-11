@@ -13,9 +13,11 @@ import type { OverridesFile } from "../engine/types.ts";
 import { dependentsOf, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { esc, fmt, fmtMoney, fmtRP, parseInput } from "./format.ts";
 import {
+  exportProgress,
   loadPlayer,
   loadProgress,
   parseOptional,
+  parseProgressExport,
   progressSummary,
   renderOwned,
   renderTree,
@@ -447,6 +449,46 @@ function bindProgress(): void {
     if (choice === "yes") setProgress({ unlocked: [], reqItemsDone: [], owned: [] });
   });
 
+  // Transférer la progression (autre adresse, autre appareil)
+  $("progress-export").addEventListener("click", () => {
+    const file = exportProgress(prog, player);
+    downloadJson(file, `progression-industrialist-${file.exportedAt.slice(0, 10)}.json`);
+    $("progress-io-hint").textContent = "Fichier exporté.";
+  });
+  $("progress-import").addEventListener("change", async (e) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    let parsed: ReturnType<typeof parseProgressExport>;
+    try {
+      parsed = parseProgressExport(data, JSON.parse(await file.text()));
+    } catch {
+      parsed = { ok: false, error: "fichier illisible (JSON attendu)" };
+    }
+    if (!parsed.ok) {
+      $("progress-io-hint").textContent = `Import impossible : ${parsed.error}.`;
+      return;
+    }
+    const when = parsed.exportedAt ? ` (exporté le ${new Date(parsed.exportedAt).toLocaleString("fr-FR")})` : "";
+    const choice = await ask(
+      "Importer une progression",
+      `<p>Remplacer ta progression actuelle (${prog.unlocked.length} recherche(s) cochée(s)) par celle du fichier${esc(when)} : <b>${parsed.progress.unlocked.length}</b> recherche(s), ${parsed.progress.owned.length} machine(s) possédée(s), et les informations de « Ma partie » ?</p>${
+        parsed.dropped ? `<p class="hint">${parsed.dropped} élément(s) inconnu(s) des données actuelles seront ignorés.</p>` : ""
+      }`,
+      [
+        { value: "yes", label: "Remplacer", primary: true },
+        { value: "", label: "Annuler" },
+      ],
+    );
+    if (choice !== "yes") return;
+    player = parsed.player;
+    savePlayer(player);
+    syncPlayerForm();
+    setProgress(parsed.progress);
+    $("progress-io-hint").textContent = `Progression importée : ${parsed.progress.unlocked.length} recherche(s).`;
+  });
+
   const playerFields: [string, keyof PlayerInfo][] = [
     ["p-pollution", "pollutionPct"],
     ["p-money", "money"],
@@ -477,6 +519,16 @@ function bindProgress(): void {
       setProgress({ ...prog, owned: [...new Set([...prog.owned, ...btn.dataset.own.split(",")])] });
     }
   });
+}
+
+/** Propose un fichier JSON au téléchargement. */
+function downloadJson(value: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(value, null, 1) + "\n"], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 let timer: number | undefined;
@@ -570,15 +622,7 @@ function bind(): void {
     rebuildData();
     render();
   });
-  $("export").addEventListener("click", () => {
-    const merged = mergeCorrections(repoOverrides, corrections);
-    const blob = new Blob([JSON.stringify(merged, null, 1) + "\n"], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "overrides.json";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
+  $("export").addEventListener("click", () => downloadJson(mergeCorrections(repoOverrides, corrections), "overrides.json"));
   $("import").addEventListener("change", async (e) => {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];

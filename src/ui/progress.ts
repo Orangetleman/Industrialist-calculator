@@ -66,6 +66,42 @@ export function toEngineProgress(p: ProgressState): Progress {
   return { unlocked: new Set(p.unlocked), reqItemsDone: new Set(p.reqItemsDone), owned: new Set(p.owned) };
 }
 
+// ---------------------------------------------------------------- export / import
+
+/** Fichier d'export : progression + « Ma partie », pour passer d'une adresse (ou d'un appareil) à l'autre. */
+export const PROGRESS_FORMAT = "industrialist-progression";
+export type ProgressExport = { format: typeof PROGRESS_FORMAT; version: 1; exportedAt: string; progress: ProgressState; player: PlayerInfo };
+
+export function exportProgress(progress: ProgressState, player: PlayerInfo, now = new Date()): ProgressExport {
+  return { format: PROGRESS_FORMAT, version: 1, exportedAt: now.toISOString(), progress, player };
+}
+
+/**
+ * Lit un fichier exporté. Les ids inconnus des données actuelles sont écartés et comptés
+ * (une mise à jour du wiki a pu renommer une recherche).
+ */
+export function parseProgressExport(
+  data: GameData,
+  raw: unknown,
+): { ok: true; progress: ProgressState; player: PlayerInfo; dropped: number; exportedAt: string | null } | { ok: false; error: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "ce n'est pas un fichier de progression" };
+  const r = raw as Record<string, unknown>;
+  if (r.format !== PROGRESS_FORMAT) return { ok: false, error: "ce fichier n'a pas été exporté par le calculateur (format inconnu)" };
+  if (r.version !== 1) return { ok: false, error: `version de fichier non prise en charge (${String(r.version)})` };
+  const p = (r.progress ?? {}) as Record<string, unknown>;
+  const pl = (r.player ?? {}) as Record<string, unknown>;
+  const read: ProgressState = { unlocked: strings(p.unlocked), reqItemsDone: strings(p.reqItemsDone), owned: strings(p.owned) };
+  const clean = sanitizeProgress(data, read);
+  const dropped = read.unlocked.length + read.reqItemsDone.length + read.owned.length - (clean.unlocked.length + clean.reqItemsDone.length + clean.owned.length);
+  return {
+    ok: true,
+    progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
+    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec) },
+    dropped,
+    exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,
+  };
+}
+
 /** Saisie facultative : vide → null ; virgule décimale acceptée. */
 export function parseOptional(raw: string): number | null | "invalide" {
   const t = raw.trim().replace(/\s/g, "").replace(",", ".");

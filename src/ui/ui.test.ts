@@ -10,7 +10,7 @@ import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
 import { renderGraph, renderPlan, renderSummary, renderVerify } from "./render.ts";
-import { parseOptional, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress } from "./progress.ts";
+import { exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, removeCorrection, setCorrection } from "./state.ts";
@@ -97,6 +97,20 @@ describe("progression et « Ma partie »", () => {
     expect(html(["b"])).toMatch(/class="node incoherent"[\s\S]*data-node="b"/);
     expect(html([])).toContain('data-req="b"'); // condition « vendre 5 x »
     expect(renderTree(d, toEngineProgress({ unlocked: [], reqItemsDone: [], owned: [] }), { category: "Production", filter: "mb" })).not.toContain('data-node="a"');
+  });
+
+  it("export puis import de la progression : aller-retour identique", () => {
+    const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
+    const player = { pollutionPct: 12.5, money: 1000, rp: null, rpPerSec: 2 };
+    const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
+    expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" });
+  });
+
+  it("import : refuse un fichier étranger, ignore les ids disparus", () => {
+    expect(parseProgressExport(d, { recipes: {} }).ok).toBe(false);
+    expect(parseProgressExport(d, { format: "industrialist-progression", version: 2 }).ok).toBe(false);
+    const r = parseProgressExport(d, { format: "industrialist-progression", version: 1, progress: { unlocked: ["a", "ancien", 42], owned: ["?"] }, player: { money: "beaucoup" } });
+    expect(r).toMatchObject({ ok: true, progress: { unlocked: ["a"], reqItemsDone: [], owned: [] }, player: { money: null }, dropped: 2 });
   });
 
   it("résumé et machines possédées", () => {

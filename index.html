@@ -153,6 +153,16 @@
         <span class="hint" id="upto-hint" role="status"></span>
       </form>
 
+      <div class="panel">
+        <h3>Transférer ma progression</h3>
+        <p class="hint">La progression et « Ma partie » sont gardées dans ce navigateur, pour cette adresse seulement. Pour les retrouver ailleurs (autre adresse, autre appareil), exporte-les ici puis importe le fichier là-bas.</p>
+        <div class="actions">
+          <button type="button" id="progress-export">Exporter ma progression</button>
+          <label class="button">Importer…<input type="file" id="progress-import" accept="application/json,.json" hidden></label>
+        </div>
+        <p class="hint" id="progress-io-hint" role="status"></p>
+      </div>
+
       <div class="panel owned-panel">
         <h3>Machines spéciales possédées</h3>
         <p class="hint">Ces machines (éditions « Limited », variantes) ne se débloquent pas dans l'arbre de recherche : coche celles que tu possèdes.</p>
