@@ -11,6 +11,8 @@ import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.t
 import { layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
 import { renderGraph, renderPlan, renderSummary, renderVerify } from "./render.ts";
 import { parseOptional, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress } from "./progress.ts";
+import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
+import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, removeCorrection, setCorrection } from "./state.ts";
 
 describe("mise en forme", () => {
@@ -113,14 +115,29 @@ type Box = { x: number; y: number; w: number; h: number };
 const hit = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 describe("disposition du graphe", () => {
-  for (const criterion of ["machines", "energy", "raw"] as const) {
+  for (const criterion of ["machines", "energy", "raw", "steps"] as const) {
     it(`aucun chevauchement de nœuds, toutes les flèches vont vers le haut (critère ${criterion})`, () => {
       const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion });
       const g = layoutGraph(plan);
       expect(g.nodes).toHaveLength(plan.steps.length + plan.unresolved.filter((u) => !u.loopShortfall).length);
       const boxes = g.nodes.map((n) => ({ x: n.x, y: n.y, w: NODE_W, h: NODE_H }));
       for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) expect(hit(boxes[i]!, boxes[j]!)).toBe(false);
-      for (const e of g.edges) expect(e.y1).toBeGreaterThan(e.y2); // producteur sous le consommateur
+      for (const e of g.edges) {
+        expect(e.points[0]![1]).toBeGreaterThan(e.points.at(-1)![1]); // producteur sous le consommateur
+        // Aucun tronçon ne traverse un nœud (hors ses deux extrémités).
+        for (const n of g.nodes) {
+          if (n.item === e.from || n.item === e.to) continue;
+          for (let k = 1; k < e.points.length; k++) {
+            const [ax, ay] = e.points[k - 1]!;
+            const [bx, by] = e.points[k]!;
+            for (let s = 0; s <= 20; s++) {
+              const x = ax + ((bx - ax) * s) / 20;
+              const y = ay + ((by - ay) * s) / 20;
+              expect(x > n.x + 1 && x < n.x + NODE_W - 1 && y > n.y + 1 && y < n.y + NODE_H - 1, `${e.from}→${e.to} traverse ${n.item}`).toBe(false);
+            }
+          }
+        }
+      }
       expect(g.edges).toHaveLength(plan.edges.length);
       expect(g.nodes.find((n) => n.item === "crankshaft")?.kind).toBe("final");
     });
@@ -161,5 +178,46 @@ describe("rendu HTML", () => {
     const html = renderPlan({ data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {} }) + renderGraph({ data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {} });
     expect(html).not.toContain("<b>evil</b>");
     expect(html).toContain("&lt;b&gt;evil&lt;/b&gt;");
+  });
+});
+
+describe("arbre de recherche « comme en jeu »", () => {
+  for (const category of ["Production", "Energy", "Utility"] as const) {
+    it(`${category} : tous les nœuds placés, sans chevauchement, enfants à droite des parents`, () => {
+      const l = layoutResearch(data, category);
+      const expected = [...data.nodes.values()].filter((n) => n.category === category);
+      expect(l.nodes).toHaveLength(expected.length);
+      for (let i = 0; i < l.nodes.length; i++)
+        for (let j = i + 1; j < l.nodes.length; j++) {
+          const a = l.nodes[i]!;
+          const b = l.nodes[j]!;
+          expect(hit({ x: a.x, y: a.y, w: RN_W, h: RN_H }, { x: b.x, y: b.y, w: RN_W, h: RN_H }), `${a.id} / ${b.id}`).toBe(false);
+        }
+      const pos = new Map(l.nodes.map((n) => [n.id, n]));
+      for (const e of l.edges) expect(pos.get(e.to)!.x).toBeGreaterThan(pos.get(e.from)!.x);
+      const links = expected.reduce((s, n) => s + n.parents.filter((p) => data.nodes.get(p)?.category === category).length, 0);
+      expect(l.edges).toHaveLength(links);
+    });
+  }
+
+  it("couleurs du jeu : débloquée, disponible, trop chère, verrouillée", () => {
+    const n = data.nodes.get("craft-assembler")!;
+    const none = { unlocked: new Set<string>() };
+    const parents = { unlocked: new Set(["water-pump", "modular-tree-farm", "sawmill"]) };
+    expect(nodeState(data, none, n, null)).toBe("locked");
+    expect(nodeState(data, parents, n, null)).toBe("available");
+    expect(nodeState(data, parents, n, 100)).toBe("expensive");
+    expect(nodeState(data, { unlocked: new Set([...parents.unlocked, n.id]) }, n, 100)).toBe("done");
+  });
+
+  it("le SVG et la fiche décrivent la recherche et ses bâtiments", () => {
+    const p = { unlocked: new Set<string>() };
+    const svg = renderResearchSvg(data, p, layoutResearch(data, "Production"), "craft-assembler", null);
+    expect(svg).toContain('data-rs="craft-assembler"');
+    expect(svg).toMatch(/aria-label="Craft Assembler, 3\s000 RP, Prérequis manquants"/);
+    const detail = renderNodeDetail(data, p, "craft-assembler", null);
+    expect(detail).toContain("Combines two items to craft a more advanced one");
+    expect(detail).toContain('data-rs-action="unlock-all"');
+    expect(detail).toContain("Water Pump → Modular Tree Farm → Sawmill → Craft Assembler");
   });
 });

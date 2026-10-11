@@ -47,7 +47,7 @@ export function loadSettings(): Settings {
   // « allUnlocked » : réglage provisoire de l'étape (c), ignoré désormais.
   const { allUnlocked: _ancien, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown };
   const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
-  if (!["machines", "energy", "raw"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
+  if (!["machines", "energy", "raw", "steps"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
   if (out.mode !== "rate" && out.mode !== "machines") out.mode = DEFAULT_SETTINGS.mode;
   if (!(out.rate > 0)) out.rate = DEFAULT_SETTINGS.rate;
   if (!(out.machines > 0)) out.machines = DEFAULT_SETTINGS.machines;

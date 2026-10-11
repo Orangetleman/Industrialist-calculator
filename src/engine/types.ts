@@ -53,8 +53,12 @@ export type Size = { w: number; l: number };
 export type Machine = {
   id: string;
   name: string;
-  /** farm = arbre : hors total des machines, durée selon la pollution. */
-  kind: "machine" | "farm";
+  /** farm = arbre (hors total des machines) ; building = autre bâtiment de l'arbre, jamais utilisé par le calcul. */
+  kind: "machine" | "farm" | "building";
+  /** Description en jeu (citation de la page du wiki), si elle existe. */
+  description: string | null;
+  /** Catégorie du wiki (Factories, Power…). */
+  category: string | null;
   /** Nœud de recherche qui la débloque ; null = inconnu (voir verify). */
   unlockedBy: string | null;
   /** Variante esthétique ou alternative d'une autre machine (champ Variant du wiki). */

@@ -22,7 +22,8 @@ const validSource = (s: Source) => !!s.wiki && !!s.fetchedAt && (s.wiki !== "mir
 describe("intégrité des données", () => {
   it("contient des données", () => {
     expect(recipes.length).toBeGreaterThan(400);
-    expect(machines.length).toBeGreaterThan(90);
+    expect(machines.filter((m) => m.kind !== "building").length).toBeGreaterThan(90);
+    expect(machines.filter((m) => m.kind === "building").length).toBeGreaterThan(100);
     expect(items.length).toBeGreaterThan(200);
     expect(nodes.length).toBeGreaterThan(140);
   });
@@ -48,7 +49,7 @@ describe("intégrité des données", () => {
         for (const [k, v] of Object.entries(r[kind])) if (v === null) expect(hasFlag(r.verify, `${kind}.${k}`), `${r.id} ${kind}.${k}`).toBe(true);
       }
     }
-    for (const m of machines) {
+    for (const m of machines.filter((x) => x.kind !== "building")) {
       for (const f of ["cost", "size", "pollutionPerHour", "unlockedBy"] as const) {
         if (m[f] === null) expect(hasFlag(m.verify, f) || hasFlag(m.verify, "page"), `${m.id}.${f}`).toBe(true);
       }

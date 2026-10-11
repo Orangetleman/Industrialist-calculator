@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generatedAt": "2026-10-11T01:04:20.581Z",
+  "generatedAt": "2026-10-11T02:15:56.550Z",
   "primary": "miraheze",
   "counts": {
    "nodes": 149,
@@ -18,11 +18,11 @@
     "hv-pole"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "HV Power Control",
-    "HV Power Dump"
+   "unlocksMachines": [
+    "hv-power-control",
+    "hv-power-dump"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -48,10 +48,10 @@
     "mv-poles"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Advanced MV Pole"
+   "unlocksMachines": [
+    "advanced-mv-pole"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -75,11 +75,11 @@
     "breaker-box"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Power Control",
-    "Power Dump"
+   "unlocksMachines": [
+    "power-control",
+    "power-dump"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -137,10 +137,10 @@
     "medium-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Breaker"
+   "unlocksMachines": [
+    "breaker"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -166,10 +166,10 @@
     "high-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Breaker Box"
+   "unlocksMachines": [
+    "breaker-box"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -227,17 +227,16 @@
    ],
    "requires": "all",
    "unlocksMachines": [
+    "coal-power-plant",
+    "cooling-tower",
+    "exhaust-stack",
     "heat-exchanger",
     "polisher",
     "steam-condenser",
     "vertical-heat-exchanger",
     "water-treatment-plant"
    ],
-   "unlocksOther": [
-    "Coal Power Plant",
-    "Cooling Tower",
-    "Exhaust Stack"
-   ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -320,10 +319,10 @@
     "mv-battery"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Double MV Battery"
+   "unlocksMachines": [
+    "double-mv-battery"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -347,10 +346,10 @@
     "boiler"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Electric Water Heater"
+   "unlocksMachines": [
+    "electric-water-heater"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -574,11 +573,11 @@
     "renewables"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Hand Crank",
-    "Hand Pump"
+   "unlocksMachines": [
+    "hand-crank",
+    "hand-pump"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -634,10 +633,10 @@
     "high-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "HMVT"
+   "unlocksMachines": [
+    "hmvt"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -664,10 +663,10 @@
     "high-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "HV Battery"
+   "unlocksMachines": [
+    "hv-battery"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -698,10 +697,10 @@
     "extreme-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "HV Battery MK2"
+   "unlocksMachines": [
+    "hv-battery-mk2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -733,11 +732,11 @@
     "extreme-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "HV Pole",
-    "HV Transformer"
+   "unlocksMachines": [
+    "hv-pole",
+    "hv-transformer"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -829,10 +828,10 @@
     "turbines"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Large Turbine"
+   "unlocksMachines": [
+    "large-turbine"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -892,10 +891,10 @@
     "low-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "LV Pole"
+   "unlocksMachines": [
+    "lv-pole"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -951,21 +950,20 @@
     "diesel-generator"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Diesel Engine Controller",
-    "Diesel Engine Crankshaft",
-    "Diesel Engine Cylinder",
-    "Diesel Engine Fuel Input",
-    "Diesel Engine Air Input",
-    "Diesel Engine Generator",
-    "Diesel Engine Exhaust",
-    "Diesel Engine Decoration",
-    "Diesel Engine Crankshaft Sideways",
-    "Diesel Engine Info Panel",
-    "Diesel Engine Flywheel",
-    "Diesel Engine Flywheel"
+   "unlocksMachines": [
+    "diesel-engine-air-input",
+    "diesel-engine-controller",
+    "diesel-engine-crankshaft",
+    "diesel-engine-crankshaft-sideways",
+    "diesel-engine-cylinder",
+    "diesel-engine-decoration",
+    "diesel-engine-exhaust",
+    "diesel-engine-flywheel",
+    "diesel-engine-fuel-input",
+    "diesel-engine-generator",
+    "diesel-engine-info-panel"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -991,15 +989,15 @@
     "large-scale-power-production"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "High Pressure Turbine",
-    "Intermediate Pressure Turbine",
-    "Low Pressure Turbine",
-    "Turbine Generator",
-    "Turbine Input",
-    "Turbine Output"
+   "unlocksMachines": [
+    "high-pressure-turbine",
+    "intermediate-pressure-turbine",
+    "low-pressure-turbine",
+    "turbine-generator",
+    "turbine-input",
+    "turbine-output"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1026,10 +1024,10 @@
     "rusty-battery"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "MV Battery"
+   "unlocksMachines": [
+    "mv-battery"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1061,11 +1059,11 @@
     "medium-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "MV Pole",
-    "Small MV Pole"
+   "unlocksMachines": [
+    "mv-pole",
+    "small-mv-pole"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1090,10 +1088,10 @@
     "modular-turbines"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Nuclear Power Plant"
+   "unlocksMachines": [
+    "nuclear-power-plant"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1123,10 +1121,10 @@
     "medium-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Power Rate Calculator"
+   "unlocksMachines": [
+    "power-rate-calculator"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1150,10 +1148,10 @@
     "high-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Power Rate Calculator2"
+   "unlocksMachines": [
+    "power-rate-calculator2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1177,10 +1175,10 @@
     "extreme-capacity-infrastructure"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Power Rate Calculator3"
+   "unlocksMachines": [
+    "power-rate-calculator3"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1235,10 +1233,10 @@
     "energy-storage"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Rusty Battery"
+   "unlocksMachines": [
+    "rusty-battery"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1262,10 +1260,10 @@
     "solar-panel-3"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Solar Farm1"
+   "unlocksMachines": [
+    "solar-farm1"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1291,10 +1289,10 @@
     "renewables"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Solar Panel"
+   "unlocksMachines": [
+    "solar-panel"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1320,10 +1318,10 @@
     "solar-panel-1"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Solar Panel2"
+   "unlocksMachines": [
+    "solar-panel2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1349,10 +1347,10 @@
     "solar-panel-2"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Solar Panel3"
+   "unlocksMachines": [
+    "solar-panel3"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1379,10 +1377,10 @@
     "coal-generator"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Steam Turbine"
+   "unlocksMachines": [
+    "steam-turbine"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1408,10 +1406,10 @@
     "renewables"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Wind Turbine1"
+   "unlocksMachines": [
+    "wind-turbine1"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1437,10 +1435,10 @@
     "wind-turbine-1"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Wind Turbine2"
+   "unlocksMachines": [
+    "wind-turbine2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -1464,10 +1462,10 @@
     "wind-turbine-2"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Wind Turbine3"
+   "unlocksMachines": [
+    "wind-turbine3"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -2673,11 +2671,10 @@
    ],
    "requires": "all",
    "unlocksMachines": [
-    "lathe"
+    "lathe",
+    "mineshaft-drill"
    ],
-   "unlocksOther": [
-    "Mineshaft Drill"
-   ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -2710,15 +2707,14 @@
    ],
    "requires": "all",
    "unlocksMachines": [
-    "tree"
+    "farm-harvester",
+    "tree",
+    "tree-farm-controller",
+    "tree-farm-output",
+    "tree-farm-sprinkler",
+    "tree-farm-water-tank"
    ],
-   "unlocksOther": [
-    "Farm Harvester",
-    "Tree Farm Controller",
-    "Tree Farm Output",
-    "Tree Farm Sprinkler",
-    "Tree Farm Water Tank"
-   ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3181,10 +3177,10 @@
     "concrete-production"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Underground Waste Facility"
+   "unlocksMachines": [
+    "underground-waste-facility"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3214,11 +3210,11 @@
     "production"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Research Station1",
-    "Research Tracking Panel"
+   "unlocksMachines": [
+    "research-station1",
+    "research-tracking-panel"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3246,10 +3242,10 @@
     "iron-extracting"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Research Station2"
+   "unlocksMachines": [
+    "research-station2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3276,10 +3272,10 @@
     "diesel-refining"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Research Station3"
+   "unlocksMachines": [
+    "research-station3"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3307,10 +3303,10 @@
     "gold-acid-refinery"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Research Station4"
+   "unlocksMachines": [
+    "research-station4"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3397,11 +3393,11 @@
     "research-station-3"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Satellite Dish Controller",
-    "Satellite Dish"
+   "unlocksMachines": [
+    "satellite-dish",
+    "satellite-dish-controller"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3600,13 +3596,13 @@
     "logic"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Logic Dabble",
-    "Color LED",
-    "Seven Segment Display",
-    "Logic Adder"
+   "unlocksMachines": [
+    "color-led",
+    "logic-adder",
+    "logic-dabble",
+    "seven-segment-display"
    ],
+   "unlocksOther": [],
    "reqItems": [
     {
      "item": "8x-microchip",
@@ -3639,13 +3635,13 @@
     "pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Tier_III; Fluid Pipe Junction2",
-    "Pipes#tabber-Tier_III; Fluid Pipe Section2",
-    "Pipes#tabber-Tier_III; Fluid Pipe Turn2",
-    "Pipes#tabber-Tier_III; Short Fluid Pipe2"
+   "unlocksMachines": [
+    "fluid-pipe-junction2",
+    "fluid-pipe-section2",
+    "fluid-pipe-turn2",
+    "short-fluid-pipe2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3672,12 +3668,12 @@
     "better-fluid-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Intersections; Fluid Pipe Intersection",
-    "Pipes#tabber-Intersections; Pipe Intersection",
-    "Pipes#tabber-Intersections; Fluid Pipe And Item Intersection"
+   "unlocksMachines": [
+    "fluid-pipe-and-item-intersection",
+    "fluid-pipe-intersection",
+    "pipe-intersection"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3709,13 +3705,13 @@
     "pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Tier_III; Pipe Junction2",
-    "Pipes#tabber-Tier_III; Pipe Section2",
-    "Pipes#tabber-Tier_III; Pipe Turn2",
-    "Pipes#tabber-Tier_III; Short Pipe2"
+   "unlocksMachines": [
+    "pipe-junction2",
+    "pipe-section2",
+    "pipe-turn2",
+    "short-pipe2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3745,10 +3741,10 @@
     "liquid-overflow-gate"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Special_Pipes; Cold Bypass Pipe"
+   "unlocksMachines": [
+    "cold-bypass-pipe"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3772,10 +3768,10 @@
     "medium-fluid-storage-silo"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Gold Fluid Storage Silo"
+   "unlocksMachines": [
+    "gold-fluid-storage-silo"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3799,10 +3795,10 @@
     "medium-item-storage-silo"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Gold Item Storage Silo"
+   "unlocksMachines": [
+    "gold-item-storage-silo"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3826,10 +3822,10 @@
     "van-depot"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Huge Truck Depot"
+   "unlocksMachines": [
+    "huge-truck-depot"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3855,12 +3851,12 @@
     "pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Intersections; Rusty Fluid Pipe And Item Intersection",
-    "Pipes#tabber-Intersections; Rusty Fluid Pipe Intersection",
-    "Pipes#tabber-Intersections; Rusty Pipe Intersection"
+   "unlocksMachines": [
+    "rusty-fluid-pipe-and-item-intersection",
+    "rusty-fluid-pipe-intersection",
+    "rusty-pipe-intersection"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3884,10 +3880,10 @@
     "long-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Special_Pipes; Item Overflow Gate"
+   "unlocksMachines": [
+    "item-overflow-gate"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3913,20 +3909,20 @@
     "better-fluid-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Tier_IV; Large Fluid Pipe",
-    "Pipes#tabber-Special_Pipes; Large Fluid Pipe Conversion",
-    "Pipes#tabber-Special_Pipes; Long Fluid Pipe Fluid Passthrough",
-    "Pipes#tabber-Intersections; Large Fluid Pipe Intersection",
-    "Pipes#tabber-Special_Pipes; Large Fluid Pipe Fluid Passthrough",
-    "Pipes#tabber-Special_Pipes; Large Fluid Pipe Item Passthrough",
-    "Pipes#tabber-Tier_IV; Large Fluid Pipe Junction",
-    "Pipes#tabber-Tier_IV; Large Fluid Pipe Section",
-    "Pipes#tabber-Tier_IV; Large Fluid Pipe Turn",
-    "Pipes#tabber-Tier_IV; Long Large Fluid Pipe",
-    "Pipes#tabber-Tier_IV; Short Large Fluid Pipe"
+   "unlocksMachines": [
+    "large-fluid-pipe",
+    "large-fluid-pipe-conversion",
+    "large-fluid-pipe-fluid-passthrough",
+    "large-fluid-pipe-intersection",
+    "large-fluid-pipe-item-passthrough",
+    "large-fluid-pipe-junction",
+    "large-fluid-pipe-section",
+    "large-fluid-pipe-turn",
+    "long-fluid-pipe-fluid-passthrough",
+    "long-large-fluid-pipe",
+    "short-large-fluid-pipe"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3950,10 +3946,10 @@
     "liquid-truck-depot"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Large Liquid Truck Depot"
+   "unlocksMachines": [
+    "large-liquid-truck-depot"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -3977,10 +3973,10 @@
     "large-liquid-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Special_Pipes; Large Fluid Valve Control"
+   "unlocksMachines": [
+    "large-fluid-valve-control"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4004,10 +4000,10 @@
     "pollution"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Liquid Burner"
+   "unlocksMachines": [
+    "liquid-burner"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4033,10 +4029,10 @@
     "long-fluid-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Special_Pipes; Overflow Gate"
+   "unlocksMachines": [
+    "overflow-gate"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4062,10 +4058,10 @@
     "transportation"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Liquid Truck Depot"
+   "unlocksMachines": [
+    "liquid-truck-depot"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4091,35 +4087,35 @@
     "utility"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "AND Gate",
-    "Logic Clock",
-    "Logic Item Pipe Valve",
-    "Logic Fluid Pipe Valve",
-    "Logic Knot",
-    "Logic Memory",
-    "Logic Relay",
-    "Logic Switch",
-    "NOT Gate",
-    "Resistor",
-    "White LED",
-    "XOR Gate",
-    "OR Gate",
-    "Pollution Gate",
-    "Logic Button",
-    "Logic Delay",
-    "Time Gate",
-    "Fluid Meter",
-    "Logic Breaker",
-    "NAND Gate",
-    "NOR Gate",
-    "Item Meter",
-    "Logic Pulse",
-    "Logic Pole",
-    "Huge Spotlight",
-    "Logic Random"
+   "unlocksMachines": [
+    "and-gate",
+    "fluid-meter",
+    "huge-spotlight",
+    "item-meter",
+    "logic-breaker",
+    "logic-button",
+    "logic-clock",
+    "logic-delay",
+    "logic-fluid-pipe-valve",
+    "logic-item-pipe-valve",
+    "logic-knot",
+    "logic-memory",
+    "logic-pole",
+    "logic-pulse",
+    "logic-random",
+    "logic-relay",
+    "logic-switch",
+    "nand-gate",
+    "nor-gate",
+    "not-gate",
+    "or-gate",
+    "pollution-gate",
+    "resistor",
+    "time-gate",
+    "white-led",
+    "xor-gate"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4145,11 +4141,11 @@
     "better-fluid-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Tier_III; Long Fluid Pipe2",
-    "Pipes#tabber-Tier_III; Fluid Pipe2"
+   "unlocksMachines": [
+    "fluid-pipe2",
+    "long-fluid-pipe2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4175,11 +4171,11 @@
     "better-item-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Tier_III; Long Pipe2",
-    "Pipes#tabber-Tier_III; Pipe2"
+   "unlocksMachines": [
+    "long-pipe2",
+    "pipe2"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4205,10 +4201,10 @@
     "small-fluid-storage-silo"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Medium Fluid Storage Silo"
+   "unlocksMachines": [
+    "medium-fluid-storage-silo"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4234,10 +4230,10 @@
     "small-item-storage-silo"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Medium Item Storage Silo"
+   "unlocksMachines": [
+    "medium-item-storage-silo"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4265,17 +4261,17 @@
     "utility"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Tier_I; Fluid Pipe Junction",
-    "Pipes#tabber-Tier_I; Fluid Pipe Section",
-    "Pipes#tabber-Tier_I; Fluid Pipe Turn",
-    "Pipes#tabber-Tier_I; Pipe Junction",
-    "Pipes#tabber-Tier_I; Pipe Section",
-    "Pipes#tabber-Tier_I; Pipe Turn",
-    "Pipes#tabber-Tier_I; Short Fluid Pipe",
-    "Pipes#tabber-Tier_I; Short Pipe"
+   "unlocksMachines": [
+    "fluid-pipe-junction",
+    "fluid-pipe-section",
+    "fluid-pipe-turn",
+    "pipe-junction",
+    "pipe-section",
+    "pipe-turn",
+    "short-fluid-pipe",
+    "short-pipe"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4302,11 +4298,11 @@
     "utility"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pollution Meter",
-    "Liquid Dump"
+   "unlocksMachines": [
+    "liquid-dump",
+    "pollution-meter"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4387,10 +4383,10 @@
     "silos-and-tanks"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Small Fluid Storage Silo"
+   "unlocksMachines": [
+    "small-fluid-storage-silo"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4416,10 +4412,10 @@
     "silos-and-tanks"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Small Item Storage Silo"
+   "unlocksMachines": [
+    "small-item-storage-silo"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4473,10 +4469,10 @@
     "transportation"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Truck Depot"
+   "unlocksMachines": [
+    "truck-depot"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4504,17 +4500,17 @@
    ],
    "parents": [],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Time Tracker",
-    "Decoration",
-    "Metal Sign",
-    "Flag",
-    "Light2",
-    "Light",
-    "Inclined Light",
-    "Inclined Light2"
+   "unlocksMachines": [
+    "decoration",
+    "flag",
+    "inclined-light",
+    "inclined-light2",
+    "light",
+    "light2",
+    "metal-sign",
+    "time-tracker"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": true,
    "sources": [
@@ -4538,12 +4534,12 @@
     "better-intersection-pipes"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Pipes#tabber-Special_Pipes; Item Valve Control",
-    "Pipes#tabber-Special_Pipes; Valve Control",
-    "Pipes#tabber-Special_Pipes; Pipe Value"
+   "unlocksMachines": [
+    "item-valve-control",
+    "pipe-value",
+    "valve-control"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [
@@ -4569,10 +4565,10 @@
     "truck-depot"
    ],
    "requires": "all",
-   "unlocksMachines": [],
-   "unlocksOther": [
-    "Van Depot"
+   "unlocksMachines": [
+    "van-depot"
    ],
+   "unlocksOther": [],
    "reqItems": [],
    "isRoot": false,
    "sources": [

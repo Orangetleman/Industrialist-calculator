@@ -6,7 +6,7 @@ import { treeGrowthSeconds, type TreeGrowthResult } from "./pollution.ts";
 import type { Machine, Recipe, VerifyFlag } from "./types.ts";
 import { machineAccess, type MachineAccess, type Progress } from "./unlock.ts";
 
-export type Criterion = "machines" | "energy" | "raw";
+export type Criterion = "machines" | "energy" | "raw" | "steps";
 
 export type ChoiceOptions = {
   criterion: Criterion;
@@ -36,6 +36,8 @@ export type Cost = {
   energy: number;
   energyUnknown: number;
   raw: number;
+  /** Nombre d'étapes (recettes) de la chaîne, partages comptés plusieurs fois. */
+  steps: number;
 };
 
 export type CandidateStatus = "ok" | "forcée" | "verrouillée" | "à vérifier" | "incalculable" | "boucle";
@@ -93,13 +95,13 @@ export function isCalculable(eff: EffRecipe, item: string): boolean {
   return ratePerMachine(eff, item) !== null && Object.values(eff.net).every((v) => v !== null);
 }
 
-const ZERO: Cost = { unresolved: 0, machines: 0, energy: 0, energyUnknown: 0, raw: 0 };
-const LEAF: Cost = { unresolved: 1, machines: 0, energy: 0, energyUnknown: 0, raw: 1 };
+const ZERO: Cost = { unresolved: 0, machines: 0, energy: 0, energyUnknown: 0, raw: 0, steps: 0 };
+const LEAF: Cost = { unresolved: 1, machines: 0, energy: 0, energyUnknown: 0, raw: 1, steps: 0 };
 const EPS = 1e-9;
 const same = (a: number, b: number) => Math.abs(a - b) <= EPS * Math.max(1, Math.abs(a), Math.abs(b));
 
 function metric(c: Cost, k: Criterion): number {
-  return k === "machines" ? c.machines : k === "energy" ? c.energy : c.raw;
+  return k === "machines" ? c.machines : k === "energy" ? c.energy : k === "steps" ? c.steps : c.raw;
 }
 
 /** Surface au sol d'une machine (cases) ; null si inconnue. */
@@ -120,7 +122,7 @@ function compare(a: { cost: Cost; area: number | null; id: string }, b: { cost: 
     if (b.area === null) return -1;
     if (!same(a.area, b.area)) return a.area - b.area;
   }
-  for (const k of ["machines", "energy", "raw"] as Criterion[]) {
+  for (const k of ["machines", "energy", "raw", ...(criterion === "steps" ? [] : ["steps"])] as Criterion[]) {
     if (k === criterion) continue;
     const x = metric(a.cost, k);
     const y = metric(b.cost, k);
@@ -133,7 +135,7 @@ function compare(a: { cost: Cost; area: number | null; id: string }, b: { cost: 
 function strictlyBetter(a: Cost, b: Cost, criterion: Criterion): boolean {
   if (a.unresolved !== b.unresolved) return a.unresolved < b.unresolved;
   if (criterion === "energy" && a.energyUnknown !== b.energyUnknown) return a.energyUnknown < b.energyUnknown;
-  for (const k of [criterion, ...(["machines", "energy", "raw"] as Criterion[]).filter((x) => x !== criterion)]) {
+  for (const k of [criterion, ...(["machines", "energy", "raw", "steps"] as Criterion[]).filter((x) => x !== criterion)]) {
     const x = metric(a, k);
     const y = metric(b, k);
     if (!same(x, y)) return x < y;
@@ -142,7 +144,7 @@ function strictlyBetter(a: Cost, b: Cost, criterion: Criterion): boolean {
 }
 
 function sameCost(a: Cost, b: Cost): boolean {
-  return a.unresolved === b.unresolved && a.energyUnknown === b.energyUnknown && same(a.machines, b.machines) && same(a.energy, b.energy) && same(a.raw, b.raw);
+  return a.unresolved === b.unresolved && a.energyUnknown === b.energyUnknown && same(a.machines, b.machines) && same(a.energy, b.energy) && same(a.raw, b.raw) && same(a.steps, b.steps);
 }
 
 /** Recette candidate déjà filtrée (verrou, à vérifier, calculabilité). */
@@ -243,7 +245,7 @@ export class Chooser {
     const eff = u.eff;
     const rate = ratePerMachine(eff, item)!;
     const perUnitMachines = 1 / rate;
-    const cost: Cost = { ...ZERO, machines: perUnitMachines };
+    const cost: Cost = { ...ZERO, machines: perUnitMachines, steps: 1 };
     if (eff.recipe.energyMFps === null) cost.energyUnknown++;
     else cost.energy = eff.recipe.energyMFps * perUnitMachines;
     const produced = eff.net[item]!;
@@ -259,6 +261,7 @@ export class Chooser {
       cost.energy += k * sub.energy;
       cost.energyUnknown += sub.energyUnknown;
       cost.raw += k * sub.raw;
+      cost.steps += sub.steps;
     }
     if (!hasInput) cost.raw = 1;
     const a = machineArea(eff.machine);
@@ -318,7 +321,8 @@ export class Chooser {
           if (candidate.id !== current.id && (!refreshed || strictlyBetter(candidate.cost, refreshed.cost, this.opts.criterion))) {
             best.set(it, candidate);
             changed = true;
-          } else if (refreshed && !sameCost(refreshed.cost, current.cost)) {
+          } else if (refreshed && !sameCost(refreshed.cost, current.cost) && !strictlyBetter(current.cost, refreshed.cost, this.opts.criterion)) {
+            // Les coûts ne font que baisser (principe du point fixe) : une hausse vient d'une boucle, on l'ignore.
             best.set(it, refreshed);
             changed = true;
           }

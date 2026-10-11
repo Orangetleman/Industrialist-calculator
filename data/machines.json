@@ -1,10 +1,10 @@
 {
  "meta": {
-  "generatedAt": "2026-10-11T01:04:20.581Z",
+  "generatedAt": "2026-10-11T02:15:56.550Z",
   "primary": "miraheze",
   "counts": {
-   "machines": 100,
-   "aVerifier": 17
+   "machines": 264,
+   "aVerifier": 19
   }
  },
  "machines": [
@@ -12,6 +12,8 @@
    "id": "advanced-assembler",
    "name": "Advanced Assembler",
    "kind": "machine",
+   "description": "A lot faster than the regular craft assembler and can handle more advanced recipes. Recipe inputs can go in any order.",
+   "category": "Factories",
    "unlockedBy": "advanced-assembler",
    "variantOf": null,
    "limited": false,
@@ -37,6 +39,8 @@
    "id": "advanced-coal-drill",
    "name": "Advanced Coal Drill",
    "kind": "machine",
+   "description": "Compared to a standard coal drill, it emits no pollution, but it drills significantly slower and consumes far more power as a side consequence.",
+   "category": "Extractors",
    "unlockedBy": "advanced-coal-extraction",
    "variantOf": null,
    "limited": false,
@@ -62,6 +66,8 @@
    "id": "advanced-copper-drill",
    "name": "Advanced Copper Drill",
    "kind": "machine",
+   "description": "Compared to a standard copper drill, it emits no pollution, but it drills significantly slower and consumes far more power as a side consequence.",
+   "category": "Extractors",
    "unlockedBy": "advanced-copper-extraction",
    "variantOf": null,
    "limited": false,
@@ -87,6 +93,8 @@
    "id": "advanced-diesel-refinery",
    "name": "Advanced Diesel Refinery",
    "kind": "machine",
+   "description": "Refines Crude diesel, Poor quality diesel & Diesel into their better counterparts.\n\nRequires Machine Oil to operate properly.",
+   "category": "Factories",
    "unlockedBy": null,
    "variantOf": "diesel-refinery",
    "limited": true,
@@ -118,6 +126,8 @@
    "id": "advanced-electric-furnace",
    "name": "Advanced Electric Furnace",
    "kind": "machine",
+   "description": "Melts ores down into liquids. Faster than the original furnace at the cost of increased power consumption and pollution\nOnly one input required.",
+   "category": "Factories",
    "unlockedBy": null,
    "variantOf": "electric-furnace",
    "limited": true,
@@ -146,9 +156,38 @@
    ]
   },
   {
+   "id": "advanced-mv-pole",
+   "name": "Advanced MV Pole",
+   "kind": "building",
+   "description": "MV But there are four connectors, so the overall transmission rate is doubled.",
+   "category": "Power",
+   "unlockedBy": "advanced-mv-pole",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 300,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_MV_Pole",
+     "page": "Advanced MV Pole",
+     "revisionId": 40685,
+     "fetchedAt": "2026-10-11T02:15:44.582Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "advanced-oil-separator",
    "name": "Advanced Oil Separator",
    "kind": "machine",
+   "description": "Refines Crude Oil using Steam, produces Hydrogen Sulfide for producing Sulfuric Acid",
+   "category": "Factories",
    "unlockedBy": "advanced-oil-refining",
    "variantOf": null,
    "limited": false,
@@ -174,6 +213,8 @@
    "id": "advanced-oxidation-plant",
    "name": "Advanced Oxidation Plant",
    "kind": "machine",
+   "description": "A large scale oxidation plant specicialized in nuclear fuel processing.",
+   "category": "Factories",
    "unlockedBy": "advanced-oxidation-plant",
    "variantOf": null,
    "limited": false,
@@ -199,6 +240,8 @@
    "id": "air-separation-unit",
    "name": "Air Separation Unit",
    "kind": "machine",
+   "description": "Distills air into its parts at cryogenic temperatures. Useful for Ammonia production and other boosts to machines. Does not shut off automatically when full on gasses and uses a huge amount of power for the separation. Residue output is based on current world pollution levels",
+   "category": "Extractors",
    "unlockedBy": "air-separation-unit",
    "variantOf": null,
    "limited": false,
@@ -224,6 +267,8 @@
    "id": "alloyer",
    "name": "Alloyer",
    "kind": "machine",
+   "description": "Forms an alloy from the 2 input metals. Steam is required. Can make Purple Gold from Gold and Aluminium and Ferroaluminium Alloy from Iron Ingots and Aluminium.",
+   "category": "Factories",
    "unlockedBy": "alloyer",
    "variantOf": null,
    "limited": false,
@@ -249,6 +294,8 @@
    "id": "american-oil-rig",
    "name": "American Oil Rig",
    "kind": "machine",
+   "description": "OIL² OIL² OIL² OIL²",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": "oil-rig",
    "limited": true,
@@ -277,9 +324,38 @@
    ]
   },
   {
+   "id": "and-gate",
+   "name": "AND Gate",
+   "kind": "building",
+   "description": "Outputs the logical AND of the input signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/AND_Gate",
+     "page": "AND Gate",
+     "revisionId": 42278,
+     "fetchedAt": "2026-10-11T02:15:44.577Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "atmospheric-distillation-plant",
    "name": "Atmospheric Distillation Plant",
    "kind": "machine",
+   "description": "Separates stuff using physics and chemical properties, yay!",
+   "category": "Factories",
    "unlockedBy": "oil-fracking",
    "variantOf": null,
    "limited": false,
@@ -305,6 +381,8 @@
    "id": "battery-charger",
    "name": "Battery Charger",
    "kind": "machine",
+   "description": "Charges up uncharged lithium batteries into charged ones for even more profit!\nPower selling now exists in one way i guess",
+   "category": "Factories",
    "unlockedBy": "charger",
    "variantOf": null,
    "limited": false,
@@ -330,6 +408,8 @@
    "id": "blast-furnace",
    "name": "Blast Furnace",
    "kind": "machine",
+   "description": "Creates Steel from Coal & Iron Ingots.",
+   "category": "Factories",
    "unlockedBy": "steel",
    "variantOf": null,
    "limited": false,
@@ -355,6 +435,8 @@
    "id": "blast-furnace-mk2",
    "name": "Blast Furnace MK2",
    "kind": "machine",
+   "description": "Larger and more pollution but a lot faster than the regular blast furnace. As a trade-off it cannot do some of the more precise recipes that the normal blast furnace can do.",
+   "category": "Factories",
    "unlockedBy": "blast-furnace-mk2",
    "variantOf": null,
    "limited": false,
@@ -380,6 +462,8 @@
    "id": "boiler",
    "name": "Boiler",
    "kind": "machine",
+   "description": "Converts water into steam for turbines. Filtered Water heats 10% more effectively (in coolant ports) Distilled Water 20%\n\n\"so you are telling me its 100% safe?\"\n\"we'll see\" - Chaos_12346",
+   "category": "Power",
    "unlockedBy": "boiler",
    "variantOf": null,
    "limited": false,
@@ -405,6 +489,8 @@
    "id": "bottling-plant",
    "name": "Bottling Plant",
    "kind": "machine",
+   "description": "Packs some liquids into Plastic Bottles.",
+   "category": "Factories",
    "unlockedBy": "water-bottling",
    "variantOf": null,
    "limited": false,
@@ -427,9 +513,65 @@
    "verify": []
   },
   {
+   "id": "breaker",
+   "name": "Breaker",
+   "kind": "building",
+   "description": "Advanced breaker technologi.",
+   "category": "Power",
+   "unlockedBy": "breaker",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 8000,
+   "size": {
+    "w": 2,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Breaker",
+     "page": "Breaker",
+     "revisionId": 42087,
+     "fetchedAt": "2026-10-11T02:15:44.584Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "breaker-box",
+   "name": "Breaker Box",
+   "kind": "building",
+   "description": "Allows for the switching 4 power lines at once, the left most switch switches the power node on the bottom",
+   "category": "Power",
+   "unlockedBy": "breaker-box",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 75000,
+   "size": {
+    "w": 3,
+    "l": 3
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Breaker_Box",
+     "page": "Breaker Box",
+     "revisionId": 42082,
+     "fetchedAt": "2026-10-11T02:15:44.585Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "cat-assembler",
    "name": "Cat Assembler",
    "kind": "machine",
+   "description": "Assembles cat",
+   "category": "Factories",
    "unlockedBy": null,
    "variantOf": null,
    "limited": true,
@@ -461,6 +603,8 @@
    "id": "chemical-plant",
    "name": "Chemical Plant",
    "kind": "machine",
+   "description": "Can handle more advanced recipes than the regular chemical reactor. Input order does not matter. Environment does not matter either. Has a monitor that can control its speed and efficiency at the cost of power.",
+   "category": "Factories",
    "unlockedBy": "advanced-chemical-plant",
    "variantOf": null,
    "limited": false,
@@ -492,6 +636,8 @@
    "id": "chemical-reactor",
    "name": "Chemical Reactor",
    "kind": "machine",
+   "description": "Combines or refines certain chemicals into more usable products.\nChemistry is a solid 8/10",
+   "category": "Factories",
    "unlockedBy": "chemical-reactor",
    "variantOf": null,
    "limited": false,
@@ -517,6 +663,8 @@
    "id": "coal-drill",
    "name": "Coal Drill",
    "kind": "machine",
+   "description": "Drills the ground for coal.",
+   "category": "Extractors",
    "unlockedBy": "coal-extracting",
    "variantOf": null,
    "limited": false,
@@ -542,6 +690,8 @@
    "id": "coal-generator",
    "name": "Coal Generator",
    "kind": "machine",
+   "description": "Burns coal for high pressure steam. Some of that high pressure steam is used to drive a very old piston engine and any remaining steam can be utilized to spin a more modern steam turbine.",
+   "category": "Power",
    "unlockedBy": "coal-generator",
    "variantOf": null,
    "limited": false,
@@ -567,6 +717,8 @@
    "id": "coal-liquefaction-plant",
    "name": "Coal Liquefaction Plant",
    "kind": "machine",
+   "description": "Turns coal into oil variants which can be used to make machine oil or other oil productions.\nFastest production time is 10 seconds",
+   "category": "Factories",
    "unlockedBy": "advanced-oil-refining",
    "variantOf": null,
    "limited": false,
@@ -589,9 +741,90 @@
    "verify": []
   },
   {
+   "id": "coal-power-plant",
+   "name": "Coal Power Plant",
+   "kind": "building",
+   "description": null,
+   "category": "Power",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 10001984,
+   "size": {
+    "w": 100,
+    "l": 42
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal_Power_Plant",
+     "page": "Coal Power Plant",
+     "revisionId": 43417,
+     "fetchedAt": "2026-10-11T02:15:44.586Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cold-bypass-pipe",
+   "name": "Cold Bypass Pipe",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "cold-bypass-pipe",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "color-led",
+   "name": "Color LED",
+   "kind": "building",
+   "description": "Lights up with a different color depending on which port has power.",
+   "category": "Logic",
+   "unlockedBy": "advanced-logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 3000,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Color_LED",
+     "page": "Color LED",
+     "revisionId": 38052,
+     "fetchedAt": "2026-10-11T02:15:44.587Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "compact-coal-power-plant",
    "name": "Compact Coal Power Plant",
    "kind": "machine",
+   "description": "Includes turbine, which means direct power.",
+   "category": "Power",
    "unlockedBy": "compact-coal-generator",
    "variantOf": null,
    "limited": false,
@@ -617,6 +850,8 @@
    "id": "concrete-plant",
    "name": "Concrete Plant",
    "kind": "machine",
+   "description": "Makes products for both Bricks and Concrete",
+   "category": "Factories",
    "unlockedBy": "brick-production",
    "variantOf": null,
    "limited": false,
@@ -642,6 +877,8 @@
    "id": "condenser",
    "name": "Condenser",
    "kind": "machine",
+   "description": "Refines Raw Gas into Water-Free Gas with Water & Crude Oil as side products.",
+   "category": "Factories",
    "unlockedBy": "gas-refining",
    "variantOf": null,
    "limited": false,
@@ -664,9 +901,38 @@
    "verify": []
   },
   {
+   "id": "cooling-tower",
+   "name": "Cooling Tower",
+   "kind": "building",
+   "description": null,
+   "category": "Power",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2500000,
+   "size": {
+    "w": 50,
+    "l": 50
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cooling_Tower",
+     "page": "Cooling Tower",
+     "revisionId": 43164,
+     "fetchedAt": "2026-10-11T02:15:44.588Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "copper-drill",
    "name": "Copper Drill",
    "kind": "machine",
+   "description": "Drills the ground for copper.",
+   "category": "Extractors",
    "unlockedBy": "copper-extracting",
    "variantOf": null,
    "limited": false,
@@ -692,6 +958,8 @@
    "id": "craft-assembler",
    "name": "Craft Assembler",
    "kind": "machine",
+   "description": "Combines two items to craft a more advanced one. Check recipes beforehand to see what can be created. Input order doesn't matter, as long as the correct materials are used. Can craft chairs, gearboxes, etc.",
+   "category": "Factories",
    "unlockedBy": "craft-assembler",
    "variantOf": null,
    "limited": false,
@@ -717,6 +985,8 @@
    "id": "crude-oil-separator",
    "name": "Crude Oil Separator",
    "kind": "machine",
+   "description": "Separates hot crude oil into Diesel, Gasoline and residue.",
+   "category": "Factories",
    "unlockedBy": "oil-refining",
    "variantOf": null,
    "limited": false,
@@ -739,9 +1009,353 @@
    "verify": []
   },
   {
+   "id": "decoration",
+   "name": "Decoration",
+   "kind": "building",
+   "description": "\"This state of the art 'Decoration' piece will help you at all times!\"",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 40,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Decoration",
+     "page": "Decoration",
+     "revisionId": 38061,
+     "fetchedAt": "2026-10-11T02:15:44.588Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-air-input",
+   "name": "Diesel Engine Air Input",
+   "kind": "building",
+   "description": "Provides air for the engine. Attach to the sides of crankshafts to make it function. (Bigger engines may require more than one).",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Air_Input",
+     "page": "Diesel Engine Air Input",
+     "revisionId": 42830,
+     "fetchedAt": "2026-10-11T02:15:44.590Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-controller",
+   "name": "Diesel Engine Controller",
+   "kind": "building",
+   "description": "The brain of the entire modular engine. Attach Crankshafts in front of it to start building an engine. One modular diesel engine needs only ONE controller! Any more will break the engine.",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 9000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Controller",
+     "page": "Diesel Engine Controller",
+     "revisionId": 42737,
+     "fetchedAt": "2026-10-11T02:15:44.590Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-crankshaft",
+   "name": "Diesel Engine Crankshaft",
+   "kind": "building",
+   "description": "Allows for further expansion of an engine when connected properly.",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Crankshaft",
+     "page": "Diesel Engine Crankshaft",
+     "revisionId": 42239,
+     "fetchedAt": "2026-10-11T02:15:44.591Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-crankshaft-sideways",
+   "name": "Diesel Engine Crankshaft Sideways",
+   "kind": "building",
+   "description": "Crankshaft that allows you to go sideways. Attach to the sides of crankshafts to make it function.",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 600,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Crankshaft_Sideways",
+     "page": "Diesel Engine Crankshaft Sideways",
+     "revisionId": 40915,
+     "fetchedAt": "2026-10-11T02:15:44.592Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-cylinder",
+   "name": "Diesel Engine Cylinder",
+   "kind": "building",
+   "description": "When attached to a crankshaft on its side, it produces higher torque but consumes more fuel and air.",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Cylinder",
+     "page": "Diesel Engine Cylinder",
+     "revisionId": 42836,
+     "fetchedAt": "2026-10-11T02:15:44.593Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-decoration",
+   "name": "Diesel Engine Decoration",
+   "kind": "building",
+   "description": "Diesel engine decoration to cover up all the ugly spots.\n\nYeah that's it.",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 400,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Decoration",
+     "page": "Diesel Engine Decoration",
+     "revisionId": 43205,
+     "fetchedAt": "2026-10-11T02:15:44.594Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-exhaust",
+   "name": "Diesel Engine Exhaust",
+   "kind": "building",
+   "description": "Provides a good way for all the exhaust build-up to exit the engine. Attach to the sides of crankshafts to make it function. (Bigger engines may require more than one).",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Exhaust",
+     "page": "Diesel Engine Exhaust",
+     "revisionId": 42226,
+     "fetchedAt": "2026-10-11T02:15:44.595Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-flywheel",
+   "name": "Diesel Engine Flywheel",
+   "kind": "building",
+   "description": "Stores energy, makes the engine slightly more efficient. As a side effect, makes the engine start up and slow down slower. Looks very cool though!",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 8000,
+   "size": {
+    "w": 6,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Flywheel",
+     "page": "Diesel Engine Flywheel",
+     "revisionId": 40900,
+     "fetchedAt": "2026-10-11T02:15:44.596Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "contradiction",
+     "detail": "débloquée par plusieurs nœuds : Modular Diesel Engines, Modular Diesel Engines",
+     "alternatives": [
+      {
+       "value": "modular-diesel-engines",
+       "source": {
+        "wiki": "miraheze",
+        "url": "https://industrialist.miraheze.org/wiki/Module:RS/Data",
+        "page": "Module:RS/Data",
+        "revisionId": 42735,
+        "fetchedAt": "2026-10-11T01:03:23.483Z"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "diesel-engine-fuel-input",
+   "name": "Diesel Engine Fuel Input",
+   "kind": "building",
+   "description": "Provides a good way to input fuel. Better quality diesel will run for longer! Attach to the sides of crankshafts to make it function. (Bigger engines may require more than one).",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Fuel_Input",
+     "page": "Diesel Engine Fuel Input",
+     "revisionId": 42826,
+     "fetchedAt": "2026-10-11T02:15:44.597Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-generator",
+   "name": "Diesel Engine Generator",
+   "kind": "building",
+   "description": "Converts all torque into usable power.\nAttach at the end of a crankshaft chain to generate power.\n(Bigger torque engines may require more than one to achieve peak efficiency).",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 6000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Generator",
+     "page": "Diesel Engine Generator",
+     "revisionId": 40899,
+     "fetchedAt": "2026-10-11T02:15:44.598Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-info-panel",
+   "name": "Diesel Engine Info Panel",
+   "kind": "building",
+   "description": "Allows you to see all of the required information about an engine operation status.\n\nAttach to the sides of crankshafts to make it function.",
+   "category": "Modular",
+   "unlockedBy": "modular-diesel-engines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 6000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Info_Panel",
+     "page": "Diesel Engine Info Panel",
+     "revisionId": 40905,
+     "fetchedAt": "2026-10-11T02:15:44.599Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "diesel-generator",
    "name": "Diesel Generator",
    "kind": "machine",
+   "description": "Burns any diesel into power.\n(Better diesel means more power).",
+   "category": "Power",
    "unlockedBy": "diesel-generator",
    "variantOf": null,
    "limited": false,
@@ -767,6 +1381,8 @@
    "id": "diesel-refinery",
    "name": "Diesel Refinery",
    "kind": "machine",
+   "description": "Refines Crude Diesel, Poor Quality Diesel & Diesel into their better counterparts.",
+   "category": "Factories",
    "unlockedBy": "diesel-refining",
    "variantOf": null,
    "limited": false,
@@ -789,9 +1405,38 @@
    "verify": []
   },
   {
+   "id": "double-mv-battery",
+   "name": "Double MV Battery",
+   "kind": "building",
+   "description": "Double trouble.\n\n(Actually stores way more than a single MV battery).",
+   "category": "Power",
+   "unlockedBy": "double-mv-battery",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 900,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Double_MV_Battery",
+     "page": "Double MV Battery",
+     "revisionId": 38078,
+     "fetchedAt": "2026-10-11T02:15:44.600Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "electric-furnace",
    "name": "Electric Furnace",
    "kind": "machine",
+   "description": "Melts ores down into liquids.",
+   "category": "Factories",
    "unlockedBy": "electric-furnace-and-molding",
    "variantOf": null,
    "limited": false,
@@ -814,9 +1459,38 @@
    "verify": []
   },
   {
+   "id": "electric-water-heater",
+   "name": "Electric Water Heater",
+   "kind": "building",
+   "description": "Heats Water using Electricity. Click the number for the respective temperature to set it. 320ºC requires HV Energy (needs a transformer, unlocked later on), the others normal.",
+   "category": "Power",
+   "unlockedBy": "electric-water-heater",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100020,
+   "size": {
+    "w": 8,
+    "l": 5
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Electric_Water_Heater",
+     "page": "Electric Water Heater",
+     "revisionId": 42503,
+     "fetchedAt": "2026-10-11T02:15:46.146Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "electrolysis-plant",
    "name": "Electrolysis Plant",
    "kind": "machine",
+   "description": "Can use Electrolysis to separate liquids into their parts.",
+   "category": "Factories",
    "unlockedBy": "electrolysis-plant",
    "variantOf": null,
    "limited": false,
@@ -839,9 +1513,41 @@
    "verify": []
   },
   {
+   "id": "exhaust-stack",
+   "name": "Exhaust Stack",
+   "kind": "building",
+   "description": null,
+   "category": "Miscellaneous",
+   "unlockedBy": "coal-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 220000,
+   "size": {
+    "w": 24,
+    "l": 24
+   },
+   "pollutionPerHour": [
+    0,
+    691.2
+   ],
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Exhaust_Stack",
+     "page": "Exhaust Stack",
+     "revisionId": 43220,
+     "fetchedAt": "2026-10-11T02:15:46.150Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "fancy-coal-drill",
    "name": "Fancy Coal Drill",
    "kind": "machine",
+   "description": "Drills the ground for coal.",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": "coal-drill",
    "limited": true,
@@ -870,9 +1576,38 @@
    ]
   },
   {
+   "id": "farm-harvester",
+   "name": "Farm Harvester",
+   "kind": "building",
+   "description": "Harvests trees and places them in the output.\n\nRequires to have trees in range to work.",
+   "category": "Modular",
+   "unlockedBy": "modular-tree-farm",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 650,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Farm_Harvester",
+     "page": "Farm Harvester",
+     "revisionId": 42588,
+     "fetchedAt": "2026-10-11T02:15:46.151Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "filtration-plant",
    "name": "Filtration Plant",
    "kind": "machine",
+   "description": "Filters water for selling or bottling.\n\nCan also turn Refined Diesel into Machine Oil.",
+   "category": "Factories",
    "unlockedBy": "water-filtering",
    "variantOf": null,
    "limited": false,
@@ -898,6 +1633,8 @@
    "id": "firebox",
    "name": "Firebox",
    "kind": "machine",
+   "description": "Converts coal and water into hot water (hot coolant) for boilers.\nCan use all types of water",
+   "category": "Power",
    "unlockedBy": "firebox",
    "variantOf": null,
    "limited": false,
@@ -920,9 +1657,290 @@
    "verify": []
   },
   {
+   "id": "flag",
+   "name": "Flag",
+   "kind": "building",
+   "description": "A flag for all your American needs",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": "flag",
+   "limited": false,
+   "tier": 1,
+   "cost": 1000,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Flag",
+     "page": "Flag",
+     "revisionId": 38096,
+     "fetchedAt": "2026-10-11T02:15:46.152Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-meter",
+   "name": "Fluid Meter",
+   "kind": "building",
+   "description": "Measures temperature and content.\nCan also measure flow rate.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 7500,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Fluid_Meter",
+     "page": "Fluid Meter",
+     "revisionId": 42856,
+     "fetchedAt": "2026-10-11T02:15:46.153Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-and-item-intersection",
+   "name": "Fluid Pipe And Item Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-intersection-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-intersection",
+   "name": "Fluid Pipe Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-intersection-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-junction",
+   "name": "Fluid Pipe Junction",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-junction2",
+   "name": "Fluid Pipe Junction2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-fluid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-section",
+   "name": "Fluid Pipe Section",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-section2",
+   "name": "Fluid Pipe Section2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-fluid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-turn",
+   "name": "Fluid Pipe Turn",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-turn2",
+   "name": "Fluid Pipe Turn2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-fluid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe2",
+   "name": "Fluid Pipe2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "long-fluid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "foundry",
    "name": "Foundry",
    "kind": "machine",
+   "description": "Melts down raw materials in large mounts. Has an in-built molder and outputs ingots rather than molten metal. Runs on Coal or Coke Fuel and requires a LOT of water for molding!",
+   "category": "Factories",
    "unlockedBy": "foundry",
    "variantOf": null,
    "limited": false,
@@ -957,6 +1975,8 @@
    "id": "gas-burner",
    "name": "Gas Burner",
    "kind": "machine",
+   "description": "Burn gas for hot water. Can use all variants of Water",
+   "category": "Power",
    "unlockedBy": "gas-burner",
    "variantOf": null,
    "limited": false,
@@ -982,6 +2002,8 @@
    "id": "gas-centrifuge",
    "name": "Gas Centrifuge",
    "kind": "machine",
+   "description": "Enriches Uranium-238 & Uranium-235 mix to a higher percentage of Uranium-235.",
+   "category": "Factories",
    "unlockedBy": "centrifuge",
    "variantOf": null,
    "limited": false,
@@ -1007,6 +2029,8 @@
    "id": "gas-refinery",
    "name": "Gas Refinery",
    "kind": "machine",
+   "description": "Refines Gas into a usable state.",
+   "category": "Factories",
    "unlockedBy": "gas-refining",
    "variantOf": null,
    "limited": false,
@@ -1032,6 +2056,8 @@
    "id": "gasoline-generator",
    "name": "Gasoline Generator",
    "kind": "machine",
+   "description": "The budget diesel generator.\nBurns gasoline.",
+   "category": "Power",
    "unlockedBy": "gasoline-generator",
    "variantOf": null,
    "limited": false,
@@ -1057,6 +2083,8 @@
    "id": "geothermal-well",
    "name": "Geothermal Well",
    "kind": "machine",
+   "description": "Used to heat water for use as a coolant in a boiler, resulting in hot steam. The heated steam can then be used to generate power.\n\nUses a lot of water.",
+   "category": "Power",
    "unlockedBy": "geothermal-plant",
    "variantOf": null,
    "limited": false,
@@ -1082,6 +2110,8 @@
    "id": "gold-acid-refinery",
    "name": "Gold Acid Refinery",
    "kind": "machine",
+   "description": "No one really knows how this one works, but hey! It works!",
+   "category": "Factories",
    "unlockedBy": "gold-acid-refinery",
    "variantOf": null,
    "limited": false,
@@ -1104,9 +2134,65 @@
    "verify": []
   },
   {
+   "id": "gold-fluid-storage-silo",
+   "name": "Gold Fluid Storage Silo",
+   "kind": "building",
+   "description": "Time to store the entire ocean!!! Yeahhhh!",
+   "category": "Storage Silos",
+   "unlockedBy": "gold-fluid-storage-silo",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Fluid_Storage_Silo",
+     "page": "Gold Fluid Storage Silo",
+     "revisionId": 41964,
+     "fetchedAt": "2026-10-11T02:15:46.154Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gold-item-storage-silo",
+   "name": "Gold Item Storage Silo",
+   "kind": "building",
+   "description": "Store the earth! DO NOT store radioactive waste or you may suffer the consequences.",
+   "category": "Storage Silos",
+   "unlockedBy": "gold-item-storage-silo",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Item_Storage_Silo",
+     "page": "Gold Item Storage Silo",
+     "revisionId": 41963,
+     "fetchedAt": "2026-10-11T02:15:46.155Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "grinder",
    "name": "Grinder",
    "kind": "machine",
+   "description": "Grinds coal into black dye. Outputs paper if water and oak logs have been input.",
+   "category": "Factories",
    "unlockedBy": "grinder",
    "variantOf": null,
    "limited": false,
@@ -1132,6 +2218,8 @@
    "id": "grinder-mk2",
    "name": "Grinder MK2",
    "kind": "machine",
+   "description": "Faster but bigger than the regular grinder",
+   "category": "Factories",
    "unlockedBy": "grinder-mk2",
    "variantOf": null,
    "limited": false,
@@ -1154,9 +2242,65 @@
    "verify": []
   },
   {
+   "id": "hand-crank",
+   "name": "Hand Crank",
+   "kind": "building",
+   "description": "Spin big lever and make tons of power! Good for nights in the start of game.",
+   "category": "Power",
+   "unlockedBy": "hand-crank",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 100,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hand_Crank",
+     "page": "Hand Crank",
+     "revisionId": 42907,
+     "fetchedAt": "2026-10-11T02:15:46.162Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hand-pump",
+   "name": "Hand Pump",
+   "kind": "building",
+   "description": "E for Water",
+   "category": "Extractors",
+   "unlockedBy": "hand-crank",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 250,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hand_Pump",
+     "page": "Hand Pump",
+     "revisionId": 38950,
+     "fetchedAt": "2026-10-11T02:15:46.163Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "heat-exchanger",
    "name": "Heat Exchanger",
    "kind": "machine",
+   "description": "Essentially an upgraded Boiler to handle large amount of fluids and like other machines of this type can connect to Powerplants for Information. Acts the exact same as the VerticalHeatExchanger.",
+   "category": "Power",
    "unlockedBy": "coal-power-plant",
    "variantOf": null,
    "limited": false,
@@ -1179,9 +2323,335 @@
    "verify": []
   },
   {
+   "id": "high-pressure-turbine",
+   "name": "High Pressure Turbine",
+   "kind": "building",
+   "description": "The second component in a modular turbine. Goes after the turbine input before the Intermediate Turbine. You can have several High Pressure Turbines in a modular turbine. Used for lowering pressure before low pressure turbine, slightly less efficient than low pressure turbine.",
+   "category": "Modular",
+   "unlockedBy": "modular-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 1000000,
+   "size": {
+    "w": 12,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/High_Pressure_Turbine",
+     "page": "High Pressure Turbine",
+     "revisionId": 43076,
+     "fetchedAt": "2026-10-11T02:15:46.164Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hmvt",
+   "name": "HMVT",
+   "kind": "building",
+   "description": "So you need power? Well, I've got something perfect for you!\n(Has a longer connecting range than a standard power line).",
+   "category": "Power",
+   "unlockedBy": "hmv-tower",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 10000,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HMVT",
+     "page": "HMVT",
+     "revisionId": 42868,
+     "fetchedAt": "2026-10-11T02:15:46.156Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "huge-spotlight",
+   "name": "Huge Spotlight",
+   "kind": "building",
+   "description": "Very tall and very bright. Logic controlled.",
+   "category": "Miscellaneous",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 15000,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Huge_Spotlight",
+     "page": "Huge Spotlight",
+     "revisionId": 38124,
+     "fetchedAt": "2026-10-11T02:15:46.165Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "huge-truck-depot",
+   "name": "Huge Truck Depot",
+   "kind": "building",
+   "description": "Sells 400 items per drive!",
+   "category": "Miscellaneous",
+   "unlockedBy": "huge-truck-depot",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 3200,
+   "size": {
+    "w": 26,
+    "l": 8
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Huge_Truck_Depot",
+     "page": "Huge Truck Depot",
+     "revisionId": 43188,
+     "fetchedAt": "2026-10-11T02:15:46.165Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-battery",
+   "name": "HV Battery",
+   "kind": "building",
+   "description": "So you are producing too much power?",
+   "category": "Power",
+   "unlockedBy": "hv-battery",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 17500,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Battery",
+     "page": "HV Battery",
+     "revisionId": 42422,
+     "fetchedAt": "2026-10-11T02:15:46.157Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-battery-mk2",
+   "name": "HV Battery MK2",
+   "kind": "building",
+   "description": "Stores a few MF of Energy. One Gas Burner would take about 14 hours to fill it up. Looses a part of the power you put into it, so actual charge time would be higher.",
+   "category": "Power",
+   "unlockedBy": "hv-battery-mk2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 20000000,
+   "size": {
+    "w": 15,
+    "l": 15
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Battery_MK2",
+     "page": "HV Battery MK2",
+     "revisionId": 43161,
+     "fetchedAt": "2026-10-11T02:15:46.157Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-pole",
+   "name": "HV Pole",
+   "kind": "building",
+   "description": "Transports enough power for a whole city, or for one nuclear reactor?.. Requires connection from an HVTransformer",
+   "category": "Power",
+   "unlockedBy": "hv-pole",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2500000,
+   "size": {
+    "w": 10,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Pole",
+     "page": "HV Pole",
+     "revisionId": 42881,
+     "fetchedAt": "2026-10-11T02:15:46.158Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-power-control",
+   "name": "HV Power Control",
+   "kind": "building",
+   "description": "Acts as a power overflow and can limit how much power can flow through each connection.",
+   "category": "Power",
+   "unlockedBy": "advanced-hv-power-controls",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 10000000,
+   "size": {
+    "w": 68,
+    "l": 50
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Power_Control",
+     "page": "HV Power Control",
+     "revisionId": 43371,
+     "fetchedAt": "2026-10-11T02:15:46.159Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-power-dump",
+   "name": "HV Power Dump",
+   "kind": "building",
+   "description": "Dumps power into the ground",
+   "category": "Power",
+   "unlockedBy": "advanced-hv-power-controls",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 25000,
+   "size": {
+    "w": 29,
+    "l": 13
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Power_Dump",
+     "page": "HV Power Dump",
+     "revisionId": 41916,
+     "fetchedAt": "2026-10-11T02:15:46.160Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-transformer",
+   "name": "HV Transformer",
+   "kind": "building",
+   "description": "Converts power from normal poles to HV poles, allowing you to connect to HV Poles.\nAlso can work in reverse direction.",
+   "category": "Power",
+   "unlockedBy": "hv-pole",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 750000,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Transformer",
+     "page": "HV Transformer",
+     "revisionId": 42099,
+     "fetchedAt": "2026-10-11T02:15:46.161Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "inclined-light",
+   "name": "Inclined Light",
+   "kind": "building",
+   "description": "Make it shine bright!",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 40,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Inclined_Light",
+     "page": "Inclined Light",
+     "revisionId": 40657,
+     "fetchedAt": "2026-10-11T02:15:46.166Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "inclined-light2",
+   "name": "Inclined Light2",
+   "kind": "building",
+   "description": "Make it shine bright!",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 40,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Inclined_Light2",
+     "page": "Inclined Light2",
+     "revisionId": 40659,
+     "fetchedAt": "2026-10-11T02:15:47.480Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "industrial-diesel-refinery",
    "name": "Industrial Diesel Refinery",
    "kind": "machine",
+   "description": "Refines Crude Diesel, Poor Quality Diesel & Diesel into their better counterparts.\n\nRequires Machine Oil to operate properly. Slower than the event refinery.",
+   "category": "Factories",
    "unlockedBy": "industrial-diesel-refining",
    "variantOf": null,
    "limited": false,
@@ -1225,6 +2695,8 @@
    "id": "industrial-drill",
    "name": "Industrial Drill",
    "kind": "machine",
+   "description": "Can drill out multiple ores from the ground, even Bauxite Residue. The ore amount varies from half the amount shown in the recipe to double depending on the steam temperature.",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": null,
    "limited": false,
@@ -1256,6 +2728,8 @@
    "id": "industrial-electric-furnace",
    "name": "Industrial Electric Furnace",
    "kind": "machine",
+   "description": "Melts rare ores into liquids.",
+   "category": "Factories",
    "unlockedBy": "industrial-electric-furnace",
    "variantOf": null,
    "limited": false,
@@ -1281,6 +2755,8 @@
    "id": "industrial-firebox",
    "name": "Industrial Firebox",
    "kind": "machine",
+   "description": "Burns different fuels for Energy, you need a specific amount of Energy to complete the recipe.",
+   "category": "Power",
    "unlockedBy": "industrial-firebox",
    "variantOf": null,
    "limited": false,
@@ -1306,6 +2782,8 @@
    "id": "industrial-kiln",
    "name": "Industrial Kiln",
    "kind": "machine",
+   "description": "Useful for Cement production, But can serve as a Blast Furnace alternative.",
+   "category": "Factories",
    "unlockedBy": "concrete-production",
    "variantOf": null,
    "limited": false,
@@ -1331,6 +2809,8 @@
    "id": "industrial-oil-separator",
    "name": "Industrial Oil Separator",
    "kind": "machine",
+   "description": "Refines either Light Oil into Diesel, Crude Oil and Residue, or Heavy Oil into Machine Oil, Light Oil and Residue.",
+   "category": "Factories",
    "unlockedBy": "advanced-oil-refining",
    "variantOf": null,
    "limited": false,
@@ -1356,6 +2836,8 @@
    "id": "industrial-plastic-molder",
    "name": "Industrial Plastic Molder",
    "kind": "machine",
+   "description": "Better Plastic Molding Machine in all ways",
+   "category": "Factories",
    "unlockedBy": "industrial-plastic-molding",
    "variantOf": null,
    "limited": false,
@@ -1381,6 +2863,8 @@
    "id": "industrial-press",
    "name": "Industrial Press",
    "kind": "machine",
+   "description": "Presses Ingots into plates.\n\nCan accommodate more recipes than the standard press.",
+   "category": "Factories",
    "unlockedBy": null,
    "variantOf": null,
    "limited": true,
@@ -1412,6 +2896,8 @@
    "id": "industrial-roller",
    "name": "Industrial Roller",
    "kind": "machine",
+   "description": "Rolls metal plates into respective wires. Can also convert iron ingots into nails, Steel Ingots into Steel Rods and Steel Plates into Gears, Ferroaluminium Alloy into Magnets",
+   "category": "Factories",
    "unlockedBy": "industrial-roller",
    "variantOf": null,
    "limited": false,
@@ -1437,6 +2923,8 @@
    "id": "industrial-sawmill",
    "name": "Industrial Sawmill",
    "kind": "machine",
+   "description": "Needs steam to operate instead of power. Turns wood into planks one step at a time. Chain three times in a row to receive planks. Cuts wood faster than the regular sawmill.",
+   "category": "Factories",
    "unlockedBy": "industrial-sawmill",
    "variantOf": null,
    "limited": false,
@@ -1462,6 +2950,8 @@
    "id": "ingot-molder",
    "name": "Ingot Molder",
    "kind": "machine",
+   "description": "Molds liquids ores into ingots.",
+   "category": "Factories",
    "unlockedBy": "electric-furnace-and-molding",
    "variantOf": null,
    "limited": false,
@@ -1484,9 +2974,38 @@
    "verify": []
   },
   {
+   "id": "intermediate-pressure-turbine",
+   "name": "Intermediate Pressure Turbine",
+   "kind": "building",
+   "description": "One Intermediate Pressure Turbine is required between High Pressure and Low Pressure Turbines.",
+   "category": "Modular",
+   "unlockedBy": "modular-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 500000,
+   "size": {
+    "w": 14,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Intermediate_Pressure_Turbine",
+     "page": "Intermediate Pressure Turbine",
+     "revisionId": 38151,
+     "fetchedAt": "2026-10-11T02:15:47.484Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "iron-drill",
    "name": "Iron Drill",
    "kind": "machine",
+   "description": "Drills the ground for iron.",
+   "category": "Extractors",
    "unlockedBy": "iron-extracting",
    "variantOf": null,
    "limited": false,
@@ -1509,9 +3028,88 @@
    "verify": []
   },
   {
+   "id": "item-meter",
+   "name": "Item Meter",
+   "kind": "building",
+   "description": "Measures temperature and content.\nCan also measure flow rate.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 7500,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Item_Meter",
+     "page": "Item Meter",
+     "revisionId": 38154,
+     "fetchedAt": "2026-10-11T02:15:47.485Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "item-overflow-gate",
+   "name": "Item Overflow Gate",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "item-overflow-gate",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "item-valve-control",
+   "name": "Item Valve Control",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "valve-control",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "kiln",
    "name": "Kiln",
    "kind": "machine",
+   "description": "The power requirement drops to the stated value with time",
+   "category": "Factories",
    "unlockedBy": "brick-production",
    "variantOf": null,
    "limited": false,
@@ -1537,6 +3135,8 @@
    "id": "large-diesel-engine",
    "name": "Large Diesel Engine",
    "kind": "machine",
+   "description": "Burns any diesel into power. Burns diesel faster than the normal one but requires more inputs.\nAlways consumes 20 Water or 7.5 Filtered Water\n(Filtered Water gives power boost by 1MMF/s)",
+   "category": "Power",
    "unlockedBy": "large-diesel-engine",
    "variantOf": null,
    "limited": false,
@@ -1568,9 +3168,263 @@
    ]
   },
   {
+   "id": "large-fluid-pipe",
+   "name": "Large Fluid Pipe",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-conversion",
+   "name": "Large Fluid Pipe Conversion",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-fluid-passthrough",
+   "name": "Large Fluid Pipe Fluid Passthrough",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-intersection",
+   "name": "Large Fluid Pipe Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-item-passthrough",
+   "name": "Large Fluid Pipe Item Passthrough",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-junction",
+   "name": "Large Fluid Pipe Junction",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-section",
+   "name": "Large Fluid Pipe Section",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-turn",
+   "name": "Large Fluid Pipe Turn",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-valve-control",
+   "name": "Large Fluid Valve Control",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-valve-control",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-liquid-truck-depot",
+   "name": "Large Liquid Truck Depot",
+   "kind": "building",
+   "description": "Sells tons of fluid!",
+   "category": "Miscellaneous",
+   "unlockedBy": "large-liquid-truck-depot",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 50000,
+   "size": {
+    "w": 22,
+    "l": 8
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Liquid_Truck_Depot",
+     "page": "Large Liquid Truck Depot",
+     "revisionId": 42610,
+     "fetchedAt": "2026-10-11T02:15:47.487Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "large-pumpjack",
    "name": "Large Pumpjack",
    "kind": "machine",
+   "description": "Pumps a LOT of oil out of the ground.\n🦅🦅🦅🦅🦅",
+   "category": "Extractors",
    "unlockedBy": "large-oil-rig",
    "variantOf": null,
    "limited": false,
@@ -1593,9 +3447,38 @@
    "verify": []
   },
   {
+   "id": "large-turbine",
+   "name": "Large Turbine",
+   "kind": "building",
+   "description": "Converts a significant volume of steam into power and water.\n\nHigher temperature steam generates greater power.\n\n(It's highly suggested to circulate the water back to the boiler because there is no water loss).",
+   "category": "Power",
+   "unlockedBy": "large-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 4000,
+   "size": {
+    "w": 5,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Turbine",
+     "page": "Large Turbine",
+     "revisionId": 42633,
+     "fetchedAt": "2026-10-11T02:15:47.488Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "lathe",
    "name": "Lathe",
    "kind": "machine",
+   "description": "Is used to produce drill heads for the MineshaftDrill",
+   "category": "Factories",
    "unlockedBy": "mineshaft-drill",
    "variantOf": null,
    "limited": false,
@@ -1618,9 +3501,65 @@
    "verify": []
   },
   {
+   "id": "light",
+   "name": "Light",
+   "kind": "building",
+   "description": "Make it shine bright!",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 40,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Light",
+     "page": "Light",
+     "revisionId": 38165,
+     "fetchedAt": "2026-10-11T02:15:47.489Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "light2",
+   "name": "Light2",
+   "kind": "building",
+   "description": "Make it shine bright!",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 40,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Light2",
+     "page": "Light2",
+     "revisionId": 38941,
+     "fetchedAt": "2026-10-11T02:15:47.490Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "liquid-boiler",
    "name": "Liquid Boiler",
    "kind": "machine",
+   "description": "Super-heats fluids to near-boiling temperatures (mostly for producing hot Crude Oil).",
+   "category": "Factories",
    "unlockedBy": "oil-refining",
    "variantOf": null,
    "limited": false,
@@ -1643,9 +3582,110 @@
    "verify": []
   },
   {
+   "id": "liquid-burner",
+   "name": "Liquid Burner",
+   "kind": "building",
+   "description": "Throws any liquids into the air.\n\n(Dumping anything other than water (particularly RESIDUE) causes serious pollution).",
+   "category": "Miscellaneous",
+   "unlockedBy": "liquid-burner-dump",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Burner",
+     "page": "Liquid Burner",
+     "revisionId": 43195,
+     "fetchedAt": "2026-10-11T02:15:47.491Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "unlockedBy",
+     "reason": "contradiction",
+     "detail": "RS/Data : « Liquid Burner (dump) » ; infobox : « Liquid Burner (Dump) »",
+     "alternatives": [
+      {
+       "value": "Liquid Burner (Dump)",
+       "source": {
+        "wiki": "miraheze",
+        "url": "https://industrialist.miraheze.org/wiki/Liquid_Burner",
+        "page": "Liquid Burner",
+        "revisionId": 43195,
+        "fetchedAt": "2026-10-11T02:15:47.491Z"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "liquid-dump",
+   "name": "Liquid Dump",
+   "kind": "building",
+   "description": "Dumps any liquid into the ground.\n\n(Dumping anything other than water (particularly RESIDUE) causes serious pollution).",
+   "category": "Miscellaneous",
+   "unlockedBy": "pollution",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Dump",
+     "page": "Liquid Dump",
+     "revisionId": 42319,
+     "fetchedAt": "2026-10-11T02:15:47.492Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "liquid-truck-depot",
+   "name": "Liquid Truck Depot",
+   "kind": "building",
+   "description": "Sells fluids.",
+   "category": "Miscellaneous",
+   "unlockedBy": "liquid-truck-depot",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 500,
+   "size": {
+    "w": 16,
+    "l": 8
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Truck_Depot",
+     "page": "Liquid Truck Depot",
+     "revisionId": 42609,
+     "fetchedAt": "2026-10-11T02:15:47.493Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "lithium-brine-extractor",
    "name": "Lithium Brine Extractor",
    "kind": "machine",
+   "description": "Extracts Lithium Brine from Water but also produces residue as waste.",
+   "category": "Extractors",
    "unlockedBy": "lithium",
    "variantOf": null,
    "limited": false,
@@ -1671,6 +3711,8 @@
    "id": "lithium-ore-drill",
    "name": "Lithium Ore Drill",
    "kind": "machine",
+   "description": "Drills rocks with high lithium content from the ground, takes a lot of energy but produces a lot of ore.",
+   "category": "Extractors",
    "unlockedBy": "lithium",
    "variantOf": null,
    "limited": false,
@@ -1696,6 +3738,8 @@
    "id": "lng-plant",
    "name": "LNG Plant",
    "kind": "machine",
+   "description": "Converts Gas into Liquid Gas (LNG) which can then be sold.",
+   "category": "Factories",
    "unlockedBy": "lng-plant",
    "variantOf": null,
    "limited": false,
@@ -1718,9 +3762,38 @@
    "verify": []
   },
   {
+   "id": "logic-adder",
+   "name": "Logic Adder",
+   "kind": "building",
+   "description": "If only one input is activated it gives output 1, if both are on it only gives output 2, never gives both outputs at once.",
+   "category": "Logic",
+   "unlockedBy": "advanced-logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 50000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Adder",
+     "page": "Logic Adder",
+     "revisionId": 42324,
+     "fetchedAt": "2026-10-11T02:15:47.494Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "logic-assembler",
    "name": "Logic Assembler",
    "kind": "machine",
+   "description": "Allows production of 2x Microchips up to 8x64x, the number doubles for each full step until 64x, after that it goes up by 1x64x for 6 steps each. Can only be automated by building a setup using logic. Each step requires the items shown in the recipe. Machine Oil speeds it up, timing remains somewhat random. Power requirement is per action",
+   "category": "Factories",
    "unlockedBy": "logic-assembler",
    "variantOf": null,
    "limited": false,
@@ -1743,9 +3816,732 @@
    "verify": []
   },
   {
+   "id": "logic-breaker",
+   "name": "Logic Breaker",
+   "kind": "building",
+   "description": "Like the basic breaker, but controlled with logic.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 7500,
+   "size": {
+    "w": 3,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Breaker",
+     "page": "Logic Breaker",
+     "revisionId": 41925,
+     "fetchedAt": "2026-10-11T02:15:47.494Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-button",
+   "name": "Logic Button",
+   "kind": "building",
+   "description": "Outputs a 1 tick (1/6 of a second) pulse.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 5000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Button",
+     "page": "Logic Button",
+     "revisionId": 42451,
+     "fetchedAt": "2026-10-11T02:15:47.495Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-clock",
+   "name": "Logic Clock",
+   "kind": "building",
+   "description": "Outputs a signal depending on the settings.\n\n(There is 6 ticks in one second).",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 4000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Clock",
+     "page": "Logic Clock",
+     "revisionId": 42290,
+     "fetchedAt": "2026-10-11T02:15:47.496Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-dabble",
+   "name": "Logic Dabble",
+   "kind": "building",
+   "description": "Does a lil bit of dabbling with the signals",
+   "category": "Logic",
+   "unlockedBy": "advanced-logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 50000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Dabble",
+     "page": "Logic Dabble",
+     "revisionId": 42231,
+     "fetchedAt": "2026-10-11T02:15:47.497Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-delay",
+   "name": "Logic Delay",
+   "kind": "building",
+   "description": "Delays signals by input number of ticks, if signaled again during delay signal will be output with proper delay.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2000,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Delay",
+     "page": "Logic Delay",
+     "revisionId": 42301,
+     "fetchedAt": "2026-10-11T02:15:47.498Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-fluid-pipe-valve",
+   "name": "Logic Fluid Pipe Valve",
+   "kind": "building",
+   "description": "Only lets fluid pass if it receives a signal.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 7500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Fluid_Pipe_Valve",
+     "page": "Logic Fluid Pipe Valve",
+     "revisionId": 39167,
+     "fetchedAt": "2026-10-11T02:15:47.498Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-item-pipe-valve",
+   "name": "Logic Item Pipe Valve",
+   "kind": "building",
+   "description": "Only lets items pass if it receives a signal.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 7500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Item_Pipe_Valve",
+     "page": "Logic Item Pipe Valve",
+     "revisionId": 39168,
+     "fetchedAt": "2026-10-11T02:15:47.499Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-knot",
+   "name": "Logic Knot",
+   "kind": "building",
+   "description": "Also works as a basic OR gate.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 10000,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Knot",
+     "page": "Logic Knot",
+     "revisionId": 39196,
+     "fetchedAt": "2026-10-11T02:15:47.500Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-memory",
+   "name": "Logic Memory",
+   "kind": "building",
+   "description": "Keeps outputting the signal it has when the reset is triggered.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 10000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Memory",
+     "page": "Logic Memory",
+     "revisionId": 39170,
+     "fetchedAt": "2026-10-11T02:15:49.189Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-pole",
+   "name": "Logic Pole",
+   "kind": "building",
+   "description": "Good for long range transfer of logic signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 1000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Pole",
+     "page": "Logic Pole",
+     "revisionId": 42560,
+     "fetchedAt": "2026-10-11T02:15:49.194Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-pulse",
+   "name": "Logic Pulse",
+   "kind": "building",
+   "description": "Turns long signals into one tick pulse.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2000,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Pulse",
+     "page": "Logic Pulse",
+     "revisionId": 38188,
+     "fetchedAt": "2026-10-11T02:15:49.195Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-random",
+   "name": "Logic Random",
+   "kind": "building",
+   "description": "Has the provided chance to output a signal when triggered. Decimal inputs are rounded.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 1500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Random",
+     "page": "Logic Random",
+     "revisionId": 42420,
+     "fetchedAt": "2026-10-11T02:15:49.195Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-relay",
+   "name": "Logic Relay",
+   "kind": "building",
+   "description": "Allows for control of logic power flow with a different signal.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 12500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Relay",
+     "page": "Logic Relay",
+     "revisionId": 43168,
+     "fetchedAt": "2026-10-11T02:15:49.196Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-switch",
+   "name": "Logic Switch",
+   "kind": "building",
+   "description": "A switch for all your logic desires.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Switch",
+     "page": "Logic Switch",
+     "revisionId": 42346,
+     "fetchedAt": "2026-10-11T02:15:49.197Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-fluid-pipe-fluid-passthrough",
+   "name": "Long Fluid Pipe Fluid Passthrough",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-fluid-pipe2",
+   "name": "Long Fluid Pipe2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "long-fluid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-large-fluid-pipe",
+   "name": "Long Large Fluid Pipe",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-pipe2",
+   "name": "Long Pipe2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "long-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "low-pressure-turbine",
+   "name": "Low Pressure Turbine",
+   "kind": "building",
+   "description": "A component that goes right after the Intermediate Pressure Turbine. You can have several of these in a modular turbine. Requires a lower pressure of steam but makes more energy.",
+   "category": "Modular",
+   "unlockedBy": "modular-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 1000000,
+   "size": {
+    "w": 14,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Low_Pressure_Turbine",
+     "page": "Low Pressure Turbine",
+     "revisionId": 42612,
+     "fetchedAt": "2026-10-11T02:15:49.197Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lv-pole",
+   "name": "LV Pole",
+   "kind": "building",
+   "description": "Slow power transfer.",
+   "category": "Power",
+   "unlockedBy": "lv-pole",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 5,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/LV_Pole",
+     "page": "LV Pole",
+     "revisionId": 42125,
+     "fetchedAt": "2026-10-11T02:15:47.486Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "medium-fluid-storage-silo",
+   "name": "Medium Fluid Storage Silo",
+   "kind": "building",
+   "description": "now 6x bigger storage with a totally not scaled up design.",
+   "category": "Storage Silos",
+   "unlockedBy": "medium-fluid-storage-silo",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 500,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Medium_Fluid_Storage_Silo",
+     "page": "Medium Fluid Storage Silo",
+     "revisionId": 42500,
+     "fetchedAt": "2026-10-11T02:15:49.199Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "medium-item-storage-silo",
+   "name": "Medium Item Storage Silo",
+   "kind": "building",
+   "description": "Enough to store a reasonable number of items.",
+   "category": "Storage Silos",
+   "unlockedBy": "medium-item-storage-silo",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 500,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Medium_Item_Storage_Silo",
+     "page": "Medium Item Storage Silo",
+     "revisionId": 38195,
+     "fetchedAt": "2026-10-11T02:15:49.200Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "metal-sign",
+   "name": "Metal Sign",
+   "kind": "building",
+   "description": "organization!!",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": "decoration",
+   "limited": false,
+   "tier": 1,
+   "cost": 900,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Metal_Sign",
+     "page": "Metal Sign",
+     "revisionId": 39174,
+     "fetchedAt": "2026-10-11T02:15:49.200Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mineshaft-drill",
+   "name": "Mineshaft Drill",
+   "kind": "building",
+   "description": "Drills out different materials based on depth. Can have a variery of different drill heads (Copper, Iron, Steel, Tungsten Carbide). Acids help drill heads last longer. Can also use dynamite to drill down faster. Experimentation is recommended!",
+   "category": "Extractors",
+   "unlockedBy": "mineshaft-drill",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 1100000,
+   "size": {
+    "w": 14,
+    "l": 14
+   },
+   "pollutionPerHour": 0.02,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+     "page": "Mineshaft Drill",
+     "revisionId": 42462,
+     "fetchedAt": "2026-10-11T02:15:49.201Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mv-battery",
+   "name": "MV Battery",
+   "kind": "building",
+   "description": "Stores power.",
+   "category": "Power",
+   "unlockedBy": "mv-battery",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 240,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MV_Battery",
+     "page": "MV Battery",
+     "revisionId": 39265,
+     "fetchedAt": "2026-10-11T02:15:49.198Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mv-pole",
+   "name": "MV Pole",
+   "kind": "building",
+   "description": "The beefier variant of an LV pole for higher power requirements.",
+   "category": "Power",
+   "unlockedBy": "mv-poles",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 80,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MV_Pole",
+     "page": "MV Pole",
+     "revisionId": 42450,
+     "fetchedAt": "2026-10-11T02:15:49.199Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "nand-gate",
+   "name": "NAND Gate",
+   "kind": "building",
+   "description": "Outputs the logical NAND of the input signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/NAND_Gate",
+     "page": "NAND Gate",
+     "revisionId": 42295,
+     "fetchedAt": "2026-10-11T02:15:49.201Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "natural-gas-well",
    "name": "Natural Gas Well",
    "kind": "machine",
+   "description": "Pumps raw gas out of the ground which can be further refined afterwards.",
+   "category": "Extractors",
    "unlockedBy": "natural-gas-well",
    "variantOf": null,
    "limited": false,
@@ -1768,9 +4564,92 @@
    "verify": []
   },
   {
+   "id": "nor-gate",
+   "name": "NOR Gate",
+   "kind": "building",
+   "description": "Outputs the logical NOR of the input signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 5000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/NOR_Gate",
+     "page": "NOR Gate",
+     "revisionId": 42288,
+     "fetchedAt": "2026-10-11T02:15:49.202Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "not-gate",
+   "name": "NOT Gate",
+   "kind": "building",
+   "description": "Output logical NOT of input signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 1250,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/NOT_Gate",
+     "page": "NOT Gate",
+     "revisionId": 42297,
+     "fetchedAt": "2026-10-11T02:15:49.203Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "nuclear-power-plant",
+   "name": "Nuclear Power Plant",
+   "kind": "building",
+   "description": "A big nuclear power plant. Has a guide in the control room to tell you more about it. Requires fuel rods and controls + a lot of auxiliary.",
+   "category": "Power",
+   "unlockedBy": "nuclear-power-plant",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 200000000,
+   "size": {
+    "w": 131,
+    "l": 60
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Nuclear_Power_Plant",
+     "page": "Nuclear Power Plant",
+     "revisionId": 43336,
+     "fetchedAt": "2026-10-11T02:15:49.203Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "og-oil-rig",
    "name": "OG Oil Rig",
    "kind": "machine",
+   "description": "Pumps crude oil out of the ground.🦅",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": "oil-rig",
    "limited": true,
@@ -1802,6 +4681,8 @@
    "id": "oil-fracking-tower",
    "name": "Oil Fracking Tower",
    "kind": "machine",
+   "description": "Produces a unique type of raw oil which can be turned into many useful products.",
+   "category": "Extractors",
    "unlockedBy": "oil-fracking",
    "variantOf": null,
    "limited": false,
@@ -1827,6 +4708,8 @@
    "id": "oil-rig",
    "name": "Oil Rig",
    "kind": "machine",
+   "description": "Pumps crude oil out of the ground.🦅",
+   "category": "Extractors",
    "unlockedBy": "oil-extraction",
    "variantOf": null,
    "limited": false,
@@ -1849,9 +4732,38 @@
    "verify": []
   },
   {
+   "id": "or-gate",
+   "name": "OR Gate",
+   "kind": "building",
+   "description": "Output logical OR of input signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/OR_Gate",
+     "page": "OR Gate",
+     "revisionId": 42277,
+     "fetchedAt": "2026-10-11T02:15:49.205Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "ore-enrichment-facility",
    "name": "Ore Enrichment Facility",
    "kind": "machine",
+   "description": "Separates raw rocks and some other materials into more usable forms. Notably used for Uranium Processing.",
+   "category": "Factories",
    "unlockedBy": "ore-enrichment-facility",
    "variantOf": null,
    "limited": false,
@@ -1874,9 +4786,36 @@
    "verify": []
   },
   {
+   "id": "overflow-gate",
+   "name": "Overflow Gate",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "liquid-overflow-gate",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "oxidation-plant",
    "name": "Oxidation Plant",
    "kind": "machine",
+   "description": "Oxidizes things. Oxygen (ENTIRELY optional and only obtained later in the game) can speed up the process.",
+   "category": "Factories",
    "unlockedBy": "plastics",
    "variantOf": null,
    "limited": false,
@@ -1902,6 +4841,8 @@
    "id": "paper-mill",
    "name": "Paper Mill",
    "kind": "machine",
+   "description": "Makes paper more efficiently.",
+   "category": "Factories",
    "unlockedBy": "paper-mill",
    "variantOf": null,
    "limited": false,
@@ -1924,9 +4865,236 @@
    "verify": []
   },
   {
+   "id": "pipe-intersection",
+   "name": "Pipe Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-intersection-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-junction",
+   "name": "Pipe Junction",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-junction2",
+   "name": "Pipe Junction2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-item-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-section",
+   "name": "Pipe Section",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-section2",
+   "name": "Pipe Section2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-item-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-turn",
+   "name": "Pipe Turn",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-turn2",
+   "name": "Pipe Turn2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-item-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-value",
+   "name": "Pipe Value",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "valve-control",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe2",
+   "name": "Pipe2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "long-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "plastic-molding-machine",
    "name": "Plastic Molding Machine",
    "kind": "machine",
+   "description": "Turns plastic pellets (available from PlasticProductionFacility) into Plastic Bottles (which can be converted into water bottles) or Plastic Casing (which can eventually be converted into gearboxes).",
+   "category": "Factories",
    "unlockedBy": "plastic-molding",
    "variantOf": null,
    "limited": false,
@@ -1952,6 +5120,8 @@
    "id": "plastic-production-facility",
    "name": "Plastic Production Facility",
    "kind": "machine",
+   "description": "The final process in manufacturing plastic pellets for use in the PlasticMolder",
+   "category": "Factories",
    "unlockedBy": "plastics",
    "variantOf": null,
    "limited": false,
@@ -1977,6 +5147,8 @@
    "id": "plastic-refinery",
    "name": "Plastic Refinery",
    "kind": "machine",
+   "description": "Refines a variety of materials for plastic manufacturing.",
+   "category": "Factories",
    "unlockedBy": "plastics",
    "variantOf": null,
    "limited": false,
@@ -2002,6 +5174,8 @@
    "id": "polisher",
    "name": "Polisher",
    "kind": "machine",
+   "description": null,
+   "category": "Power",
    "unlockedBy": "coal-power-plant",
    "variantOf": null,
    "limited": false,
@@ -2024,9 +5198,200 @@
    "verify": []
   },
   {
+   "id": "pollution-gate",
+   "name": "Pollution Gate",
+   "kind": "building",
+   "description": "Outputs signal if the range is outside of the set value (Which is in %).",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 7500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pollution_Gate",
+     "page": "Pollution Gate",
+     "revisionId": 39751,
+     "fetchedAt": "2026-10-11T02:15:53.703Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pollution-meter",
+   "name": "Pollution Meter",
+   "kind": "building",
+   "description": "Measures the pollution in your world.\n\nPollution can have serious repercussions!\n\nUse scrubbers (researched later on) to remove pollution!",
+   "category": "Miscellaneous",
+   "unlockedBy": "pollution",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 5000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pollution_Meter",
+     "page": "Pollution Meter",
+     "revisionId": 42671,
+     "fetchedAt": "2026-10-11T02:15:53.703Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-control",
+   "name": "Power Control",
+   "kind": "building",
+   "description": "Acts as a power overflow and can limit how much power can flow through each connection. The higher power connections are the overflow",
+   "category": "Power",
+   "unlockedBy": "advanced-power-controls",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 50000,
+   "size": {
+    "w": 11,
+    "l": 9
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Control",
+     "page": "Power Control",
+     "revisionId": 42537,
+     "fetchedAt": "2026-10-11T02:15:53.705Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-dump",
+   "name": "Power Dump",
+   "kind": "building",
+   "description": "Dumps power into the ground",
+   "category": "Power",
+   "unlockedBy": "advanced-power-controls",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 25000,
+   "size": {
+    "w": 5,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Dump",
+     "page": "Power Dump",
+     "revisionId": 42538,
+     "fetchedAt": "2026-10-11T02:15:53.706Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator",
+   "name": "Power Rate Calculator",
+   "kind": "building",
+   "description": "High-tech\" power transfer rate calculator that caps at a particular limit.\n\n(For every high power production measurements consider using PowerRateCalculator2).",
+   "category": "Power",
+   "unlockedBy": "power-rate-calculator",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1200,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Rate_Calculator",
+     "page": "Power Rate Calculator",
+     "revisionId": 42821,
+     "fetchedAt": "2026-10-11T02:15:53.707Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator2",
+   "name": "Power Rate Calculator2",
+   "kind": "building",
+   "description": "High-Tech Calculator for Higher Power Transfer Rates",
+   "category": "Power",
+   "unlockedBy": "power-rate-calculator-2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 9000,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Rate_Calculator2",
+     "page": "Power Rate Calculator2",
+     "revisionId": 38222,
+     "fetchedAt": "2026-10-11T02:15:53.708Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator3",
+   "name": "Power Rate Calculator3",
+   "kind": "building",
+   "description": "Calculates power transfer rate and also can stop power flow.",
+   "category": "Power",
+   "unlockedBy": "power-rate-calculator-3",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 5000000,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Rate_Calculator3",
+     "page": "Power Rate Calculator3",
+     "revisionId": 41866,
+     "fetchedAt": "2026-10-11T02:15:53.709Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "precision-assembler",
    "name": "Precision Assembler",
    "kind": "machine",
+   "description": "Allows for assembling more complex recipes quickly.",
+   "category": "Factories",
    "unlockedBy": "precision-assembler",
    "variantOf": null,
    "limited": false,
@@ -2052,6 +5417,8 @@
    "id": "press",
    "name": "Press",
    "kind": "machine",
+   "description": "Presses Ingots into plates.",
+   "category": "Factories",
    "unlockedBy": "press",
    "variantOf": null,
    "limited": false,
@@ -2077,6 +5444,8 @@
    "id": "press-mk2",
    "name": "Press MK2",
    "kind": "machine",
+   "description": "Faster than the regular press at the cost of a higher power consumption per recipe",
+   "category": "Factories",
    "unlockedBy": "press-mk2",
    "variantOf": null,
    "limited": false,
@@ -2102,6 +5471,8 @@
    "id": "pressurized-water-filter",
    "name": "Pressurized Water Filter",
    "kind": "machine",
+   "description": "Cleans gold using pressurized water.",
+   "category": "Factories",
    "unlockedBy": "pressurized-water-filter",
    "variantOf": null,
    "limited": false,
@@ -2127,6 +5498,8 @@
    "id": "quarry",
    "name": "Quarry",
    "kind": "machine",
+   "description": "Mines multiple different resources out of the ground, replacing the previous Soil and Sand Excavators.",
+   "category": "Extractors",
    "unlockedBy": "quarry",
    "variantOf": null,
    "limited": false,
@@ -2152,6 +5525,8 @@
    "id": "raw-mill",
    "name": "Raw Mill",
    "kind": "machine",
+   "description": "Produces Aggregate and Rawmix, you will need multiple recipes for perfect ratios",
+   "category": "Factories",
    "unlockedBy": "concrete-production",
    "variantOf": null,
    "limited": false,
@@ -2174,9 +5549,146 @@
    "verify": []
   },
   {
+   "id": "research-station1",
+   "name": "Research Station1",
+   "kind": "building",
+   "description": "Produces Research Points (RP) when powered, which are used to progress through the research tree. It's recommended to place a Research Tracking Panel for detailed progress statistics. More Research Station 1s increase both the research cap and overall research speed.",
+   "category": "Miscellaneous",
+   "unlockedBy": "research-station-1",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 75,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Research_Station1",
+     "page": "Research Station1",
+     "revisionId": 40723,
+     "fetchedAt": "2026-10-11T02:15:53.709Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-station2",
+   "name": "Research Station2",
+   "kind": "building",
+   "description": "Consumes 0.5 units per second of any solid item. Research cap depends entirely on the number of active Research Station2s, while research speed is determined by the item's research value (found in its recipe book entry). It's recommended to monitor your current research statistics using the Research Tracking Panel.",
+   "category": "Miscellaneous",
+   "unlockedBy": "research-station-2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 5000,
+   "size": {
+    "w": 16,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Research_Station2",
+     "page": "Research Station2",
+     "revisionId": 43078,
+     "fetchedAt": "2026-10-11T02:15:53.710Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-station3",
+   "name": "Research Station3",
+   "kind": "building",
+   "description": "Requires two different Items to operate, consuming 0.1 units per second from each node. Research speed is determined by the item's research value (found in the Recipe Book), while research cap is based on the item's sell value. Make sure to use the Research Tracking Panel for exact statistics. Experimentation is recommended!",
+   "category": "Miscellaneous",
+   "unlockedBy": "research-station-3",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 24,
+    "l": 16
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+     "page": "Research Station3",
+     "revisionId": 43244,
+     "fetchedAt": "2026-10-11T02:15:53.711Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-station4",
+   "name": "Research Station4",
+   "kind": "building",
+   "description": "Does not conduct research on its own. Must be placed next to the 'fuller' side of a Research Station 3 to form a combined structure. When connected, it increases power consumption to 5 MMF/s and raises the research cap. Completing the logic minigame increase the cap even further Logic minigame: Gives out 4 bit number output each cycle, your job is to add this current 4 bit number with the last's cycle 4 bit number and correctly input into the 5 bit input. You must then lock in the answer by powering the confirmed input (will move to the next cycle too). If it is correct, the 'last cycle was correct' logic output will get a pulse.",
+   "category": "Miscellaneous",
+   "unlockedBy": "research-station-4",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 1500000,
+   "size": {
+    "w": 24,
+    "l": 16
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+     "page": "Research Station4",
+     "revisionId": 43251,
+     "fetchedAt": "2026-10-11T02:15:53.711Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "research-tracking-panel",
+   "name": "Research Tracking Panel",
+   "kind": "building",
+   "description": "Helps track metrics related to research. Useful at any stage of the game, as it helps see how fast your research progress is going and when it will start to gradually slow down (research efficiency threshold or also known as the research soft cap). Up until you reach the efficiency threshold, you will gain research at a constant speed. Afterwards, you will gain less and less research points.",
+   "category": "Miscellaneous",
+   "unlockedBy": "research-station-1",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 700,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Research_Tracking_Panel",
+     "page": "Research Tracking Panel",
+     "revisionId": 42806,
+     "fetchedAt": "2026-10-11T02:15:53.712Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "residue-refinery",
    "name": "Residue Refinery",
    "kind": "machine",
+   "description": "Maybe real?",
+   "category": "Factories",
    "unlockedBy": null,
    "variantOf": null,
    "limited": true,
@@ -2205,9 +5717,38 @@
    ]
   },
   {
+   "id": "resistor",
+   "name": "Resistor",
+   "kind": "building",
+   "description": "Get power onto the Logic nodes allowing for advance controls.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 50000,
+   "size": {
+    "w": 2,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Resistor",
+     "page": "Resistor",
+     "revisionId": 38240,
+     "fetchedAt": "2026-10-11T02:15:53.713Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "roller",
    "name": "Roller",
    "kind": "machine",
+   "description": "Rolls metal plates into respective wires.\n\nCan also convert iron ingots into nails, Steel Ingots into Steel Rods and Steel Plates into Gears.",
+   "category": "Factories",
    "unlockedBy": "roller",
    "variantOf": null,
    "limited": false,
@@ -2233,6 +5774,8 @@
    "id": "roller-mk2",
    "name": "Roller MK2",
    "kind": "machine",
+   "description": "Rolls metal plates into respective wires or coils. Very fast",
+   "category": "Factories",
    "unlockedBy": "roller-mk2",
    "variantOf": null,
    "limited": false,
@@ -2255,9 +5798,113 @@
    "verify": []
   },
   {
+   "id": "rusty-battery",
+   "name": "Rusty Battery",
+   "kind": "building",
+   "description": "Gotta start somewhere.",
+   "category": "Power",
+   "unlockedBy": "rusty-battery",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 100,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rusty_Battery",
+     "page": "Rusty Battery",
+     "revisionId": 42388,
+     "fetchedAt": "2026-10-11T02:15:53.714Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-fluid-pipe-and-item-intersection",
+   "name": "Rusty Fluid Pipe And Item Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "intersection-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-fluid-pipe-intersection",
+   "name": "Rusty Fluid Pipe Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "intersection-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-pipe-intersection",
+   "name": "Rusty Pipe Intersection",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "intersection-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "sand-excavator",
    "name": "Sand Excavator",
    "kind": "machine",
+   "description": "Excavates sand from the ground to be used for a variety of applications.",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": null,
    "limited": true,
@@ -2286,9 +5933,65 @@
    ]
   },
   {
+   "id": "satellite-dish",
+   "name": "Satellite Dish",
+   "kind": "building",
+   "description": "Consumes 75kMF/s to operate. Needs to be paired with a Satellite Dish Controller to do anything meaningful! Powerful piece of scientific radar. Able to scream into and receive from the void we call space. Combine this with some Satellite Dish Controllers to get a bonus on your Research Points production (RP/s)! More info can be seen at the Research Tracking Panel.",
+   "category": "Miscellaneous",
+   "unlockedBy": "satellite-dishes",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 30000,
+   "size": {
+    "w": 16,
+    "l": 16
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish",
+     "page": "Satellite Dish",
+     "revisionId": 38504,
+     "fetchedAt": "2026-10-11T02:15:53.714Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "satellite-dish-controller",
+   "name": "Satellite Dish Controller",
+   "kind": "building",
+   "description": "Similiar to the Research Station 2, but designed to use fluids (0.5L/s). Unlike the Research Station 2, it provides a Research Speed (RP/s) multiplier. This means it acts as an addon to existing research station, boosting their progress speed. The fluid research multiplier is important and can be checked in the recipe menu. Requires Satellite Dishes to operate (can be placed anywhere in the world). More controllers increase overall research speed. Depending on the fluid used, you will need a different number of Satellite Dishes to match it. Satellite Dishes can be placed anywhere in the world. More details can be found in the Research Tracking Panel!",
+   "category": "Miscellaneous",
+   "unlockedBy": "satellite-dishes",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 250000,
+   "size": {
+    "w": 15,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish_Controller",
+     "page": "Satellite Dish Controller",
+     "revisionId": 43418,
+     "fetchedAt": "2026-10-11T02:15:53.715Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "sawmill",
    "name": "Sawmill",
    "kind": "machine",
+   "description": "Turns wood into planks one step at a time. Chain three times in a row to receive planks.",
+   "category": "Factories",
    "unlockedBy": "sawmill",
    "variantOf": null,
    "limited": false,
@@ -2314,6 +6017,8 @@
    "id": "scrubber",
    "name": "Scrubber",
    "kind": "machine",
+   "description": "Using high tech nonsense to remove pollution.👍\n\nTurns CO2 and water into residue.\n\n(Can use Filtered Water to remove 10% more pollution or Distilled Water to remove 90% more pollution).",
+   "category": "Miscellaneous",
    "unlockedBy": "scrubber",
    "variantOf": null,
    "limited": false,
@@ -2342,9 +6047,244 @@
    ]
   },
   {
+   "id": "seven-segment-display",
+   "name": "Seven Segment Display",
+   "kind": "building",
+   "description": "Displays the binary signal that is input, outputs the overflow in binary.",
+   "category": "Logic",
+   "unlockedBy": "advanced-logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 35000,
+   "size": {
+    "w": 2,
+    "l": 3
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Seven_Segment_Display",
+     "page": "Seven Segment Display",
+     "revisionId": 42970,
+     "fetchedAt": "2026-10-11T02:15:53.716Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-fluid-pipe",
+   "name": "Short Fluid Pipe",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-fluid-pipe2",
+   "name": "Short Fluid Pipe2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-fluid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-large-fluid-pipe",
+   "name": "Short Large Fluid Pipe",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "large-liquid-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-pipe",
+   "name": "Short Pipe",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-pipe2",
+   "name": "Short Pipe2",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "better-item-pipes",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "small-fluid-storage-silo",
+   "name": "Small Fluid Storage Silo",
+   "kind": "building",
+   "description": "Are you buying this for residue storage?",
+   "category": "Storage Silos",
+   "unlockedBy": "small-fluid-storage-silo",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 100,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Small_Fluid_Storage_Silo",
+     "page": "Small Fluid Storage Silo",
+     "revisionId": 38254,
+     "fetchedAt": "2026-10-11T02:15:53.716Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "small-item-storage-silo",
+   "name": "Small Item Storage Silo",
+   "kind": "building",
+   "description": "\"Incredibly Useful.\" - Nobody",
+   "category": "Storage Silos",
+   "unlockedBy": "small-item-storage-silo",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 100,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Small_Item_Storage_Silo",
+     "page": "Small Item Storage Silo",
+     "revisionId": 39268,
+     "fetchedAt": "2026-10-11T02:15:54.891Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "small-mv-pole",
+   "name": "Small MV Pole",
+   "kind": "building",
+   "description": "Smol",
+   "category": "Power",
+   "unlockedBy": "mv-poles",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 40,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Small_MV_Pole",
+     "page": "Small MV Pole",
+     "revisionId": 41847,
+     "fetchedAt": "2026-10-11T02:15:54.895Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "soil-excavator",
    "name": "Soil Excavator",
    "kind": "machine",
+   "description": "Extracts soil to be used in a trommel.",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": null,
    "limited": true,
@@ -2373,9 +6313,119 @@
    ]
   },
   {
+   "id": "solar-farm1",
+   "name": "Solar Farm1",
+   "kind": "building",
+   "description": "A large grid of solar panels including an HMVT pole for easy connecting and allows for chaining.",
+   "category": "Power",
+   "unlockedBy": "solar-farm-1",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 200000,
+   "size": {
+    "w": 20,
+    "l": 18
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Farm1",
+     "page": "Solar Farm1",
+     "revisionId": 43032,
+     "fetchedAt": "2026-10-11T02:15:54.896Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-panel",
+   "name": "Solar Panel",
+   "kind": "building",
+   "description": "Solar power. Generates power throughout the day.\n\n\"My pocket hurts\" - Every business man in the world.",
+   "category": "Power",
+   "unlockedBy": "solar-panel-1",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 80,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-panel2",
+   "name": "Solar Panel2",
+   "kind": "building",
+   "description": "Produces even more power throughout the day!\n\n\"my pocket hurts even more now.\" -Every businessman in the world.",
+   "category": "Power",
+   "unlockedBy": "solar-panel-2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1500,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel2",
+     "page": "Solar Panel2",
+     "revisionId": 38686,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solar-panel3",
+   "name": "Solar Panel3",
+   "kind": "building",
+   "description": "Produces even more power throughout the day!!!\n\n\"I'm going broke!\" - Every businessman in the world.",
+   "category": "Power",
+   "unlockedBy": "solar-panel-3",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 5000,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel3",
+     "page": "Solar Panel3",
+     "revisionId": 43024,
+     "fetchedAt": "2026-10-11T02:15:54.898Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "steam-condenser",
    "name": "Steam Condenser",
    "kind": "machine",
+   "description": "Condenses Low Pressure Steam into Condensate, which can be refined back into Distilled Water. Functions similarly to a boiler, except it cools instead of heating. Can be connected to the powerplant using the data node and data cable. Hot water can be cooled down in a Cooling Tower. Condensate can be cleaned back into Distilled Water in a Polisher, to be used in the Heat Exchanger again.",
+   "category": "Power",
    "unlockedBy": "coal-power-plant",
    "variantOf": null,
    "limited": false,
@@ -2401,6 +6451,8 @@
    "id": "steam-cracking-plant",
    "name": "Steam Cracking Plant",
    "kind": "machine",
+   "description": "Converts crude oil into more usable chemicals for plastic production.\n\nHigher steam temperature equals faster work (up to tenfold).",
+   "category": "Factories",
    "unlockedBy": "plastics",
    "variantOf": null,
    "limited": false,
@@ -2423,9 +6475,92 @@
    "verify": []
   },
   {
+   "id": "steam-turbine",
+   "name": "Steam Turbine",
+   "kind": "building",
+   "description": "Converts hot steam into power. Uses 3 Steam/s and produces 0.1 Water/s\n\n(We strongly recommend that you use LargeTurbine instead, as it has a far higher power yield). Operates even when full on water",
+   "category": "Power",
+   "unlockedBy": "turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 40,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steam_Turbine",
+     "page": "Steam Turbine",
+     "revisionId": 42759,
+     "fetchedAt": "2026-10-11T02:15:54.899Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "time-gate",
+   "name": "Time Gate",
+   "kind": "building",
+   "description": "Outputs a signal depending on the settings.\n\n(Based on the time of day.).",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 5000,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Time_Gate",
+     "page": "Time Gate",
+     "revisionId": 43067,
+     "fetchedAt": "2026-10-11T02:15:54.899Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "time-tracker",
+   "name": "Time Tracker",
+   "kind": "building",
+   "description": "Tracks the number of minutes since placement.",
+   "category": "Miscellaneous",
+   "unlockedBy": "utility",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 120,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Time_Tracker",
+     "page": "Time Tracker",
+     "revisionId": 40483,
+     "fetchedAt": "2026-10-11T02:15:54.900Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "tree",
    "name": "Tree",
    "kind": "farm",
+   "description": "To grow trees, a sprinkler is required to be within range.\n\nHarvesting must take place within the range of a FarmHarvester.\n\n(Trees develop more slowly in place with heavy pollution, and in areas starting with -60% pollution).",
+   "category": "Modular",
    "unlockedBy": "modular-tree-farm",
    "variantOf": null,
    "limited": false,
@@ -2448,9 +6583,119 @@
    "verify": []
   },
   {
+   "id": "tree-farm-controller",
+   "name": "Tree Farm Controller",
+   "kind": "building",
+   "description": "Main controller and power of a tree farm.\n\nAll parts need to be in range for them to work\n\n(only one is needed per FARM! Multiples in the same range will break each other!)\n\n(Parts of the modular farm aren't required to connect nicely).",
+   "category": "Modular",
+   "unlockedBy": "modular-tree-farm",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 750,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Controller",
+     "page": "Tree Farm Controller",
+     "revisionId": 41915,
+     "fetchedAt": "2026-10-11T02:15:54.901Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-output",
+   "name": "Tree Farm Output",
+   "kind": "building",
+   "description": "Outputs harvested materials.\n\nNeeds to be in range of a FarmHarvester.",
+   "category": "Modular",
+   "unlockedBy": "modular-tree-farm",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 200,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Output",
+     "page": "Tree Farm Output",
+     "revisionId": 39240,
+     "fetchedAt": "2026-10-11T02:15:54.901Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-sprinkler",
+   "name": "Tree Farm Sprinkler",
+   "kind": "building",
+   "description": "Allow trees to grow.\n\nRequires a water tank to be in range of a TreeFarmController.",
+   "category": "Modular",
+   "unlockedBy": "modular-tree-farm",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 200,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Sprinkler",
+     "page": "Tree Farm Sprinkler",
+     "revisionId": 42001,
+     "fetchedAt": "2026-10-11T02:15:54.902Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-water-tank",
+   "name": "Tree Farm Water Tank",
+   "kind": "building",
+   "description": "Gives sprinklers water.\n\n(Regardless of the tank's volume, one tank is required for every three sprinklers.)",
+   "category": "Modular",
+   "unlockedBy": "modular-tree-farm",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 500,
+   "size": {
+    "w": 10,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Water_Tank",
+     "page": "Tree Farm Water Tank",
+     "revisionId": 39184,
+     "fetchedAt": "2026-10-11T02:15:54.903Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "trommel",
    "name": "Trommel",
    "kind": "machine",
+   "description": "Turns Soil into Rich Soil, Sand, Gravel, and Bauxite Residue.",
+   "category": "Factories",
    "unlockedBy": "gold-refining",
    "variantOf": null,
    "limited": false,
@@ -2473,9 +6718,146 @@
    "verify": []
   },
   {
+   "id": "truck-depot",
+   "name": "Truck Depot",
+   "kind": "building",
+   "description": "Sells items for money.\nHop on boys we're going to brazil!",
+   "category": "Miscellaneous",
+   "unlockedBy": "truck-depot",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 100,
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Truck_Depot",
+     "page": "Truck Depot",
+     "revisionId": 42606,
+     "fetchedAt": "2026-10-11T02:15:54.903Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "turbine-generator",
+   "name": "Turbine Generator",
+   "kind": "building",
+   "description": "Head of the modular turbine. Goes right after Low Pressure Turbines. Generates power and is the controller of the turbine, connects to powerplants (via Data Cable) to be controlled.",
+   "category": "Modular",
+   "unlockedBy": "modular-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 5000000,
+   "size": {
+    "w": 22,
+    "l": 12
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Turbine_Generator",
+     "page": "Turbine Generator",
+     "revisionId": 38694,
+     "fetchedAt": "2026-10-11T02:15:54.904Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "turbine-input",
+   "name": "Turbine Input",
+   "kind": "building",
+   "description": "The first component inside a modular turbine. After it follows several High Pressure Turbines.",
+   "category": "Modular",
+   "unlockedBy": "modular-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 150000,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Turbine_Input",
+     "page": "Turbine Input",
+     "revisionId": 42905,
+     "fetchedAt": "2026-10-11T02:15:54.905Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "turbine-output",
+   "name": "Turbine Output",
+   "kind": "building",
+   "description": "Connects to the Turbine Generator and is the final piece in a modular turbine. A modular turbine layout may look like this: Input -> High Pressure Turbines -> Intermediate Pressure Turbine -> Low Pressure Turbines -> Generator -> Output. Output for the low pressure steam after turbine used it.",
+   "category": "Modular",
+   "unlockedBy": "modular-turbines",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 150000,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Turbine_Output",
+     "page": "Turbine Output",
+     "revisionId": 43056,
+     "fetchedAt": "2026-10-11T02:15:54.906Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "underground-waste-facility",
+   "name": "Underground Waste Facility",
+   "kind": "building",
+   "description": "Requires 140 Concrete Blocks and 70 Lead Ingots to store 7000 of any liquid or item. Stored materials do not emit radiation nor pollution and are effectively neutralized and lost to time. Requires some time to reach 100% maintenance, which can be checked at the display monitor.",
+   "category": "Miscellaneous",
+   "unlockedBy": "radioactive-waste-storage",
+   "variantOf": null,
+   "limited": false,
+   "tier": 4,
+   "cost": 2500000,
+   "size": {
+    "w": 24,
+    "l": 24
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Underground_Waste_Facility",
+     "page": "Underground Waste Facility",
+     "revisionId": 40429,
+     "fetchedAt": "2026-10-11T02:15:54.907Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "uranium-drill",
    "name": "Uranium Drill",
    "kind": "machine",
+   "description": "Uranium! (this is a joke machine)",
+   "category": "Extractors",
    "unlockedBy": null,
    "variantOf": "iron-drill",
    "limited": true,
@@ -2504,9 +6886,63 @@
    ]
   },
   {
+   "id": "valve-control",
+   "name": "Valve Control",
+   "kind": "building",
+   "description": null,
+   "category": null,
+   "unlockedBy": "valve-control",
+   "variantOf": null,
+   "limited": false,
+   "tier": null,
+   "cost": null,
+   "size": null,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "van-depot",
+   "name": "Van Depot",
+   "kind": "building",
+   "description": "Can sell more items at once than truck depot.\nvan pog",
+   "category": "Miscellaneous",
+   "unlockedBy": "van-depot",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 160,
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Van_Depot",
+     "page": "Van Depot",
+     "revisionId": 42607,
+     "fetchedAt": "2026-10-11T02:15:54.908Z"
+    }
+   ],
+   "verify": []
+  },
+  {
    "id": "vaporizer",
    "name": "Vaporizer",
    "kind": "machine",
+   "description": "Vaporizes cryogenic liquids into gaseous variants",
+   "category": "Factories",
    "unlockedBy": "air-separation-unit",
    "variantOf": null,
    "limited": false,
@@ -2532,6 +6968,8 @@
    "id": "vertical-heat-exchanger",
    "name": "Vertical Heat Exchanger",
    "kind": "machine",
+   "description": "Essentially an upgraded Boiler to handle large amount of fluids and like other machines of this type can connect to Powerplants for Information.",
+   "category": "Power",
    "unlockedBy": "coal-power-plant",
    "variantOf": null,
    "limited": false,
@@ -2557,6 +6995,8 @@
    "id": "water-pump",
    "name": "Water Pump",
    "kind": "machine",
+   "description": "Pumps water out of the ground.",
+   "category": "Extractors",
    "unlockedBy": "water-pump",
    "variantOf": null,
    "limited": false,
@@ -2582,6 +7022,8 @@
    "id": "water-pump2",
    "name": "Water Pump2",
    "kind": "machine",
+   "description": "Pumps water out of the ground at much faster speeds.",
+   "category": "Extractors",
    "unlockedBy": "water-pump-2",
    "variantOf": null,
    "limited": false,
@@ -2607,6 +7049,8 @@
    "id": "water-treatment-plant",
    "name": "Water Treatment Plant",
    "kind": "machine",
+   "description": "Can turn water into distilled water. Useful for filling up loops in the new power plant. Due to the slow speed of water refining, water should be recirculated at all times! All values change depending on speed, at max speed: 90l/s of Steam, 64/s of Water.",
+   "category": "Factories",
    "unlockedBy": "coal-power-plant",
    "variantOf": null,
    "limited": false,
@@ -2624,6 +7068,141 @@
      "page": "Water Treatment Plant",
      "revisionId": 42244,
      "fetchedAt": "2026-10-11T01:03:34.208Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "white-led",
+   "name": "White LED",
+   "kind": "building",
+   "description": "Lights up if power is supplied.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 1000,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/White_LED",
+     "page": "White LED",
+     "revisionId": 42317,
+     "fetchedAt": "2026-10-11T02:15:54.909Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine1",
+   "name": "Wind Turbine1",
+   "kind": "building",
+   "description": "Wind energy is slightly more reliable than solar, however there are many changes.",
+   "category": "Power",
+   "unlockedBy": "wind-turbine-1",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 400,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine1",
+     "page": "Wind Turbine1",
+     "revisionId": 42392,
+     "fetchedAt": "2026-10-11T02:15:56.545Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine2",
+   "name": "Wind Turbine2",
+   "kind": "building",
+   "description": "High wind variability, but never reaches zero.",
+   "category": "Power",
+   "unlockedBy": "wind-turbine-2",
+   "variantOf": null,
+   "limited": false,
+   "tier": 2,
+   "cost": 1785,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine2",
+     "page": "Wind Turbine2",
+     "revisionId": 42391,
+     "fetchedAt": "2026-10-11T02:15:56.549Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine3",
+   "name": "Wind Turbine3",
+   "kind": "building",
+   "description": "Larger than WindTurbine2, resulting in higher power production",
+   "category": "Power",
+   "unlockedBy": "wind-turbine-3",
+   "variantOf": null,
+   "limited": false,
+   "tier": 3,
+   "cost": 100000,
+   "size": {
+    "w": 10,
+    "l": 10
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+     "page": "Wind Turbine3",
+     "revisionId": 42396,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "xor-gate",
+   "name": "XOR Gate",
+   "kind": "building",
+   "description": "Output logical XOR of input signals.",
+   "category": "Logic",
+   "unlockedBy": "logic",
+   "variantOf": null,
+   "limited": false,
+   "tier": 1,
+   "cost": 2500,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/XOR_Gate",
+     "page": "XOR Gate",
+     "revisionId": 42289,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
     }
    ],
    "verify": []

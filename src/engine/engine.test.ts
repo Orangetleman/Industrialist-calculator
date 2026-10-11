@@ -174,6 +174,19 @@ describe("choix des recettes", () => {
     expect(step(solve(data, all, { item: "x", ratePerMin: 6, criterion: "raw" }), "x").recipeId).toBe("r1");
   });
 
+  it("critère « moins d'étapes »", () => {
+    const d = makeData({
+      recipes: [
+        { id: "long", machine: "m", t: 1, in: { a: 1 }, out: { x: 1 } },
+        { id: "ra", machine: "m", t: 1, in: { b: 1 }, out: { a: 1 } },
+        { id: "rb", machine: "m", t: 1, out: { b: 1 } },
+        { id: "short", machine: "m", t: 60, out: { x: 1 } }, // plus de machines, mais 1 seule étape
+      ],
+    });
+    expect(step(solve(d, all, { item: "x", ratePerMin: 60, criterion: "machines" }), "x").recipeId).toBe("long");
+    expect(step(solve(d, all, { item: "x", ratePerMin: 60, criterion: "steps" }), "x").recipeId).toBe("short");
+  });
+
   it("recette forcée à la main", () => {
     const plan = solve(data, all, { item: "x", ratePerMin: 6, criterion: "machines", forced: { x: "r1" } });
     expect(step(plan, "x")).toMatchObject({ recipeId: "r1", forced: true });

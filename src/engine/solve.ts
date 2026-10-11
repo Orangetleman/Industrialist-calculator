@@ -257,7 +257,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       item,
       recipeId: r.id,
       machine: r.machine,
-      machineKind: m?.kind ?? "machine",
+      machineKind: m?.kind === "farm" ? "farm" : "machine",
       forced: c.forced,
       depth: depth.get(item) ?? 0,
       durationS: eff.durationS!,

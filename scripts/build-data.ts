@@ -21,6 +21,7 @@ import {
   parseSize,
   parseTemplate,
   parseTreeGrowth,
+  wikiQuote,
   researchNodes,
   slugify,
   type FandomRecipe,
@@ -231,37 +232,54 @@ for (const node of nodes) {
 }
 
 // ---------------------------------------------------------------- machines
+/** RS/Data écrit parfois « Page#ancre; Nom affiché » : on garde le nom affiché. */
+const displayName = (b: string) => (b.includes(";") ? b.slice(b.lastIndexOf(";") + 1).trim() : b);
+const bid = (b: string) => slugify(displayName(b));
 const buildingToNodes = new Map<string, ResearchNode[]>();
 for (const n of rawNodes) {
   const node = nodeByName.get(n.name)!;
   for (const b of n.buildings) {
-    const k = slugify(b);
+    const k = bid(b);
     if (!buildingToNodes.has(k)) buildingToNodes.set(k, []);
     buildingToNodes.get(k)!.push(node);
   }
 }
 machineNames.set("tree", "Tree");
+// Autres bâtiments de l'arbre (poteaux, batteries, tuyaux…) : affichés dans l'arbre, jamais utilisés par le calcul.
+const buildingNames = new Map<string, string>();
+for (const n of rawNodes) for (const b of n.buildings) if (!machineNames.has(bid(b))) buildingNames.set(bid(b), b);
 const machines: Machine[] = [];
-for (const [id, name] of [...machineNames].sort(([a], [b]) => a.localeCompare(b))) {
-  const p = page("miraheze", name);
+const allBuildings = [...[...machineNames].map(([id, name]) => [id, name, false] as const), ...[...buildingNames].map(([id, name]) => [id, name, true] as const)];
+for (const [id, rawName, isBuilding] of allBuildings.sort(([a], [b]) => a.localeCompare(b))) {
+  const name = displayName(rawName);
+  const fetched = page("miraheze", rawName);
+  // Une redirection vers une page commune (ex. « Pipes ») décrit plusieurs bâtiments : on n'en tire aucune valeur.
+  const shared = !!fetched && fetched.title !== name;
+  const p = shared ? null : fetched;
   const verify: VerifyFlag[] = [];
   const sources: Source[] = [];
   let ib: Record<string, string> | null = null;
-  if (!p) verify.push({ field: "page", reason: "manquant", detail: `page « ${name} » absente du wiki` });
-  else {
+  if (shared) sources.push({ ...sourceOf(fetched!), note: `page commune à plusieurs bâtiments (« ${fetched!.title} ») : valeurs non reprises` });
+  else if (!p) {
+    if (!isBuilding) verify.push({ field: "page", reason: "manquant", detail: `page « ${name} » absente du wiki` });
+  } else {
     sources.push(sourceOf(p));
     ib = parseTemplate(p.content, "Machine2");
-    if (!ib) verify.push({ field: "page", reason: "manquant", detail: "pas d'infobox Machine2" });
+    if (!ib && !isBuilding) verify.push({ field: "page", reason: "manquant", detail: "pas d'infobox Machine2" });
   }
+  if (!sources.length) sources.push({ ...rsSource, note: "cité dans Module:RS/Data, sans page dédiée" });
+  const description = p ? wikiQuote(p.content) : null;
+  // Pour les bâtiments hors production, les valeurs manquantes ne gênent pas le calcul : pas de drapeau.
+  const flag = (f: VerifyFlag) => { if (!isBuilding) verify.push(f); };
   const cost = parseNumber(ib?.Cost);
-  if (ib && cost === null) verify.push({ field: "cost", reason: "manquant", detail: `Cost illisible : ${fmt(ib.Cost)}` });
+  if (ib && cost === null) flag({ field: "cost", reason: "manquant", detail: `Cost illisible : ${fmt(ib.Cost)}` });
   const size = parseSize(ib?.Size);
-  if (ib && !size) verify.push({ field: "size", reason: "manquant", detail: `Size illisible : ${fmt(ib.Size)}` });
+  if (ib && !size) flag({ field: "size", reason: "manquant", detail: `Size illisible : ${fmt(ib.Size)}` });
   const pollutionPerHour = parsePollution(ib?.Pollution);
   if (ib && pollutionPerHour === null) {
-    verify.push({ field: "pollutionPerHour", reason: ib.Pollution ? "variable" : "manquant", detail: `Pollution : ${fmt(ib.Pollution)}` });
+    flag({ field: "pollutionPerHour", reason: ib.Pollution ? "variable" : "manquant", detail: `Pollution : ${fmt(ib.Pollution)}` });
   } else if (Array.isArray(pollutionPerHour)) {
-    verify.push({ field: "pollutionPerHour", reason: "approximatif", detail: `plage ${ib?.Pollution}` });
+    flag({ field: "pollutionPerHour", reason: "approximatif", detail: `plage ${ib?.Pollution}` });
   }
   const tier = parseNumber(ib?.Tier);
 
@@ -290,7 +308,9 @@ for (const [id, name] of [...machineNames].sort(([a], [b]) => a.localeCompare(b)
   machines.push({
     id,
     name,
-    kind: id === "tree" ? "farm" : "machine",
+    kind: id === "tree" ? "farm" : isBuilding ? "building" : "machine",
+    description,
+    category: ib?.Category?.trim() || null,
     unlockedBy,
     variantOf: variant ? slugify(variant) : null,
     limited: /^yes$/i.test(ib?.Limited?.trim() ?? ""),
@@ -304,7 +324,7 @@ for (const [id, name] of [...machineNames].sort(([a], [b]) => a.localeCompare(b)
 }
 for (const n of rawNodes) {
   const node = nodeByName.get(n.name)!;
-  for (const b of n.buildings) if (!machineNames.has(slugify(b))) node.unlocksOther.push(b);
+  for (const b of n.buildings) if (!machineNames.has(bid(b)) && !buildingNames.has(bid(b))) node.unlocksOther.push(displayName(b));
 }
 const machineById = new Map(machines.map((m) => [m.id, m]));
 for (const r of recipes) r.research = machineById.get(r.machine)?.unlockedBy ?? null;

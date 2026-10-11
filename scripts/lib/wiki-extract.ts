@@ -174,6 +174,48 @@ export function stripWiki(text: string): string {
 }
 
 /**
+ * Description en jeu d'un bâtiment : premier {{Quote|…}} de sa page, nettoyé
+ * (sauts de ligne, liens, gras, modèles simples). null s'il n'y en a pas.
+ */
+export function wikiQuote(content: string): string | null {
+  const t = parseAllTemplates(content, "Quote")[0];
+  const start = content.search(/\{\{\s*Quote\s*\|/);
+  if (start < 0) return null;
+  // Le texte est le premier paramètre positionnel : on le relit en comptant les accolades.
+  let depth = 0;
+  let i = start;
+  let end = -1;
+  while (i < content.length) {
+    if (content.startsWith("{{", i)) {
+      depth++;
+      i += 2;
+    } else if (content.startsWith("}}", i)) {
+      depth--;
+      i += 2;
+      if (depth === 0) {
+        end = i - 2;
+        break;
+      }
+    } else i++;
+  }
+  if (end < 0) return null;
+  let body = content.slice(content.indexOf("|", start) + 1, end);
+  // Paramètres nommés éventuels (source=…) : on ne garde que le texte.
+  if (t && Object.keys(t).length) body = body.replace(/\|\s*[A-Za-z0-9_]+\s*=[\s\S]*$/, "");
+  const text = body
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, "$1")
+    .replace(/\{\{\s*[A-Za-z]+\s*\|\s*([^|}]*)(?:\|[^}]*)?\}\}/g, "$1")
+    .replace(/\{\{[^}]*\}\}/g, "")
+    .replace(/'''?/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return text || null;
+}
+
+/**
  * Tableau « Tree Growth » de la page Tree :
  *   | {{Pollution|51}} - {{Pollution|99}} | ~370s - ~689s
  *   | {{Pollution|100}}+ (Max)            | ~696s (Max)

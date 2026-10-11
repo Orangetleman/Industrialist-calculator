@@ -9,7 +9,7 @@
 | Fichier | Objets | Dont à vérifier |
 |---|---|---|
 | recipes.json | 447 | 110 |
-| machines.json | 100 | 17 |
+| machines.json | 264 | 19 |
 | items.json | 212 | 2 |
 | research.json | 149 | 24 |
 
@@ -372,12 +372,14 @@ Fandom n'est plus mis à jour : ces recettes ont peut-être été retirées du j
 | [American Oil Rig](https://industrialist.miraheze.org/wiki/American_Oil_Rig) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Cat Assembler](https://industrialist.miraheze.org/wiki/Cat_Assembler) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Chemical Plant](https://industrialist.miraheze.org/wiki/Chemical_Plant) | pollutionPerHour | variable | Pollution : "Depends on recipes" |  |
+| [Diesel Engine Flywheel](https://industrialist.miraheze.org/wiki/Diesel_Engine_Flywheel) | unlockedBy | contradiction | débloquée par plusieurs nœuds : Modular Diesel Engines, Modular Diesel Engines | "modular-diesel-engines" ([miraheze](https://industrialist.miraheze.org/wiki/Module:RS/Data)) |
 | [Fancy Coal Drill](https://industrialist.miraheze.org/wiki/Fancy_Coal_Drill) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Foundry](https://industrialist.miraheze.org/wiki/Foundry) | pollutionPerHour | approximatif | plage 0.05-0.29%/h |  |
 | [Industrial Diesel Refinery](https://industrialist.miraheze.org/wiki/Industrial_Diesel_Refinery) | unlockedBy | contradiction | RS/Data : « Industrial Diesel Refining » ; infobox : « Industrial Diesel Refinery » | "Industrial Diesel Refinery" ([miraheze](https://industrialist.miraheze.org/wiki/Industrial_Diesel_Refinery)) |
 | [Industrial Drill](https://industrialist.miraheze.org/wiki/Industrial_Drill) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Industrial Press](https://industrialist.miraheze.org/wiki/Industrial_Press) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Large Diesel Engine](https://industrialist.miraheze.org/wiki/Large_Diesel_Engine) | pollutionPerHour | approximatif | plage 0.648 - 0.432%/h |  |
+| [Liquid Burner](https://industrialist.miraheze.org/wiki/Liquid_Burner) | unlockedBy | contradiction | RS/Data : « Liquid Burner (dump) » ; infobox : « Liquid Burner (Dump) » | "Liquid Burner (Dump)" ([miraheze](https://industrialist.miraheze.org/wiki/Liquid_Burner)) |
 | [OG Oil Rig](https://industrialist.miraheze.org/wiki/OG_Oil_Rig) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Residue Refinery](https://industrialist.miraheze.org/wiki/Residue_Refinery) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Sand Excavator](https://industrialist.miraheze.org/wiki/Sand_Excavator) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
@@ -385,7 +387,7 @@ Fandom n'est plus mis à jour : ces recettes ont peut-être été retirées du j
 | [Soil Excavator](https://industrialist.miraheze.org/wiki/Soil_Excavator) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 | [Uranium Drill](https://industrialist.miraheze.org/wiki/Uranium_Drill) | unlockedBy | manquant | aucun nœud de recherche ne la débloque (ni RS/Data, ni infobox) |  |
 
-**Variantes et éditions limitées** (11) : Advanced Diesel Refinery (variante de Diesel Refinery) [Limited] ; Advanced Electric Furnace (variante de Electric Furnace) [Limited] ; American Oil Rig (variante de Oil Rig) [Limited] ; Cat Assembler [Limited] ; Fancy Coal Drill (variante de Coal Drill) [Limited] ; Industrial Press [Limited] ; OG Oil Rig (variante de Oil Rig) [Limited] ; Residue Refinery [Limited] ; Sand Excavator [Limited] ; Soil Excavator [Limited] ; Uranium Drill (variante de Iron Drill) [Limited].
+**Variantes et éditions limitées** (13) : Advanced Diesel Refinery (variante de Diesel Refinery) [Limited] ; Advanced Electric Furnace (variante de Electric Furnace) [Limited] ; American Oil Rig (variante de Oil Rig) [Limited] ; Cat Assembler [Limited] ; Fancy Coal Drill (variante de Coal Drill) [Limited] ; Flag (variante de flag) ; Industrial Press [Limited] ; Metal Sign (variante de decoration) ; OG Oil Rig (variante de Oil Rig) [Limited] ; Residue Refinery [Limited] ; Sand Excavator [Limited] ; Soil Excavator [Limited] ; Uranium Drill (variante de Iron Drill) [Limited].
 La façon dont elles se débloquent en jeu n'est pas précisée par le wiki ; à confirmer.
 
 ## Arbre de recherche

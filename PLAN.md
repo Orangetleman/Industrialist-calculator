@@ -219,7 +219,7 @@ Une colonne de 760 px max, avec le style de la référence (IBM Plex, acier bleu
 | **b** Moteur + tests | `src/engine/*` : choix, résolution, à vérifier, départage, pollution, économie, fermeture des prérequis | Tous les cas de la §3, dont la non-régression |
 | **c** Interface | Réglage, résumé, graphe, plan, recettes, panneau « à vérifier » avec saisie et export | Tests verts ; vérification visuelle avec `npm run dev` |
 | **d** Arbre + progression | Arbre, dialogue des prérequis, « jusqu'à… », panneau « Ma partie », localStorage | Tests du déblocage et de la persistance |
-| **e** Finitions | README, accessibilité, affichage mobile, attribution des wikis ; **critère « moins d'étapes »** (demandé après l'étape b : éviter les chaînes courtes en machines mais longues en étapes) | Tests verts ; parcours complet de bout en bout |
+| **e** Finitions | README, accessibilité, affichage mobile, attribution des wikis ; **critère « moins d'étapes »** (demandé après l'étape b) ; **onglets** (Production, Recherche, À vérifier, Ma partie) et **arbre de recherche comme en jeu** (canevas déplaçable/zoomable, fiche de chaque recherche avec la description en jeu des bâtiments débloqués, vue liste en option), demandés au lancement de l'étape e | Tests verts ; parcours complet de bout en bout |
 
 ## 6. Risques
 

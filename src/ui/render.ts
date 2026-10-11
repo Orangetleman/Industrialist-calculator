@@ -5,7 +5,7 @@ import type { GameData } from "../engine/data.ts";
 import type { Plan, Step, Unresolved, VerifyEntry } from "../engine/solve.ts";
 import type { OverridesFile, Recipe, Source } from "../engine/types.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, fmtMoney, fmtPollution, fmtRP, isEditableField, REASON_LABEL } from "./format.ts";
-import { LABEL_H, labelText, labelWidth, layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
+import { edgePath, LABEL_H, labelText, labelWidth, layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
 import type { Settings } from "./state.ts";
 
 export type Ctx = { data: GameData; plan: Plan; settings: Settings; corrections: OverridesFile };
@@ -94,7 +94,7 @@ export function renderGraph(ctx: Ctx): string {
   let s = `<svg viewBox="0 0 ${g.width} ${g.height}" style="${g.width < 620 ? "width:100%;max-width:620px" : `width:${g.width}px`}" role="img" aria-label="Graphe de production de ${esc(itemN(ctx, p.target.item))}">
 <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker></defs>`;
   for (const e of g.edges) {
-    s += `<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)" opacity=".85"/>`;
+    s += `<path d="${edgePath(e.points)}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#ar)" opacity=".85"/>`;
   }
   for (const n of g.nodes) {
     const st = steps.get(n.item);
@@ -156,7 +156,7 @@ function stepCard(ctx: Ctx, s: Step, i: number): string {
   const outs = s.consumers.map((f) => `${fmt(f.perMin, 2)} → ${esc(itemN(ctx, f.item))}`).join(" · ");
   const by = s.byproducts.map((f) => `${fmt(f.perMin, 2)} ${esc(itemN(ctx, f.item))}`).join(" + ");
   return `<li class="step" id="step-${esc(s.item)}"><div class="n">${String(i + 1).padStart(2, "0")}</div><div class="body">
-    ${tags.length || usedFlags.length ? `<div class="tags">${tags.map((t) => `<span class="tag">${t}</span>`).join("")}${usedFlags.length ? `<a class="tag warn" href="#h-verify">⚠ ${usedFlags.length} valeur(s) à vérifier</a>` : ""}</div>` : ""}
+    ${tags.length || usedFlags.length ? `<div class="tags">${tags.map((t) => `<span class="tag">${t}</span>`).join("")}${usedFlags.length ? `<a class="tag warn" href="#verifier">⚠ ${usedFlags.length} valeur(s) à vérifier</a>` : ""}</div>` : ""}
     <div class="top"><h3>${esc(itemN(ctx, s.item))}</h3><span class="count">${count}</span></div>
     <div class="recipe">${esc(recipeText(ctx, r, s.durationS))} <span class="muted">(${esc(r.id)})</span></div>
     <div class="meta"><span>Produit : <b class="num">${fmt(s.demandPerMin, 2)}/min</b></span>${ins ? `<span>Consomme : <span class="num">${ins}</span> /min</span>` : ""}${outs ? `<span>Envoie : <span class="num">${outs}</span></span>` : ""}${
@@ -304,7 +304,7 @@ export function renderRecipes(ctx: Ctx): string {
   return ctx.plan.steps
     .map((s) => {
       const r = ctx.data.recipes.get(s.recipeId)!;
-      const flags = r.verify.length ? ` <a class="tag warn" href="#h-verify">⚠ ${r.verify.length}</a>` : "";
+      const flags = r.verify.length ? ` <a class="tag warn" href="#verifier">⚠ ${r.verify.length}</a>` : "";
       return `<tr><td>${esc(itemN(ctx, s.item))}${flags}</td><td>${esc(machineN(ctx, r.machine))}</td><td class="mono">${esc(recipeText(ctx, r, s.durationS))}</td>
         <td class="num">${r.energyMFps === null ? "?" : fmtMF(r.energyMFps)}</td><td class="src">${r.sources.map(sourceLink).join("<br>")}</td></tr>`;
     })

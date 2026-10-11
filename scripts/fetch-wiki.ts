@@ -13,6 +13,7 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { extractModuleTable } from "./lib/lua-literal.ts";
+import { researchNodes } from "./lib/wiki-extract.ts";
 import { WIKIS, cacheFileName, type CachedPage, type WikiId } from "./lib/wiki-config.ts";
 
 const args = new Set(process.argv.slice(2));
@@ -188,6 +189,17 @@ async function listModules(wiki: WikiId, prefix: string): Promise<string[]> {
   return out;
 }
 
+/** Bâtiments débloqués par l'arbre de recherche (Module:RS/Data en cache). */
+function buildingsFromResearch(): string[] {
+  const page = readCached("miraheze", "Module:RS/Data");
+  if (!page) return [];
+  try {
+    return [...new Set(researchNodes(extractModuleTable(page.content, "p")).flatMap((n) => n.buildings))];
+  } catch {
+    return [];
+  }
+}
+
 /** Noms d'items cités dans les modules de recettes en cache. */
 function itemsFromRecipeModules(titles: string[]): string[] {
   const items = new Set<string>();
@@ -255,6 +267,7 @@ async function main(): Promise<void> {
     report("arbre de recherche", await fetchPages("miraheze", ["Module:RS/Data", "Research System"]));
     machineNames.push(...modules.map((t) => t.replace("Module:Recipes/", "")));
     report("pages machines", await fetchPages("miraheze", [...machineNames, "Tree"]));
+    report("pages des autres bâtiments de l'arbre", await fetchPages("miraheze", buildingsFromResearch().filter((b) => !machineNames.includes(b))));
     itemNames = itemsFromRecipeModules(modules);
     report("pages items", await fetchPages("miraheze", itemNames));
   }

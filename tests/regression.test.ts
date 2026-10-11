@@ -116,13 +116,20 @@ describe("vraies données (Miraheze)", () => {
   });
 
   it("Crankshaft, toute la recherche débloquée : chaîne complète avec chaque critère", () => {
-    for (const criterion of ["machines", "energy", "raw"] as const) {
+    for (const criterion of ["machines", "energy", "raw", "steps"] as const) {
       const plan = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion });
       expect(plan.status, criterion).toBe("ok");
       expect(plan.unresolved, criterion).toEqual([]);
       // Recettes retenues sans boucle : chaque item n'apparaît qu'une fois.
       expect(new Set(plan.steps.map((s) => s.item)).size, criterion).toBe(plan.steps.length);
     }
+  });
+
+  it("« moins d'étapes » raccourcit la chaîne obtenue avec « moins de machines »", () => {
+    const byMachines = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion: "machines" });
+    const bySteps = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion: "steps" });
+    expect(bySteps.status).toBe("ok");
+    expect(bySteps.steps.length).toBeLessThan(byMachines.steps.length);
   });
 
   it("sans aucune recherche, le Crankshaft est verrouillé et le plan dit quoi débloquer", () => {
@@ -142,7 +149,7 @@ describe("vraies données (Miraheze)", () => {
   it("le moteur ne plante sur aucun item, quels que soient le critère et l'option", () => {
     const problems: string[] = [];
     for (const item of real.producers.keys()) {
-      for (const criterion of ["machines", "energy", "raw"] as const) {
+      for (const criterion of ["machines", "energy", "raw", "steps"] as const) {
         for (const useUnverified of [false, true]) {
           let plan: Plan;
           try {

@@ -27,6 +27,9 @@ import {
   type ProgressState,
   type TreeView,
 } from "./progress.ts";
+import { PanZoom } from "./canvas.ts";
+import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
+import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
 import {
   countCorrections,
@@ -55,6 +58,26 @@ let plan: Plan | undefined;
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
 const treeView: TreeView = { category: "Production", filter: "" };
+type Tab = "production" | "recherche" | "verifier" | "partie";
+const TABS: Tab[] = ["production", "recherche", "verifier", "partie"];
+const KEY_UI = "ind-calc:v1:ui";
+let ui: { view: "tree" | "list"; selected: string | null } = { view: "tree", selected: null };
+try {
+  const raw = JSON.parse(localStorage.getItem(KEY_UI) ?? "null");
+  if (raw && (raw.view === "tree" || raw.view === "list")) ui = { view: raw.view, selected: typeof raw.selected === "string" ? raw.selected : null };
+} catch {
+  // préférences d'affichage indisponibles : valeurs par défaut
+}
+function saveUi(): void {
+  try {
+    localStorage.setItem(KEY_UI, JSON.stringify(ui));
+  } catch {
+    // idem
+  }
+}
+let panzoom: PanZoom | null = null;
+const layouts = new Map<string, ResearchLayout>();
+let lastLayoutKey = "";
 
 function rebuildData(): void {
   const r = buildGameData(files, [repoOverrides, corrections]);
@@ -130,12 +153,23 @@ function render(): void {
 // ---------------------------------------------------------------- progression et « Ma partie »
 function renderProgress(): void {
   const p = toEngineProgress(prog);
-  $("progress-summary").textContent = progressSummary(data, p);
+  const summary = progressSummary(data, p);
+  $("progress-summary").textContent = summary;
+  const done = prog.unlocked.filter((id) => data.nodes.has(id)).length;
+  $("tab-research-count").textContent = `${done}/${[...data.nodes.values()].filter((n) => !n.isRoot).length}`;
+  $("context-hint").innerHTML = `Progression prise en compte : ${esc(summary)} — <a href="#recherche">modifier</a>${
+    player.pollutionPct !== null ? ` · pollution ${esc(fmt(player.pollutionPct, 1))} %` : ""
+  } · <a href="#partie">Ma partie</a>`;
   const focused = (document.activeElement as HTMLElement | null)?.dataset;
-  const focusKey = focused?.node ? `[data-node="${focused.node}"]` : focused?.req ? `[data-req="${focused.req}"]` : null;
-  $("tree").innerHTML = renderTree(data, p, treeView);
+  const focusKey = focused?.node ? `[data-node="${focused.node}"]` : focused?.req ? `[data-req="${focused.req}"]` : focused?.rs ? `[data-rs="${focused.rs}"]` : null;
+  $("tree-view").hidden = ui.view !== "tree";
+  $("list-view").hidden = ui.view !== "list";
+  for (const b of document.querySelectorAll<HTMLButtonElement>(".seg [data-view]")) b.setAttribute("aria-checked", String(b.dataset.view === ui.view));
+  if (ui.view === "list") {
+    $("tree").innerHTML = renderTree(data, p, treeView);
+    if (focusKey) $("tree").querySelector<HTMLElement>(focusKey)?.focus();
+  } else renderResearchCanvas(focusKey);
   $("owned").innerHTML = renderOwned(data, p);
-  if (focusKey) $("tree").querySelector<HTMLElement>(focusKey)?.focus();
   for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) tab.setAttribute("aria-selected", String(tab.dataset.cat === treeView.category));
   const parts = [
     player.pollutionPct !== null ? `pollution ${fmt(player.pollutionPct, 1)} %` : null,
@@ -144,6 +178,139 @@ function renderProgress(): void {
     player.rpPerSec !== null ? `${fmt(player.rpPerSec, 2)} RP/s` : null,
   ].filter(Boolean);
   $("player-summary").textContent = parts.length ? parts.join(" · ") : "non renseignée";
+}
+
+function researchLayout(): ResearchLayout {
+  let l = layouts.get(treeView.category);
+  if (!l) {
+    l = layoutResearch(data, treeView.category);
+    layouts.set(treeView.category, l);
+  }
+  return l;
+}
+
+/** Recherches qui correspondent au filtre (nom ou machine débloquée). */
+function matchesFilter(id: string): boolean {
+  const q = treeView.filter.trim().toLowerCase();
+  if (!q) return true;
+  const n = data.nodes.get(id);
+  if (!n) return false;
+  return n.name.toLowerCase().includes(q) || n.unlocksMachines.some((x) => (data.machines.get(x)?.name ?? x).toLowerCase().includes(q));
+}
+
+function renderResearchCanvas(focusKey: string | null): void {
+  const p = toEngineProgress(prog);
+  const layout = researchLayout();
+  if (ui.selected && data.nodes.get(ui.selected)?.category !== treeView.category) ui.selected = null;
+  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, player.rp);
+  const svg = $("rs-canvas").querySelector("svg") as SVGSVGElement;
+  if (treeView.filter.trim()) {
+    for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
+  }
+  panzoom ??= new PanZoom($("rs-frame"));
+  const key = `${treeView.category}`;
+  panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey);
+  lastLayoutKey = key;
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, player.rp);
+  if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
+}
+
+function revealNode(id: string): void {
+  const n = researchLayout().nodes.find((x) => x.id === id);
+  if (n && panzoom) panzoom.reveal(n.x, n.y, RN_W, RN_H);
+}
+
+function selectNode(id: string, reveal = true): void {
+  const n = data.nodes.get(id);
+  if (!n) return;
+  if (n.category !== treeView.category) treeView.category = n.category;
+  ui.selected = id;
+  saveUi();
+  renderProgress();
+  if (reveal) revealNode(id);
+}
+
+// ---------------------------------------------------------------- onglets
+function currentTab(): Tab {
+  const h = location.hash.replace("#", "") as Tab;
+  return TABS.includes(h) ? h : "production";
+}
+function showTab(tab: Tab, focus = false): void {
+  for (const t of TABS) {
+    const on = t === tab;
+    $(`panel-${t}`).hidden = !on;
+    const link = $(`tab-${t}`);
+    link.setAttribute("aria-selected", String(on));
+    link.tabIndex = on ? 0 : -1;
+    if (on && focus) link.focus();
+  }
+  document.body.classList.toggle("wide", tab === "recherche");
+  // Le canevas mesure son cadre : il faut le recaler quand l'onglet devient visible.
+  if (tab === "recherche" && ui.view === "tree") renderResearchCanvas(null);
+}
+function bindTabs(): void {
+  window.addEventListener("hashchange", () => showTab(currentTab()));
+  $("tab-production").closest("nav")!.addEventListener("keydown", (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k !== "ArrowRight" && k !== "ArrowLeft" && k !== "Home" && k !== "End") return;
+    e.preventDefault();
+    const i = TABS.indexOf(currentTab());
+    const next = k === "Home" ? 0 : k === "End" ? TABS.length - 1 : (i + (k === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
+    history.replaceState(null, "", `#${TABS[next]}`);
+    showTab(TABS[next]!, true);
+  });
+}
+
+function bindResearchCanvas(): void {
+  for (const b of document.querySelectorAll<HTMLButtonElement>(".seg [data-view]")) {
+    b.addEventListener("click", () => {
+      ui.view = b.dataset.view as "tree" | "list";
+      saveUi();
+      renderProgress();
+    });
+  }
+  $("rs-canvas").addEventListener("click", (e) => {
+    if (panzoom?.suppressClick) return;
+    const g = (e.target as Element).closest<SVGGElement>("[data-rs]");
+    if (g) selectNode(g.dataset.rs!, false);
+  });
+  $("rs-canvas").addEventListener("keydown", (e) => {
+    const g = (e.target as Element).closest<SVGGElement>("[data-rs]");
+    if (!g) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      selectNode(g.dataset.rs!, false);
+    }
+  });
+  $("rs-canvas").addEventListener("focusin", (e) => {
+    const g = (e.target as Element).closest<SVGGElement>("[data-rs]");
+    if (g) revealNode(g.dataset.rs!);
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-zoom]")) {
+    b.addEventListener("click", () => {
+      const z = b.dataset.zoom;
+      if (z === "in") panzoom?.zoom(1.25);
+      else if (z === "out") panzoom?.zoom(1 / 1.25);
+      else if (z === "fit") panzoom?.fit();
+      else panzoom?.reset();
+    });
+  }
+  $("rs-detail").addEventListener("click", async (e) => {
+    const t = e.target as HTMLElement;
+    const go = t.closest<HTMLElement>("[data-rs-goto]");
+    if (go) return selectNode(go.dataset.rsGoto!);
+    const act = t.closest<HTMLElement>("[data-rs-action]");
+    if (!act) return;
+    const id = act.dataset.id!;
+    if (act.dataset.rsAction === "unlock-all") setProgress({ ...prog, unlocked: [...unlockUpTo(data, toEngineProgress(prog), id)] });
+    else if (act.dataset.rsAction === "unlock-one") setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, id])] });
+    else if (act.dataset.rsAction === "lock") await toggleNode(id, false);
+  });
+  $("rs-detail").addEventListener("change", (e) => {
+    const input = e.target as HTMLInputElement;
+    const id = input.dataset.req;
+    if (id) setProgress({ ...prog, reqItemsDone: input.checked ? [...new Set([...prog.reqItemsDone, id])] : prog.reqItemsDone.filter((x) => x !== id) });
+  });
 }
 
 function fillNodeList(): void {
@@ -247,6 +414,10 @@ function bindProgress(): void {
   }
   $("tree-filter").addEventListener("input", (e) => {
     treeView.filter = (e.target as HTMLInputElement).value;
+    if (ui.view === "tree" && treeView.filter.trim()) {
+      const first = [...data.nodes.values()].filter((n) => !n.isRoot && matchesFilter(n.id)).sort((a, b) => Number(b.category === treeView.category) - Number(a.category === treeView.category))[0];
+      if (first) return selectNode(first.id);
+    }
     renderProgress();
   });
   $("upto-form").addEventListener("submit", (e) => {
@@ -263,7 +434,10 @@ function bindProgress(): void {
     const added = [...next].filter((x) => !before.has(x)).length;
     $("upto-hint").textContent = `${node.name} : ${added} recherche(s) cochée(s).`;
     treeView.category = node.category;
+    ui.selected = node.id;
+    saveUi();
     setProgress({ ...prog, unlocked: [...next] });
+    if (ui.view === "tree") revealNode(node.id);
   });
   $("progress-reset").addEventListener("click", async () => {
     const choice = await ask("Réinitialiser la progression", "<p>Décocher toutes les recherches et toutes les machines possédées ?</p>", [
@@ -440,6 +614,9 @@ syncForm();
 syncPlayerForm();
 bind();
 bindProgress();
+bindTabs();
+bindResearchCanvas();
+// Première visite (aucune recherche cochée) : on commence par l'onglet Recherche.
+if (!location.hash && !prog.unlocked.length) history.replaceState(null, "", "#recherche");
 render();
-// Première visite : on ouvre la progression pour inviter à la remplir.
-if (!prog.unlocked.length) ($("progress-panel") as HTMLDetailsElement).open = true;
+showTab(currentTab());

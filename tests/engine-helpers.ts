@@ -59,6 +59,8 @@ export function makeData(spec: { recipes: R[]; machines?: M[]; nodes?: N[]; tree
     id: m.id,
     name: m.id,
     kind: m.kind ?? "machine",
+    description: null,
+    category: null,
     unlockedBy: m.unlockedBy === undefined ? "production" : m.unlockedBy,
     variantOf: null,
     limited: false,
