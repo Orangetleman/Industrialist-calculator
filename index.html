@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Calculateur de production</title>
+  <meta name="description" content="Calculateur de chaînes de production pour le jeu Roblox Industrialist, selon ta progression dans l'arbre de recherche.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Industrialist · Roblox · calculateur de production</div>
+    <h1>Calculateur de production</h1>
+    <p class="lead">Choisis un item et un débit : le plan donne toute la chaîne, des machines finales jusqu'aux matières premières, avec seulement ce que tu as débloqué.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="h-set">
+    <h2 id="h-set">Réglage</h2>
+    <div class="fields">
+      <label for="item" class="wide">Item à produire
+        <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft">
+        <datalist id="item-list"></datalist>
+        <span id="item-hint" class="hint" role="status"></span>
+      </label>
+      <label for="rate">Débit voulu (/min)
+        <input id="rate" type="number" min="0.01" step="any" inputmode="decimal">
+      </label>
+      <label for="machines">ou machines finales
+        <input id="machines" type="number" min="1" step="1" inputmode="numeric">
+      </label>
+      <label for="criterion">Quand plusieurs recettes existent
+        <select id="criterion">
+          <option value="machines">Moins de machines</option>
+          <option value="energy">Moins d'énergie</option>
+          <option value="raw">Moins de matières premières</option>
+        </select>
+      </label>
+    </div>
+    <p id="mode-hint" class="hint"></p>
+    <div class="checks">
+      <label><input type="checkbox" id="unverified"> Utiliser aussi les recettes « à vérifier » (valeurs variables ou manquantes)</label>
+      <label><input type="checkbox" id="all-unlocked"> Considérer toute la recherche comme débloquée <span class="muted">(provisoire : l'arbre de progression arrive à l'étape suivante)</span></label>
+    </div>
+    <button type="button" id="forced-reset" class="link" hidden>Annuler toutes les recettes forcées</button>
+  </section>
+
+  <div id="status"></div>
+
+  <section aria-labelledby="h-sum">
+    <h2 id="h-sum" class="eyebrow">Résumé</h2>
+    <div id="stats"></div>
+  </section>
+
+  <section aria-labelledby="h-graph">
+    <h2 id="h-graph">Graphe de production</h2>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--steel-soft);border:1px solid var(--steel)"></i>Item · machine × nombre · énergie moyenne</span>
+      <span><i class="sw" style="background:var(--bg);border:1px solid var(--steel)"></i>Matière première</span>
+      <span><i class="sw" style="border:1px dashed var(--accent)"></i>Non produit</span>
+      <span><i class="sw" style="background:var(--accent)"></i>Flux par minute</span>
+    </div>
+    <div class="graph panel" id="graph"></div>
+  </section>
+
+  <section aria-labelledby="h-plan">
+    <h2 id="h-plan">Plan d'action, de la fin vers la matière première</h2>
+    <ol class="plan" id="plan"></ol>
+  </section>
+
+  <section aria-labelledby="h-verify">
+    <h2 id="h-verify">À vérifier dans ce plan <span class="pill" id="verify-count">0</span></h2>
+    <p class="lead">Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : le plan est recalculé aussitôt et la correction est gardée dans ce navigateur.</p>
+    <div id="verify"></div>
+    <div class="panel corrections-panel">
+      <h3>Mes corrections <span class="pill" id="corrections-count">0</span></h3>
+      <div id="data-errors"></div>
+      <div id="corrections"></div>
+      <div class="actions">
+        <button type="button" id="export">Exporter mes corrections</button>
+        <label class="button">Importer…<input type="file" id="import" accept="application/json,.json" hidden></label>
+        <button type="button" id="clear-corrections" class="link">Tout effacer</button>
+      </div>
+      <p class="hint">L'export produit un <code>overrides.json</code> (corrections du dépôt + les tiennes) à placer dans <code>data/</code> pour les rendre permanentes.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-rec">
+    <h2 id="h-rec">Recettes utilisées</h2>
+    <div class="tablewrap panel"><table>
+      <thead><tr><th>Produit</th><th>Machine</th><th>Entrées → sorties</th><th>Énergie</th><th>Source</th></tr></thead>
+      <tbody id="rec"></tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="h-warn">
+    <h2 id="h-warn">Avertissements</h2>
+    <div id="warnings"></div>
+  </section>
+
+  <footer class="src">
+    Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, source principale ;
+    <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-SA.
+    Pousse des arbres : calculateur communautaire lié depuis la page Tree. Les recettes changent avec les mises à jour du jeu : en cas d'écart, le Recipe Book fait foi.
+  </footer>
+</div>
+<script type="module" src="/src/ui/main.ts"></script>
+</body>
+</html>

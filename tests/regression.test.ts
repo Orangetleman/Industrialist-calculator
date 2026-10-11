@@ -115,6 +115,16 @@ describe("vraies données (Miraheze)", () => {
     expect(plan.verify.some((v) => v.id === "craft_assembler_05" && v.flag.reason === "contradiction")).toBe(true);
   });
 
+  it("Crankshaft, toute la recherche débloquée : chaîne complète avec chaque critère", () => {
+    for (const criterion of ["machines", "energy", "raw"] as const) {
+      const plan = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion });
+      expect(plan.status, criterion).toBe("ok");
+      expect(plan.unresolved, criterion).toEqual([]);
+      // Recettes retenues sans boucle : chaque item n'apparaît qu'une fois.
+      expect(new Set(plan.steps.map((s) => s.item)).size, criterion).toBe(plan.steps.length);
+    }
+  });
+
   it("sans aucune recherche, le Crankshaft est verrouillé et le plan dit quoi débloquer", () => {
     const plan = solve(real, progress(), { item: "crankshaft", ratePerMin: 10 });
     expect(plan.status).toBe("impossible");

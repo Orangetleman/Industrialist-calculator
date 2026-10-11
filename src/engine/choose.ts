@@ -129,6 +129,22 @@ function compare(a: { cost: Cost; area: number | null; id: string }, b: { cost: 
   return a.id.localeCompare(b.id);
 }
 
+/** a strictement meilleur que b, sans les départages (taille, id). */
+function strictlyBetter(a: Cost, b: Cost, criterion: Criterion): boolean {
+  if (a.unresolved !== b.unresolved) return a.unresolved < b.unresolved;
+  if (criterion === "energy" && a.energyUnknown !== b.energyUnknown) return a.energyUnknown < b.energyUnknown;
+  for (const k of [criterion, ...(["machines", "energy", "raw"] as Criterion[]).filter((x) => x !== criterion)]) {
+    const x = metric(a, k);
+    const y = metric(b, k);
+    if (!same(x, y)) return x < y;
+  }
+  return false;
+}
+
+function sameCost(a: Cost, b: Cost): boolean {
+  return a.unresolved === b.unresolved && a.energyUnknown === b.energyUnknown && same(a.machines, b.machines) && same(a.energy, b.energy) && same(a.raw, b.raw);
+}
+
 /** Recette candidate déjà filtrée (verrou, à vérifier, calculabilité). */
 type Usable = { eff: EffRecipe; forced: boolean; access: MachineAccess };
 type Pre = { usable: Usable[]; rejected: Candidate[]; forced: boolean; recipes: Recipe[] };
@@ -150,6 +166,8 @@ export class Chooser {
   private readonly preMemo = new Map<string, Pre>();
   readonly invalidForced: { item: string; recipeId: string; reason: string }[] = [];
   readonly notConverged: string[] = [];
+  /** Boucles détectées dans les choix et cassées en écartant une recette. */
+  readonly brokenLoops: string[][] = [];
 
   private readonly data: GameData;
   private readonly progress: Progress;
@@ -260,14 +278,23 @@ export class Chooser {
       for (const u of this.pre(it).usable) for (const [k, v] of Object.entries(u.eff.net)) if (v! < 0) stack.push(k);
     }
 
-    // 2. Point fixe.
+    // 2. Point fixe, puis contrôle : les recettes retenues ne doivent pas former de boucle.
+    const banned = new Set<string>(); // "item|recette" interdits pour casser une boucle
+    const usableOf = (it: string) => this.pre(it).usable.filter((u) => !banned.has(`${it}|${u.eff.recipe.id}`));
     const best = new Map<string, Entry | "feuille">();
-    for (const it of items) if (!this.pre(it).usable.length) best.set(it, "feuille");
     const costOf = (i: string): Cost | null => {
       const done = this.choices.get(i);
       if (done) return done.cost;
       const b = best.get(i);
       return b === undefined ? null : b === "feuille" ? LEAF : b.cost;
+    };
+    const bestEntry = (it: string, lookup: (i: string) => Cost | null): Entry | null => {
+      let candidate: Entry | null = null;
+      for (const u of usableOf(it)) {
+        const e = this.entryFor(u, it, lookup);
+        if (e && (!candidate || compare(e, candidate, this.opts.criterion) < 0)) candidate = e;
+      }
+      return candidate;
     };
     const relax = (): boolean => {
       const maxRounds = items.length * 4 + 20;
@@ -276,13 +303,23 @@ export class Chooser {
         for (const it of items) {
           if (best.get(it) === "feuille") continue;
           const current = best.get(it) as Entry | undefined;
-          let candidate: Entry | null = null;
-          for (const u of this.pre(it).usable) {
-            const e = this.entryFor(u, it, costOf);
-            if (e && (!candidate || compare(e, candidate, this.opts.criterion) < 0)) candidate = e;
-          }
-          if (candidate && (!current || compare(candidate, current, this.opts.criterion) < 0)) {
+          const candidate = bestEntry(it, costOf);
+          if (!candidate) continue;
+          if (!current) {
             best.set(it, candidate);
+            changed = true;
+            continue;
+          }
+          // Coût actualisé de la recette déjà retenue (ses entrées ont pu baisser).
+          const u = usableOf(it).find((x) => x.eff.recipe.id === current.id);
+          const refreshed = u ? this.entryFor(u, it, costOf) : null;
+          // On ne change de recette que pour un gain réel : les départages (taille, id)
+          // ne suffisent pas, sinon une boucle « gratuite » pourrait l'emporter.
+          if (candidate.id !== current.id && (!refreshed || strictlyBetter(candidate.cost, refreshed.cost, this.opts.criterion))) {
+            best.set(it, candidate);
+            changed = true;
+          } else if (refreshed && !sameCost(refreshed.cost, current.cost)) {
+            best.set(it, refreshed);
             changed = true;
           }
         }
@@ -290,19 +327,74 @@ export class Chooser {
       }
       return false;
     };
-    let converged = relax();
-    if (items.some((it) => !best.has(it))) {
-      // Boucles sans sortie : on évalue ces items en considérant l'entrée bouclée comme non résolue.
+    const run = (): boolean => {
+      best.clear();
+      for (const it of items) if (!usableOf(it).length) best.set(it, "feuille");
+      let ok = relax();
       const stuck = items.filter((it) => !best.has(it));
-      for (const it of stuck) {
-        let candidate: Entry | null = null;
-        for (const u of this.pre(it).usable) {
-          const e = this.entryFor(u, it, (i) => costOf(i) ?? LEAF);
-          if (e && (!candidate || compare(e, candidate, this.opts.criterion) < 0)) candidate = e;
+      if (stuck.length) {
+        // Boucles sans sortie : on évalue ces items en considérant l'entrée bouclée comme non résolue.
+        for (const it of stuck) {
+          const e = bestEntry(it, (i) => costOf(i) ?? LEAF);
+          if (e) best.set(it, e);
         }
-        if (candidate) best.set(it, candidate);
+        ok = relax() && ok;
       }
-      converged = relax() && converged;
+      return ok;
+    };
+    const findCycle = (): string[] | null => {
+      const state = new Map<string, 1 | 2>();
+      const path: string[] = [];
+      const dfs = (it: string): string[] | null => {
+        state.set(it, 1);
+        path.push(it);
+        const b = best.get(it);
+        if (b && b !== "feuille") {
+          for (const [k, v] of Object.entries(b.eff.net)) {
+            if (!(v! < 0) || k === it) continue;
+            const s = state.get(k);
+            if (s === 1) return path.slice(path.indexOf(k));
+            if (!s && best.has(k)) {
+              const found = dfs(k);
+              if (found) return found;
+            }
+          }
+        }
+        path.pop();
+        state.set(it, 2);
+        return null;
+      };
+      for (const it of items) if (!state.has(it)) {
+        const c = dfs(it);
+        if (c) return c;
+      }
+      return null;
+    };
+
+    let converged = run();
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const cycle = findCycle();
+      if (!cycle) break;
+      // Casse la boucle là où ça coûte le moins : recette remplacée par une alternative hors boucle.
+      const inCycle = new Set(cycle);
+      let ban: { key: string; delta: number } | null = null;
+      for (const it of cycle) {
+        const cur = best.get(it) as Entry;
+        // Jamais la recette forcée ni celle de l'item demandé : solve() coupera et signalera la boucle.
+        if (cur.forced || it === root) continue;
+        let delta = Infinity;
+        for (const u of usableOf(it)) {
+          if (u.eff.recipe.id === cur.id) continue;
+          if (Object.entries(u.eff.net).some(([k, v]) => v! < 0 && inCycle.has(k))) continue;
+          const e = this.entryFor(u, it, (i) => costOf(i) ?? LEAF);
+          if (e) delta = Math.min(delta, (e.cost.unresolved - cur.cost.unresolved) * 1e12 + metric(e.cost, this.opts.criterion) - metric(cur.cost, this.opts.criterion));
+        }
+        if (!ban || delta < ban.delta) ban = { key: `${it}|${cur.id}`, delta };
+      }
+      if (!ban) break;
+      banned.add(ban.key);
+      this.brokenLoops.push(cycle);
+      converged = run() && converged;
     }
     if (!converged) this.notConverged.push(root);
 
@@ -312,6 +404,10 @@ export class Chooser {
       const b = best.get(it);
       const candidates: Candidate[] = [];
       for (const u of pre.usable) {
+        if (banned.has(`${it}|${u.eff.recipe.id}`)) {
+          candidates.push({ recipeId: u.eff.recipe.id, machine: u.eff.recipe.machine, status: "boucle" });
+          continue;
+        }
         const e = this.entryFor(u, it, (i) => costOf(i) ?? LEAF);
         candidates.push({
           recipeId: u.eff.recipe.id,

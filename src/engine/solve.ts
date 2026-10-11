@@ -69,6 +69,8 @@ export type Unresolved = {
   item: string;
   perMin: number;
   reason: LeafReason;
+  /** L'item est produit ailleurs dans la chaîne : seule la demande de la boucle coupée manque. */
+  loopShortfall: boolean;
   /** Option de déblocage la moins chère, si l'item est verrouillé. */
   unlock?: Extract<MachineAccess, { available: false }> & { recipeId: string };
   candidates: Candidate[];
@@ -297,7 +299,7 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
       warnings.push({ code: "à-vérifier", message: `${name(item)} utilise une recette à vérifier (${r.id}) : ${eff.blocking.map((f) => f.detail).join(" ; ")}.`, items: [item] });
     }
     if (eff.growth) {
-      warnings.push({ code: "arbres", message: `Pousse des arbres : ${eff.growth.detail} (${eff.growth.seconds.toFixed(1)} s). Le nombre d'arbres est indicatif.`, items: [item] });
+      warnings.push({ code: "arbres", message: `Pousse des arbres : ${eff.growth.detail} (${eff.growth.seconds.toFixed(1).replace(".", ",")} s). Le nombre d'arbres est indicatif.`, items: [item] });
     }
   }
   steps.sort((a, b) => a.depth - b.depth || topo.indexOf(a.item) - topo.indexOf(b.item));
@@ -314,7 +316,7 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
       const better = !unlock || (unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost);
       if (better) unlock = { ...a, recipeId: cand.recipeId };
     }
-    unresolved.push({ item, perMin, reason, ...(unlock ? { unlock } : {}), candidates: c.candidates });
+    unresolved.push({ item, perMin, reason, loopShortfall: !!c.eff, ...(unlock ? { unlock } : {}), candidates: c.candidates });
     for (const cand of c.candidates) {
       if (cand.status === "à vérifier" || cand.status === "incalculable") {
         for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
@@ -334,7 +336,11 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
             : u.reason === "incalculable"
               ? "les recettes connues ont des valeurs manquantes"
               : "boucle de dépendance";
-    warnings.push({ code: `non-résolu:${u.reason}`, message: `${name(u.item)} (${fmtNum(u.perMin)}/min) n'est pas produit : ${label}.`, items: [u.item] });
+    warnings.push(
+      u.loopShortfall
+        ? { code: "boucle", message: `${name(u.item)} : ${fmtNum(u.perMin)}/min supplémentaires seraient nécessaires pour alimenter une boucle de la chaîne ; cette quantité n'est pas comptée.`, items: [u.item] }
+        : { code: `non-résolu:${u.reason}`, message: `${name(u.item)} (${fmtNum(u.perMin)}/min) n'est pas produit : ${label}.`, items: [u.item] },
+    );
   }
 
   // 7. Surplus (sous-produits à évacuer).
@@ -349,6 +355,9 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
 
   // 8. Avertissements de choix.
   for (const f of chooser.invalidForced) warnings.push({ code: "forcée-invalide", message: `Recette forcée ignorée pour ${name(f.item)} (${f.recipeId}) : ${f.reason}.`, items: [f.item] });
+  for (const cyc of chooser.brokenLoops) {
+    warnings.push({ code: "boucle-écartée", message: `Recettes en boucle écartées : ${[...cyc, cyc[0]!].map(name).join(" → ")}. Une autre source a été choisie.`, items: cyc });
+  }
   if (chooser.notConverged.length) {
     warnings.push({ code: "convergence", message: "Le choix des recettes n'a pas convergé (boucle qui s'auto-alimente) : le résultat peut ne pas être optimal." });
   }

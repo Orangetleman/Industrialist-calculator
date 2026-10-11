@@ -115,6 +115,30 @@ describe("sous-produits et boucles", () => {
     expect(plan.status).toBe("ok");
   });
 
+  it("une boucle de conversion « gratuite » (gain 1) n'est jamais préférée à une vraie source", () => {
+    // Cas réel du wiki : 5 Sulfur → 10 Liquid Sulfur ; 4 Liquid Sulfur → 2 Sulfur.
+    // Avec le critère « matières premières », tourner en rond ne coûte rien de plus.
+    const d = makeData({
+      machines: [
+        { id: "furnace", size: [2, 2] },
+        { id: "molder", size: [2, 2] },
+        { id: "oxidation", size: [20, 20] },
+      ],
+      recipes: [
+        { id: "melt", machine: "furnace", t: 5, in: { sulfur: 5 }, out: { liquid: 10 } },
+        { id: "mold", machine: "molder", t: 4, in: { liquid: 4 }, out: { sulfur: 2 } },
+        { id: "oxid", machine: "oxidation", t: 20, in: { gas: 20 }, out: { liquid: 30 } },
+        { id: "well", machine: "m", t: 1, out: { gas: 1 } },
+      ],
+    });
+    for (const criterion of ["machines", "energy", "raw"] as const) {
+      const plan = solve(d, all, { item: "sulfur", ratePerMin: 10, criterion });
+      expect(plan.status, criterion).toBe("ok");
+      expect(step(plan, "liquid").recipeId, criterion).toBe("oxid");
+      expect(plan.unresolved, criterion).toEqual([]);
+    }
+  });
+
   it("une recette forcée qui crée une boucle est respectée, et la boucle est signalée", () => {
     const d = makeData({
       recipes: [
