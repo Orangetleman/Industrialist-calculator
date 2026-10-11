@@ -214,6 +214,23 @@ describe("arbre de recherche « comme en jeu »", () => {
     });
   }
 
+  it("comme en jeu : enfants dans l'ordre des données, de haut en bas", () => {
+    const l = layoutResearch(data, "Production");
+    const y = new Map(l.nodes.map((n) => [n.id, n.y]));
+    for (const parent of ["sawmill", "diesel-refining", "mineshaft-drill", "research-station-2"]) {
+      const kids = data.nodes.get(parent)!.children.filter((c) => data.nodes.get(c)!.parents.length === 1);
+      const ys = kids.map((k) => y.get(k)!);
+      expect(ys, parent).toEqual([...ys].sort((a, b) => a - b));
+    }
+  });
+
+  it("comme en jeu : la ligne principale Production → … → Quarry est droite", () => {
+    const l = layoutResearch(data, "Production");
+    const y = new Map(l.nodes.map((n) => [n.id, n.y]));
+    const line = ["production", "water-pump", "oil-extraction", "oil-refining", "diesel-refining", "quarry"].map((id) => y.get(id));
+    expect(new Set(line).size).toBe(1);
+  });
+
   it("couleurs du jeu : débloquée, disponible, trop chère, verrouillée", () => {
     const n = data.nodes.get("craft-assembler")!;
     const none = { unlocked: new Set<string>() };

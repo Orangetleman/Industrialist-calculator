@@ -25,6 +25,11 @@ const STATE_LABEL: Record<NodeState, string> = {
   incoherent: "Cochée, mais un prérequis ne l'est pas",
 };
 
+/** Comme en jeu, les noms longs rétrécissent au lieu d'être coupés. */
+function nameSize(name: string): number {
+  return Math.max(8.5, Math.min(13.5, (13.5 * 21) / Math.max(1, name.length)));
+}
+
 function trunc(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
@@ -44,9 +49,9 @@ export function renderResearchSvg(data: GameData, p: Progress, layout: ResearchL
     const label = `${n.name}, ${fmt(n.rp, 0)} RP, ${STATE_LABEL[st]}`;
     s += `<g class="rs-node ${st}${sel}" data-rs="${esc(n.id)}" tabindex="0" role="button" aria-pressed="${selected === n.id}" aria-label="${esc(label)}" transform="translate(${ln.x},${ln.y})">
 <rect width="${RN_W}" height="${RN_H}" rx="7"/>
-<text x="10" y="18" class="rs-name">${esc(trunc(n.name, 24))}</text>
-<text x="${RN_W - 10}" y="36" text-anchor="end" class="rs-rp">${n.isRoot ? "départ" : `${esc(fmt(n.rp, 0))} RP`}</text>
-${n.reqItems.length ? `<text x="10" y="36" class="rs-req">vente requise</text>` : ""}</g>`;
+<text x="9" y="18" class="rs-name" style="font-size:${nameSize(n.name)}px">${esc(trunc(n.name, 34))}</text>
+<text x="${RN_W - 9}" y="38" text-anchor="end" class="rs-rp">${esc(fmt(n.rp, 0))}RP</text>
+${n.reqItems.length ? `<text x="9" y="38" class="rs-req">+ vente</text>` : ""}</g>`;
   }
   s += `</g></svg>`;
   return s;
@@ -95,10 +100,10 @@ export function renderNodeDetail(data: GameData, p: Progress, id: string | null,
       <div class="rs-cost num">${n.isRoot ? "" : esc(fmtRP(n.rp))}</div>
     </div>
     <p class="rs-status">${esc(STATE_LABEL[st])}${st === "expensive" && rp !== null ? ` : il te manque ${esc(fmtRP(n.rp - rp))}` : ""}</p>
+    ${actions.length ? `<div class="actions">${actions.join("")}</div>` : ""}
     ${n.parents.length ? `<p class="meta"><span>Requiert ${n.requires === "any" && n.parents.length > 1 ? "l'une de" : ""} : ${n.parents.map((x) => `<button type="button" class="link${isNodeUnlocked(data, p, x) ? "" : " miss"}" data-rs-goto="${esc(x)}">${esc(nodeName(x))}</button>`).join(n.requires === "any" ? " ou " : " + ")}</span></p>` : ""}
     ${missing.length && !p.unlocked.has(n.id) ? `<p class="meta"><span>Chemin depuis ta progression : ${missing.map((x) => esc(nodeName(x))).join(" → ")} → ${esc(n.name)}</span></p>` : ""}
     ${n.reqItems.length ? `<label class="req"><input type="checkbox" data-req="${esc(n.id)}"${reqDone ? " checked" : ""}> Condition : vendre ${n.reqItems.map((r) => `${r.amount} ${esc(data.items.get(r.item)?.name ?? r.item)}`).join(" + ")}</label>` : ""}
-    ${actions.length ? `<div class="actions">${actions.join("")}</div>` : ""}
     <h4 class="eyebrow">Débloque</h4>
     ${buildings.length ? `<ul class="bcards">${buildings.map((m) => machineCard(m, data)).join("")}</ul>` : `<p class="muted">Aucun bâtiment.</p>`}
     ${n.unlocksOther.length ? `<p class="muted">Aussi : ${esc(n.unlocksOther.join(", "))}</p>` : ""}

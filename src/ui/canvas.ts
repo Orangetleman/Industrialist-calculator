@@ -7,6 +7,8 @@ export class PanZoom {
   private readonly frame: HTMLElement;
   private svg: SVGSVGElement | null = null;
   private content = { w: 1, h: 1 };
+  /** Point à montrer au départ (ex. la racine de l'arbre), calé à gauche et centré en hauteur. */
+  private home: { x: number; y: number } | null = null;
   private vb: Box = { x: 0, y: 0, w: 1, h: 1 };
   private drag: { id: number; x: number; y: number; vb: Box; moved: boolean } | null = null;
   /** Vrai juste après un glisser : le clic qui suit ne doit pas sélectionner un nœud. */
@@ -31,8 +33,9 @@ export class PanZoom {
   }
 
   /** Branche un nouveau SVG ; `keepView` conserve la position actuelle (re-rendu après un clic). */
-  attach(svg: SVGSVGElement, width: number, height: number, keepView: boolean): void {
+  attach(svg: SVGSVGElement, width: number, height: number, keepView: boolean, home?: { x: number; y: number }): void {
     this.svg = svg;
+    this.home = home ?? null;
     const changed = this.content.w !== width || this.content.h !== height;
     this.content = { w: width, h: height };
     if (!keepView || changed) this.reset();
@@ -51,7 +54,7 @@ export class PanZoom {
     this.measuredWidth = r.width;
     const w = r.width > 0 ? r.width : 800;
     const h = r.height > 0 ? r.height : 500;
-    this.vb = { x: 0, y: 0, w, h };
+    this.vb = { x: 0, y: this.home ? Math.max(0, Math.min(this.home.y - h / 2, this.content.h - h)) : 0, w, h };
     this.apply();
   }
 

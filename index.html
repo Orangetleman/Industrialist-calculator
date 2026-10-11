@@ -126,17 +126,24 @@
           <span><i class="sw rs-sw expensive"></i>Disponible, RP insuffisants</span>
           <span><i class="sw rs-sw locked"></i>Prérequis manquants</span>
         </div>
-        <div class="rs-frame" id="rs-frame" tabindex="0" aria-label="Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début">
-          <div id="rs-canvas"></div>
-          <div class="rs-zoom">
-            <button type="button" data-zoom="in" aria-label="Zoomer">+</button>
-            <button type="button" data-zoom="out" aria-label="Dézoomer">−</button>
-            <button type="button" data-zoom="fit" aria-label="Tout voir">⤢</button>
-            <button type="button" data-zoom="reset" aria-label="Revenir au début">⌂</button>
+        <div class="rs-workspace">
+          <div class="rs-frame" id="rs-frame" tabindex="0" aria-label="Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début">
+            <div id="rs-canvas"></div>
+            <p class="rs-help">Glisse pour te déplacer · molette pour zoomer · clique une recherche</p>
+            <div class="rs-zoom">
+              <button type="button" data-zoom="in" aria-label="Zoomer">+</button>
+              <button type="button" data-zoom="out" aria-label="Dézoomer">−</button>
+              <button type="button" data-zoom="fit" aria-label="Tout voir">⤢</button>
+              <button type="button" data-zoom="reset" aria-label="Revenir au début">⌂</button>
+            </div>
+            <!-- Comme en jeu : coût en bas à gauche, bouton « Research » en bas à droite. -->
+            <div class="rs-hud">
+              <div class="rs-hud-info" id="rs-hud-info" aria-live="polite"></div>
+              <button type="button" class="rs-hud-action" id="rs-hud-action" hidden></button>
+            </div>
           </div>
-          <p class="rs-help">Glisse pour te déplacer · molette pour zoomer · clique une recherche</p>
+          <aside class="panel rs-side" id="rs-detail" aria-live="polite" aria-label="Recherche sélectionnée"></aside>
         </div>
-        <div class="panel" id="rs-detail" aria-live="polite"></div>
       </div>
 
       <div id="list-view" hidden>

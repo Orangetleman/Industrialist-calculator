@@ -76,7 +76,7 @@ button.link { border: none; background: none; padding: 0; color: var(--steel); t
 .maintabs .pill:empty { display: none; }
 main { display: contents; }
 .tabpanel { display: flex; flex-direction: column; gap: 28px; }
-body.wide .wrap { max-width: 1240px; }
+body.wide .wrap { max-width: 1480px; }
 
 /* arbre de recherche « comme en jeu » */
 .rs-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px; }
@@ -99,7 +99,7 @@ body.wide .wrap { max-width: 1240px; }
 .rs-node { cursor: pointer; }
 .rs-node rect { stroke: #0006; stroke-width: 1.5; }
 .rs-node .rs-name { font-family: var(--f-display); font-weight: 600; font-size: 13px; }
-.rs-node .rs-rp { font-family: var(--f-mono); font-size: 11px; }
+.rs-node .rs-rp { font-family: var(--f-mono); font-size: 11px; font-weight: 500; fill: #22c8cf !important; paint-order: stroke; stroke: #000c; stroke-width: 2.4px; }
 .rs-node .rs-req { font-family: var(--f-mono); font-size: 9.5px; opacity: .8; }
 .rs-node.done rect { fill: var(--rs-done); } .rs-node.done text { fill: var(--rs-done-ink); }
 .rs-node.available rect { fill: var(--rs-avail); } .rs-node.available text { fill: var(--rs-avail-ink); }
@@ -113,10 +113,27 @@ body.wide .wrap { max-width: 1240px; }
 .rs-node.dim { opacity: .25; }
 .rs-zoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 4px; }
 .rs-zoom button { width: 34px; height: 34px; padding: 0; font-size: 1.1rem; background: #2a3038; color: #e6ebf0; border-color: #4a525c; }
-.rs-help { position: absolute; left: 12px; bottom: 8px; margin: 0; font-size: .75rem; color: #9aa7b4; pointer-events: none; }
+.rs-help { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); margin: 0; font-size: .78rem; color: #c7ccd2; pointer-events: none; white-space: nowrap; text-shadow: 0 1px 2px #000; }
+/* Bandeau du bas, comme en jeu : coût à gauche, bouton « Research » à droite. */
+.rs-hud { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 12px 14px; pointer-events: none; }
+.rs-hud-info { font-family: var(--f-mono); color: #9aa7b4; font-size: .8rem; text-shadow: 0 1px 2px #000; display: flex; flex-direction: column; min-width: 0; }
+.rs-hud-info b { color: #2ec4c9; font-size: 1.35rem; font-weight: 500; }
+.rs-hud-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-hud-action { pointer-events: auto; font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; padding: 10px 22px; border-radius: 12px; border: 2px solid #0b5f63; color: #fff; background: linear-gradient(#35d0d5, #138a8f); text-shadow: 0 1px 1px #0006; box-shadow: 0 2px 8px #0008; }
+.rs-hud-action:hover { filter: brightness(1.08); border-color: #0b5f63; }
+.rs-hud-action.undo { background: linear-gradient(#4a525c, #2a3038); border-color: #1d2126; }
+/* Canevas + fiche à droite (comme le panneau « Description » du jeu). */
+.rs-workspace { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+@media (min-width: 900px) {
+  .rs-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: clamp(460px, calc(100vh - 210px), 900px); }
+  .rs-workspace .rs-frame { height: 100%; margin-top: 0; }
+  .rs-workspace .rs-side { height: 100%; overflow-y: auto; margin-top: 0; }
+}
 .rs-sw.done { background: #3fae45; } .rs-sw.available { background: #f2f4f6; border: 1px solid var(--line); }
 .rs-sw.expensive { background: #a9b0b8; } .rs-sw.locked { background: #3a4048; }
-#rs-detail { margin-top: 12px; }
+#rs-detail { margin-top: 0; }
+.rs-side .bcards { grid-template-columns: 1fr; }
+.rs-side .actions button { flex: 1 1 auto; }
 .rs-detail { display: flex; flex-direction: column; gap: 8px; }
 .rs-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .rs-detail h3 { font-size: 1.35rem; }

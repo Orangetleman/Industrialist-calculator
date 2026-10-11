@@ -1,78 +1,137 @@
-// Disposition de l'arbre de recherche « comme en jeu » (pur, sans DOM) :
-// une colonne par palier, de gauche à droite, liens coudés parent → enfant.
+// Disposition de l'arbre de recherche « comme en jeu » (pur, sans DOM).
+//
+// Même logique que le canevas du jeu :
+// - une colonne par palier (plus long chemin depuis la racine), de gauche à droite ;
+// - les enfants dans l'ordre des données (Module:RS/Data), qui est celui du jeu ;
+// - chaque parent centré sur ses enfants, les sous-arbres empilés au plus serré
+//   (ils peuvent s'imbriquer d'une colonne à l'autre sans se chevaucher) ;
+// - un nœud à plusieurs parents est rangé sous le dernier rencontré, les autres
+//   liens sont tracés quand même.
+// Le wiki ne donne pas les coordonnées exactes du jeu : c'est une reconstruction.
 
 import type { GameData } from "../engine/data.ts";
 import type { ResearchCategory } from "../engine/types.ts";
 import { nodeDepths } from "../engine/unlock.ts";
 
-export const RN_W = 168;
-export const RN_H = 44;
-const GAP_X = 56;
-const GAP_Y = 14;
-const MARGIN = 24;
+export const RN_W = 176;
+export const RN_H = 46;
+const GAP_X = 52;
+const ROW = RN_H + 12; // une rangée de la grille
+const MARGIN = 28;
 
 export type RNode = { id: string; x: number; y: number; depth: number };
 export type REdge = { from: string; to: string; d: string };
 export type ResearchLayout = { nodes: RNode[]; edges: REdge[]; width: number; height: number };
 
+/** Contour d'un sous-arbre : pour chaque colonne occupée, rangées min et max (relatives). */
+type Contour = Map<number, [number, number]>;
+
 export function layoutResearch(data: GameData, category: ResearchCategory): ResearchLayout {
   const depths = nodeDepths(data);
-  const ids = [...data.nodes.values()].filter((n) => n.category === category).map((n) => n.id);
-  const inCat = new Set(ids);
-  const cols: string[][] = [];
-  for (const id of ids) (cols[depths.get(id) ?? 0] ??= []).push(id);
-  for (let i = 0; i < cols.length; i++) cols[i] ??= [];
-  const name = (id: string) => data.nodes.get(id)?.name ?? id;
-  for (const c of cols) c.sort((a, b) => name(a).localeCompare(name(b)));
+  const inCat = (id: string) => data.nodes.get(id)?.category === category;
+  const root = [...data.nodes.values()].find((n) => n.category === category && n.isRoot) ?? [...data.nodes.values()].find((n) => n.category === category && !n.parents.length);
+  if (!root) return { nodes: [], edges: [], width: 0, height: 0 };
 
-  // Ordre dans chaque colonne : barycentre des parents puis des enfants (quelques passes).
-  const index = new Map<string, number>();
-  const reindex = () => cols.forEach((c) => c.forEach((id, i) => index.set(id, i)));
-  reindex();
-  const bary = (list: string[], fallback: number) => {
-    const xs = list.filter((x) => inCat.has(x) && index.has(x)).map((x) => index.get(x)!);
-    return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : fallback;
+  // 1. Parent de rangement : parcours en profondeur dans l'ordre des données ; un nœud à
+  //    plusieurs parents est rangé sous le dernier parent rencontré.
+  const order = new Map<string, number>();
+  const visit = (id: string) => {
+    if (order.has(id)) return;
+    order.set(id, order.size);
+    for (const c of data.nodes.get(id)!.children) if (inCat(c)) visit(c);
   };
-  for (let pass = 0; pass < 4; pass++) {
-    for (let d = 1; d < cols.length; d++) {
-      cols[d]!.sort((a, b) => bary(data.nodes.get(a)!.parents, index.get(a)!) - bary(data.nodes.get(b)!.parents, index.get(b)!) || name(a).localeCompare(name(b)));
-      reindex();
-    }
-    for (let d = cols.length - 2; d >= 1; d--) {
-      cols[d]!.sort((a, b) => bary(data.nodes.get(a)!.children, index.get(a)!) - bary(data.nodes.get(b)!.children, index.get(b)!) || name(a).localeCompare(name(b)));
-      reindex();
-    }
+  visit(root.id);
+  // Nœuds sans lien avec la racine (données incomplètes) : rangés quand même, à la fin.
+  for (const n of data.nodes.values()) if (n.category === category) visit(n.id);
+  const layoutParent = new Map<string, string>();
+  for (const n of data.nodes.values()) {
+    if (n.category !== category || n.id === root.id) continue;
+    const ps = n.parents.filter((p) => inCat(p) && order.has(p));
+    if (!ps.length) continue;
+    layoutParent.set(n.id, ps.reduce((a, b) => (order.get(b)! > order.get(a)! ? b : a)));
+  }
+  const kids = new Map<string, string[]>();
+  for (const n of data.nodes.values()) {
+    if (n.category !== category) continue;
+    kids.set(
+      n.id,
+      n.children.filter((c) => layoutParent.get(c) === n.id),
+    );
   }
 
-  // Placement vertical : chaque nœud au plus près de la moyenne de ses parents, sans chevauchement.
-  const y = new Map<string, number>();
-  const row = RN_H + GAP_Y;
-  cols.forEach((c, d) => {
-    let next = 0;
-    for (const id of c) {
-      const parents = data.nodes.get(id)!.parents.filter((p) => y.has(p));
-      const want = d === 0 || !parents.length ? next : parents.reduce((s, p) => s + y.get(p)!, 0) / parents.length;
-      const pos = Math.max(want, next);
-      y.set(id, pos);
-      next = pos + row;
+  // 2. Arbre « bien rangé », comme le jeu : chaque parent est sur la même rangée que son
+  //    enfant « principal » (le plus gros sous-arbre), ce qui dessine de longues lignes
+  //    droites ; les enfants d'avant s'empilent au-dessus, ceux d'après en dessous, au plus
+  //    serré (les sous-arbres s'imbriquent d'une colonne à l'autre sans se chevaucher).
+  const size = new Map<string, number>();
+  const sizeOf = (id: string): number => {
+    if (!size.has(id)) size.set(id, 1 + (kids.get(id) ?? []).reduce((s, c) => s + sizeOf(c), 0));
+    return size.get(id)!;
+  };
+  const rel = new Map<string, number>(); // rangée relative au parent de rangement
+  const merge = (into: Contour, sub: Contour, shift: number) => {
+    for (const [col, [lo, hi]] of sub) {
+      const used = into.get(col);
+      into.set(col, used ? [Math.min(used[0], lo + shift), Math.max(used[1], hi + shift)] : [lo + shift, hi + shift]);
     }
+  };
+  const place = (id: string): Contour => {
+    const d = depths.get(id) ?? 0;
+    const children = kids.get(id) ?? [];
+    const subs = children.map(place);
+    const contour: Contour = new Map([[d, [0, 0]]]);
+    if (!children.length) return contour;
+    let anchor = 0;
+    children.forEach((c, i) => {
+      if (sizeOf(c) > sizeOf(children[anchor]!)) anchor = i;
+    });
+    const offsets: number[] = new Array(children.length).fill(0);
+    merge(contour, subs[anchor]!, 0);
+    // En dessous : les enfants suivants, dans l'ordre des données.
+    for (let i = anchor + 1; i < children.length; i++) {
+      let shift = offsets[i - 1]! + 1;
+      for (const [col, [lo]] of subs[i]!) {
+        const used = contour.get(col);
+        if (used) shift = Math.max(shift, used[1] + 1 - lo);
+      }
+      offsets[i] = shift;
+      merge(contour, subs[i]!, shift);
+    }
+    // Au-dessus : les enfants précédents, du plus proche au plus lointain.
+    for (let i = anchor - 1; i >= 0; i--) {
+      let shift = offsets[i + 1]! - 1;
+      for (const [col, [, hi]] of subs[i]!) {
+        const used = contour.get(col);
+        if (used) shift = Math.min(shift, used[0] - 1 - hi);
+      }
+      offsets[i] = shift;
+      merge(contour, subs[i]!, shift);
+    }
+    children.forEach((c, i) => rel.set(c, offsets[i]!));
+    return contour;
+  };
+  // Racine + éventuels nœuds orphelins, empilés.
+  const tops = [root.id, ...[...order.keys()].filter((id) => id !== root.id && !layoutParent.has(id))];
+  const absolute = new Map<string, number>();
+  let floor = -Infinity;
+  for (const t of tops) {
+    const contour = place(t);
+    const lo = Math.min(...[...contour.values()].map(([a]) => a));
+    const base = floor === -Infinity ? 0 : floor + 1 - lo;
+    const assign = (id: string, row: number) => {
+      absolute.set(id, row);
+      for (const c of kids.get(id) ?? []) assign(c, row + rel.get(c)!);
+    };
+    assign(t, base);
+    floor = Math.max(floor, ...[...contour.values()].map(([, hi]) => hi + base));
+  }
+
+  // 3. Coordonnées.
+  const minRow = Math.min(...absolute.values());
+  const nodes: RNode[] = [...absolute].map(([id, row]) => {
+    const depth = depths.get(id) ?? 0;
+    return { id, depth, x: MARGIN + depth * (RN_W + GAP_X), y: MARGIN + (row - minRow) * ROW };
   });
-  // Passe inverse : un parent remonte/descend vers le centre de ses enfants si la place le permet.
-  for (let d = cols.length - 2; d >= 0; d--) {
-    const c = cols[d]!;
-    for (let i = 0; i < c.length; i++) {
-      const id = c[i]!;
-      const kids = data.nodes.get(id)!.children.filter((k) => y.has(k) && inCat.has(k));
-      if (!kids.length) continue;
-      const want = kids.reduce((s, k) => s + y.get(k)!, 0) / kids.length;
-      const min = i > 0 ? y.get(c[i - 1]!)! + row : 0;
-      const max = i < c.length - 1 ? y.get(c[i + 1]!)! - row : Infinity;
-      y.set(id, Math.min(Math.max(want, min), max));
-    }
-  }
-
-  const nodes: RNode[] = [];
-  cols.forEach((c, d) => c.forEach((id) => nodes.push({ id, depth: d, x: MARGIN + d * (RN_W + GAP_X), y: MARGIN + y.get(id)! })));
   const pos = new Map(nodes.map((n) => [n.id, n]));
   const edges: REdge[] = [];
   for (const n of nodes) {
@@ -87,7 +146,8 @@ export function layoutResearch(data: GameData, category: ResearchCategory): Rese
       edges.push({ from: p, to: n.id, d: `M${x1},${y1} H${xm} V${y2} H${x2}` });
     }
   }
-  const width = MARGIN * 2 + cols.length * RN_W + (cols.length - 1) * GAP_X;
-  const height = MARGIN * 2 + Math.max(RN_H, ...nodes.map((n) => n.y - MARGIN + RN_H));
+  const maxDepth = Math.max(...nodes.map((n) => n.depth));
+  const width = MARGIN * 2 + (maxDepth + 1) * RN_W + maxDepth * GAP_X;
+  const height = MARGIN * 2 + Math.max(...nodes.map((n) => n.y - MARGIN)) + RN_H;
   return { nodes, edges, width, height };
 }

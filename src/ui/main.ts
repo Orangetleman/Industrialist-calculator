@@ -211,10 +211,32 @@ function renderResearchCanvas(focusKey: string | null): void {
   }
   panzoom ??= new PanZoom($("rs-frame"));
   const key = `${treeView.category}`;
-  panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey);
+  const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
+  panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
   $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, player.rp);
+  renderHud();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
+}
+
+/** Bandeau du canevas, comme en jeu : coût et état à gauche, bouton d'action à droite. */
+function renderHud(): void {
+  const n = ui.selected ? data.nodes.get(ui.selected) : undefined;
+  const btn = $("rs-hud-action") as HTMLButtonElement;
+  if (!n || n.isRoot) {
+    $("rs-hud-info").textContent = n ? n.name : "";
+    btn.hidden = true;
+    return;
+  }
+  const p = toEngineProgress(prog);
+  const unlocked = prog.unlocked.includes(n.id);
+  const missing = unlocked ? [] : missingNodes(data, p, n.id).filter((x) => x !== n.id);
+  $("rs-hud-info").innerHTML = `<b>${esc(fmtRP(n.rp))}</b> <span>${esc(n.name)} · ${unlocked ? "déjà débloquée" : missing.length ? `${missing.length} prérequis manquant(s)` : "disponible"}</span>`;
+  btn.hidden = false;
+  btn.dataset.id = n.id;
+  btn.dataset.unlocked = String(unlocked);
+  btn.textContent = unlocked ? "Retirer" : missing.length ? `Débloquer (+${missing.length})` : "Débloquer";
+  btn.classList.toggle("undo", unlocked);
 }
 
 function revealNode(id: string): void {
@@ -297,6 +319,13 @@ function bindResearchCanvas(): void {
       else panzoom?.reset();
     });
   }
+  // Bouton du canevas : même comportement que cocher/décocher (dialogue si prérequis ou dépendants).
+  $("rs-hud-action").addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const btn = e.currentTarget as HTMLButtonElement;
+    if (btn.dataset.id) await toggleNode(btn.dataset.id, btn.dataset.unlocked !== "true");
+  });
+  $("rs-hud-action").addEventListener("pointerdown", (e) => e.stopPropagation()); // pas de glisser du canevas
   $("rs-detail").addEventListener("click", async (e) => {
     const t = e.target as HTMLElement;
     const go = t.closest<HTMLElement>("[data-rs-goto]");
