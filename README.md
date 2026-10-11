@@ -30,11 +30,11 @@ Les onglets :
 Le site est hébergé sur le Raspberry Pi : https://industrialist.myprisme.fr (et
 http://myprism.local:8090 sur le réseau local). Pour le mettre à jour depuis le PC :
 
-```powershell
-.\scripts\pi\deployer.ps1
+```bash
+npm run deploy
 ```
 
-Détails, retour en arrière et réinstallation : [HEBERGEMENT.md](HEBERGEMENT.md).
+`npm run deploy:retour` revient à la version précédente. Détails et réinstallation : [HEBERGEMENT.md](HEBERGEMENT.md).
 
 ## Tests
 

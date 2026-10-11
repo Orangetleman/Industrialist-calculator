@@ -16,16 +16,22 @@ onglet Recherche → « Exporter ma progression », puis « Importer… » sur l
 
 Depuis le PC, dans le dossier du projet :
 
-```powershell
-.\scripts\pi\deployer.ps1
+```bash
+npm run deploy
 ```
+
+C'est un raccourci vers `scripts/pi/deployer.ps1`, lancé avec une autorisation d'exécution valable
+pour ce seul lancement : Windows bloque par défaut les scripts PowerShell, et rien n'est modifié
+dans la configuration du PC. Pour lancer le script directement, il faut soit
+`powershell -ExecutionPolicy Bypass -File .\scripts\pi\deployer.ps1`, soit avoir autorisé les
+scripts locaux (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
 
 Le script lance les tests et le build, envoie `dist/`, puis bascule le site d'un coup sur la
 nouvelle version. Aucun service n'est redémarré, et MyPrism n'est pas concerné. Les 5 dernières
 versions sont gardées sur le Pi.
 
-```powershell
-.\scripts\pi\deployer.ps1 -Retour
+```bash
+npm run deploy:retour
 ```
 
 Revient à la version précédente.
@@ -63,8 +69,8 @@ comme le reste du système.
    `industrialist`) et ses identifiants dans `%USERPROFILE%\.cloudflared\<id>.json`.
 2. Puis :
 
-```powershell
-.\scripts\pi\deployer.ps1 -Installer -TunnelId <id>
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\pi\deployer.ps1 -Installer -TunnelId <id>
 ```
 
 `scripts/pi/installer.sh` peut être relancé sans risque.
