@@ -25,6 +25,17 @@ Les onglets :
 - **À vérifier** : les valeurs douteuses de la chaîne affichée ; tu peux saisir la valeur relevée en jeu, puis exporter tes corrections.
 - **Ma partie** (facultatif) : pollution, argent, RP, RP/s.
 
+## En ligne
+
+Le site est hébergé sur le Raspberry Pi : https://industrialist.myprisme.fr (et
+http://myprism.local:8090 sur le réseau local). Pour le mettre à jour depuis le PC :
+
+```powershell
+.\scripts\pi\deployer.ps1
+```
+
+Détails, retour en arrière et réinstallation : [HEBERGEMENT.md](HEBERGEMENT.md).
+
 ## Tests
 
 ```bash
