@@ -2,7 +2,7 @@
 // Règle : aucune valeur sans source. Une valeur absente vaut `null` et porte un
 // drapeau `verify` ; une valeur contestée garde les alternatives et leurs sources.
 
-export type SourceKind = "miraheze" | "fandom" | "jeu" | "saisie";
+export type SourceKind = "miraheze" | "fandom" | "desmos" | "jeu" | "saisie";
 
 export type Source = {
   wiki: SourceKind;
@@ -23,6 +23,9 @@ export type VerifyReason =
 
 export type Alternative = { value: unknown; source: Source };
 
+/** Correction appliquée par-dessus le wiki (overrides.json ou saisie dans l'appli). */
+export type Correction = { field: string; previous: unknown; value: unknown; source: Source; resolvedFlags: VerifyFlag[] };
+
 export type VerifyFlag = {
   /** Chemin du champ : "durationS", "energyMFps", "inputs.steel-ingot", "cost", "size"… */
   field: string;
@@ -42,6 +45,7 @@ export type Item = {
   researchValue: number | string | null;
   sources: Source[];
   verify: VerifyFlag[];
+  corrections?: Correction[];
 };
 
 export type Size = { w: number; l: number };
@@ -64,6 +68,7 @@ export type Machine = {
   pollutionPerHour: number | [number, number] | null;
   sources: Source[];
   verify: VerifyFlag[];
+  corrections?: Correction[];
 };
 
 export type Recipe = {
@@ -81,6 +86,7 @@ export type Recipe = {
   durationByPollution?: boolean;
   sources: Source[];
   verify: VerifyFlag[];
+  corrections?: Correction[];
 };
 
 export type ResearchCategory = "Production" | "Energy" | "Utility";
@@ -101,6 +107,7 @@ export type ResearchNode = {
   isRoot: boolean;
   sources: Source[];
   verify: VerifyFlag[];
+  corrections?: Correction[];
 };
 
 /** Temps de pousse des arbres selon la pollution (page Tree). */
@@ -111,6 +118,30 @@ export type GrowthBand = {
   label: string;
 };
 
+/**
+ * Formule de pousse des arbres (calculateur Desmos communautaire lié depuis la page Tree).
+ *   D(p) = p > 0 : a + b·p + c·p²  |  p < negBelow : negSlope·p + negIntercept  |  1
+ *   M(p) = clamp(D(p), clampMin, clampMax)
+ *   N    = ceil(points / (pointsDivisor · M(p)))
+ *   A(n) = n ≤ 0 : 0  |  1 + moyenne(A(n − k) pour k ∈ avgOffsets)
+ *   durée (s) = cycleFactor · (1000 / tickMs) · A(N)
+ */
+export type TreeGrowthFormula = {
+  posCoefs: [number, number, number];
+  negBelow: number;
+  negSlope: number;
+  negIntercept: number;
+  clampMin: number;
+  clampMax: number;
+  points: number;
+  pointsDivisor: number;
+  avgOffsets: number[];
+  cycleFactor: number;
+  tickMs: number;
+  logsPerTree: number;
+  source: Source;
+};
+
 export type DataMeta = {
   generatedAt: string;
   primary: SourceKind;
@@ -118,7 +149,8 @@ export type DataMeta = {
 };
 
 export type ItemsFile = { meta: DataMeta; items: Item[] };
-export type MachinesFile = { meta: DataMeta; machines: Machine[]; treeGrowth: { bands: GrowthBand[]; source: Source; calculatorUrl?: string } };
+export type TreeGrowth = { bands: GrowthBand[]; source: Source; calculatorUrl?: string; formula?: TreeGrowthFormula };
+export type MachinesFile = { meta: DataMeta; machines: Machine[]; treeGrowth: TreeGrowth };
 export type RecipesFile = { meta: DataMeta; recipes: Recipe[] };
 export type ResearchFile = { meta: DataMeta; nodes: ResearchNode[] };
 

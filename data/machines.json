@@ -2729,6 +2729,36 @@
    "revisionId": 43254,
    "fetchedAt": "2026-10-11T01:03:34.202Z"
   },
-  "calculatorUrl": "https://www.desmos.com/calculator/u6sonlrwl9"
+  "calculatorUrl": "https://www.desmos.com/calculator/u6sonlrwl9",
+  "formula": {
+   "posCoefs": [
+    1,
+    0.005,
+    -0.0001
+   ],
+   "negBelow": -60,
+   "negSlope": 0.005,
+   "negIntercept": 1.25,
+   "clampMin": 0.5,
+   "clampMax": 1.2,
+   "points": 4500,
+   "pointsDivisor": 100,
+   "avgOffsets": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "cycleFactor": 2,
+   "tickMs": 30,
+   "logsPerTree": 2,
+   "source": {
+    "wiki": "desmos",
+    "url": "https://www.desmos.com/calculator/u6sonlrwl9",
+    "page": "Tree Calculator (communautaire, lié depuis la page Tree)",
+    "fetchedAt": "2026-10-11T01:25:33.897Z"
+   }
+  }
  }
 }

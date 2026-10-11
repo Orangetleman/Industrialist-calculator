@@ -2,7 +2,7 @@
 // Elles ne devinent rien : une valeur illisible renvoie null (ou une erreur explicite),
 // et c'est build-data qui la signale dans a-verifier.md.
 
-import type { GrowthBand } from "../../src/engine/types.ts";
+import type { GrowthBand, TreeGrowthFormula } from "../../src/engine/types.ts";
 import type { LuaValue } from "./lua-literal.ts";
 
 /** Identifiant stable : "Steel Ingot" → "steel-ingot", "Plank^2" → "plank-2". */
@@ -254,3 +254,80 @@ export function researchNodes(p: LuaValue): RawResearchNode[] {
   }
   return out;
 }
+
+// ---------------------------------------------------------------- calculateur Desmos des arbres
+
+/** Simplifie le LaTeX Desmos : retire \left, \right, espaces et barres obliques inverses. */
+export function normalizeLatex(latex: string): string {
+  return latex
+    .split("\\left").join("")
+    .split("\\right").join("")
+    .split("\\cdot").join("*")
+    .split("\\operatorname").join("")
+    .split("\\le").join("<=")
+    .replace(/\\/g, "")
+    .replace(/\s+/g, "")
+    .replace(/\{([a-z]+)\}\(/g, "$1("); // {ceil}( → ceil(
+}
+
+/** Remplace chaque nombre par « # » et renvoie la forme et les nombres, dans l'ordre. */
+function shapeOf(expr: string): { shape: string; nums: number[] } {
+  const nums: number[] = [];
+  const shape = expr.replace(/-?\d+(?:\.\d+)?/g, (m) => {
+    nums.push(Number(m));
+    return "#";
+  });
+  return { shape, nums };
+}
+
+/**
+ * Extrait les constantes de la formule de pousse des arbres depuis l'état Desmos.
+ * Chaque expression attendue doit avoir exactement la forme connue, sinon une
+ * erreur explicite est renvoyée : on n'applique jamais une formule mal comprise.
+ */
+export function desmosTreeFormula(state: unknown): { ok: true; value: Omit<TreeGrowthFormula, "source"> } | { ok: false; error: string } {
+  const list = (state as { expressions?: { list?: { latex?: string }[] } })?.expressions?.list;
+  if (!Array.isArray(list)) return { ok: false, error: "état Desmos sans liste d'expressions" };
+  const exprs = list.map((e) => (typeof e.latex === "string" ? shapeOf(normalizeLatex(e.latex)) : null)).filter((e) => e !== null);
+  const find = (what: string, test: (shape: string) => boolean): number[] => {
+    const hits = exprs.filter((e) => test(e.shape));
+    if (hits.length !== 1) throw new Error(`${what} : ${hits.length} expression(s) de la forme attendue, 1 attendue`);
+    return hits[0]!.nums;
+  };
+  const exact = (template: string) => (s: string) => s === template;
+  try {
+    const [tick] = find("T_tick", exact("T_{ick}=#"));
+    const [points] = find("P", exact("P=#*(##C_{andycanetree})"));
+    const [logs] = find("L_og", exact("L_{og}=#+I_{gloocontroller}*(#-C_{andycanetree})"));
+    const d = find("D(x)", exact("D(x)={x>#:#+#x#x^{#},x<#:#x+#,#}"));
+    const m = find("M(x)", exact("M(x)=max(#,min(#,D(x)))"));
+    const a = find("A(n)", (s) => /^A\(n\)=\{n<=#:#,#\+frac\{A\(n#\)(\+A\(n#\))*\}\{#\}\}$/.test(s));
+    const g = find("y_avgDetailed", exact("y_{avgDetailed}=#*frac{#}{T_{ick}}*A(ceil(frac{P}{#*M(x)}))"));
+    // a = [0, 0, 1, -7, -8, …, diviseur]
+    const offsets = a.slice(3, -1).map((x) => -x);
+    if (a[0] !== 0 || a[1] !== 0 || a[2] !== 1 || offsets.length !== a.at(-1)) throw new Error("A(n) : moyenne inattendue");
+    // d = [0, a, b, c, 2, negBelow, slope, intercept, 1]
+    if (d[0] !== 0 || d[4] !== 2 || d[8] !== 1) throw new Error("D(x) : forme inattendue");
+    if (g[1] !== 1000) throw new Error("y_avgDetailed : facteur 1000 attendu");
+    return {
+      ok: true,
+      value: {
+        posCoefs: [d[1]!, d[2]!, d[3]!],
+        negBelow: d[5]!,
+        negSlope: d[6]!,
+        negIntercept: d[7]!,
+        clampMin: m[0]!,
+        clampMax: m[1]!,
+        points: points!,
+        pointsDivisor: g[2]!,
+        avgOffsets: offsets,
+        cycleFactor: g[0]!,
+        tickMs: tick!,
+        logsPerTree: logs!,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+

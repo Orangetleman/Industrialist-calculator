@@ -52,7 +52,7 @@ async function api(wiki: WikiId, params: Record<string, string>): Promise<any> {
     if (!type.includes("json")) {
       throw new BlockedError(`${wiki} : réponse non-JSON (${type || "type inconnu"}), probablement une page anti-bot.`);
     }
-    const body = await res.json();
+    const body: any = await res.json();
     if (body?.error?.code === "maxlag") {
       if (attempt >= 5) throw new BlockedError(`${wiki} : serveur surchargé (maxlag) de façon persistante.`);
       console.warn(`  ${wiki} : serveur chargé (maxlag), attente ${retryAfter} s`);
@@ -210,6 +210,37 @@ function report(label: string, r: { fetched: number; unchanged: number; missing:
   if (r.missing.length) console.log(`    absentes : ${r.missing.slice(0, 30).join(", ")}${r.missing.length > 30 ? " …" : ""}`);
 }
 
+/**
+ * Calculateur Desmos des arbres, lié depuis la page Tree de Miraheze.
+ * Une seule requête (état JSON public), mise en cache ; rechargée avec --force.
+ */
+async function fetchTreeCalculator(): Promise<void> {
+  const tree = readCached("miraheze", "Tree");
+  const url = tree && /\[(https:\/\/www\.desmos\.com\/calculator\/[A-Za-z0-9]+)/.exec(tree.content)?.[1];
+  if (!url) {
+    console.log("  calculateur des arbres : lien Desmos absent de la page Tree");
+    return;
+  }
+  const file = join(CACHE_ROOT, "desmos-tree.json");
+  if (!FORCE && existsSync(file) && JSON.parse(readFileSync(file, "utf8")).url === url) {
+    console.log("  calculateur des arbres : en cache");
+    return;
+  }
+  const wait = lastRequest + DELAY_MS - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastRequest = Date.now();
+  requestCount++;
+  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" } });
+  if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) {
+    console.warn(`  calculateur des arbres : HTTP ${res.status}, ignoré (le tableau du wiki sera utilisé)`);
+    return;
+  }
+  const body: any = await res.json();
+  const state = body?.state ?? body; // la réponse Desmos enveloppe l'état dans { state }
+  writeFileSync(file, JSON.stringify({ url, fetchedAt: new Date().toISOString(), state }, null, 1));
+  console.log("  calculateur des arbres : téléchargé");
+}
+
 async function main(): Promise<void> {
   console.log(`User-Agent : ${USER_AGENT}`);
   const runMiraheze = !ONLY || ONLY === "miraheze";
@@ -227,6 +258,7 @@ async function main(): Promise<void> {
     itemNames = itemsFromRecipeModules(modules);
     report("pages items", await fetchPages("miraheze", itemNames));
   }
+  if (runMiraheze) await fetchTreeCalculator();
   if (runFandom) {
     console.log("Fandom (contrôle croisé)");
     if (!itemNames.length) {

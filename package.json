@@ -6,16 +6,17 @@
   "description": "Calculateur de production local pour le jeu Roblox Industrialist",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
     "fetch-wiki": "node scripts/fetch-wiki.ts",
     "build-data": "node scripts/build-data.ts",
     "data": "node scripts/fetch-wiki.ts && node scripts/build-data.ts"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"

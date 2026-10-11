@@ -173,6 +173,12 @@ type GrowthBand = { minPct: number; maxPct: number; seconds: [number, number] /*
     - Sinon, j'affiche seulement les prix.
 11. **Inatteignable** : pour chaque item bloqué, je liste les nœuds manquants (fermeture des prérequis) et je propose l'option qui coûte le moins de RP. Le résultat a la forme `{ status: "locked", missing, rpCost }` et ne lève pas d'erreur.
 
+**Ajustements décidés pendant l'étape (b)** :
+- **Contradictions avec Fandom** : elles ne bloquent pas le choix d'une recette. Miraheze est la source principale (Q2) ; l'alternative reste affichée ⚠. Seules les valeurs `manquant` ou `variable` qui touchent la durée ou les quantités écartent une recette quand l'option est désactivée.
+- **Algorithme de choix** : un point fixe de type Bellman-Ford remplace la récursion, qui explosait sur les nombreuses boucles du wiki (eau, vapeur, résidus). Une boucle sans sortie est coupée et signalée.
+- **Arbres** : la formule du calculateur Desmos (validée en (a)) est utilisée. Le tableau du wiki, avec sa borne haute, sert de repli.
+- **Machines sans nœud** (Limited, variantes) : disponibles seulement si elles sont cochées « possédée ».
+
 **Sortie** : `Plan = { steps[], totals{ machines, farms, energyAvg, energyPeak, energyKnown, footprint, buildCost, pollutionPerHour }, raw[], surplus[], recipesUsed[], verify[], warnings[], locked[], economy? }`. Elle est sérialisable et testable sans DOM.
 
 **Tests Vitest** :

@@ -10,6 +10,7 @@ import {
   parseTreeGrowth,
   researchNodes,
   slugify,
+  desmosTreeFormula,
 } from "./wiki-extract.ts";
 
 describe("conversions simples", () => {
@@ -142,5 +143,53 @@ describe("arbre de recherche", () => {
 
   it("refuse un nœud sans RP", () => {
     expect(() => researchNodes({ Production: { X: { Buildings: [] } } })).toThrow(/RP manquant/);
+  });
+});
+
+describe("calculateur Desmos des arbres", () => {
+  // Expressions recopiées de https://www.desmos.com/calculator/u6sonlrwl9 (2026-10-11)
+  const state = {
+    expressions: {
+      list: [
+        { latex: String.raw`P_{ollution}=-50` },
+        { latex: String.raw`y_{avgDetailed}=2\cdot\frac{1000}{T_{ick}}\cdot A\left(\operatorname{ceil}\left(\frac{P}{100\cdot M(x)}\right)\right)` },
+        { latex: String.raw`T_{ick}=30` },
+        { latex: String.raw`P=4500\cdot\left(1-0.2C_{andycanetree}\right)` },
+        { latex: String.raw`L_{og}=2+I_{gloocontroller}\cdot(1-C_{andycanetree})` },
+        { latex: String.raw`D(x)=\left\{x>0:\ 1+0.005x-0.0001x^{2},x<-60:\ 0.005x+1.25,1\right\}` },
+        { latex: String.raw`M(x)=\max(0.5,\min(1.2,D(x)))` },
+        {
+          latex: String.raw`A\left(n\right)=\left\{n\le0:0,\ 1+\frac{A\left(n-7\right)+A\left(n-8\right)+A\left(n-9\right)+A\left(n-10\right)+A\left(n-11\right)}{5}\right\}`,
+        },
+      ],
+    },
+  };
+
+  it("extrait toutes les constantes", () => {
+    expect(desmosTreeFormula(state)).toEqual({
+      ok: true,
+      value: {
+        posCoefs: [1, 0.005, -0.0001],
+        negBelow: -60,
+        negSlope: 0.005,
+        negIntercept: 1.25,
+        clampMin: 0.5,
+        clampMax: 1.2,
+        points: 4500,
+        pointsDivisor: 100,
+        avgOffsets: [7, 8, 9, 10, 11],
+        cycleFactor: 2,
+        tickMs: 30,
+        logsPerTree: 2,
+      },
+    });
+  });
+
+  it("refuse une formule modifiée", () => {
+    const changed = structuredClone(state);
+    changed.expressions.list[6]!.latex = String.raw`M(x)=max(0.4,D(x))`;
+    const r = desmosTreeFormula(changed);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/M\(x\)/);
   });
 });

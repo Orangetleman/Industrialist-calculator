@@ -13,6 +13,7 @@ import { extractModuleTable, type LuaValue } from "./lib/lua-literal.ts";
 import type { CachedPage, WikiId } from "./lib/wiki-config.ts";
 import {
   fandomProduction,
+  desmosTreeFormula,
   parseAllTemplates,
   parseMamyflux,
   parseNumber,
@@ -37,6 +38,7 @@ import type {
   ResearchFile,
   ResearchNode,
   Source,
+  TreeGrowthFormula,
   VerifyFlag,
 } from "../src/engine/types.ts";
 
@@ -312,10 +314,19 @@ const treePage = page("miraheze", "Tree");
 let bands: GrowthBand[] = [];
 let treeSource: Source = { wiki: "miraheze", fetchedAt: latestFetch, note: "page Tree absente" };
 let calculatorUrl: string | undefined;
+let formula: TreeGrowthFormula | undefined;
 if (treePage) {
   treeSource = sourceOf(treePage);
   bands = parseTreeGrowth(treePage.content);
   calculatorUrl = /\[(https:\/\/www\.desmos\.com\/calculator\/[^\s\]]+)/.exec(treePage.content)?.[1];
+  const desmosFile = join(CACHE, "desmos-tree.json");
+  if (calculatorUrl && existsSync(desmosFile)) {
+    const cached = JSON.parse(readFileSync(desmosFile, "utf8")) as { url: string; fetchedAt: string; state: unknown };
+    const f = desmosTreeFormula(cached.state);
+    if (f.ok) {
+      formula = { ...f.value, source: { wiki: "desmos", url: cached.url, page: "Tree Calculator (communautaire, lié depuis la page Tree)", fetchedAt: cached.fetchedAt } };
+    } else globalIssues.push(`Calculateur Desmos des arbres non utilisé : ${f.error}. Le tableau du wiki sert de repli.`);
+  } else if (calculatorUrl) globalIssues.push("Calculateur Desmos des arbres absent du cache : relancer fetch-wiki. Le tableau du wiki sert de repli.");
   const normal = bands.find((b) => b.label.includes("Normal"));
   const logs = /produces a minimum of (two|\d+) \[\[Oak Log/i.exec(treePage.content);
   const logCount = logs ? (logs[1] === "two" ? 2 : Number(logs[1])) : null;
@@ -478,7 +489,7 @@ write("items.json", { meta: meta({ items: items.length, aVerifier: flagged(items
 write("machines.json", {
   meta: meta({ machines: machines.length, aVerifier: flagged(machines) }),
   machines,
-  treeGrowth: { bands, source: treeSource, ...(calculatorUrl ? { calculatorUrl } : {}) },
+  treeGrowth: { bands, source: treeSource, ...(calculatorUrl ? { calculatorUrl } : {}), ...(formula ? { formula } : {}) },
 } satisfies MachinesFile);
 write("recipes.json", { meta: meta({ recipes: recipes.length, aVerifier: flagged(recipes) }), recipes } satisfies RecipesFile);
 write("research.json", { meta: meta({ nodes: nodes.length, aVerifier: flagged(nodes) }), nodes } satisfies ResearchFile);
