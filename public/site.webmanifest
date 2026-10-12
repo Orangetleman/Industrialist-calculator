@@ -1,0 +1,14 @@
+{
+  "name": "Calculateur de production — Industrialist",
+  "short_name": "Industrialist",
+  "description": "Chaînes de production du jeu Roblox Industrialist, selon ta progression.",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#12171c",
+  "theme_color": "#1f3d52",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

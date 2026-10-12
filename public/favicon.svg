@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Calculateur de production">
+  <title>Calculateur de production</title>
+  <defs><linearGradient id="fond" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f5d7c"/><stop offset="1" stop-color="#17303f"/></linearGradient></defs>
+  <rect width="64" height="64" rx="14" fill="url(#fond)"/>
+  <path d="M50.02,24.54 L50.96,27.45 L56.69,28.09 L56.69,35.91 L50.96,36.55 L50.02,39.46 L48.63,42.19 L52.23,46.69 L46.69,52.23 L42.19,48.63 L39.46,50.02 L36.55,50.96 L35.91,56.69 L28.09,56.69 L27.45,50.96 L24.54,50.02 L21.81,48.63 L17.31,52.23 L11.77,46.69 L15.37,42.19 L13.98,39.46 L13.04,36.55 L7.31,35.91 L7.31,28.09 L13.04,27.45 L13.98,24.54 L15.37,21.81 L11.77,17.31 L17.31,11.77 L21.81,15.37 L24.54,13.98 L27.45,13.04 L28.09,7.31 L35.91,7.31 L36.55,13.04 L39.46,13.98 L42.19,15.37 L46.69,11.77 L52.23,17.31 L48.63,21.81 Z" fill="#f0913a"/>
+  <circle cx="32" cy="32" r="11.5" fill="#17303f"/>
+  <path d="M24.5 32 H38.5 M33.5 26.5 L39.5 32 L33.5 37.5" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
