@@ -8,5 +8,8 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts", "tests/**/*.test.ts", "scripts/**/*.test.ts"],
+    // Tests de justesse, pas de vitesse : sur une machine chargée (un jeu ouvert), un calcul
+    // complet peut prendre plusieurs secondes.
+    testTimeout: 30_000,
   },
 });

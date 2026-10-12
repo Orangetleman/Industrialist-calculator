@@ -225,5 +225,5 @@ describe("vraies données (Miraheze)", () => {
       }
     }
     expect(problems).toEqual([]);
-  }, 180_000); // ~1 300 résolutions complètes : 50 à 90 s selon la charge de la machine
+  }, 600_000); // ~1 300 résolutions complètes : 50 s à plus de 4 min selon la charge de la machine
 });
