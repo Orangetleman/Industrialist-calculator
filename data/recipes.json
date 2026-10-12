@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generatedAt": "2026-10-11T02:15:56.550Z",
+  "generatedAt": "2026-10-12T07:24:21.774Z",
   "primary": "miraheze",
   "counts": {
    "recipes": 447,
@@ -13576,8 +13576,8 @@
      "wiki": "miraheze",
      "url": "https://industrialist.miraheze.org/wiki/Tree",
      "page": "Tree",
-     "revisionId": 43254,
-     "fetchedAt": "2026-10-11T01:03:34.202Z"
+     "revisionId": 43449,
+     "fetchedAt": "2026-10-12T07:24:05.182Z"
     }
    ],
    "verify": [

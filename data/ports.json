@@ -1,0 +1,4 @@
+{
+ "_lisezMoi": "Ports des bâtiments relevés en jeu (voir RELEVES.md). Clé = id du bâtiment (machines.json). Rempli au fil des relevés ; source « jeu » datée.",
+ "machines": {}
+}

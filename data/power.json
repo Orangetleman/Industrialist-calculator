@@ -1,0 +1,2572 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-12T07:24:12.835Z",
+  "primary": "miraheze",
+  "counts": {
+   "entries": 76
+  }
+ },
+ "entries": [
+  {
+   "id": "advanced-mv-pole",
+   "name": "Advanced MV Pole",
+   "category": "Power",
+   "subcategory": "Transfer Poles",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 37500,
+    "nodes": 4
+   },
+   "capacity": {
+    "perNode": 50000,
+    "nodes": 4
+   },
+   "rangeTiles": {
+    "tiles": 8,
+    "approx": false
+   },
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "cost": 300,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Advanced_MV_Pole",
+     "page": "Advanced MV Pole",
+     "revisionId": 40685,
+     "fetchedAt": "2026-10-11T02:15:44.582Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "boiler",
+   "name": "Boiler",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "cost": 900,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boiler",
+     "page": "Boiler",
+     "revisionId": 43471,
+     "fetchedAt": "2026-10-12T07:24:05.178Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "breaker",
+   "name": "Breaker",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 3000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 750000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 1
+   },
+   "cost": 8000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Breaker",
+     "page": "Breaker",
+     "revisionId": 42087,
+     "fetchedAt": "2026-10-11T02:15:44.584Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "breaker-box",
+   "name": "Breaker Box",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 2700000,
+    "nodes": 4
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 4
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 3,
+    "l": 3
+   },
+   "cost": 75000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Breaker_Box",
+     "page": "Breaker Box",
+     "revisionId": 42082,
+     "fetchedAt": "2026-10-11T02:15:44.585Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-generator",
+   "name": "Coal Generator",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": 7000,
+   "input": null,
+   "transfer": {
+    "perNode": 9000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 7000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 160,
+   "pollutionPerHour": 0.27,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal_Generator",
+     "page": "Coal Generator",
+     "revisionId": 43058,
+     "fetchedAt": "2026-10-11T01:03:29.675Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "coal-power-plant",
+   "name": "Coal Power Plant",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 100000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 100,
+    "l": 42
+   },
+   "cost": 10001984,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Coal_Power_Plant",
+     "page": "Coal Power Plant",
+     "revisionId": 43417,
+     "fetchedAt": "2026-10-11T02:15:44.586Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "input",
+     "reason": "variable",
+     "detail": "valeur du wiki non lisible telle quelle : « Varies »"
+    }
+   ]
+  },
+  {
+   "id": "compact-coal-power-plant",
+   "name": "Compact Coal Power Plant",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": 13500,
+   "input": null,
+   "transfer": {
+    "perNode": 24000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 50000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "cost": 550,
+   "pollutionPerHour": 0.821,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Compact_Coal_Power_Plant",
+     "page": "Compact Coal Power Plant",
+     "revisionId": 39868,
+     "fetchedAt": "2026-10-11T01:03:29.679Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cooling-tower",
+   "name": "Cooling Tower",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 50,
+    "l": 50
+   },
+   "cost": 2500000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Cooling_Tower",
+     "page": "Cooling Tower",
+     "revisionId": 43164,
+     "fetchedAt": "2026-10-11T02:15:44.588Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-air-input",
+   "name": "Diesel Engine Air Input",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 4500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Air_Input",
+     "page": "Diesel Engine Air Input",
+     "revisionId": 42830,
+     "fetchedAt": "2026-10-11T02:15:44.590Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-controller",
+   "name": "Diesel Engine Controller",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 9000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Controller",
+     "page": "Diesel Engine Controller",
+     "revisionId": 42737,
+     "fetchedAt": "2026-10-11T02:15:44.590Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-crankshaft",
+   "name": "Diesel Engine Crankshaft",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 4000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Crankshaft",
+     "page": "Diesel Engine Crankshaft",
+     "revisionId": 42239,
+     "fetchedAt": "2026-10-11T02:15:44.591Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-crankshaft-sideways",
+   "name": "Diesel Engine Crankshaft Sideways",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 600,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Crankshaft_Sideways",
+     "page": "Diesel Engine Crankshaft Sideways",
+     "revisionId": 40915,
+     "fetchedAt": "2026-10-11T02:15:44.592Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-cylinder",
+   "name": "Diesel Engine Cylinder",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 4000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Cylinder",
+     "page": "Diesel Engine Cylinder",
+     "revisionId": 42836,
+     "fetchedAt": "2026-10-11T02:15:44.593Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-decoration",
+   "name": "Diesel Engine Decoration",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 400,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Decoration",
+     "page": "Diesel Engine Decoration",
+     "revisionId": 43205,
+     "fetchedAt": "2026-10-11T02:15:44.594Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-exhaust",
+   "name": "Diesel Engine Exhaust",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 4500,
+   "pollutionPerHour": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Exhaust",
+     "page": "Diesel Engine Exhaust",
+     "revisionId": 42226,
+     "fetchedAt": "2026-10-11T02:15:44.595Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-flywheel",
+   "name": "Diesel Engine Flywheel",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 6,
+    "l": 4
+   },
+   "cost": 8000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Flywheel",
+     "page": "Diesel Engine Flywheel",
+     "revisionId": 40900,
+     "fetchedAt": "2026-10-11T02:15:44.596Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-fuel-input",
+   "name": "Diesel Engine Fuel Input",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 4500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Fuel_Input",
+     "page": "Diesel Engine Fuel Input",
+     "revisionId": 42826,
+     "fetchedAt": "2026-10-11T02:15:44.597Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-engine-generator",
+   "name": "Diesel Engine Generator",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 1800000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 6000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Generator",
+     "page": "Diesel Engine Generator",
+     "revisionId": 40899,
+     "fetchedAt": "2026-10-11T02:15:44.598Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "variable",
+     "detail": "valeur du wiki non lisible telle quelle : « Depends »"
+    }
+   ]
+  },
+  {
+   "id": "diesel-engine-info-panel",
+   "name": "Diesel Engine Info Panel",
+   "category": "Modular",
+   "subcategory": "Modular Diesel Engine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 6000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Info_Panel",
+     "page": "Diesel Engine Info Panel",
+     "revisionId": 40905,
+     "fetchedAt": "2026-10-11T02:15:44.599Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "diesel-generator",
+   "name": "Diesel Generator",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": [
+    55200,
+    90000
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 150000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 250000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 4
+   },
+   "cost": 4500,
+   "pollutionPerHour": 0.648,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Diesel_Generator",
+     "page": "Diesel Generator",
+     "revisionId": 42267,
+     "fetchedAt": "2026-10-11T01:03:29.684Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 55.2kMF/s-90kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "double-mv-battery",
+   "name": "Double MV Battery",
+   "category": "Power",
+   "subcategory": "Batteries",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 150000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 50000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 900,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Double_MV_Battery",
+     "page": "Double MV Battery",
+     "revisionId": 38078,
+     "fetchedAt": "2026-10-11T02:15:44.600Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "electric-water-heater",
+   "name": "Electric Water Heater",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": null,
+   "input": [
+    300000,
+    6000000
+   ],
+   "transfer": null,
+   "capacity": null,
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 5
+   },
+   "cost": 100020,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Electric_Water_Heater",
+     "page": "Electric Water Heater",
+     "revisionId": 42503,
+     "fetchedAt": "2026-10-11T02:15:46.146Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "non-sourcé",
+     "detail": "valeur du wiki non lisible telle quelle : « 5MMF (MV) 10MMF (HV) »"
+    }
+   ]
+  },
+  {
+   "id": "farm-harvester",
+   "name": "Farm Harvester",
+   "category": "Modular",
+   "subcategory": "Tree Farm",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "cost": 650,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Farm_Harvester",
+     "page": "Farm Harvester",
+     "revisionId": 43495,
+     "fetchedAt": "2026-10-12T07:24:12.830Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "firebox",
+   "name": "Firebox",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 6,
+    "l": 4
+   },
+   "cost": 550,
+   "pollutionPerHour": 1.08,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Firebox",
+     "page": "Firebox",
+     "revisionId": 43042,
+     "fetchedAt": "2026-10-11T01:03:29.689Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gas-burner",
+   "name": "Gas Burner",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "cost": 100000,
+   "pollutionPerHour": 0.173,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+     "page": "Gas Burner",
+     "revisionId": 42041,
+     "fetchedAt": "2026-10-11T01:03:29.692Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "gasoline-generator",
+   "name": "Gasoline Generator",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": [
+    12000,
+    100000
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 150000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 700000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 900,
+   "pollutionPerHour": 0.648,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gasoline_Generator",
+     "page": "Gasoline Generator",
+     "revisionId": 42322,
+     "fetchedAt": "2026-10-11T01:03:29.695Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 12kMF/s-100kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "geothermal-well",
+   "name": "Geothermal Well",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": null,
+   "input": 3000,
+   "transfer": null,
+   "capacity": {
+    "perNode": 50000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 5
+   },
+   "cost": 1500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Geothermal_Well",
+     "page": "Geothermal Well",
+     "revisionId": 43018,
+     "fetchedAt": "2026-10-11T01:03:31.167Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hand-crank",
+   "name": "Hand Crank",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": 1500,
+   "input": null,
+   "transfer": {
+    "perNode": 6000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 100,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Hand_Crank",
+     "page": "Hand Crank",
+     "revisionId": 42907,
+     "fetchedAt": "2026-10-11T02:15:46.162Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "heat-exchanger",
+   "name": "Heat Exchanger",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 26,
+    "l": 10
+   },
+   "cost": 2718281,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Heat_Exchanger",
+     "page": "Heat Exchanger",
+     "revisionId": 42611,
+     "fetchedAt": "2026-10-11T01:03:31.170Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "high-pressure-turbine",
+   "name": "High Pressure Turbine",
+   "category": "Modular",
+   "subcategory": "Modular Turbine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 12,
+    "l": 12
+   },
+   "cost": 1000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/High_Pressure_Turbine",
+     "page": "High Pressure Turbine",
+     "revisionId": 43076,
+     "fetchedAt": "2026-10-11T02:15:46.164Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hmvt",
+   "name": "HMVT",
+   "category": "Power",
+   "subcategory": "Transfer Poles",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 1500000,
+    "nodes": 4
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 4
+   },
+   "rangeTiles": {
+    "tiles": 22,
+    "approx": false
+   },
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "cost": 10000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HMVT",
+     "page": "HMVT",
+     "revisionId": 42868,
+     "fetchedAt": "2026-10-11T02:15:46.156Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-battery",
+   "name": "HV Battery",
+   "category": "Power",
+   "subcategory": "Batteries",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 3000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 6
+   },
+   "cost": 17500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Battery",
+     "page": "HV Battery",
+     "revisionId": 42422,
+     "fetchedAt": "2026-10-11T02:15:46.157Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-battery-mk2",
+   "name": "HV Battery MK2",
+   "category": "Power",
+   "subcategory": "Batteries",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 180000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 15,
+    "l": 15
+   },
+   "cost": 20000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Battery_MK2",
+     "page": "HV Battery MK2",
+     "revisionId": 43161,
+     "fetchedAt": "2026-10-11T02:15:46.157Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-pole",
+   "name": "HV Pole",
+   "category": "Power",
+   "subcategory": "Transfer Poles",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 120000000,
+    "nodes": 8
+   },
+   "capacity": {
+    "perNode": 50000000,
+    "nodes": 8
+   },
+   "rangeTiles": {
+    "tiles": 70,
+    "approx": true
+   },
+   "size": {
+    "w": 10,
+    "l": 10
+   },
+   "cost": 2500000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Pole",
+     "page": "HV Pole",
+     "revisionId": 42881,
+     "fetchedAt": "2026-10-11T02:15:46.158Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-power-control",
+   "name": "HV Power Control",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 240000000,
+    "nodes": 16
+   },
+   "capacity": {
+    "perNode": 40000000,
+    "nodes": 24
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 68,
+    "l": 50
+   },
+   "cost": 10000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Power_Control",
+     "page": "HV Power Control",
+     "revisionId": 43371,
+     "fetchedAt": "2026-10-11T02:15:46.159Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-power-dump",
+   "name": "HV Power Dump",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 50000000,
+    "nodes": 8
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 29,
+    "l": 13
+   },
+   "cost": 25000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Power_Dump",
+     "page": "HV Power Dump",
+     "revisionId": 41916,
+     "fetchedAt": "2026-10-11T02:15:46.160Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hv-transformer",
+   "name": "HV Transformer",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 240000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 2500000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 8,
+    "l": 8
+   },
+   "cost": 750000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Transformer",
+     "page": "HV Transformer",
+     "revisionId": 42099,
+     "fetchedAt": "2026-10-11T02:15:46.161Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "industrial-firebox",
+   "name": "Industrial Firebox",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 9,
+    "l": 4
+   },
+   "cost": 250000,
+   "pollutionPerHour": 1.8,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Industrial_Firebox",
+     "page": "Industrial Firebox",
+     "revisionId": 38141,
+     "fetchedAt": "2026-10-11T01:03:31.174Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "intermediate-pressure-turbine",
+   "name": "Intermediate Pressure Turbine",
+   "category": "Modular",
+   "subcategory": "Modular Turbine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 14,
+    "l": 12
+   },
+   "cost": 500000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Intermediate_Pressure_Turbine",
+     "page": "Intermediate Pressure Turbine",
+     "revisionId": 38151,
+     "fetchedAt": "2026-10-11T02:15:47.484Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-diesel-engine",
+   "name": "Large Diesel Engine",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": [
+    5000000,
+    6000000
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 24000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 75000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 14,
+    "l": 8
+   },
+   "cost": 100000,
+   "pollutionPerHour": [
+    0.432,
+    0.648
+   ],
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Diesel_Engine",
+     "page": "Large Diesel Engine",
+     "revisionId": 43068,
+     "fetchedAt": "2026-10-11T01:03:31.186Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 5MMF/s - 6MMF/s"
+    }
+   ]
+  },
+  {
+   "id": "large-turbine",
+   "name": "Large Turbine",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": [
+    1000,
+    515096
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 1800000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 5,
+    "l": 4
+   },
+   "cost": 4000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Turbine",
+     "page": "Large Turbine",
+     "revisionId": 42633,
+     "fetchedAt": "2026-10-11T02:15:47.488Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 1kMF/s - 515.096kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "logic-delay",
+   "name": "Logic Delay",
+   "category": "Logic",
+   "subcategory": "Logic Gates",
+   "output": 2000,
+   "input": 2000,
+   "transfer": null,
+   "capacity": {
+    "perNode": 2000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "cost": 2000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Delay",
+     "page": "Logic Delay",
+     "revisionId": 42301,
+     "fetchedAt": "2026-10-11T02:15:47.498Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "logic-pulse",
+   "name": "Logic Pulse",
+   "category": "Logic",
+   "subcategory": "Logic Gates",
+   "output": 2000,
+   "input": 2000,
+   "transfer": null,
+   "capacity": {
+    "perNode": 2000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 1,
+    "l": 1
+   },
+   "cost": 2000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Logic_Pulse",
+     "page": "Logic Pulse",
+     "revisionId": 38188,
+     "fetchedAt": "2026-10-11T02:15:49.195Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "low-pressure-turbine",
+   "name": "Low Pressure Turbine",
+   "category": "Modular",
+   "subcategory": "Modular Turbine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 14,
+    "l": 12
+   },
+   "cost": 1000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Low_Pressure_Turbine",
+     "page": "Low Pressure Turbine",
+     "revisionId": 42612,
+     "fetchedAt": "2026-10-11T02:15:49.197Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "lv-pole",
+   "name": "LV Pole",
+   "category": "Power",
+   "subcategory": "Transfer Poles",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 2400,
+    "nodes": 2
+   },
+   "capacity": {
+    "perNode": 2500,
+    "nodes": 2
+   },
+   "rangeTiles": {
+    "tiles": 10,
+    "approx": false
+   },
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 5,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/LV_Pole",
+     "page": "LV Pole",
+     "revisionId": 42125,
+     "fetchedAt": "2026-10-11T02:15:47.486Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mv-battery",
+   "name": "MV Battery",
+   "category": "Power",
+   "subcategory": "Batteries",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 37500,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 10000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "cost": 240,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MV_Battery",
+     "page": "MV Battery",
+     "revisionId": 39265,
+     "fetchedAt": "2026-10-11T02:15:49.198Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "mv-pole",
+   "name": "MV Pole",
+   "category": "Power",
+   "subcategory": "Transfer Poles",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 30000,
+    "nodes": 2
+   },
+   "capacity": {
+    "perNode": 30000,
+    "nodes": 2
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 80,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MV_Pole",
+     "page": "MV Pole",
+     "revisionId": 42450,
+     "fetchedAt": "2026-10-11T02:15:49.199Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "rangeTiles",
+     "reason": "manquant",
+     "detail": "portée du poteau absente de sa page : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "nuclear-power-plant",
+   "name": "Nuclear Power Plant",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": null,
+   "rangeTiles": null,
+   "size": {
+    "w": 131,
+    "l": 60
+   },
+   "cost": 200000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Nuclear_Power_Plant",
+     "page": "Nuclear Power Plant",
+     "revisionId": 43451,
+     "fetchedAt": "2026-10-12T07:24:12.834Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "input",
+     "reason": "variable",
+     "detail": "valeur du wiki non lisible telle quelle : « Varies (HV/MV) »"
+    },
+    {
+     "field": "capacity",
+     "reason": "non-sourcé",
+     "detail": "valeur du wiki non lisible telle quelle : « 100MMF (HV) ⚡2MMF (MV) »"
+    }
+   ]
+  },
+  {
+   "id": "polisher",
+   "name": "Polisher",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": 500000,
+   "transfer": null,
+   "capacity": {
+    "perNode": 5000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 28,
+    "l": 12
+   },
+   "cost": 1200000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Polisher",
+     "page": "Polisher",
+     "revisionId": 40299,
+     "fetchedAt": "2026-10-11T01:03:32.712Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pollution-gate",
+   "name": "Pollution Gate",
+   "category": "Logic",
+   "subcategory": "Logic Outputs",
+   "output": 2000,
+   "input": 2000,
+   "transfer": null,
+   "capacity": {
+    "perNode": 2000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 7500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pollution_Gate",
+     "page": "Pollution Gate",
+     "revisionId": 39751,
+     "fetchedAt": "2026-10-11T02:15:53.703Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-control",
+   "name": "Power Control",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 1500000,
+    "nodes": 8
+   },
+   "capacity": {
+    "perNode": 3000000,
+    "nodes": 12
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 11,
+    "l": 9
+   },
+   "cost": 50000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Control",
+     "page": "Power Control",
+     "revisionId": 42537,
+     "fetchedAt": "2026-10-11T02:15:53.705Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-dump",
+   "name": "Power Dump",
+   "category": "Power",
+   "subcategory": "Misc",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 4
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 5,
+    "l": 4
+   },
+   "cost": 25000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Dump",
+     "page": "Power Dump",
+     "revisionId": 42538,
+     "fetchedAt": "2026-10-11T02:15:53.706Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator",
+   "name": "Power Rate Calculator",
+   "category": "Power",
+   "subcategory": "Power Rate Calculators",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 600000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 500000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "cost": 1200,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Rate_Calculator",
+     "page": "Power Rate Calculator",
+     "revisionId": 42821,
+     "fetchedAt": "2026-10-11T02:15:53.707Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator2",
+   "name": "Power Rate Calculator2",
+   "category": "Power",
+   "subcategory": "Power Rate Calculators",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 3000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 3000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "cost": 9000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Rate_Calculator2",
+     "page": "Power Rate Calculator2",
+     "revisionId": 38222,
+     "fetchedAt": "2026-10-11T02:15:53.708Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "power-rate-calculator3",
+   "name": "Power Rate Calculator3",
+   "category": "Power",
+   "subcategory": "Power Rate Calculators",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 102000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 6,
+    "l": 6
+   },
+   "cost": 5000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Power_Rate_Calculator3",
+     "page": "Power Rate Calculator3",
+     "revisionId": 41866,
+     "fetchedAt": "2026-10-11T02:15:53.709Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "resistor",
+   "name": "Resistor",
+   "category": "Logic",
+   "subcategory": "Logic Outputs",
+   "output": 6000,
+   "input": 500000,
+   "transfer": null,
+   "capacity": null,
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 1
+   },
+   "cost": 50000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Resistor",
+     "page": "Resistor",
+     "revisionId": 38240,
+     "fetchedAt": "2026-10-11T02:15:53.713Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "non-sourcé",
+     "detail": "valeur du wiki non lisible telle quelle : « 550kMF* »"
+    }
+   ]
+  },
+  {
+   "id": "rusty-battery",
+   "name": "Rusty Battery",
+   "category": "Power",
+   "subcategory": "Batteries",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 7500,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 100,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rusty_Battery",
+     "page": "Rusty Battery",
+     "revisionId": 42388,
+     "fetchedAt": "2026-10-11T02:15:53.714Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "small-mv-pole",
+   "name": "Small MV Pole",
+   "category": "Power",
+   "subcategory": "Transfer Poles",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 24000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 50000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 40,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Small_MV_Pole",
+     "page": "Small MV Pole",
+     "revisionId": 41847,
+     "fetchedAt": "2026-10-11T02:15:54.895Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "rangeTiles",
+     "reason": "manquant",
+     "detail": "portée du poteau absente de sa page : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "solar-farm1",
+   "name": "Solar Farm1",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    0,
+    664100
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 1500000,
+    "nodes": 4
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 4
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 20,
+    "l": 18
+   },
+   "cost": 200000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Farm1",
+     "page": "Solar Farm1",
+     "revisionId": 43032,
+     "fetchedAt": "2026-10-11T02:15:54.896Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 664.1kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "solar-panel",
+   "name": "Solar Panel",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    120,
+    240
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 600,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 80,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 120MF/s - 240MF/s"
+    }
+   ]
+  },
+  {
+   "id": "solar-panel2",
+   "name": "Solar Panel2",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    0,
+    5000
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 60000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 50000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "cost": 1500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel2",
+     "page": "Solar Panel2",
+     "revisionId": 38686,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 5kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "solar-panel3",
+   "name": "Solar Panel3",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    0,
+    29700
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 300000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 100000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 5000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel3",
+     "page": "Solar Panel3",
+     "revisionId": 43024,
+     "fetchedAt": "2026-10-11T02:15:54.898Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 29.7kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "steam-condenser",
+   "name": "Steam Condenser",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": 500000,
+   "transfer": null,
+   "capacity": {
+    "perNode": 5000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 52,
+    "l": 16
+   },
+   "cost": 2400000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steam_Condenser",
+     "page": "Steam Condenser",
+     "revisionId": 43283,
+     "fetchedAt": "2026-10-11T01:03:34.201Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "steam-turbine",
+   "name": "Steam Turbine",
+   "category": "Power",
+   "subcategory": "Non-Renewable",
+   "output": [
+    432,
+    9360
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 12000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 100000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 2
+   },
+   "cost": 40,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Steam_Turbine",
+     "page": "Steam Turbine",
+     "revisionId": 42759,
+     "fetchedAt": "2026-10-11T02:15:54.899Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 432MF/s - 9.36kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "tree",
+   "name": "Tree",
+   "category": "Modular",
+   "subcategory": "Tree Farm",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 80,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree",
+     "page": "Tree",
+     "revisionId": 43449,
+     "fetchedAt": "2026-10-12T07:24:05.182Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-controller",
+   "name": "Tree Farm Controller",
+   "category": "Modular",
+   "subcategory": "Tree Farm",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 750,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Controller",
+     "page": "Tree Farm Controller",
+     "revisionId": 41915,
+     "fetchedAt": "2026-10-11T02:15:54.901Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-output",
+   "name": "Tree Farm Output",
+   "category": "Modular",
+   "subcategory": "Tree Farm",
+   "output": null,
+   "input": null,
+   "transfer": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "capacity": null,
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 200,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Output",
+     "page": "Tree Farm Output",
+     "revisionId": 39240,
+     "fetchedAt": "2026-10-11T02:15:54.901Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-sprinkler",
+   "name": "Tree Farm Sprinkler",
+   "category": "Modular",
+   "subcategory": "Tree Farm",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 200,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Sprinkler",
+     "page": "Tree Farm Sprinkler",
+     "revisionId": 43448,
+     "fetchedAt": "2026-10-12T07:24:12.835Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "tree-farm-water-tank",
+   "name": "Tree Farm Water Tank",
+   "category": "Modular",
+   "subcategory": "Tree Farm",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 10,
+    "l": 4
+   },
+   "cost": 500,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Water_Tank",
+     "page": "Tree Farm Water Tank",
+     "revisionId": 39184,
+     "fetchedAt": "2026-10-11T02:15:54.903Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "turbine-generator",
+   "name": "Turbine Generator",
+   "category": "Modular",
+   "subcategory": "Modular Turbine",
+   "output": [
+    0,
+    550000000
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 720000000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 500000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 22,
+    "l": 12
+   },
+   "cost": 5000000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Turbine_Generator",
+     "page": "Turbine Generator",
+     "revisionId": 38694,
+     "fetchedAt": "2026-10-11T02:15:54.904Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 0-550MMF/s"
+    }
+   ]
+  },
+  {
+   "id": "turbine-input",
+   "name": "Turbine Input",
+   "category": "Modular",
+   "subcategory": "Modular Turbine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "cost": 150000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Turbine_Input",
+     "page": "Turbine Input",
+     "revisionId": 42905,
+     "fetchedAt": "2026-10-11T02:15:54.905Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "turbine-output",
+   "name": "Turbine Output",
+   "category": "Modular",
+   "subcategory": "Modular Turbine",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 12,
+    "l": 6
+   },
+   "cost": 150000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Turbine_Output",
+     "page": "Turbine Output",
+     "revisionId": 43056,
+     "fetchedAt": "2026-10-11T02:15:54.906Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "vertical-heat-exchanger",
+   "name": "Vertical Heat Exchanger",
+   "category": "Power",
+   "subcategory": "Large Power Plants",
+   "output": null,
+   "input": null,
+   "transfer": null,
+   "capacity": {
+    "perNode": 0,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 14,
+    "l": 14
+   },
+   "cost": 2718281,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Vertical_Heat_Exchanger",
+     "page": "Vertical Heat Exchanger",
+     "revisionId": 41951,
+     "fetchedAt": "2026-10-11T01:03:34.205Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "wind-turbine1",
+   "name": "Wind Turbine1",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    700,
+    4970
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 3000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 5000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 400,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine1",
+     "page": "Wind Turbine1",
+     "revisionId": 42392,
+     "fetchedAt": "2026-10-11T02:15:56.545Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 700MF/s - 4.97kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "wind-turbine2",
+   "name": "Wind Turbine2",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    2350,
+    16239.999999999998
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 15000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 50000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 1785,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine2",
+     "page": "Wind Turbine2",
+     "revisionId": 42391,
+     "fetchedAt": "2026-10-11T02:15:56.549Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 2.35kMF/s - 16.24kMF/s"
+    }
+   ]
+  },
+  {
+   "id": "wind-turbine3",
+   "name": "Wind Turbine3",
+   "category": "Power",
+   "subcategory": "Renewable",
+   "output": [
+    10370,
+    68720
+   ],
+   "input": null,
+   "transfer": {
+    "perNode": 1200000,
+    "nodes": 1
+   },
+   "capacity": {
+    "perNode": 1000000,
+    "nodes": 1
+   },
+   "rangeTiles": null,
+   "size": {
+    "w": 10,
+    "l": 10
+   },
+   "cost": 100000,
+   "pollutionPerHour": 0,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+     "page": "Wind Turbine3",
+     "revisionId": 42396,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "output",
+     "reason": "approximatif",
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 10.37kMF/s - 68.72kMF/s"
+    }
+   ]
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 # Données à vérifier
 
-> Fichier généré par `node scripts/build-data.ts` à partir du cache du 2026-10-11. Ne modifie que la section « Notes manuelles » en bas : le reste est réécrit à chaque génération.
+> Fichier généré par `node scripts/build-data.ts` à partir du cache du 2026-10-12. Ne modifie que la section « Notes manuelles » en bas : le reste est réécrit à chaque génération.
 >
 > Source principale : **Miraheze**. Contrôle croisé : **Fandom**. Les corrections vont dans `data/overrides.json`, ou se saisissent directement dans l'appli.
 
@@ -435,6 +435,53 @@ Le moteur les signalera comme « source inconnue » s'ils apparaissent dans une 
 - [Silicon](https://industrialist.fandom.com/wiki/Silicon) : {{Production}} sans machine
 - [Spent Fuel](https://industrialist.fandom.com/wiki/Spent_Fuel) : {{Production}} sans machine
 - [Spent Fuel](https://industrialist.fandom.com/wiki/Spent_Fuel) : {{Production}} sans machine
+
+<!-- extension:debut -->
+## Extension : énergie, logistique, RP, monde
+
+Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **0** bâtiment(s) (voir RELEVES.md).
+
+Toutes les formules et tous les faits attendus ont été reconnus.
+
+| Élément | Champ | Raison | Détail |
+|---|---|---|---|
+| Coal Power Plant | énergie · input | variable | valeur du wiki non lisible telle quelle : « Varies » |
+| Diesel Engine Generator | énergie · output | variable | valeur du wiki non lisible telle quelle : « Depends » |
+| Diesel Generator | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 55.2kMF/s-90kMF/s |
+| Electric Water Heater | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 5MMF (MV) 10MMF (HV) » |
+| Gasoline Generator | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 12kMF/s-100kMF/s |
+| Large Diesel Engine | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 5MMF/s - 6MMF/s |
+| Large Turbine | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 1kMF/s - 515.096kMF/s |
+| MV Pole | énergie · rangeTiles | manquant | portée du poteau absente de sa page : à relever en jeu |
+| Nuclear Power Plant | énergie · input | variable | valeur du wiki non lisible telle quelle : « Varies (HV/MV) » |
+| Nuclear Power Plant | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 100MMF (HV) ⚡2MMF (MV) » |
+| Resistor | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 550kMF* » |
+| Small MV Pole | énergie · rangeTiles | manquant | portée du poteau absente de sa page : à relever en jeu |
+| Solar Farm1 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 664.1kMF/s |
+| Solar Panel | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 120MF/s - 240MF/s |
+| Solar Panel2 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 5kMF/s |
+| Solar Panel3 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 29.7kMF/s |
+| Steam Turbine | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 432MF/s - 9.36kMF/s |
+| Turbine Generator | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 0-550MMF/s |
+| Wind Turbine1 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 700MF/s - 4.97kMF/s |
+| Wind Turbine2 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 2.35kMF/s - 16.24kMF/s |
+| Wind Turbine3 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 10.37kMF/s - 68.72kMF/s |
+| Gold Fluid Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
+| Gold Item Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
+| Medium Fluid Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
+| Medium Item Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
+| Small Fluid Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
+| Small Item Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
+| Huge Truck Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
+| Large Liquid Truck Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
+| Liquid Truck Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
+| Truck Depot | logistique · itemsPerSec | approximatif | « environ » 0,66 objet/s d'après la page Truck Depot |
+| Van Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
+| Research Station3 | RP · items en entrée | contradiction | La page dit « Requires two different Items to operate » et décrit aussi une pénalité de 30 % « if both input Items are the same ». À vérifier en jeu : la station accepte-t-elle deux fois le même item ? |
+| Research Station4 | RP · formule | manquant | Formule de vitesse et de plafond de la RS4 non transcrite (forme trop complexe pour une extraction sûre) : à transcrire à la main depuis la page avant la phase E3. |
+| Grille de construction | monde · unité | manquant | Les tuyaux sont en studs, la portée des poteaux en tuiles, les machines sans unité : à relever en jeu (RELEVES.md § 0). |
+| Turbines (Large, Steam) | énergie · puissance selon la température | manquant | Le wiki donne des plages et quelques points (vapeur ~190–215 ° avec une Firebox, 220 ° max en géothermie) mais pas la relation exacte : relevés en jeu bienvenus. |
+<!-- extension:fin -->
 
 ## Notes manuelles
 

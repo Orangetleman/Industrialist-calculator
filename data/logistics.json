@@ -1,0 +1,1585 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-12T07:24:12.835Z",
+  "primary": "miraheze",
+  "counts": {
+   "pipes": 43,
+   "storage": 6,
+   "depots": 5
+  }
+ },
+ "pipes": [
+  {
+   "id": "short-pipe",
+   "name": "Short Pipe",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "objet",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6 units",
+   "flowPerSec": 6,
+   "flowRaw": "6 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-turn",
+   "name": "Pipe Turn",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "objet",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6 units",
+   "flowPerSec": 6,
+   "flowRaw": "6 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-junction",
+   "name": "Pipe Junction",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "objet",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6 units",
+   "flowPerSec": 6,
+   "flowRaw": "6 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-section",
+   "name": "Pipe Section",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "objet",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6 units",
+   "flowPerSec": 6,
+   "flowRaw": "6 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-fluid-pipe",
+   "name": "Short Fluid Pipe",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "fluide",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6L",
+   "flowPerSec": 6,
+   "flowRaw": "6L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-turn",
+   "name": "Fluid Pipe Turn",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "fluide",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6L",
+   "flowPerSec": 6,
+   "flowRaw": "6L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-junction",
+   "name": "Fluid Pipe Junction",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "fluide",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6L",
+   "flowPerSec": 6,
+   "flowRaw": "6L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-section",
+   "name": "Fluid Pipe Section",
+   "section": "Tier I Pipes",
+   "tier": 1,
+   "kind": "fluide",
+   "price": 2,
+   "capacity": 6,
+   "capacityRaw": "6L",
+   "flowPerSec": 6,
+   "flowRaw": "6L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-pipe2",
+   "name": "Short Pipe2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "objet",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items. Transports items faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-turn2",
+   "name": "Pipe Turn2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "objet",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-junction2",
+   "name": "Pipe Junction2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "objet",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-section2",
+   "name": "Pipe Section2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "objet",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting items.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe2",
+   "name": "Pipe2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "objet",
+   "price": 250,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 2
+   },
+   "quote": "Used for transporting items. Transports items faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-pipe2",
+   "name": "Long Pipe2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "objet",
+   "price": 650,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 8,
+    "l": 2
+   },
+   "quote": "Used for transporting items. Transports items faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-fluid-pipe2",
+   "name": "Short Fluid Pipe2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 50,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids. Transports fluids faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-fluid-turn2",
+   "name": "Pipe Fluid Turn2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-fluid-junction2",
+   "name": "Pipe Fluid Junction2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids. Transports fluids faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-fluid-section2",
+   "name": "Pipe Fluid Section2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 100,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids. Transports fluids faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe2",
+   "name": "Fluid Pipe2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 150,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids. Transports fluids faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-fluid-pipe2",
+   "name": "Long Fluid Pipe2",
+   "section": "Tier III Pipes",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 500,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 8,
+    "l": 2
+   },
+   "quote": "Used for transporting fluids. Transports fluids faster.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "short-large-fluid-pipe",
+   "name": "Short Large Fluid Pipe",
+   "section": "Tier IV Fluid Pipes",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 12500,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-turn",
+   "name": "Large Fluid Pipe Turn",
+   "section": "Tier IV Fluid Pipes",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 25000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-junction",
+   "name": "Large Fluid Pipe Junction",
+   "section": "Tier IV Fluid Pipes",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 25000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-section",
+   "name": "Large Fluid Pipe Section",
+   "section": "Tier IV Fluid Pipes",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 25000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe",
+   "name": "Large Fluid Pipe",
+   "section": "Tier IV Fluid Pipes",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 25000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "long-large-fluid-pipe",
+   "name": "Long Large Fluid Pipe",
+   "section": "Tier IV Fluid Pipes",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 50000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 8,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "item-valve-control",
+   "name": "Item Valve Control",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "objet",
+   "price": 5000,
+   "capacity": 40,
+   "capacityRaw": "40 units input/30 units output/40 units bypassed",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s input, bypassed 60 units/s output",
+   "sizeStuds": {
+    "w": 6,
+    "l": 2
+   },
+   "quote": "Outputs the input item to the bypass output in the set amounts. If integrated overflow is enabled it will overflow, preferably into the straight direction.",
+   "gamepass": false,
+   "complex": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "flowPerSec",
+     "reason": "approximatif",
+     "detail": "plusieurs valeurs : capacité « 40 units input/30 units output/40 units bypassed », débit « 120 units/s input, bypassed 60 units/s output »"
+    }
+   ]
+  },
+  {
+   "id": "item-rate-meter",
+   "name": "Item Rate Meter",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "objet",
+   "price": 2560,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Displays how many items/s are flowing through it. Can also graph how flow changes.",
+   "gamepass": true,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "item-overflow-gate",
+   "name": "Item Overflow Gate",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "objet",
+   "price": 1000,
+   "capacity": 40,
+   "capacityRaw": "40 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 2
+   },
+   "quote": "Organization at its finest. If the primary output is full, the output will be directed to the output behind it.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "valve-control",
+   "name": "Valve Control",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 5000,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 6,
+    "l": 2
+   },
+   "quote": "Outputs the input fluid to the bypass output in the set amounts. If integrated overflow is enabled it will overflow, preferably into the straight direction.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "cold-bypass-pipe",
+   "name": "Cold Bypass Pipe",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 5000,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 6,
+    "l": 2
+   },
+   "quote": "Outputs water to the bypass if its below the set temperature.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-rate-meter",
+   "name": "Fluid Rate Meter",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 2560,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Displays how many liters/s are flowing through it. Can graph temperature and flow too.",
+   "gamepass": true,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "overflow-gate",
+   "name": "Overflow Gate",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 1000,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 2
+   },
+   "quote": "Organization at its finest. If the primary output is full, the output will be directed to the one behind the main output.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "pipe-valve",
+   "name": "Pipe Valve",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 4000,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "For when you need to redirect your flow every now and then.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "large-fluid-pipe-conversion",
+   "name": "Large Fluid Pipe Conversion",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 125000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s (Small) 12,000L/s (Large)",
+   "sizeStuds": {
+    "w": 8,
+    "l": 8
+   },
+   "quote": "Used for getting fluid into large pipes (or vice versa), requires power.",
+   "gamepass": false,
+   "complex": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "flowPerSec",
+     "reason": "approximatif",
+     "detail": "plusieurs valeurs : capacité « 2,000L », débit « 120L/s (Small) 12,000L/s (Large) »"
+    }
+   ]
+  },
+  {
+   "id": "large-fluid-valve-control",
+   "name": "Large Fluid Valve Control",
+   "section": "Special Pipes",
+   "tier": null,
+   "kind": "fluide",
+   "price": 100000,
+   "capacity": 6000,
+   "capacityRaw": "6,000L (Total)",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 12,
+    "l": 8
+   },
+   "quote": "Outputs the input fluid to the bypass output in set amounts. If integrated overflow is enabled it will overflow, preferably into the straight direction.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-pipe-intersection",
+   "name": "Rusty Pipe Intersection",
+   "section": "Intersections",
+   "tier": 1,
+   "kind": "objet",
+   "price": 250,
+   "capacity": 6,
+   "capacityRaw": "6 units",
+   "flowPerSec": 6,
+   "flowRaw": "6 units/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "An overengineered pipe for your messy pipes. This one is more affordable.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-fluid-pipe-intersection",
+   "name": "Rusty Fluid Pipe Intersection",
+   "section": "Intersections",
+   "tier": 1,
+   "kind": "fluide",
+   "price": 250,
+   "capacity": 6,
+   "capacityRaw": "6L",
+   "flowPerSec": 6,
+   "flowRaw": "6L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "An overengineered pipe for your messy pipes. This one is more affordable.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "rusty-fluid-pipe-and-item-intersection",
+   "name": "Rusty Fluid Pipe and Item Intersection",
+   "section": "Intersections",
+   "tier": 1,
+   "kind": "mixte",
+   "price": 250,
+   "capacity": 6,
+   "capacityRaw": "6 units & 6L",
+   "flowPerSec": 6,
+   "flowRaw": "6 units/s & 6L/s",
+   "sizeStuds": {
+    "w": 6,
+    "l": 6
+   },
+   "quote": "An overengineered pipe for your messy pipes. Slower than the more advanced one.",
+   "gamepass": false,
+   "complex": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "flowPerSec",
+     "reason": "approximatif",
+     "detail": "plusieurs valeurs : capacité « 6 units & 6L », débit « 6 units/s & 6L/s »"
+    }
+   ]
+  },
+  {
+   "id": "pipe-intersection",
+   "name": "Pipe Intersection",
+   "section": "Intersections",
+   "tier": 3,
+   "kind": "objet",
+   "price": 4000,
+   "capacity": 20,
+   "capacityRaw": "20 units",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "An overengineered pipe for your messy pipes.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-intersection",
+   "name": "Fluid Pipe Intersection",
+   "section": "Intersections",
+   "tier": 3,
+   "kind": "fluide",
+   "price": 5000,
+   "capacity": 40,
+   "capacityRaw": "40L",
+   "flowPerSec": 120,
+   "flowRaw": "120L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "An overengineered pipe for your messy pipes.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "fluid-pipe-and-item-intersection",
+   "name": "Fluid Pipe and Item Intersection",
+   "section": "Intersections",
+   "tier": 3,
+   "kind": "mixte",
+   "price": 5000,
+   "capacity": 40,
+   "capacityRaw": "40 units & 40L",
+   "flowPerSec": 120,
+   "flowRaw": "120 units/s & 120L/s",
+   "sizeStuds": {
+    "w": 2,
+    "l": 2
+   },
+   "quote": "An overengineered pipe for your messy pipes.",
+   "gamepass": false,
+   "complex": true,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "flowPerSec",
+     "reason": "approximatif",
+     "detail": "plusieurs valeurs : capacité « 40 units & 40L », débit « 120 units/s & 120L/s »"
+    }
+   ]
+  },
+  {
+   "id": "large-fluid-pipe-intersection",
+   "name": "Large Fluid Pipe Intersection",
+   "section": "Intersections",
+   "tier": 4,
+   "kind": "fluide",
+   "price": 200000,
+   "capacity": 2000,
+   "capacityRaw": "2,000L",
+   "flowPerSec": 12000,
+   "flowRaw": "12,000L/s",
+   "sizeStuds": {
+    "w": 4,
+    "l": 4
+   },
+   "quote": "Used for transporting large amounts of fluids.",
+   "gamepass": false,
+   "complex": false,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Pipes",
+     "page": "Pipes",
+     "revisionId": 42862,
+     "fetchedAt": "2026-10-12T07:24:00.787Z"
+    }
+   ],
+   "verify": []
+  }
+ ],
+ "storage": [
+  {
+   "id": "gold-fluid-storage-silo",
+   "name": "Gold Fluid Storage Silo",
+   "kind": "fluide",
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 100000,
+   "capacity": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Fluid_Storage_Silo",
+     "page": "Gold Fluid Storage Silo",
+     "revisionId": 41964,
+     "fetchedAt": "2026-10-11T02:15:46.154Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "manquant",
+     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "gold-item-storage-silo",
+   "name": "Gold Item Storage Silo",
+   "kind": "objet",
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 100000,
+   "capacity": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gold_Item_Storage_Silo",
+     "page": "Gold Item Storage Silo",
+     "revisionId": 41963,
+     "fetchedAt": "2026-10-11T02:15:46.155Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "manquant",
+     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "medium-fluid-storage-silo",
+   "name": "Medium Fluid Storage Silo",
+   "kind": "fluide",
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 500,
+   "capacity": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Medium_Fluid_Storage_Silo",
+     "page": "Medium Fluid Storage Silo",
+     "revisionId": 42500,
+     "fetchedAt": "2026-10-11T02:15:49.199Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "manquant",
+     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "medium-item-storage-silo",
+   "name": "Medium Item Storage Silo",
+   "kind": "objet",
+   "size": {
+    "w": 4,
+    "l": 4
+   },
+   "cost": 500,
+   "capacity": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Medium_Item_Storage_Silo",
+     "page": "Medium Item Storage Silo",
+     "revisionId": 38195,
+     "fetchedAt": "2026-10-11T02:15:49.200Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "manquant",
+     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "small-fluid-storage-silo",
+   "name": "Small Fluid Storage Silo",
+   "kind": "fluide",
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 100,
+   "capacity": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Small_Fluid_Storage_Silo",
+     "page": "Small Fluid Storage Silo",
+     "revisionId": 38254,
+     "fetchedAt": "2026-10-11T02:15:53.716Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "manquant",
+     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "small-item-storage-silo",
+   "name": "Small Item Storage Silo",
+   "kind": "objet",
+   "size": {
+    "w": 2,
+    "l": 2
+   },
+   "cost": 100,
+   "capacity": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Small_Item_Storage_Silo",
+     "page": "Small Item Storage Silo",
+     "revisionId": 39268,
+     "fetchedAt": "2026-10-11T02:15:54.891Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "capacity",
+     "reason": "manquant",
+     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
+    }
+   ]
+  }
+ ],
+ "depots": [
+  {
+   "id": "huge-truck-depot",
+   "name": "Huge Truck Depot",
+   "kind": "objet",
+   "size": {
+    "w": 26,
+    "l": 8
+   },
+   "cost": 3200,
+   "itemsPerSec": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Huge_Truck_Depot",
+     "page": "Huge Truck Depot",
+     "revisionId": 43188,
+     "fetchedAt": "2026-10-11T02:15:46.165Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "itemsPerSec",
+     "reason": "manquant",
+     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "large-liquid-truck-depot",
+   "name": "Large Liquid Truck Depot",
+   "kind": "fluide",
+   "size": {
+    "w": 22,
+    "l": 8
+   },
+   "cost": 50000,
+   "itemsPerSec": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Liquid_Truck_Depot",
+     "page": "Large Liquid Truck Depot",
+     "revisionId": 42610,
+     "fetchedAt": "2026-10-11T02:15:47.487Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "itemsPerSec",
+     "reason": "manquant",
+     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "liquid-truck-depot",
+   "name": "Liquid Truck Depot",
+   "kind": "fluide",
+   "size": {
+    "w": 16,
+    "l": 8
+   },
+   "cost": 500,
+   "itemsPerSec": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Liquid_Truck_Depot",
+     "page": "Liquid Truck Depot",
+     "revisionId": 42609,
+     "fetchedAt": "2026-10-11T02:15:47.493Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "itemsPerSec",
+     "reason": "manquant",
+     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
+    }
+   ]
+  },
+  {
+   "id": "truck-depot",
+   "name": "Truck Depot",
+   "kind": "objet",
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "cost": 100,
+   "itemsPerSec": 0.6666666666666666,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Truck_Depot",
+     "page": "Truck Depot",
+     "revisionId": 42606,
+     "fetchedAt": "2026-10-11T02:15:54.903Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "itemsPerSec",
+     "reason": "approximatif",
+     "detail": "« environ » 0,66 objet/s d'après la page Truck Depot"
+    }
+   ]
+  },
+  {
+   "id": "van-depot",
+   "name": "Van Depot",
+   "kind": "objet",
+   "size": {
+    "w": 10,
+    "l": 8
+   },
+   "cost": 160,
+   "itemsPerSec": null,
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Van_Depot",
+     "page": "Van Depot",
+     "revisionId": 42607,
+     "fetchedAt": "2026-10-11T02:15:54.908Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "itemsPerSec",
+     "reason": "manquant",
+     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
+    }
+   ]
+  }
+ ]
+}

@@ -265,6 +265,8 @@ async function main(): Promise<void> {
     const modules = (await listModules("miraheze", "Recipes/")).filter((t) => t !== "Module:Recipes/Recipes Bucket");
     report("modules de recettes", await fetchPages("miraheze", modules));
     report("arbre de recherche", await fetchPages("miraheze", ["Module:RS/Data", "Research System"]));
+    // Extension (énergie, logistique, RP) : pages de référence générales.
+    report("pages de référence", await fetchPages("miraheze", ["Pipes", "Weather & Time", "Logic", "RP Making", "Pollution", "Money Making", "Steam"]));
     machineNames.push(...modules.map((t) => t.replace("Module:Recipes/", "")));
     report("pages machines", await fetchPages("miraheze", [...machineNames, "Tree"]));
     report("pages des autres bâtiments de l'arbre", await fetchPages("miraheze", buildingsFromResearch().filter((b) => !machineNames.includes(b))));

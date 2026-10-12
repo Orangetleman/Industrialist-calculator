@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generatedAt": "2026-10-11T02:15:56.550Z",
+  "generatedAt": "2026-10-12T07:24:21.774Z",
   "primary": "miraheze",
   "counts": {
    "machines": 264,
@@ -479,8 +479,8 @@
      "wiki": "miraheze",
      "url": "https://industrialist.miraheze.org/wiki/Boiler",
      "page": "Boiler",
-     "revisionId": 43219,
-     "fetchedAt": "2026-10-11T01:03:28.144Z"
+     "revisionId": 43471,
+     "fetchedAt": "2026-10-12T07:24:05.178Z"
     }
    ],
    "verify": []
@@ -786,7 +786,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1596,8 +1596,8 @@
      "wiki": "miraheze",
      "url": "https://industrialist.miraheze.org/wiki/Farm_Harvester",
      "page": "Farm Harvester",
-     "revisionId": 42588,
-     "fetchedAt": "2026-10-11T02:15:46.151Z"
+     "revisionId": 43495,
+     "fetchedAt": "2026-10-12T07:24:12.830Z"
     }
    ],
    "verify": []
@@ -1729,7 +1729,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1754,7 +1754,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1779,7 +1779,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1804,7 +1804,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1829,7 +1829,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1854,7 +1854,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1879,7 +1879,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1904,7 +1904,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -1929,7 +1929,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3073,7 +3073,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3098,7 +3098,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3186,7 +3186,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3211,7 +3211,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3236,7 +3236,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3261,7 +3261,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3286,7 +3286,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3311,7 +3311,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3336,7 +3336,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3361,7 +3361,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -3386,7 +3386,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4212,7 +4212,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4237,7 +4237,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4262,7 +4262,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4287,7 +4287,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4638,8 +4638,8 @@
      "wiki": "miraheze",
      "url": "https://industrialist.miraheze.org/wiki/Nuclear_Power_Plant",
      "page": "Nuclear Power Plant",
-     "revisionId": 43336,
-     "fetchedAt": "2026-10-11T02:15:49.203Z"
+     "revisionId": 43451,
+     "fetchedAt": "2026-10-12T07:24:12.834Z"
     }
    ],
    "verify": []
@@ -4804,7 +4804,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4883,7 +4883,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4908,7 +4908,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4933,7 +4933,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4958,7 +4958,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -4983,7 +4983,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5008,7 +5008,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5033,7 +5033,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5058,7 +5058,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5083,7 +5083,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5843,7 +5843,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5868,7 +5868,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -5893,7 +5893,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -6092,7 +6092,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -6117,7 +6117,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -6142,7 +6142,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -6167,7 +6167,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -6192,7 +6192,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -6576,8 +6576,8 @@
      "wiki": "miraheze",
      "url": "https://industrialist.miraheze.org/wiki/Tree",
      "page": "Tree",
-     "revisionId": 43254,
-     "fetchedAt": "2026-10-11T01:03:34.202Z"
+     "revisionId": 43449,
+     "fetchedAt": "2026-10-12T07:24:05.182Z"
     }
    ],
    "verify": []
@@ -6657,8 +6657,8 @@
      "wiki": "miraheze",
      "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Sprinkler",
      "page": "Tree Farm Sprinkler",
-     "revisionId": 42001,
-     "fetchedAt": "2026-10-11T02:15:54.902Z"
+     "revisionId": 43448,
+     "fetchedAt": "2026-10-12T07:24:12.835Z"
     }
    ],
    "verify": []
@@ -6904,7 +6904,7 @@
      "url": "https://industrialist.miraheze.org/wiki/Pipes",
      "page": "Pipes",
      "revisionId": 42862,
-     "fetchedAt": "2026-10-11T02:15:53.702Z",
+     "fetchedAt": "2026-10-12T07:24:00.787Z",
      "note": "page commune à plusieurs bâtiments (« Pipes ») : valeurs non reprises"
     }
    ],
@@ -7305,8 +7305,8 @@
    "wiki": "miraheze",
    "url": "https://industrialist.miraheze.org/wiki/Tree",
    "page": "Tree",
-   "revisionId": 43254,
-   "fetchedAt": "2026-10-11T01:03:34.202Z"
+   "revisionId": 43449,
+   "fetchedAt": "2026-10-12T07:24:05.182Z"
   },
   "calculatorUrl": "https://www.desmos.com/calculator/u6sonlrwl9",
   "formula": {

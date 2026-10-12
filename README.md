@@ -61,6 +61,16 @@ Ce script enchaîne deux étapes, lançables séparément :
 1. `node scripts/fetch-wiki.ts` interroge l'API MediaWiki de [Miraheze](https://industrialist.miraheze.org) (source principale) et de [Fandom](https://industrialist.fandom.com) (contrôle), avec un User-Agent identifié, une pause entre les requêtes et un cache dans `.cache/wiki/`. Seules les pages modifiées sont rechargées (`--force` pour tout recharger, `--only=miraheze` ou `--only=fandom`). Tu peux ajouter un contact au User-Agent avec la variable d'environnement `WIKI_CONTACT`. Si un wiki bloque, le script s'arrête sans rien contourner.
 2. `node scripts/build-data.ts` transforme le cache en `data/*.json`, sans accès réseau, et réécrit `data/a-verifier.md` : valeurs manquantes, contradictions entre wikis, écarts avec la référence. La section « Notes manuelles » de ce fichier est conservée.
 
+3. `node scripts/build-extension.ts` produit les données de l'extension : `logistics.json`
+   (tuyaux, silos, dépôts), `power.json` (générateurs, poteaux, batteries), `research-stations.json`
+   (formules des RP), `world.json` (jour, vapeur, logique) et `ports.json` (ports des bâtiments
+   relevés en jeu). Ce qui manque est listé dans la section « Extension » de `a-verifier.md`.
+
+### Relever un bâtiment en jeu
+
+Le wiki ne situe pas les entrées et sorties des machines. La méthode de relevé (fiche et trois
+captures) est décrite dans [RELEVES.md](RELEVES.md).
+
 ### Corriger une valeur
 
 - Dans l'appli : onglet **À vérifier**, saisis la valeur relevée en jeu (Recipe Book), puis **Exporter mes corrections**.

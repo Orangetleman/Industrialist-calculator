@@ -1,0 +1,142 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-12T07:24:12.835Z",
+  "primary": "miraheze",
+  "counts": {
+   "facts": 10
+  }
+ },
+ "facts": {
+  "dayMinutes": {
+   "value": 16,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Weather_%26_Time",
+    "page": "Weather & Time",
+    "revisionId": 43458,
+    "fetchedAt": "2026-10-12T07:24:00.790Z"
+   },
+   "quote": "A day lasts around 16 minutes"
+  },
+  "sunrise": {
+   "value": 6,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Weather_%26_Time",
+    "page": "Weather & Time",
+    "revisionId": 43458,
+    "fetchedAt": "2026-10-12T07:24:00.790Z"
+   },
+   "quote": "sun will rise at 6 and set at 17"
+  },
+  "sunset": {
+   "value": 17,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Weather_%26_Time",
+    "page": "Weather & Time",
+    "revisionId": 43458,
+    "fetchedAt": "2026-10-12T07:24:00.790Z"
+   },
+   "quote": "sun will rise at 6 and set at 17"
+  },
+  "spawnHour": {
+   "value": 7,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Weather_%26_Time",
+    "page": "Weather & Time",
+    "revisionId": 43458,
+    "fetchedAt": "2026-10-12T07:24:00.790Z"
+   },
+   "quote": "spawns into the world is 7"
+  },
+  "steamWaterIn": {
+   "value": 3,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Steam",
+    "page": "Steam",
+    "revisionId": 41732,
+    "fetchedAt": "2026-10-11T01:03:55.249Z"
+   },
+   "quote": "rate of 3L of [[Water]] -> 90L of '''Steam'''"
+  },
+  "steamOut": {
+   "value": 90,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Steam",
+    "page": "Steam",
+    "revisionId": 41732,
+    "fetchedAt": "2026-10-11T01:03:55.249Z"
+   },
+   "quote": "rate of 3L of [[Water]] -> 90L of '''Steam'''"
+  },
+  "steamLossPerConnection": {
+   "value": 0.01,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Steam",
+    "page": "Steam",
+    "revisionId": 41732,
+    "fetchedAt": "2026-10-11T01:03:55.249Z"
+   },
+   "quote": "lose around {{Heat|0.01}} for every connection"
+  },
+  "logicTickSeconds": {
+   "value": 0.16666666666666666,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Logic",
+    "page": "Logic",
+    "revisionId": 38590,
+    "fetchedAt": "2026-10-12T07:24:00.780Z"
+   },
+   "quote": "logic tick of delay built in (1/6th a second"
+  },
+  "truckDepot": {
+   "value": {
+    "capacity": 10,
+    "cycleSeconds": 15
+   },
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Truck_Depot",
+    "page": "Truck Depot",
+    "revisionId": 42606,
+    "fetchedAt": "2026-10-11T02:15:54.903Z"
+   },
+   "quote": "capacity of 10 items. After it is filled, it will automatically sell all its contents and return after 15 seconds"
+  },
+  "scrubberMaxPerHour": {
+   "value": 6.48,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Pollution",
+    "page": "Pollution",
+    "revisionId": 43253,
+    "fetchedAt": "2026-10-12T07:24:00.788Z"
+   },
+   "quote": "remove up to {{Pollution|6.48}}"
+  }
+ },
+ "grid": {
+  "cellStuds": null,
+  "snap": null,
+  "rotations": null,
+  "sources": [],
+  "verify": [
+   {
+    "field": "cellStuds",
+    "reason": "manquant",
+    "detail": "taille d'une case de la grille, en studs : à relever en jeu (RELEVES.md § 0)"
+   },
+   {
+    "field": "rotations",
+    "reason": "manquant",
+    "detail": "nombre de rotations possibles d'une machine : à relever en jeu"
+   }
+  ]
+ }
+}

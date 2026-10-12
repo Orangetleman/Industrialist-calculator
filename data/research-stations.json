@@ -1,0 +1,227 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-12T07:24:12.835Z",
+  "primary": "miraheze",
+  "counts": {}
+ },
+ "rs1": {
+  "rate": {
+   "value": "sqrt",
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station1",
+    "page": "Research Station1",
+    "revisionId": 40723,
+    "fetchedAt": "2026-10-11T02:15:53.709Z"
+   },
+   "quote": "\\text{RP/s}=\\sqrt n"
+  },
+  "capCoef": {
+   "value": 200,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station1",
+    "page": "Research Station1",
+    "revisionId": 40723,
+    "fetchedAt": "2026-10-11T02:15:53.709Z"
+   },
+   "quote": "Cap}=200\\log_{2}(n+1)"
+  }
+ },
+ "rs2": {
+  "rateCoef": {
+   "value": 2,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station2",
+    "page": "Research Station2",
+    "revisionId": 43078,
+    "fetchedAt": "2026-10-11T02:15:53.710Z"
+   },
+   "quote": "\\text{RP/s}=2 * n^{0.6}"
+  },
+  "rateExp": {
+   "value": 0.6,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station2",
+    "page": "Research Station2",
+    "revisionId": 43078,
+    "fetchedAt": "2026-10-11T02:15:53.710Z"
+   },
+   "quote": "\\text{RP/s}=2 * n^{0.6}"
+  },
+  "capCoef": {
+   "value": 2000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station2",
+    "page": "Research Station2",
+    "revisionId": 43078,
+    "fetchedAt": "2026-10-11T02:15:53.710Z"
+   },
+   "quote": "Cap}=2000 * \\log_{2}(m +1)"
+  },
+  "inputPerSec": {
+   "value": 0.5,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station2",
+    "page": "Research Station2",
+    "revisionId": 43078,
+    "fetchedAt": "2026-10-11T02:15:53.710Z"
+   },
+   "quote": "0.5u/s of any"
+  }
+ },
+ "rs3": {
+  "rateCoef": {
+   "value": 2,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "\\text{RP/s}=2n^{0.6}"
+  },
+  "rateExp": {
+   "value": 0.6,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "\\text{RP/s}=2n^{0.6}"
+  },
+  "capCoef": {
+   "value": 16500,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP Cap}=16500*(log_2(C+1)+}\\sqrt{C )"
+  },
+  "samePenalty": {
+   "value": 0.3,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "30% penalty to the '''Research Station3s'''' sum of item {{RP}} values (n) if both input"
+  },
+  "inputPerSecPerNode": {
+   "value": 0.1,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "consuming 0.1 units per second from each node"
+  }
+ },
+ "satellite": {
+  "boostCoef": {
+   "value": 0.78,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish_Controller",
+    "page": "Satellite Dish Controller",
+    "revisionId": 43418,
+    "fetchedAt": "2026-10-11T02:15:53.715Z"
+   },
+   "quote": "B \\times 0.78\\log(R + 1)"
+  },
+  "dishes": {
+   "value": "ceil(S+sqrt(S*R))",
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish_Controller",
+    "page": "Satellite Dish Controller",
+    "revisionId": 43418,
+    "fetchedAt": "2026-10-11T02:15:53.715Z"
+   },
+   "quote": "\\lceil S + \\sqrt{S * R} \\bigr \\rceil"
+  },
+  "liquidPerSec": {
+   "value": 0.5,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish_Controller",
+    "page": "Satellite Dish Controller",
+    "revisionId": 43418,
+    "fetchedAt": "2026-10-11T02:15:53.715Z"
+   },
+   "quote": "liquid (0.5L/s)"
+  }
+ },
+ "softCap": {
+  "rs123": {
+   "value": "10^(1-x)",
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_System",
+    "page": "Research System",
+    "revisionId": 43300,
+    "fetchedAt": "2026-10-11T01:03:23.485Z"
+   },
+   "quote": "\\text{CurrentRPs} * 10 ^ {1-x}"
+  },
+  "rs4": {
+   "value": "10^(1-sqrt(x))",
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_System",
+    "page": "Research System",
+    "revisionId": 43300,
+    "fetchedAt": "2026-10-11T01:03:23.485Z"
+   },
+   "quote": "\\text{CurrentRPs} * 10 ^ {1-\\sqrt[]{x}}"
+  },
+  "x": {
+   "value": "max(RP/cap,1)",
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_System",
+    "page": "Research System",
+    "revisionId": 43300,
+    "fetchedAt": "2026-10-11T01:03:23.485Z"
+   },
+   "quote": "x = \\max(\\frac{\\text{CurrentRP}}{\\text{RPCap}}, 1)"
+  }
+ },
+ "startRp": {
+  "value": {
+   "normal": 50,
+   "other": 300
+  },
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Research_System",
+   "page": "Research System",
+   "revisionId": 43300,
+   "fetchedAt": "2026-10-11T01:03:23.485Z"
+  },
+  "quote": "{{RP|50}} for worlds on {{Difficulties|Normal}} or with {{Difficulties|Sandbox}} enabled, and {{RP|300}} for the other"
+ },
+ "buildings": [
+  "research-station1",
+  "research-station2",
+  "research-station3",
+  "research-station4",
+  "research-tracking-panel",
+  "satellite-dish",
+  "satellite-dish-controller"
+ ]
+}
