@@ -62,7 +62,7 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   goal: "objet",
   item: "crankshaft",
-  mode: "machines",
+  mode: "rate",
   rate: 60,
   machines: 15,
   criteria: { objet: "energy", argent: "machines", énergie: "machines", recherche: "machines" },

@@ -11,7 +11,8 @@ import { designLine, researchAlternatives, researchExplain, researchTimeline, ST
 import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
 import type { Goal } from "./state.ts";
 
-export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null };
+/** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean };
 
 // ---------------------------------------------------------------- priorité
 
@@ -253,6 +254,7 @@ export function renderAnswer(v: ViewCtx): string {
   ].join("");
   const forcedUsed = p.steps.filter((s) => s.forced).length;
   const notes = [
+    v.fresh ? `<li>Le calcul part d'une partie neuve (seulement ce qui est acquis d'office). <a href="#usine">Indique tes recherches débloquées</a> pour un plan qui te correspond.</li>` : "",
     ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${esc(w.message)}</li>`),
     ...missingNotes(v),
     ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${esc(x)}</li>`),

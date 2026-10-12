@@ -257,31 +257,38 @@ function ensurePlan(): void {
     plan = rpView?.best?.plan ?? solve(data, playerState(), { item: "", demands: {}, tiers: false });
     return;
   }
-  plan = solve(data, playerState(), {
-    item: settings.item,
-    ...(goal === "argent"
+  const request = (target: Partial<Parameters<typeof solve>[2]>) =>
+    solve(data, playerState(), {
+      item: settings.item,
+      ...target,
+      poles: POLES,
+      distanceTiles: settings.distanceTiles,
+      criterion: settings.criteria[goal],
+      forced: settings.forced,
+      useUnverified: settings.useUnverified,
+      selfPowered: settings.selfPowered,
+      maxPollution: settings.maxPollution,
+      budget: settings.useBudget && player.money !== null ? player.money : null,
+      depots: DEPOTS,
+      existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
+    });
+  plan = request(
+    goal === "argent"
       ? { moneyPerMin: settings.money }
       : goal === "énergie"
         ? { energyMFps: settings.energyMFps, guaranteedEnergy: settings.energyGuaranteed, noFuel: settings.energyNoFuel }
         : settings.mode === "rate"
           ? { ratePerMin: settings.rate }
-          : { finalMachines: settings.machines }),
-    poles: POLES,
-    distanceTiles: settings.distanceTiles,
-    criterion: settings.criteria[goal],
-    forced: settings.forced,
-    useUnverified: settings.useUnverified,
-    selfPowered: settings.selfPowered,
-    maxPollution: settings.maxPollution,
-    budget: settings.useBudget && player.money !== null ? player.money : null,
-    depots: DEPOTS,
-    existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
-  });
+          : { finalMachines: settings.machines },
+  );
+  // N machines finales impossibles à convertir (aucune recette utilisable) : on calcule au débit
+  // pour pouvoir dire ce qui manque, plutôt qu'un message technique.
+  if (goal === "objet" && settings.mode === "machines" && plan.warnings.some((w) => w.code === "machines-finales")) plan = request({ ratePerMin: settings.rate });
 }
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data, plan: plan!, settings, corrections, goal: settings.goal, research: rpView };
+  return { data, plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh() };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
