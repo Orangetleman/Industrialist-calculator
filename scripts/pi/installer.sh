@@ -68,6 +68,12 @@ server {
         add_header Cache-Control "public, max-age=31536000, immutable";
         try_files \$uri =404;
     }
+    location = /site.webmanifest {
+        types { }
+        default_type application/manifest+json;
+        include snippets/$NOM-entetes.conf;
+        add_header Cache-Control "no-cache";
+    }
     location / {
         include snippets/$NOM-entetes.conf;
         add_header Cache-Control "no-cache";
