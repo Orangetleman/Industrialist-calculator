@@ -154,7 +154,7 @@ export function renderTree(data: GameData, p: Progress, view: TreeView): string 
     const row = `<li class="node ${state}">
       <label class="node-main"><input type="checkbox" data-node="${esc(n.id)}"${unlocked ? " checked" : ""} aria-describedby="nd-${esc(n.id)}">
         <span class="node-name">${esc(n.name)}</span><span class="node-rp num">${fmt(n.rp, 0)} RP</span></label>
-      <div class="node-meta" id="nd-${esc(n.id)}"><span class="sr-only">${stateLabel}. </span>${machines.length ? `<span>Débloque : ${esc(machines.join(", "))}</span>` : ""}${
+      <div class="node-meta" id="nd-${esc(n.id)}"><span class="sr-only">${stateLabel}. </span>${n.description ? `<span class="node-desc">${esc(n.description.length > 140 ? `${n.description.slice(0, 139)}…` : n.description)}</span>` : ""}${machines.length ? `<span>Débloque : ${esc(machines.join(", "))}</span>` : ""}${
         n.unlocksOther.length ? `<span class="muted">${esc(n.unlocksOther.join(", "))}</span>` : ""
       }${parentsText ? `<span>${parentsText}</span>` : ""}${state === "incoherent" ? `<span class="warn-text">⚠ prérequis non coché</span>` : ""}</div>
       ${req}</li>`;

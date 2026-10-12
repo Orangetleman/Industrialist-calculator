@@ -252,3 +252,20 @@ describe("arbre de recherche « comme en jeu »", () => {
     expect(detail).toContain("Water Pump → Modular Tree Farm → Sawmill → Craft Assembler");
   });
 });
+
+describe("description des recherches (recopiée du jeu)", () => {
+  it("une correction « description » s'applique et s'affiche ; texte vide refusé", () => {
+    const src = { wiki: "saisie" as const, fetchedAt: "2026-10-12T09:00:00Z" };
+    const text = "Unlocks several machines required for plastic production.";
+    const { data: d, errors } = buildGameData(files, [{ research: { plastics: { description: { value: text, source: src } } } }]);
+    expect(errors).toEqual([]);
+    expect(d.nodes.get("plastics")!.description).toBe(text);
+    const html = renderNodeDetail(d, { unlocked: new Set() }, "plastics", null);
+    expect(html).toContain(text);
+    expect(html).toContain("Recopiée du jeu le 2026-10-12");
+    expect(html).toContain('data-rs-desc="plastics"');
+    expect(buildGameData(files, [{ research: { plastics: { description: { value: "  ", source: src } } } }]).errors[0]).toMatch(/1 à 2000/);
+    // Sans saisie : le formulaire invite à la recopier.
+    expect(renderNodeDetail(data, { unlocked: new Set() }, "plastics", null)).toContain("Recopier la description du jeu");
+  });
+});

@@ -337,6 +337,26 @@ function bindResearchCanvas(): void {
     else if (act.dataset.rsAction === "unlock-one") setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, id])] });
     else if (act.dataset.rsAction === "lock") await toggleNode(id, false);
   });
+  // Description recopiée du jeu : gardée comme une correction (exportable avec les autres).
+  $("rs-detail").addEventListener("submit", (e) => {
+    const form = (e.target as HTMLElement).closest<HTMLFormElement>("form[data-rs-desc]");
+    if (!form) return;
+    e.preventDefault();
+    const id = form.dataset.rsDesc!;
+    const text = (form.elements.namedItem("text") as HTMLTextAreaElement).value.trim();
+    corrections = text ? setCorrection(corrections, "research", id, "description", text, "description recopiée du jeu") : removeCorrection(corrections, "research", id, "description");
+    saveCorrections(corrections);
+    rebuildData();
+    render();
+  });
+  $("rs-detail").addEventListener("click", (e) => {
+    const del = (e.target as HTMLElement).closest<HTMLElement>("[data-rs-desc-del]");
+    if (!del) return;
+    corrections = removeCorrection(corrections, "research", del.dataset.rsDescDel!, "description");
+    saveCorrections(corrections);
+    rebuildData();
+    render();
+  });
   $("rs-detail").addEventListener("change", (e) => {
     const input = e.target as HTMLInputElement;
     const id = input.dataset.req;

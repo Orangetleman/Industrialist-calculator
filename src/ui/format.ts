@@ -80,6 +80,7 @@ export function fieldLabel(field: string, name: (id: string) => string): string 
       unlockedBy: "nœud de recherche",
       page: "page du wiki",
       requires: "règle des prérequis",
+      description: "description (jeu)",
     } as Record<string, string>
   )[field] ?? field;
 }

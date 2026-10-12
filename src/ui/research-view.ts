@@ -76,6 +76,25 @@ function machineCard(m: Machine, data: GameData): string {
   </li>`;
 }
 
+/**
+ * Description de la recherche, comme le panneau « Description » du jeu. Les wikis ne la donnent
+ * pas : le joueur peut la recopier depuis le jeu (gardée comme une correction, exportable).
+ */
+function descriptionBlock(n: ResearchNode): string {
+  if (n.isRoot) return "";
+  const text = n.description ?? null;
+  const saisie = n.corrections?.find((c) => c.field === "description");
+  const form = (open: boolean) => `<details class="rs-desc-edit"${open ? " open" : ""}><summary>${text ? "Modifier la description" : "Recopier la description du jeu"}</summary>
+      <form data-rs-desc="${esc(n.id)}">
+        <label for="desc-${esc(n.id)}" class="sr-only">Description affichée en jeu</label>
+        <textarea id="desc-${esc(n.id)}" name="text" rows="4" maxlength="2000" placeholder="Texte du panneau « Description » en jeu">${esc(text ?? "")}</textarea>
+        <div class="actions"><button type="submit">Enregistrer</button>${text ? `<button type="button" class="link" data-rs-desc-del="${esc(n.id)}">Supprimer</button>` : ""}</div>
+      </form></details>`;
+  return `<h4 class="eyebrow">Description</h4>
+    ${text ? `<p class="rs-desc">${esc(text).replace(/\n/g, "<br>")}</p><p class="hint">Recopiée du jeu${saisie ? ` le ${esc(saisie.source.fetchedAt.slice(0, 10))}` : ""}.</p>` : `<p class="muted">Pas de description sur les wikis.</p>`}
+    ${form(false)}`;
+}
+
 /** Fiche détaillée d'une recherche (affichée sous l'arbre, comme le panneau du jeu). */
 export function renderNodeDetail(data: GameData, p: Progress, id: string | null, rp: number | null): string {
   const n = id ? data.nodes.get(id) : undefined;
@@ -104,6 +123,7 @@ export function renderNodeDetail(data: GameData, p: Progress, id: string | null,
     ${n.parents.length ? `<p class="meta"><span>Requiert ${n.requires === "any" && n.parents.length > 1 ? "l'une de" : ""} : ${n.parents.map((x) => `<button type="button" class="link${isNodeUnlocked(data, p, x) ? "" : " miss"}" data-rs-goto="${esc(x)}">${esc(nodeName(x))}</button>`).join(n.requires === "any" ? " ou " : " + ")}</span></p>` : ""}
     ${missing.length && !p.unlocked.has(n.id) ? `<p class="meta"><span>Chemin depuis ta progression : ${missing.map((x) => esc(nodeName(x))).join(" → ")} → ${esc(n.name)}</span></p>` : ""}
     ${n.reqItems.length ? `<label class="req"><input type="checkbox" data-req="${esc(n.id)}"${reqDone ? " checked" : ""}> Condition : vendre ${n.reqItems.map((r) => `${r.amount} ${esc(data.items.get(r.item)?.name ?? r.item)}`).join(" + ")}</label>` : ""}
+    ${descriptionBlock(n)}
     <h4 class="eyebrow">Débloque</h4>
     ${buildings.length ? `<ul class="bcards">${buildings.map((m) => machineCard(m, data)).join("")}</ul>` : `<p class="muted">Aucun bâtiment.</p>`}
     ${n.unlocksOther.length ? `<p class="muted">Aussi : ${esc(n.unlocksOther.join(", "))}</p>` : ""}

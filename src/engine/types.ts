@@ -109,6 +109,8 @@ export type ResearchNode = {
   unlocksOther: string[];
   reqItems: { item: string; amount: number }[];
   isRoot: boolean;
+  /** Description affichée en jeu : absente des wikis, saisie par le joueur (correction). */
+  description?: string | null;
   sources: Source[];
   verify: VerifyFlag[];
   corrections?: Correction[];

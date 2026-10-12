@@ -96,6 +96,11 @@ const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: stri
   research(field, v) {
     if (field === "requires") return v === "all" || v === "any" ? { ok: true, value: v } : { ok: false, error: "« all » ou « any » attendu" };
     if (field === "rp") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: "nombre ≥ 0 attendu" };
+    // Description en jeu : absente des wikis, recopiée par le joueur.
+    if (field === "description") {
+      const t = typeof v === "string" ? v.trim() : "";
+      return t && t.length <= 2000 ? { ok: true, value: t } : { ok: false, error: "texte de 1 à 2000 caractères attendu" };
+    }
     return { ok: false, error: "champ non corrigeable" };
   },
 };

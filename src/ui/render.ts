@@ -237,7 +237,8 @@ function showValue(v: unknown): string {
   if (typeof v === "number") return fmt(v, 4);
   if (typeof v === "object" && v && "w" in v && "l" in v) return `${(v as { w: number }).w}×${(v as { l: number }).l}`;
   if (Array.isArray(v)) return v.map(showValue).join(" – ");
-  return String(v);
+  const s = String(v);
+  return s.length > 80 ? `${s.slice(0, 79)}…` : s;
 }
 
 export function renderVerify(ctx: Ctx): string {
