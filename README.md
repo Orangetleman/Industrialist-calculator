@@ -1,5 +1,7 @@
 # Calculateur de production — Industrialist (Roblox)
 
+> **English** — This page brings together all the information about the Roblox game “Industrialist” with the goal of providing a tool for creating automated production lines. Live version: https://industrialist.myprisme.fr (the interface is in French).
+
 Outil web **local** : tu coches ta progression dans l'arbre de recherche, tu choisis un item et un débit, et il donne toute la chaîne de production (recettes, nombre de machines, énergie, matières premières, surplus), uniquement avec ce que tu as débloqué.
 
 ## Installation
