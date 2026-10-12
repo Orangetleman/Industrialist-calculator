@@ -13,13 +13,34 @@ export type ProgressState = { unlocked: string[]; reqItemsDone: string[]; owned:
  * « Ma partie ». `rpAt` : moment (ms) où les RP ont été saisis ; avec `rpPerSec`, les RP
  * évoluent tout seuls (estimation : la vitesse réelle peut changer en jeu).
  */
-export type PlayerInfo = { pollutionPct: number | null; money: number | null; rp: number | null; rpPerSec: number | null; rpAt: number | null };
+export type PlayerInfo = {
+  pollutionPct: number | null;
+  money: number | null;
+  rp: number | null;
+  rpPerSec: number | null;
+  rpAt: number | null;
+  /** Débloquer une recherche sur le site dépense ses RP (et la retirer les rend). */
+  spendRp: boolean;
+};
 
 /** RP estimés à l'instant `now` : RP saisis + RP/s × temps écoulé depuis la saisie. */
 export function currentRp(p: PlayerInfo, now = Date.now()): number | null {
   if (p.rp === null) return null;
   if (!p.rpPerSec || p.rpAt === null) return p.rp;
   return p.rp + p.rpPerSec * Math.max(0, now - p.rpAt) / 1000;
+}
+
+/** RP dépensés (> 0) ou rendus (< 0) en passant de `before` à `after` (racines et acquises d'office : gratuites). */
+export function rpDelta(data: GameData, before: readonly string[], after: readonly string[]): { spent: number; added: string[]; removed: string[] } {
+  const b = new Set(before);
+  const a = new Set(after);
+  const paid = (id: string) => {
+    const n = data.nodes.get(id);
+    return n && !n.isRoot && !n.startUnlocked ? n.rp : 0;
+  };
+  const added = [...a].filter((x) => !b.has(x) && paid(x) > 0);
+  const removed = [...b].filter((x) => !a.has(x) && paid(x) > 0);
+  return { spent: added.reduce((s, x) => s + paid(x), 0) - removed.reduce((s, x) => s + paid(x), 0), added, removed };
 }
 
 /** Change la vitesse sans perdre les RP déjà accumulés (on repart de l'estimation actuelle). */
@@ -32,7 +53,7 @@ const KEY_PROGRESS = "ind-calc:v1:progress";
 const KEY_PLAYER = "ind-calc:v1:player";
 
 export const EMPTY_PROGRESS: ProgressState = { unlocked: [], reqItemsDone: [], owned: [] };
-export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null };
+export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false };
 
 const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
 const numOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
@@ -57,7 +78,7 @@ export function loadPlayer(): PlayerInfo {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
-    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt) };
+    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true };
   } catch {
     return { ...EMPTY_PLAYER };
   }
@@ -113,7 +134,7 @@ export function parseProgressExport(
   return {
     ok: true,
     progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
-    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt) },
+    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true },
     dropped,
     exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,
   };

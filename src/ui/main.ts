@@ -15,6 +15,7 @@ import { esc, fmt, fmtMoney, fmtRP, parseInput } from "./format.ts";
 import {
   exportProgress,
   currentRp,
+  rpDelta,
   loadPlayer,
   loadProgress,
   parseOptional,
@@ -410,9 +411,45 @@ function syncPlayerForm(): void {
   set("p-rp", rp === null ? null : Math.floor(rp));
   renderRpLive();
   set("p-rps", player.rpPerSec);
+  ($("p-spend") as HTMLInputElement).checked = player.spendRp;
 }
 
-function setProgress(next: ProgressState): void {
+/**
+ * Applique une nouvelle progression. Avec l'option « débloquer dépense les RP », le coût des
+ * recherches ajoutées est retiré des RP (et rendu pour celles qu'on retire). Si les RP ne
+ * suffisent pas, on propose de saisir le montant actuel (les RP du site sont souvent en retard).
+ * `spend: false` : import d'un fichier ou remise à zéro, sans effet sur les RP.
+ */
+async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
+  const delta = rpDelta(data, prog.unlocked, next.unlocked);
+  const now = currentRp(player);
+  if (opts.spend !== false && player.spendRp && now !== null && delta.spent !== 0) {
+    let available = now;
+    while (delta.spent > available + 1e-9) {
+      const choice = await ask(
+        "Pas assez de RP",
+        `<p>Ce déblocage coûte <b>${esc(fmtRP(delta.spent))}</b> (${delta.added.length} recherche(s)), et le site estime que tu as <b>${esc(fmtRP(available))}</b>.</p>
+         <p>Si tu en as plus en jeu, indique ton montant actuel <i>avant</i> ce déblocage :</p>
+         <label class="ask-field">RP actuels <input id="ask-rp" inputmode="decimal" autocomplete="off" value="${Math.floor(available)}"></label>`,
+        [
+          { value: "set", label: "Valider ce montant", primary: true },
+          { value: "free", label: "Débloquer sans dépenser" },
+          { value: "", label: "Annuler" },
+        ],
+      );
+      if (!choice) return renderProgress();
+      if (choice === "free") return commitProgress(next);
+      const v = parseOptional((document.getElementById("ask-rp") as HTMLInputElement | null)?.value ?? "");
+      if (typeof v === "number" && v >= 0) available = v;
+    }
+    player = { ...player, rp: available - delta.spent, rpAt: Date.now() };
+    savePlayer(player);
+    syncPlayerForm();
+  }
+  commitProgress(next);
+}
+
+function commitProgress(next: ProgressState): void {
   prog = next;
   saveProgress(prog);
   render();
@@ -525,7 +562,7 @@ function bindProgress(): void {
       { value: "yes", label: "Réinitialiser", primary: true },
       { value: "", label: "Annuler" },
     ]);
-    if (choice === "yes") setProgress({ unlocked: [], reqItemsDone: [], owned: [] });
+    if (choice === "yes") void setProgress({ unlocked: [], reqItemsDone: [], owned: [] }, { spend: false });
   });
 
   // Transférer la progression (autre adresse, autre appareil)
@@ -564,7 +601,7 @@ function bindProgress(): void {
     player = parsed.player;
     savePlayer(player);
     syncPlayerForm();
-    setProgress(parsed.progress);
+    void setProgress(parsed.progress, { spend: false });
     $("progress-io-hint").textContent = `Progression importée : ${parsed.progress.unlocked.length} recherche(s).`;
   });
 
@@ -574,6 +611,10 @@ function bindProgress(): void {
     ["p-rp", "rp"],
     ["p-rps", "rpPerSec"],
   ];
+  $("p-spend").addEventListener("change", (e) => {
+    player = { ...player, spendRp: (e.target as HTMLInputElement).checked };
+    savePlayer(player);
+  });
   for (const [id, key] of playerFields) {
     $(id).addEventListener("input", (e) => {
       const v = parseOptional((e.target as HTMLInputElement).value);
