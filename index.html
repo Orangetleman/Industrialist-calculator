@@ -144,6 +144,7 @@
     <div class="rtabs" role="tablist" aria-label="Résultat">
       <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste">Liste de construction</button>
       <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema">Schéma</button>
+      <button type="button" role="tab" id="rtab-pose" data-rtab="pose" aria-controls="rpanel-pose">Plans de pose</button>
       <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details">Détails</button>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
@@ -159,6 +160,25 @@
         </div>
       </div>
       <p class="hint">De gauche (extraction) à droite (objectif). Survole un bloc ou une flèche pour le détail. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
+    </div>
+    <div class="rpanel" role="tabpanel" id="rpanel-pose" aria-labelledby="rtab-pose" hidden>
+      <label class="pose-pick" for="pose-step">Étape
+        <select id="pose-step"></select>
+      </label>
+      <div id="pose-head"></div>
+      <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
+        <div id="pose-canvas"></div>
+        <p class="flow-help">Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer</p>
+        <div class="rs-zoom">
+          <button type="button" data-pzoom="in" aria-label="Zoomer">+</button>
+          <button type="button" data-pzoom="out" aria-label="Dézoomer">−</button>
+          <button type="button" data-pzoom="fit" aria-label="Tout voir">⤢</button>
+          <button type="button" data-pzoom="reset" aria-label="Vue de départ">⌂</button>
+        </div>
+      </div>
+      <div id="pose-legend"></div>
+      <div id="pose-details"></div>
+      <p class="hint">Première version (étape E4) : un module par étape, machines en une ou deux rangées, un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-details" aria-labelledby="rtab-details" hidden><div id="details"></div></div>
   </section>

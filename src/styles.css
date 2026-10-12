@@ -197,6 +197,26 @@ button.link.have:hover { color: var(--steel); }
 .fl rect { fill: #2b1f14; stroke: #a8642a; stroke-width: .8; }
 .fl text { fill: #f0b37a; font: 500 10.5px var(--f-mono); }
 
+/* Plans de pose (vue de dessus d'un module) */
+.pose-pick { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); max-width: 100%; }
+.pose-pick select { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 7px 10px; font-size: .92rem; max-width: 100%; }
+.mod-sum { font-size: .92rem; }
+.mg line { stroke: #2a3038; stroke-width: 1; }
+.mm rect { fill: #33404c; stroke: #8fb8d6; stroke-width: 1.2; }
+.mm rect.stub { fill: #4a5866; stroke: none; }
+.mm text { fill: #e6ebf0; font: 600 11px var(--f-body); pointer-events: none; }
+.mm .plug { fill: #f2d21b; stroke: #1d2126; stroke-width: 1; }
+.pp { stroke-linecap: round; }
+.pp.bridge { filter: drop-shadow(0 0 1.5px #000); }
+.xing { fill: #1d2126; stroke: #e6ebf0; stroke-width: 1; opacity: .85; }
+.pole rect { fill: #3a2614; stroke: #f0913a; stroke-width: 1.2; }
+.pole text { fill: #f0b37a; font: 700 11px var(--f-mono); pointer-events: none; }
+ul.mod-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: .84rem; }
+ul.mod-legend i { display: inline-block; width: 14px; height: 6px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+ul.mod-legend i.sw-plug { width: 8px; height: 8px; border-radius: 50%; background: #f2d21b; }
+ul.mod-legend i.sw-pole { width: 10px; height: 10px; border-radius: 2px; background: #3a2614; border: 1px solid #f0913a; }
+ol.steps-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
+
 /* Détails */
 details.more { border-top: 1px solid var(--line); padding: 10px 0 2px; }
 details.more:first-child { border-top: 0; padding-top: 0; }

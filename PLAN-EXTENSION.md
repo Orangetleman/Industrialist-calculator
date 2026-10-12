@@ -2,7 +2,8 @@
 
 > Statut : **validé le 2026-10-12** (décisions en § 8). E0 terminée (données, relevés en jeu,
 > éditeur de bâtiments, 16 bâtiments relevés) ; E1 (moteur v2 et simplexe), E2 (énergie) et E3
-> (points de recherche) terminées ; bilans en § 4. E4 en attente du feu vert.
+> (points de recherche) terminées ; bilans en § 4. Refonte de l'interface faite (REFONTE.md) ;
+> E4a (plans de pose, première version) en ligne, en attente des réponses aux questions du bilan.
 > Rédigé le 2026-10-12 après une lecture du wiki Miraheze (pages Pipes, Research Station1 à 4,
 > Satellite Dish Controller, RP Making, Weather & Time, Steam, Logic, Truck Depot, et les fiches
 > des 264 bâtiments déjà en cache).
@@ -351,6 +352,39 @@ garantie d'être les meilleurs possibles. C'est la limite de l'automatisation do
 
 **Tests** : collisions, rotations, débits contre capacités, portée des poteaux, routage sur des
 cas simples, et un module complet de non-régression (par exemple 15 Craft Assemblers).
+
+**Bilan E4a, première version (2026-10-12).** Onglet « Plans de pose » du résultat : un module
+par étape, au choix dans la liste.
+
+- **Grille** (`src/engine/build/geometry.ts`) : une case = un Short Pipe ; bâtiments pivotés par
+  quarts de tour avec leurs ports relevés (`ports.json`) et leurs plots ; prise sur le dessus.
+- **Pièces** (`catalog.ts`) : tuyaux d'objets et de fluides tier I et III (droit, coude,
+  embranchements), croisements d'une case, poteaux LV à HMVT ; le tuyau le moins cher qui porte
+  le débit.
+- **Module** (`module.ts`, `route.ts`) : une rangée, ou deux rangées dos à dos autour d'un
+  collecteur central, dans les 4 orientations ; un collecteur droit par ressource (entrées par la
+  gauche, sorties par la droite) ; chaque port raccordé par un A* qui croise les autres
+  collecteurs à angle droit ; poteaux en files au-dessus et au-dessous, à portée de chaque prise.
+  On garde le module le plus compact, puis le moins cher.
+- **Affichage** : vue de dessus navigable (glisser, molette), couleur par ressource, croisements
+  et poteaux, liste des pièces avec les prix, ordre de pose, hypothèses.
+- **Mesures** (chaîne du Crankshaft, 60/min) : 10 modules en 4 à 350 ms ; 15 Craft Assemblers en
+  double rangée de 66 × 19 cases, 184 k$, dont 168 k$ pour 42 croisements (inévitables : trois
+  ressources entrelacées sur un même côté).
+- **Tests** : rotations, ports du Craft Assembler, routage (croisement, obstacle), et sur 5 étapes
+  réelles : aucun chevauchement, chaque port raccordé, chaque liaison réciproque, pièces comptées.
+
+Hypothèses (affichées avec chaque plan) et questions pour la suite :
+1. « Junction » est-elle un embranchement à 3 voies, et « Section » à 4 voies ?
+2. Un croisement de tier III (Pipe Intersection) se raccorde-t-il à des tuyaux de tier I ?
+3. La portée des poteaux (10,5) est-elle en cases (un Short Pipe) ?
+4. Règle des nœuds : combien de câbles par nœud, et un câble entre deux poteaux prend-il un
+   nœud ? Aujourd'hui, le plan signale seulement quand le module consomme plus qu'un nœud.
+5. Un collecteur qui longe N machines et les alimente par des embranchements répartit-il bien
+   les objets entre elles ?
+
+Pas encore fait : arbres et centrales composées, collecteurs en parallèle au-delà de 120/s,
+sous-produits vers un silo ou un brûleur, logique, usine assemblée (E4b).
 
 ### E5 — Refonte de l'interface
 

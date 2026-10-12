@@ -13,6 +13,10 @@ import logisticsJson from "../../data/logistics.json";
 import energyJson from "../../data/energy.json";
 import stationsJson from "../../data/research-stations.json";
 import powerJson from "../../data/power.json";
+import relevesJson from "../../data/releves.json";
+import { buildCatalog } from "../engine/build/catalog.ts";
+import { designModule, requestFromStep, type ModulePlan } from "../engine/build/module.ts";
+import { renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
@@ -79,6 +83,9 @@ const RP_PARAMS = rpParams(stationsJson as unknown as ResearchStationsFile);
 const repoOverrides = overridesJson as unknown as OverridesFile;
 /** Dépôts de vente (objectif argent) : débit de vente relevé ou lu sur le wiki. */
 const DEPOTS = (logisticsJson as unknown as LogisticsFile).depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
+/** Pièces de construction (tuyaux, croisements, poteaux) pour les plans de pose. */
+const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, (relevesJson as { poleRangeTiles?: Record<string, number> }).poleRangeTiles ?? {});
+const PORTS = (portsJson as unknown as PortsFile).machines;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -438,8 +445,9 @@ function renderResultTabs(): void {
     b.setAttribute("aria-selected", String(on));
     b.tabIndex = on ? 0 : -1;
   }
-  for (const t of ["liste", "schema", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
+  for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
   if (tab === "schema") renderFlowCanvas();
+  if (tab === "pose") renderPose();
   if (tab === "details") $("details").innerHTML = renderDetails(viewCtx());
 }
 
@@ -478,6 +486,74 @@ function renderFlowCanvas(): void {
   });
   flowPZ.attach(canvas.querySelector("svg")!, f.width, f.height, signature === flowKey);
   flowKey = signature;
+}
+
+// ---------------------------------------------------------------- plans de pose (E4)
+
+/** Étape choisie et modules déjà calculés pour le plan affiché. */
+let poseStep: string | null = null;
+const modules = new Map<string, ModulePlan | null>();
+let modulesFor = "";
+let posePZ: PanZoom | null = null;
+let poseKey = "";
+const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
+
+function moduleOf(key: string): ModulePlan | null {
+  if (modulesFor !== signature) {
+    modules.clear();
+    modulesFor = signature;
+  }
+  if (!modules.has(key)) {
+    const s = plan?.steps.find((x) => x.key === key);
+    const m = s ? data.machines.get(s.machine) : undefined;
+    const req = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
+    modules.set(key, req && m ? designModule(req, PORTS[m.id] ?? null, m.size, CATALOG, anyName) : null);
+  }
+  return modules.get(key) ?? null;
+}
+
+function renderPose(): void {
+  const p = plan!;
+  const choices = p.steps.filter((s) => s.machineKind !== "farm" && !s.parts && s.machines >= 1);
+  const sel = $<HTMLSelectElement>("pose-step");
+  if (!choices.length) {
+    sel.innerHTML = "";
+    $("pose-head").innerHTML = `<p class="muted">Aucune étape à poser dans ce plan (les arbres et les centrales composées ne sont pas encore dessinés).</p>`;
+    $("pose-frame").hidden = true;
+    $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
+    return;
+  }
+  if (!poseStep || !choices.some((s) => s.key === poseStep)) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
+  sel.innerHTML = choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${PORTS[s.machine] ? "" : " (ports supposés)"}</option>`).join("");
+  const m = moduleOf(poseStep);
+  $("pose-frame").hidden = !m;
+  if (!m) {
+    $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cette étape.</p>`;
+    return;
+  }
+  const info = renderModuleInfo(m, anyName);
+  $("pose-head").innerHTML = info.head;
+  $("pose-legend").innerHTML = info.legend;
+  $("pose-details").innerHTML = info.details;
+  const f = renderModuleSvg(m, anyName);
+  const canvas = $("pose-canvas");
+  const frame = $("pose-frame");
+  canvas.innerHTML = f.svg;
+  const fw = frame.clientWidth || 800;
+  const sc = flowStartScale({ w: fw, h: window.innerHeight * 0.7 }, { w: f.width, h: f.height });
+  frame.style.height = `${Math.round(Math.min(window.innerHeight * 0.7, Math.max(260, f.height * sc + 8)))}px`;
+  posePZ ??= new PanZoom(frame, {
+    minWidth: 120,
+    initialView: (fr, c) => {
+      const k = flowStartScale(fr, c);
+      const w = fr.w / k;
+      const h = fr.h / k;
+      return { x: w >= c.w ? (c.w - w) / 2 : 0, y: (c.h - h) / 2, w, h };
+    },
+  });
+  const k = `${signature}|${poseStep}`;
+  posePZ.attach(canvas.querySelector("svg")!, f.width, f.height, k === poseKey);
+  poseKey = k;
 }
 
 // ---------------------------------------------------------------- Mon usine
@@ -941,6 +1017,19 @@ function bindPlan(): void {
     update();
     $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
   });
+  $("pose-step").addEventListener("change", (e) => {
+    poseStep = (e.target as HTMLSelectElement).value;
+    renderPose();
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-pzoom]")) {
+    b.addEventListener("click", () => {
+      const z = b.dataset.pzoom;
+      if (z === "in") posePZ?.zoom(1.25);
+      else if (z === "out") posePZ?.zoom(1 / 1.25);
+      else if (z === "fit") posePZ?.fit();
+      else posePZ?.reset();
+    });
+  }
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-fzoom]")) {
     b.addEventListener("click", () => {
       const z = b.dataset.fzoom;

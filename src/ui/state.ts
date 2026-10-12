@@ -14,7 +14,7 @@ export const CRITERIA: Record<Goal, Criterion[]> = {
   recherche: ["machines", "energy", "cost"],
 };
 
-export type ResultTab = "liste" | "schema" | "details";
+export type ResultTab = "liste" | "schema" | "pose" | "details";
 
 export type Settings = {
   /** Objectif affiché : produire un objet, de l'énergie, des RP, ou de l'argent. */
@@ -121,7 +121,7 @@ export function loadSettings(): Settings {
   out.criteria = Object.fromEntries(GOALS.map((g) => [g, CRITERIA[g].includes(saved[g] as Criterion) ? saved[g] : DEFAULT_SETTINGS.criteria[g]])) as Settings["criteria"];
   if (!GOALS.includes(out.goal)) out.goal = "objet";
   out.useExisting = out.useExisting !== false;
-  if (out.resultTab !== "liste" && out.resultTab !== "schema" && out.resultTab !== "details") out.resultTab = "liste";
+  if (!["liste", "schema", "pose", "details"].includes(out.resultTab)) out.resultTab = "liste";
   if (out.energyUnit !== "k" && out.energyUnit !== "M") out.energyUnit = "k";
   if (out.rpMode !== "rate" && out.rpMode !== "node" && out.rpMode !== "plan") out.rpMode = "rate";
   if (!(out.rpRate > 0)) out.rpRate = DEFAULT_SETTINGS.rpRate;

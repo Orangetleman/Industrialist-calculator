@@ -179,7 +179,8 @@ Mesures (site local, après la refonte) :
   530 px ; la liste de construction devient une pile de cartes.
 - Pages de 900 à 2 100 px (contre 6 000 à 14 000 px avant).
 
-Reste à faire : un glossaire court des termes du jeu ; la vue « plans de construction » (E4).
+Reste à faire : un glossaire court des termes du jeu. Les plans de construction (E4a) sont un
+quatrième onglet du résultat, « Plans de pose ».
 
 ### Méthode, cette fois
 
