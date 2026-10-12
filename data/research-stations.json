@@ -129,6 +129,107 @@
     "fetchedAt": "2026-10-11T02:15:53.711Z"
    },
    "quote": "consuming 0.1 units per second from each node"
+  },
+  "factorThreshold": {
+   "value": 600,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "x \\geq 600 \\text{:} \\qquad \\text{C} = m*(\\log_{4} (x/600) + 1)"
+  }
+ },
+ "rs4": {
+  "rateCoef": {
+   "value": 2,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP_s/s = 2v^{0.6}"
+  },
+  "rateExp": {
+   "value": 0.6,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP_s/s = 2v^{0.6}"
+  },
+  "circuitDivisor": {
+   "value": 40000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP_c=\\frac{C}{40000}"
+  },
+  "circuitTicksPerSec": {
+   "value": 6,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP_c/s= \\frac{C}{40000}*n_c*\\frac{6}{t}"
+  },
+  "capCoef": {
+   "value": 150000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP Cap}=150000(\\log_{2}(C+1)+C^{0.9})"
+  },
+  "capExp": {
+   "value": 0.9,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "RP Cap}=150000(\\log_{2}(C+1)+C^{0.9})"
+  },
+  "logicWeight": {
+   "value": 2,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "\\text{C} = (n+2*m)*(\\log_{4}"
+  },
+  "factorThreshold": {
+   "value": 600,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "x \\geq 600 \\text{:} \\qquad \\text{C} = (n+2*m)*(\\log_{4}( \\frac{x}{600}) + 1)"
   }
  },
  "satellite": {

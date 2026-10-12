@@ -439,9 +439,30 @@ Le moteur les signalera comme « source inconnue » s'ils apparaissent dans une 
 <!-- extension:debut -->
 ## Extension : énergie, logistique, RP, monde
 
-Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **0** bâtiment(s) (voir RELEVES.md).
+Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **6** bâtiment(s) (voir RELEVES.md).
 
 Toutes les formules et tous les faits attendus ont été reconnus.
+
+**Relevés en jeu appliqués** (source « jeu », 2026-10-12 ; prioritaires sur le wiki) :
+
+| Élément | Champ | Wiki | Relevé en jeu |
+|---|---|---|---|
+| LV Pole | portée (tuiles) | 10 | **10.5** |
+| MV Pole | portée (tuiles) | — | **10.5** |
+| Advanced MV Pole | portée (tuiles) | 8 | **10.5** |
+| HMVT | portée (tuiles) | 22 | **22** |
+| Gold Fluid Storage Silo | capacité | — | **1000000 L** |
+| Gold Item Storage Silo | capacité | — | **1000000 unités** |
+| Huge Truck Depot | durée d'un cycle de vente (s) | 80 | **75** |
+| Medium Fluid Storage Silo | capacité | — | **3000 L** |
+| Medium Item Storage Silo | capacité | — | **5000 unités** |
+| Small Fluid Storage Silo | capacité | — | **500 L** |
+| Small Item Storage Silo | capacité | — | **250 unités** |
+| Van Depot | durée d'un cycle de vente (s) | 80 | **75** |
+| Research Station3 | deux fois le même item | contradiction sur le wiki | **accepté, avec la pénalité de 30 %** |
+| Grille de construction | 1 case | — | **2 studs = 1 Short Pipe ; une case entière (un Short Pipe) ; pas de demi-case** |
+
+**Reste à vérifier :**
 
 | Élément | Champ | Raison | Détail |
 |---|---|---|---|
@@ -451,8 +472,7 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | Electric Water Heater | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 5MMF (MV) 10MMF (HV) » |
 | Gasoline Generator | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 12kMF/s-100kMF/s |
 | Large Diesel Engine | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 5MMF/s - 6MMF/s |
-| Large Turbine | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 1kMF/s - 515.096kMF/s |
-| MV Pole | énergie · rangeTiles | manquant | portée du poteau absente de sa page : à relever en jeu |
+| Large Turbine | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 1kMF/s - 515.096kMF/s — courbe température → puissance disponible (41 points, 0 à 400 °C) |
 | Nuclear Power Plant | énergie · input | variable | valeur du wiki non lisible telle quelle : « Varies (HV/MV) » |
 | Nuclear Power Plant | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 100MMF (HV) ⚡2MMF (MV) » |
 | Resistor | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 550kMF* » |
@@ -466,21 +486,11 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | Wind Turbine1 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 700MF/s - 4.97kMF/s |
 | Wind Turbine2 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 2.35kMF/s - 16.24kMF/s |
 | Wind Turbine3 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 10.37kMF/s - 68.72kMF/s |
-| Gold Fluid Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
-| Gold Item Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
-| Medium Fluid Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
-| Medium Item Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
-| Small Fluid Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
-| Small Item Storage Silo | logistique · capacity | manquant | capacité de stockage non structurée sur le wiki : à relever en jeu |
-| Huge Truck Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
-| Large Liquid Truck Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
-| Liquid Truck Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
-| Truck Depot | logistique · itemsPerSec | approximatif | « environ » 0,66 objet/s d'après la page Truck Depot |
-| Van Depot | logistique · itemsPerSec | manquant | rythme de vente non structuré sur le wiki : à relever en jeu |
-| Research Station3 | RP · items en entrée | contradiction | La page dit « Requires two different Items to operate » et décrit aussi une pénalité de 30 % « if both input Items are the same ». À vérifier en jeu : la station accepte-t-elle deux fois le même item ? |
-| Research Station4 | RP · formule | manquant | Formule de vitesse et de plafond de la RS4 non transcrite (forme trop complexe pour une extraction sûre) : à transcrire à la main depuis la page avant la phase E3. |
-| Grille de construction | monde · unité | manquant | Les tuyaux sont en studs, la portée des poteaux en tuiles, les machines sans unité : à relever en jeu (RELEVES.md § 0). |
-| Turbines (Large, Steam) | énergie · puissance selon la température | manquant | Le wiki donne des plages et quelques points (vapeur ~190–215 ° avec une Firebox, 220 ° max en géothermie) mais pas la relation exacte : relevés en jeu bienvenus. |
+| Large Liquid Truck Depot | logistique · itemsPerSec | manquant | capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu |
+| Liquid Truck Depot | logistique · itemsPerSec | manquant | capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu |
+| Truck Depot | logistique · itemsPerSec | approximatif | 10 objets toutes les ~15 s d'après le wiki |
+| Grille de construction | monde · rotations | manquant | nombre de rotations possibles d'une machine (4 quarts de tour ?) : à confirmer en jeu |
+| Steam Turbine | énergie · puissance selon la température | approximatif | Seulement une plage (432 MF/s à 9,36 kMF/s) : pas de courbe sur le wiki. |
 <!-- extension:fin -->
 
 ## Notes manuelles

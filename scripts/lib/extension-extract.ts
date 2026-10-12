@@ -143,7 +143,27 @@ function find<T>(page: string, content: string, re: RegExp, read: (m: RegExpExec
 export type RpFormulas = {
   rs1: { rate: Found<"sqrt">; capCoef: Found<number> };
   rs2: { rateCoef: Found<number>; rateExp: Found<number>; capCoef: Found<number>; inputPerSec: Found<number> };
-  rs3: { rateCoef: Found<number>; rateExp: Found<number>; capCoef: Found<number>; samePenalty: Found<number>; inputPerSecPerNode: Found<number> };
+  rs3: {
+    rateCoef: Found<number>;
+    rateExp: Found<number>;
+    capCoef: Found<number>;
+    samePenalty: Found<number>;
+    inputPerSecPerNode: Found<number>;
+    /** Facteur de plafond : C = m·(log₄(x/seuil)+1) si x ≥ seuil, sinon m·log₂(x/seuil+1) ; x = valeur moyenne des items. */
+    factorThreshold: Found<number>;
+  };
+  rs4: {
+    rateCoef: Found<number>;
+    rateExp: Found<number>;
+    /** RP par circuit résolu : C / diviseur ; RP/s = C/diviseur · n_c · (ticks/s) / t. */
+    circuitDivisor: Found<number>;
+    circuitTicksPerSec: Found<number>;
+    capCoef: Found<number>;
+    capExp: Found<number>;
+    /** Poids d'une RS4 avec logique dans le facteur de plafond : C = (n + poids·m)·… */
+    logicWeight: Found<number>;
+    factorThreshold: Found<number>;
+  };
   satellite: { boostCoef: Found<number>; dishes: Found<"ceil(S+sqrt(S*R))">; liquidPerSec: Found<number> };
   softCap: { rs123: Found<"10^(1-x)">; rs4: Found<"10^(1-sqrt(x))">; x: Found<"max(RP/cap,1)"> };
   startRp: Found<{ normal: number; other: number }>;
@@ -153,10 +173,12 @@ const N = "(\\d+(?:\\.\\d+)?)";
 
 /** Extrait les paramètres des formules RP des pages du wiki (texte brut des balises <math>). */
 export function extractRpFormulas(pages: Record<string, string>): RpFormulas {
-  const p = (t: string) => pages[t] ?? "";
+  // Espaces et retours à la ligne ramenés à un seul espace : les formules du wiki sont parfois coupées.
+  const p = (t: string) => (pages[t] ?? "").replace(/\s+/g, " ");
   const rs1 = "Research Station1";
   const rs2 = "Research Station2";
   const rs3 = "Research Station3";
+  const rs4 = "Research Station4";
   const sat = "Satellite Dish Controller";
   const sys = "Research System";
   return {
@@ -176,6 +198,17 @@ export function extractRpFormulas(pages: Record<string, string>): RpFormulas {
       capCoef: find(rs3, p(rs3), new RegExp(`RP Cap\\}=${N}\\*\\(log_2\\(C\\+1\\)\\+\\}\\\\sqrt\\{C \\)`), (m) => Number(m[1]), "plafond k·(log₂(C+1)+√C)"),
       samePenalty: find(rs3, p(rs3), /(\d+)% penalty[^.]*if both input/, (m) => Number(m[1]) / 100, "pénalité si les deux items sont identiques"),
       inputPerSecPerNode: find(rs3, p(rs3), new RegExp(`consuming ${N} units per second from each node`), (m) => Number(m[1]), "consommation par entrée"),
+      factorThreshold: find(rs3, p(rs3), new RegExp(String.raw`x \\geq ${N} \\text\{:\} \\qquad \\text\{C\} = m\*\(\\log_\{4\} \(x/\1\) \+ 1\)`), (m) => Number(m[1]), "facteur de plafond (seuil)"),
+    },
+    rs4: {
+      rateCoef: find(rs4, p(rs4), new RegExp(String.raw`RP_s/s = ${N}v\^\{${N}\}`), (m) => Number(m[1]), "RP/s = a·v^b"),
+      rateExp: find(rs4, p(rs4), new RegExp(String.raw`RP_s/s = ${N}v\^\{${N}\}`), (m) => Number(m[2]), "RP/s = a·v^b"),
+      circuitDivisor: find(rs4, p(rs4), new RegExp(String.raw`RP_c=\\frac\{C\}\{${N}\}`), (m) => Number(m[1]), "RP par circuit = C/k"),
+      circuitTicksPerSec: find(rs4, p(rs4), new RegExp(String.raw`RP_c/s= \\frac\{C\}\{\d+\}\*n_c\*\\frac\{${N}\}\{t\}`), (m) => Number(m[1]), "ticks par seconde du mini-jeu"),
+      capCoef: find(rs4, p(rs4), new RegExp(String.raw`RP Cap\}=${N}\(\\log_\{2\}\(C\+1\)\+C\^\{${N}\}\)`), (m) => Number(m[1]), "plafond k·(log₂(C+1)+C^e)"),
+      capExp: find(rs4, p(rs4), new RegExp(String.raw`RP Cap\}=${N}\(\\log_\{2\}\(C\+1\)\+C\^\{${N}\}\)`), (m) => Number(m[2]), "plafond k·(log₂(C+1)+C^e)"),
+      logicWeight: find(rs4, p(rs4), new RegExp(String.raw`\\text\{C\} = \(n\+${N}\*m\)\*\(\\log_\{4\}`), (m) => Number(m[1]), "poids des RS4 avec logique"),
+      factorThreshold: find(rs4, p(rs4), new RegExp(String.raw`x \\geq ${N} \\text\{:\} \\qquad \\text\{C\} = \(n\+\d+\*m\)\*\(\\log_\{4\}\( \\frac\{x\}\{\1\}\) \+ 1\)`), (m) => Number(m[1]), "facteur de plafond (seuil)"),
     },
     satellite: {
       boostCoef: find(sat, p(sat), new RegExp(`B \\\\times ${N}\\\\log\\(R \\+ 1\\)`), (m) => Number(m[1]), "bonus B·k·log(R+1)"),

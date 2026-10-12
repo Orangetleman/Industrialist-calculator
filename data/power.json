@@ -23,7 +23,7 @@
     "nodes": 4
    },
    "rangeTiles": {
-    "tiles": 8,
+    "tiles": 10.5,
     "approx": false
    },
    "size": {
@@ -39,6 +39,11 @@
      "page": "Advanced MV Pole",
      "revisionId": 40685,
      "fetchedAt": "2026-10-11T02:15:44.582Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
    "verify": []
@@ -1008,6 +1013,11 @@
      "page": "HMVT",
      "revisionId": 42868,
      "fetchedAt": "2026-10-11T02:15:46.156Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
    "verify": []
@@ -1353,9 +1363,184 @@
     {
      "field": "output",
      "reason": "approximatif",
-     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 1kMF/s - 515.096kMF/s"
+     "detail": "puissance variable (météo, heure, vapeur ou combustible) : 1kMF/s - 515.096kMF/s — courbe température → puissance disponible (41 points, 0 à 400 °C)"
     }
-   ]
+   ],
+   "tempCurve": {
+    "points": [
+     [
+      0,
+      13.25
+     ],
+     [
+      10,
+      13250
+     ],
+     [
+      20,
+      26449
+     ],
+     [
+      30,
+      39649
+     ],
+     [
+      40,
+      52848
+     ],
+     [
+      50,
+      66048
+     ],
+     [
+      60,
+      79247
+     ],
+     [
+      70,
+      92446
+     ],
+     [
+      80,
+      105646
+     ],
+     [
+      90,
+      118845
+     ],
+     [
+      100,
+      132036
+     ],
+     [
+      110,
+      132116
+     ],
+     [
+      120,
+      165099
+     ],
+     [
+      130,
+      198083
+     ],
+     [
+      140,
+      231066
+     ],
+     [
+      150,
+      264033
+     ],
+     [
+      160,
+      272066
+     ],
+     [
+      170,
+      287994
+     ],
+     [
+      180,
+      303922
+     ],
+     [
+      190,
+      319850
+     ],
+     [
+      200,
+      335778
+     ],
+     [
+      210,
+      351706
+     ],
+     [
+      220,
+      367634
+     ],
+     [
+      230,
+      383562
+     ],
+     [
+      240,
+      399490
+     ],
+     [
+      250,
+      415418
+     ],
+     [
+      260,
+      431346
+     ],
+     [
+      270,
+      447273
+     ],
+     [
+      280,
+      463201
+     ],
+     [
+      290,
+      479129
+     ],
+     [
+      300,
+      495053
+     ],
+     [
+      310,
+      497041
+     ],
+     [
+      320,
+      499021
+     ],
+     [
+      330,
+      501000
+     ],
+     [
+      340,
+      502981
+     ],
+     [
+      350,
+      504962
+     ],
+     [
+      360,
+      506942
+     ],
+     [
+      370,
+      508922
+     ],
+     [
+      380,
+      510902
+     ],
+     [
+      390,
+      512882
+     ],
+     [
+      400,
+      514862
+     ]
+    ],
+    "source": {
+     "wiki": "desmos",
+     "url": "https://www.desmos.com/calculator/z9u5rwz5wr",
+     "page": "Large Turbine power graph (lié depuis la page Large Turbine)",
+     "fetchedAt": "2026-10-12T08:55:58.233Z"
+    },
+    "note": "Puissance à plein régime selon la température de la vapeur ; cohérente avec le code Lua cité sur la page (paliers de puissance × 66)."
+   }
   },
   {
    "id": "logic-delay",
@@ -1463,7 +1648,7 @@
     "nodes": 2
    },
    "rangeTiles": {
-    "tiles": 10,
+    "tiles": 10.5,
     "approx": false
    },
    "size": {
@@ -1479,6 +1664,11 @@
      "page": "LV Pole",
      "revisionId": 42125,
      "fetchedAt": "2026-10-11T02:15:47.486Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
    "verify": []
@@ -1531,7 +1721,10 @@
     "perNode": 30000,
     "nodes": 2
    },
-   "rangeTiles": null,
+   "rangeTiles": {
+    "tiles": 10.5,
+    "approx": false
+   },
    "size": {
     "w": 2,
     "l": 2
@@ -1545,15 +1738,14 @@
      "page": "MV Pole",
      "revisionId": 42450,
      "fetchedAt": "2026-10-11T02:15:49.199Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "rangeTiles",
-     "reason": "manquant",
-     "detail": "portée du poteau absente de sa page : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "nuclear-power-plant",

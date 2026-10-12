@@ -122,20 +122,21 @@
   }
  },
  "grid": {
-  "cellStuds": null,
-  "snap": null,
+  "cellStuds": 2,
+  "snap": "une case entière (un Short Pipe) ; pas de demi-case",
   "rotations": null,
-  "sources": [],
-  "verify": [
+  "sources": [
    {
-    "field": "cellStuds",
-    "reason": "manquant",
-    "detail": "taille d'une case de la grille, en studs : à relever en jeu (RELEVES.md § 0)"
-   },
+    "wiki": "jeu",
+    "fetchedAt": "2026-10-12T10:00:00Z",
+    "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
+   }
+  ],
+  "verify": [
    {
     "field": "rotations",
     "reason": "manquant",
-    "detail": "nombre de rotations possibles d'une machine : à relever en jeu"
+    "detail": "nombre de rotations possibles d'une machine (4 quarts de tour ?) : à confirmer en jeu"
    }
   ]
  }

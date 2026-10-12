@@ -223,19 +223,19 @@ function report(label: string, r: { fetched: number; unchanged: number; missing:
 }
 
 /**
- * Calculateur Desmos des arbres, lié depuis la page Tree de Miraheze.
+ * Graphique Desmos lié depuis une page de Miraheze (calculateur des arbres, courbe des turbines…).
  * Une seule requête (état JSON public), mise en cache ; rechargée avec --force.
  */
-async function fetchTreeCalculator(): Promise<void> {
-  const tree = readCached("miraheze", "Tree");
-  const url = tree && /\[(https:\/\/www\.desmos\.com\/calculator\/[A-Za-z0-9]+)/.exec(tree.content)?.[1];
+async function fetchDesmos(pageTitle: string, cacheFile: string, label: string): Promise<void> {
+  const page = readCached("miraheze", pageTitle);
+  const url = page && /\[(https:\/\/www\.desmos\.com\/calculator\/[A-Za-z0-9]+)/.exec(page.content)?.[1];
   if (!url) {
-    console.log("  calculateur des arbres : lien Desmos absent de la page Tree");
+    console.log(`  ${label} : lien Desmos absent de la page ${pageTitle}`);
     return;
   }
-  const file = join(CACHE_ROOT, "desmos-tree.json");
+  const file = join(CACHE_ROOT, cacheFile);
   if (!FORCE && existsSync(file) && JSON.parse(readFileSync(file, "utf8")).url === url) {
-    console.log("  calculateur des arbres : en cache");
+    console.log(`  ${label} : en cache`);
     return;
   }
   const wait = lastRequest + DELAY_MS - Date.now();
@@ -244,13 +244,13 @@ async function fetchTreeCalculator(): Promise<void> {
   requestCount++;
   const res = await fetch(url, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" } });
   if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) {
-    console.warn(`  calculateur des arbres : HTTP ${res.status}, ignoré (le tableau du wiki sera utilisé)`);
+    console.warn(`  ${label} : HTTP ${res.status}, ignoré`);
     return;
   }
   const body: any = await res.json();
   const state = body?.state ?? body; // la réponse Desmos enveloppe l'état dans { state }
-  writeFileSync(file, JSON.stringify({ url, fetchedAt: new Date().toISOString(), state }, null, 1));
-  console.log("  calculateur des arbres : téléchargé");
+  writeFileSync(file, JSON.stringify({ url, title: body?.title ?? null, fetchedAt: new Date().toISOString(), state }, null, 1));
+  console.log(`  ${label} : téléchargé`);
 }
 
 async function main(): Promise<void> {
@@ -273,7 +273,10 @@ async function main(): Promise<void> {
     itemNames = itemsFromRecipeModules(modules);
     report("pages items", await fetchPages("miraheze", itemNames));
   }
-  if (runMiraheze) await fetchTreeCalculator();
+  if (runMiraheze) {
+    await fetchDesmos("Tree", "desmos-tree.json", "calculateur des arbres");
+    await fetchDesmos("Large Turbine", "desmos-large-turbine.json", "courbe des turbines");
+  }
   if (runFandom) {
     console.log("Fandom (contrôle croisé)");
     if (!itemNames.length) {

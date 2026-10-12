@@ -37,7 +37,8 @@ describe("données de l'extension", () => {
   it("énergie : générateurs, poteaux avec portée, valeurs illisibles signalées", () => {
     const by = new Map(power.entries.map((e) => [e.id, e]));
     expect(by.get("coal-generator")?.output).toBe(7000);
-    expect(by.get("lv-pole")).toMatchObject({ rangeTiles: { tiles: 10 }, transfer: { perNode: 2400, nodes: 2 } });
+    // Portée relevée en jeu (10,5 tuiles), prioritaire sur le wiki (10).
+    expect(by.get("lv-pole")).toMatchObject({ rangeTiles: { tiles: 10.5 }, transfer: { perNode: 2400, nodes: 2 } });
     expect(by.get("hmvt")?.rangeTiles?.tiles).toBe(22);
     for (const e of power.entries) {
       if (e.subcategory === "Transfer Poles" && !e.rangeTiles) expect(e.verify.some((v) => v.field === "rangeTiles"), e.name).toBe(true);
@@ -46,7 +47,15 @@ describe("données de l'extension", () => {
   });
 
   it("RP : toutes les formules extraites, avec leur citation", () => {
-    const facts = [...Object.values(stations.rs1), ...Object.values(stations.rs2), ...Object.values(stations.rs3), ...Object.values(stations.satellite), ...Object.values(stations.softCap), stations.startRp];
+    const facts = [
+      ...Object.values(stations.rs1),
+      ...Object.values(stations.rs2),
+      ...Object.values(stations.rs3),
+      ...Object.values(stations.rs4),
+      ...Object.values(stations.satellite),
+      ...Object.values(stations.softCap),
+      stations.startRp,
+    ];
     for (const f of facts) {
       expect(f.value, f.problem).not.toBeNull();
       expect(f.quote).toBeTruthy();
@@ -55,16 +64,40 @@ describe("données de l'extension", () => {
     expect(Math.round(stations.rs1.capCoef.value! * Math.log2(13 + 1))).toBe(761);
   });
 
-  it("monde : jour, vapeur, logique ; grille encore à relever (signalée)", () => {
+  it("monde : jour, vapeur, logique ; grille relevée en jeu (1 case = 1 Short Pipe = 2 studs)", () => {
     const v = (k: string) => world.facts[k]?.value;
     expect([v("dayMinutes"), v("sunrise"), v("sunset"), v("steamWaterIn"), v("steamOut")]).toEqual([16, 6, 17, 3, 90]);
+    expect(world.grid.cellStuds).toBe(2);
+    expect(world.grid.sources[0]?.wiki).toBe("jeu");
     expect(world.grid.cellStuds === null).toBe(world.grid.verify.some((f) => f.field === "cellStuds"));
+    // Cohérence : le Short Pipe du wiki (2×2 studs) occupe bien une case.
+    const short = logistics.pipes.find((p) => p.name === "Short Pipe")!;
+    expect(short.sizeStuds).toEqual({ w: world.grid.cellStuds, l: world.grid.cellStuds });
   });
 
-  it("ports : chaque relevé désigne un bâtiment connu et a une source datée", () => {
+  it("relevés appliqués : portées, silos, dépôts", () => {
+    const by = new Map(power.entries.map((e) => [e.id, e]));
+    expect(by.get("advanced-mv-pole")?.rangeTiles?.tiles).toBe(10.5); // le wiki disait 8
+    expect(logistics.storage.find((s) => s.id === "medium-item-storage-silo")?.capacity).toBe(5000);
+    expect(logistics.depots.find((d) => d.id === "huge-truck-depot")?.itemsPerSec).toBeCloseTo(400 / 75);
+    expect(by.get("large-turbine")?.tempCurve?.points.at(-1)).toEqual([400, 514862]);
+  });
+
+  it("ports : bâtiments connus, sources datées, positions dans l'empreinte", () => {
+    expect(Object.keys(ports.machines).length).toBeGreaterThanOrEqual(6);
     for (const [id, e] of Object.entries(ports.machines)) {
       expect(machineIds.has(id), id).toBe(true);
       expect(e.source.fetchedAt, id).toBeTruthy();
+      const { w, h } = e.footprint!;
+      for (const p of e.ports) {
+        if (p.side === "dessus") {
+          const [x, y] = p.cell as [number, number];
+          expect(x >= 0.5 && x <= w && y >= 0.5 && y <= h, `${id} ${p.type} ${x},${y}`).toBe(true);
+        } else {
+          const len = p.side === "haut" || p.side === "bas" ? w : h;
+          expect((p.cell as number) >= 1 && (p.cell as number) <= len, `${id} ${p.side} ${p.cell}`).toBe(true);
+        }
+      }
     }
   });
 });

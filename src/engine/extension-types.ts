@@ -45,6 +45,8 @@ export type PowerEntry = {
   size: Size | null;
   cost: number | null;
   pollutionPerHour: number | [number, number] | null;
+  /** Puissance (MF/s) selon la température de la vapeur : points [°C, MF/s], interpolation linéaire. */
+  tempCurve?: { points: [number, number][]; source: Source; note: string };
   sources: Source[];
   verify: VerifyFlag[];
 };
@@ -54,7 +56,17 @@ export type ResearchStationsFile = {
   meta: DataMeta;
   rs1: { rate: Fact<"sqrt">; capCoef: Fact<number> };
   rs2: { rateCoef: Fact<number>; rateExp: Fact<number>; capCoef: Fact<number>; inputPerSec: Fact<number> };
-  rs3: { rateCoef: Fact<number>; rateExp: Fact<number>; capCoef: Fact<number>; samePenalty: Fact<number>; inputPerSecPerNode: Fact<number> };
+  rs3: { rateCoef: Fact<number>; rateExp: Fact<number>; capCoef: Fact<number>; samePenalty: Fact<number>; inputPerSecPerNode: Fact<number>; factorThreshold: Fact<number> };
+  rs4: {
+    rateCoef: Fact<number>;
+    rateExp: Fact<number>;
+    circuitDivisor: Fact<number>;
+    circuitTicksPerSec: Fact<number>;
+    capCoef: Fact<number>;
+    capExp: Fact<number>;
+    logicWeight: Fact<number>;
+    factorThreshold: Fact<number>;
+  };
   satellite: { boostCoef: Fact<number>; dishes: Fact<string>; liquidPerSec: Fact<number> };
   softCap: { rs123: Fact<string>; rs4: Fact<string>; x: Fact<string> };
   startRp: Fact<{ normal: number; other: number }>;
@@ -76,8 +88,12 @@ export type Port = {
   side: "haut" | "bas" | "gauche" | "droite" | "dessus";
   /** Case le long du bord (depuis 1), ou [colonne, ligne] pour un boîtier sur le dessus. */
   cell: number | [number, number];
+  /** Nombre de cases dont le plot du port dépasse du bâtiment (souvent 1). */
+  stub?: number;
+  /** Ce que le jeu affiche (couleur et sens de la flèche, nœuds électriques). */
   shown?: string;
-  height?: "bas" | "mi-hauteur" | "sommet";
+  /** Info-bulle du jeu pour ce port (ex. « Input for Coal or coke Fuel »). */
+  tip?: string;
 };
 export type PortsEntry = { footprint: { w: number; h: number } | null; rotations: number | null; ports: Port[]; notes?: string; source: Source };
 export type PortsFile = { _lisezMoi?: string; machines: Record<string, PortsEntry> };

@@ -1,0 +1,33 @@
+{
+ "_lisezMoi": "Relevés faits en jeu (source « jeu »), prioritaires sur le wiki ; la valeur du wiki reste visible quand elle diffère. Les ports des bâtiments sont dans ports.json.",
+ "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T10:00:00Z", "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)" },
+ "grid": {
+  "cellStuds": 2,
+  "snap": "une case entière (un Short Pipe) ; pas de demi-case",
+  "rotations": null,
+  "note": "1 case = 1 Short Pipe = 2×2 studs. La taille des machines du wiki est en cases, mais pas toujours dans l'ordre largeur × hauteur de la vue de dessus."
+ },
+ "poleRangeTiles": {
+  "lv-pole": 10.5,
+  "mv-pole": 10.5,
+  "advanced-mv-pole": 10.5,
+  "hmvt": 22
+ },
+ "powerCables": "Les câbles électriques ne sont pas gênés par les obstacles.",
+ "storageCapacity": {
+  "small-item-storage-silo": 250,
+  "medium-item-storage-silo": 5000,
+  "gold-item-storage-silo": 1000000,
+  "small-fluid-storage-silo": 500,
+  "medium-fluid-storage-silo": 3000,
+  "gold-fluid-storage-silo": 1000000
+ },
+ "depotCycleSeconds": {
+  "huge-truck-depot": 75,
+  "van-depot": 75
+ },
+ "research": {
+  "rs3SameItemAllowed": true,
+  "note": "La Research Station3 accepte deux fois le même item, avec la pénalité de 30 % appliquée."
+ }
+}

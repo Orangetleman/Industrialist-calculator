@@ -1291,7 +1291,7 @@
     "l": 4
    },
    "cost": 100000,
-   "capacity": null,
+   "capacity": 1000000,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1299,15 +1299,14 @@
      "page": "Gold Fluid Storage Silo",
      "revisionId": 41964,
      "fetchedAt": "2026-10-11T02:15:46.154Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "capacity",
-     "reason": "manquant",
-     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "gold-item-storage-silo",
@@ -1318,7 +1317,7 @@
     "l": 4
    },
    "cost": 100000,
-   "capacity": null,
+   "capacity": 1000000,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1326,15 +1325,14 @@
      "page": "Gold Item Storage Silo",
      "revisionId": 41963,
      "fetchedAt": "2026-10-11T02:15:46.155Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "capacity",
-     "reason": "manquant",
-     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "medium-fluid-storage-silo",
@@ -1345,7 +1343,7 @@
     "l": 4
    },
    "cost": 500,
-   "capacity": null,
+   "capacity": 3000,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1353,15 +1351,14 @@
      "page": "Medium Fluid Storage Silo",
      "revisionId": 42500,
      "fetchedAt": "2026-10-11T02:15:49.199Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "capacity",
-     "reason": "manquant",
-     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "medium-item-storage-silo",
@@ -1372,7 +1369,7 @@
     "l": 4
    },
    "cost": 500,
-   "capacity": null,
+   "capacity": 5000,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1380,15 +1377,14 @@
      "page": "Medium Item Storage Silo",
      "revisionId": 38195,
      "fetchedAt": "2026-10-11T02:15:49.200Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "capacity",
-     "reason": "manquant",
-     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "small-fluid-storage-silo",
@@ -1399,7 +1395,7 @@
     "l": 2
    },
    "cost": 100,
-   "capacity": null,
+   "capacity": 500,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1407,15 +1403,14 @@
      "page": "Small Fluid Storage Silo",
      "revisionId": 38254,
      "fetchedAt": "2026-10-11T02:15:53.716Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "capacity",
-     "reason": "manquant",
-     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "small-item-storage-silo",
@@ -1426,7 +1421,7 @@
     "l": 2
    },
    "cost": 100,
-   "capacity": null,
+   "capacity": 250,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1434,15 +1429,14 @@
      "page": "Small Item Storage Silo",
      "revisionId": 39268,
      "fetchedAt": "2026-10-11T02:15:54.891Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "capacity",
-     "reason": "manquant",
-     "detail": "capacité de stockage non structurée sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   }
  ],
  "depots": [
@@ -1455,7 +1449,7 @@
     "l": 8
    },
    "cost": 3200,
-   "itemsPerSec": null,
+   "itemsPerSec": 5.333333333333333,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1463,15 +1457,14 @@
      "page": "Huge Truck Depot",
      "revisionId": 43188,
      "fetchedAt": "2026-10-11T02:15:46.165Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "itemsPerSec",
-     "reason": "manquant",
-     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "large-liquid-truck-depot",
@@ -1496,7 +1489,7 @@
     {
      "field": "itemsPerSec",
      "reason": "manquant",
-     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
+     "detail": "capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu"
     }
    ]
   },
@@ -1523,7 +1516,7 @@
     {
      "field": "itemsPerSec",
      "reason": "manquant",
-     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
+     "detail": "capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu"
     }
    ]
   },
@@ -1550,7 +1543,7 @@
     {
      "field": "itemsPerSec",
      "reason": "approximatif",
-     "detail": "« environ » 0,66 objet/s d'après la page Truck Depot"
+     "detail": "10 objets toutes les ~15 s d'après le wiki"
     }
    ]
   },
@@ -1563,7 +1556,7 @@
     "l": 8
    },
    "cost": 160,
-   "itemsPerSec": null,
+   "itemsPerSec": 1.1333333333333333,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1571,15 +1564,14 @@
      "page": "Van Depot",
      "revisionId": 42607,
      "fetchedAt": "2026-10-11T02:15:54.908Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "itemsPerSec",
-     "reason": "manquant",
-     "detail": "rythme de vente non structuré sur le wiki : à relever en jeu"
-    }
-   ]
+   "verify": []
   }
  ]
 }
