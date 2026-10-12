@@ -36,5 +36,9 @@
   "startUnlocked": ["transportation", "truck-depot"],
   "startUnlockedNote": "Transportation et Truck Depot sont acquis d'office dans un nouveau monde (confirmé en jeu par l'utilisateur, 2026-10-12).",
   "note": "La Research Station3 accepte deux fois le même item, avec la pénalité de 30 % appliquée."
+ },
+ "steamObservedC": {
+  "range": [105, 115],
+  "note": "Vapeur en sortie de Boiler observée par l'utilisateur (2026-10-12) : « semble souvent tourner entre 105 et 115 °C max ». Le jeu annonce des valeurs qu'il ne tient pas toujours (Industrial Firebox : « 12 eaux chauffées par seconde », non constaté). Fourchette indicative, affichée à côté du calcul du wiki."
  }
 }

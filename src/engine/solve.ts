@@ -208,6 +208,8 @@ export type Plan = {
 const ceilTol = (x: number) => Math.ceil(x - 1e-9);
 /** Nombre pour les messages : deux décimales au plus, virgule décimale. */
 const fmtNum = (x: number) => (Math.round(x * 100) / 100).toString().replace(".", ",");
+/** Puissance pour les messages, avec préfixe comme en jeu : « 2 MMF/s », « 455,2 kMF/s ». */
+const fmtPower = (w: number) => (Math.abs(w) >= 1e6 ? `${fmtNum(w / 1e6)} MMF/s` : Math.abs(w) >= 1e3 ? `${fmtNum(w / 1e3)} kMF/s` : `${fmtNum(w)} MF/s`);
 
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
   return solveInner(data, player, req, false);
@@ -526,7 +528,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     } else warnings.push({ code: `non-résolu:${reason}`, message: `${name(item)} (${fmtNum(perMin)}/min) n'est pas produit : ${label}.`, items: [item] });
   }
   if (res.energyImport > 0) {
-    warnings.push({ code: "énergie-non-couverte", message: `Il manque ${fmtNum(res.energyImport)} MF/s : aucun générateur utilisable (débloqué, avec un combustible productible) ne couvre la consommation.` });
+    warnings.push({ code: "énergie-non-couverte", message: `Il manque ${fmtPower(res.energyImport)} : aucun générateur utilisable (débloqué, avec un combustible productible) ne couvre la consommation.` });
   }
   if (res.impossible.pollution !== undefined) {
     warnings.push({

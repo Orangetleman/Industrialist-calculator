@@ -30,6 +30,21 @@ export function fmtMoney(x: number | null): string {
   return `${fmt(x, x < 100 ? 2 : 0)} $`;
 }
 
+/** Nombre court pour les pastilles : « 950 », « 12,4 k », « 2,1 M ». */
+export function fmtShort(x: number): string {
+  const a = Math.abs(x);
+  if (a >= 1e9) return `${fmt(x / 1e9, 2)} G`;
+  if (a >= 1e6) return `${fmt(x / 1e6, a >= 1e7 ? 1 : 2)} M`;
+  if (a >= 1e4) return `${fmt(x / 1e3, a >= 1e5 ? 0 : 1)} k`;
+  return fmt(x, 0);
+}
+
+/** Somme d'argent courte : « 950 $ », « 2,1 M$ ». */
+export function fmtMoneyShort(x: number | null): string {
+  if (x === null || !Number.isFinite(x)) return "—";
+  return Math.abs(x) >= 1e4 ? `${fmtShort(x)}$` : fmtMoney(x);
+}
+
 export function fmtRP(x: number | null): string {
   return x === null || !Number.isFinite(x) ? "—" : `${fmt(x, 0)} RP`;
 }

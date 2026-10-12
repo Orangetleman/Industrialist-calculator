@@ -1,0 +1,585 @@
+// Vue d'un plan, en trois niveaux : la réponse (une phrase, quatre chiffres), la liste de
+// construction à cocher, puis le schéma et les détails. Fonctions pures (chaînes HTML/SVG) :
+// main.ts les insère et branche les événements.
+
+import type { Criterion } from "../engine/choose.ts";
+import { ENERGY, POLLUTION } from "../engine/resources.ts";
+import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
+import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
+import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtRP } from "./format.ts";
+import { designLine, researchAlternatives, researchExplain, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
+import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
+import type { Goal } from "./state.ts";
+
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null };
+
+// ---------------------------------------------------------------- priorité
+
+/** Libellé de joueur et effet de chaque priorité (critère d'optimisation). */
+export const CRITERION_TEXT: Record<Criterion, { label: string; why: string }> = {
+  machines: { label: "Le moins de machines", why: "garde les recettes qui demandent le moins de machines à poser (arbres et dépôts compris)." },
+  energy: { label: "Le moins d'énergie", why: "réduit la consommation électrique moyenne, utile si ton réseau est juste." },
+  cost: { label: "Le moins cher", why: "réduit le prix total des machines à acheter." },
+  pollution: { label: "Le moins de pollution", why: "réduit la pollution ajoutée (%/h), qui ralentit la pousse des arbres ; des Scrubbers peuvent être ajoutés." },
+  area: { label: "Le moins de place", why: "réduit la surface au sol occupée par les machines." },
+  raw: { label: "Le moins de matières premières", why: "réduit ce qu'il faut extraire (minerai, bois, pétrole…)." },
+  steps: { label: "La chaîne la plus courte", why: "une seule recette par objet, avec le moins d'étapes, même s'il faut plus de machines." },
+};
+
+/** Phrase d'aide sous le menu « Priorité » : ce que fait le choix actuel. */
+export function criterionHint(goal: Goal, c: Criterion): string {
+  const why =
+    goal === "énergie" && c === "machines"
+      ? "garde les centrales qui demandent le moins de bâtiments (extraction du combustible comprise)."
+      : goal === "recherche" && c === "machines"
+        ? "garde l'installation qui demande le moins de bâtiments (stations et chaîne des items)."
+        : CRITERION_TEXT[c].why;
+  return `${CRITERION_TEXT[c].label} : ${why} C'est elle qui décide quand un objet se fabrique de plusieurs façons.`;
+}
+
+// ---------------------------------------------------------------- petits outils
+
+const plural = (n: number, one: string, many: string) => `${fmt(n, 0)} ${n > 1 ? many : one}`;
+const fmtRate = (x: number) => fmt(x, x >= 100 ? 0 : x >= 10 ? 1 : 2);
+/** « a », « a et b », « a, b et c ». */
+const joinFr = (list: string[]) => (list.length < 2 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} et ${list.at(-1)}`);
+const trunc = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+/** Pollution lisible : « 33 %/h », « 1,1 %/h », « 0,17 %/h » (fourchette si elle varie). */
+function fmtPol(p: [number, number]): string {
+  const f = (x: number) => fmt(x, Math.abs(x) >= 10 ? 0 : Math.abs(x) >= 1 ? 1 : 2);
+  return p[0] === p[1] || f(p[0]) === f(p[1]) ? `${f(p[0])} %/h` : `${f(p[0])} – ${f(p[1])} %/h`;
+}
+
+/** Avertissements qui empêchent ou faussent le plan : affichés dans la réponse. */
+const BLOCKING = new Set([
+  "item-inconnu",
+  "machines-finales",
+  "dépôt",
+  "simplexe",
+  "énergie-non-couverte",
+  "contrainte-pollution",
+  "contrainte-budget",
+  "pollution-arrondi",
+  "budget-arrondi",
+  "forcée-invalide",
+  "forcée-verrouillée",
+]);
+const isBlocking = (w: Warning) => BLOCKING.has(w.code);
+
+function countsText(p: Plan): string {
+  const parts = [plural(p.totals.machines, "machine", "machines")];
+  if (p.totals.farms) parts.push(`≈ ${fmt(p.totals.farms, 0)} arbres`);
+  if (p.totals.depots) parts.push(plural(p.totals.depots, "dépôt de vente", "dépôts de vente"));
+  return joinFr(parts);
+}
+
+const finalSteps = (p: Plan) => p.steps.filter((s) => p.finals.includes(s.key));
+/** Nom court d'une installation composée : « Centrale Firebox (coal) » (le détail des bâtiments est à part). */
+function plantName(v: Pick<ViewCtx, "data">, s: Step, prefix = "Centrale "): string {
+  const name = v.data.recipes.get(s.recipeId)?.setupName ?? machineN(v, s.machine);
+  return `${prefix}${name.split(" + ")[0]}`;
+}
+/** Pollution retirée par une étape de Scrubbers (%/h, positive). */
+function removedPollution(s: Step): string {
+  const p = s.pollutionPerHour;
+  if (p === null) return "";
+  const r: [number, number] = typeof p === "number" ? [-p, -p] : [-p[1], -p[0]];
+  return `retire ${fmtPol(r)}`;
+}
+
+// ---------------------------------------------------------------- la réponse
+
+function headline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "bad" } {
+  const p = v.plan;
+  const t = p.target;
+  const item = esc(itemN(v, t.item));
+  const missing = p.unresolved.filter((u) => !u.loopShortfall).length;
+  const partial = p.status === "partiel" ? `, mais ${plural(missing, "objet n'est pas produit", "objets ne sont pas produits")}` : "";
+  const tone = p.status === "ok" ? "ok" : p.status === "partiel" ? "warn" : "bad";
+  if (v.goal === "recherche") return researchHeadline(v);
+  if (v.goal === "argent") {
+    if (p.status === "impossible") return { text: `Impossible de gagner ${esc(fmtMoney(t.ratePerMin))}/min avec ta progression actuelle.`, tone };
+    return { text: `Pour ${esc(fmtMoney(t.ratePerMin))}/min de ventes : ${countsText(p)}${partial}.`, tone };
+  }
+  if (v.goal === "énergie") {
+    const how = v.settings.energyGuaranteed ? "garantis" : "en moyenne";
+    if (p.status === "impossible") return { text: `Impossible de produire ${esc(fmtMF(t.ratePerMin))} avec ta progression et ces options.`, tone };
+    return { text: `Pour ${esc(fmtMF(t.ratePerMin))} ${how} : ${countsText(p)}${partial}.`, tone };
+  }
+  if (p.status === "impossible") return { text: `${item} ne peut pas encore être produit avec ta progression.`, tone };
+  const fin = finalSteps(p)[0];
+  const byMachines = t.finalMachines !== null && fin ? ` (${fmt(fin.machines, 0)} × ${esc(machineN(v, fin.machine))} en bout de chaîne)` : "";
+  return { text: `Pour ${fmtRate(t.ratePerMin)} ${item}/min${byMachines} : ${countsText(p)}${partial}.`, tone };
+}
+
+function researchGoalText(v: ViewCtx): string {
+  const s = v.settings;
+  const n = v.research?.nodes.length ?? 0;
+  if (s.rpMode === "rate") return `${fmt(s.rpRate, 2)} RP/s`;
+  if (s.rpMode === "node") return `débloquer ${esc(s.rpNode ? nodeN(v, s.rpNode) : "la recherche choisie")} en ${esc(fmtDuration(s.rpMinutes * 60))}`;
+  return `débloquer ce qui manque à ton plan d'objet (${plural(n, "recherche", "recherches")}) en ${esc(fmtDuration(s.rpMinutes * 60))}`;
+}
+
+function researchHeadline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "bad" } {
+  const r = v.research;
+  if (!r) return { text: "Les formules des stations de recherche sont incomplètes dans les données.", tone: "bad" };
+  if (!r.best) {
+    const done = r.warnings.some((w) => /déjà|suffit/.test(w));
+    return { text: esc(r.warnings[0] ?? "Aucune installation possible avec ta progression."), tone: done ? "ok" : "bad" };
+  }
+  const d = r.best.design;
+  const chain = r.best.plan.totals.machines + r.best.plan.totals.farms;
+  const buildings = d.buildings.reduce((s, b) => s + b.count, 0);
+  const extra = buildings - d.stations * (d.kind === "rs4" ? 2 : 1);
+  return {
+    text: `Pour ${researchGoalText(v)} : ${d.stations} × ${esc(STATION_KIND[d.kind]!)}${extra > 0 ? ` et ${plural(extra, "bâtiment de paraboles", "bâtiments de paraboles")}` : ""}${
+      chain ? `, plus ${plural(chain, "machine", "machines")} pour leurs items` : ""
+    }.`,
+    tone: r.best.plan.status === "ok" ? "ok" : "warn",
+  };
+}
+
+function kpis(v: ViewCtx): [string, string][] {
+  const p = v.plan;
+  const t = p.totals;
+  const e = p.economy;
+  const unk = (n: number) => (n ? "+" : "");
+  const costLabel =
+    e.money === null ? "prix des machines" : e.moneyMissing ? `il te manque ${fmtMoneyShort(e.moneyMissing)}` : `à dépenser · tu as ${fmtMoneyShort(e.money)} ✓`;
+  const cost: [string, string] = [fmtMoneyShort(e.buildCost) + unk(e.buildCostUnknown), costLabel];
+  const removes = t.pollutionPerHour[1] < 0;
+  const pollution: [string, string] = [
+    fmtPol(t.pollutionPerHour),
+    `${removes ? "pollution : les Scrubbers en retirent plus qu'il n'en est ajouté" : "pollution ajoutée"}${t.pollutionUnknownSteps ? ` (${t.pollutionUnknownSteps} inconnue[s])` : ""}`,
+  ];
+  const area: [string, string] = [`${fmt(t.footprint, 0)}${unk(t.footprintUnknownSteps)}`, "cases au sol"];
+  if (v.goal === "recherche" && v.research?.best) {
+    const d = v.research.best.design;
+    return [
+      [`${fmt(d.rate, d.rate >= 100 ? 0 : 2)} RP/s`, v.research.currentRate ? `en plus des ${fmt(v.research.currentRate, 2)} RP/s actuels` : "vitesse de l'installation"],
+      [fmtRP(d.cap), v.research.capNeeded ? `plafond de RP (il en faut ${fmtRP(v.research.capNeeded)})` : "plafond de RP"],
+      [fmtMF(t.energyAvg), "énergie, stations comprises"],
+      [fmtMoneyShort(d.buildingCost + e.buildCost) + unk(e.buildCostUnknown), e.money === null ? "prix total" : e.money >= d.buildingCost + e.buildCost ? `tu as ${fmtMoneyShort(e.money)} ✓` : `tu as ${fmtMoneyShort(e.money)}`],
+    ];
+  }
+  if (v.goal === "énergie") {
+    return [[fmtMF(t.energyProduced), `produits, dont ${fmtMF(t.energyAvg)} pour la chaîne`], cost, pollution, area];
+  }
+  const energy: [string, string] = [
+    fmtMF(t.energyAvg) + unk(t.energyUnknownSteps),
+    t.energyProduced ? `énergie, produite sur place (${fmtMF(t.energyProduced)})` : `énergie · ${fmtMF(t.energyPeak)} en pointe`,
+  ];
+  return [energy, cost, pollution, area];
+}
+
+function chipLine(label: string, chips: string[]): string {
+  return chips.length ? `<p class="chips"><span class="chips-k">${label}</span> ${chips.join(" ")}</p>` : "";
+}
+const chip = (name: string, n: string, cls = "") => `<span class="chip${cls ? ` ${cls}` : ""}">${esc(name)} <span class="n">${esc(n)}</span></span>`;
+
+/** Débit voisin où les machines sont mieux occupées (un seul, le plus proche). */
+function tierSuggestion(v: ViewCtx): string {
+  const p = v.plan;
+  const cur = p.tiers.find((t) => t.current);
+  if (!cur || cur.efficiency >= 0.97 || p.status !== "ok") return "";
+  const better = p.tiers.filter((t) => !t.current && t.efficiency >= cur.efficiency + 0.05);
+  if (!better.length) return "";
+  const best = better.sort((a, b) => Math.abs(Math.log(a.ratePerMin / cur.ratePerMin)) - Math.abs(Math.log(b.ratePerMin / cur.ratePerMin)))[0]!;
+  return `<li class="tip">Débit voisin mieux rempli : ${tierButton(v, best)} — machines occupées à ${fmt(best.efficiency * 100, 0)} % (contre ${fmt(cur.efficiency * 100, 0)} % ici).</li>`;
+}
+
+function tierUnit(v: ViewCtx, r: number): string {
+  return v.goal === "argent" ? `${fmtMoney(r)}/min` : v.goal === "énergie" ? fmtMF(r) : `${fmtRate(r)}/min`;
+}
+function tierButton(v: ViewCtx, t: Plan["tiers"][number], long = false): string {
+  const whole = Math.abs(t.finalMachines - Math.round(t.finalMachines)) < 1e-6;
+  const final = v.goal === "objet" && whole ? ` data-final="${Math.round(t.finalMachines)}"` : "";
+  const label = long ? `${tierUnit(v, t.ratePerMin)} · ${plural(t.machines, "machine", "machines")} · ${fmt(t.efficiency * 100, 0)} %` : tierUnit(v, t.ratePerMin);
+  return `<button type="button" class="chip tier${t.exact ? " exact" : ""}" data-tier="${t.ratePerMin}"${final}>${esc(label)}${t.exact ? " ●" : ""}</button>`;
+}
+
+/** Ce qui manque (recherches, machines à posséder), avec les boutons pour le cocher. */
+function missingNotes(v: ViewCtx): string[] {
+  const p = v.plan;
+  const e = p.economy;
+  const out: string[] = [];
+  const unres = p.unresolved.filter((u) => !u.loopShortfall);
+  if (unres.length) {
+    const why = unres.map((u) => `<b>${esc(itemN(v, u.item))}</b> (${esc(u.unlock ? lockText(v, u.unlock) : (LEAF_TEXT[u.reason] ?? u.reason))})`);
+    out.push(`<li class="bad">Non produit : ${why.join(" ; ")}</li>`);
+  }
+  if (e.nodesToUnlock.length) {
+    const time = e.rpMissing && e.secondsToRp !== null ? `, ≈ ${esc(fmtDuration(e.secondsToRp))} à ton rythme` : e.rpMissing ? `, il te manque ${esc(fmtRP(e.rpMissing))}` : "";
+    out.push(
+      `<li>À débloquer : ${e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ")} (${esc(fmtRP(e.rpNeeded))}${time})${
+        e.reqItems.length ? ` et vendre ${e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? " ✓" : ""}`).join(", ")}` : ""
+      }. ${unlockButton(e.nodesToUnlock, "C'est fait, je les ai débloquées")}</li>`,
+    );
+  }
+  if (e.machinesToOwn.length) out.push(`<li>À posséder : ${e.machinesToOwn.map((m) => esc(machineN(v, m))).join(", ")} (machines hors arbre de recherche). ${ownButton(e.machinesToOwn)}</li>`);
+  return out;
+}
+
+export function renderAnswer(v: ViewCtx): string {
+  const p = v.plan;
+  const h = headline(v);
+  const empty = v.goal === "recherche" ? !v.research?.best : p.status === "impossible" && !p.steps.length;
+  const stats = empty
+    ? ""
+    : `<div class="kpis">${kpis(v)
+        .map(([val, k]) => `<div class="kpi"><b>${esc(val)}</b><span>${esc(k)}</span></div>`)
+        .join("")}</div>`;
+  const plants = p.steps.filter((s) => s.item === ENERGY);
+  const lines = [
+    v.goal === "énergie"
+      ? chipLine(
+          "Centrales :",
+          plants.map((s) => chip(s.parts ? plantName(v, s, "") : `${fmt(s.machines, 0)} × ${machineN(v, s.machine)}`, fmtMF(-(s.energyAvg ?? 0)))),
+        )
+      : "",
+    v.goal === "recherche" && v.research?.best
+      ? chipLine("À fournir aux stations :", Object.entries(v.research.best.design.consumption).map(([i, q]) => chip(itemN(v, i), `${fmtRate(q)}/min`)))
+      : "",
+    chipLine("Ventes :", p.sales.map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min × ${fmtMoney(s.price)}`))),
+    chipLine(
+      "À extraire :",
+      p.raw.filter((r) => r.item !== ENERGY && r.item !== POLLUTION).map((r) => chip(itemN(v, r.item), `${fmtRate(r.perMin)}/min`)),
+    ),
+    chipLine("Déjà en place, utilisé :", p.existing.map((x) => chip(itemN(v, x.item), `${fmtRate(x.used)} / ${fmtRate(x.available)} par min`, "ok"))),
+    chipLine(
+      "À évacuer :",
+      p.surplus.filter((s) => s.item !== ENERGY && s.item !== POLLUTION).map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min`, "accent")),
+    ),
+  ].join("");
+  const forcedUsed = p.steps.filter((s) => s.forced).length;
+  const notes = [
+    ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${esc(w.message)}</li>`),
+    ...missingNotes(v),
+    ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${esc(x)}</li>`),
+    tierSuggestion(v),
+    forcedUsed ? `<li>${plural(forcedUsed, "recette est choisie à la main", "recettes sont choisies à la main")} (onglet Détails). <button type="button" class="link" data-forced-reset>Revenir aux choix automatiques</button></li>` : "",
+  ].filter(Boolean);
+  return `<div class="answer ${h.tone}" role="status"><h2>${h.text}</h2>${stats}${lines}${notes.length ? `<ul class="notices">${notes.join("")}</ul>` : ""}</div>`;
+}
+
+// ---------------------------------------------------------------- liste de construction
+
+export type BuildRow = {
+  key: string;
+  stage: string;
+  /** Machines à poser (0 : rien à construire). */
+  count: number;
+  countText: string;
+  machine: string;
+  /** Installation composée (centrale…) : le détail des bâtiments. */
+  parts?: string;
+  product: string;
+  rate: string;
+  feeds: string;
+  energy: string;
+  note: string;
+  /** Ligne à cocher (une machine à poser). */
+  buildable: boolean;
+  /** Objet pour « je l'ai déjà » (production existante). */
+  have?: { item: string; perMin: number };
+};
+
+const STAGES = ["Extraction", "Transformation", "Produit final", "Vente", "Centrales électriques", "Énergie", "Dépollution", "Stations de recherche", "Réseau électrique", "Déjà en place", "Non produit"] as const;
+
+function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
+  const p = v.plan;
+  const r = v.data.recipes.get(s.recipeId);
+  const farm = s.machineKind === "farm";
+  const gen = s.item === ENERGY;
+  const feeds = [...new Set(s.consumers.map((f) => itemN(v, f.item)))];
+  const occupied = s.utilization < 0.95 && !farm ? `occupée${s.machines > 1 ? "s" : ""} à ${fmt(s.utilization * 100, 0)} %` : "";
+  const locked = s.access.available ? "" : `${esc(lockText(v, s.access))} ${accessButton(s.access)}`;
+  return {
+    key: s.key,
+    stage,
+    // Installation composée : les bâtiments sont comptés un par un (le nombre d'installations, arrondi
+    // bâtiment par bâtiment, ne dit pas combien en poser).
+    count: s.parts ? s.parts.reduce((n, q) => n + q.count, 0) : s.machines,
+    countText: s.parts ? "" : `${farm ? "≈ " : ""}${fmt(s.machines, 0)}`,
+    machine: s.parts ? plantName(v, s) : machineN(v, s.machine),
+    parts: s.parts ? s.parts.map((q) => `${q.count} × ${machineN(v, q.machine)}`).join(" + ") : undefined,
+    product: gen ? "Énergie" : itemN(v, s.item),
+    rate: gen ? fmtMF(-(s.energyAvg ?? 0)) : s.item === POLLUTION ? removedPollution(s) : `${fmtRate(s.demandPerMin)}/min`,
+    feeds: p.finals.includes(s.key) && !feeds.length ? "" : feeds.join(", "),
+    energy: farm || gen ? "—" : fmtMF(s.energyAvg),
+    note: [occupied, farm && s.growth ? "nombre indicatif (pousse)" : "", locked].filter(Boolean).join(" · "),
+    buildable: true,
+    have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
+  };
+}
+
+/** Lignes de la liste de construction, dans l'ordre où l'on pose les machines. */
+export function buildRows(v: ViewCtx): BuildRow[] {
+  const p = v.plan;
+  const rows: BuildRow[] = [];
+  const isFinal = (s: Step) => p.finals.includes(s.key);
+  const deepFirst = (a: Step, b: Step) => b.depth - a.depth || a.item.localeCompare(b.item);
+  const steps = [...p.steps].sort(deepFirst);
+  const finalStage = v.goal === "argent" ? "Vente" : v.goal === "énergie" ? "Centrales électriques" : "Produit final";
+  for (const s of steps) {
+    if (isFinal(s)) continue;
+    if (s.item === ENERGY) rows.push(stepRow(v, s, "Énergie"));
+    else if (s.item === POLLUTION) rows.push(stepRow(v, s, "Dépollution"));
+    else rows.push(stepRow(v, s, s.isRaw || !s.inputs.length ? "Extraction" : "Transformation"));
+  }
+  for (const s of steps.filter(isFinal)) rows.push(stepRow(v, s, finalStage));
+  for (const d of p.depots) {
+    rows.push({
+      key: `dépôt:${d.id}`,
+      stage: "Vente",
+      count: d.machines,
+      countText: fmt(d.machines, 0),
+      machine: d.name,
+      product: "vente",
+      rate: `${fmtRate(d.itemsPerMin)} objets/min chacun`,
+      feeds: "",
+      energy: "—",
+      note: d.machinesExact < d.machines - 0.05 ? `occupé${d.machines > 1 ? "s" : ""} à ${fmt((d.machinesExact / d.machines) * 100, 0)} %` : "",
+      buildable: true,
+    });
+  }
+  const rs = v.goal === "recherche" ? v.research?.best?.design : undefined;
+  for (const b of rs?.buildings ?? []) {
+    rows.push({ key: `rs:${b.machine}`, stage: "Stations de recherche", count: b.count, countText: fmt(b.count, 0), machine: machineN(v, b.machine), product: "RP", rate: "", feeds: "", energy: "—", note: "", buildable: true });
+  }
+  const net = p.distribution;
+  const pole = net && net.distanceTiles !== null ? net.options.find((o) => o.poles !== null) : undefined;
+  if (net && pole) {
+    rows.push({
+      key: `réseau:${pole.id}`,
+      stage: "Réseau électrique",
+      count: pole.poles!,
+      countText: fmt(pole.poles!, 0),
+      machine: pole.name,
+      product: fmtMF(net.mfps),
+      rate: `sur ${fmt(net.distanceTiles!, 0)} cases`,
+      feeds: "",
+      energy: "—",
+      note: `${plural(pole.lines, "ligne", "lignes")} de ${pole.polesPerLine} poteaux${pole.cost !== null ? ` · ${fmtMoney(pole.cost)}` : ""} (autres poteaux : Détails)`,
+      buildable: true,
+    });
+  }
+  for (const x of p.existing) {
+    rows.push({
+      key: `existant:${x.item}`,
+      stage: "Déjà en place",
+      count: 0,
+      countText: "",
+      machine: "Rien à construire",
+      product: itemN(v, x.item),
+      rate: `${fmtRate(x.used)}/min utilisés`,
+      feeds: "",
+      energy: "—",
+      note: x.used < x.available - 1e-9 ? `il t'en reste ${fmtRate(x.available - x.used)}/min` : "",
+      buildable: false,
+    });
+  }
+  for (const u of p.unresolved) rows.push(unresolvedRow(v, u));
+  // Dans l'ordre d'affichage : par étage (tri stable, l'ordre de construction est gardé dans chaque étage).
+  const rank = (r: BuildRow) => (STAGES as readonly string[]).indexOf(r.stage);
+  return rows.sort((x, y) => rank(x) - rank(y));
+}
+
+function unresolvedRow(v: ViewCtx, u: Unresolved): BuildRow {
+  return {
+    key: `manque:${u.item}`,
+    stage: "Non produit",
+    count: 0,
+    countText: "",
+    machine: u.loopShortfall ? "Marge à prévoir" : "Impossible pour l'instant",
+    product: itemN(v, u.item),
+    rate: u.perMin ? `${fmtRate(u.perMin)}/min` : "",
+    feeds: "",
+    energy: "—",
+    note: u.loopShortfall
+      ? "la chaîne en consomme aussi pour s'alimenter elle-même (boucle) : prévois de la marge"
+      : `${u.unlock ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(LEAF_TEXT[u.reason] ?? u.reason)}`,
+    buildable: false,
+    have: { item: u.item, perMin: u.perMin },
+  };
+}
+
+/** Signature d'un plan pour retrouver les lignes déjà cochées (mêmes machines, mêmes nombres). */
+export function buildSignature(goal: Goal, rows: BuildRow[]): string {
+  const text = `${goal}|${rows
+    .filter((r) => r.buildable)
+    .map((r) => `${r.key}:${r.count}`)
+    .join(",")}`;
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>): string {
+  if (!rows.length) return `<p class="muted">Rien à construire.</p>`;
+  const buildable = rows.filter((r) => r.buildable);
+  const done = buildable.filter((r) => built.has(r.key)).length;
+  const pct = buildable.length ? Math.round((done / buildable.length) * 100) : 0;
+  let body = "";
+  for (const stage of STAGES) {
+    const list = rows.filter((r) => r.stage === stage);
+    if (!list.length) continue;
+    const machines = list.reduce((s, r) => s + r.count, 0);
+    body += `<tr class="stage"><td colspan="5">${esc(stage)}${machines && stage !== "Réseau électrique" ? ` <span>· ${fmt(machines, 0)}</span>` : ""}</td></tr>`;
+    for (const r of list) {
+      const on = built.has(r.key);
+      const box = r.buildable
+        ? `<input type="checkbox" data-built="${esc(r.key)}"${on ? " checked" : ""} aria-label="${esc(`${r.countText} ${r.machine} : construit`)}">`
+        : "";
+      const have = r.have
+        ? ` <button type="button" class="link small have" data-have="${esc(r.have.item)}" data-amount="${Math.round(r.have.perMin * 100) / 100}" title="Tu produis déjà cet objet ailleurs : le calcul s'en servira au lieu de construire.">je l'ai déjà</button>`
+        : "";
+      body += `<tr class="${[on ? "done" : "", r.buildable ? "" : "info"].filter(Boolean).join(" ")}"><td class="chk">${box}</td>
+        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
+        <td class="prod">${esc(r.product)}${r.rate ? ` <span class="sub num">${esc(r.rate)}</span>` : ""}${have}</td>
+        <td class="feeds">${r.feeds ? `<span class="sub-k">alimente</span> ${esc(r.feeds)}` : ""}</td>
+        <td class="num energy">${esc(r.energy)}</td></tr>`;
+    }
+  }
+  const bar = `<div class="progress"><span>${done} ligne${done > 1 ? "s" : ""} construite${done > 1 ? "s" : ""} sur ${buildable.length}</span><span class="bar"><i style="width:${pct}%"></i></span>${
+    done ? `<button type="button" class="link small" data-built-reset>tout décocher</button>` : ""
+  }</div>`;
+  return `${buildable.length ? bar : ""}
+    <table class="build"><thead><tr><th><span class="sr-only">Construit</span></th><th>Construire</th><th>Pour produire</th><th>Alimente</th><th>Énergie</th></tr></thead><tbody>${body}</tbody></table>
+    <p class="hint">Coche au fur et à mesure : de l'extraction vers l'objet final, dans l'ordre où l'on pose les machines. Les cases restent cochées pour ce plan, dans ce navigateur.</p>`;
+}
+
+// ---------------------------------------------------------------- schéma
+
+/** Schéma des flux (SVG), à placer dans un cadre navigable. */
+export function renderFlow(v: ViewCtx): { svg: string; width: number; height: number } | null {
+  const p = v.plan;
+  if (!p.steps.length && !p.unresolved.length) return null;
+  const L = layoutFlow(p);
+  const steps = new Map(p.steps.map((s) => [s.key, s]));
+  const unres = new Map(p.unresolved.map((u) => [u.item, u]));
+  const existing = new Map(p.existing.map((x) => [x.key, x]));
+  const warned = new Set(p.verify.filter((x) => x.used).map((x) => x.item));
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Schéma des flux, des matières premières (à gauche) vers l'objectif (à droite)">
+<defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="fa"/></marker></defs>`;
+  for (const e of L.edges) {
+    const tip = `${itemN(v, e.item)} : ${flowLabel(e.perMin)}${e.loop ? " (boucle : sous-produit qui remonte la chaîne)" : ""}`;
+    s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" marker-end="url(#fa)"><title>${esc(tip)}</title></path>`;
+  }
+  for (const n of L.nodes) {
+    const st = steps.get(n.id);
+    const u = unres.get(n.id);
+    const ex = existing.get(n.id);
+    const name = itemN(v, st?.item ?? ex?.item ?? n.id);
+    const final = n.kind === "final";
+    let sub: string;
+    if (ex) sub = `déjà en place · ${fmtRate(ex.used)}/min`;
+    else if (st?.machineKind === "farm") sub = `≈ ${st.machines} × ${machineN(v, st.machine)}`;
+    else if (st?.parts) sub = st.parts.map((q) => `${q.count} ${machineN(v, q.machine)}`).join(" + ");
+    else if (st) sub = `${st.machines} × ${machineN(v, st.machine)}`;
+    else sub = u?.loopShortfall ? "boucle : marge à prévoir" : "non produit";
+    const rate = final && st ? (st.item === ENERGY ? fmtMF(-(st.energyAvg ?? 0)) : `${fmtRate(st.demandPerMin)}/min`) : "";
+    const tip = st
+      ? `${name} — ${st.parts ? sub : `${st.machines} × ${machineN(v, st.machine)}`}, ${st.item === ENERGY ? fmtMF(-(st.energyAvg ?? 0)) : `${fmtRate(st.demandPerMin)}/min`}${st.energyAvg !== null && st.energyAvg > 0 ? `, ${fmtMF(st.energyAvg)}` : ""}`
+      : ex
+        ? `${name} — ta production existante : ${fmtRate(ex.used)} sur ${fmtRate(ex.available)} par min`
+        : `${name} — ${u ? (LEAF_TEXT[u.reason] ?? u.reason) : ""}`;
+    s += `<g class="fn ${n.kind}"><title>${esc(tip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
+<text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : ""}
+<text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, 26))}</text>${st && warned.has(st.item) ? `<text class="fn-warn" x="${n.x + FW - 12}" y="${n.y + 44}" text-anchor="end">⚠</text>` : ""}</g>`;
+  }
+  for (const e of L.edges) {
+    s += `<g class="fl"><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text x="${e.lx.toFixed(1)}" y="${(e.ly + 4).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
+  }
+  return { svg: s + "</svg>", width: L.width, height: L.height };
+}
+
+// ---------------------------------------------------------------- détails
+
+function warningsBlock(v: ViewCtx): { html: string; count: number } {
+  const w = v.plan.warnings;
+  const reused = w.filter((x) => x.code === "sous-produit-réutilisé");
+  const rest = w.filter((x) => x.code !== "sous-produit-réutilisé");
+  const items = [
+    ...rest.filter(isBlocking).map((x) => `<li class="bad">${esc(x.message)}</li>`),
+    ...rest.filter((x) => !isBlocking(x)).map((x) => `<li>${esc(x.message)}</li>`),
+    reused.length
+      ? `<li>Sous-produits réutilisés dans la chaîne (rien à évacuer pour eux) : ${esc(joinFr([...new Set(reused.flatMap((x) => x.items ?? []))].map((i) => itemN(v, i))))}.</li>`
+      : "",
+  ].filter(Boolean);
+  return { html: items.length ? `<ul class="notes">${items.join("")}</ul>` : `<p class="muted">Rien à signaler.</p>`, count: items.length };
+}
+
+function recipesBlock(v: ViewCtx): string {
+  const p = v.plan;
+  const rows = p.steps.map((s) => {
+    const r = v.data.recipes.get(s.recipeId)!;
+    const flags = r.verify.length ? ` <a class="tag warn" href="#donnees">⚠ à vérifier</a>` : "";
+    const body = s.parts
+      ? `${esc(r.setupName ?? "")}${Object.keys(r.inputs).length ? ` · consomme par seconde : ${esc(Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + "))}` : ""}${r.setupNote ? `<br><span class="muted">${esc(r.setupNote)}</span>` : ""}`
+      : esc(recipeText(v, r, s.durationS));
+    const choose = s.item === ENERGY || s.item === POLLUTION ? "" : recipeSelect(v, s.item, s.recipeId, s.alternatives);
+    return `<li id="rec-${esc(s.key)}"><div class="rec-head"><b>${esc(itemN(v, s.item))}</b> <span class="muted">${esc(machineN(v, r.machine))}${s.forced ? " · choisie à la main" : ""}</span>${flags}</div>
+      <div class="rec-text">${body}</div><div class="src">${r.sources.map(sourceLink).join(" · ")}</div>${choose}</li>`;
+  });
+  for (const u of p.unresolved) {
+    const choose = recipeSelect(v, u.item, null, u.candidates);
+    if (choose) rows.push(`<li><div class="rec-head"><b>${esc(itemN(v, u.item))}</b> <span class="muted">non produit</span></div>${choose}</li>`);
+  }
+  const forced = Object.keys(v.settings.forced).length;
+  return `<p class="hint">Le menu de chaque objet permet d'imposer une recette au lieu du choix automatique.${
+    forced ? ` <button type="button" class="link" data-forced-reset>Annuler les ${forced} choix à la main</button>` : ""
+  }</p><ul class="recs">${rows.join("")}</ul>`;
+}
+
+const more = (title: string, body: string, open = false) => (body ? `<details class="more"${open ? " open" : ""}><summary>${title}</summary>${body}</details>` : "");
+
+export function renderDetails(v: ViewCtx): string {
+  const p = v.plan;
+  const parts: string[] = [];
+  const nodeName = (id: string) => nodeN(v, id);
+  if (v.goal === "recherche" && v.research?.best) {
+    parts.push(more("Installation de recherche", researchExplain(v, v.research.best), true));
+    parts.push(more("Chronologie : quand chaque recherche sera débloquée", researchTimeline(v.research, nodeName), true));
+    parts.push(more(`Autres installations comparées (${v.research.others.length})`, researchAlternatives(v, v.research)));
+  }
+  const warn = warningsBlock(v);
+  parts.push(more(`Remarques sur le calcul (${warn.count})`, warn.html));
+  if (p.steps.length || p.unresolved.length) parts.push(more(`Recettes, sources et choix à la main (${p.steps.length})`, recipesBlock(v)));
+  if (p.tiers.length > 1) {
+    parts.push(
+      more(
+        "Débits « ronds » (machines bien remplies)",
+        `<p class="chips">${p.tiers.filter((t) => !t.current).map((t) => tierButton(v, t, true)).join(" ")}</p>
+        <p class="hint">Un clic adopte ce débit. Le pourcentage est l'occupation moyenne des machines ; ● : chaque étape tombe juste.</p>`,
+      ),
+    );
+  }
+  if (p.distribution) {
+    const d = p.distribution;
+    parts.push(
+      more(
+        "Réseau électrique (poteaux)",
+        `<p>${esc(fmtMF(d.mfps))} à transporter${d.distanceTiles !== null ? ` sur ${fmt(d.distanceTiles, 0)} cases` : " — indique la distance dans les options pour compter les poteaux"}.</p><ul class="notes">${d.options
+          .map((o) => `<li>${esc(o.name)} : ${plural(o.lines, "ligne", "lignes")}${o.poles !== null ? `, ${o.poles} poteaux${o.cost !== null ? `, ${esc(fmtMoney(o.cost))}` : ""}` : ""}</li>`)
+          .join("")}</ul>`,
+      ),
+    );
+  }
+  const used = p.verify.filter((x) => x.used).length;
+  if (used) parts.push(more(`Valeurs à vérifier en jeu (${used})`, `<p>${plural(used, "valeur utilisée par ce plan est douteuse", "valeurs utilisées par ce plan sont douteuses")} (manquante, variable ou contradictoire entre les wikis). <a href="#donnees">Les voir et les corriger</a>.</p>`));
+  if (v.goal !== "recherche") {
+    const how = p.engine === "simplexe" ? "optimisation exacte (simplexe)" : "choix heuristique, une recette par objet";
+    parts.push(more("Comment ce plan est calculé", `<p>Priorité : ${esc(CRITERION_TEXT[p.criterion].label.toLowerCase())} ; ${esc(how)}. Les machines sont arrondies à l'unité supérieure, d'où l'occupation affichée quand elle n'est pas pleine.</p>`));
+  }
+  return parts.join("") || `<p class="muted">Rien de plus.</p>`;
+}
+
+/** Ligne courte pour l'en-tête des autres pages (« Données ») : de quel calcul parle-t-on ? */
+export function planLabel(v: ViewCtx): string {
+  const t = v.plan.target;
+  if (v.goal === "recherche") return v.research?.best ? designLine(v, v.research.best) : "objectif recherche";
+  if (v.goal === "argent") return `${fmtMoney(t.ratePerMin)}/min de ventes`;
+  if (v.goal === "énergie") return fmtMF(t.ratePerMin);
+  return `${fmtRate(t.ratePerMin)} ${itemN(v, t.item)}/min`;
+}

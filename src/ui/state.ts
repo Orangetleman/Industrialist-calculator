@@ -3,14 +3,28 @@
 import type { Criterion } from "../engine/choose.ts";
 import type { OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
+export type Goal = "objet" | "argent" | "énergie" | "recherche";
+export const GOALS: Goal[] = ["objet", "énergie", "recherche", "argent"];
+
+/** Priorités proposées pour chaque objectif (celles qui ont un sens pour lui), la première par défaut. */
+export const CRITERIA: Record<Goal, Criterion[]> = {
+  objet: ["energy", "machines", "cost", "pollution", "area", "raw", "steps"],
+  argent: ["machines", "energy", "cost", "pollution", "area", "raw"],
+  énergie: ["machines", "cost", "raw", "pollution", "area"],
+  recherche: ["machines", "energy", "cost"],
+};
+
+export type ResultTab = "liste" | "schema" | "details";
+
 export type Settings = {
-  /** Objectif : produire un objet, ou gagner de l'argent ($/min). */
-  goal: "objet" | "argent" | "énergie" | "recherche";
+  /** Objectif affiché : produire un objet, de l'énergie, des RP, ou de l'argent. */
+  goal: Goal;
   item: string;
   mode: "rate" | "machines";
   rate: number;
   machines: number;
-  criterion: Criterion;
+  /** Priorité de chaque objectif (critère d'optimisation). */
+  criteria: Record<Goal, Criterion>;
   useUnverified: boolean;
   forced: Record<string, string>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
@@ -23,6 +37,12 @@ export type Settings = {
   useBudget: boolean;
   /** Production déjà en place chez le joueur : item → débit (/min). */
   existing: Record<string, number>;
+  /** Les calculs s'en servent (option, activée par défaut). */
+  useExisting: boolean;
+  /** Onglet de résultat ouvert : liste de construction, schéma, détails. */
+  resultTab: ResultTab;
+  /** Unité de saisie de la puissance voulue : kMF/s ou MMF/s. */
+  energyUnit: "k" | "M";
   /** Objectif énergie : MF/s voulus, production garantie ou moyenne, sans combustible, distance. */
   energyMFps: number;
   energyGuaranteed: boolean;
@@ -45,7 +65,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: "machines",
   rate: 60,
   machines: 15,
-  criterion: "energy",
+  criteria: { objet: "energy", argent: "machines", énergie: "machines", recherche: "machines" },
   useUnverified: false,
   forced: {},
   money: 10000,
@@ -53,6 +73,9 @@ export const DEFAULT_SETTINGS: Settings = {
   maxPollution: null,
   useBudget: false,
   existing: {},
+  useExisting: true,
+  resultTab: "liste",
+  energyUnit: "k",
   energyMFps: 1_000_000,
   energyGuaranteed: false,
   energyNoFuel: false,
@@ -69,6 +92,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY_SETTINGS = "ind-calc:v1:settings";
 const KEY_CORRECTIONS = "ind-calc:v1:corrections";
+const KEY_BUILT = "ind-calc:v1:built";
 
 function read<T>(key: string): T | null {
   try {
@@ -89,10 +113,16 @@ function write(key: string, value: unknown): void {
 export function loadSettings(): Settings {
   const s = read<Partial<Settings>>(KEY_SETTINGS) ?? {};
   // « allUnlocked » : réglage provisoire de l'étape (c), ignoré désormais.
-  const { allUnlocked: _ancien, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown };
+  // « criterion » : critère unique d'avant la refonte, repris comme priorité de l'objectif objet.
+  const { allUnlocked: _ancien, criterion: old, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown; criterion?: unknown };
   const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
-  if (!["machines", "energy", "raw", "steps", "pollution", "cost", "area"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
-  if (out.goal !== "objet" && out.goal !== "argent" && out.goal !== "énergie" && out.goal !== "recherche") out.goal = "objet";
+  const saved = (rest.criteria && typeof rest.criteria === "object" ? rest.criteria : {}) as Partial<Record<Goal, unknown>>;
+  if (typeof old === "string" && saved.objet === undefined) saved.objet = old;
+  out.criteria = Object.fromEntries(GOALS.map((g) => [g, CRITERIA[g].includes(saved[g] as Criterion) ? saved[g] : DEFAULT_SETTINGS.criteria[g]])) as Settings["criteria"];
+  if (!GOALS.includes(out.goal)) out.goal = "objet";
+  out.useExisting = out.useExisting !== false;
+  if (out.resultTab !== "liste" && out.resultTab !== "schema" && out.resultTab !== "details") out.resultTab = "liste";
+  if (out.energyUnit !== "k" && out.energyUnit !== "M") out.energyUnit = "k";
   if (out.rpMode !== "rate" && out.rpMode !== "node" && out.rpMode !== "plan") out.rpMode = "rate";
   if (!(out.rpRate > 0)) out.rpRate = DEFAULT_SETTINGS.rpRate;
   if (!(out.rpMinutes > 0)) out.rpMinutes = DEFAULT_SETTINGS.rpMinutes;
@@ -117,6 +147,30 @@ export function loadSettings(): Settings {
 }
 export function saveSettings(s: Settings): void {
   write(KEY_SETTINGS, s);
+}
+
+// ---------------------------------------------------------------- liste de construction cochée
+
+/** Lignes cochées « construit », par plan (signature) ; seuls les plans récents sont gardés. */
+export type BuiltStore = { plans: { sig: string; keys: string[] }[] };
+const BUILT_KEEP = 30;
+
+export function loadBuilt(): BuiltStore {
+  const b = read<BuiltStore>(KEY_BUILT);
+  const plans = b && Array.isArray(b.plans) ? b.plans.filter((p) => p && typeof p.sig === "string" && Array.isArray(p.keys)) : [];
+  return { plans: plans.map((p) => ({ sig: p.sig, keys: p.keys.filter((k): k is string => typeof k === "string") })) };
+}
+export function builtFor(store: BuiltStore, sig: string): Set<string> {
+  return new Set(store.plans.find((p) => p.sig === sig)?.keys ?? []);
+}
+/** Enregistre les lignes cochées d'un plan (le plus récent en tête). */
+export function setBuilt(store: BuiltStore, sig: string, keys: Iterable<string>): BuiltStore {
+  const list = [...keys];
+  const others = store.plans.filter((p) => p.sig !== sig);
+  return { plans: (list.length ? [{ sig, keys: list }, ...others] : others).slice(0, BUILT_KEEP) };
+}
+export function saveBuilt(store: BuiltStore): void {
+  write(KEY_BUILT, store);
 }
 
 // ---------------------------------------------------------------- corrections locales

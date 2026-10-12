@@ -71,7 +71,18 @@
      "reason": "approximatif",
      "detail": "température de la vapeur « around 190 » °C d'après la page Firebox : à confirmer en jeu"
     }
-   ]
+   ],
+   "observed": {
+    "steamC": [
+     105,
+     115
+    ],
+    "mfps": [
+     264152,
+     297215
+    ],
+    "note": "Vapeur observée en jeu : souvent 105 à 115 °C au plus. Chaque Large Turbine donne alors 132 à 149 kMF/s, et une installation 264 à 297 kMF/s au lieu de 640 kMF/s (2,2 à 2,4 fois moins). Prévois de la marge, ou vérifie ta température en jeu."
+   }
   },
   {
    "id": "centrale:gas_burner_01",
@@ -135,7 +146,18 @@
      "reason": "approximatif",
      "detail": "4.5 à 5 MMF/s par brûleur d'après la page Gas Burner : borne basse retenue"
     }
-   ]
+   ],
+   "observed": {
+    "steamC": [
+     105,
+     115
+    ],
+    "mfps": [
+     1320760,
+     1486075
+    ],
+    "note": "Vapeur observée en jeu : souvent 105 à 115 °C au plus. Chaque Large Turbine donne alors 132 à 149 kMF/s, et une installation 1 321 à 1 486 kMF/s au lieu de 4 500 kMF/s (3 à 3,4 fois moins). Prévois de la marge, ou vérifie ta température en jeu."
+   }
   },
   {
    "id": "centrale:gas_burner_02",
@@ -199,7 +221,18 @@
      "reason": "approximatif",
      "detail": "4.5 à 5 MMF/s par brûleur d'après la page Gas Burner : borne basse retenue"
     }
-   ]
+   ],
+   "observed": {
+    "steamC": [
+     105,
+     115
+    ],
+    "mfps": [
+     1320760,
+     1486075
+    ],
+    "note": "Vapeur observée en jeu : souvent 105 à 115 °C au plus. Chaque Large Turbine donne alors 132 à 149 kMF/s, et une installation 1 321 à 1 486 kMF/s au lieu de 4 500 kMF/s (3 à 3,4 fois moins). Prévois de la marge, ou vérifie ta température en jeu."
+   }
   },
   {
    "id": "solaire:solar-panel",

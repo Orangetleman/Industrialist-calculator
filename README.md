@@ -2,7 +2,7 @@
 
 > **English** — This page brings together all the information about the Roblox game “Industrialist” with the goal of providing a tool for creating automated production lines. Live version: https://industrialist.myprisme.fr (the interface is in French).
 
-Outil web **local** : tu coches ta progression dans l'arbre de recherche, tu choisis un item et un débit, et il donne toute la chaîne de production (recettes, nombre de machines, énergie, matières premières, surplus), uniquement avec ce que tu as débloqué.
+Outil web **local** : tu indiques où tu en es dans le jeu, tu dis ce que tu veux obtenir (un objet, de l'énergie, des RP ou de l'argent), et il donne la liste des machines à construire pour toute la chaîne (recettes, énergie, matières premières, surplus), uniquement avec ce que tu as débloqué.
 
 ## Installation
 
@@ -18,15 +18,15 @@ npm install
 npm run dev
 ```
 
-Puis ouvre http://localhost:5173. Tout tourne dans le navigateur, sans serveur : ta progression, « Ma partie » et tes corrections sont gardées dans le stockage local du navigateur.
+Puis ouvre http://localhost:5173. Tout tourne dans le navigateur, sans serveur : ta progression, « Mon usine » et tes corrections sont gardées dans le stockage local du navigateur.
 
-Les onglets :
+Les pages (une question, une page, une réponse) :
 
-- **Production** : objectif (un item à X/min ou N machines finales, X $/min de ventes, X MF/s d'énergie, ou une installation de recherche : X RP/s, une recherche dans un délai, ce qui manque au plan), critère (machines, énergie, matières premières, étapes, pollution, prix), limites facultatives (pollution maximale, budget), option « produire ma propre énergie » ; résumé, paliers ronds, graphe des flux, plan d'action, recettes et sources, avertissements.
-- **Bâtiments** : éditeur des entrées, sorties et prises électriques des bâtiments, sur une grille, avec une capture d'écran en fond.
-- **Recherche** : l'arbre comme en jeu (glisser, molette, clic sur une recherche pour voir ce qu'elle débloque) ou en liste ; « tout débloquer jusqu'à… » ; machines spéciales possédées.
-- **À vérifier** : les valeurs douteuses de la chaîne affichée ; tu peux saisir la valeur relevée en jeu, puis exporter tes corrections.
-- **Ma partie** (facultatif) : pollution, argent, RP, RP/s.
+- **Accueil** : « Que veux-tu faire ? », une carte par objectif.
+- **Planifier** : une page par objectif — un objet (X/min ou N machines finales), de l'énergie (X kMF/s ou MMF/s, moyenne ou garantie), des RP (une vitesse, une recherche dans un délai, ce qui manque au plan d'objet), de l'argent ($/min). Une **priorité** (le moins de machines, d'énergie, le moins cher…, expliquée sous le menu) ; options avancées repliées. Le résultat : **la réponse** (une phrase et quatre chiffres), puis trois onglets — **Liste de construction** à cocher, **Schéma** des flux de gauche à droite (glisser, molette, + / − / tout voir), **Détails** (recettes et sources, choix d'une recette à la main, débits ronds, remarques).
+- **Mon usine** : recherches débloquées, RP et RP/s, argent, pollution, production déjà en place, machines spéciales, réglages (dépense des RP, passe du jeu), export et import de la partie.
+- **Arbre** : l'arbre de recherche comme en jeu (glisser, molette, clic sur une recherche) ou en liste.
+- **Données** : valeurs à vérifier (saisie de la valeur relevée en jeu, export des corrections) et éditeur des entrées et sorties des bâtiments.
 
 ## En ligne
 
@@ -76,7 +76,7 @@ captures) est décrite dans [RELEVES.md](RELEVES.md).
 
 ### Corriger une valeur
 
-- Dans l'appli : onglet **À vérifier**, saisis la valeur relevée en jeu (Recipe Book), puis **Exporter mes corrections**.
+- Dans l'appli : page **Données**, onglet « Valeurs à vérifier », saisis la valeur relevée en jeu (Recipe Book), puis **Exporter mes corrections**.
 - Place le fichier exporté dans `data/overrides.json` : les corrections deviennent permanentes et prioritaires sur le wiki, avec leur source et leur date.
 
 ## Organisation

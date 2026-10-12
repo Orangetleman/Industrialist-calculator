@@ -34,7 +34,7 @@ signalé, et peut être relevé en jeu puis saisi dans l'outil.
 | **Météo et heure** | Journée d'environ 16 min, soleil de 6 h à 17 h ; orages plus fréquents avec la pollution (panneaux solaires inutiles, vent au maximum). | Courbe exacte du solaire dans la journée et loi du vent : on calculera une moyenne prudente et une puissance garantie, en le signalant. |
 | **Transport d'énergie** | Débit et capacité de chaque poteau (LV 2,4 kMF/s × 2 nœuds, MV 30 kMF/s × 2, Advanced MV 37,5 kMF/s × 4, HMVT 1,5 MMF/s × 4, HV 120 MMF/s × 8), de chaque batterie, des disjoncteurs, Power Control, transformateur HV. Portée : LV 10 tuiles, Advanced MV 8, HMVT 22, HV ≈ 70. Règle des couleurs de nœuds. | Relevé en jeu : LV, MV, Small MV et Advanced MV 10,5 tuiles, HMVT 22 (data/releves.json). |
 | **Vapeur** | 3 L d'eau → 90 L de vapeur ; Large Turbine : 90 L/s de vapeur à plein régime ; perte d'environ 0,01 ° par raccord ; les silos conservent la chaleur. | — |
-| **Tuyaux (Utility)** | Tableaux complets : tier I (6 unités/s, 6 L/s), tier III (120 unités/s, 120 L/s ; 2×2, 4×2, 8×2 studs), tier IV fluides (12 000 L/s), intersections, Item Overflow Gate, Overflow Gate, Item Valve Control, Valve Control, Cold Bypass Pipe, Pipe Valve, Large Fluid Pipe Conversion (alimentée), Large Fluid Valve Control, compteurs (passe de jeu). Prix et dimensions de chacun. « Un tuyau se raccorde à une entrée ou une sortie s'il la touche. » | Unité de la grille de construction : les tuyaux sont décrits en **studs**, la portée des poteaux en **tuiles**, et les tailles des machines sans unité. À confirmer en jeu (question Q1). |
+| **Tuyaux (Utility)** | Tableaux complets : tier I (6 unités/s, 6 L/s), tier III (120 unités/s, 120 L/s ; 2×2, 4×2, 8×2 studs), tier IV fluides (12 000 L/s), intersections, Item Overflow Gate, Overflow Gate, Item Valve Control, Valve Control, Cold Bypass Pipe, Pipe Valve, Large Fluid Pipe Conversion (alimentée), Large Fluid Valve Control, compteurs (passe du jeu). Prix et dimensions de chacun. « Un tuyau se raccorde à une entrée ou une sortie s'il la touche. » | Unité de la grille de construction : les tuyaux sont décrits en **studs**, la portée des poteaux en **tuiles**, et les tailles des machines sans unité. À confirmer en jeu (question Q1). |
 | **Ports des machines** | Pour 21 machines sur 100, une phrase situe les entrées et sorties (« à l'avant, à côté de la prise d'énergie », « entrée gauche : Machine Oil »). | **Position exacte et sens des ports** : absente des wikis. C'est la donnée clé des plans de construction (question Q2). |
 | **Stockage et vente** | Silos (tailles) ; Truck Depot : 10 objets, vente toutes les 15 s, soit environ 0,66 objet/s ; Van et Huge Truck Depot. Prix de vente de chaque item. | Capacité des silos : à vérifier. |
 | **Logique** | 1 tick logique = 1/6 s par porte ; portes AND, OR, NOT, NAND, NOR, XOR, mémoire, horloge, relais, délai, impulsion, aléatoire ; Item Meter et Fluid Meter ; vannes logiques pour items et fluides ; Pollution Gate et Time Gate ; énergie et taille de chaque composant. | Signaux exacts fournis par les compteurs (seuils, unités) : à préciser au moment de concevoir les gabarits logiques. |
@@ -292,7 +292,7 @@ sa capacité :
   - Item Valve Control et Valve Control (dosage, équilibrage) ;
   - Pipe Valve (aiguillage), Cold Bypass Pipe (vapeur trop froide) ;
   - conversion vers les gros tuyaux, Large Fluid Valve Control ;
-  - compteurs de débit (passe de jeu, désactivés par défaut) ;
+  - compteurs de débit (passe du jeu, désactivés par défaut) ;
 - **stockage et vente** : silos objets et fluides, Truck, Van et Huge Truck Depot, Liquid Truck
   Depot, Liquid Burner pour se débarrasser d'un fluide ;
 - **énergie** : poteaux LV, MV, Small MV, Advanced MV, HMVT, HV, couleurs de nœuds, Breaker,
@@ -419,8 +419,8 @@ fois E1 fait, mais tu ne l'as pas demandé : à toi de voir (question Q4).
    peux aussi comparer avec une bibliothèque existante si tu préfères, mais il faudrait
    l'installer.
 4. **Q4 — Argent.** Faut-il inclure l'objectif « X $/min » (phase E6) ?
-5. **Q5 — Passe de jeu.** Les compteurs de débit (Item Rate Meter et Fluid Rate Meter) sont
-   vendus dans une passe de jeu : faut-il les proposer dans les plans, en option ?
+5. **Q5 — Passe du jeu.** Les compteurs de débit (Item Rate Meter et Fluid Rate Meter) sont
+   vendus dans le passe du jeu : faut-il les proposer dans les plans, en option ?
 6. **Q6 — Priorité.** L'ordre E0 → E1 → E2 → E3 → E4 → E5 (refonte progressive) te convient-il,
    ou préfères-tu avancer plus tôt sur les plans de construction ?
 
@@ -432,7 +432,7 @@ fois E1 fait, mais tu ne l'as pas demandé : à toi de voir (question Q4).
 | Q2 Ports | Oui. Méthode de relevé : [RELEVES.md](RELEVES.md), avec une fiche texte et trois captures (vue normale, onglet 2, onglet 3). |
 | Q3 Simplexe | Oui, écrit à la main, sans dépendance. |
 | Q4 Argent | Oui, et pour **tous les objectifs** : proposer des **paliers ronds**, c'est-à-dire les débits où, avec la progression actuelle, chaque étape tombe sur un nombre entier de machines (ou presque), comme les 15 assembleurs de la référence. |
-| Q5 Passe de jeu | Les compteurs de débit sont proposés seulement si « J'ai la passe de jeu » est coché dans « Ma partie ». |
+| Q5 Passe du jeu | Les compteurs de débit sont proposés seulement si « J'ai le passe du jeu » est coché dans « Mon usine ». |
 | Q6 Ordre | E0 → E1 → E2 → E3 → E4 → E5, la refonte se faisant au fil des phases. |
 | Identité | Logo original (engrenage et flèche de flux), icônes et image d'aperçu des liens : fait le 2026-10-12. |
 

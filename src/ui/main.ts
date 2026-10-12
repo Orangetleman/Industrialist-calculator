@@ -1,5 +1,6 @@
-// Point d'entrée de l'interface : charge les données, lit les réglages, appelle
-// solve() et affiche le résultat. Toute la logique de calcul est dans src/engine.
+// Point d'entrée de l'interface : charge les données, route entre les pages (accueil, une page
+// par objectif, Mon usine, arbre, données), appelle solve() et affiche le résultat. Toute la
+// logique de calcul est dans src/engine ; le rendu du plan dans plan-view.ts.
 
 import "../styles.css";
 import itemsJson from "../../data/items.json";
@@ -7,15 +8,21 @@ import machinesJson from "../../data/machines.json";
 import overridesJson from "../../data/overrides.json";
 import recipesJson from "../../data/recipes.json";
 import researchJson from "../../data/research.json";
+import portsJson from "../../data/ports.json";
+import logisticsJson from "../../data/logistics.json";
+import energyJson from "../../data/energy.json";
+import stationsJson from "../../data/research-stations.json";
+import powerJson from "../../data/power.json";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
+import type { EnergyFile, LogisticsFile, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
+import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
 import { dependentsOf, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { esc, fmt, fmtMoney, fmtRP, parseInput } from "./format.ts";
+import { esc, fmt, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
 import {
-  exportProgress,
   currentRp,
-  rpDelta,
+  exportProgress,
   loadPlayer,
   loadProgress,
   parseOptional,
@@ -23,39 +30,41 @@ import {
   progressSummary,
   renderOwned,
   renderTree,
+  rpDelta,
   sanitizeProgress,
   savePlayer,
-  withRpRate,
   saveProgress,
   toEngineProgress,
+  withRpRate,
   type PlayerInfo,
   type ProgressState,
   type TreeView,
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
-import portsJson from "../../data/ports.json";
-import logisticsJson from "../../data/logistics.json";
-import energyJson from "../../data/energy.json";
-import stationsJson from "../../data/research-stations.json";
-import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
-import powerJson from "../../data/power.json";
-import type { EnergyFile, LogisticsFile, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { renderResearch, renderResearchStatus } from "./research-plan.ts";
-import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
+import type { ResearchView } from "./research-plan.ts";
+import { renderCorrections, renderVerify } from "./render.ts";
+import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import {
+  builtFor,
   countCorrections,
+  CRITERIA,
   isOverridesFile,
+  loadBuilt,
   loadCorrections,
   loadSettings,
   mergeCorrections,
   pruneIntegratedCorrections,
   removeCorrection,
+  saveBuilt,
   saveCorrections,
   saveSettings,
+  setBuilt,
   setCorrection,
+  type Goal,
+  type ResultTab,
   type Scope,
   type Settings,
 } from "./state.ts";
@@ -67,13 +76,14 @@ const POLES = (powerJson as unknown as PowerFile).entries
   .map((e) => ({ id: e.id, name: e.name, perNodeMFps: e.transfer!.perNode, nodes: e.transfer!.nodes, rangeTiles: e.rangeTiles?.tiles ?? null }));
 const ENERGY_FILE = energyJson as unknown as EnergyFile;
 const RP_PARAMS = rpParams(stationsJson as unknown as ResearchStationsFile);
-/** Dernier calcul de l'objectif recherche (installation, chronologie). */
-let rpView: (RpResult & { nodes: string[]; capNeeded: number; targetRate: number; timeline: ReturnType<typeof unlockTimeline>; timelineNow: ReturnType<typeof unlockTimeline>; currentRate: number | null }) | null = null;
 const repoOverrides = overridesJson as unknown as OverridesFile;
 /** Dépôts de vente (objectif argent) : débit de vente relevé ou lu sur le wiki. */
 const DEPOTS = (logisticsJson as unknown as LogisticsFile).depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+const input = (id: string) => $<HTMLInputElement>(id);
+
+// ---------------------------------------------------------------- état
 
 let settings: Settings = loadSettings();
 // Corrections locales déjà intégrées aux données (même date) : la copie locale est retirée.
@@ -82,17 +92,29 @@ let corrections: OverridesFile = prunedCorrections.kept;
 if (prunedCorrections.dropped) saveCorrections(corrections);
 let data: GameData = buildGameData(files, []).data;
 let dataErrors: string[] = [];
-let plan: Plan | undefined;
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
+let built = loadBuilt();
 const treeView: TreeView = { category: "Production", filter: "" };
-type Tab = "production" | "recherche" | "verifier" | "batiments" | "partie";
-const TABS: Tab[] = ["production", "recherche", "verifier", "batiments", "partie"];
+
+/** Dernier calcul (recalculé seulement quand un réglage, la progression ou les données changent). */
+let plan: Plan | undefined;
+let rpView: ResearchView | null = null;
+let planDirty = true;
+let rows: BuildRow[] = [];
+let signature = "";
+
 const KEY_UI = "ind-calc:v1:ui";
-let ui: { view: "tree" | "list"; selected: string | null } = { view: "tree", selected: null };
+let ui: { view: "tree" | "list"; selected: string | null; dataTab: "verifier" | "batiments" } = { view: "tree", selected: null, dataTab: "verifier" };
 try {
   const raw = JSON.parse(localStorage.getItem(KEY_UI) ?? "null");
-  if (raw && (raw.view === "tree" || raw.view === "list")) ui = { view: raw.view, selected: typeof raw.selected === "string" ? raw.selected : null };
+  if (raw && typeof raw === "object") {
+    ui = {
+      view: raw.view === "list" ? "list" : "tree",
+      selected: typeof raw.selected === "string" ? raw.selected : null,
+      dataTab: raw.dataTab === "batiments" ? "batiments" : "verifier",
+    };
+  }
 } catch {
   // préférences d'affichage indisponibles : valeurs par défaut
 }
@@ -103,66 +125,73 @@ function saveUi(): void {
     // idem
   }
 }
-let panzoom: PanZoom | null = null;
-const layouts = new Map<string, ResearchLayout>();
-let lastLayoutKey = "";
 
 function rebuildData(): void {
   const r = buildGameData(files, [repoOverrides, corrections]);
   data = r.data;
   dataErrors = r.errors;
+  layouts.clear();
 }
 
 function playerState(): PlayerState {
   return { ...toEngineProgress(prog), ...player, rp: currentRp(player) };
 }
 
-// ---------------------------------------------------------------- recherche d'item
-const byName = new Map<string, string>();
-function fillItemList(): void {
-  const list = $("item-list");
-  const items = [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name));
-  byName.clear();
-  for (const it of items) byName.set(it.name.toLowerCase(), it.id);
-  list.innerHTML = items.map((it) => `<option value="${esc(it.name)}"></option>`).join("");
-}
-function resolveItem(text: string): string | null {
-  const t = text.trim().toLowerCase();
-  if (!t) return null;
-  if (byName.has(t)) return byName.get(t)!;
-  if (data.items.has(t)) return t;
-  const partial = [...byName.entries()].filter(([n]) => n.includes(t));
-  return partial.length === 1 ? partial[0]![1] : null;
+const nodeName = (id: string) => data.nodes.get(id)?.name ?? id;
+const itemName = (id: string) => data.items.get(id)?.name ?? id;
+
+// ---------------------------------------------------------------- pages et adresses
+
+type Page = "accueil" | "plan" | "usine" | "arbre" | "donnees";
+const PAGES: Page[] = ["accueil", "plan", "usine", "arbre", "donnees"];
+const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
+const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
+const GOAL_TITLE: Record<Goal, string> = { objet: "Produire un objet", énergie: "Produire de l'énergie", recherche: "Gagner des points de recherche", argent: "Gagner de l'argent" };
+/** Adresses d'avant la refonte. */
+const OLD_ROUTES: Record<string, string> = { production: "", recherche: "arbre", verifier: "donnees", batiments: "donnees", partie: "usine" };
+
+function currentPage(): Page {
+  const h = decodeURIComponent(location.hash.replace("#", ""));
+  if (ROUTE_GOAL[h]) return "plan";
+  return (PAGES as string[]).includes(h) && h !== "plan" ? (h as Page) : "accueil";
 }
 
-// ---------------------------------------------------------------- rendu
-function syncForm(): void {
-  ($("item") as HTMLInputElement).value = data.items.get(settings.item)?.name ?? settings.item;
-  ($("criterion") as HTMLSelectElement).value = settings.criterion;
-  ($("unverified") as HTMLInputElement).checked = settings.useUnverified;
-  // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste).
-  ($("rate") as HTMLInputElement).value = String(Number(settings.rate.toFixed(4)));
-  ($("machines") as HTMLInputElement).value = String(settings.machines);
-  ($("money") as HTMLInputElement).value = String(settings.money);
-  ($("max-pollution") as HTMLInputElement).value = settings.maxPollution === null ? "" : String(settings.maxPollution);
-  ($("self-powered") as HTMLInputElement).checked = settings.selfPowered;
-  ($("use-budget") as HTMLInputElement).checked = settings.useBudget;
-  ($("energy") as HTMLInputElement).value = String(settings.energyMFps / 1000);
-  ($("energy-mode") as HTMLSelectElement).value = settings.energyGuaranteed ? "garantie" : "moyenne";
-  ($("no-fuel") as HTMLInputElement).checked = settings.energyNoFuel;
-  ($("distance") as HTMLInputElement).value = settings.distanceTiles === null ? "" : String(settings.distanceTiles);
-  ($("rp-mode") as HTMLSelectElement).value = settings.rpMode;
-  ($("rp-rate") as HTMLInputElement).value = String(settings.rpRate);
-  ($("rp-node") as HTMLInputElement).value = settings.rpNode ? (data.nodes.get(settings.rpNode)?.name ?? "") : "";
-  ($("rp-minutes") as HTMLInputElement).value = String(settings.rpMinutes);
-  ($("rp-cap") as HTMLInputElement).value = settings.rpCap === null ? "" : String(settings.rpCap);
-  ($("rp-satellites") as HTMLInputElement).checked = settings.rpSatellites;
-  ($("rp-logic") as HTMLInputElement).checked = settings.rpLogic;
-  ($("rp-current") as HTMLInputElement).checked = settings.rpCurrent;
+/** Lit l'adresse : objectif choisi, anciennes adresses redirigées. */
+function readRoute(): void {
+  const h = decodeURIComponent(location.hash.replace("#", ""));
+  if (h in OLD_ROUTES) {
+    if (h === "batiments") ui.dataTab = "batiments";
+    if (h === "verifier") ui.dataTab = "verifier";
+    history.replaceState(null, "", `#${OLD_ROUTES[h] || GOAL_ROUTE[settings.goal]}`);
+  }
+  const goal = ROUTE_GOAL[decodeURIComponent(location.hash.replace("#", ""))];
+  if (goal && goal !== settings.goal) {
+    settings.goal = goal;
+    planDirty = true;
+  }
 }
+
+let lastPage: Page | null = null;
+function showPage(): void {
+  readRoute();
+  const page = currentPage();
+  for (const p of PAGES) $(`page-${p}`).hidden = p !== page;
+  for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-nav]")) {
+    if (a.dataset.nav === page) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
+  if (page !== lastPage) window.scrollTo(0, 0);
+  lastPage = page;
+  const titles: Record<Page, string> = { accueil: "", plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", donnees: "Données" };
+  document.title = titles[page] ? `${titles[page]} — Calculateur de production` : "Calculateur de production";
+  render();
+}
+
+// ---------------------------------------------------------------- calcul
 
 /** Objectif recherche : recherches visées, vitesse et plafond nécessaires, installation, chronologie. */
-function computeResearch() {
+function computeResearch(): ResearchView | null {
   if (!RP_PARAMS) return null;
   const ps = playerState();
   const p = toEngineProgress(prog);
@@ -171,7 +200,14 @@ function computeResearch() {
   let nodes: string[] = [];
   if (settings.rpMode === "node" && settings.rpNode) nodes = missingNodes(data, p, settings.rpNode);
   if (settings.rpMode === "plan") {
-    const itemPlan = solve(data, ps, { item: settings.item, ...(settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }), criterion: settings.criterion, forced: settings.forced, useUnverified: settings.useUnverified, tiers: false });
+    const itemPlan = solve(data, ps, {
+      item: settings.item,
+      ...(settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }),
+      criterion: settings.criteria.objet,
+      forced: settings.forced,
+      useUnverified: settings.useUnverified,
+      tiers: false,
+    });
     nodes = itemPlan.economy.nodesToUnlock;
   }
   const costs = nodes.map((id) => ({ id, rp: data.nodes.get(id)?.rp ?? 0 }));
@@ -187,12 +223,24 @@ function computeResearch() {
           capNeeded,
           satellites: settings.rpSatellites,
           logic: settings.rpLogic,
-          criterion: settings.criterion === "steps" ? "machines" : settings.criterion,
+          criterion: settings.criteria.recherche,
           useUnverified: settings.useUnverified,
           selfPowered: settings.selfPowered,
-          existing: settings.existing,
+          existing: settings.useExisting ? settings.existing : {},
         })
-      : { best: null, others: [], warnings: [total <= rp0 ? "Tu as déjà assez de RP pour tout débloquer." : "Ta production actuelle suffit pour ce délai."] };
+      : {
+          best: null,
+          others: [],
+          warnings: [
+            settings.rpMode === "node" && !settings.rpNode
+              ? "Choisis la recherche à débloquer."
+              : !nodes.length
+                ? "Rien à débloquer : c'est déjà fait."
+                : total <= rp0
+                  ? "Tu as déjà assez de RP pour tout débloquer."
+                  : "Ta production actuelle de RP suffit pour ce délai.",
+          ],
+        };
   const d = result.best?.design;
   const kind = d?.kind ?? "rs2";
   const timeline = d ? unlockTimeline(costs, rp0, d.rate + current, d.cap, kind) : null;
@@ -200,105 +248,302 @@ function computeResearch() {
   return { ...result, nodes, capNeeded, targetRate, timeline, timelineNow, currentRate: current || null };
 }
 
-function render(): void {
-  const money = settings.goal === "argent";
-  const energy = settings.goal === "énergie";
-  const research = settings.goal === "recherche";
-  rpView = research ? computeResearch() : null;
-  plan = research
-    ? (rpView?.best?.plan ?? solve(data, playerState(), { item: "", demands: {}, tiers: false }))
-    : solve(data, playerState(), {
+function ensurePlan(): void {
+  if (!planDirty && plan) return;
+  planDirty = false;
+  const goal = settings.goal;
+  rpView = goal === "recherche" ? computeResearch() : null;
+  if (goal === "recherche") {
+    plan = rpView?.best?.plan ?? solve(data, playerState(), { item: "", demands: {}, tiers: false });
+    return;
+  }
+  plan = solve(data, playerState(), {
     item: settings.item,
-    ...(money
+    ...(goal === "argent"
       ? { moneyPerMin: settings.money }
-      : energy
+      : goal === "énergie"
         ? { energyMFps: settings.energyMFps, guaranteedEnergy: settings.energyGuaranteed, noFuel: settings.energyNoFuel }
         : settings.mode === "rate"
           ? { ratePerMin: settings.rate }
           : { finalMachines: settings.machines }),
     poles: POLES,
     distanceTiles: settings.distanceTiles,
-    criterion: settings.criterion,
+    criterion: settings.criteria[goal],
     forced: settings.forced,
     useUnverified: settings.useUnverified,
     selfPowered: settings.selfPowered,
     maxPollution: settings.maxPollution,
     budget: settings.useBudget && player.money !== null ? player.money : null,
     depots: DEPOTS,
-    existing: Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))),
+    existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
   });
-  const ctx: Ctx = { data, plan, settings, corrections };
-
-  // Champ « complémentaire » : débit calculé en mode machines, et inversement.
-  const finals = plan.steps.filter((s) => plan!.finals.includes(s.key));
-  if (settings.mode === "machines" && document.activeElement !== $("rate")) ($("rate") as HTMLInputElement).value = fmt(plan.target.ratePerMin, 2).replace(/\s/g, "").replace(",", ".");
-  if (settings.mode === "rate" && finals.length && document.activeElement !== $("machines")) ($("machines") as HTMLInputElement).value = String(finals.reduce((n, s) => n + s.machines, 0));
-  $("item-fields").hidden = money || energy || research;
-  $("money-fields").hidden = !money;
-  $("energy-fields").hidden = !energy;
-  $("rp-fields").hidden = !research;
-  $("rp-rate-label").hidden = settings.rpMode !== "rate";
-  $("rp-node-label").hidden = settings.rpMode !== "node";
-  $("rp-minutes-label").hidden = settings.rpMode === "rate";
-  $("rp-hint").textContent = research && rpView
-    ? settings.rpMode === "plan"
-      ? `Plan d'objet : ${data.items.get(settings.item)?.name ?? settings.item} (réglé dans « Produire un objet »). ${rpView.nodes.length} recherche(s) à débloquer.`
-      : settings.rpMode === "node"
-        ? `${rpView.nodes.length} recherche(s) à débloquer, prérequis compris.`
-        : `Plafond automatique : la recherche la plus chère qu'il te reste (${fmtRP(rpView.capNeeded)}).`
-    : "";
-  $("energy-hint").textContent = `Comparées : centrales thermiques (Firebox, Gas Burner), générateurs à combustible, solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed.map((n) => data.machines.get(n.machine)?.name ?? n.machine).join(", ")}.`;
-  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-goal]")) b.setAttribute("aria-checked", String(b.dataset.goal === settings.goal));
-  $("mode-hint").textContent = money || energy || research ? "" : settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
-  $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans « Ma partie »)" : `(${fmtMoney(player.money)})`;
-  $("rate").closest("label")!.classList.toggle("active", settings.mode === "rate");
-  $("machines").closest("label")!.classList.toggle("active", settings.mode === "machines");
-
-  $("status").innerHTML = research ? renderResearchStatus(rpView) : renderStatus(ctx);
-  $("stats").innerHTML = research ? renderResearch(ctx, rpView, (id) => data.nodes.get(id)?.name ?? id) + renderSummary(ctx) : renderSummary(ctx);
-  $("graph").innerHTML = renderGraph(ctx);
-  $("plan").innerHTML = renderPlan(ctx);
-  $("verify").innerHTML = renderVerify(ctx);
-  $("verify-count").textContent = String(plan.verify.filter((v) => v.used).length);
-  $("corrections").innerHTML = renderCorrections(ctx);
-  $("corrections-count").textContent = String(countCorrections(corrections));
-  $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">Corrections ignorées :<ul>${dataErrors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : "";
-  $("rec").innerHTML = renderRecipes(ctx);
-  $("warnings").innerHTML = renderWarnings(ctx);
-  $("forced-reset").hidden = !Object.keys(settings.forced).length;
-  renderExisting();
-  saveSettings(settings);
-  renderProgress();
 }
 
-// ---------------------------------------------------------------- progression et « Ma partie »
-function renderProgress(): void {
+function viewCtx(): ViewCtx {
+  ensurePlan();
+  return { data, plan: plan!, settings, corrections, goal: settings.goal, research: rpView };
+}
+
+/** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
+function update(): void {
+  planDirty = true;
+  saveSettings(settings);
+  render();
+}
+
+let timer: number | undefined;
+function updateSoon(): void {
+  clearTimeout(timer);
+  timer = window.setTimeout(update, 150);
+}
+
+// ---------------------------------------------------------------- rendu
+
+function render(): void {
+  renderHeader();
+  const page = currentPage();
+  if (page === "accueil") renderHome();
+  else if (page === "plan") renderPlanPage();
+  else if (page === "usine") renderUsine();
+  else if (page === "arbre") renderTreePage();
+  else renderData();
+}
+
+const researchTotal = () => [...data.nodes.values()].filter((n) => !n.isRoot).length;
+const unlockedCount = () => [...data.nodes.values()].filter((n) => !n.isRoot && (n.startUnlocked || prog.unlocked.includes(n.id))).length;
+const isFresh = () => !prog.unlocked.length && player.money === null && player.rp === null;
+
+/** Barre du haut : où en est le joueur, en bref (cliquable vers « Mon usine »). */
+function renderHeader(): void {
+  $<HTMLAnchorElement>("nav-plan").href = `#${GOAL_ROUTE[settings.goal]}`;
+  if (isFresh()) {
+    $("me").innerHTML = `<a class="me-chip cta" href="#usine">Renseigner mon usine</a>`;
+    return;
+  }
+  const rp = currentRp(player);
+  const chips = [
+    `<a class="me-chip" href="#usine" title="Recherches débloquées">${unlockedCount()}/${researchTotal()} recherches</a>`,
+    rp !== null ? `<a class="me-chip" href="#usine" title="RP disponibles (estimés)">≈ ${esc(fmtShort(rp))} RP${player.rpPerSec ? ` · ${esc(fmt(player.rpPerSec, 1))}/s` : ""}</a>` : "",
+    player.money !== null ? `<a class="me-chip" href="#usine" title="Argent">${esc(fmtMoneyShort(player.money))}</a>` : "",
+  ];
+  $("me").innerHTML = chips.join("");
+}
+
+function renderHome(): void {
+  $("first-visit").hidden = !isFresh();
+}
+
+// ---------------------------------------------------------------- page d'un objectif
+
+function syncForm(): void {
+  const set = (id: string, v: string) => {
+    if (document.activeElement !== $(id)) input(id).value = v;
+  };
+  set("item", data.items.get(settings.item)?.name ?? settings.item);
+  $<HTMLSelectElement>("qty-unit").value = settings.mode;
+  // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste).
+  set("qty", settings.mode === "rate" ? String(Number(settings.rate.toFixed(4))) : String(settings.machines));
+  set("money", String(settings.money));
+  $<HTMLSelectElement>("energy-unit").value = settings.energyUnit;
+  set("energy", String(Number((settings.energyMFps / (settings.energyUnit === "M" ? 1e6 : 1e3)).toFixed(4))));
+  $<HTMLSelectElement>("energy-mode").value = settings.energyGuaranteed ? "garantie" : "moyenne";
+  input("no-fuel").checked = settings.energyNoFuel;
+  set("distance", settings.distanceTiles === null ? "" : String(settings.distanceTiles));
+  $<HTMLSelectElement>("rp-mode").value = settings.rpMode;
+  set("rp-rate", String(settings.rpRate));
+  set("rp-node", settings.rpNode ? nodeName(settings.rpNode) : "");
+  set("rp-minutes", String(settings.rpMinutes));
+  set("rp-cap", settings.rpCap === null ? "" : String(settings.rpCap));
+  input("rp-satellites").checked = settings.rpSatellites;
+  input("rp-logic").checked = settings.rpLogic;
+  input("rp-current").checked = settings.rpCurrent;
+  set("max-pollution", settings.maxPollution === null ? "" : String(settings.maxPollution));
+  input("self-powered").checked = settings.selfPowered;
+  input("use-budget").checked = settings.useBudget;
+  input("use-existing").checked = settings.useExisting;
+  input("unverified").checked = settings.useUnverified;
+}
+
+function renderPlanPage(): void {
+  const v = viewCtx();
+  const goal = settings.goal;
+  $("plan-title").textContent = GOAL_TITLE[goal];
+  for (const a of document.querySelectorAll<HTMLAnchorElement>(".goalnav [data-goal]")) {
+    if (a.dataset.goal === goal) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  for (const el of document.querySelectorAll<HTMLElement>("#query [data-goals]")) el.hidden = !el.dataset.goals!.split(" ").includes(goal);
+  $("rp-rate-label").hidden = goal !== "recherche" || settings.rpMode !== "rate";
+  $("rp-node-label").hidden = goal !== "recherche" || settings.rpMode !== "node";
+  $("rp-minutes-label").hidden = goal !== "recherche" || settings.rpMode === "rate";
+  syncForm();
+
+  // Priorité : seulement celles qui ont un sens pour cet objectif, avec ce qu'elle fait.
+  const crit = $<HTMLSelectElement>("criterion");
+  const options = CRITERIA[goal];
+  if (crit.dataset.goal !== goal) {
+    crit.innerHTML = options.map((c) => `<option value="${c}">${esc(CRITERION_TEXT[c].label)}</option>`).join("");
+    crit.dataset.goal = goal;
+  }
+  crit.value = settings.criteria[goal];
+  $("criterion-hint").textContent = criterionHint(goal, settings.criteria[goal]);
+
+  // Textes d'aide propres à l'objectif.
+  const existingN = Object.keys(settings.existing).length;
+  $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans Mon usine)" : `(${fmtMoney(player.money)})`;
+  $("existing-hint-plan").innerHTML = existingN ? `(${existingN} production${existingN > 1 ? "s" : ""} dans <a href="#usine">Mon usine</a>)` : `(aucune pour l'instant : <a href="#usine">Mon usine</a>)`;
+  $("rp-current-hint").textContent = player.rpPerSec ? `(${fmt(player.rpPerSec, 2)} RP/s dans Mon usine)` : "(renseigne-la dans Mon usine)";
+  let goalHint = "";
+  if (goal === "recherche" && settings.rpMode === "plan") {
+    goalHint = `Plan d'objet utilisé : ${esc(settings.mode === "rate" ? `${fmt(settings.rate, 2)} ${itemName(settings.item)}/min` : `${settings.machines} machines finales de ${itemName(settings.item)}`)} — <a href="#objet">le changer</a>.`;
+  }
+  $("goal-hint").innerHTML = goalHint;
+  $("adv-note").textContent =
+    goal === "énergie"
+      ? `Centrales comparées : thermiques (Firebox, Gas Burner), générateurs à combustible, solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed.map((n) => data.machines.get(n.machine)?.name ?? n.machine).join(", ")}.`
+      : goal === "recherche" && rpView
+        ? `Plafond : ${settings.rpCap === null ? `automatique, ${settings.rpMode === "rate" ? "la recherche la plus chère qu'il te reste" : "la recherche visée la plus chère"} (${fmtRP(rpView.capNeeded)})` : fmtRP(settings.rpCap)}.`
+        : "";
+  // Options avancées actives (visibles pour cet objectif).
+  const adv = [...document.querySelectorAll<HTMLInputElement>("#advanced input")].filter((i) => {
+    const label = i.closest<HTMLElement>("[data-goals]");
+    if (label?.hidden) return false;
+    if (i.id === "use-existing" && !existingN) return false;
+    return i.type === "checkbox" ? i.checked : i.value.trim() !== "";
+  }).length;
+  $("adv-count").textContent = adv ? `(${adv} activée${adv > 1 ? "s" : ""})` : "(aucune activée)";
+
+  $("answer").innerHTML = renderAnswer(v);
+  rows = buildRows(v);
+  signature = buildSignature(goal, rows);
+  renderBuild();
+  renderResultTabs();
+}
+
+function renderBuild(): void {
+  $("build").innerHTML = renderBuildList(viewCtx(), rows, builtFor(built, signature));
+}
+
+function renderResultTabs(): void {
+  const tab = settings.resultTab;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rtab]")) {
+    const on = b.dataset.rtab === tab;
+    b.setAttribute("aria-selected", String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  for (const t of ["liste", "schema", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
+  if (tab === "schema") renderFlowCanvas();
+  if (tab === "details") $("details").innerHTML = renderDetails(viewCtx());
+}
+
+// Schéma : cadre navigable comme l'arbre de recherche.
+let flowPZ: PanZoom | null = null;
+let flowKey = "";
+/** Échelle de départ : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
+const FLOW_MIN_SCALE = 0.6;
+function flowStartScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
+  return Math.max(FLOW_MIN_SCALE, Math.min(1, frame.w / content.w, frame.h / content.h));
+}
+function renderFlowCanvas(): void {
+  const f = renderFlow(viewCtx());
+  const canvas = $("flow-canvas");
+  const frame = $("flow-frame");
+  frame.classList.toggle("empty", !f);
+  if (!f) {
+    canvas.innerHTML = `<p class="flow-empty">Rien à afficher : aucune étape dans ce plan.</p>`;
+    frame.style.height = "";
+    return;
+  }
+  canvas.innerHTML = f.svg;
+  // Hauteur du cadre : le schéma à l'échelle de départ, entre 240 px et 70 % de l'écran.
+  const fw = frame.clientWidth || 800;
+  const s = flowStartScale({ w: fw, h: window.innerHeight * 0.7 }, { w: f.width, h: f.height });
+  frame.style.height = `${Math.round(Math.min(window.innerHeight * 0.7, Math.max(240, f.height * s + 8)))}px`;
+  flowPZ ??= new PanZoom(frame, {
+    minWidth: 150,
+    initialView: (fr, c) => {
+      const k = flowStartScale(fr, c);
+      const w = fr.w / k;
+      const h = fr.h / k;
+      // Tout tient : centré. Sinon : calé à gauche (l'extraction), centré en hauteur.
+      return { x: w >= c.w ? (c.w - w) / 2 : 0, y: (c.h - h) / 2, w, h };
+    },
+  });
+  flowPZ.attach(canvas.querySelector("svg")!, f.width, f.height, signature === flowKey);
+  flowKey = signature;
+}
+
+// ---------------------------------------------------------------- Mon usine
+
+function renderUsine(): void {
   const p = toEngineProgress(prog);
-  const summary = progressSummary(data, p);
-  $("progress-summary").textContent = summary;
-  const done = prog.unlocked.filter((id) => data.nodes.has(id)).length;
-  $("tab-research-count").textContent = `${done}/${[...data.nodes.values()].filter((n) => !n.isRoot).length}`;
-  $("context-hint").innerHTML = `Progression prise en compte : ${esc(summary)} — <a href="#recherche">modifier</a>${
-    player.pollutionPct !== null ? ` · pollution ${esc(fmt(player.pollutionPct, 1))} %` : ""
-  } · <a href="#partie">Ma partie</a>`;
-  const focused = (document.activeElement as HTMLElement | null)?.dataset;
-  const focusKey = focused?.node ? `[data-node="${focused.node}"]` : focused?.req ? `[data-req="${focused.req}"]` : focused?.rs ? `[data-rs="${focused.rs}"]` : null;
+  $("progress-summary").textContent = progressSummary(data, p);
+  $("progress-meter").style.width = `${Math.round((unlockedCount() / Math.max(1, researchTotal())) * 100)}%`;
+  $("owned").innerHTML = renderOwned(data, p);
+  syncPlayerForm();
+  renderExisting();
+}
+
+function syncPlayerForm(): void {
+  const set = (id: string, v: number | null) => {
+    if (document.activeElement !== $(id)) input(id).value = v === null ? "" : String(v).replace(".", ",");
+  };
+  set("p-pollution", player.pollutionPct);
+  set("p-money", player.money);
+  const rp = currentRp(player);
+  set("p-rp", rp === null ? null : Math.floor(rp));
+  set("p-rps", player.rpPerSec);
+  input("p-spend").checked = player.spendRp;
+  input("p-gamepass").checked = player.gamePass;
+  renderRpLive();
+}
+
+/** RP estimés maintenant, d'après les RP/s. */
+function renderRpLive(): void {
+  const rp = currentRp(player);
+  $("rp-live").textContent =
+    rp !== null && player.rpPerSec && player.rpAt !== null
+      ? `≈ ${fmtRP(rp)} maintenant : ${fmtRP(player.rp)} saisis le ${new Date(player.rpAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}, + ${fmt(player.rpPerSec, 2)} RP/s depuis. Estimation : si ta production de RP change en jeu, corrige-la ici.`
+      : "";
+}
+
+/** Liste « Production déjà en place ». */
+function renderExisting(): void {
+  const entries = Object.entries(settings.existing);
+  $("existing-count").textContent = entries.length ? String(entries.length) : "";
+  $("existing-list").innerHTML = entries
+    .map(([id, v]) => {
+      const name = itemName(id);
+      return `<li><span class="name">${esc(name)}</span>
+        <label class="sr-only" for="ex-${esc(id)}">Débit de ${esc(name)}</label>
+        <input id="ex-${esc(id)}" type="number" min="0.01" step="any" inputmode="decimal" data-existing-rate="${esc(id)}" value="${v}"> /min
+        <button type="button" class="link small" data-existing-del="${esc(id)}" aria-label="Retirer ${esc(name)}">retirer</button></li>`;
+    })
+    .join("");
+}
+
+// ---------------------------------------------------------------- arbre de recherche
+
+let panzoom: PanZoom | null = null;
+const layouts = new Map<string, ResearchLayout>();
+let lastLayoutKey = "";
+
+function renderTreePage(focusKey: string | null = null): void {
+  const p = toEngineProgress(prog);
+  $("tree-summary").textContent = `${progressSummary(data, p)}. Clique une recherche pour la débloquer (avec ses prérequis si besoin).`;
   $("tree-view").hidden = ui.view !== "tree";
   $("list-view").hidden = ui.view !== "list";
   for (const b of document.querySelectorAll<HTMLButtonElement>(".seg [data-view]")) b.setAttribute("aria-checked", String(b.dataset.view === ui.view));
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) tab.setAttribute("aria-selected", String(tab.dataset.cat === treeView.category));
   if (ui.view === "list") {
     $("tree").innerHTML = renderTree(data, p, treeView);
     if (focusKey) $("tree").querySelector<HTMLElement>(focusKey)?.focus();
   } else renderResearchCanvas(focusKey);
-  $("owned").innerHTML = renderOwned(data, p);
-  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) tab.setAttribute("aria-selected", String(tab.dataset.cat === treeView.category));
-  const parts = [
-    player.pollutionPct !== null ? `pollution ${fmt(player.pollutionPct, 1)} %` : null,
-    player.money !== null ? fmtMoney(player.money) : null,
-    player.rp !== null ? `${fmtRP(currentRp(player))}${player.rpPerSec && player.rpAt !== null ? " (estimé)" : ""}` : null,
-    player.rpPerSec !== null ? `${fmt(player.rpPerSec, 2)} RP/s` : null,
-  ].filter(Boolean);
-  $("player-summary").textContent = parts.length ? parts.join(" · ") : "non renseignée";
+}
+
+function focusedKey(): string | null {
+  const focused = (document.activeElement as HTMLElement | null)?.dataset;
+  return focused?.node ? `[data-node="${focused.node}"]` : focused?.req ? `[data-req="${focused.req}"]` : focused?.rs ? `[data-rs="${focused.rs}"]` : null;
 }
 
 function researchLayout(): ResearchLayout {
@@ -329,7 +574,7 @@ function renderResearchCanvas(focusKey: string | null): void {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
   }
   panzoom ??= new PanZoom($("rs-frame"));
-  const key = `${treeView.category}`;
+  const key = treeView.category;
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
@@ -341,7 +586,7 @@ function renderResearchCanvas(focusKey: string | null): void {
 /** Bandeau du canevas, comme en jeu : coût et état à gauche, bouton d'action à droite. */
 function renderHud(): void {
   const n = ui.selected ? data.nodes.get(ui.selected) : undefined;
-  const btn = $("rs-hud-action") as HTMLButtonElement;
+  const btn = $<HTMLButtonElement>("rs-hud-action");
   if (!n || n.isRoot || n.startUnlocked) {
     $("rs-hud-info").textContent = n ? `${n.name}${n.startUnlocked ? " · acquise d'office" : ""}` : "";
     btn.hidden = true;
@@ -369,49 +614,536 @@ function selectNode(id: string, reveal = true): void {
   if (n.category !== treeView.category) treeView.category = n.category;
   ui.selected = id;
   saveUi();
-  renderProgress();
+  if (currentPage() === "arbre") renderTreePage();
   if (reveal) revealNode(id);
 }
 
-// ---------------------------------------------------------------- onglets
-function currentTab(): Tab {
-  const h = location.hash.replace("#", "") as Tab;
-  return TABS.includes(h) ? h : "production";
-}
-function showTab(tab: Tab, focus = false): void {
-  for (const t of TABS) {
-    const on = t === tab;
-    $(`panel-${t}`).hidden = !on;
-    const link = $(`tab-${t}`);
-    link.setAttribute("aria-selected", String(on));
-    link.tabIndex = on ? 0 : -1;
-    if (on && focus) link.focus();
+// ---------------------------------------------------------------- données
+
+function renderData(): void {
+  const tab = ui.dataTab;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-dtab]")) {
+    const on = b.dataset.dtab === tab;
+    b.setAttribute("aria-selected", String(on));
+    b.tabIndex = on ? 0 : -1;
   }
-  document.body.classList.toggle("wide", tab === "recherche" || tab === "batiments");
-  // Le canevas mesure son cadre : il faut le recaler quand l'onglet devient visible.
-  if (tab === "recherche" && ui.view === "tree") renderResearchCanvas(null);
+  $("dpanel-verifier").hidden = tab !== "verifier";
+  $("dpanel-batiments").hidden = tab !== "batiments";
+  document.body.classList.toggle("wide", tab === "batiments");
+  if (tab !== "verifier") return;
+  const v = viewCtx();
+  const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(GOAL_TITLE[settings.goal].toLowerCase())}</a>`;
+  $("verify-context").innerHTML = `Valeurs de la chaîne du dernier calcul : ${esc(planLabel(v))} (${where}).`;
+  $("verify").innerHTML = renderVerify(v);
+  $("verify-count").textContent = String(v.plan.verify.filter((x) => x.used).length);
+  $("corrections").innerHTML = renderCorrections(v);
+  $("corrections-count").textContent = String(countCorrections(corrections));
+  $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">Corrections ignorées :<ul>${dataErrors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : "";
 }
-function bindTabs(): void {
-  window.addEventListener("hashchange", () => showTab(currentTab()));
-  $("tab-production").closest("nav")!.addEventListener("keydown", (e) => {
-    const k = (e as KeyboardEvent).key;
-    if (k !== "ArrowRight" && k !== "ArrowLeft" && k !== "Home" && k !== "End") return;
-    e.preventDefault();
-    const i = TABS.indexOf(currentTab());
-    const next = k === "Home" ? 0 : k === "End" ? TABS.length - 1 : (i + (k === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
-    history.replaceState(null, "", `#${TABS[next]}`);
-    showTab(TABS[next]!, true);
+
+// ---------------------------------------------------------------- progression
+
+/**
+ * Applique une nouvelle progression. Avec l'option « débloquer dépense les RP », le coût des
+ * recherches ajoutées est retiré des RP (et rendu pour celles qu'on retire). Si les RP ne
+ * suffisent pas, on propose de saisir le montant actuel (les RP du site sont souvent en retard).
+ * `spend: false` : import d'un fichier ou remise à zéro, sans effet sur les RP.
+ */
+async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
+  const delta = rpDelta(data, prog.unlocked, next.unlocked);
+  const now = currentRp(player);
+  if (opts.spend !== false && player.spendRp && now !== null && delta.spent !== 0) {
+    let available = now;
+    while (delta.spent > available + 1e-9) {
+      const choice = await ask(
+        "Pas assez de RP",
+        `<p>Ce déblocage coûte <b>${esc(fmtRP(delta.spent))}</b> (${delta.added.length} recherche(s)), et le site estime que tu as <b>${esc(fmtRP(available))}</b>.</p>
+         <p>Si tu en as plus en jeu, indique ton montant actuel <i>avant</i> ce déblocage :</p>
+         <label class="ask-field">RP actuels <input id="ask-rp" inputmode="decimal" autocomplete="off" value="${Math.floor(available)}"></label>`,
+        [
+          { value: "set", label: "Valider ce montant", primary: true },
+          { value: "free", label: "Débloquer sans dépenser" },
+          { value: "", label: "Annuler" },
+        ],
+      );
+      if (!choice) return render();
+      if (choice === "free") return commitProgress(next);
+      const v = parseOptional((document.getElementById("ask-rp") as HTMLInputElement | null)?.value ?? "");
+      if (typeof v === "number" && v >= 0) available = v;
+    }
+    player = { ...player, rp: available - delta.spent, rpAt: Date.now() };
+    savePlayer(player);
+  }
+  commitProgress(next);
+}
+
+function commitProgress(next: ProgressState): void {
+  const focus = focusedKey();
+  prog = next;
+  saveProgress(prog);
+  planDirty = true;
+  renderHeader();
+  if (currentPage() === "arbre") renderTreePage(focus);
+  else render();
+}
+
+/** Petite boîte de dialogue : renvoie la valeur du bouton choisi ("" si fermée). */
+function ask(title: string, bodyHtml: string, buttons: { value: string; label: string; primary?: boolean }[]): Promise<string> {
+  const dlg = $<HTMLDialogElement>("ask");
+  $("ask-title").textContent = title;
+  $("ask-body").innerHTML = bodyHtml;
+  $("ask-actions").innerHTML = buttons.map((b) => `<button value="${esc(b.value)}"${b.primary ? ` class="primary"` : ""}>${esc(b.label)}</button>`).join("");
+  return new Promise((resolve) => {
+    dlg.addEventListener("close", () => resolve(dlg.returnValue), { once: true });
+    dlg.returnValue = "";
+    dlg.showModal();
+    (dlg.querySelector<HTMLInputElement>("input") ?? dlg.querySelector<HTMLButtonElement>("button.primary"))?.focus();
   });
 }
 
-function bindResearchCanvas(): void {
+async function toggleNode(id: string, checked: boolean): Promise<void> {
+  const p = toEngineProgress(prog);
+  if (checked) {
+    const missing = missingNodes(data, p, id).filter((x) => x !== id);
+    let add = [id];
+    if (missing.length) {
+      const choice = await ask(
+        "Prérequis non cochés",
+        `<p><b>${esc(nodeName(id))}</b> demande ${missing.length} recherche(s) que tu n'as pas cochée(s) (${esc(fmtRP(rpCost(data, missing)))}) :</p><ul>${missing.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
+        [
+          { value: "all", label: "Tout débloquer", primary: true },
+          { value: "one", label: "Seulement celle-ci" },
+          { value: "", label: "Annuler" },
+        ],
+      );
+      if (!choice) return render();
+      if (choice === "all") add = [...missing, id];
+    }
+    void setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, ...add])] });
+  } else {
+    const deps = dependentsOf(data, p, id);
+    let remove = [id];
+    if (deps.length) {
+      const choice = await ask(
+        "Recherches qui en dépendent",
+        `<p>${deps.length} recherche(s) cochée(s) dépendent de <b>${esc(nodeName(id))}</b> :</p><ul>${deps.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
+        [
+          { value: "all", label: "Tout décocher", primary: true },
+          { value: "one", label: "Seulement celle-ci" },
+          { value: "", label: "Annuler" },
+        ],
+      );
+      if (!choice) return render();
+      if (choice === "all") remove = [id, ...deps];
+    }
+    void setProgress({ ...prog, unlocked: prog.unlocked.filter((x) => !remove.includes(x)) });
+  }
+}
+
+/** Propose un fichier JSON au téléchargement. */
+function downloadJson(value: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(value, null, 1) + "\n"], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// ---------------------------------------------------------------- recherche d'items et de recherches
+
+const byName = new Map<string, string>();
+function fillLists(): void {
+  const items = [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name));
+  byName.clear();
+  for (const it of items) byName.set(it.name.toLowerCase(), it.id);
+  $("item-list").innerHTML = items.map((it) => `<option value="${esc(it.name)}"></option>`).join("");
+  $("node-list").innerHTML = [...data.nodes.values()]
+    .filter((n) => !n.isRoot)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((n) => `<option value="${esc(n.name)}">${esc(n.category)} · ${fmt(n.rp, 0)} RP</option>`)
+    .join("");
+}
+function resolveItem(text: string): string | null {
+  const t = text.trim().toLowerCase();
+  if (!t) return null;
+  if (byName.has(t)) return byName.get(t)!;
+  if (data.items.has(t)) return t;
+  const partial = [...byName.entries()].filter(([n]) => n.includes(t));
+  return partial.length === 1 ? partial[0]![1] : null;
+}
+function resolveNode(text: string) {
+  const t = text.trim().toLowerCase();
+  const nodes = [...data.nodes.values()].filter((n) => !n.isRoot);
+  return nodes.find((n) => n.name.toLowerCase() === t) ?? (t ? nodes.filter((n) => n.name.toLowerCase().includes(t)).at(0) : undefined);
+}
+
+/** Ajoute (ou met à jour) une production existante. */
+async function askExisting(id: string, perMin: number): Promise<void> {
+  const choice = await ask(
+    "Production déjà en place",
+    `<p><b>${esc(itemName(id))}</b> : tu en produis déjà ailleurs ? Indique ton débit, le calcul s'en servira avant de construire du neuf.</p>
+     <label class="ask-field">Débit (/min) <input id="ask-rate" inputmode="decimal" autocomplete="off" value="${esc(String(Math.round(perMin * 100) / 100).replace(".", ","))}"></label>
+     <p class="hint">Tu retrouves tes productions dans Mon usine.</p>`,
+    [
+      { value: "ok", label: "Ajouter", primary: true },
+      { value: "", label: "Annuler" },
+    ],
+  );
+  if (choice !== "ok") return;
+  const v = parseOptional((document.getElementById("ask-rate") as HTMLInputElement | null)?.value ?? "");
+  if (typeof v !== "number" || !(v > 0)) return;
+  settings.existing = { ...settings.existing, [id]: v };
+  settings.useExisting = true;
+  update();
+}
+
+// ---------------------------------------------------------------- événements
+
+function bindPlan(): void {
+  const itemInput = input("item");
+  const onItem = () => {
+    const id = resolveItem(itemInput.value);
+    $("item-hint").textContent = id ? "" : itemInput.value.trim() ? "Objet introuvable : choisis un nom dans la liste." : "";
+    if (id && id !== settings.item) {
+      settings.item = id;
+      update();
+    }
+  };
+  itemInput.addEventListener("change", onItem);
+  itemInput.addEventListener("input", () => {
+    if (byName.has(itemInput.value.trim().toLowerCase())) onItem();
+  });
+  const num = (id: string, apply: (v: number | null) => boolean, allowEmpty = false) =>
+    $(id).addEventListener("input", (e) => {
+      const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
+      const v = parseFloat(raw);
+      if (allowEmpty && !raw) {
+        if (apply(null)) updateSoon();
+      } else if (Number.isFinite(v) && apply(v)) updateSoon();
+    });
+  num("qty", (v) => {
+    if (!(v! > 0)) return false;
+    if (settings.mode === "rate") settings.rate = v!;
+    else settings.machines = v!;
+    return true;
+  });
+  // Changer d'unité garde la même production : le nombre affiché est converti.
+  $("qty-unit").addEventListener("change", (e) => {
+    const mode = (e.target as HTMLSelectElement).value as Settings["mode"];
+    if (mode === settings.mode) return;
+    if (plan && plan.target.kind === "objet" && plan.status !== "impossible") {
+      if (mode === "machines") {
+        const finals = plan.steps.filter((s) => plan!.finals.includes(s.key));
+        settings.machines = Math.max(1, finals.reduce((n, s) => n + s.machines, 0));
+      } else if (plan.target.ratePerMin > 0) settings.rate = Math.round(plan.target.ratePerMin * 100) / 100;
+    }
+    settings.mode = mode;
+    update();
+  });
+  num("money", (v) => (v! > 0 ? ((settings.money = v!), true) : false));
+  num("energy", (v) => (v! > 0 ? ((settings.energyMFps = v! * (settings.energyUnit === "M" ? 1e6 : 1e3)), true) : false));
+  $("energy-unit").addEventListener("change", (e) => {
+    settings.energyUnit = (e.target as HTMLSelectElement).value === "M" ? "M" : "k";
+    saveSettings(settings);
+    syncForm();
+  });
+  $("energy-mode").addEventListener("change", (e) => {
+    settings.energyGuaranteed = (e.target as HTMLSelectElement).value === "garantie";
+    update();
+  });
+  num("distance", (v) => (v === null ? ((settings.distanceTiles = null), true) : v >= 0 ? ((settings.distanceTiles = v), true) : false), true);
+  $("rp-mode").addEventListener("change", (e) => {
+    settings.rpMode = (e.target as HTMLSelectElement).value as Settings["rpMode"];
+    update();
+  });
+  num("rp-rate", (v) => (v! > 0 ? ((settings.rpRate = v!), true) : false));
+  num("rp-minutes", (v) => (v! > 0 ? ((settings.rpMinutes = v!), true) : false));
+  num("rp-cap", (v) => (v === null ? ((settings.rpCap = null), true) : v >= 0 ? ((settings.rpCap = v), true) : false), true);
+  $("rp-node").addEventListener("change", (e) => {
+    settings.rpNode = resolveNode((e.target as HTMLInputElement).value)?.id ?? null;
+    update();
+  });
+  num("max-pollution", (v) => (v === null ? ((settings.maxPollution = null), true) : v >= 0 ? ((settings.maxPollution = v), true) : false), true);
+  const checks: [string, (on: boolean) => void][] = [
+    ["no-fuel", (on) => (settings.energyNoFuel = on)],
+    ["rp-satellites", (on) => (settings.rpSatellites = on)],
+    ["rp-logic", (on) => (settings.rpLogic = on)],
+    ["rp-current", (on) => (settings.rpCurrent = on)],
+    ["self-powered", (on) => (settings.selfPowered = on)],
+    ["use-budget", (on) => (settings.useBudget = on)],
+    ["use-existing", (on) => (settings.useExisting = on)],
+    ["unverified", (on) => (settings.useUnverified = on)],
+  ];
+  for (const [id, set] of checks) {
+    $(id).addEventListener("change", (e) => {
+      set((e.target as HTMLInputElement).checked);
+      update();
+    });
+  }
+  $("criterion").addEventListener("change", (e) => {
+    settings.criteria = { ...settings.criteria, [settings.goal]: (e.target as HTMLSelectElement).value as Settings["criteria"][Goal] };
+    update();
+  });
+  $("query").addEventListener("submit", (e) => e.preventDefault());
+
+  // Onglets du résultat (flèches gauche/droite comme des onglets).
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>("[data-rtab]")];
+  for (const b of tabs) {
+    b.addEventListener("click", () => {
+      settings.resultTab = b.dataset.rtab as ResultTab;
+      saveSettings(settings);
+      renderResultTabs();
+    });
+    b.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const i = tabs.indexOf(b);
+      const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]!;
+      next.click();
+      next.focus();
+    });
+  }
+  // Liste de construction : cases « construit ».
+  $("build").addEventListener("change", (e) => {
+    const box = e.target as HTMLInputElement;
+    if (!box.dataset.built) return;
+    const set = builtFor(built, signature);
+    if (box.checked) set.add(box.dataset.built);
+    else set.delete(box.dataset.built);
+    built = setBuilt(built, signature, set);
+    saveBuilt(built);
+    renderBuild();
+    $("build").querySelector<HTMLInputElement>(`[data-built="${CSS.escape(box.dataset.built)}"]`)?.focus();
+  });
+  $("build").addEventListener("click", (e) => {
+    if (!(e.target as HTMLElement).closest("[data-built-reset]")) return;
+    built = setBuilt(built, signature, []);
+    saveBuilt(built);
+    renderBuild();
+  });
+  // Choix d'une recette à la main (onglet Détails).
+  $("details").addEventListener("change", (e) => {
+    const sel = e.target as HTMLSelectElement;
+    const item = sel.dataset.force;
+    if (!item) return;
+    if (sel.value) settings.forced = { ...settings.forced, [item]: sel.value };
+    else {
+      const { [item]: _, ...rest } = settings.forced;
+      settings.forced = rest;
+    }
+    update();
+    $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-fzoom]")) {
+    b.addEventListener("click", () => {
+      const z = b.dataset.fzoom;
+      if (z === "in") flowPZ?.zoom(1.25);
+      else if (z === "out") flowPZ?.zoom(1 / 1.25);
+      else if (z === "fit") flowPZ?.fit();
+      else flowPZ?.reset();
+    });
+  }
+}
+
+/** Boutons présents dans plusieurs vues (réponse, liste, détails) : délégation sur la page. */
+function bindShared(): void {
+  document.addEventListener("click", (e) => {
+    const t = e.target as HTMLElement;
+    const tier = t.closest<HTMLElement>("[data-tier]");
+    if (tier) {
+      const v = Number(tier.dataset.tier);
+      const final = Number(tier.dataset.final);
+      if (!(v > 0)) return;
+      if (settings.goal === "argent") settings.money = Math.round(v * 100) / 100;
+      else if (settings.goal === "énergie") settings.energyMFps = v;
+      else if (final > 0) {
+        // Palier sur un nombre entier de machines finales : calcul exact par ce nombre.
+        settings.mode = "machines";
+        settings.machines = final;
+      } else {
+        settings.mode = "rate";
+        settings.rate = v;
+      }
+      return update();
+    }
+    if (t.closest("[data-forced-reset]")) {
+      settings.forced = {};
+      return update();
+    }
+    const have = t.closest<HTMLElement>("[data-have]");
+    if (have) return void askExisting(have.dataset.have!, Number(have.dataset.amount) > 0 ? Number(have.dataset.amount) : 1);
+    const btn = t.closest<HTMLButtonElement>("button[data-unlock], button[data-own]");
+    if (btn?.dataset.unlock) {
+      let next = new Set(prog.unlocked);
+      for (const id of btn.dataset.unlock.split(",")) next = unlockUpTo(data, { ...toEngineProgress(prog), unlocked: next }, id);
+      void setProgress({ ...prog, unlocked: [...next] });
+    } else if (btn?.dataset.own) {
+      void setProgress({ ...prog, owned: [...new Set([...prog.owned, ...btn.dataset.own.split(",")])] });
+    }
+  });
+}
+
+function bindUsine(): void {
+  $("owned").addEventListener("change", (e) => {
+    const box = e.target as HTMLInputElement;
+    const id = box.dataset.owned;
+    if (id) void setProgress({ ...prog, owned: box.checked ? [...new Set([...prog.owned, id])] : prog.owned.filter((x) => x !== id) });
+  });
+  $("upto-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const node = resolveNode(input("upto").value);
+    if (!node) {
+      $("upto-hint").textContent = "Recherche introuvable : choisis un nom dans la liste.";
+      return;
+    }
+    const before = new Set(prog.unlocked);
+    const next = unlockUpTo(data, toEngineProgress(prog), node.id);
+    const added = [...next].filter((x) => !before.has(x)).length;
+    $("upto-hint").textContent = `${node.name} : ${added} recherche(s) cochée(s).`;
+    treeView.category = node.category;
+    ui.selected = node.id;
+    saveUi();
+    void setProgress({ ...prog, unlocked: [...next] });
+  });
+  $("progress-reset").addEventListener("click", async () => {
+    const choice = await ask("Réinitialiser la progression", "<p>Décocher toutes les recherches et toutes les machines possédées ?</p>", [
+      { value: "yes", label: "Réinitialiser", primary: true },
+      { value: "", label: "Annuler" },
+    ]);
+    if (choice === "yes") void setProgress({ unlocked: [], reqItemsDone: [], owned: [] }, { spend: false });
+  });
+
+  // Transférer la partie (autre adresse, autre appareil)
+  $("progress-export").addEventListener("click", () => {
+    const file = exportProgress(prog, player);
+    downloadJson(file, `progression-industrialist-${file.exportedAt.slice(0, 10)}.json`);
+    $("progress-io-hint").textContent = "Fichier exporté.";
+  });
+  $("progress-import").addEventListener("change", async (e) => {
+    const box = e.target as HTMLInputElement;
+    const file = box.files?.[0];
+    box.value = "";
+    if (!file) return;
+    let parsed: ReturnType<typeof parseProgressExport>;
+    try {
+      parsed = parseProgressExport(data, JSON.parse(await file.text()));
+    } catch {
+      parsed = { ok: false, error: "fichier illisible (JSON attendu)" };
+    }
+    if (!parsed.ok) {
+      $("progress-io-hint").textContent = `Import impossible : ${parsed.error}.`;
+      return;
+    }
+    const when = parsed.exportedAt ? ` (exporté le ${new Date(parsed.exportedAt).toLocaleString("fr-FR")})` : "";
+    const choice = await ask(
+      "Importer une partie",
+      `<p>Remplacer ta progression actuelle (${prog.unlocked.length} recherche(s) cochée(s)) par celle du fichier${esc(when)} : <b>${parsed.progress.unlocked.length}</b> recherche(s), ${parsed.progress.owned.length} machine(s) possédée(s), et tes ressources ?</p>${
+        parsed.dropped ? `<p class="hint">${parsed.dropped} élément(s) inconnu(s) des données actuelles seront ignorés.</p>` : ""
+      }`,
+      [
+        { value: "yes", label: "Remplacer", primary: true },
+        { value: "", label: "Annuler" },
+      ],
+    );
+    if (choice !== "yes") return;
+    player = parsed.player;
+    savePlayer(player);
+    void setProgress(parsed.progress, { spend: false });
+    $("progress-io-hint").textContent = `Partie importée : ${parsed.progress.unlocked.length} recherche(s).`;
+  });
+
+  const playerFields: [string, keyof PlayerInfo][] = [
+    ["p-pollution", "pollutionPct"],
+    ["p-money", "money"],
+    ["p-rp", "rp"],
+    ["p-rps", "rpPerSec"],
+  ];
+  for (const [id, key] of playerFields) {
+    $(id).addEventListener("input", (e) => {
+      const v = parseOptional((e.target as HTMLInputElement).value);
+      $(id).setAttribute("aria-invalid", String(v === "invalide"));
+      $("player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+      if (v === "invalide") return;
+      if (key === "rpPerSec") player = withRpRate(player, v);
+      else if (key === "rp") player = { ...player, rp: v, rpAt: v === null ? null : Date.now() };
+      else player = { ...player, [key]: v };
+      savePlayer(player);
+      renderRpLive();
+      planDirty = true;
+      renderHeader();
+    });
+  }
+  $("p-spend").addEventListener("change", (e) => {
+    player = { ...player, spendRp: (e.target as HTMLInputElement).checked };
+    savePlayer(player);
+  });
+  $("p-gamepass").addEventListener("change", (e) => {
+    player = { ...player, gamePass: (e.target as HTMLInputElement).checked };
+    savePlayer(player);
+  });
+
+  // Production déjà en place : ajout, modification, retrait.
+  $("existing-add").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const name = (form.elements.namedItem("item") as HTMLInputElement).value;
+    const id = resolveItem(name);
+    const v = parseFloat((form.elements.namedItem("rate") as HTMLInputElement).value.replace(",", "."));
+    if (!id) return void ($("existing-hint").textContent = "Objet introuvable : choisis un nom dans la liste.");
+    if (!(v > 0)) return void ($("existing-hint").textContent = "Indique un débit positif, par minute.");
+    $("existing-hint").textContent = `${itemName(id)} : ${fmt(v, 2)}/min ajoutés.`;
+    form.reset();
+    settings.existing = { ...settings.existing, [id]: v };
+    update();
+  });
+  $("existing-list").addEventListener("input", (e) => {
+    const t = e.target as HTMLInputElement;
+    const id = t.dataset.existingRate;
+    const v = parseFloat(t.value.replace(",", "."));
+    if (!id || !(v > 0)) return;
+    settings.existing = { ...settings.existing, [id]: v };
+    planDirty = true;
+    saveSettings(settings);
+  });
+  $("existing-list").addEventListener("click", (e) => {
+    const del = (e.target as HTMLElement).closest<HTMLElement>("[data-existing-del]");
+    if (!del) return;
+    const { [del.dataset.existingDel!]: _, ...rest } = settings.existing;
+    settings.existing = rest;
+    update();
+  });
+}
+
+function bindTree(): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>(".seg [data-view]")) {
     b.addEventListener("click", () => {
       ui.view = b.dataset.view as "tree" | "list";
       saveUi();
-      renderProgress();
+      renderTreePage();
     });
   }
+  $("tree").addEventListener("change", (e) => {
+    const box = e.target as HTMLInputElement;
+    if (box.dataset.node) void toggleNode(box.dataset.node, box.checked);
+    else if (box.dataset.req) {
+      const id = box.dataset.req;
+      void setProgress({ ...prog, reqItemsDone: box.checked ? [...new Set([...prog.reqItemsDone, id])] : prog.reqItemsDone.filter((x) => x !== id) });
+    }
+  });
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) {
+    tab.addEventListener("click", () => {
+      treeView.category = tab.dataset.cat as TreeView["category"];
+      renderTreePage();
+    });
+  }
+  $("tree-filter").addEventListener("input", (e) => {
+    treeView.filter = (e.target as HTMLInputElement).value;
+    if (ui.view === "tree" && treeView.filter.trim()) {
+      const first = [...data.nodes.values()].filter((n) => !n.isRoot && matchesFilter(n.id)).sort((a, b) => Number(b.category === treeView.category) - Number(a.category === treeView.category))[0];
+      if (first) return selectNode(first.id);
+    }
+    renderTreePage();
+  });
   $("rs-canvas").addEventListener("click", (e) => {
     if (panzoom?.suppressClick) return;
     const g = (e.target as Element).closest<SVGGElement>("[data-rs]");
@@ -449,11 +1181,18 @@ function bindResearchCanvas(): void {
     const t = e.target as HTMLElement;
     const go = t.closest<HTMLElement>("[data-rs-goto]");
     if (go) return selectNode(go.dataset.rsGoto!);
+    const del = t.closest<HTMLElement>("[data-rs-desc-del]");
+    if (del) {
+      corrections = removeCorrection(corrections, "research", del.dataset.rsDescDel!, "description");
+      saveCorrections(corrections);
+      rebuildData();
+      return update();
+    }
     const act = t.closest<HTMLElement>("[data-rs-action]");
     if (!act) return;
     const id = act.dataset.id!;
-    if (act.dataset.rsAction === "unlock-all") setProgress({ ...prog, unlocked: [...unlockUpTo(data, toEngineProgress(prog), id)] });
-    else if (act.dataset.rsAction === "unlock-one") setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, id])] });
+    if (act.dataset.rsAction === "unlock-all") void setProgress({ ...prog, unlocked: [...unlockUpTo(data, toEngineProgress(prog), id)] });
+    else if (act.dataset.rsAction === "unlock-one") void setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, id])] });
     else if (act.dataset.rsAction === "lock") await toggleNode(id, false);
   });
   // Description recopiée du jeu : gardée comme une correction (exportable avec les autres).
@@ -466,543 +1205,23 @@ function bindResearchCanvas(): void {
     corrections = text ? setCorrection(corrections, "research", id, "description", text, "description recopiée du jeu") : removeCorrection(corrections, "research", id, "description");
     saveCorrections(corrections);
     rebuildData();
-    render();
-  });
-  $("rs-detail").addEventListener("click", (e) => {
-    const del = (e.target as HTMLElement).closest<HTMLElement>("[data-rs-desc-del]");
-    if (!del) return;
-    corrections = removeCorrection(corrections, "research", del.dataset.rsDescDel!, "description");
-    saveCorrections(corrections);
-    rebuildData();
-    render();
+    update();
   });
   $("rs-detail").addEventListener("change", (e) => {
-    const input = e.target as HTMLInputElement;
-    const id = input.dataset.req;
-    if (id) setProgress({ ...prog, reqItemsDone: input.checked ? [...new Set([...prog.reqItemsDone, id])] : prog.reqItemsDone.filter((x) => x !== id) });
+    const box = e.target as HTMLInputElement;
+    const id = box.dataset.req;
+    if (id) void setProgress({ ...prog, reqItemsDone: box.checked ? [...new Set([...prog.reqItemsDone, id])] : prog.reqItemsDone.filter((x) => x !== id) });
   });
 }
 
-function fillNodeList(): void {
-  $("node-list").innerHTML = [...data.nodes.values()]
-    .filter((n) => !n.isRoot)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((n) => `<option value="${esc(n.name)}">${esc(n.category)} · ${fmt(n.rp, 0)} RP</option>`)
-    .join("");
-}
-
-function syncPlayerForm(): void {
-  const set = (id: string, v: number | null) => {
-    ($(id) as HTMLInputElement).value = v === null ? "" : String(v).replace(".", ",");
-  };
-  set("p-pollution", player.pollutionPct);
-  set("p-money", player.money);
-  const rp = currentRp(player);
-  set("p-rp", rp === null ? null : Math.floor(rp));
-  renderRpLive();
-  set("p-rps", player.rpPerSec);
-  ($("p-spend") as HTMLInputElement).checked = player.spendRp;
-}
-
-/**
- * Applique une nouvelle progression. Avec l'option « débloquer dépense les RP », le coût des
- * recherches ajoutées est retiré des RP (et rendu pour celles qu'on retire). Si les RP ne
- * suffisent pas, on propose de saisir le montant actuel (les RP du site sont souvent en retard).
- * `spend: false` : import d'un fichier ou remise à zéro, sans effet sur les RP.
- */
-async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
-  const delta = rpDelta(data, prog.unlocked, next.unlocked);
-  const now = currentRp(player);
-  if (opts.spend !== false && player.spendRp && now !== null && delta.spent !== 0) {
-    let available = now;
-    while (delta.spent > available + 1e-9) {
-      const choice = await ask(
-        "Pas assez de RP",
-        `<p>Ce déblocage coûte <b>${esc(fmtRP(delta.spent))}</b> (${delta.added.length} recherche(s)), et le site estime que tu as <b>${esc(fmtRP(available))}</b>.</p>
-         <p>Si tu en as plus en jeu, indique ton montant actuel <i>avant</i> ce déblocage :</p>
-         <label class="ask-field">RP actuels <input id="ask-rp" inputmode="decimal" autocomplete="off" value="${Math.floor(available)}"></label>`,
-        [
-          { value: "set", label: "Valider ce montant", primary: true },
-          { value: "free", label: "Débloquer sans dépenser" },
-          { value: "", label: "Annuler" },
-        ],
-      );
-      if (!choice) return renderProgress();
-      if (choice === "free") return commitProgress(next);
-      const v = parseOptional((document.getElementById("ask-rp") as HTMLInputElement | null)?.value ?? "");
-      if (typeof v === "number" && v >= 0) available = v;
-    }
-    player = { ...player, rp: available - delta.spent, rpAt: Date.now() };
-    savePlayer(player);
-    syncPlayerForm();
-  }
-  commitProgress(next);
-}
-
-function commitProgress(next: ProgressState): void {
-  prog = next;
-  saveProgress(prog);
-  render();
-}
-
-const nodeName = (id: string) => data.nodes.get(id)?.name ?? id;
-
-/** Petite boîte de dialogue : renvoie la valeur du bouton choisi ("" si fermée). */
-function ask(title: string, bodyHtml: string, buttons: { value: string; label: string; primary?: boolean }[]): Promise<string> {
-  const dlg = $("ask") as HTMLDialogElement;
-  $("ask-title").textContent = title;
-  $("ask-body").innerHTML = bodyHtml;
-  $("ask-actions").innerHTML = buttons.map((b) => `<button value="${esc(b.value)}"${b.primary ? ` class="primary"` : ""}>${esc(b.label)}</button>`).join("");
-  return new Promise((resolve) => {
-    dlg.addEventListener("close", () => resolve(dlg.returnValue), { once: true });
-    dlg.returnValue = "";
-    dlg.showModal();
-    dlg.querySelector<HTMLButtonElement>("button.primary")?.focus();
-  });
-}
-
-async function toggleNode(id: string, checked: boolean): Promise<void> {
-  const p = toEngineProgress(prog);
-  if (checked) {
-    const missing = missingNodes(data, p, id).filter((x) => x !== id);
-    let add = [id];
-    if (missing.length) {
-      const choice = await ask(
-        "Prérequis non cochés",
-        `<p><b>${esc(nodeName(id))}</b> demande ${missing.length} recherche(s) que tu n'as pas cochée(s) (${esc(fmtRP(rpCost(data, missing)))}) :</p><ul>${missing.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
-        [
-          { value: "all", label: "Tout débloquer", primary: true },
-          { value: "one", label: "Seulement celle-ci" },
-          { value: "", label: "Annuler" },
-        ],
-      );
-      if (!choice) return renderProgress();
-      if (choice === "all") add = [...missing, id];
-    }
-    setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, ...add])] });
-  } else {
-    const deps = dependentsOf(data, p, id);
-    let remove = [id];
-    if (deps.length) {
-      const choice = await ask(
-        "Recherches qui en dépendent",
-        `<p>${deps.length} recherche(s) cochée(s) dépendent de <b>${esc(nodeName(id))}</b> :</p><ul>${deps.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
-        [
-          { value: "all", label: "Tout décocher", primary: true },
-          { value: "one", label: "Seulement celle-ci" },
-          { value: "", label: "Annuler" },
-        ],
-      );
-      if (!choice) return renderProgress();
-      if (choice === "all") remove = [id, ...deps];
-    }
-    setProgress({ ...prog, unlocked: prog.unlocked.filter((x) => !remove.includes(x)) });
-  }
-}
-
-function bindProgress(): void {
-  $("tree").addEventListener("change", (e) => {
-    const input = e.target as HTMLInputElement;
-    if (input.dataset.node) void toggleNode(input.dataset.node, input.checked);
-    else if (input.dataset.req) {
-      const id = input.dataset.req;
-      setProgress({ ...prog, reqItemsDone: input.checked ? [...new Set([...prog.reqItemsDone, id])] : prog.reqItemsDone.filter((x) => x !== id) });
-    }
-  });
-  $("owned").addEventListener("change", (e) => {
-    const input = e.target as HTMLInputElement;
-    const id = input.dataset.owned;
-    if (id) setProgress({ ...prog, owned: input.checked ? [...new Set([...prog.owned, id])] : prog.owned.filter((x) => x !== id) });
-  });
-  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) {
-    tab.addEventListener("click", () => {
-      treeView.category = tab.dataset.cat as TreeView["category"];
-      renderProgress();
-    });
-  }
-  $("tree-filter").addEventListener("input", (e) => {
-    treeView.filter = (e.target as HTMLInputElement).value;
-    if (ui.view === "tree" && treeView.filter.trim()) {
-      const first = [...data.nodes.values()].filter((n) => !n.isRoot && matchesFilter(n.id)).sort((a, b) => Number(b.category === treeView.category) - Number(a.category === treeView.category))[0];
-      if (first) return selectNode(first.id);
-    }
-    renderProgress();
-  });
-  $("upto-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const text = ($("upto") as HTMLInputElement).value.trim().toLowerCase();
-    const nodes = [...data.nodes.values()].filter((n) => !n.isRoot);
-    const node = nodes.find((n) => n.name.toLowerCase() === text) ?? (text ? nodes.filter((n) => n.name.toLowerCase().includes(text)).at(0) : undefined);
-    if (!node) {
-      $("upto-hint").textContent = "Recherche introuvable : choisis un nom dans la liste.";
-      return;
-    }
-    const before = new Set(prog.unlocked);
-    const next = unlockUpTo(data, toEngineProgress(prog), node.id);
-    const added = [...next].filter((x) => !before.has(x)).length;
-    $("upto-hint").textContent = `${node.name} : ${added} recherche(s) cochée(s).`;
-    treeView.category = node.category;
-    ui.selected = node.id;
-    saveUi();
-    setProgress({ ...prog, unlocked: [...next] });
-    if (ui.view === "tree") revealNode(node.id);
-  });
-  $("progress-reset").addEventListener("click", async () => {
-    const choice = await ask("Réinitialiser la progression", "<p>Décocher toutes les recherches et toutes les machines possédées ?</p>", [
-      { value: "yes", label: "Réinitialiser", primary: true },
-      { value: "", label: "Annuler" },
-    ]);
-    if (choice === "yes") void setProgress({ unlocked: [], reqItemsDone: [], owned: [] }, { spend: false });
-  });
-
-  // Transférer la progression (autre adresse, autre appareil)
-  $("progress-export").addEventListener("click", () => {
-    const file = exportProgress(prog, player);
-    downloadJson(file, `progression-industrialist-${file.exportedAt.slice(0, 10)}.json`);
-    $("progress-io-hint").textContent = "Fichier exporté.";
-  });
-  $("progress-import").addEventListener("change", async (e) => {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = "";
-    if (!file) return;
-    let parsed: ReturnType<typeof parseProgressExport>;
-    try {
-      parsed = parseProgressExport(data, JSON.parse(await file.text()));
-    } catch {
-      parsed = { ok: false, error: "fichier illisible (JSON attendu)" };
-    }
-    if (!parsed.ok) {
-      $("progress-io-hint").textContent = `Import impossible : ${parsed.error}.`;
-      return;
-    }
-    const when = parsed.exportedAt ? ` (exporté le ${new Date(parsed.exportedAt).toLocaleString("fr-FR")})` : "";
-    const choice = await ask(
-      "Importer une progression",
-      `<p>Remplacer ta progression actuelle (${prog.unlocked.length} recherche(s) cochée(s)) par celle du fichier${esc(when)} : <b>${parsed.progress.unlocked.length}</b> recherche(s), ${parsed.progress.owned.length} machine(s) possédée(s), et les informations de « Ma partie » ?</p>${
-        parsed.dropped ? `<p class="hint">${parsed.dropped} élément(s) inconnu(s) des données actuelles seront ignorés.</p>` : ""
-      }`,
-      [
-        { value: "yes", label: "Remplacer", primary: true },
-        { value: "", label: "Annuler" },
-      ],
-    );
-    if (choice !== "yes") return;
-    player = parsed.player;
-    savePlayer(player);
-    syncPlayerForm();
-    void setProgress(parsed.progress, { spend: false });
-    $("progress-io-hint").textContent = `Progression importée : ${parsed.progress.unlocked.length} recherche(s).`;
-  });
-
-  const playerFields: [string, keyof PlayerInfo][] = [
-    ["p-pollution", "pollutionPct"],
-    ["p-money", "money"],
-    ["p-rp", "rp"],
-    ["p-rps", "rpPerSec"],
-  ];
-  $("p-spend").addEventListener("change", (e) => {
-    player = { ...player, spendRp: (e.target as HTMLInputElement).checked };
-    savePlayer(player);
-  });
-  for (const [id, key] of playerFields) {
-    $(id).addEventListener("input", (e) => {
-      const v = parseOptional((e.target as HTMLInputElement).value);
-      $(id).setAttribute("aria-invalid", String(v === "invalide"));
-      $("player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
-      if (v === "invalide") return;
-      if (key === "rpPerSec") player = withRpRate(player, v);
-      else if (key === "rp") player = { ...player, rp: v, rpAt: v === null ? null : Date.now() };
-      else player = { ...player, [key]: v };
-      savePlayer(player);
-      renderRpLive();
-      renderSoon();
-    });
-  }
-
-  // Production déjà en place : ajout, modification, retrait (réglage et plan).
-  $("existing-add").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const name = (form.elements.namedItem("item") as HTMLInputElement).value;
-    const id = resolveItem(name);
-    const v = parseFloat((form.elements.namedItem("rate") as HTMLInputElement).value.replace(",", "."));
-    if (!id) return void ($("existing-hint").textContent = "Item introuvable : choisis un nom dans la liste.");
-    if (!(v > 0)) return void ($("existing-hint").textContent = "Indique un débit positif, par minute.");
-    $("existing-hint").textContent = "";
-    form.reset();
-    addExisting(id, v);
-  });
-  $("existing-list").addEventListener("input", (e) => {
-    const t = e.target as HTMLInputElement;
-    const id = t.dataset.existingRate;
-    const v = parseFloat(t.value.replace(",", "."));
-    if (!id || !(v > 0)) return;
-    settings.existing = { ...settings.existing, [id]: v };
-    renderSoon();
-  });
-  document.querySelector(".wrap")!.addEventListener("click", (e) => {
-    const t = e.target as HTMLElement;
-    const del = t.closest<HTMLElement>("[data-existing-del]");
-    if (del) {
-      const { [del.dataset.existingDel!]: _, ...rest } = settings.existing;
-      settings.existing = rest;
-      render();
-      return;
-    }
-    const have = t.closest<HTMLElement>("[data-have]");
-    if (have) addExisting(have.dataset.have!, Number(have.dataset.amount) > 0 ? Number(have.dataset.amount) : 1);
-  });
-
-  // Boutons du plan : « Je les ai débloquées », « Je la possède »
-  document.querySelector(".wrap")!.addEventListener("click", (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-unlock], button[data-own]");
-    if (!btn) return;
-    if (btn.dataset.unlock) {
-      let next = new Set(prog.unlocked);
-      for (const id of btn.dataset.unlock.split(",")) next = unlockUpTo(data, { ...toEngineProgress(prog), unlocked: next }, id);
-      setProgress({ ...prog, unlocked: [...next] });
-    } else if (btn.dataset.own) {
-      setProgress({ ...prog, owned: [...new Set([...prog.owned, ...btn.dataset.own.split(",")])] });
-    }
-  });
-}
-
-/** Propose un fichier JSON au téléchargement. */
-function downloadJson(value: unknown, filename: string): void {
-  const blob = new Blob([JSON.stringify(value, null, 1) + "\n"], { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-}
-
-let timer: number | undefined;
-/** Liste « Production déjà en place » du réglage. */
-function renderExisting(): void {
-  const entries = Object.entries(settings.existing);
-  $("existing-count").textContent = entries.length ? String(entries.length) : "";
-  const used = new Map((plan?.existing ?? []).map((x) => [x.item, x.used]));
-  $("existing-list").innerHTML = entries
-    .map(([id, v]) => {
-      const name = data.items.get(id)?.name ?? id;
-      const u = used.get(id);
-      return `<li><span class="name">${esc(name)}</span>
-        <label class="sr-only" for="ex-${esc(id)}">Débit de ${esc(name)}</label>
-        <input id="ex-${esc(id)}" type="number" min="0.01" step="any" inputmode="decimal" data-existing-rate="${esc(id)}" value="${v}"> /min
-        <span class="hint">${u === undefined ? "pas utilisé par ce plan" : `${fmt(u, 2)}/min utilisés`}</span>
-        <button type="button" class="link" data-existing-del="${esc(id)}" aria-label="Retirer ${esc(name)}">retirer</button></li>`;
-    })
-    .join("");
-}
-
-/** « Ma partie » : RP estimés maintenant, d'après les RP/s. */
-function renderRpLive(): void {
-  const rp = currentRp(player);
-  $("rp-live").textContent =
-    rp !== null && player.rpPerSec && player.rpAt !== null
-      ? `≈ ${fmtRP(rp)} maintenant : ${fmtRP(player.rp)} saisis le ${new Date(player.rpAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}, + ${fmt(player.rpPerSec, 2)} RP/s depuis. Estimation : si ta production de RP change en jeu, corrige-la ici.`
-      : "";
-}
-
-/** Les RP montent tout seuls : affichage rafraîchi, et l'arbre ou le plan quand ça change quelque chose. */
-let rpSignature = "";
-let lastRpPlanRender = 0;
-function tickRp(): void {
-  if (player.rp === null || !player.rpPerSec || player.rpAt === null) return;
-  const rp = currentRp(player)!;
-  const input = $("p-rp") as HTMLInputElement;
-  if (document.activeElement !== input) input.value = String(Math.floor(rp));
-  renderRpLive();
-  // Recherches qui deviennent abordables : l'arbre change de couleur.
-  const sig = [...data.nodes.values()].filter((n) => !n.isRoot && n.rp <= rp).length.toString();
-  const tab = currentTab();
-  if (sig !== rpSignature) {
-    rpSignature = sig;
-    if (tab === "recherche") renderProgress();
-  }
-  // Temps restant pour les RP du plan : au plus toutes les 30 s.
-  if (tab === "production" && (plan?.economy.rpNeeded ?? 0) > 0 && Date.now() - lastRpPlanRender > 30_000) {
-    lastRpPlanRender = Date.now();
-    render();
-  }
-}
-
-/** Ajoute (ou met à jour) une production existante, puis ouvre la liste sur elle. */
-function addExisting(id: string, perMin: number): void {
-  settings.existing = { ...settings.existing, [id]: perMin };
-  render();
-  ($("existing-box") as HTMLDetailsElement).open = true;
-  const input = document.getElementById(`ex-${id}`) as HTMLInputElement | null;
-  input?.focus();
-  input?.select();
-}
-
-function renderSoon(): void {
-  clearTimeout(timer);
-  timer = window.setTimeout(render, 120);
-}
-
-// ---------------------------------------------------------------- événements
-function bind(): void {
-  const itemInput = $("item") as HTMLInputElement;
-  const onItem = () => {
-    const id = resolveItem(itemInput.value);
-    $("item-hint").textContent = id ? "" : itemInput.value.trim() ? "Item introuvable : choisis un nom dans la liste." : "";
-    if (id && id !== settings.item) {
-      settings.item = id;
-      render();
-    }
-  };
-  itemInput.addEventListener("change", onItem);
-  itemInput.addEventListener("input", () => {
-    if (byName.has(itemInput.value.trim().toLowerCase())) onItem();
-  });
-
-  $("rate").addEventListener("input", (e) => {
-    const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
-    if (v > 0) {
-      settings.mode = "rate";
-      settings.rate = v;
-      renderSoon();
-    }
-  });
-  $("machines").addEventListener("input", (e) => {
-    const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
-    if (v > 0) {
-      settings.mode = "machines";
-      settings.machines = v;
-      renderSoon();
-    }
-  });
-  $("criterion").addEventListener("change", (e) => {
-    settings.criterion = (e.target as HTMLSelectElement).value as Settings["criterion"];
-    render();
-  });
-  $("unverified").addEventListener("change", (e) => {
-    settings.useUnverified = (e.target as HTMLInputElement).checked;
-    render();
-  });
-  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-goal]")) {
+function bindData(): void {
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-dtab]")) {
     b.addEventListener("click", () => {
-      settings.goal = b.dataset.goal as Settings["goal"];
-      render();
+      ui.dataTab = b.dataset.dtab === "batiments" ? "batiments" : "verifier";
+      saveUi();
+      renderData();
     });
   }
-  $("money").addEventListener("input", (e) => {
-    const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
-    if (v > 0) {
-      settings.money = v;
-      renderSoon();
-    }
-  });
-  $("max-pollution").addEventListener("input", (e) => {
-    const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
-    const v = parseFloat(raw);
-    if (!raw) settings.maxPollution = null;
-    else if (v >= 0) settings.maxPollution = v;
-    else return;
-    renderSoon();
-  });
-  $("rp-mode").addEventListener("change", (e) => {
-    settings.rpMode = (e.target as HTMLSelectElement).value as Settings["rpMode"];
-    render();
-  });
-  const rpNumber = (id: string, set: (v: number | null) => void, allowEmpty = false) =>
-    $(id).addEventListener("input", (e) => {
-      const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
-      const v = parseFloat(raw);
-      if (allowEmpty && !raw) set(null);
-      else if (v > 0 || (allowEmpty && v >= 0)) set(v);
-      else return;
-      renderSoon();
-    });
-  rpNumber("rp-rate", (v) => (settings.rpRate = v ?? settings.rpRate));
-  rpNumber("rp-minutes", (v) => (settings.rpMinutes = v ?? settings.rpMinutes));
-  rpNumber("rp-cap", (v) => (settings.rpCap = v), true);
-  $("rp-node").addEventListener("change", (e) => {
-    const text = (e.target as HTMLInputElement).value.trim().toLowerCase();
-    const node = [...data.nodes.values()].find((n) => !n.isRoot && n.name.toLowerCase() === text);
-    settings.rpNode = node?.id ?? null;
-    render();
-  });
-  for (const [id, key] of [["rp-satellites", "rpSatellites"], ["rp-logic", "rpLogic"], ["rp-current", "rpCurrent"]] as const) {
-    $(id).addEventListener("change", (e) => {
-      settings[key] = (e.target as HTMLInputElement).checked;
-      render();
-    });
-  }
-  $("energy").addEventListener("input", (e) => {
-    const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
-    if (v > 0) {
-      settings.energyMFps = v * 1000;
-      renderSoon();
-    }
-  });
-  $("energy-mode").addEventListener("change", (e) => {
-    settings.energyGuaranteed = (e.target as HTMLSelectElement).value === "garantie";
-    render();
-  });
-  $("no-fuel").addEventListener("change", (e) => {
-    settings.energyNoFuel = (e.target as HTMLInputElement).checked;
-    render();
-  });
-  $("distance").addEventListener("input", (e) => {
-    const raw = (e.target as HTMLInputElement).value.trim();
-    const v = parseFloat(raw.replace(",", "."));
-    if (!raw) settings.distanceTiles = null;
-    else if (v >= 0) settings.distanceTiles = v;
-    else return;
-    renderSoon();
-  });
-  $("self-powered").addEventListener("change", (e) => {
-    settings.selfPowered = (e.target as HTMLInputElement).checked;
-    render();
-  });
-  $("use-budget").addEventListener("change", (e) => {
-    settings.useBudget = (e.target as HTMLInputElement).checked;
-    render();
-  });
-  // Paliers ronds : un clic adopte ce débit.
-  $("stats").addEventListener("click", (e) => {
-    const b = (e.target as Element).closest<HTMLElement>("[data-tier]");
-    if (!b) return;
-    const v = Number(b.dataset.tier);
-    if (!(v > 0)) return;
-    const final = Number(b.dataset.final);
-    if (settings.goal === "argent") settings.money = Math.round(v * 100) / 100;
-    else if (settings.goal === "énergie") settings.energyMFps = v;
-    else if (final > 0) {
-      // Palier sur un nombre entier de machines finales : calcul exact par ce nombre.
-      settings.mode = "machines";
-      settings.machines = final;
-    } else {
-      settings.mode = "rate";
-      settings.rate = v;
-    }
-    syncForm();
-    render();
-  });
-  $("forced-reset").addEventListener("click", () => {
-    settings.forced = {};
-    render();
-  });
-
-  // Forcer une recette (menu sur chaque étape du plan)
-  $("plan").addEventListener("change", (e) => {
-    const sel = e.target as HTMLSelectElement;
-    const item = sel.dataset.force;
-    if (!item) return;
-    if (sel.value) settings.forced = { ...settings.forced, [item]: sel.value };
-    else {
-      const { [item]: _, ...rest } = settings.forced;
-      settings.forced = rest;
-    }
-    render();
-    document.getElementById(`step-${item}`)?.querySelector("select")?.focus();
-  });
-
   // Saisie d'une valeur relevée en jeu
   $("verify").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -1018,7 +1237,7 @@ function bind(): void {
     corrections = setCorrection(corrections, scope, id, field, parsed.value);
     saveCorrections(corrections);
     rebuildData();
-    render();
+    update();
   });
   $("corrections").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-remove]");
@@ -1027,13 +1246,13 @@ function bind(): void {
     corrections = removeCorrection(corrections, scope, id, field);
     saveCorrections(corrections);
     rebuildData();
-    render();
+    update();
   });
   $("export").addEventListener("click", () => downloadJson(mergeCorrections(repoOverrides, corrections), "overrides.json"));
   $("import").addEventListener("change", async (e) => {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = "";
+    const box = e.target as HTMLInputElement;
+    const file = box.files?.[0];
+    box.value = "";
     if (!file) return;
     try {
       const parsed: unknown = JSON.parse(await file.text());
@@ -1041,35 +1260,60 @@ function bind(): void {
       corrections = mergeCorrections(corrections, parsed);
       saveCorrections(corrections);
       rebuildData();
-      render();
+      update();
     } catch (err) {
       $("data-errors").innerHTML = `<div class="banner bad">Import impossible : ${esc((err as Error).message)}</div>`;
     }
   });
-  $("clear-corrections").addEventListener("click", () => {
+  $("clear-corrections").addEventListener("click", async () => {
     if (!countCorrections(corrections)) return;
-    if (!confirm("Effacer toutes tes corrections locales ? (Pense à les exporter avant.)")) return;
+    const choice = await ask("Effacer mes corrections", "<p>Effacer toutes tes corrections locales ? Pense à les exporter avant.</p>", [
+      { value: "yes", label: "Tout effacer", primary: true },
+      { value: "", label: "Annuler" },
+    ]);
+    if (choice !== "yes") return;
     corrections = {};
     saveCorrections(corrections);
     rebuildData();
-    render();
+    update();
   });
+}
+
+/** Les RP montent tout seuls : affichage rafraîchi, et l'arbre ou le plan quand ça change quelque chose. */
+let rpSignature = "";
+let lastRpPlanRender = 0;
+function tickRp(): void {
+  if (player.rp === null || !player.rpPerSec || player.rpAt === null) return;
+  const rp = currentRp(player)!;
+  const page = currentPage();
+  renderHeader();
+  if (page === "usine") {
+    if (document.activeElement !== $("p-rp")) input("p-rp").value = String(Math.floor(rp));
+    renderRpLive();
+  }
+  // Recherches qui deviennent abordables : l'arbre change de couleur.
+  const sig = [...data.nodes.values()].filter((n) => !n.isRoot && n.rp <= rp).length.toString();
+  if (sig !== rpSignature) {
+    rpSignature = sig;
+    if (page === "arbre") renderTreePage(focusedKey());
+  }
+  // Temps restant pour les RP du plan : au plus toutes les 30 s.
+  if (page === "plan" && (plan?.economy.rpNeeded ?? 0) > 0 && Date.now() - lastRpPlanRender > 30_000) {
+    lastRpPlanRender = Date.now();
+    update();
+  }
 }
 
 rebuildData();
 if (!data.items.has(settings.item)) settings.item = "crankshaft";
 prog = sanitizeProgress(data, prog);
-fillItemList();
-fillNodeList();
-syncForm();
-syncPlayerForm();
-bind();
-bindProgress();
-bindTabs();
-bindResearchCanvas();
+fillLists();
+bindPlan();
+bindShared();
+bindUsine();
+bindTree();
+bindData();
 initBuildings($("bld-root"), data, portsJson as unknown as PortsFile);
-// Première visite (aucune recherche cochée) : on commence par l'onglet Recherche.
-if (!location.hash && !prog.unlocked.length) history.replaceState(null, "", "#recherche");
-render();
-showTab(currentTab());
+window.addEventListener("hashchange", showPage);
+showPage();
 window.setInterval(tickRp, 5000);

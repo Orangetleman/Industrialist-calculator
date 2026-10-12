@@ -114,6 +114,8 @@ export type EnergySetup = {
   note: string;
   sources: Source[];
   verify: VerifyFlag[];
+  /** Vapeur observée en jeu (thermique) : puissance par installation dans cette fourchette, et la phrase à afficher. */
+  observed?: { steamC: [number, number]; mfps: [number, number]; note: string };
 };
 
 export type EnergyFile = {

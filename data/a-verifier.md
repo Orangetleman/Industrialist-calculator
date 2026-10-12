@@ -520,9 +520,15 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
   À 110 °C, une Large Turbine produit environ 132 kMF/s au lieu de 320 kMF/s (courbe des
   turbines) : les centrales thermiques de `energy.json` sont peut-être surestimées d'un facteur
   2 à 2,5. Le jeu annonce lui-même des valeurs qu'il ne tient pas (Industrial Firebox : 12 L d'eau
-  chauffés par seconde, non constaté). À présenter en fourchette (observé / wiki).
+  chauffés par seconde, non constaté). **Fait** : relevé dans `releves.json` (`steamObservedC`) ;
+  chaque plan qui utilise une centrale thermique affiche la fourchette observée à côté du calcul
+  du wiki (Firebox : 264 à 297 kMF/s par installation au lieu de 640). Reste à relever la
+  température exacte par chauffe-eau (`steamTempC`) pour remplacer la valeur du wiki.
 - **2026-10-12, paraboles** : le « log » du bonus est décimal (confirmé par l'utilisateur,
   « je crois »).
 - **2026-10-12, plafond de RP** : d'après l'utilisateur, c'est un plafond général (commun à toutes
-  les stations), pas un plafond par type de station.
+  les stations), pas un plafond par type de station. Le calcul compte un seul plafond pour toute
+  l'installation proposée (un seul type de station à la fois) ; les installations mixtes ne sont
+  pas proposées. À préciser en jeu : le plafond vient-il de la station la plus forte, ou de leur
+  somme ?
 <!-- notes-manuelles:fin -->

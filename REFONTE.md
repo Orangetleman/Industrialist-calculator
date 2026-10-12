@@ -1,8 +1,8 @@
 # Refonte de l'interface — audit et plan
 
 > Rédigé le 2026-10-12, à la demande de l'utilisateur : « mets-toi dans la peau d'un humain ».
-> À lire avant toute nouvelle fonctionnalité. **E4 (plans de construction) est suspendue** : la
-> refonte passe d'abord.
+> À lire avant toute nouvelle fonctionnalité. **Refonte faite le 2026-10-12** (bilan plus bas) :
+> E4 (plans de construction) peut reprendre, en suivant la même méthode.
 
 ## Constat
 
@@ -133,6 +133,53 @@ Mesures, écran 1366 × 768 :
   aujourd'hui) ;
 - aucun débordement, de 375 px à 1366 px ;
 - le schéma, en taille réelle, défile dans son cadre au lieu de rétrécir.
+
+### Maquette validée (2026-10-12), avec quatre remarques
+
+1. « Parfois les nombres fusionnent » : étiquettes de débit qui se chevauchent dans le schéma.
+2. « Le passe du jeu », et non « la passe de jeu ».
+3. Chaque bouton de l'accueil doit mener à son propre objectif (dans la maquette, tous menaient à
+   « Produire un objet »).
+4. La priorité n'est pas claire : le joueur ne sait pas ce qu'elle fait. Et le schéma doit se
+   parcourir librement, au moins pour dézoomer.
+
+## Refonte faite (2026-10-12)
+
+- **Pages** : Accueil · Planifier (une page par objectif : `#objet`, `#energie`, `#rp`,
+  `#argent`) · Mon usine · Arbre · Données. Les anciennes adresses (`#production`, `#recherche`,
+  `#verifier`, `#batiments`, `#partie`) sont redirigées. Chaque carte de l'accueil ouvre son
+  objectif.
+- **Barre du haut** fixe : navigation courte et état du joueur en pastilles (recherches, RP, argent),
+  cliquables vers Mon usine. Première visite : un encadré invite à renseigner son usine.
+- **Priorité** : seulement les priorités qui ont un sens pour l'objectif (pas « le moins
+  d'énergie » pour produire de l'énergie, par exemple), une par objectif, et sous le menu une
+  phrase qui dit ce qu'elle fait.
+- **Résultat en trois niveaux** : la réponse (une phrase, quatre chiffres, ce qu'il faut extraire,
+  vendre, évacuer, ce qui manque avec le bouton pour le cocher, un débit voisin mieux rempli) ;
+  puis les onglets Liste de construction (par étage, à cocher, gardée par plan), Schéma, Détails.
+- **Schéma** de gauche à droite (extraction → objectif), dans un cadre sombre navigable comme
+  l'arbre : glisser, molette, + / − / tout voir / vue de départ. Les étiquettes de débit sont
+  placées dans les espaces libres : 0 chevauchement sur 36 plans testés (6 objets × 6 priorités,
+  vérifié par les tests).
+- **Mon usine** réunit progression, « tout débloquer jusqu'à », ressources, production déjà en
+  place, machines spéciales, réglages (dépense des RP, « J'ai le passe du jeu ») et export.
+- **Données** réunit les valeurs à vérifier, les corrections et l'éditeur de bâtiments.
+- **Vapeur** : la fourchette observée en jeu (105–115 °C) est affichée avec chaque plan qui utilise
+  une centrale thermique (Firebox : 264 à 297 kMF/s par installation au lieu de 640).
+
+Mesures (site local, après la refonte) :
+
+| Tâche (écran 1366 × 768) | Actions | Réponse visible |
+|---|---|---|
+| « 60 Crankshafts/min » | carte « Produire un objet », unité « par minute » | 326 → 494 px, sans défiler |
+| « 2 MMF/s, le moins de pollution » | carte « Énergie », 2 + MMF/s, priorité | 345 → 647 px, sans défiler |
+| « Débloquer la RS3 en 1 h » | carte « RP », but, recherche | 326 → 533 px, sans défiler |
+
+- Téléphone (375 px) : aucun débordement horizontal sur les 8 pages ; la réponse commence vers
+  530 px ; la liste de construction devient une pile de cartes.
+- Pages de 900 à 2 100 px (contre 6 000 à 14 000 px avant).
+
+Reste à faire : un glossaire court des termes du jeu ; la vue « plans de construction » (E4).
 
 ### Méthode, cette fois
 

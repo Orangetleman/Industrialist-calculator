@@ -96,6 +96,8 @@ export type Recipe = {
   /** Nom lisible d'une installation composée, et sa note (hypothèses, conseils). */
   setupName?: string;
   setupNote?: string;
+  /** Écart observé en jeu (ex. vapeur moins chaude que le wiki) : à afficher avec le plan. */
+  setupObserved?: string;
   /** Pollution propre à la recette (%/h par machine), si elle diffère de celle de la machine (Scrubber). */
   pollutionPerHour?: number;
   /** Production d'énergie constante (nuit, vent faible) ; false : moyenne sur la journée. */

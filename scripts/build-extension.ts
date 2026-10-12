@@ -102,6 +102,8 @@ type Releves = {
   storageCapacity: Record<string, number>;
   depotCycleSeconds: Record<string, number>;
   research: { rs3SameItemAllowed?: boolean; startUnlocked?: string[]; note?: string };
+  /** Vapeur observée en jeu (°C, fourchette) : affichée à côté du calcul du wiki pour les centrales thermiques. */
+  steamObservedC?: { range: [number, number]; note: string };
 };
 const relevesPath = join(OUT, "releves.json");
 const releves: Releves | null = existsSync(relevesPath) ? JSON.parse(readFileSync(relevesPath, "utf8")) : null;
@@ -349,6 +351,18 @@ function thermal(heater: string, recipeId: string, boilers: number | null, steam
     { machine: "large-turbine", count: turbines },
   ];
   const fuelName = Object.keys(fuel).join(" + ") || "?";
+  // Vapeur observée en jeu (fourchette) : puissance si la vapeur plafonne à ces températures.
+  const obs = releves?.steamObservedC;
+  const lo = obs && !("tempC" in steam && steamRelevé[heater] !== undefined) ? turbineAt(obs.range[0]) : null;
+  const hi = obs ? turbineAt(obs.range[1]) : null;
+  const observed =
+    obs && lo !== null && hi !== null
+      ? {
+          steamC: obs.range,
+          mfps: [lo * turbines, hi * turbines] as [number, number],
+          note: `Vapeur observée en jeu : souvent ${obs.range[0]} à ${obs.range[1]} °C au plus. Chaque Large Turbine donne alors ${frNum(lo / 1e3, 0)} à ${frNum(hi / 1e3, 0)} kMF/s, et une installation ${frNum((lo * turbines) / 1e3, 0)} à ${frNum((hi * turbines) / 1e3, 0)} kMF/s au lieu de ${frNum(mfps / 1e3, 0)} kMF/s (${frNum(mfps / (hi * turbines), 1)} à ${frNum(mfps / (lo * turbines), 1)} fois moins). Prévois de la marge, ou vérifie ta température en jeu.`,
+        }
+      : undefined;
   setups.push({
     id: `centrale:${recipeId}`,
     name: `${m.name} (${fuelName}) + ${boilers} Boiler${boilers > 1 ? "s" : ""} + ${turbines} Large Turbine${turbines > 1 ? "s" : ""}`,
@@ -363,6 +377,7 @@ function thermal(heater: string, recipeId: string, boilers: number | null, steam
     note: `${steam.note} Boucle d'eau fermée : seul le remplissage initial demande de l'eau.`,
     sources: [...steam.sources, ...srcOfPage("Boiler"), ...srcOfPage("Large Turbine"), ...(curve ? [curve.source] : [])],
     verify: steam.flag ? [steam.flag] : [],
+    ...(observed ? { observed } : {}),
   });
 }
 

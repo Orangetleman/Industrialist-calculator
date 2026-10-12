@@ -25,323 +25,311 @@
 </head>
 <body>
 <a class="skip" href="#main">Aller au contenu</a>
-<div class="wrap">
-  <header>
-    <div class="brand">
-      <img src="/favicon.svg" alt="" width="52" height="52" class="brand-logo">
-      <div>
-        <div class="eyebrow">Industrialist · Roblox · calculateur de production</div>
-        <h1>Calculateur de production</h1>
-      </div>
+
+<!-- Barre du haut : navigation courte + état du joueur, toujours visible -->
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#accueil"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span>Calculateur<span class="long"> Industrialist</span></span></a>
+    <nav class="mainnav" aria-label="Sections">
+      <a href="#accueil" data-nav="accueil">Accueil</a>
+      <a href="#objet" data-nav="plan" id="nav-plan">Planifier</a>
+      <a href="#usine" data-nav="usine">Mon usine</a>
+      <a href="#arbre" data-nav="arbre">Arbre<span class="long"> de recherche</span></a>
+      <a href="#donnees" data-nav="donnees">Données</a>
+    </nav>
+    <div class="me" id="me" aria-label="Mon usine en bref"></div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+
+  <!-- ====================================================== ACCUEIL -->
+  <section class="page" id="page-accueil" aria-labelledby="h-home" hidden>
+    <h1 id="h-home">Que veux-tu faire ?</h1>
+    <p class="lead">Dis ce que tu veux obtenir : le calculateur donne la liste exacte des machines à construire, avec seulement ce que tu as débloqué.</p>
+    <div class="cards">
+      <a class="card" href="#objet"><span class="ico" aria-hidden="true">⚙</span><b>Produire un objet</b><small>« 60 Crankshafts par minute » → les machines de toute la chaîne.</small></a>
+      <a class="card" href="#energie"><span class="ico" aria-hidden="true">⚡</span><b>Produire de l'énergie</b><small>« 2 MMF/s, sans combustible » → les centrales et leur alimentation.</small></a>
+      <a class="card" href="#rp"><span class="ico" aria-hidden="true">🔬</span><b>Gagner des points de recherche</b><small>« Débloquer la Research Station 3 en 1 h » → les stations et leurs items.</small></a>
+      <a class="card" href="#argent"><span class="ico" aria-hidden="true">$</span><b>Gagner de l'argent</b><small>« 10 000 $ par minute » → quoi fabriquer, quoi vendre, et les dépôts.</small></a>
     </div>
-    <p class="lead">Choisis un item et un débit : le plan donne toute la chaîne, des machines finales jusqu'aux matières premières, avec seulement ce que tu as débloqué.</p>
-  </header>
+    <div class="callout" id="first-visit" hidden>
+      <p><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Deux minutes, une seule fois.</p>
+      <a class="btn primary" href="#usine">Renseigner mon usine</a>
+    </div>
+    <p class="hint home-note">Tout est gardé dans ce navigateur. Les données viennent des wikis du jeu ; en cas d'écart, le Recipe Book du jeu fait foi (corrige la valeur dans « Données »).</p>
+  </section>
 
-  <nav class="maintabs" role="tablist" aria-label="Sections">
-    <a role="tab" id="tab-production" href="#production" aria-controls="panel-production" aria-selected="true">Production</a>
-    <a role="tab" id="tab-recherche" href="#recherche" aria-controls="panel-recherche" aria-selected="false">Recherche <span class="pill" id="tab-research-count"></span></a>
-    <a role="tab" id="tab-verifier" href="#verifier" aria-controls="panel-verifier" aria-selected="false">À vérifier <span class="pill" id="verify-count">0</span></a>
-    <a role="tab" id="tab-batiments" href="#batiments" aria-controls="panel-batiments" aria-selected="false">Bâtiments</a>
-    <a role="tab" id="tab-partie" href="#partie" aria-controls="panel-partie" aria-selected="false">Ma partie</a>
-  </nav>
+  <!-- ====================================================== PLANIFIER (une page par objectif) -->
+  <section class="page" id="page-plan" aria-labelledby="plan-title" hidden>
+    <nav class="goalnav" aria-label="Objectif">
+      <a href="#objet" data-goal="objet">Un objet</a>
+      <a href="#energie" data-goal="énergie">De l'énergie</a>
+      <a href="#rp" data-goal="recherche">Des RP</a>
+      <a href="#argent" data-goal="argent">De l'argent</a>
+    </nav>
+    <h1 id="plan-title">Produire un objet</h1>
 
-  <main id="main">
-  <!-- ====================================================== PRODUCTION -->
-  <div class="tabpanel" id="panel-production" role="tabpanel" aria-labelledby="tab-production">
-    <section class="panel" aria-labelledby="h-set">
-      <div class="set-head">
-        <h2 id="h-set">Réglage</h2>
-        <div class="seg" role="radiogroup" aria-label="Objectif">
-          <button type="button" role="radio" data-goal="objet" aria-checked="true">Produire un objet</button>
-          <button type="button" role="radio" data-goal="argent" aria-checked="false">Gagner de l'argent</button>
-          <button type="button" role="radio" data-goal="énergie" aria-checked="false">Produire de l'énergie</button>
-          <button type="button" role="radio" data-goal="recherche" aria-checked="false">Recherche (RP)</button>
+    <form class="query" id="query" novalidate>
+      <!-- objet -->
+      <label class="grow" data-goals="objet" for="item">Objet
+        <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft">
+        <span id="item-hint" class="hint warn-text" role="status"></span>
+      </label>
+      <datalist id="item-list"></datalist>
+      <label data-goals="objet" for="qty">Quantité
+        <span class="qty"><input id="qty" type="number" min="0.01" step="any" inputmode="decimal">
+        <select id="qty-unit" aria-label="Unité de la quantité"><option value="rate">par minute</option><option value="machines">machines finales</option></select></span>
+      </label>
+      <!-- énergie -->
+      <label data-goals="énergie" for="energy">Puissance voulue
+        <span class="qty"><input id="energy" type="number" min="0.001" step="any" inputmode="decimal">
+        <select id="energy-unit" aria-label="Unité de puissance"><option value="k">kMF/s</option><option value="M">MMF/s</option></select></span>
+      </label>
+      <label data-goals="énergie" for="energy-mode">Production
+        <select id="energy-mode">
+          <option value="moyenne">en moyenne sur la journée</option>
+          <option value="garantie">garantie (nuit et vent faible compris)</option>
+        </select>
+      </label>
+      <!-- recherche -->
+      <label data-goals="recherche" for="rp-mode">But
+        <select id="rp-mode">
+          <option value="rate">atteindre une vitesse (RP/s)</option>
+          <option value="node">débloquer une recherche dans un délai</option>
+          <option value="plan">débloquer ce qui manque à mon plan d'objet</option>
+        </select>
+      </label>
+      <label data-goals="recherche" for="rp-rate" id="rp-rate-label">RP par seconde
+        <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal">
+      </label>
+      <label data-goals="recherche" class="grow" for="rp-node" id="rp-node-label">Recherche à débloquer
+        <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3">
+      </label>
+      <label data-goals="recherche" for="rp-minutes" id="rp-minutes-label">En combien de minutes
+        <input id="rp-minutes" type="number" min="1" step="any" inputmode="decimal">
+      </label>
+      <!-- argent -->
+      <label data-goals="argent" for="money">Revenu voulu ($/min)
+        <input id="money" type="number" min="1" step="any" inputmode="decimal">
+      </label>
+      <!-- commun -->
+      <label for="criterion">Priorité
+        <select id="criterion"></select>
+      </label>
+      <p class="hint crit-hint" id="criterion-hint"></p>
+      <p class="hint" id="goal-hint"></p>
+
+      <details class="advanced" id="advanced">
+        <summary>Options avancées <span class="muted" id="adv-count"></span></summary>
+        <div class="adv">
+          <label data-goals="objet argent recherche" class="check"><input type="checkbox" id="self-powered"> Produire ma propre énergie <span class="hint">(générateurs et combustible dans la chaîne)</span></label>
+          <label data-goals="énergie" class="check"><input type="checkbox" id="no-fuel"> Sans combustible <span class="hint">(solaire, éolien…)</span></label>
+          <label data-goals="énergie" class="inline">Distance jusqu'aux machines <input id="distance" type="number" min="0" step="1" inputmode="numeric" placeholder="—"> cases <span class="hint">(pour compter les poteaux)</span></label>
+          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-satellites"> Paraboles satellites</label>
+          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-logic"> Mini-jeu Logic des RS4</label>
+          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-current"> Compter ma production actuelle de RP <span class="hint" id="rp-current-hint"></span></label>
+          <label data-goals="recherche" class="inline">Plafond de RP voulu <input id="rp-cap" type="number" min="0" step="any" inputmode="decimal" placeholder="auto"></label>
+          <label class="check"><input type="checkbox" id="use-budget"> Ne pas dépasser mon argent <span class="hint" id="budget-hint"></span></label>
+          <label class="inline">Pollution au plus <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="—"> %/h</label>
+          <label class="check"><input type="checkbox" id="use-existing"> Utiliser ma production déjà en place <span class="hint" id="existing-hint-plan"></span></label>
+          <label class="check"><input type="checkbox" id="unverified"> Utiliser aussi les valeurs « à vérifier » <span class="hint">(recettes aux valeurs variables ou manquantes)</span></label>
+        </div>
+        <p class="hint" id="adv-note"></p>
+      </details>
+    </form>
+
+    <div id="answer" aria-live="polite"></div>
+
+    <div class="rtabs" role="tablist" aria-label="Résultat">
+      <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste">Liste de construction</button>
+      <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema">Schéma</button>
+      <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details">Détails</button>
+    </div>
+    <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
+    <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
+      <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
+        <div id="flow-canvas"></div>
+        <p class="flow-help">Glisse pour te déplacer · molette pour zoomer</p>
+        <div class="rs-zoom">
+          <button type="button" data-fzoom="in" aria-label="Zoomer">+</button>
+          <button type="button" data-fzoom="out" aria-label="Dézoomer">−</button>
+          <button type="button" data-fzoom="fit" aria-label="Tout voir">⤢</button>
+          <button type="button" data-fzoom="reset" aria-label="Vue de départ">⌂</button>
         </div>
       </div>
-      <div class="fields" id="money-fields" hidden>
-        <label for="money" class="active">Revenu voulu ($/min)
-          <input id="money" type="number" min="1" step="any" inputmode="decimal">
-        </label>
-        <p class="hint wide">Le calcul choisit les objets à vendre et les dépôts (Truck, Van, Huge Truck Depot) selon le critère. Objets solides seulement : la capacité des dépôts de liquides n'est pas connue.</p>
+      <p class="hint">De gauche (extraction) à droite (objectif). Survole un bloc ou une flèche pour le détail. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
+    </div>
+    <div class="rpanel" role="tabpanel" id="rpanel-details" aria-labelledby="rtab-details" hidden><div id="details"></div></div>
+  </section>
+
+  <!-- ====================================================== MON USINE -->
+  <section class="page" id="page-usine" aria-labelledby="h-usine" hidden>
+    <h1 id="h-usine">Mon usine</h1>
+    <p class="lead">Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.</p>
+    <div class="grid2">
+      <div class="box">
+        <h2>Recherches débloquées</h2>
+        <p class="big" id="progress-summary"></p>
+        <div class="meter" aria-hidden="true"><i id="progress-meter"></i></div>
+        <div class="row"><a class="btn" href="#arbre">Ouvrir l'arbre de recherche</a></div>
+        <form class="upto" id="upto-form">
+          <label for="upto">Tout débloquer jusqu'à
+            <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche">
+          </label>
+          <button type="submit">Débloquer avec ses prérequis</button>
+          <span class="hint" id="upto-hint" role="status"></span>
+        </form>
+        <datalist id="node-list"></datalist>
+        <button type="button" id="progress-reset" class="link small">Réinitialiser la progression</button>
       </div>
-      <div class="fields" id="energy-fields" hidden>
-        <label for="energy" class="active">Puissance voulue (kMF/s)
-          <input id="energy" type="number" min="0.001" step="any" inputmode="decimal">
-        </label>
-        <label for="energy-mode">Production
-          <select id="energy-mode">
-            <option value="moyenne">En moyenne sur la journée</option>
-            <option value="garantie">Garantie (nuit et vent faible compris)</option>
-          </select>
-        </label>
-        <label for="distance">Distance jusqu'aux machines (cases)
-          <input id="distance" type="number" min="0" step="1" inputmode="numeric" placeholder="facultatif">
-        </label>
-        <label class="check-inline"><input type="checkbox" id="no-fuel"> Sans combustible (solaire, éolien…)</label>
-        <p class="hint wide" id="energy-hint"></p>
+
+      <div class="box">
+        <h2>Ressources</h2>
+        <div class="row fields4">
+          <label for="p-rp">RP disponibles<input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000"></label>
+          <label for="p-rps">RP par seconde<input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5"></label>
+          <label for="p-money">Argent ($)<input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000"></label>
+          <label for="p-pollution">Pollution (%)<input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12"></label>
+        </div>
+        <p class="hint" id="player-hint" role="status"></p>
+        <p class="hint" id="rp-live" aria-live="off"></p>
+        <p class="hint">Servent à : la pousse des arbres (pollution), l'argent et les RP manquants, le temps pour les obtenir. Les RP montent tout seuls avec tes RP/s depuis ta dernière saisie.</p>
       </div>
-      <div class="fields" id="rp-fields" hidden>
-        <label for="rp-mode">But
-          <select id="rp-mode">
-            <option value="rate">Atteindre une vitesse (RP/s)</option>
-            <option value="node">Débloquer une recherche dans un délai</option>
-            <option value="plan">Débloquer ce qui manque à mon plan d'objet</option>
-          </select>
-        </label>
-        <label for="rp-rate" id="rp-rate-label">RP/s voulus
-          <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal">
-        </label>
-        <label for="rp-node" id="rp-node-label" class="wide">Recherche à débloquer
-          <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3">
-        </label>
-        <label for="rp-minutes" id="rp-minutes-label">En combien de temps (minutes)
-          <input id="rp-minutes" type="number" min="1" step="any" inputmode="decimal">
-        </label>
-        <label for="rp-cap" id="rp-cap-label">Plafond de RP voulu
-          <input id="rp-cap" type="number" min="0" step="any" inputmode="decimal" placeholder="automatique">
-        </label>
-        <label class="check-inline"><input type="checkbox" id="rp-satellites"> Paraboles satellites</label>
-        <label class="check-inline"><input type="checkbox" id="rp-logic"> Mini-jeu Logic des RS4</label>
-        <label class="check-inline"><input type="checkbox" id="rp-current"> Compter ma production actuelle de RP (Ma partie)</label>
-        <p class="hint wide" id="rp-hint"></p>
-      </div>
-      <div class="fields" id="item-fields">
-        <label for="item" class="wide">Item à produire
-          <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft">
-          <datalist id="item-list"></datalist>
-          <span id="item-hint" class="hint" role="status"></span>
-        </label>
-        <label for="rate">Débit voulu (/min)
-          <input id="rate" type="number" min="0.01" step="any" inputmode="decimal">
-        </label>
-        <label for="machines">ou machines finales
-          <input id="machines" type="number" min="1" step="1" inputmode="numeric">
-        </label>
-      </div>
-      <p id="mode-hint" class="hint"></p>
-      <div class="fields">
-        <label for="criterion">Optimiser
-          <select id="criterion">
-            <option value="machines">Moins de machines</option>
-            <option value="energy">Moins d'énergie</option>
-            <option value="raw">Moins de matières premières</option>
-            <option value="steps">Moins d'étapes</option>
-            <option value="pollution">Moins de pollution</option>
-            <option value="cost">Moins cher à construire</option>
-            <option value="area">Moins de place au sol</option>
-          </select>
-        </label>
-        <label for="max-pollution">Pollution max (%/h)
-          <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="sans limite">
-        </label>
-      </div>
-      <div class="checks">
-        <label><input type="checkbox" id="self-powered"> Produire ma propre énergie (les générateurs débloqués et leur combustible entrent dans la chaîne)</label>
-        <label><input type="checkbox" id="use-budget"> Ne pas dépasser mon argent <span class="hint" id="budget-hint"></span></label>
-        <label><input type="checkbox" id="unverified"> Utiliser aussi les recettes « à vérifier » (valeurs variables ou manquantes)</label>
-      </div>
-      <details class="existing-box" id="existing-box">
-        <summary>Production déjà en place <span class="pill" id="existing-count"></span></summary>
-        <p class="hint">Si tu produis déjà un item (ex. du plastique avec ton industrie pétrochimique), indique son débit : le calcul s'en sert avant de construire quoi que ce soit. Tu peux aussi l'ajouter depuis le plan, avec « J'ai déjà cette production… ».</p>
+
+      <div class="box">
+        <h2>Production déjà en place <span class="pill" id="existing-count"></span></h2>
+        <p class="hint">Ce que tes usines produisent déjà (ex. du plastique avec ton industrie pétrochimique) : les calculs s'en servent avant de construire du neuf. Tu peux aussi l'ajouter depuis une liste de construction (« je l'ai déjà »).</p>
         <ul id="existing-list" class="existing-list"></ul>
         <form id="existing-add" class="existing-add">
-          <label>Item <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets"></label>
+          <label>Objet <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets"></label>
           <label>Débit (/min) <input name="rate" type="number" min="0.01" step="any" inputmode="decimal"></label>
           <button type="submit">Ajouter</button>
         </form>
         <p class="hint" id="existing-hint" role="status"></p>
-      </details>
-      <p class="hint" id="context-hint"></p>
-      <button type="button" id="forced-reset" class="link" hidden>Annuler toutes les recettes forcées</button>
-    </section>
-
-    <div id="status"></div>
-
-    <section aria-labelledby="h-sum">
-      <h2 id="h-sum" class="eyebrow">Résumé</h2>
-      <div id="stats"></div>
-    </section>
-
-    <section aria-labelledby="h-graph">
-      <h2 id="h-graph">Graphe de production</h2>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--steel-soft);border:1px solid var(--steel)"></i>Item · machine × nombre · énergie moyenne</span>
-        <span><i class="sw" style="background:var(--bg);border:1px solid var(--steel)"></i>Matière première</span>
-        <span><i class="sw" style="border:1px dashed var(--accent)"></i>Non produit</span>
-        <span><i class="sw" style="background:var(--accent)"></i>Flux par minute</span>
-      </div>
-      <div class="graph panel" id="graph"></div>
-    </section>
-
-    <section aria-labelledby="h-plan">
-      <h2 id="h-plan">Plan d'action, de la fin vers la matière première</h2>
-      <ol class="plan" id="plan"></ol>
-    </section>
-
-    <section aria-labelledby="h-rec">
-      <h2 id="h-rec">Recettes utilisées</h2>
-      <div class="tablewrap panel"><table>
-        <thead><tr><th>Produit</th><th>Machine</th><th>Entrées → sorties</th><th>Énergie</th><th>Source</th></tr></thead>
-        <tbody id="rec"></tbody>
-      </table></div>
-    </section>
-
-    <section aria-labelledby="h-warn">
-      <h2 id="h-warn">Avertissements</h2>
-      <div id="warnings"></div>
-    </section>
-  </div>
-
-  <!-- ====================================================== RECHERCHE -->
-  <div class="tabpanel" id="panel-recherche" role="tabpanel" aria-labelledby="tab-recherche" hidden>
-    <section aria-labelledby="h-progress">
-      <div class="rs-top">
-        <div>
-          <h2 id="h-progress">Arbre de recherche</h2>
-          <p class="hint" id="progress-summary"></p>
-        </div>
-        <div class="seg" role="radiogroup" aria-label="Affichage">
-          <button type="button" role="radio" data-view="tree" aria-checked="true">Arbre (comme en jeu)</button>
-          <button type="button" role="radio" data-view="list" aria-checked="false">Liste</button>
-        </div>
-      </div>
-      <div class="tree-tools">
-        <div class="tabs" role="tablist" aria-label="Catégories de recherche">
-          <button type="button" role="tab" data-cat="Production" aria-selected="true">Production</button>
-          <button type="button" role="tab" data-cat="Energy" aria-selected="false">Energy</button>
-          <button type="button" role="tab" data-cat="Utility" aria-selected="false">Utility</button>
-        </div>
-        <label class="tree-filter" for="tree-filter"><span class="sr-only">Chercher une recherche ou une machine</span>
-          <input id="tree-filter" type="search" placeholder="Chercher (recherche ou machine)…" autocomplete="off">
-        </label>
       </div>
 
-      <div id="tree-view">
-        <div class="rs-legend legend">
-          <span><i class="sw rs-sw done"></i>Débloquée</span>
-          <span><i class="sw rs-sw available"></i>Disponible</span>
-          <span><i class="sw rs-sw expensive"></i>Disponible, RP insuffisants</span>
-          <span><i class="sw rs-sw locked"></i>Prérequis manquants</span>
+      <div class="box">
+        <h2>Réglages</h2>
+        <div class="checks">
+          <label><input type="checkbox" id="p-spend"> Débloquer une recherche sur le site dépense ses RP (la retirer les rend)</label>
+          <label><input type="checkbox" id="p-gamepass"> J'ai le passe du jeu <span class="hint">(compteurs de débit Item Rate Meter et Fluid Rate Meter : proposés dans les futurs plans de construction)</span></label>
         </div>
-        <div class="rs-workspace">
-          <div class="rs-frame" id="rs-frame" tabindex="0" aria-label="Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début">
-            <div id="rs-canvas"></div>
-            <p class="rs-help">Glisse pour te déplacer · molette pour zoomer · clique une recherche</p>
-            <div class="rs-zoom">
-              <button type="button" data-zoom="in" aria-label="Zoomer">+</button>
-              <button type="button" data-zoom="out" aria-label="Dézoomer">−</button>
-              <button type="button" data-zoom="fit" aria-label="Tout voir">⤢</button>
-              <button type="button" data-zoom="reset" aria-label="Revenir au début">⌂</button>
-            </div>
-            <!-- Comme en jeu : coût en bas à gauche, bouton « Research » en bas à droite. -->
-            <div class="rs-hud">
-              <div class="rs-hud-info" id="rs-hud-info" aria-live="polite"></div>
-              <button type="button" class="rs-hud-action" id="rs-hud-action" hidden></button>
-            </div>
-          </div>
-          <aside class="panel rs-side" id="rs-detail" aria-live="polite" aria-label="Recherche sélectionnée"></aside>
-        </div>
-      </div>
-
-      <div id="list-view" hidden>
-        <div id="tree"></div>
-      </div>
-
-      <form class="upto panel" id="upto-form">
-        <label for="upto">Tout débloquer jusqu'à
-          <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche">
-        </label>
-        <datalist id="node-list"></datalist>
-        <button type="submit">Débloquer avec ses prérequis</button>
-        <button type="button" id="progress-reset" class="link">Réinitialiser la progression</button>
-        <span class="hint" id="upto-hint" role="status"></span>
-      </form>
-
-      <div class="panel">
-        <h3>Transférer ma progression</h3>
-        <p class="hint">La progression et « Ma partie » sont gardées dans ce navigateur, pour cette adresse seulement. Pour les retrouver ailleurs (autre adresse, autre appareil), exporte-les ici puis importe le fichier là-bas.</p>
-        <div class="actions">
-          <button type="button" id="progress-export">Exporter ma progression</button>
+        <h3>Transférer ma partie</h3>
+        <p class="hint">Tout est gardé dans ce navigateur, pour cette adresse. Pour le retrouver ailleurs, exporte ici puis importe le fichier là-bas.</p>
+        <div class="row">
+          <button type="button" id="progress-export">Exporter ma partie</button>
           <label class="button">Importer…<input type="file" id="progress-import" accept="application/json,.json" hidden></label>
         </div>
         <p class="hint" id="progress-io-hint" role="status"></p>
       </div>
 
-      <div class="panel owned-panel">
-        <h3>Machines spéciales possédées</h3>
+      <div class="box span2">
+        <h2>Machines spéciales possédées</h2>
         <p class="hint">Ces machines (éditions « Limited », variantes) ne se débloquent pas dans l'arbre de recherche : coche celles que tu possèdes.</p>
         <div id="owned"></div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
-  <!-- ====================================================== À VÉRIFIER -->
-  <div class="tabpanel" id="panel-verifier" role="tabpanel" aria-labelledby="tab-verifier" hidden>
-    <section aria-labelledby="h-verify">
-      <h2 id="h-verify">À vérifier dans le plan actuel</h2>
-      <p class="lead">Valeurs manquantes, variables ou contradictoires entre les wikis, pour la chaîne affichée dans « Production ». Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : le plan est recalculé aussitôt et la correction est gardée dans ce navigateur.</p>
+  <!-- ====================================================== ARBRE DE RECHERCHE -->
+  <section class="page" id="page-arbre" aria-labelledby="h-progress" hidden>
+    <div class="rs-top">
+      <div>
+        <h1 id="h-progress">Arbre de recherche</h1>
+        <p class="hint" id="tree-summary"></p>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Affichage">
+        <button type="button" role="radio" data-view="tree" aria-checked="true">Arbre (comme en jeu)</button>
+        <button type="button" role="radio" data-view="list" aria-checked="false">Liste</button>
+      </div>
+    </div>
+    <div class="tree-tools">
+      <div class="tabs" role="tablist" aria-label="Catégories de recherche">
+        <button type="button" role="tab" data-cat="Production" aria-selected="true">Production</button>
+        <button type="button" role="tab" data-cat="Energy" aria-selected="false">Energy</button>
+        <button type="button" role="tab" data-cat="Utility" aria-selected="false">Utility</button>
+      </div>
+      <label class="tree-filter" for="tree-filter"><span class="sr-only">Chercher une recherche ou une machine</span>
+        <input id="tree-filter" type="search" placeholder="Chercher (recherche ou machine)…" autocomplete="off">
+      </label>
+    </div>
+
+    <div id="tree-view">
+      <div class="rs-legend legend">
+        <span><i class="sw rs-sw done"></i>Débloquée</span>
+        <span><i class="sw rs-sw available"></i>Disponible</span>
+        <span><i class="sw rs-sw expensive"></i>Disponible, RP insuffisants</span>
+        <span><i class="sw rs-sw locked"></i>Prérequis manquants</span>
+      </div>
+      <div class="rs-workspace">
+        <div class="rs-frame" id="rs-frame" tabindex="0" aria-label="Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début">
+          <div id="rs-canvas"></div>
+          <p class="rs-help">Glisse pour te déplacer · molette pour zoomer · clique une recherche</p>
+          <div class="rs-zoom">
+            <button type="button" data-zoom="in" aria-label="Zoomer">+</button>
+            <button type="button" data-zoom="out" aria-label="Dézoomer">−</button>
+            <button type="button" data-zoom="fit" aria-label="Tout voir">⤢</button>
+            <button type="button" data-zoom="reset" aria-label="Revenir au début">⌂</button>
+          </div>
+          <!-- Comme en jeu : coût en bas à gauche, bouton « Research » en bas à droite. -->
+          <div class="rs-hud">
+            <div class="rs-hud-info" id="rs-hud-info" aria-live="polite"></div>
+            <button type="button" class="rs-hud-action" id="rs-hud-action" hidden></button>
+          </div>
+        </div>
+        <aside class="panel rs-side" id="rs-detail" aria-live="polite" aria-label="Recherche sélectionnée"></aside>
+      </div>
+    </div>
+
+    <div id="list-view" hidden>
+      <div id="tree"></div>
+    </div>
+  </section>
+
+  <!-- ====================================================== DONNÉES -->
+  <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
+    <h1 id="h-data">Données</h1>
+    <p class="lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
+    <div class="rtabs" role="tablist" aria-label="Outils">
+      <button type="button" role="tab" id="dtab-verifier" data-dtab="verifier" aria-controls="dpanel-verifier">Valeurs à vérifier <span class="pill" id="verify-count"></span></button>
+      <button type="button" role="tab" id="dtab-batiments" data-dtab="batiments" aria-controls="dpanel-batiments">Éditeur de bâtiments</button>
+    </div>
+    <div class="rpanel" role="tabpanel" id="dpanel-verifier" aria-labelledby="dtab-verifier">
+      <p class="hint" id="verify-context"></p>
+      <p>Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : les calculs en tiennent compte aussitôt et la correction est gardée dans ce navigateur.</p>
       <div id="verify"></div>
-    </section>
-    <section class="panel corrections-panel" aria-labelledby="h-corr">
-      <h3 id="h-corr">Mes corrections <span class="pill" id="corrections-count">0</span></h3>
-      <div id="data-errors"></div>
-      <div id="corrections"></div>
-      <div class="actions">
-        <button type="button" id="export">Exporter mes corrections</button>
-        <label class="button">Importer…<input type="file" id="import" accept="application/json,.json" hidden></label>
-        <button type="button" id="clear-corrections" class="link">Tout effacer</button>
+      <div class="corrections-panel">
+        <h2>Mes corrections <span class="pill" id="corrections-count">0</span></h2>
+        <div id="data-errors"></div>
+        <div id="corrections"></div>
+        <div class="row">
+          <button type="button" id="export">Exporter mes corrections</button>
+          <label class="button">Importer…<input type="file" id="import" accept="application/json,.json" hidden></label>
+          <button type="button" id="clear-corrections" class="link">Tout effacer</button>
+        </div>
+        <p class="hint">L'export produit un <code>overrides.json</code> (corrections du dépôt + les tiennes) à placer dans <code>data/</code> pour les rendre permanentes.</p>
       </div>
-      <p class="hint">L'export produit un <code>overrides.json</code> (corrections du dépôt + les tiennes) à placer dans <code>data/</code> pour les rendre permanentes.</p>
-    </section>
-  </div>
+    </div>
+    <div class="rpanel" role="tabpanel" id="dpanel-batiments" aria-labelledby="dtab-batiments" hidden>
+      <div id="bld-root"></div>
+    </div>
+  </section>
+</main>
 
-  <!-- ====================================================== BÂTIMENTS -->
-  <div class="tabpanel" id="panel-batiments" role="tabpanel" aria-labelledby="tab-batiments" hidden>
-    <section aria-label="Éditeur de bâtiments"><div id="bld-root"></div></section>
-  </div>
+<dialog id="ask" aria-labelledby="ask-title">
+  <form method="dialog">
+    <h3 id="ask-title">Confirmer</h3>
+    <div id="ask-body"></div>
+    <div class="row dialog-actions" id="ask-actions"></div>
+  </form>
+</dialog>
 
-  <!-- ====================================================== MA PARTIE -->
-  <div class="tabpanel" id="panel-partie" role="tabpanel" aria-labelledby="tab-partie" hidden>
-    <section class="panel" aria-labelledby="h-player">
-      <h2 id="h-player">Ma partie <span class="muted">· facultatif</span></h2>
-      <p class="hint">Laisse vide ce que tu ne veux pas renseigner : le plan donnera alors simplement les prix et les coûts de recherche, sans les comparer à ce que tu as.</p>
-      <div class="fields">
-        <label for="p-pollution">Pollution actuelle (%)
-          <input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12">
-        </label>
-        <label for="p-money">Argent ($)
-          <input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000">
-        </label>
-        <label for="p-rp">RP disponibles
-          <input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000">
-        </label>
-        <label for="p-rps">Production de RP (/s)
-          <input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5">
-        </label>
-      </div>
-      <div class="checks"><label><input type="checkbox" id="p-spend"> Débloquer une recherche sur le site dépense ses RP (la retirer les rend), y compris « tout débloquer jusqu'à »</label></div>
-      <p class="hint" id="player-hint" role="status"></p>
-      <p class="hint" id="rp-live" aria-live="off"></p>
-      <p class="hint">Utilisé pour : la pousse des arbres (pollution), l'argent manquant, les RP manquants et le temps estimé pour les obtenir. Les RP disponibles colorent aussi l'arbre de recherche (gris clair = pas assez de RP). Avec une production de RP, les RP montent tout seuls à partir du moment où tu les as saisis.</p>
-      <p class="fold-sub" id="player-summary"></p>
-    </section>
-  </div>
-  </main>
-
-  <dialog id="ask" aria-labelledby="ask-title">
-    <form method="dialog">
-      <h3 id="ask-title">Confirmer</h3>
-      <div id="ask-body"></div>
-      <div class="actions" id="ask-actions"></div>
-    </form>
-  </dialog>
-
-  <footer class="src">
-    Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, source principale ;
-    <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-SA.
-    Pousse des arbres : calculateur communautaire lié depuis la page Tree. Les recettes changent avec les mises à jour du jeu : en cas d'écart, le Recipe Book fait foi.
-  </footer>
-</div>
+<footer class="src">
+  Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, source principale ;
+  <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-SA, et relevés en jeu.
+  Pousse des arbres : calculateur communautaire lié depuis la page Tree. Les recettes changent avec les mises à jour du jeu : en cas d'écart, le Recipe Book fait foi.
+</footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>
 </html>

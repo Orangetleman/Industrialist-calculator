@@ -20,7 +20,7 @@ Relevé en jeu le 2026-10-12 :
 
 ## La méthode : l'éditeur de bâtiments du site
 
-Onglet **Bâtiments** de https://industrialist.myprisme.fr :
+Page **Données**, onglet « Éditeur de bâtiments » de https://industrialist.myprisme.fr (ancienne adresse `#batiments` redirigée) :
 
 1. En jeu, pose le bâtiment **sans le faire pivoter** et prends **une capture vue de dessus**.
    Les entrées et sorties sont visibles sans activer les onglets de connexion.

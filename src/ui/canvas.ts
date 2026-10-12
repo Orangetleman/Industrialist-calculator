@@ -10,6 +10,8 @@ export type PanZoomOptions = {
   maxWidth?: () => number;
   /** La vue de départ montre tout le contenu (au lieu de la taille réelle calée à gauche). */
   fitOnReset?: boolean;
+  /** Vue de départ calculée (cadre et contenu en pixels / unités SVG) ; prioritaire sur fitOnReset. */
+  initialView?: (frame: { w: number; h: number }, content: { w: number; h: number }) => Box;
 };
 
 export class PanZoom {
@@ -70,9 +72,13 @@ export class PanZoom {
   reset(): void {
     const r = this.frame.getBoundingClientRect();
     this.measuredWidth = r.width;
-    if (this.opts.fitOnReset) return this.fit();
     const w = r.width > 0 ? r.width : 800;
     const h = r.height > 0 ? r.height : 500;
+    if (this.opts.initialView) {
+      this.vb = this.opts.initialView({ w, h }, this.content);
+      return this.apply();
+    }
+    if (this.opts.fitOnReset) return this.fit();
     this.vb = { x: 0, y: this.home ? Math.max(0, Math.min(this.home.y - h / 2, this.content.h - h)) : 0, w, h };
     this.apply();
   }

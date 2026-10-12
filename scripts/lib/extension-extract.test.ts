@@ -47,7 +47,7 @@ describe("tableaux de la page Pipes", () => {
     expect(rows[1]).toMatchObject({ tier: 4, kind: "fluide", price: 50000, capacity: 2000, flowPerSec: 12000, sizeStuds: { w: 8, l: 4 }, complex: false });
   });
 
-  it("repère la passe de jeu et les valeurs multiples", () => {
+  it("repère le passe du jeu et les valeurs multiples", () => {
     expect(rows[2]).toMatchObject({ gamepass: true, price: 2560 });
     expect(rows[3]).toMatchObject({ tier: 1, kind: "mixte", complex: true });
   });

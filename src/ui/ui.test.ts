@@ -8,12 +8,13 @@ import { makeData, progress } from "../../tests/engine-helpers.ts";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
-import { layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
-import { renderGraph, renderPlan, renderSummary, renderVerify } from "./render.ts";
+import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
+import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, renderAnswer, renderBuildList, renderDetails, renderFlow, type ViewCtx } from "./plan-view.ts";
+import { renderVerify } from "./render.ts";
 import { currentRp, exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setCorrection } from "./state.ts";
+import { builtFor, CRITERIA, DEFAULT_SETTINGS, GOALS, isOverridesFile, loadSettings, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setBuilt, setCorrection } from "./state.ts";
 
 describe("mise en forme", () => {
   it("nombres et puissances au format français", () => {
@@ -110,14 +111,14 @@ describe("progression et « Ma partie »", () => {
 
   it("export puis import de la progression : aller-retour identique", () => {
     const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
-    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true };
+    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true };
     const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
     expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" });
   });
 
   it("les RP évoluent avec les RP/s ; changer la vitesse garde les RP accumulés", () => {
     const t0 = Date.parse("2026-10-12T09:00:00Z");
-    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false };
+    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false };
     expect(currentRp(p, t0 + 60_000)).toBe(620); // + 2 RP/s × 60 s
     expect(currentRp({ ...p, rpPerSec: null }, t0 + 60_000)).toBe(500);
     expect(currentRp({ ...p, rp: null }, t0)).toBeNull();
@@ -154,72 +155,139 @@ const all = { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 };
 type Box = { x: number; y: number; w: number; h: number };
 const hit = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
-describe("disposition du graphe", () => {
+describe("schéma des flux (de gauche à droite)", () => {
+  const items = ["crankshaft", "electric-motor", "lithium-battery-pack", "tire", "8x-microchip", "steel-plate"];
   for (const criterion of ["machines", "energy", "raw", "steps", "pollution", "cost"] as const) {
-    it(`aucun chevauchement de nœuds, toutes les flèches vont vers le haut (critère ${criterion})`, () => {
-      const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion });
-      const g = layoutGraph(plan);
-      expect(g.nodes).toHaveLength(plan.steps.length + plan.unresolved.filter((u) => !u.loopShortfall).length);
-      const boxes = g.nodes.map((n) => ({ x: n.x, y: n.y, w: NODE_W, h: NODE_H }));
-      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) expect(hit(boxes[i]!, boxes[j]!)).toBe(false);
-      for (const e of g.edges) {
-        // Arc de retour d'une boucle rentable (sous-produit qui remonte) : tracé à part, sur le côté.
-        if (e.loop) expect(plan.edges.some((x) => x.loop && x.from === e.from && x.to === e.to), `${e.from}→${e.to}`).toBe(true);
-        else expect(e.points[0]![1]).toBeGreaterThan(e.points.at(-1)![1]); // producteur sous le consommateur
-        // Aucun tronçon ne traverse un nœud (hors ses deux extrémités).
-        for (const n of g.nodes) {
-          if (n.item === e.from || n.item === e.to) continue;
-          for (let k = 1; k < e.points.length; k++) {
-            const [ax, ay] = e.points[k - 1]!;
-            const [bx, by] = e.points[k]!;
-            for (let s = 0; s <= 20; s++) {
-              const x = ax + ((bx - ax) * s) / 20;
-              const y = ay + ((by - ay) * s) / 20;
-              expect(x > n.x + 1 && x < n.x + NODE_W - 1 && y > n.y + 1 && y < n.y + NODE_H - 1, `${e.from}→${e.to} traverse ${n.item}`).toBe(false);
-            }
-          }
+    it(`aucun chevauchement, flèches vers la droite, boucles repérées (priorité ${criterion})`, () => {
+      for (const item of items) {
+        const plan = solve(data, all, { item, ratePerMin: 60, criterion, tiers: false });
+        const g = layoutFlow(plan);
+        const known = new Set(plan.steps.map((st) => st.key));
+        const extra = plan.unresolved.filter((u) => !known.has(u.item)).length + plan.existing.length;
+        expect(g.nodes, item).toHaveLength(plan.steps.length + extra);
+        const nodes = g.nodes.map((n) => ({ x: n.x, y: n.y, w: FW, h: FH }));
+        const labels = g.edges.map((e) => ({ x: e.lx - e.lw / 2, y: e.ly - LABEL_H / 2, w: e.lw, h: LABEL_H }));
+        for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) expect(hit(nodes[i]!, nodes[j]!), `${item} : nœuds ${i}/${j}`).toBe(false);
+        // Les quantités ne se chevauchent jamais (« les nombres fusionnent ») ni ne cachent un bloc.
+        for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) expect(hit(labels[i]!, labels[j]!), `${item} : étiquettes ${i}/${j}`).toBe(false);
+        for (const l of labels) for (const n of nodes) expect(hit(l, n), `${item} : étiquette sur un bloc`).toBe(false);
+        const col = new Map(g.nodes.map((n) => [n.id, n.col]));
+        for (const e of g.edges) {
+          if (e.loop) expect(plan.edges.some((x) => x.loop && x.from === e.from && x.to === e.to), `${item} ${e.from}→${e.to}`).toBe(true);
+          else expect(col.get(e.from)!, `${item} ${e.from}→${e.to}`).toBeLessThan(col.get(e.to)!);
         }
+        expect(g.edges).toHaveLength(plan.edges.length);
+        expect(g.nodes.find((n) => n.id === item)?.kind, item).toBe("final");
       }
-      expect(g.edges).toHaveLength(plan.edges.length);
-      expect(g.nodes.find((n) => n.item === "crankshaft")?.kind).toBe("final");
     });
   }
 
-  it("un item non produit apparaît comme nœud « non produit »", () => {
+  it("un item non produit apparaît comme bloc « non produit », à gauche de son consommateur", () => {
     const d = makeData({ recipes: [{ id: "r", machine: "m", t: 10, in: { missing: 1 }, out: { x: 1 } }] });
     const plan = solve(d, progress(), { item: "x", ratePerMin: 6 });
-    const g = layoutGraph(plan);
-    expect(g.nodes.find((n) => n.item === "missing")).toMatchObject({ kind: "unresolved", depth: 1 });
+    const g = layoutFlow(plan);
+    const miss = g.nodes.find((n) => n.id === "missing")!;
+    expect(miss.kind).toBe("unresolved");
+    expect(miss.col).toBeLessThan(g.nodes.find((n) => n.id === "x")!.col);
   });
 });
 
-describe("rendu HTML", () => {
-  const plan = solve(data, all, { item: "crankshaft", finalMachines: 15, criterion: "energy" });
-  const ctx = { data, plan, settings: DEFAULT_SETTINGS, corrections: {} };
+describe("vue d'un plan : réponse, liste de construction, schéma, détails", () => {
+  const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy" });
+  const v: ViewCtx = { data, plan, settings: DEFAULT_SETTINGS, corrections: {}, goal: "objet" };
 
-  it("résumé, graphe et plan contiennent les chiffres clés", () => {
-    expect(renderSummary(ctx)).toContain("Crankshaft / min");
-    const svg = renderGraph(ctx);
-    expect(svg.startsWith("<svg")).toBe(true);
-    expect((svg.match(/<g>/g) ?? []).length).toBe(plan.steps.length);
-    const html = renderPlan(ctx);
-    expect(html).toContain("Produit final");
-    expect(html).toContain('data-force="crankshaft"');
+  it("la réponse tient en une phrase et quatre chiffres", () => {
+    const html = renderAnswer(v);
+    expect(html).toMatch(/<h2>Pour 60 Crankshaft\/min : \d+ machines/);
+    expect((html.match(/class="kpi"/g) ?? []).length).toBe(4);
+    expect(html).toContain("À extraire");
   });
 
-  it("le panneau « à vérifier » propose une saisie pour les champs corrigeables", () => {
-    const html = renderVerify(ctx);
-    expect(html).toContain('data-id="craft_assembler_05"');
-    expect(html).toContain('data-field="durationS"');
-    expect(html).toContain("17,2");
+  it("liste de construction : chaque étape une fois, de l'extraction à l'objet final", () => {
+    const rows = buildRows(v);
+    const steps = rows.filter((r) => !r.key.includes(":"));
+    expect(steps.map((r) => r.key).sort()).toEqual(plan.steps.map((s) => s.key).sort());
+    const order = ["Extraction", "Transformation", "Produit final"];
+    const stages = rows.map((r) => order.indexOf(r.stage)).filter((i) => i >= 0);
+    expect(stages).toEqual([...stages].sort((a, b) => a - b));
+    expect(rows.at(-1)).toMatchObject({ key: "crankshaft", stage: "Produit final" });
+    const machines = rows.reduce((s, r) => s + (r.countText.startsWith("≈") ? 0 : r.count), 0);
+    expect(machines).toBe(plan.totals.machines);
+  });
+
+  it("les cases cochées suivent le plan : même plan, même signature ; autres nombres, autre signature", () => {
+    const rows = buildRows(v);
+    const sig = buildSignature("objet", rows);
+    expect(buildSignature("objet", buildRows({ ...v, plan: solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy" }) }))).toBe(sig);
+    expect(buildSignature("objet", buildRows({ ...v, plan: solve(data, all, { item: "crankshaft", ratePerMin: 120, criterion: "energy" }) }))).not.toBe(sig);
+    const html = renderBuildList(v, rows, new Set(["crankshaft"]));
+    expect(html).toMatch(/data-built="crankshaft" checked/);
+    expect(html).toContain(`1 ligne construite sur ${rows.filter((r) => r.buildable).length}`);
+  });
+
+  it("garde les cases cochées des plans récents seulement", () => {
+    let store = { plans: [] as { sig: string; keys: string[] }[] };
+    for (let i = 0; i < 40; i++) store = setBuilt(store, `p${i}`, ["a"]);
+    expect(store.plans).toHaveLength(30);
+    expect(store.plans[0]!.sig).toBe("p39");
+    expect(builtFor(store, "p39").has("a")).toBe(true);
+    expect(builtFor(setBuilt(store, "p39", []), "p39").size).toBe(0);
+  });
+
+  it("schéma et détails", () => {
+    const f = renderFlow(v)!;
+    expect(f.svg.startsWith("<svg")).toBe(true);
+    expect((f.svg.match(/class="fn /g) ?? []).length).toBe(plan.steps.length);
+    expect(f.svg).toContain('class="fn final"');
+    const details = renderDetails(v);
+    expect(details).toContain('data-force="crankshaft"');
+    expect(details).toContain("Remarques sur le calcul");
   });
 
   it("échappe les noms venant des données", () => {
     const d = makeData({ recipes: [{ id: "r<x>", machine: "m", t: 10, out: { "<b>evil</b>": 1 } }] });
     const p = solve(d, progress(), { item: "<b>evil</b>", ratePerMin: 6 });
-    const html = renderPlan({ data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {} }) + renderGraph({ data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {} });
+    const w: ViewCtx = { data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {}, goal: "objet" };
+    const html = renderAnswer(w) + renderBuildList(w, buildRows(w), new Set()) + renderFlow(w)!.svg + renderDetails(w);
     expect(html).not.toContain("<b>evil</b>");
     expect(html).toContain("&lt;b&gt;evil&lt;/b&gt;");
+  });
+});
+
+describe("priorité (critère) expliquée, par objectif", () => {
+  it("chaque objectif propose ses priorités, avec un libellé et une explication", () => {
+    for (const g of GOALS) {
+      expect(CRITERIA[g]).toContain(DEFAULT_SETTINGS.criteria[g]);
+      for (const c of CRITERIA[g]) expect(criterionHint(g, c)).toContain(CRITERION_TEXT[c].label);
+    }
+    expect(CRITERIA["énergie"]).not.toContain("energy");
+    expect(CRITERIA["énergie"]).not.toContain("steps");
+  });
+
+  it("reprend l'ancien critère unique comme priorité de l'objectif objet", () => {
+    const store = new Map<string, string>([["ind-calc:v1:settings", JSON.stringify({ criterion: "cost", goal: "inconnu", criteria: { énergie: "energy" } })]]);
+    const g = globalThis as { localStorage?: unknown };
+    const before = g.localStorage;
+    g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: () => {} };
+    try {
+      const st = loadSettings();
+      expect(st.criteria.objet).toBe("cost");
+      expect(st.criteria["énergie"]).toBe(DEFAULT_SETTINGS.criteria["énergie"]); // « energy » n'a pas de sens pour l'objectif énergie
+      expect(st.goal).toBe("objet");
+      expect(st.useExisting).toBe(true);
+    } finally {
+      g.localStorage = before;
+    }
+  });
+});
+
+describe("panneau « à vérifier »", () => {
+  const plan = solve(data, all, { item: "crankshaft", finalMachines: 15, criterion: "energy" });
+  it("propose une saisie pour les champs corrigeables", () => {
+    const html = renderVerify({ data, plan, settings: DEFAULT_SETTINGS, corrections: {} });
+    expect(html).toContain('data-id="craft_assembler_05"');
+    expect(html).toContain('data-field="durationS"');
+    expect(html).toContain("17,2");
   });
 });
 
