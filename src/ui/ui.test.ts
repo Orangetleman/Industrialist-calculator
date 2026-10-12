@@ -138,7 +138,7 @@ type Box = { x: number; y: number; w: number; h: number };
 const hit = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 describe("disposition du graphe", () => {
-  for (const criterion of ["machines", "energy", "raw", "steps"] as const) {
+  for (const criterion of ["machines", "energy", "raw", "steps", "pollution", "cost"] as const) {
     it(`aucun chevauchement de nœuds, toutes les flèches vont vers le haut (critère ${criterion})`, () => {
       const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion });
       const g = layoutGraph(plan);
@@ -146,7 +146,9 @@ describe("disposition du graphe", () => {
       const boxes = g.nodes.map((n) => ({ x: n.x, y: n.y, w: NODE_W, h: NODE_H }));
       for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) expect(hit(boxes[i]!, boxes[j]!)).toBe(false);
       for (const e of g.edges) {
-        expect(e.points[0]![1]).toBeGreaterThan(e.points.at(-1)![1]); // producteur sous le consommateur
+        // Arc de retour d'une boucle rentable (sous-produit qui remonte) : tracé à part, sur le côté.
+        if (e.loop) expect(plan.edges.some((x) => x.loop && x.from === e.from && x.to === e.to), `${e.from}→${e.to}`).toBe(true);
+        else expect(e.points[0]![1]).toBeGreaterThan(e.points.at(-1)![1]); // producteur sous le consommateur
         // Aucun tronçon ne traverse un nœud (hors ses deux extrémités).
         for (const n of g.nodes) {
           if (n.item === e.from || n.item === e.to) continue;

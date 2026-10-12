@@ -209,6 +209,16 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .list-line { margin: 10px 0 0; font-size: .88rem; line-height: 2; }
 .chip { display: inline-block; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; margin-right: 4px; white-space: nowrap; line-height: 1.7; }
 .chip.accent { border-color: var(--accent); background: var(--accent-soft); }
+/* Paliers ronds : pastilles cliquables (le débit courant n'est pas un bouton). */
+.tiers .chip { margin-bottom: 4px; font: inherit; font-size: .84rem; font-family: var(--f-mono); }
+button.chip.tier { cursor: pointer; color: var(--ink); }
+button.chip.tier:hover { border-color: var(--accent); }
+.chip.tier.exact { border-color: var(--ok); }
+.chip.tier.current { border-color: var(--steel); background: var(--steel-soft); font-weight: 600; }
+.tiers .hint { margin: 0; }
+.set-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.set-head h2 { margin: 0; }
+.fields > .hint.wide { grid-column: 1 / -1; margin: 0; }
 .pill { font-family: var(--f-mono); font-size: .75rem; background: var(--steel-soft); color: var(--steel); border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
 
 /* graphe */

@@ -49,8 +49,20 @@
   <!-- ====================================================== PRODUCTION -->
   <div class="tabpanel" id="panel-production" role="tabpanel" aria-labelledby="tab-production">
     <section class="panel" aria-labelledby="h-set">
-      <h2 id="h-set">Réglage</h2>
-      <div class="fields">
+      <div class="set-head">
+        <h2 id="h-set">Réglage</h2>
+        <div class="seg" role="radiogroup" aria-label="Objectif">
+          <button type="button" role="radio" data-goal="objet" aria-checked="true">Produire un objet</button>
+          <button type="button" role="radio" data-goal="argent" aria-checked="false">Gagner de l'argent</button>
+        </div>
+      </div>
+      <div class="fields" id="money-fields" hidden>
+        <label for="money" class="active">Revenu voulu ($/min)
+          <input id="money" type="number" min="1" step="any" inputmode="decimal">
+        </label>
+        <p class="hint wide">Le calcul choisit les objets à vendre et les dépôts (Truck, Van, Huge Truck Depot) selon le critère. Objets solides seulement : la capacité des dépôts de liquides n'est pas connue.</p>
+      </div>
+      <div class="fields" id="item-fields">
         <label for="item" class="wide">Item à produire
           <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft">
           <datalist id="item-list"></datalist>
@@ -62,17 +74,26 @@
         <label for="machines">ou machines finales
           <input id="machines" type="number" min="1" step="1" inputmode="numeric">
         </label>
-        <label for="criterion">Quand plusieurs recettes existent
+      </div>
+      <p id="mode-hint" class="hint"></p>
+      <div class="fields">
+        <label for="criterion">Optimiser
           <select id="criterion">
             <option value="machines">Moins de machines</option>
             <option value="energy">Moins d'énergie</option>
             <option value="raw">Moins de matières premières</option>
             <option value="steps">Moins d'étapes</option>
+            <option value="pollution">Moins de pollution</option>
+            <option value="cost">Moins cher à construire</option>
           </select>
         </label>
+        <label for="max-pollution">Pollution max (%/h)
+          <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="sans limite">
+        </label>
       </div>
-      <p id="mode-hint" class="hint"></p>
       <div class="checks">
+        <label><input type="checkbox" id="self-powered"> Produire ma propre énergie (les générateurs débloqués et leur combustible entrent dans la chaîne)</label>
+        <label><input type="checkbox" id="use-budget"> Ne pas dépasser mon argent <span class="hint" id="budget-hint"></span></label>
         <label><input type="checkbox" id="unverified"> Utiliser aussi les recettes « à vérifier » (valeurs variables ou manquantes)</label>
       </div>
       <p class="hint" id="context-hint"></p>

@@ -75,7 +75,7 @@ describe("sous-produits et boucles", () => {
     expect(step(plan, "p").byproducts).toEqual([{ item: "slag", perMin: 6 }]);
   });
 
-  it("signale un surplus qui est aussi demandé ailleurs", () => {
+  it("moteur v2 : un sous-produit demandé ailleurs est réutilisé au lieu d'être produit à part", () => {
     const d = makeData({
       recipes: [
         { id: "rt", machine: "m", t: 60, in: { p: 1, slag: 1 }, out: { t: 1 } },
@@ -84,8 +84,24 @@ describe("sous-produits et boucles", () => {
       ],
     });
     const plan = solve(d, all, { item: "t", ratePerMin: 1 });
-    expect(plan.surplus[0]).toMatchObject({ item: "slag", alsoDemanded: true });
-    expect(plan.warnings.some((w) => w.code === "surplus-réutilisable")).toBe(true);
+    expect(plan.steps.map((s) => s.recipeId).sort()).toEqual(["rp", "rt"]); // pas de rslag
+    expect(plan.surplus).toEqual([]);
+    expect(plan.edges).toContainEqual({ from: "p", to: "t", item: "slag", perMin: 1 });
+    expect(plan.warnings.some((w) => w.code === "sous-produit-réutilisé" && w.items?.includes("slag"))).toBe(true);
+  });
+
+  it("réutilisation rentable seulement : un sous-produit trop rare ne remplace pas la vraie source", () => {
+    // rp donne 1 slag pour 1 p ; t en demande 10 : le reste vient de rslag.
+    const d = makeData({
+      recipes: [
+        { id: "rt", machine: "m", t: 60, in: { p: 1, slag: 10 }, out: { t: 1 } },
+        { id: "rp", machine: "m", t: 60, out: { p: 1, slag: 1 } },
+        { id: "rslag", machine: "m", t: 6, out: { slag: 1 } },
+      ],
+    });
+    const plan = solve(d, all, { item: "t", ratePerMin: 1 });
+    expect(step(plan, "slag").machinesExact).toBeCloseTo(0.9); // 9 slag/min sur 10
+    expect(plan.surplus).toEqual([]);
   });
 
   it("détecte une boucle sans planter", () => {
@@ -148,8 +164,11 @@ describe("sous-produits et boucles", () => {
       ],
     });
     const plan = solve(d, all, { item: "a", ratePerMin: 6, forced: { b: "rb-loop" } });
-    expect(step(plan, "b")).toMatchObject({ recipeId: "rb-loop", forced: true });
-    expect(plan.warnings.some((w) => w.code === "boucle")).toBe(true);
+    // La recette forcée est la seule source de b : rb-raw n'est jamais utilisée. Sans source
+    // extérieure, b manque ; la boucle a → b → a est signalée.
+    expect(plan.steps.some((s) => s.recipeId === "rb-raw")).toBe(false);
+    expect(plan.unresolved).toMatchObject([{ item: "b", reason: "boucle" }]);
+    expect(plan.warnings.some((w) => w.code === "boucle" && w.items?.includes("a") && w.items.includes("b"))).toBe(true);
     expect(plan.status).toBe("partiel");
   });
 });

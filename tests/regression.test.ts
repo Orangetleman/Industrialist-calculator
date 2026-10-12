@@ -1,12 +1,15 @@
 // Non-régression : la référence (fixture) et les vraies données du wiki.
 import { describe, expect, it } from "vitest";
 import itemsJson from "../data/items.json";
+import logisticsJson from "../data/logistics.json";
 import machinesJson from "../data/machines.json";
 import overridesJson from "../data/overrides.json";
 import recipesJson from "../data/recipes.json";
 import researchJson from "../data/research.json";
 import { buildGameData, type RawFiles } from "../src/engine/data.ts";
 import { solve, type Plan } from "../src/engine/solve.ts";
+import { solveV1 } from "../src/engine/solve-v1.ts";
+import type { LogisticsFile } from "../src/engine/extension-types.ts";
 import type { OverridesFile } from "../src/engine/types.ts";
 import fixtureJson from "./fixtures/reference-crankshaft.json";
 import { makeData, progress } from "./engine-helpers.ts";
@@ -59,6 +62,12 @@ describe("non-régression : référence Ligne Vilebrequin (fixture)", () => {
     expect(plan.totals.farms).toBe(scenario.expected.machines.oak);
     expect(Math.round(plan.totals.energyAvg)).toBe(scenario.expected.energyAvgMFps);
     expect(plan.totals.energyPeak).toBe(scenario.expected.energyPeakMFps);
+  });
+
+  it("paliers ronds : 15 assembleurs est un palier, 52,33/min le débit courant", () => {
+    const cur = plan.tiers.find((t) => t.current)!;
+    expect(cur.finalMachines).toBeCloseTo(15, 9);
+    expect(plan.tiers.length).toBeGreaterThan(1);
   });
 
   it("plan ordonné de l'item final vers la matière première", () => {
@@ -120,13 +129,58 @@ describe("vraies données (Miraheze)", () => {
   });
 
   it("Crankshaft, toute la recherche débloquée : chaîne complète avec chaque critère", () => {
-    for (const criterion of ["machines", "energy", "raw", "steps"] as const) {
+    for (const criterion of ["machines", "energy", "raw", "steps", "pollution", "cost"] as const) {
       const plan = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion });
       expect(plan.status, criterion).toBe("ok");
+      expect(plan.engine, criterion).toBe("simplexe");
       expect(plan.unresolved, criterion).toEqual([]);
-      // Recettes retenues sans boucle : chaque item n'apparaît qu'une fois.
-      expect(new Set(plan.steps.map((s) => s.item)).size, criterion).toBe(plan.steps.length);
+      // Une étape par recette (un item peut venir de plusieurs recettes : clés distinctes).
+      expect(new Set(plan.steps.map((s) => s.key)).size, criterion).toBe(plan.steps.length);
+      expect(new Set(plan.steps.map((s) => s.recipeId)).size, criterion).toBe(plan.steps.length);
+      // Bilan : chaque item consommé est produit en quantité suffisante.
+      const net = new Map<string, number>([["crankshaft", -60]]);
+      for (const s of plan.steps) {
+        net.set(s.item, (net.get(s.item) ?? 0) + s.demandPerMin);
+        for (const b of s.byproducts) net.set(b.item, (net.get(b.item) ?? 0) + b.perMin);
+        for (const i of s.inputs) net.set(i.item, (net.get(i.item) ?? 0) - i.perMin);
+      }
+      for (const [item, v] of net) expect(v, `${criterion} : bilan de ${item}`).toBeGreaterThan(-1e-6);
     }
+  });
+
+  it("moteur v2 : jamais moins bon que l'heuristique v1 sur le nombre réel de machines", () => {
+    const v1 = solveV1(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion: "machines" });
+    const v2 = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion: "machines" });
+    expect(v2.totals.machines + v2.totals.farms).toBeLessThanOrEqual(v1.totals.machines + v1.totals.farms);
+  });
+
+  it("vraies données : autonomie énergétique, objectif argent, pollution maximale", () => {
+    const own = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, criterion: "machines", selfPowered: true });
+    expect(own.status).toBe("ok");
+    expect(own.totals.energyProduced).toBeGreaterThanOrEqual(own.totals.energyAvg * (1 - 1e-9));
+
+    const logistics = logisticsJson as unknown as LogisticsFile;
+    const depots = logistics.depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
+    const money = solve(real, allNodes, { item: "", moneyPerMin: 100_000, depots });
+    expect(money.status).toBe("ok");
+    expect(money.totals.revenuePerMin).toBeGreaterThanOrEqual(100_000 * (1 - 1e-9));
+    expect(money.depots.length).toBeGreaterThan(0);
+    // Sans recherche : aucun dépôt ; le plan dit quoi débloquer. Avec le Truck Depot : il vend.
+    const none = solve(real, progress(), { item: "", moneyPerMin: 10, depots });
+    expect(none.status).toBe("impossible");
+    expect(none.economy.nodesToUnlock).toEqual(["transportation", "truck-depot"]);
+    const early = progress([...real.nodes.keys()].filter((n) => n !== "van-depot" && n !== "huge-truck-depot"));
+    const start = solve(real, early, { item: "", moneyPerMin: 10, depots });
+    expect(start.depots.map((d) => d.id)).toEqual(["truck-depot"]);
+
+    const free = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60 });
+    const max = free.totals.pollutionPerHour[1] / 2;
+    const clean = solve(real, allNodes, { item: "crankshaft", ratePerMin: 60, maxPollution: max });
+    const exactPollution = clean.steps.reduce((s, x) => {
+      const p = real.machines.get(x.machine)?.pollutionPerHour;
+      return s + x.machinesExact * (p == null ? 0 : typeof p === "number" ? p : p[1]);
+    }, 0);
+    expect(exactPollution).toBeLessThanOrEqual(max + 1e-6);
   });
 
   it("« moins d'étapes » raccourcit la chaîne obtenue avec « moins de machines »", () => {

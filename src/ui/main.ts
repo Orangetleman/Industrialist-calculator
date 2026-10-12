@@ -32,7 +32,8 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
 import portsJson from "../../data/ports.json";
-import type { PortsFile } from "../engine/extension-types.ts";
+import logisticsJson from "../../data/logistics.json";
+import type { LogisticsFile, PortsFile } from "../engine/extension-types.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
@@ -53,6 +54,8 @@ import {
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson } as unknown as RawFiles;
 const repoOverrides = overridesJson as unknown as OverridesFile;
+/** Dépôts de vente (objectif argent) : débit de vente relevé ou lu sur le wiki. */
+const DEPOTS = (logisticsJson as unknown as LogisticsFile).depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -121,25 +124,39 @@ function syncForm(): void {
   ($("item") as HTMLInputElement).value = data.items.get(settings.item)?.name ?? settings.item;
   ($("criterion") as HTMLSelectElement).value = settings.criterion;
   ($("unverified") as HTMLInputElement).checked = settings.useUnverified;
-  ($("rate") as HTMLInputElement).value = String(settings.rate);
+  // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste).
+  ($("rate") as HTMLInputElement).value = String(Number(settings.rate.toFixed(4)));
   ($("machines") as HTMLInputElement).value = String(settings.machines);
+  ($("money") as HTMLInputElement).value = String(settings.money);
+  ($("max-pollution") as HTMLInputElement).value = settings.maxPollution === null ? "" : String(settings.maxPollution);
+  ($("self-powered") as HTMLInputElement).checked = settings.selfPowered;
+  ($("use-budget") as HTMLInputElement).checked = settings.useBudget;
 }
 
 function render(): void {
+  const money = settings.goal === "argent";
   plan = solve(data, playerState(), {
     item: settings.item,
-    ...(settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }),
+    ...(money ? { moneyPerMin: settings.money } : settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }),
     criterion: settings.criterion,
     forced: settings.forced,
     useUnverified: settings.useUnverified,
+    selfPowered: settings.selfPowered,
+    maxPollution: settings.maxPollution,
+    budget: settings.useBudget && player.money !== null ? player.money : null,
+    depots: DEPOTS,
   });
   const ctx: Ctx = { data, plan, settings, corrections };
 
   // Champ « complémentaire » : débit calculé en mode machines, et inversement.
-  const final = plan.steps.find((s) => s.item === settings.item);
+  const finals = plan.steps.filter((s) => plan!.finals.includes(s.key));
   if (settings.mode === "machines" && document.activeElement !== $("rate")) ($("rate") as HTMLInputElement).value = fmt(plan.target.ratePerMin, 2).replace(/\s/g, "").replace(",", ".");
-  if (settings.mode === "rate" && final && document.activeElement !== $("machines")) ($("machines") as HTMLInputElement).value = String(final.machines);
-  $("mode-hint").textContent = settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
+  if (settings.mode === "rate" && finals.length && document.activeElement !== $("machines")) ($("machines") as HTMLInputElement).value = String(finals.reduce((n, s) => n + s.machines, 0));
+  $("item-fields").hidden = money;
+  $("money-fields").hidden = !money;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-goal]")) b.setAttribute("aria-checked", String(b.dataset.goal === settings.goal));
+  $("mode-hint").textContent = money ? "" : settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
+  $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans « Ma partie »)" : `(${fmtMoney(player.money)})`;
   $("rate").closest("label")!.classList.toggle("active", settings.mode === "rate");
   $("machines").closest("label")!.classList.toggle("active", settings.mode === "machines");
 
@@ -631,6 +648,54 @@ function bind(): void {
   });
   $("unverified").addEventListener("change", (e) => {
     settings.useUnverified = (e.target as HTMLInputElement).checked;
+    render();
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-goal]")) {
+    b.addEventListener("click", () => {
+      settings.goal = b.dataset.goal as Settings["goal"];
+      render();
+    });
+  }
+  $("money").addEventListener("input", (e) => {
+    const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
+    if (v > 0) {
+      settings.money = v;
+      renderSoon();
+    }
+  });
+  $("max-pollution").addEventListener("input", (e) => {
+    const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
+    const v = parseFloat(raw);
+    if (!raw) settings.maxPollution = null;
+    else if (v >= 0) settings.maxPollution = v;
+    else return;
+    renderSoon();
+  });
+  $("self-powered").addEventListener("change", (e) => {
+    settings.selfPowered = (e.target as HTMLInputElement).checked;
+    render();
+  });
+  $("use-budget").addEventListener("change", (e) => {
+    settings.useBudget = (e.target as HTMLInputElement).checked;
+    render();
+  });
+  // Paliers ronds : un clic adopte ce débit.
+  $("stats").addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-tier]");
+    if (!b) return;
+    const v = Number(b.dataset.tier);
+    if (!(v > 0)) return;
+    const final = Number(b.dataset.final);
+    if (settings.goal === "argent") settings.money = Math.round(v * 100) / 100;
+    else if (final > 0) {
+      // Palier sur un nombre entier de machines finales : calcul exact par ce nombre.
+      settings.mode = "machines";
+      settings.machines = final;
+    } else {
+      settings.mode = "rate";
+      settings.rate = v;
+    }
+    syncForm();
     render();
   });
   $("forced-reset").addEventListener("click", () => {

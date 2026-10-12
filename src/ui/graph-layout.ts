@@ -15,18 +15,20 @@ const GAP_VIRTUAL = 8;
 const GAP_Y = 78;
 const MARGIN = 14;
 
+/** `item` est l'identifiant du nœud : clé de l'étape (souvent l'item), ou item non produit. */
 export type GNode = { item: string; x: number; y: number; depth: number; kind: "final" | "step" | "raw" | "unresolved" };
-export type GEdge = { from: string; to: string; perMin: number; points: [number, number][]; lx: number; ly: number };
+/** `loop` : arc de retour d'une boucle (sous-produit qui remonte la chaîne), tracé à part. */
+export type GEdge = { from: string; to: string; perMin: number; points: [number, number][]; lx: number; ly: number; loop?: boolean };
 export type GraphLayout = { nodes: GNode[]; edges: GEdge[]; width: number; height: number };
 
 type Ent = { id: string; virtual: boolean; w: number; x: number; up: string[] };
 
-export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | "target">): GraphLayout {
+export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | "target" | "finals">): GraphLayout {
   const depth = new Map<string, number>();
   const kind = new Map<string, GNode["kind"]>();
   for (const s of plan.steps) {
-    depth.set(s.item, s.depth);
-    kind.set(s.item, s.item === plan.target.item ? "final" : s.isRaw ? "raw" : "step");
+    depth.set(s.key, s.depth);
+    kind.set(s.key, plan.finals.includes(s.key) ? "final" : s.isRaw ? "raw" : "step");
   }
   for (const u of plan.unresolved) {
     if (depth.has(u.item)) continue; // produit ailleurs (manque dû à une boucle) : pas de second nœud
@@ -56,6 +58,10 @@ export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | 
     const dp = depth.get(e.from);
     if (dc === undefined || dp === undefined) {
       chains.push([]);
+      return;
+    }
+    if (e.loop || dp <= dc) {
+      chains.push([e.to, e.from]); // arc de retour : ni points de passage, ni influence sur l'ordre
       return;
     }
     const chain = [e.to];
@@ -94,11 +100,13 @@ export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | 
   }
 
   const rowWidths = rows.map((r) => placeRow(r));
-  const width = MARGIN * 2 + Math.max(NODE_W, ...rowWidths);
+  // Place à droite pour les arcs de retour des boucles.
+  const loopRoom = plan.edges.some((e) => e.loop) ? 80 : 0;
+  const width = MARGIN * 2 + Math.max(NODE_W, ...rowWidths) + loopRoom;
   const nodes: GNode[] = [];
   const top = (d: number) => MARGIN + d * (NODE_H + GAP_Y);
   rows.forEach((row, d) => {
-    const x0 = (width - rowWidths[d]!) / 2;
+    const x0 = (width - loopRoom - rowWidths[d]!) / 2;
     for (const e of row) {
       e.x += x0; // centre définitif
       if (!e.virtual) nodes.push({ item: e.id, x: e.x - NODE_W / 2, y: top(d), depth: d, kind: kind.get(e.id)! });
@@ -136,6 +144,26 @@ export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | 
     const cons = ent.get(e.to)!;
     const dp = depth.get(e.from)!;
     const dc = depth.get(e.to)!;
+    if (e.loop || dp <= dc) {
+      // Couloir réservé sur le bord droit : du producteur au couloir, puis vers le consommateur,
+      // en angles droits, sans traverser de nœud.
+      const lane = width - MARGIN - loopRoom / 2;
+      // Les tronçons horizontaux passent entre les rangées, là où il n'y a pas de nœud.
+      const px = prod.x + NODE_W / 2 - 14;
+      const cx = cons.x + NODE_W / 2 - 14;
+      const below = top(dp) + NODE_H + GAP_Y * 0.3;
+      const above = top(dc) - GAP_Y * 0.3;
+      const points: [number, number][] = [
+        [px, top(dp) + NODE_H],
+        [px, below],
+        [lane, below],
+        [lane, above],
+        [cx, above],
+        [cx, top(dc) - 3],
+      ];
+      edges.push({ from: e.from, to: e.to, perMin: e.perMin, points, lx: lane, ly: (below + above) / 2, loop: true });
+      return;
+    }
     const points: [number, number][] = [[prod.x + (outAnchor.get(i) ?? 0), top(dp)]];
     // Points de passage, du producteur (bas) vers le consommateur (haut).
     for (let k = chain.length - 2; k >= 1; k--) {

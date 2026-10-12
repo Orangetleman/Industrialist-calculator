@@ -1,9 +1,17 @@
-// Résolution d'une chaîne de production : de l'item cible vers les matières premières.
+// Résolution d'une chaîne de production (moteur v2) : le simplexe choisit les recettes et leurs
+// quantités ; le nombre de machines reste un arrondi explicable, étape par étape.
+// Ressources unifiées (objets, énergie, pollution, argent), sous-produits réutilisés, boucles
+// gérées par le bilan. Le moteur v1 (heuristique) explique les alternatives de chaque item,
+// sert au critère « moins d'étapes » (non linéaire) et de repli si le simplexe échoue.
 // Pur : aucune dépendance au DOM. Le résultat (Plan) est sérialisable.
 
-import { Chooser, machineArea, ratePerMachine, type Candidate, type Choice, type Criterion, type EffRecipe, type LeafReason } from "./choose.ts";
+import { Chooser, ratePerMachine, type Candidate, type Criterion, type LeafReason } from "./choose.ts";
 import { itemName, type GameData } from "./data.ts";
+import { optimize } from "./optimize.ts";
 import type { TreeGrowthResult } from "./pollution.ts";
+import { buildFlowModel, ENERGY, type DepotSpec, type FlowModel, type RecipeProc } from "./resources.ts";
+import { solveV1, type PlanV1 } from "./solve-v1.ts";
+import { roundTiers, type Tier } from "./tiers.ts";
 import type { VerifyFlag } from "./types.ts";
 import { machineAccess, orderByDepth, rpCost, type MachineAccess, type Progress, type ReqItem } from "./unlock.ts";
 
@@ -20,15 +28,30 @@ export type SolveRequest = {
   ratePerMin?: number;
   /** Ou : nombre de machines pour l'étape finale. */
   finalMachines?: number;
+  /** Objectif argent : $ par minute (l'item est alors ignoré). */
+  moneyPerMin?: number;
   criterion?: Criterion;
   forced?: Record<string, string>;
   useUnverified?: boolean;
+  /** La chaîne produit sa propre énergie avec les générateurs débloqués. */
+  selfPowered?: boolean;
+  /** Pollution maximale de la chaîne (%/h). */
+  maxPollution?: number | null;
+  /** Budget de construction ($). */
+  budget?: number | null;
+  /** Dépôts de vente (logistics.json), pour l'objectif argent. */
+  depots?: DepotSpec[];
+  /** Calculer les paliers ronds (défaut : oui). */
+  tiers?: boolean;
 };
 
 export type Flow = { item: string; perMin: number };
-export type Edge = { from: string; to: string; perMin: number };
+/** Flux entre deux étapes (clés d'étape), pour un item donné ; `loop` : arc de retour d'une boucle. */
+export type Edge = { from: string; to: string; item: string; perMin: number; loop?: boolean };
 
 export type Step = {
+  /** Identifiant de l'étape : l'item, ou « item@recette » quand plusieurs recettes le produisent. */
+  key: string;
   item: string;
   recipeId: string;
   machine: string;
@@ -69,7 +92,7 @@ export type Unresolved = {
   item: string;
   perMin: number;
   reason: LeafReason;
-  /** L'item est produit ailleurs dans la chaîne : seule la demande de la boucle coupée manque. */
+  /** L'item est produit ailleurs dans la chaîne : seule une partie manque (boucle). */
   loopShortfall: boolean;
   /** Option de déblocage la moins chère, si l'item est verrouillé. */
   unlock?: Extract<MachineAccess, { available: false }> & { recipeId: string };
@@ -105,20 +128,32 @@ export type Economy = {
   machinesToOwn: string[];
 };
 
+export type Sale = { item: string; perMin: number; price: number; revenuePerMin: number };
+export type DepotUse = { id: string; name: string; machinesExact: number; machines: number; itemsPerMin: number; unitCost: number | null };
+
 export type Plan = {
   status: "ok" | "partiel" | "impossible";
-  target: { item: string; ratePerMin: number; finalMachines: number | null };
+  /** Moteur qui a produit le résultat. */
+  engine: "simplexe" | "heuristique";
+  target: { kind: "objet" | "argent"; item: string; ratePerMin: number; finalMachines: number | null };
   criterion: Criterion;
   steps: Step[];
+  /** Clés des étapes qui produisent l'objectif (item final, ou objets vendus). */
+  finals: string[];
   edges: Edge[];
   raw: Flow[];
   unresolved: Unresolved[];
   surplus: Surplus[];
+  sales: Sale[];
+  depots: DepotUse[];
   totals: {
     machines: number;
     farms: number;
+    depots: number;
     energyAvg: number;
     energyPeak: number;
+    /** Énergie produite par les générateurs de la chaîne (autonomie), en moyenne. */
+    energyProduced: number;
     energyUnknownSteps: number;
     footprint: number;
     footprintUnknownSteps: number;
@@ -126,13 +161,19 @@ export type Plan = {
     buildCostUnknownSteps: number;
     pollutionPerHour: [number, number];
     pollutionUnknownSteps: number;
+    revenuePerMin: number;
   };
+  constraints: { maxPollution: number | null; budget: number | null; selfPowered: boolean };
   verify: VerifyEntry[];
   warnings: Warning[];
   economy: Economy;
+  /** Débits « ronds » : chaque étape tombe sur un nombre entier de machines (ou presque). */
+  tiers: Tier[];
 };
 
 const ceilTol = (x: number) => Math.ceil(x - 1e-9);
+/** Nombre pour les messages : deux décimales au plus, virgule décimale. */
+const fmtNum = (x: number) => (Math.round(x * 100) / 100).toString().replace(".", ",");
 
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
   return solveInner(data, player, req, false);
@@ -140,178 +181,247 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
 
 function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nested: boolean): Plan {
   const criterion = req.criterion ?? "machines";
+  const moneyMode = req.moneyPerMin !== undefined;
   const chooser = new Chooser(data, player, {
     criterion,
     forced: req.forced ?? {},
     useUnverified: !!req.useUnverified,
     pollutionPct: player.pollutionPct ?? null,
   });
-  const name = (id: string) => itemName(data, id);
+  const name = (id: string) => (id === ENERGY ? "Énergie" : itemName(data, id));
   const warnings: Warning[] = [];
-  if (!data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: `Item inconnu : « ${req.item} ».`, items: [req.item] });
+  if (!moneyMode && !data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: `Item inconnu : « ${req.item} ».`, items: [req.item] });
 
-  // 1. Graphe des recettes retenues, depuis la cible.
-  const choices = new Map<string, Choice>();
-  const consumersOf = new Map<string, Set<string>>(); // producteur → consommateurs
-  const cutEdges = new Set<string>(); // "consommateur>entrée" coupées pour boucle
-  const order: string[] = []; // post-ordre (entrées avant consommateurs)
-  const state = new Map<string, "gris" | "noir">();
-  const visit = (item: string, path: string[]) => {
-    state.set(item, "gris");
-    const c = chooser.choose(item);
-    choices.set(item, c);
-    if (c.eff) {
-      for (const [input, v] of Object.entries(c.eff.net)) {
-        if (!(v! < 0)) continue;
-        const s = state.get(input);
-        if (s === "gris") {
-          cutEdges.add(`${item}>${input}`);
-          const cyc = [...path.slice(path.indexOf(input)), item, input];
-          warnings.push({ code: "boucle", message: `Boucle de dépendance : ${cyc.map(name).join(" → ")}. Cette entrée n'est pas développée.`, items: cyc });
-          continue;
+  // Critère « moins d'étapes » : ce n'est pas une quantité linéaire ; l'heuristique choisit une
+  // recette par item, le simplexe calcule ensuite les quantités (sous-produits compris).
+  const restrictTo =
+    criterion === "steps"
+      ? (item: string) => {
+          const c = chooser.choose(item);
+          return c.eff ? [c.eff.recipe.id] : [];
         }
-        if (!consumersOf.has(input)) consumersOf.set(input, new Set());
-        consumersOf.get(input)!.add(item);
-        if (!s) visit(input, [...path, item]);
-      }
-    }
-    state.set(item, "noir");
-    order.push(item);
-  };
-  visit(req.item, []);
-  const topo = [...order].reverse(); // consommateurs avant producteurs
+      : undefined;
+  const model = buildFlowModel(data, player, chooser, {
+    targets: moneyMode ? [] : [req.item],
+    money: moneyMode,
+    selfPowered: !!req.selfPowered,
+    restrictTo,
+    depots: req.depots,
+  });
 
-  // 2. Débit cible.
-  const targetChoice = choices.get(req.item)!;
-  const targetRate = targetChoice.eff ? ratePerMachine(targetChoice.eff, req.item) : null;
-  let ratePerMin = req.ratePerMin ?? 0;
-  if (req.finalMachines !== undefined) {
-    if (targetRate !== null) ratePerMin = req.finalMachines * targetRate;
+  // Débit cible ; « N machines finales » : débit pour lequel l'étape finale compte N machines.
+  let ratePerMin = moneyMode ? req.moneyPerMin! : (req.ratePerMin ?? 0);
+  // Choix de l'heuristique (une recette par item) : candidat de comparaison pour les critères
+  // comptés en machines entières, pour ne jamais faire moins bien que le moteur v1.
+  const preferred =
+    criterion === "machines" || criterion === "cost" || criterion === "pollution"
+      ? new Set([...model.items].flatMap((i) => (model.usable.get(i)?.length ? [chooser.choose(i).eff?.recipe.id ?? ""] : [])))
+      : undefined;
+  const run = (rate: number) =>
+    optimize(model, {
+      criterion,
+      demand: moneyMode ? new Map() : new Map([[req.item, rate]]),
+      moneyPerMin: moneyMode ? rate : null,
+      selfPowered: !!req.selfPowered,
+      maxPollution: req.maxPollution ?? null,
+      budget: req.budget ?? null,
+      preferred,
+    });
+  if (!moneyMode && req.finalMachines !== undefined) {
+    const unit = run(1);
+    const perUnit = unit.status === "ok" ? [...unit.machines].filter(([id]) => (model.recipes.find((p) => p.id === id)?.perMin[req.item] ?? 0) > 0).reduce((s, [, x]) => s + x, 0) : 0;
+    if (perUnit > 0) ratePerMin = req.finalMachines / perUnit;
     else warnings.push({ code: "machines-finales", message: `Impossible de convertir ${req.finalMachines} machines en débit : ${name(req.item)} n'a pas de recette utilisable.` });
   }
-
-  // 3. Demande agrégée par item AVANT arrondi.
-  const demand = new Map<string, number>([[req.item, ratePerMin]]);
-  const exactOf = new Map<string, number>();
-  const edges: Edge[] = [];
-  const surplusMap = new Map<string, { perMin: number; from: Set<string> }>();
-  const unresolvedDemand = new Map<string, number>();
-  for (const item of topo) {
-    const d = demand.get(item) ?? 0;
-    const c = choices.get(item)!;
-    if (!c.eff) {
-      unresolvedDemand.set(item, (unresolvedDemand.get(item) ?? 0) + d);
-      continue;
+  let depotUnlock: Extract<MachineAccess, { available: false }> | null = null;
+  if (moneyMode && !model.depots.length) {
+    // Le dépôt le moins cher à débloquer, pour dire quoi faire.
+    for (const d of req.depots ?? []) {
+      if (d.kind !== "objet" || !(d.itemsPerSec! > 0)) continue;
+      const a = machineAccess(data, player, d.id);
+      if (!a.available && !a.needsOwnership && (!depotUnlock || a.rpCost < depotUnlock.rpCost)) depotUnlock = a;
     }
-    const rate = ratePerMachine(c.eff, item)!;
-    const exact = d / rate;
-    exactOf.set(item, exact);
-    const cyclesPerMin = (exact * 60) / c.eff.durationS!;
-    for (const [k, v] of Object.entries(c.eff.net)) {
-      if (k === item || v === 0) continue;
-      const perMin = Math.abs(v!) * cyclesPerMin;
-      if (v! < 0) {
-        if (cutEdges.has(`${item}>${k}`)) {
-          unresolvedDemand.set(k, (unresolvedDemand.get(k) ?? 0) + perMin);
-          continue;
+    const how = depotUnlock ? ` Débloque : ${depotUnlock.missingNodes.map((n) => data.nodes.get(n)?.name ?? n).join(" → ")}.` : "";
+    warnings.push({ code: "dépôt", message: `Aucun dépôt de vente utilisable (débloqué, avec un débit connu) : impossible de vendre.${how}` });
+  }
+  const res = run(ratePerMin);
+  if (res.status !== "ok") {
+    if (!moneyMode) return fromV1(solveV1(data, player, { ...req, criterion: criterion === "pollution" || criterion === "cost" ? "machines" : criterion }), req);
+    return emptyPlan(req, criterion, ratePerMin, model.depots.length ? [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti (aucune vente possible avec ta progression)." }] : warnings, player, data, depotUnlock?.missingNodes ?? []);
+  }
+
+  // ---------------------------------------------------------------- étapes
+  const procOf = new Map(model.recipes.map((p) => [p.id, p]));
+  const used = [...res.machines].map(([id, x]) => ({ p: procOf.get(id)!, x }));
+  const prodOf = new Map<string, { id: string; amount: number }[]>();
+  const consOf = new Map<string, { id: string; amount: number }[]>();
+  for (const { p, x } of used) {
+    for (const [k, v] of Object.entries(p.perMin)) {
+      const map = v > 0 ? prodOf : consOf;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push({ id: p.id, amount: Math.abs(v) * x });
+    }
+  }
+  const external = (item: string) => (moneyMode ? (res.sells.get(item) ?? 0) : item === req.item ? ratePerMin : 0);
+  const totalProd = (k: string) => (prodOf.get(k) ?? []).reduce((s, e) => s + e.amount, 0);
+  const totalCons = (k: string) => (consOf.get(k) ?? []).reduce((s, e) => s + e.amount, 0) + external(k);
+
+  // Item principal de chaque recette : la cible, sinon la sortie la plus consommée par la chaîne.
+  const mainOf = new Map<string, string>();
+  for (const { p } of used) {
+    const outs = Object.entries(p.perMin).filter(([, v]) => v > 0);
+    let main: string | null = null;
+    if (!moneyMode && p.perMin[req.item]! > 0) main = req.item;
+    else if (outs.length) {
+      let best = -1;
+      for (const [k, v] of outs.sort(([a], [b]) => a.localeCompare(b))) {
+        const share = Math.min(1, totalCons(k) / Math.max(1e-12, totalProd(k)));
+        const score = share * 1e6 + v;
+        if (share > 1e-9 && score > best) {
+          best = score;
+          main = k;
         }
-        demand.set(k, (demand.get(k) ?? 0) + perMin);
-        edges.push({ from: k, to: item, perMin });
-      } else {
-        const s = surplusMap.get(k) ?? { perMin: 0, from: new Set<string>() };
-        s.perMin += perMin;
-        s.from.add(c.eff.recipe.id);
-        surplusMap.set(k, s);
+      }
+      if (main === null) main = p.energy !== null && p.energy < 0 ? ENERGY : outs.sort(([, a], [, b]) => b - a)[0]![0];
+    } else main = ENERGY;
+    mainOf.set(p.id, main);
+  }
+  const countByItem = new Map<string, number>();
+  for (const m of mainOf.values()) countByItem.set(m, (countByItem.get(m) ?? 0) + 1);
+  const keyOf = (rid: string) => {
+    const m = mainOf.get(rid)!;
+    return countByItem.get(m)! > 1 ? `${m}@${rid}` : m;
+  };
+
+  // Flux : la production d'un item est répartie entre ses consommateurs au prorata. Un manque
+  // (item non produit) est une source comme une autre, de clé « l'item » : le graphe le relie.
+  const edges: Edge[] = [];
+  const sources = new Map<string, { key: string; id: string; amount: number }[]>();
+  for (const [k, producers] of prodOf) sources.set(k, producers.map((p) => ({ key: keyOf(p.id), id: p.id, amount: p.amount })));
+  for (const [k, amount] of res.imports) sources.set(k, [...(sources.get(k) ?? []), { key: k, id: `manque:${k}`, amount }]);
+  for (const [k, list] of sources) {
+    const S = list.reduce((s, x) => s + x.amount, 0);
+    for (const pr of list) {
+      for (const c of consOf.get(k) ?? []) {
+        if (c.id === pr.id) continue;
+        const perMin = (pr.amount * c.amount) / S;
+        if (perMin > 1e-12) edges.push({ from: pr.key, to: keyOf(c.id), item: k, perMin });
       }
     }
   }
 
-  // 4. Profondeur (plus long chemin depuis la cible).
-  const depth = new Map<string, number>([[req.item, 0]]);
-  for (const item of topo) {
-    const dItem = depth.get(item) ?? 0;
-    const c = choices.get(item)!;
-    if (!c.eff) continue;
-    for (const [k, v] of Object.entries(c.eff.net)) {
-      if (v! < 0 && !cutEdges.has(`${item}>${k}`)) depth.set(k, Math.max(depth.get(k) ?? 0, dItem + 1));
-    }
+  const finals = used.filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : mainOf.get(p.id) === req.item)).map(({ p }) => keyOf(p.id));
+  // Profondeur : plus long chemin depuis l'objectif. Les boucles rentables (un sous-produit qui
+  // revient plus haut dans la chaîne) existent désormais : leurs arcs de retour sont marqués
+  // `loop` et ignorés pour la profondeur (parcours en profondeur depuis l'objectif).
+  const toProducers = new Map<string, Edge[]>();
+  for (const e of edges) {
+    if (!toProducers.has(e.to)) toProducers.set(e.to, []);
+    toProducers.get(e.to)!.push(e);
   }
+  const visitState = new Map<string, 1 | 2>();
+  const postOrder: string[] = [];
+  const dfs = (k: string) => {
+    visitState.set(k, 1);
+    for (const e of toProducers.get(k) ?? []) {
+      const st = visitState.get(e.from);
+      if (st === 1) e.loop = true;
+      else if (!st) dfs(e.from);
+    }
+    visitState.set(k, 2);
+    postOrder.push(k);
+  };
+  for (const f of finals) if (!visitState.has(f)) dfs(f);
+  const depth = new Map<string, number>(finals.map((k) => [k, 0]));
+  for (const k of [...postOrder].reverse()) {
+    const d = depth.get(k) ?? 0;
+    for (const e of toProducers.get(k) ?? []) if (!e.loop) depth.set(e.from, Math.max(depth.get(e.from) ?? 0, d + 1));
+  }
+  // Étapes hors de l'arbre de l'objectif (générateurs…) : leurs propres arcs de retour aussi.
+  for (const { p } of used) if (!visitState.has(keyOf(p.id))) dfs(keyOf(p.id));
+  const maxDepth = Math.max(0, ...depth.values());
 
-  // 5. Étapes.
   const steps: Step[] = [];
   const verify: VerifyEntry[] = [];
-  for (const item of topo) {
-    const c = choices.get(item)!;
-    if (!c.eff) continue;
-    const eff: EffRecipe = c.eff;
+  for (const { p, x } of used) {
+    const main = mainOf.get(p.id)!;
+    const key = keyOf(p.id);
+    const eff = p.eff;
     const r = eff.recipe;
-    const m = eff.machine;
-    const exact = exactOf.get(item) ?? 0;
-    const machines = ceilTol(exact);
-    const rate = ratePerMachine(eff, item)!;
-    const area = machineArea(m);
-    const energy = r.energyMFps;
+    const m = p.machine;
+    const machines = ceilTol(x);
+    const choice = main === ENERGY ? null : chooser.choose(main);
     const access = machineAccess(data, player, r.machine);
     const pollution = m?.pollutionPerHour ?? null;
+    const isForced = req.forced?.[main] === r.id;
+    const ratePerMachineMain = main === ENERGY ? -(p.energy ?? 0) : (ratePerMachine(eff, main) ?? 0);
     const step: Step = {
-      item,
+      key,
+      item: main,
       recipeId: r.id,
       machine: r.machine,
       machineKind: m?.kind === "farm" ? "farm" : "machine",
-      forced: c.forced,
-      depth: depth.get(item) ?? 0,
+      forced: isForced,
+      depth: depth.get(key) ?? (main === ENERGY ? 1 : maxDepth + 1),
       durationS: eff.durationS!,
-      outputPerCycle: eff.net[item]!,
-      ratePerMachine: rate,
-      demandPerMin: demand.get(item) ?? 0,
-      machinesExact: exact,
+      outputPerCycle: main === ENERGY ? 0 : (eff.net[main] ?? 0),
+      ratePerMachine: ratePerMachineMain,
+      demandPerMin: main === ENERGY ? 0 : (p.perMin[main] ?? 0) * x,
+      machinesExact: x,
       machines,
-      utilization: machines ? exact / machines : 0,
-      inputs: edges.filter((e) => e.to === item).map((e) => ({ item: e.from, perMin: e.perMin })),
-      consumers: edges.filter((e) => e.from === item).map((e) => ({ item: e.to, perMin: e.perMin })),
-      byproducts: Object.entries(eff.net)
-        .filter(([k, v]) => k !== item && v! > 0)
-        .map(([k, v]) => ({ item: k, perMin: (v! * exact * 60) / eff.durationS! })),
-      energyMFps: energy,
-      energyAvg: energy === null ? null : exact * energy,
-      energyPeak: energy === null ? null : machines * energy,
-      area,
-      footprint: area === null ? null : machines * area,
+      utilization: machines ? x / machines : 0,
+      inputs: Object.entries(p.perMin)
+        .filter(([, v]) => v < 0)
+        .map(([k, v]) => ({ item: k, perMin: -v * x })),
+      consumers: aggregate(edges.filter((e) => e.from === key && e.item === main).map((e) => ({ item: e.to.split("@")[0]!, perMin: e.perMin }))),
+      byproducts: Object.entries(p.perMin)
+        .filter(([k, v]) => v > 0 && k !== main)
+        .map(([k, v]) => ({ item: k, perMin: v * x })),
+      energyMFps: r.energyMFps,
+      energyAvg: r.energyMFps === null ? null : x * r.energyMFps,
+      energyPeak: r.energyMFps === null ? null : machines * r.energyMFps,
+      area: p.area,
+      footprint: p.area === null ? null : machines * p.area,
       unitCost: m?.cost ?? null,
       buildCost: m?.cost == null ? null : machines * m.cost,
       pollutionPerHour: pollution === null ? null : typeof pollution === "number" ? machines * pollution : [machines * pollution[0], machines * pollution[1]],
-      isRaw: !Object.values(eff.net).some((v) => v! < 0),
+      isRaw: p.isRaw,
       usesUnverified: eff.blocking.length > 0,
       verify: r.verify,
       machineVerify: m?.verify ?? [],
       access,
       ...(eff.growth ? { growth: eff.growth } : {}),
-      alternatives: c.candidates,
+      alternatives: choice?.candidates ?? [],
     };
     steps.push(step);
-    for (const f of r.verify) verify.push({ scope: "recette", id: r.id, item, flag: f, used: true });
-    for (const f of m?.verify ?? []) verify.push({ scope: "machine", id: r.machine, item, flag: f, used: true });
-    // Recettes écartées seulement parce qu'elles sont « à vérifier » : on les montre aussi.
-    for (const cand of c.candidates) {
+    for (const f of r.verify) verify.push({ scope: "recette", id: r.id, item: main, flag: f, used: true });
+    for (const f of m?.verify ?? []) verify.push({ scope: "machine", id: r.machine, item: main, flag: f, used: true });
+    for (const cand of choice?.candidates ?? []) {
       if (cand.status !== "à vérifier") continue;
-      for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
+      for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item: main, flag: f, used: false });
     }
-    if (c.forced && !access.available) {
-      warnings.push({ code: "forcée-verrouillée", message: `Recette forcée pour ${name(item)} : la machine ${m?.name ?? r.machine} n'est pas débloquée.`, items: [item] });
+    if (isForced && !access.available) {
+      warnings.push({ code: "forcée-verrouillée", message: `Recette forcée pour ${name(main)} : la machine ${m?.name ?? r.machine} n'est pas débloquée.`, items: [main] });
     }
     if (step.usesUnverified) {
-      warnings.push({ code: "à-vérifier", message: `${name(item)} utilise une recette à vérifier (${r.id}) : ${eff.blocking.map((f) => f.detail).join(" ; ")}.`, items: [item] });
+      warnings.push({ code: "à-vérifier", message: `${name(main)} utilise une recette à vérifier (${r.id}) : ${eff.blocking.map((f) => f.detail).join(" ; ")}.`, items: [main] });
     }
     if (eff.growth) {
-      warnings.push({ code: "arbres", message: `Pousse des arbres : ${eff.growth.detail} (${eff.growth.seconds.toFixed(1).replace(".", ",")} s). Le nombre d'arbres est indicatif.`, items: [item] });
+      warnings.push({ code: "arbres", message: `Pousse des arbres : ${eff.growth.detail} (${eff.growth.seconds.toFixed(1).replace(".", ",")} s). Le nombre d'arbres est indicatif.`, items: [main] });
     }
   }
-  steps.sort((a, b) => a.depth - b.depth || topo.indexOf(a.item) - topo.indexOf(b.item));
+  steps.sort((a, b) => a.depth - b.depth || a.key.localeCompare(b.key));
+  for (const { p } of used) {
+    const reused = Object.entries(p.perMin).filter(([k, v]) => v > 0 && k !== mainOf.get(p.id) && (consOf.get(k) ?? []).some((c) => c.id !== p.id));
+    for (const [k] of reused) {
+      warnings.push({ code: "sous-produit-réutilisé", message: `${name(k)}, sous-produit de ${p.id}, est réutilisé dans la chaîne.`, items: [k] });
+    }
+  }
 
-  // 6. Feuilles non résolues (verrouillées, sans recette, boucles…).
+  // ---------------------------------------------------------------- manques
   const unresolved: Unresolved[] = [];
-  for (const [item, perMin] of unresolvedDemand) {
-    const c = choices.get(item) ?? chooser.choose(item);
+  for (const [item, perMin] of res.imports) {
+    const c = chooser.choose(item);
     const reason: LeafReason = c.leafReason ?? "boucle";
     let unlock: Unresolved["unlock"];
     for (const cand of c.candidates) {
@@ -320,58 +430,75 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       const better = !unlock || (unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost);
       if (better) unlock = { ...a, recipeId: cand.recipeId };
     }
-    unresolved.push({ item, perMin, reason, loopShortfall: !!c.eff, ...(unlock ? { unlock } : {}), candidates: c.candidates });
+    const loopShortfall = prodOf.has(item);
+    unresolved.push({ item, perMin, reason, loopShortfall, ...(unlock ? { unlock } : {}), candidates: c.candidates });
     for (const cand of c.candidates) {
       if (cand.status === "à vérifier" || cand.status === "incalculable") {
         for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
       }
     }
-  }
-  for (const u of unresolved) {
     const label =
-      u.reason === "verrouillé"
-        ? u.unlock?.needsOwnership
-          ? `il faut posséder la machine ${data.machines.get(u.unlock.machine)?.name ?? u.unlock.machine}`
-          : `recherche manquante : ${(u.unlock?.missingNodes ?? []).map((n) => data.nodes.get(n)?.name ?? n).join(", ")}`
-        : u.reason === "aucune recette"
+      reason === "verrouillé"
+        ? unlock?.needsOwnership
+          ? `il faut posséder la machine ${data.machines.get(unlock.machine)?.name ?? unlock.machine}`
+          : `recherche manquante : ${(unlock?.missingNodes ?? []).map((n) => data.nodes.get(n)?.name ?? n).join(", ")}`
+        : reason === "aucune recette"
           ? "aucune recette connue (source inconnue)"
-          : u.reason === "seulement à vérifier"
+          : reason === "seulement à vérifier"
             ? "seules des recettes « à vérifier » existent (active l'option pour les utiliser)"
-            : u.reason === "incalculable"
+            : reason === "incalculable"
               ? "les recettes connues ont des valeurs manquantes"
               : "boucle de dépendance";
-    warnings.push(
-      u.loopShortfall
-        ? { code: "boucle", message: `${name(u.item)} : ${fmtNum(u.perMin)}/min supplémentaires seraient nécessaires pour alimenter une boucle de la chaîne ; cette quantité n'est pas comptée.`, items: [u.item] }
-        : { code: `non-résolu:${u.reason}`, message: `${name(u.item)} (${fmtNum(u.perMin)}/min) n'est pas produit : ${label}.`, items: [u.item] },
-    );
+    if (reason === "boucle") {
+      const cyc = findCycle(model, item);
+      warnings.push({
+        code: "boucle",
+        message: `Boucle de dépendance${cyc.length > 1 ? ` : ${[...cyc, cyc[0]!].map(name).join(" → ")}` : ""}. Il manque une source extérieure : ${fmtNum(perMin)}/min de ${name(item)} ne sont pas produits.`,
+        items: cyc.length ? cyc : [item],
+      });
+    } else warnings.push({ code: `non-résolu:${reason}`, message: `${name(item)} (${fmtNum(perMin)}/min) n'est pas produit : ${label}.`, items: [item] });
+  }
+  if (res.energyImport > 0) {
+    warnings.push({ code: "énergie-non-couverte", message: `Il manque ${fmtNum(res.energyImport)} MF/s : aucun générateur utilisable (débloqué, avec un combustible productible) ne couvre la consommation.` });
+  }
+  if (res.impossible.pollution !== undefined) {
+    warnings.push({
+      code: "contrainte-pollution",
+      message: `Pollution maximale de ${fmtNum(req.maxPollution!)} %/h impossible à tenir : au mieux ${fmtNum(res.impossible.pollution)} %/h avec ta progression. Plan calculé sans cette limite.`,
+    });
+  }
+  if (res.impossible.budget !== undefined) {
+    warnings.push({ code: "contrainte-budget", message: `Budget de ${fmtNum(req.budget!)} $ insuffisant : il faut au moins ${fmtNum(res.impossible.budget)} $. Plan calculé sans cette limite.` });
   }
 
-  // 7. Surplus (sous-produits à évacuer).
-  const demanded = new Set([...demand.keys()].filter((k) => (demand.get(k) ?? 0) > 0));
-  const surplus: Surplus[] = [...surplusMap].map(([item, s]) => ({ item, perMin: s.perMin, from: [...s.from], alsoDemanded: demanded.has(item) }));
-  surplus.sort((a, b) => b.perMin - a.perMin);
-  for (const s of surplus) {
-    if (s.alsoDemanded) {
-      warnings.push({ code: "surplus-réutilisable", message: `${name(s.item)} est produit en surplus (${fmtNum(s.perMin)}/min) et aussi consommé dans la chaîne : il pourrait être réutilisé (non pris en compte dans le calcul).`, items: [s.item] });
+  // ---------------------------------------------------------------- surplus
+  const surplus: Surplus[] = [];
+  for (const [k, producers] of prodOf) {
+    const extra = totalProd(k) - totalCons(k);
+    if (extra > 1e-7 * Math.max(1, totalProd(k))) {
+      surplus.push({ item: k, perMin: extra, from: producers.map((x) => x.id), alsoDemanded: totalCons(k) > 1e-9 });
     }
   }
+  surplus.sort((a, b) => b.perMin - a.perMin);
 
-  // 8. Avertissements de choix.
   for (const f of chooser.invalidForced) warnings.push({ code: "forcée-invalide", message: `Recette forcée ignorée pour ${name(f.item)} (${f.recipeId}) : ${f.reason}.`, items: [f.item] });
-  for (const cyc of chooser.brokenLoops) {
-    warnings.push({ code: "boucle-écartée", message: `Recettes en boucle écartées : ${[...cyc, cyc[0]!].map(name).join(" → ")}. Une autre source a été choisie.`, items: cyc });
-  }
-  if (chooser.notConverged.length) {
-    warnings.push({ code: "convergence", message: "Le choix des recettes n'a pas convergé (boucle qui s'auto-alimente) : le résultat peut ne pas être optimal." });
-  }
 
-  // 9. Totaux.
+  // ---------------------------------------------------------------- ventes et dépôts
+  const sales: Sale[] = [...res.sells].map(([item, perMin]) => ({ item, perMin, price: model.sellable.get(item)!, revenuePerMin: perMin * model.sellable.get(item)! }));
+  sales.sort((a, b) => b.revenuePerMin - a.revenuePerMin);
+  const depots: DepotUse[] = [...res.depots].map(([id, x]) => {
+    const d = model.depots.find((q) => q.id === id)!;
+    return { id, name: d.name, machinesExact: x, machines: ceilTol(x), itemsPerMin: d.itemsPerMin, unitCost: d.cost };
+  });
+
+  // ---------------------------------------------------------------- totaux
   const totals: Plan["totals"] = {
     machines: 0,
     farms: 0,
+    depots: depots.reduce((s, d) => s + d.machines, 0),
     energyAvg: 0,
     energyPeak: 0,
+    energyProduced: 0,
     energyUnknownSteps: 0,
     footprint: 0,
     footprintUnknownSteps: 0,
@@ -379,15 +506,16 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     buildCostUnknownSteps: 0,
     pollutionPerHour: [0, 0],
     pollutionUnknownSteps: 0,
+    revenuePerMin: sales.reduce((s, x) => s + x.revenuePerMin, 0),
   };
   for (const s of steps) {
     if (s.machineKind === "farm") totals.farms += s.machines;
     else totals.machines += s.machines;
     if (s.energyAvg === null) totals.energyUnknownSteps++;
-    else {
+    else if (s.energyAvg >= 0) {
       totals.energyAvg += s.energyAvg;
       totals.energyPeak += s.energyPeak!;
-    }
+    } else totals.energyProduced -= s.energyAvg;
     if (s.footprint === null) totals.footprintUnknownSteps++;
     else totals.footprint += s.footprint;
     if (s.buildCost === null) totals.buildCostUnknownSteps++;
@@ -401,42 +529,93 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       totals.pollutionPerHour[1] += s.pollutionPerHour[1];
     }
   }
+  for (const d of depots) {
+    if (d.unitCost === null) totals.buildCostUnknownSteps++;
+    else totals.buildCost += d.machines * d.unitCost;
+  }
   if (totals.energyUnknownSteps) {
     warnings.push({ code: "énergie-inconnue", message: `Énergie inconnue pour ${totals.energyUnknownSteps} étape(s) : le total affiché est un minimum.` });
   }
+  if (req.maxPollution != null && res.impossible.pollution === undefined && totals.pollutionPerHour[1] > req.maxPollution * (1 + 1e-9)) {
+    const exact = steps.reduce((s, x) => {
+      const p = data.machines.get(x.machine)?.pollutionPerHour;
+      return s + x.machinesExact * (p == null ? 0 : typeof p === "number" ? p : p[1]);
+    }, 0);
+    warnings.push({
+      code: "pollution-arrondi",
+      message: `La limite de ${fmtNum(req.maxPollution)} %/h est tenue avec les machines exactes (${fmtNum(exact)} %/h) ; une fois arrondies à l'unité, elles en produisent jusqu'à ${fmtNum(totals.pollutionPerHour[1])} %/h si toutes tournent en continu.`,
+    });
+  }
+  if (req.budget != null && res.impossible.budget === undefined && totals.buildCost > req.budget) {
+    warnings.push({ code: "budget-arrondi", message: `Une fois les machines arrondies à l'unité, la construction coûte ${fmtNum(totals.buildCost)} $, au-delà du budget de ${fmtNum(req.budget)} $.` });
+  }
 
-  // 10. Économie et recherche.
-  const nodeSet = new Set<string>();
-  const machinesToOwn = new Set<string>();
-  for (const s of steps) {
-    if (s.access.available) continue;
-    if (s.access.needsOwnership) machinesToOwn.add(s.machine);
-    for (const n of s.access.missingNodes) nodeSet.add(n);
-  }
-  for (const u of unresolved) {
-    if (!u.unlock) continue;
-    if (u.unlock.needsOwnership) machinesToOwn.add(u.unlock.machine);
-    for (const n of u.unlock.missingNodes) nodeSet.add(n);
-  }
-  // Un item verrouillé cache ses propres ingrédients : on simule les déblocages
-  // pour lister ce qu'il faut pour TOUTE la chaîne, pas seulement le premier niveau.
-  if (!nested && unresolved.some((u) => u.reason === "verrouillé")) {
-    for (let i = 0; i < 12; i++) {
-      const extended: PlayerState = { ...player, unlocked: new Set([...player.unlocked, ...nodeSet]) };
-      const sub = solveInner(data, extended, req, true);
-      const added = sub.economy.nodesToUnlock.filter((n) => !nodeSet.has(n));
-      for (const m of sub.economy.machinesToOwn) machinesToOwn.add(m);
-      if (!added.length) break;
-      for (const n of added) nodeSet.add(n);
+  const economy = economyOf(data, player, req, steps, unresolved, totals, nested);
+  const raw: Flow[] = steps.filter((s) => s.isRaw).map((s) => ({ item: s.item, perMin: s.demandPerMin }));
+  const status: Plan["status"] = !finals.length
+    ? "impossible"
+    : unresolved.length || res.energyImport > 0
+      ? "partiel"
+      : "ok";
+  const plan: Plan = {
+    status,
+    engine: "simplexe",
+    target: { kind: moneyMode ? "argent" : "objet", item: moneyMode ? "" : req.item, ratePerMin, finalMachines: moneyMode ? null : (req.finalMachines ?? null) },
+    criterion,
+    steps,
+    finals,
+    edges,
+    raw,
+    unresolved,
+    surplus,
+    sales,
+    depots,
+    totals,
+    constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
+    verify: dedupeVerify(verify),
+    warnings,
+    economy,
+    tiers: [],
+  };
+  if (!nested && req.tiers !== false && status !== "impossible") plan.tiers = roundTiers(plan);
+  return plan;
+
+  // Un item verrouillé cache ses propres ingrédients : on simule les déblocages successifs.
+  function economyOf(data: GameData, player: PlayerState, req: SolveRequest, steps: Step[], unresolved: Unresolved[], totals: Plan["totals"], nested: boolean): Economy {
+    const nodeSet = new Set<string>();
+    const machinesToOwn = new Set<string>();
+    for (const s of steps) {
+      if (s.access.available) continue;
+      if (s.access.needsOwnership) machinesToOwn.add(s.machine);
+      for (const n of s.access.missingNodes) nodeSet.add(n);
     }
+    for (const u of unresolved) {
+      if (!u.unlock) continue;
+      if (u.unlock.needsOwnership) machinesToOwn.add(u.unlock.machine);
+      for (const n of u.unlock.missingNodes) nodeSet.add(n);
+    }
+    if (!nested && unresolved.some((u) => u.reason === "verrouillé")) {
+      for (let i = 0; i < 12; i++) {
+        const extended: PlayerState = { ...player, unlocked: new Set([...player.unlocked, ...nodeSet]) };
+        const sub = solveInner(data, extended, { ...req, tiers: false }, true);
+        const added = sub.economy.nodesToUnlock.filter((n) => !nodeSet.has(n));
+        for (const m of sub.economy.machinesToOwn) machinesToOwn.add(m);
+        if (!added.length) break;
+        for (const n of added) nodeSet.add(n);
+      }
+    }
+    return economyFrom(data, player, nodeSet, machinesToOwn, totals);
   }
+}
+
+function economyFrom(data: GameData, player: PlayerState, nodeSet: Set<string>, machinesToOwn: Set<string>, totals: { buildCost: number; buildCostUnknownSteps: number }): Economy {
   const nodesToUnlock = orderByDepth(data, [...nodeSet]);
   const rpNeeded = rpCost(data, nodesToUnlock);
   const money = player.money ?? null;
   const rp = player.rp ?? null;
   const rpPerSec = player.rpPerSec ?? null;
   const rpMissing = rp === null ? null : Math.max(0, rpNeeded - rp);
-  const economy: Economy = {
+  return {
     buildCost: totals.buildCost,
     buildCostUnknown: totals.buildCostUnknownSteps,
     money,
@@ -450,29 +629,35 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     secondsToRp: rpMissing === null || !rpPerSec || rpPerSec <= 0 ? null : rpMissing / rpPerSec,
     machinesToOwn: [...machinesToOwn],
   };
+}
 
-  const raw: Flow[] = steps.filter((s) => s.isRaw).map((s) => ({ item: s.item, perMin: s.demandPerMin }));
-  const status: Plan["status"] = !targetChoice.eff ? "impossible" : unresolved.length ? "partiel" : "ok";
-  return {
-    status,
-    target: { item: req.item, ratePerMin, finalMachines: req.finalMachines ?? null },
-    criterion,
-    steps,
-    edges,
-    raw,
-    unresolved,
-    surplus,
-    totals,
-    verify: dedupeVerify(verify),
-    warnings,
-    economy,
+/** Somme des flux par item (un consommateur peut recevoir d'un même producteur par plusieurs voies). */
+function aggregate(flows: Flow[]): Flow[] {
+  const m = new Map<string, number>();
+  for (const f of flows) m.set(f.item, (m.get(f.item) ?? 0) + f.perMin);
+  return [...m].map(([item, perMin]) => ({ item, perMin }));
+}
+
+/** Boucle qui empêche de produire `item` : chemin item → entrée → … → item par recettes utilisables. */
+function findCycle(model: FlowModel, item: string): string[] {
+  const procs = new Map<string, RecipeProc>(model.recipes.map((p) => [p.id, p]));
+  const path: string[] = [];
+  const seen = new Set<string>();
+  const dfs = (it: string): boolean => {
+    path.push(it);
+    seen.add(it);
+    for (const rid of model.usable.get(it) ?? []) {
+      for (const [k, v] of Object.entries(procs.get(rid)?.perMin ?? {})) {
+        if (v >= 0) continue;
+        if (k === item) return true;
+        if (!seen.has(k) && path.length < 12 && dfs(k)) return true;
+      }
+    }
+    path.pop();
+    return false;
   };
+  return dfs(item) ? path : [];
 }
-
-function fmtNum(x: number): string {
-  return (Math.round(x * 100) / 100).toString();
-}
-
 
 function dedupeVerify(v: VerifyEntry[]): VerifyEntry[] {
   const seen = new Map<string, VerifyEntry>();
@@ -482,4 +667,61 @@ function dedupeVerify(v: VerifyEntry[]): VerifyEntry[] {
     if (!prev || (e.used && !prev.used)) seen.set(k, e);
   }
   return [...seen.values()];
+}
+
+/** Repli : résultat du moteur v1 dans le format v2. */
+function fromV1(p: PlanV1, req: SolveRequest): Plan {
+  return {
+    ...p,
+    engine: "heuristique",
+    target: { kind: "objet", ...p.target },
+    steps: p.steps.map((s) => ({ ...s, key: s.item })),
+    finals: p.steps.filter((s) => s.item === p.target.item).map((s) => s.item),
+    edges: p.edges.map((e) => ({ ...e, item: e.from })),
+    sales: [],
+    depots: [],
+    totals: { ...p.totals, depots: 0, energyProduced: 0, revenuePerMin: 0 },
+    constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
+    warnings: [...p.warnings, { code: "simplexe", message: "Le simplexe n'a pas abouti : choix des recettes par l'heuristique (moteur v1), sans réutilisation des sous-produits." }],
+    tiers: [],
+  };
+}
+
+function emptyPlan(req: SolveRequest, criterion: Criterion, ratePerMin: number, warnings: Warning[], player: PlayerState, data: GameData, nodes: string[] = []): Plan {
+  const totals: Plan["totals"] = {
+    machines: 0,
+    farms: 0,
+    depots: 0,
+    energyAvg: 0,
+    energyPeak: 0,
+    energyProduced: 0,
+    energyUnknownSteps: 0,
+    footprint: 0,
+    footprintUnknownSteps: 0,
+    buildCost: 0,
+    buildCostUnknownSteps: 0,
+    pollutionPerHour: [0, 0],
+    pollutionUnknownSteps: 0,
+    revenuePerMin: 0,
+  };
+  return {
+    status: "impossible",
+    engine: "simplexe",
+    target: { kind: req.moneyPerMin !== undefined ? "argent" : "objet", item: req.moneyPerMin !== undefined ? "" : req.item, ratePerMin, finalMachines: null },
+    criterion,
+    steps: [],
+    finals: [],
+    edges: [],
+    raw: [],
+    unresolved: [],
+    surplus: [],
+    sales: [],
+    depots: [],
+    totals,
+    constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
+    verify: [],
+    warnings,
+    economy: economyFrom(data, player, new Set(nodes), new Set(), totals),
+    tiers: [],
+  };
 }

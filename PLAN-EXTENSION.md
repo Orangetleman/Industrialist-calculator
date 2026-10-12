@@ -1,7 +1,8 @@
 # Plan d'extension et de refonte — Calculateur Industrialist
 
-> Statut : **validé le 2026-10-12** (décisions en § 8). Phase E0 terminée (données, relevés en jeu,
-> éditeur de bâtiments, 16 bâtiments relevés) ; E1 en attente du feu vert.
+> Statut : **validé le 2026-10-12** (décisions en § 8). E0 terminée (données, relevés en jeu,
+> éditeur de bâtiments, 16 bâtiments relevés) ; E1 terminée (moteur v2 et simplexe, bilan en § 4) ;
+> E2 en attente du feu vert.
 > Rédigé le 2026-10-12 après une lecture du wiki Miraheze (pages Pipes, Research Station1 à 4,
 > Satellite Dish Controller, RP Making, Weather & Time, Steam, Logic, Truck Depot, et les fiches
 > des 264 bâtiments déjà en cache).
@@ -127,6 +128,35 @@ Pi, puis j'attends ton feu vert.
 - **Sous-produits réutilisés** quand c'est rentable : la limite actuelle des surplus disparaît.
 - **Tests** : tous les cas actuels, plus les boucles énergie ↔ combustible, la réutilisation
   d'un sous-produit et une contrainte de pollution.
+
+**Bilan E1 (2026-10-12, fait).**
+
+- **Simplexe** (`lp.ts`) :
+  - deux phases, règle de Dantzig avec repli sur celle de Bland, test du ratio de Harris ;
+  - perturbation des seconds membres : les bilans à zéro rendent le problème très dégénéré, et
+    sans elle le simplexe piétinait (50 000 pivots). La solution est relue avec les seconds
+    membres d'origine, donc exacte ;
+  - niveaux de priorité exacts (lexicographique sur le même tableau) : manques, critère, surface
+    au sol, puis les autres critères, comme les départages du moteur v1 ;
+  - 5 à 110 ms par calcul.
+- **Machines entières** : le simplexe minimise des machines fractionnaires. Pour « machines »,
+  « prix » et « pollution », trois solutions sont comparées sur le total arrondi : la solution
+  exacte, des variantes sans les recettes à moins d'une machine, et le choix de l'heuristique
+  v1. Sur les 204 items, à mesure égale, le moteur v2 n'est jamais moins bon que le v1 :
+  meilleur sur 106 (machines), 63 (énergie) et 92 (matières premières).
+- **Définitions** :
+  - matières premières = tout ce que sortent les extracteurs, sous-produits compris ;
+  - énergie = consommation des machines ; la production des générateurs est affichée à part ;
+  - la limite de pollution porte sur les machines exactes, et un avertissement signale le
+    dépassement une fois les machines arrondies.
+- **Boucles rentables** : un sous-produit qui remonte la chaîne est réutilisé. Le graphe trace
+  ces arcs de retour en pointillés, dans un couloir à droite.
+- **Argent** : objets solides seulement (la capacité des dépôts de liquides est inconnue) ;
+  dépôts de logistics.json ; le plan dit quel dépôt débloquer s'il n'y en a aucun.
+- **Paliers ronds** (`tiers.ts`) : le meilleur palier par tranche (¼–½, ½–1, 1–2, 2–4, 4–10 fois
+  le débit) ; un clic l'adopte (en « machines finales » quand le nombre est entier).
+- **Reporté à E2** : ce que retire un Scrubber n'est pas une valeur structurée du wiki
+  (« dépend de l'entrée ») ; la pollution négative attendra l'extraction de cette page.
 
 ### E2 — Énergie
 

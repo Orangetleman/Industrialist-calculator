@@ -6,7 +6,8 @@ import { treeGrowthSeconds, type TreeGrowthResult } from "./pollution.ts";
 import type { Machine, Recipe, VerifyFlag } from "./types.ts";
 import { machineAccess, type MachineAccess, type Progress } from "./unlock.ts";
 
-export type Criterion = "machines" | "energy" | "raw" | "steps";
+/** Critères d’optimisation. « pollution » et « cost » ne sont traités que par le simplexe (moteur v2). */
+export type Criterion = "machines" | "energy" | "raw" | "steps" | "pollution" | "cost";
 
 export type ChoiceOptions = {
   criterion: Criterion;
@@ -101,7 +102,8 @@ const EPS = 1e-9;
 const same = (a: number, b: number) => Math.abs(a - b) <= EPS * Math.max(1, Math.abs(a), Math.abs(b));
 
 function metric(c: Cost, k: Criterion): number {
-  return k === "machines" ? c.machines : k === "energy" ? c.energy : k === "steps" ? c.steps : c.raw;
+  // pollution et coût : le choix heuristique se rabat sur le nombre de machines.
+  return k === "energy" ? c.energy : k === "steps" ? c.steps : k === "raw" ? c.raw : c.machines;
 }
 
 /** Surface au sol d'une machine (cases) ; null si inconnue. */
@@ -193,6 +195,19 @@ export class Chooser {
   choose(item: string): Choice {
     if (!this.choices.has(item)) this.compute(item);
     return this.choices.get(item)!;
+  }
+
+  /** Recettes utilisables pour produire un item (verrous, recette forcée, « à vérifier » appliqués). */
+  usableFor(item: string): EffRecipe[] {
+    return this.pre(item).usable.map((u) => u.eff);
+  }
+
+  /** Recette utilisable hors de tout item (générateurs : ils ne produisent que de l'énergie). */
+  isUsable(recipe: Recipe): boolean {
+    const eff = this.eff(recipe);
+    if (!(eff.durationS !== null && eff.durationS > 0) || Object.values(eff.net).some((v) => v === null)) return false;
+    if (!machineAccess(this.data, this.progress, recipe.machine).available) return false;
+    return !(eff.blocking.length && !this.opts.useUnverified);
   }
 
   /** Filtre les recettes d'un item : utilisables, ou rejetées avec la raison. */

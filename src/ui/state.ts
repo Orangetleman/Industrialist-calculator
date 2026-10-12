@@ -4,6 +4,8 @@ import type { Criterion } from "../engine/choose.ts";
 import type { OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Settings = {
+  /** Objectif : produire un objet, ou gagner de l'argent ($/min). */
+  goal: "objet" | "argent";
   item: string;
   mode: "rate" | "machines";
   rate: number;
@@ -11,9 +13,18 @@ export type Settings = {
   criterion: Criterion;
   useUnverified: boolean;
   forced: Record<string, string>;
+  /** Revenu voulu ($/min) pour l'objectif argent. */
+  money: number;
+  /** La chaîne produit sa propre énergie. */
+  selfPowered: boolean;
+  /** Pollution maximale (%/h) ; null = sans limite. */
+  maxPollution: number | null;
+  /** Ne pas dépasser l'argent renseigné dans « Ma partie ». */
+  useBudget: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  goal: "objet",
   item: "crankshaft",
   mode: "machines",
   rate: 60,
@@ -21,6 +32,10 @@ export const DEFAULT_SETTINGS: Settings = {
   criterion: "energy",
   useUnverified: false,
   forced: {},
+  money: 10000,
+  selfPowered: false,
+  maxPollution: null,
+  useBudget: false,
 };
 
 const KEY_SETTINGS = "ind-calc:v1:settings";
@@ -47,7 +62,12 @@ export function loadSettings(): Settings {
   // « allUnlocked » : réglage provisoire de l'étape (c), ignoré désormais.
   const { allUnlocked: _ancien, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown };
   const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
-  if (!["machines", "energy", "raw", "steps"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
+  if (!["machines", "energy", "raw", "steps", "pollution", "cost"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
+  if (out.goal !== "objet" && out.goal !== "argent") out.goal = "objet";
+  if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
+  if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
+  out.selfPowered = out.selfPowered === true;
+  out.useBudget = out.useBudget === true;
   if (out.mode !== "rate" && out.mode !== "machines") out.mode = DEFAULT_SETTINGS.mode;
   if (!(out.rate > 0)) out.rate = DEFAULT_SETTINGS.rate;
   if (!(out.machines > 0)) out.machines = DEFAULT_SETTINGS.machines;
