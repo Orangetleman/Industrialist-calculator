@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette de refonte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eef1f4; --surface: #ffffff; --ink: #17212b; --muted: #5b6876; --line: #c9d1da;
+  --accent: #b4530a; --accent-soft: #f6e3d3; --steel: #2f5d7c; --steel-soft: #e1eaf1;
+  --ok: #2e7d4f; --ok-soft: #ddf0e4; --warn: #a86a00; --warn-soft: #fbf0d9;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171c; --surface: #1b222a; --ink: #e6ebf0; --muted: #9aa7b4; --line: #34404c;
+    --accent: #f0913a; --accent-soft: #3a2614; --steel: #8fb8d6; --steel-soft: #1f2d39;
+    --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --warn-soft: #362b14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171c; --surface: #1b222a; --ink: #e6ebf0; --muted: #9aa7b4; --line: #34404c;
+  --accent: #f0913a; --accent-soft: #3a2614; --steel: #8fb8d6; --steel-soft: #1f2d39;
+  --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --warn-soft: #362b14;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+button, input, select { font: inherit; color: inherit; }
+.mock-banner { background: var(--warn-soft); color: var(--ink); border-bottom: 1px solid var(--warn); padding: 6px 16px; font-size: .82rem; text-align: center; }
+
+/* Barre du haut : navigation courte + état du joueur toujours visible */
+.top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 1120px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 8px; font: 700 1.05rem var(--f-display); letter-spacing: .01em; }
+.brand i { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #2f5d7c, #17212b); display: grid; place-items: center; color: #f0913a; font-style: normal; }
+nav.main { display: flex; gap: 2px; }
+nav.main button { border: 0; background: none; padding: 7px 11px; border-radius: 8px; color: var(--muted); cursor: pointer; font-weight: 500; }
+nav.main button[aria-current="page"] { color: var(--ink); background: var(--steel-soft); }
+.me { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; font-size: .8rem; }
+.me span { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-family: var(--f-mono); color: var(--muted); }
+.me button { border: 0; background: none; color: var(--steel); cursor: pointer; font-size: .8rem; text-decoration: underline; padding: 0 4px; }
+
+main { max-width: 1120px; margin: 0 auto; padding: 22px 16px 60px; }
+h1 { font: 700 1.9rem/1.15 var(--f-display); margin: 0 0 6px; }
+h2 { font: 700 1.25rem var(--f-display); margin: 0 0 10px; }
+.lead { color: var(--muted); margin: 0 0 22px; max-width: 62ch; }
+
+/* Accueil */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.card b { font: 700 1.15rem var(--f-display); }
+.card .ico { font-size: 1.5rem; }
+.card small { color: var(--muted); }
+.callout { margin-top: 20px; background: var(--steel-soft); border-radius: 12px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.callout p { margin: 0; flex: 1 1 320px; }
+
+/* Formulaire compact */
+.ask { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.ask label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.ask input, .ask select { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 8px 10px; min-width: 0; }
+.ask .item input { width: 230px; }
+.ask .qty { display: flex; gap: 6px; }
+.ask .qty input { width: 90px; font-family: var(--f-mono); }
+.ask details { flex-basis: 100%; }
+.ask summary { cursor: pointer; color: var(--steel); font-size: .88rem; }
+.adv { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin-top: 10px; font-size: .88rem; }
+.adv label { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: .88rem; }
+
+/* Réponse */
+.answer { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--ok); border-radius: 14px; padding: 16px 18px; }
+.answer h2 { font-size: 1.35rem; margin-bottom: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--bg); border-radius: 10px; padding: 8px 12px; }
+.kpi b { display: block; font: 600 1.15rem var(--f-mono); }
+.kpi span { font-size: .78rem; color: var(--muted); }
+.extract { margin: 12px 0 0; font-size: .9rem; }
+.chip { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 0 9px; margin: 2px 2px 0 0; font-size: .84rem; background: var(--bg); }
+.chip .n { font-family: var(--f-mono); color: var(--muted); }
+.notice { margin-top: 10px; font-size: .86rem; color: var(--warn); }
+
+/* Onglets de résultat */
+.rtabs { display: flex; gap: 4px; margin: 20px 0 0; border-bottom: 1px solid var(--line); }
+.rtabs button { border: 0; background: none; padding: 9px 14px; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; }
+.rtabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.rpanel { background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; padding: 14px 16px; }
+
+/* Liste de construction */
+table.build { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.build th { text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.build td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.build tr.stage td { background: var(--bg); font: 600 .8rem var(--f-display); letter-spacing: .03em; text-transform: uppercase; color: var(--muted); padding: 5px 8px; }
+.build tr.done td:not(.chk) { opacity: .45; text-decoration: line-through; }
+.build .num { font-family: var(--f-mono); white-space: nowrap; }
+.build .count { font: 600 1.05rem var(--f-mono); }
+.build .sub { color: var(--muted); font-size: .8rem; }
+.build .chk input { width: 18px; height: 18px; }
+.progress { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .86rem; color: var(--muted); }
+.progress .bar { flex: 1; height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+.progress .bar i { display: block; height: 100%; background: var(--ok); width: 0; transition: width .2s; }
+
+/* Schéma */
+.frame { border: 1px solid var(--line); border-radius: 12px; background: #1d2126; overflow: auto; }
+.frame svg { display: block; height: auto; } /* taille réelle : le cadre défile */
+.frame .n rect { fill: #2a3038; stroke: #4a525c; }
+.frame .n.final rect { stroke: #f0913a; stroke-width: 2; }
+.frame .n.raw rect { fill: #22282f; }
+.frame text { fill: #e6ebf0; font: 600 13px var(--f-body); }
+.frame text.m { fill: #9aa7b4; font: 400 11.5px var(--f-mono); }
+.frame path { fill: none; stroke: #f0913a; stroke-width: 1.6; opacity: .75; }
+.frame text.q { fill: #f0b37a; font: 500 10.5px var(--f-mono); }
+.hint { color: var(--muted); font-size: .82rem; }
+
+details.more { border-top: 1px solid var(--line); padding: 10px 0; }
+details.more summary { cursor: pointer; font-weight: 600; }
+details.more ul { margin: 8px 0 0; padding-left: 20px; }
+
+/* Mon usine */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.box h2 { font-size: 1.05rem; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); flex: 1 1 130px; }
+.row input { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 7px 10px; font-family: var(--f-mono); }
+.meter { height: 10px; background: var(--bg); border-radius: 99px; overflow: hidden; margin: 8px 0 4px; }
+.meter i { display: block; height: 100%; width: 62%; background: var(--steel); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 7px 12px; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.note { margin-top: 26px; font-size: .84rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 12px; }
+
+@media (max-width: 640px) {
+  .top-in { gap: 4px 8px; padding: 6px 12px; }
+  .brand { font-size: .95rem; }
+  nav.main { order: 3; width: 100%; overflow-x: auto; }
+  nav.main button { padding: 6px 8px; font-size: .86rem; white-space: nowrap; }
+  nav.main .long { display: none; }
+  /* Sur téléphone, l'état du joueur se résume à une pastille. */
+  .me { margin-left: auto; }
+  .me span:not(:first-child) { display: none; }
+  main { padding-top: 14px; }
+  .lead { margin-bottom: 14px; }
+  .ask .item input { width: 100%; }
+  .ask .item { flex: 1 1 100%; }
+  h1 { font-size: 1.55rem; }
+  /* La liste devient une pile de cartes */
+  .build thead { display: none; }
+  .build tr:not(.stage) { display: grid; grid-template-columns: 30px 1fr auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .build td { border: 0; padding: 0; }
+  .build td.chk { grid-row: span 3; }
+  .build td.feeds { grid-column: 2 / 4; }
+  .build td.energy { grid-column: 2 / 4; }
+  .build tr.stage { display: block; }
+}
+</style>
+</head>
+<body>
+<div class="mock-banner">Maquette de refonte, à valider. L'exemple est un vrai calcul figé (60 Crankshafts/min, toute la recherche, « le moins d'énergie »). Rien n'est recalculé ici.</div>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><i>⚙</i> Calculateur Industrialist</div>
+    <nav class="main" aria-label="Navigation">
+      <button data-go="accueil" aria-current="page">Accueil</button>
+      <button data-go="objet">Planifier</button>
+      <button data-go="usine">Mon usine</button>
+      <button data-go="arbre">Arbre<span class="long"> de recherche</span></button>
+      <button data-go="donnees">Données</button>
+    </nav>
+    <div class="me" aria-label="Mon usine en bref">
+      <span>146/146 recherches</span><span>≈ 12 400 RP · 20 RP/s</span><span>2,1 M$</span><button data-go="usine">modifier</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ======================================================== ACCUEIL -->
+  <section data-screen="accueil">
+    <h1>Que veux-tu faire ?</h1>
+    <p class="lead">Dis ce que tu veux obtenir : le calculateur te donne la liste exacte des machines à construire, avec seulement ce que tu as débloqué.</p>
+    <div class="cards">
+      <button class="card" data-go="objet"><span class="ico">⚙</span><b>Produire un objet</b><small>« 60 Crankshafts par minute » → les machines de toute la chaîne.</small></button>
+      <button class="card" data-go="objet"><span class="ico">⚡</span><b>Produire de l'énergie</b><small>« 2 MMF/s, sans pollution » → la centrale et son combustible.</small></button>
+      <button class="card" data-go="objet"><span class="ico">🔬</span><b>Gagner des points de recherche</b><small>« Débloquer la RS3 en 1 h » → les stations et leurs items.</small></button>
+      <button class="card" data-go="objet"><span class="ico">$</span><b>Gagner de l'argent</b><small>« 10 000 $ par minute » → quoi fabriquer et vendre.</small></button>
+    </div>
+    <div class="callout">
+      <p><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent). Deux minutes, une seule fois.</p>
+      <button class="btn primary" data-go="usine">Renseigner mon usine</button>
+    </div>
+  </section>
+
+  <!-- ======================================================== PLANIFIER (objet) -->
+  <section data-screen="objet" hidden>
+    <h1>Produire un objet</h1>
+    <form class="ask" onsubmit="return false">
+      <label class="item">Objet<input value="Crankshaft" list="items"></label>
+      <label>Quantité<span class="qty"><input value="60" inputmode="decimal"><select><option>par minute</option><option>machines finales</option></select></span></label>
+      <label>Priorité<select><option>Le moins d'énergie</option><option>Le moins de machines</option><option>Le moins cher</option><option>Le moins de pollution</option><option>Le moins de place</option></select></label>
+      <details><summary>Options avancées (aucune activée)</summary>
+        <div class="adv">
+          <label><input type="checkbox"> Produire ma propre énergie</label>
+          <label><input type="checkbox"> Ne pas dépasser mon argent (2,1 M$)</label>
+          <label><input type="checkbox"> Limiter la pollution à <input style="width:70px" placeholder="—"> %/h</label>
+          <label><input type="checkbox"> Utiliser les valeurs « à vérifier »</label>
+          <label><input type="checkbox"> Tenir compte de ma production existante (gérée dans Mon usine)</label>
+        </div>
+      </details>
+    </form>
+
+    <div class="answer" role="status">
+      <h2>Pour 60 Crankshafts/min : 119 machines et 61 arbres.</h2>
+      <div class="kpis">
+        <div class="kpi"><b>455 kMF/s</b><span>énergie (503 kMF/s en pointe)</span></div>
+        <div class="kpi"><b>1,41 M$</b><span>à dépenser — tu as 2,1 M$ ✓</span></div>
+        <div class="kpi"><b>33 %/h</b><span>pollution ajoutée</span></div>
+        <div class="kpi"><b>3 862</b><span>cases au sol</span></div>
+      </div>
+      <p class="extract">À extraire : <span class="chip">Raw Iron <span class="n">240/min</span></span><span class="chip">Coal <span class="n">40/min</span></span><span class="chip">Oak Log <span class="n">20/min</span></span></p>
+      <p class="notice">Débit voisin plus efficace : 57/min (toutes les machines occupées à 98 %).</p>
+    </div>
+
+    <div class="rtabs" role="tablist">
+      <button role="tab" aria-selected="true" data-rtab="liste">Liste de construction</button>
+      <button role="tab" aria-selected="false" data-rtab="schema">Schéma</button>
+      <button role="tab" aria-selected="false" data-rtab="details">Détails</button>
+    </div>
+    <div class="rpanel" data-rpanel="liste">
+      <div class="progress"><span id="done-txt">0 / 11 étapes construites</span><span class="bar"><i id="done-bar"></i></span></div>
+      <table class="build"><thead><tr><th></th><th>Construire</th><th>Pour produire</th><th>Alimente</th><th>Énergie</th></tr></thead><tbody id="build"></tbody></table>
+      <p class="hint">Coche au fur et à mesure que tu construis. De l'extraction vers l'objet final, dans l'ordre où l'on pose les machines.</p>
+    </div>
+    <div class="rpanel" data-rpanel="schema" hidden>
+      <div class="frame"><svg id="schema" role="img" aria-label="Schéma des flux, des matières premières vers le Crankshaft"></svg></div>
+      <p class="hint">De gauche (extraction) à droite (objet final). Dans le site : glisser pour se déplacer, molette pour zoomer, comme l'arbre de recherche.</p>
+    </div>
+    <div class="rpanel" data-rpanel="details" hidden>
+      <details class="more"><summary>Recettes utilisées et sources (11)</summary><p class="hint">Le tableau actuel des recettes, avec les liens vers le wiki.</p></details>
+      <details class="more"><summary>Autres débits « ronds »</summary><ul><li>29,8/min : 92 machines (96 %)</li><li>57/min : 173 machines (98 %)</li><li>120/min : 359 machines (99 %)</li></ul></details>
+      <details class="more"><summary>Remarques sur le calcul (1)</summary><ul><li>Nombre d'arbres indicatif : la pousse dépend de ta pollution (0 % ici).</li></ul></details>
+      <details class="more"><summary>Forcer une autre recette</summary><p class="hint">Choix de la recette pour chaque objet de la chaîne.</p></details>
+    </div>
+  </section>
+
+  <!-- ======================================================== MON USINE -->
+  <section data-screen="usine" hidden>
+    <h1>Mon usine</h1>
+    <p class="lead">Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs.</p>
+    <div class="grid2">
+      <div class="box">
+        <h2>Recherches débloquées</h2>
+        <p style="margin:0">146 sur 146 — 23,3 M RP investis.</p>
+        <div class="meter"><i style="width:100%"></i></div>
+        <div class="row" style="margin-top:10px"><button class="btn" data-go="arbre">Ouvrir l'arbre</button><button class="btn">Tout débloquer jusqu'à…</button></div>
+      </div>
+      <div class="box">
+        <h2>Ressources</h2>
+        <div class="row">
+          <label>RP disponibles<input value="12 400"></label>
+          <label>RP par seconde<input value="20"></label>
+          <label>Argent ($)<input value="2 100 000"></label>
+          <label>Pollution (%)<input value="0"></label>
+        </div>
+        <p class="hint">Les RP montent tout seuls avec tes RP/s depuis ta dernière saisie.</p>
+      </div>
+      <div class="box">
+        <h2>Production déjà en place</h2>
+        <p class="hint" style="margin-top:0">Ce que tes usines produisent déjà : utilisé avant de construire du neuf.</p>
+        <p><span class="chip">Plastic Pellets <span class="n">30/min</span></span> <span class="chip">Steel Ingot <span class="n">120/min</span></span></p>
+        <button class="btn">Ajouter une production</button>
+      </div>
+      <div class="box">
+        <h2>Réglages</h2>
+        <div class="adv" style="margin-top:0"><label><input type="checkbox"> Débloquer une recherche dépense ses RP</label><label><input type="checkbox" checked> J'ai la passe de jeu</label></div>
+        <div class="row" style="margin-top:10px"><button class="btn">Exporter ma partie</button><button class="btn">Importer</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-screen="arbre" hidden><h1>Arbre de recherche</h1><p class="lead">Inchangé : l'arbre « comme en jeu » actuel, avec sa fiche à droite.</p></section>
+  <section data-screen="donnees" hidden><h1>Données</h1><p class="lead">Pour contribuer, hors du parcours de jeu : valeurs à vérifier, corrections, éditeur de bâtiments, export pour le dépôt.</p></section>
+
+  <p class="note">Ce qui change par rapport au site actuel :
+    une question = une page ;
+    la réponse visible sans défiler ;
+    la liste de construction devient la vue principale ;
+    le schéma se lit de gauche à droite et se zoome ;
+    les options et les détails sont repliés ;
+    l'état du joueur est réuni dans « Mon usine » et résumé en haut ;
+    les outils de contribution passent dans « Données ».</p>
+</main>
+
+<script>
+// Données d'un vrai calcul (moteur actuel), figées pour la maquette.
+const steps = [
+  { item: "Crankshaft", machine: "Craft Assembler", n: 15, exact: 15, perMin: 60, energy: 60000, depth: 0, ins: [["Steel Rod", 120], ["Gear", 240]] },
+  { item: "Gear", machine: "Press MK2", n: 1, exact: 0.8, perMin: 240, energy: 60000, depth: 1, ins: [["Steel Plate", 240]] },
+  { item: "Steel Rod", machine: "Roller", n: 8, exact: 8, perMin: 120, energy: 50000, depth: 1, ins: [["Steel Ingot", 120]] },
+  { item: "Steel Plate", machine: "Press MK2", n: 2, exact: 1.6, perMin: 240, energy: 120000, depth: 2, ins: [["Steel Ingot", 240]] },
+  { item: "Steel Ingot", machine: "Blast Furnace", n: 5, exact: 5, perMin: 360, energy: 75000, depth: 3, ins: [["Coke Fuel", 60], ["Iron Ingot", 120]] },
+  { item: "Coke Fuel", machine: "Blast Furnace", n: 1, exact: 0.83, perMin: 60, energy: 12500, depth: 4, ins: [["Coal", 40], ["Oak Log", 20]] },
+  { item: "Iron Ingot", machine: "Ingot Molder", n: 4, exact: 4, perMin: 120, energy: 600, depth: 4, ins: [["Liquid Iron", 240]] },
+  { item: "Coal", machine: "Coal Drill", n: 3, exact: 2.67, perMin: 40, energy: 320, depth: 5, ins: [] },
+  { item: "Liquid Iron", machine: "Electric Furnace", n: 20, exact: 20, perMin: 240, energy: 4800, depth: 5, ins: [["Raw Iron", 240]] },
+  { item: "Oak Log", machine: "Tree", n: 61, exact: 60.45, perMin: 20, energy: 0, depth: 5, farm: true, ins: [] },
+  { item: "Raw Iron", machine: "Iron Drill", n: 60, exact: 60, perMin: 240, energy: 72000, depth: 6, ins: [] },
+];
+const fmt = (x, d = 0) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: d }).format(x);
+const mf = (w) => (w >= 1e6 ? `${fmt(w / 1e6, 2)} MMF/s` : w >= 1e3 ? `${fmt(w / 1e3, 1)} kMF/s` : `${fmt(w)} MF/s`);
+const feeds = (item) => steps.filter((s) => s.ins.some(([i]) => i === item)).map((s) => s.item);
+
+// Liste de construction : par étage, de l'extraction à l'objet final.
+const stages = [
+  ["Extraction", (s) => !s.ins.length],
+  ["Transformation", (s) => s.ins.length && s.depth > 0],
+  ["Objet final", (s) => s.depth === 0],
+];
+const body = document.getElementById("build");
+let html = "";
+for (const [label, test] of stages) {
+  const rows = steps.filter(test).sort((a, b) => b.depth - a.depth);
+  if (!rows.length) continue;
+  html += `<tr class="stage"><td colspan="5">${label}</td></tr>`;
+  for (const s of rows) {
+    const util = s.exact / s.n;
+    html += `<tr><td class="chk"><input type="checkbox" aria-label="${s.machine} construit"></td>
+      <td><span class="count">${s.n} ×</span> ${s.machine}${util < 0.95 ? `<div class="sub">occupée à ${fmt(util * 100)} %</div>` : ""}</td>
+      <td>${s.item}<div class="sub num">${fmt(s.perMin, 2)}/min</div></td>
+      <td class="feeds">${feeds(s.item).join(", ") || "<span class='sub'>sortie de la chaîne</span>"}</td>
+      <td class="num energy">${s.farm ? "—" : mf(s.energy)}</td></tr>`;
+  }
+}
+body.innerHTML = html;
+body.addEventListener("change", () => {
+  const boxes = [...body.querySelectorAll("input")];
+  boxes.forEach((b) => b.closest("tr").classList.toggle("done", b.checked));
+  const n = boxes.filter((b) => b.checked).length;
+  document.getElementById("done-txt").textContent = `${n} / ${boxes.length} étapes construites`;
+  document.getElementById("done-bar").style.width = `${(n / boxes.length) * 100}%`;
+});
+
+// Schéma de gauche à droite : une colonne par étage.
+const svg = document.getElementById("schema");
+const maxD = Math.max(...steps.map((s) => s.depth));
+const W = 160, H = 52, GX = 70, GY = 22, M = 20;
+const cols = new Map();
+for (const s of steps) {
+  const c = maxD - s.depth;
+  if (!cols.has(c)) cols.set(c, []);
+  cols.get(c).push(s);
+}
+const maxRows = Math.max(...[...cols.values()].map((l) => l.length));
+const height = M * 2 + maxRows * H + (maxRows - 1) * GY;
+const pos = new Map();
+for (const [c, list] of cols) {
+  const total = list.length * H + (list.length - 1) * GY;
+  list.forEach((s, i) => pos.set(s.item, { x: M + c * (W + GX), y: (height - total) / 2 + i * (H + GY), s }));
+}
+const width = M * 2 + (maxD + 1) * W + maxD * GX;
+svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+svg.style.width = `${width}px`;
+let g = "";
+for (const s of steps) {
+  for (const [item, q] of s.ins) {
+    const a = pos.get(item), b = pos.get(s.item);
+    if (!a || !b) continue;
+    const x1 = a.x + W, y1 = a.y + H / 2, x2 = b.x, y2 = b.y + H / 2, mx = (x1 + x2) / 2;
+    g += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/><text class="q" x="${mx}" y="${(y1 + y2) / 2 - 4}" text-anchor="middle">${fmt(q)}/min</text>`;
+  }
+}
+for (const { x, y, s } of pos.values()) {
+  const cls = s.depth === 0 ? "final" : !s.ins.length ? "raw" : "";
+  g += `<g class="n ${cls}"><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="9"/><text x="${x + 12}" y="${y + 21}">${s.item}</text><text class="m" x="${x + 12}" y="${y + 39}">${s.n} × ${s.machine}</text></g>`;
+}
+svg.innerHTML = g;
+
+// Navigation de la maquette.
+const go = (id) => {
+  const screen = ["arbre", "donnees", "usine", "accueil"].includes(id) ? id : "objet";
+  document.querySelectorAll("[data-screen]").forEach((s) => (s.hidden = s.dataset.screen !== screen));
+  document.querySelectorAll("nav.main button").forEach((b) => b.setAttribute("aria-current", b.dataset.go === screen ? "page" : "false"));
+  window.scrollTo(0, 0);
+};
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-go]");
+  if (t) go(t.dataset.go);
+  const r = e.target.closest("[data-rtab]");
+  if (r) {
+    document.querySelectorAll("[data-rtab]").forEach((b) => b.setAttribute("aria-selected", String(b === r)));
+    document.querySelectorAll("[data-rpanel]").forEach((p) => (p.hidden = p.dataset.rpanel !== r.dataset.rtab));
+  }
+});
+</script>
+</body>
+</html>

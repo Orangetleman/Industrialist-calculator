@@ -44,6 +44,41 @@ automatiques de la page, presque jamais en l'utilisant comme un joueur. C'est la
 9. **Première visite déroutante** : on arrive sur un arbre de 146 recherches à cocher, sans
    explication de ce que fait le site.
 
+### Parcours réel (2026-10-12, site en ligne, écran 1366 × 768 puis téléphone)
+
+**1. Première visite.**
+- On arrive sur l'onglet Recherche : 0/146 recherches, et l'arbre commence à 360 px du haut.
+- L'en-tête dit pourtant « Choisis un item et un débit » : le texte d'accueil ne correspond pas
+  à l'écran affiché.
+
+**2. Onglet Production sans progression.**
+- Le réglage est pré-rempli : Crankshaft, 15 machines finales.
+- La réponse est « Crankshaft ne peut pas être produit », plus un message technique
+  (« Impossible de convertir 15 machines en débit »).
+- Cette réponse apparaît à 813 px, **sous l'écran** : il faut défiler pour savoir si ça marche.
+
+**3. Progression jusqu'au Craft Assembler, 60/min.**
+- Le plan est partiel (Gear et Steel Rod verrouillés), mais le résumé affiche fièrement
+  « 15 machines » et des « paliers ronds », sans rapport avec la question.
+- La page fait 3 482 px pour 3 étapes : résumé à 937 px, plan à 2 063 px.
+
+**4. Toute la recherche, « moins de machines » (25 étapes).**
+- La page fait **13 870 px**, soit 18 écrans.
+- Le graphe à lui seul fait 2 186 px de haut, sans zoom, avec deux étiquettes qui se
+  chevauchent.
+- Les 7 avertissements sont tous « tel sous-produit est réutilisé ».
+
+**5. Selon l'objectif.**
+- Il y a 13 à 18 réglages visibles avant toute réponse.
+- Les pages font 6 000 à 14 000 px.
+- Le calcul, lui, est rapide (25 à 250 ms) : la lenteur ressentie vient du défilement, pas du
+  moteur.
+
+**6. Téléphone (375 px).**
+- La barre d'onglets déborde de 245 px : « Bâtiments » et « Ma partie » sont invisibles.
+- Le résumé est à 1 223 px.
+- Le graphe, réduit à 342 px de large, a un texte d'environ 6 px : illisible.
+
 ### Ce qui marche (à garder)
 
 - L'éditeur de bâtiments (l'utilisateur le juge bon).
@@ -86,6 +121,18 @@ Principe : **une question, une page, une réponse.** Le détail reste disponible
 7. **Unités et mots cohérents** partout : objets/min, MF/s (avec préfixe automatique), RP/s,
    $/min ; un glossaire court pour les termes du jeu.
 8. **Avertissements triés** : ce qui empêche le plan en haut, le reste replié par catégorie.
+
+### Maquette à valider
+
+`maquette/index.html` (à ouvrir avec `npm run dev`, puis http://localhost:5173/maquette/) :
+l'accueil, la page « Produire un objet » et « Mon usine ». Elle est remplie avec un vrai calcul
+figé : 60 Crankshafts/min, toute la recherche, « le moins d'énergie ».
+
+Mesures, écran 1366 × 768 :
+- la réponse est entièrement visible sans défiler (de 322 à 536 px, contre 813 px et plus
+  aujourd'hui) ;
+- aucun débordement, de 375 px à 1366 px ;
+- le schéma, en taille réelle, défile dans son cadre au lieu de rétrécir.
 
 ### Méthode, cette fois
 
