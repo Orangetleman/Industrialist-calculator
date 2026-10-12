@@ -5,7 +5,7 @@ import type { OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Settings = {
   /** Objectif : produire un objet, ou gagner de l'argent ($/min). */
-  goal: "objet" | "argent";
+  goal: "objet" | "argent" | "énergie";
   item: string;
   mode: "rate" | "machines";
   rate: number;
@@ -23,6 +23,11 @@ export type Settings = {
   useBudget: boolean;
   /** Production déjà en place chez le joueur : item → débit (/min). */
   existing: Record<string, number>;
+  /** Objectif énergie : MF/s voulus, production garantie ou moyenne, sans combustible, distance. */
+  energyMFps: number;
+  energyGuaranteed: boolean;
+  energyNoFuel: boolean;
+  distanceTiles: number | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,6 +44,10 @@ export const DEFAULT_SETTINGS: Settings = {
   maxPollution: null,
   useBudget: false,
   existing: {},
+  energyMFps: 1_000_000,
+  energyGuaranteed: false,
+  energyNoFuel: false,
+  distanceTiles: null,
 };
 
 const KEY_SETTINGS = "ind-calc:v1:settings";
@@ -65,8 +74,12 @@ export function loadSettings(): Settings {
   // « allUnlocked » : réglage provisoire de l'étape (c), ignoré désormais.
   const { allUnlocked: _ancien, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown };
   const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
-  if (!["machines", "energy", "raw", "steps", "pollution", "cost"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
-  if (out.goal !== "objet" && out.goal !== "argent") out.goal = "objet";
+  if (!["machines", "energy", "raw", "steps", "pollution", "cost", "area"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
+  if (out.goal !== "objet" && out.goal !== "argent" && out.goal !== "énergie") out.goal = "objet";
+  if (!(out.energyMFps > 0)) out.energyMFps = DEFAULT_SETTINGS.energyMFps;
+  out.energyGuaranteed = out.energyGuaranteed === true;
+  out.energyNoFuel = out.energyNoFuel === true;
+  if (out.distanceTiles !== null && !(out.distanceTiles >= 0)) out.distanceTiles = null;
   if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;

@@ -1,0 +1,868 @@
+{
+ "meta": {
+  "generatedAt": "2026-10-12T07:24:12.835Z",
+  "primary": "miraheze",
+  "counts": {
+   "setups": 12,
+   "notComputed": 11,
+   "scrubbers": 4
+  }
+ },
+ "setups": [
+  {
+   "id": "centrale:firebox_01",
+   "name": "Firebox (coal) + 2 Boilers + 2 Large Turbines",
+   "kind": "thermique",
+   "machine": "firebox",
+   "parts": [
+    {
+     "machine": "firebox",
+     "count": 1
+    },
+    {
+     "machine": "boiler",
+     "count": 2
+    },
+    {
+     "machine": "large-turbine",
+     "count": 2
+    }
+   ],
+   "inputsPerSec": {
+    "coal": 1
+   },
+   "outputsPerSec": {},
+   "mfps": 639700,
+   "guaranteed": true,
+   "pollutionPerHour": 1.08,
+   "note": "Vapeur vers 190 °C d'après le wiki (jusqu'à 215 °C en renvoyant l'eau usée du Boiler dans sa seconde entrée). Boucle d'eau fermée : seul le remplissage initial demande de l'eau.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Firebox",
+     "page": "Firebox",
+     "revisionId": 43042,
+     "fetchedAt": "2026-10-11T01:03:29.689Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boiler",
+     "page": "Boiler",
+     "revisionId": 43471,
+     "fetchedAt": "2026-10-12T07:24:05.178Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Turbine",
+     "page": "Large Turbine",
+     "revisionId": 42633,
+     "fetchedAt": "2026-10-11T02:15:47.488Z"
+    },
+    {
+     "wiki": "desmos",
+     "url": "https://www.desmos.com/calculator/z9u5rwz5wr",
+     "page": "Large Turbine power graph (lié depuis la page Large Turbine)",
+     "fetchedAt": "2026-10-12T08:55:58.233Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "energyMFps",
+     "reason": "approximatif",
+     "detail": "température de la vapeur « around 190 » °C d'après la page Firebox : à confirmer en jeu"
+    }
+   ]
+  },
+  {
+   "id": "centrale:gas_burner_01",
+   "name": "Gas Burner (refined-gas) + 10 Boilers + 10 Large Turbines",
+   "kind": "thermique",
+   "machine": "gas-burner",
+   "parts": [
+    {
+     "machine": "gas-burner",
+     "count": 1
+    },
+    {
+     "machine": "boiler",
+     "count": 10
+    },
+    {
+     "machine": "large-turbine",
+     "count": 10
+    }
+   ],
+   "inputsPerSec": {
+    "refined-gas": 30
+   },
+   "outputsPerSec": {},
+   "mfps": 4500000,
+   "guaranteed": true,
+   "pollutionPerHour": 0.173,
+   "note": "Puissance d'un brûleur : 4,5 à 5 MMF/s d'après le wiki ; on compte la borne basse. Boucle d'eau fermée : seul le remplissage initial demande de l'eau.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+     "page": "Gas Burner",
+     "revisionId": 42041,
+     "fetchedAt": "2026-10-11T01:03:29.692Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boiler",
+     "page": "Boiler",
+     "revisionId": 43471,
+     "fetchedAt": "2026-10-12T07:24:05.178Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Turbine",
+     "page": "Large Turbine",
+     "revisionId": 42633,
+     "fetchedAt": "2026-10-11T02:15:47.488Z"
+    },
+    {
+     "wiki": "desmos",
+     "url": "https://www.desmos.com/calculator/z9u5rwz5wr",
+     "page": "Large Turbine power graph (lié depuis la page Large Turbine)",
+     "fetchedAt": "2026-10-12T08:55:58.233Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "energyMFps",
+     "reason": "approximatif",
+     "detail": "4.5 à 5 MMF/s par brûleur d'après la page Gas Burner : borne basse retenue"
+    }
+   ]
+  },
+  {
+   "id": "centrale:gas_burner_02",
+   "name": "Gas Burner (hydrogen) + 10 Boilers + 10 Large Turbines",
+   "kind": "thermique",
+   "machine": "gas-burner",
+   "parts": [
+    {
+     "machine": "gas-burner",
+     "count": 1
+    },
+    {
+     "machine": "boiler",
+     "count": 10
+    },
+    {
+     "machine": "large-turbine",
+     "count": 10
+    }
+   ],
+   "inputsPerSec": {
+    "hydrogen": 20
+   },
+   "outputsPerSec": {},
+   "mfps": 4500000,
+   "guaranteed": true,
+   "pollutionPerHour": 0.173,
+   "note": "Puissance d'un brûleur : 4,5 à 5 MMF/s d'après le wiki ; on compte la borne basse. Boucle d'eau fermée : seul le remplissage initial demande de l'eau.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+     "page": "Gas Burner",
+     "revisionId": 42041,
+     "fetchedAt": "2026-10-11T01:03:29.692Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Boiler",
+     "page": "Boiler",
+     "revisionId": 43471,
+     "fetchedAt": "2026-10-12T07:24:05.178Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Large_Turbine",
+     "page": "Large Turbine",
+     "revisionId": 42633,
+     "fetchedAt": "2026-10-11T02:15:47.488Z"
+    },
+    {
+     "wiki": "desmos",
+     "url": "https://www.desmos.com/calculator/z9u5rwz5wr",
+     "page": "Large Turbine power graph (lié depuis la page Large Turbine)",
+     "fetchedAt": "2026-10-12T08:55:58.233Z"
+    }
+   ],
+   "verify": [
+    {
+     "field": "energyMFps",
+     "reason": "approximatif",
+     "detail": "4.5 à 5 MMF/s par brûleur d'après la page Gas Burner : borne basse retenue"
+    }
+   ]
+  },
+  {
+   "id": "solaire:solar-panel",
+   "name": "Solar Panel",
+   "kind": "solaire",
+   "machine": "solar-panel",
+   "parts": [
+    {
+     "machine": "solar-panel",
+     "count": 1
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 183.75,
+   "guaranteed": false,
+   "pollutionPerHour": 0,
+   "note": "Moyenne sur la journée (120 à 240 MF/s selon l'heure). La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solaire+stockage:rusty-battery",
+   "name": "Solar Panel + Rusty Battery (stockage de nuit)",
+   "kind": "solaire",
+   "machine": "solar-panel",
+   "parts": [
+    {
+     "machine": "solar-panel",
+     "count": 1
+    },
+    {
+     "machine": "rusty-battery",
+     "count": 0.02475
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 183.75,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production lissée jour et nuit : chaque panneau demande 24 750 MF de stockage et 63,75 MF/s de débit de batterie (1 Rusty Battery pour 40 panneaux). La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Rusty_Battery",
+     "page": "Rusty Battery",
+     "revisionId": 42388,
+     "fetchedAt": "2026-10-11T02:15:53.714Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solaire+stockage:mv-battery",
+   "name": "Solar Panel + MV Battery (stockage de nuit)",
+   "kind": "solaire",
+   "machine": "solar-panel",
+   "parts": [
+    {
+     "machine": "solar-panel",
+     "count": 1
+    },
+    {
+     "machine": "mv-battery",
+     "count": 0.002475
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 183.75,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production lissée jour et nuit : chaque panneau demande 24 750 MF de stockage et 63,75 MF/s de débit de batterie (1 MV Battery pour 404 panneaux). La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/MV_Battery",
+     "page": "MV Battery",
+     "revisionId": 39265,
+     "fetchedAt": "2026-10-11T02:15:49.198Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solaire+stockage:double-mv-battery",
+   "name": "Solar Panel + Double MV Battery (stockage de nuit)",
+   "kind": "solaire",
+   "machine": "solar-panel",
+   "parts": [
+    {
+     "machine": "solar-panel",
+     "count": 1
+    },
+    {
+     "machine": "double-mv-battery",
+     "count": 0.000495
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 183.75,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production lissée jour et nuit : chaque panneau demande 24 750 MF de stockage et 63,75 MF/s de débit de batterie (1 Double MV Battery pour 2 020 panneaux). La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Double_MV_Battery",
+     "page": "Double MV Battery",
+     "revisionId": 38078,
+     "fetchedAt": "2026-10-11T02:15:44.600Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solaire+stockage:hv-battery",
+   "name": "Solar Panel + HV Battery (stockage de nuit)",
+   "kind": "solaire",
+   "machine": "solar-panel",
+   "parts": [
+    {
+     "machine": "solar-panel",
+     "count": 1
+    },
+    {
+     "machine": "hv-battery",
+     "count": 0.00002475
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 183.75,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production lissée jour et nuit : chaque panneau demande 24 750 MF de stockage et 63,75 MF/s de débit de batterie (1 HV Battery pour 40 404 panneaux). La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Battery",
+     "page": "HV Battery",
+     "revisionId": 42422,
+     "fetchedAt": "2026-10-11T02:15:46.157Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "solaire+stockage:hv-battery-mk2",
+   "name": "Solar Panel + HV Battery MK2 (stockage de nuit)",
+   "kind": "solaire",
+   "machine": "solar-panel",
+   "parts": [
+    {
+     "machine": "solar-panel",
+     "count": 1
+    },
+    {
+     "machine": "hv-battery-mk2",
+     "count": 3.541666666666667e-7
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 183.75,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production lissée jour et nuit : chaque panneau demande 24 750 MF de stockage et 63,75 MF/s de débit de batterie (1 HV Battery MK2 pour 2 823 529 panneaux). La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+     "page": "Solar Panel",
+     "revisionId": 43279,
+     "fetchedAt": "2026-10-11T02:15:54.897Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/HV_Battery_MK2",
+     "page": "HV Battery MK2",
+     "revisionId": 43161,
+     "fetchedAt": "2026-10-11T02:15:46.157Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "éolien:wind-turbine1",
+   "name": "Wind Turbine1",
+   "kind": "éolien",
+   "machine": "wind-turbine1",
+   "parts": [
+    {
+     "machine": "wind-turbine1",
+     "count": 1
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 700,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production minimale (vent faible) : 700 MF/s ; jusqu'à 4970 MF/s par grand vent. La moyenne n'est pas connue.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine1",
+     "page": "Wind Turbine1",
+     "revisionId": 42392,
+     "fetchedAt": "2026-10-11T02:15:56.545Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+     "page": "Wind Turbine3",
+     "revisionId": 42396,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "éolien:wind-turbine2",
+   "name": "Wind Turbine2",
+   "kind": "éolien",
+   "machine": "wind-turbine2",
+   "parts": [
+    {
+     "machine": "wind-turbine2",
+     "count": 1
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 2350,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production minimale (vent faible) : 2350 MF/s ; jusqu'à 16239.999999999998 MF/s par grand vent. La moyenne n'est pas connue.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine2",
+     "page": "Wind Turbine2",
+     "revisionId": 42391,
+     "fetchedAt": "2026-10-11T02:15:56.549Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+     "page": "Wind Turbine3",
+     "revisionId": 42396,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "éolien:wind-turbine3",
+   "name": "Wind Turbine3",
+   "kind": "éolien",
+   "machine": "wind-turbine3",
+   "parts": [
+    {
+     "machine": "wind-turbine3",
+     "count": 1
+    }
+   ],
+   "inputsPerSec": {},
+   "outputsPerSec": {},
+   "mfps": 10370,
+   "guaranteed": true,
+   "pollutionPerHour": 0,
+   "note": "Production minimale (vent faible) : 10370 MF/s ; jusqu'à 68720 MF/s par grand vent. La moyenne n'est pas connue. Une seule par cercle de 50 studs.",
+   "sources": [
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+     "page": "Wind Turbine3",
+     "revisionId": 42396,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
+    },
+    {
+     "wiki": "miraheze",
+     "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+     "page": "Wind Turbine3",
+     "revisionId": 42396,
+     "fetchedAt": "2026-10-11T02:15:56.550Z"
+    }
+   ],
+   "verify": []
+  }
+ ],
+ "notComputed": [
+  {
+   "machine": "industrial-firebox",
+   "reason": "eau chaude à 300 °C, mais température de la vapeur inconnue : à relever en jeu"
+  },
+  {
+   "machine": "geothermal-well",
+   "reason": "jusqu'à 220 °C avec trois puits en chaîne, perte d'un tiers de l'eau ; température de la vapeur inconnue : à relever en jeu"
+  },
+  {
+   "machine": "electric-water-heater",
+   "reason": "d'après le wiki, une installation Boiler + turbine ne couvre même pas sa propre consommation"
+  },
+  {
+   "machine": "steam-turbine",
+   "reason": "puissance de 432 MF/s à 9,36 kMF/s selon la température, sans courbe"
+  },
+  {
+   "machine": "coal-power-plant",
+   "reason": "grande centrale modulaire : réglages et données insuffisants pour un calcul fiable"
+  },
+  {
+   "machine": "nuclear-power-plant",
+   "reason": "grande centrale modulaire : réglages et données insuffisants pour un calcul fiable"
+  },
+  {
+   "machine": "turbine-generator",
+   "reason": "grande centrale modulaire : réglages et données insuffisants pour un calcul fiable"
+  },
+  {
+   "machine": "diesel-engine-generator",
+   "reason": "grande centrale modulaire : réglages et données insuffisants pour un calcul fiable"
+  },
+  {
+   "machine": "solar-panel2",
+   "reason": "production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer"
+  },
+  {
+   "machine": "solar-panel3",
+   "reason": "production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer"
+  },
+  {
+   "machine": "solar-farm1",
+   "reason": "production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer"
+  }
+ ],
+ "scrubbers": [
+  {
+   "recipe": "scrubber_01",
+   "pollutionPerHour": -3.24,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "Regular [[Water]] will decrease the world's [[Pollution]] by {{Pollution|3.24|negate=1}} per hour"
+  },
+  {
+   "recipe": "scrubber_02",
+   "pollutionPerHour": -3.57,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "[[Filtered Water]] will remove {{Pollution|3.57|negate=1}} per hour"
+  },
+  {
+   "recipe": "scrubber_03",
+   "pollutionPerHour": -6.29,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "[[Distilled Water]] which removes {{Pollution|6.29|negate=1}} per hour"
+  },
+  {
+   "recipe": "scrubber_04",
+   "pollutionPerHour": 6.48,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "increases world [[Pollution]] by {{Pollution|6.48}} per h"
+  }
+ ],
+ "facts": {
+  "boiler.coolantPerSec": {
+   "value": 3,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Boiler",
+    "page": "Boiler",
+    "revisionId": 43471,
+    "fetchedAt": "2026-10-12T07:24:05.178Z"
+   },
+   "quote": "3L [[Water]] is used per second"
+  },
+  "boiler.steamPerSec": {
+   "value": 90,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Boiler",
+    "page": "Boiler",
+    "revisionId": 43471,
+    "fetchedAt": "2026-10-12T07:24:05.178Z"
+   },
+   "quote": "will output 90L/s of [[Steam]]"
+  },
+  "largeTurbine.steamPerSec": {
+   "value": 90,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Large_Turbine",
+    "page": "Large Turbine",
+    "revisionId": 42633,
+    "fetchedAt": "2026-10-11T02:15:47.488Z"
+   },
+   "quote": "(90L/s of [[Steam]] is needed for a fully online turbine)"
+  },
+  "firebox.steamTempC": {
+   "value": 190,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Firebox",
+    "page": "Firebox",
+    "revisionId": 43042,
+    "fetchedAt": "2026-10-11T01:03:29.689Z"
+   },
+   "quote": "should yield around {{Heat|190}} of [[Steam]]"
+  },
+  "firebox.steamTempMaxC": {
+   "value": 215,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Firebox",
+    "page": "Firebox",
+    "revisionId": 43042,
+    "fetchedAt": "2026-10-11T01:03:29.689Z"
+   },
+   "quote": "can reach up to {{Heat|215}}"
+  },
+  "firebox.coolantTempC": {
+   "value": 240,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Firebox",
+    "page": "Firebox",
+    "revisionId": 43042,
+    "fetchedAt": "2026-10-11T01:03:29.689Z"
+   },
+   "quote": "guaranteed to be at {{Heat|240}}"
+  },
+  "firebox.boilers": {
+   "value": 2,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Firebox",
+    "page": "Firebox",
+    "revisionId": 43042,
+    "fetchedAt": "2026-10-11T01:03:29.689Z"
+   },
+   "quote": "can sustain two [[Boiler]]s"
+  },
+  "gasBurner.powerMFps": {
+   "value": [
+    4500000,
+    5000000
+   ],
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+    "page": "Gas Burner",
+    "revisionId": 42041,
+    "fetchedAt": "2026-10-11T01:03:29.692Z"
+   },
+   "quote": "expected to produce {{Power|4.5MMF/s}} to {{Power|5MMF/s}}"
+  },
+  "gasBurner.boilers": {
+   "value": 10,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+    "page": "Gas Burner",
+    "revisionId": 42041,
+    "fetchedAt": "2026-10-11T01:03:29.692Z"
+   },
+   "quote": "can supply up to ten [[Boiler]]s"
+  },
+  "gasBurner.coolantTempC": {
+   "value": 400,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Gas_Burner",
+    "page": "Gas Burner",
+    "revisionId": 42041,
+    "fetchedAt": "2026-10-11T01:03:29.692Z"
+   },
+   "quote": "heat [[Water]] up to {{Heat|400}}"
+  },
+  "industrialFirebox.coolantTempC": {
+   "value": 300,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Industrial_Firebox",
+    "page": "Industrial Firebox",
+    "revisionId": 38141,
+    "fetchedAt": "2026-10-11T01:03:31.174Z"
+   },
+   "quote": "only capable of reaching {{Heat|300}}"
+  },
+  "industrialFirebox.boilers": {
+   "value": 4,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Industrial_Firebox",
+    "page": "Industrial Firebox",
+    "revisionId": 38141,
+    "fetchedAt": "2026-10-11T01:03:31.174Z"
+   },
+   "quote": "can support four [[Boiler]]s"
+  },
+  "geothermal.maxTempC": {
+   "value": 220,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Geothermal_Well",
+    "page": "Geothermal Well",
+    "revisionId": 43018,
+    "fetchedAt": "2026-10-11T01:03:31.167Z"
+   },
+   "quote": "cannot be increased above {{Heat|220}}"
+  },
+  "solarPanel.hourly": {
+   "value": [
+    120,
+    120,
+    120,
+    120,
+    150,
+    180,
+    240,
+    240,
+    240,
+    240,
+    240,
+    240,
+    240,
+    240,
+    240,
+    240,
+    240,
+    150,
+    150,
+    150,
+    150,
+    120,
+    120,
+    120
+   ],
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Solar_Panel",
+    "page": "Solar Panel",
+    "revisionId": 43279,
+    "fetchedAt": "2026-10-11T02:15:54.897Z"
+   },
+   "quote": "tableau « Time / MamyFlux production » de la page Solar Panel"
+  },
+  "wind.neverZero": {
+   "value": true,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Wind_Turbine3",
+    "page": "Wind Turbine3",
+    "revisionId": 42396,
+    "fetchedAt": "2026-10-11T02:15:56.550Z"
+   },
+   "quote": "The [[Wind Speed]] can never be zero"
+  },
+  "scrubber.water": {
+   "value": -3.24,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "Regular [[Water]] will decrease the world's [[Pollution]] by {{Pollution|3.24|negate=1}} per hour"
+  },
+  "scrubber.filtered": {
+   "value": -3.57,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "[[Filtered Water]] will remove {{Pollution|3.57|negate=1}} per hour"
+  },
+  "scrubber.distilled": {
+   "value": -6.29,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "[[Distilled Water]] which removes {{Pollution|6.29|negate=1}} per hour"
+  },
+  "scrubber.residue": {
+   "value": 6.48,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Scrubber",
+    "page": "Scrubber",
+    "revisionId": 43395,
+    "fetchedAt": "2026-10-11T01:03:34.199Z"
+   },
+   "quote": "increases world [[Pollution]] by {{Pollution|6.48}} per h"
+  }
+ }
+}

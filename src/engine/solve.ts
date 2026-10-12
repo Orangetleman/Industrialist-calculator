@@ -9,7 +9,7 @@ import { Chooser, ratePerMachine, type Candidate, type Criterion, type LeafReaso
 import { itemName, type GameData } from "./data.ts";
 import { optimize } from "./optimize.ts";
 import type { TreeGrowthResult } from "./pollution.ts";
-import { buildFlowModel, ENERGY, type DepotSpec, type FlowModel, type RecipeProc } from "./resources.ts";
+import { buildFlowModel, ENERGY, POLLUTION, type DepotSpec, type FlowModel, type RecipeProc } from "./resources.ts";
 import { solveV1, type PlanV1 } from "./solve-v1.ts";
 import { roundTiers, type Tier } from "./tiers.ts";
 import type { VerifyFlag } from "./types.ts";
@@ -30,6 +30,15 @@ export type SolveRequest = {
   finalMachines?: number;
   /** Objectif argent : $ par minute (l'item est alors ignoré). */
   moneyPerMin?: number;
+  /** Objectif énergie : MF/s à fournir (l'item est alors ignoré). */
+  energyMFps?: number;
+  /** Énergie : seulement des sources à production constante (nuit et vent faible compris). */
+  guaranteedEnergy?: boolean;
+  /** Énergie : sans combustible (solaire, éolien… ; l'eau n'est pas un combustible). */
+  noFuel?: boolean;
+  /** Poteaux de transport (power.json) et distance à couvrir, en cases, pour le réseau. */
+  poles?: PoleSpec[];
+  distanceTiles?: number | null;
   criterion?: Criterion;
   forced?: Record<string, string>;
   useUnverified?: boolean;
@@ -88,6 +97,8 @@ export type Step = {
   growth?: TreeGrowthResult;
   /** Autres recettes possibles pour cet item (pour « forcer une recette »). */
   alternatives: Candidate[];
+  /** Installation composée (énergie) : ses machines, en nombre exact et arrondi. */
+  parts?: StepPart[];
 };
 
 export type Unresolved = {
@@ -132,6 +143,16 @@ export type Economy = {
 
 /** Production existante du joueur : disponible et réellement utilisée par le plan (/min). */
 export type ExistingUse = { item: string; key: string; available: number; used: number };
+/** Poteau de transport d'énergie : débit par nœud (MF/s), nœuds, portée (cases). */
+export type PoleSpec = { id: string; name: string; perNodeMFps: number; nodes: number; rangeTiles: number | null };
+/** Réseau : pour chaque type de poteau débloqué, combien de lignes et de poteaux. */
+export type Distribution = {
+  mfps: number;
+  distanceTiles: number | null;
+  options: { id: string; name: string; perNodeMFps: number; lines: number; polesPerLine: number | null; poles: number | null; cost: number | null }[];
+};
+/** Machine d'une installation composée, dans une étape : nombre exact et arrondi. */
+export type StepPart = { machine: string; exact: number; count: number };
 export type Sale = { item: string; perMin: number; price: number; revenuePerMin: number };
 export type DepotUse = { id: string; name: string; machinesExact: number; machines: number; itemsPerMin: number; unitCost: number | null };
 
@@ -139,7 +160,8 @@ export type Plan = {
   status: "ok" | "partiel" | "impossible";
   /** Moteur qui a produit le résultat. */
   engine: "simplexe" | "heuristique";
-  target: { kind: "objet" | "argent"; item: string; ratePerMin: number; finalMachines: number | null };
+  /** `ratePerMin` : objets/min, $/min (argent) ou MF/s (énergie). */
+  target: { kind: "objet" | "argent" | "énergie"; item: string; ratePerMin: number; finalMachines: number | null };
   criterion: Criterion;
   steps: Step[];
   /** Clés des étapes qui produisent l'objectif (item final, ou objets vendus). */
@@ -150,6 +172,8 @@ export type Plan = {
   surplus: Surplus[];
   sales: Sale[];
   depots: DepotUse[];
+  /** Réseau électrique (objectif énergie, ou chaîne autonome) : poteaux nécessaires. */
+  distribution: Distribution | null;
   /** Productions existantes du joueur que le plan utilise. */
   existing: ExistingUse[];
   totals: {
@@ -188,6 +212,8 @@ export function solve(data: GameData, player: PlayerState, req: SolveRequest): P
 function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nested: boolean): Plan {
   const criterion = req.criterion ?? "machines";
   const moneyMode = req.moneyPerMin !== undefined;
+  const energyMode = !moneyMode && req.energyMFps !== undefined;
+  const noItem = moneyMode || energyMode;
   const chooser = new Chooser(data, player, {
     criterion,
     forced: req.forced ?? {},
@@ -196,7 +222,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   });
   const name = (id: string) => (id === ENERGY ? "Énergie" : itemName(data, id));
   const warnings: Warning[] = [];
-  if (!moneyMode && !data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: `Item inconnu : « ${req.item} ».`, items: [req.item] });
+  if (!noItem && !data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: `Item inconnu : « ${req.item} ».`, items: [req.item] });
 
   // Critère « moins d'étapes » : ce n'est pas une quantité linéaire ; l'heuristique choisit une
   // recette par item, le simplexe calcule ensuite les quantités (sous-produits compris).
@@ -208,33 +234,37 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
         }
       : undefined;
   const model = buildFlowModel(data, player, chooser, {
-    targets: moneyMode ? [] : [req.item],
+    targets: noItem ? [] : [req.item],
     money: moneyMode,
-    selfPowered: !!req.selfPowered,
+    selfPowered: energyMode || !!req.selfPowered,
+    guaranteedOnly: energyMode && !!req.guaranteedEnergy,
+    noFuel: energyMode && !!req.noFuel,
+    scrubbers: criterion === "pollution" || req.maxPollution != null,
     restrictTo,
     depots: req.depots,
   });
 
   // Débit cible ; « N machines finales » : débit pour lequel l'étape finale compte N machines.
-  let ratePerMin = moneyMode ? req.moneyPerMin! : (req.ratePerMin ?? 0);
+  let ratePerMin = moneyMode ? req.moneyPerMin! : energyMode ? req.energyMFps! : (req.ratePerMin ?? 0);
   // Choix de l'heuristique (une recette par item) : candidat de comparaison pour les critères
   // comptés en machines entières, pour ne jamais faire moins bien que le moteur v1.
   const preferred =
-    criterion === "machines" || criterion === "cost" || criterion === "pollution"
+    !energyMode && (criterion === "machines" || criterion === "cost" || criterion === "pollution")
       ? new Set([...model.items].flatMap((i) => (model.usable.get(i)?.length ? [chooser.choose(i).eff?.recipe.id ?? ""] : [])))
       : undefined;
   const run = (rate: number) =>
     optimize(model, {
       criterion,
-      demand: moneyMode ? new Map() : new Map([[req.item, rate]]),
+      demand: noItem ? new Map() : new Map([[req.item, rate]]),
       moneyPerMin: moneyMode ? rate : null,
-      selfPowered: !!req.selfPowered,
+      selfPowered: energyMode || !!req.selfPowered,
+      ...(energyMode ? { energyTarget: rate } : {}),
       maxPollution: req.maxPollution ?? null,
       budget: req.budget ?? null,
       preferred,
       existing: new Map(Object.entries(req.existing ?? {})),
     });
-  if (!moneyMode && req.finalMachines !== undefined) {
+  if (!noItem && req.finalMachines !== undefined) {
     const unit = run(1);
     const perUnit = unit.status === "ok" ? [...unit.machines].filter(([id]) => (model.recipes.find((p) => p.id === id)?.perMin[req.item] ?? 0) > 0).reduce((s, [, x]) => s + x, 0) : 0;
     if (perUnit > 0) ratePerMin = req.finalMachines / perUnit;
@@ -253,7 +283,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   }
   const res = run(ratePerMin);
   if (res.status !== "ok") {
-    if (!moneyMode) return fromV1(solveV1(data, player, { ...req, criterion: criterion === "pollution" || criterion === "cost" ? "machines" : criterion }), req);
+    if (energyMode) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti : aucune source d'énergie utilisable avec ta progression et ces options." }], player, data);
+    if (!moneyMode) return fromV1(solveV1(data, player, { ...req, criterion: criterion === "pollution" || criterion === "cost" || criterion === "area" ? "machines" : criterion }), req);
     return emptyPlan(req, criterion, ratePerMin, model.depots.length ? [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti (aucune vente possible avec ta progression)." }] : warnings, player, data, depotUnlock?.missingNodes ?? []);
   }
 
@@ -269,7 +300,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       map.get(k)!.push({ id: p.id, amount: Math.abs(v) * x });
     }
   }
-  const external = (item: string) => (moneyMode ? (res.sells.get(item) ?? 0) : item === req.item ? ratePerMin : 0);
+  const external = (item: string) => (moneyMode ? (res.sells.get(item) ?? 0) : energyMode ? 0 : item === req.item ? ratePerMin : 0);
   const totalProd = (k: string) => (prodOf.get(k) ?? []).reduce((s, e) => s + e.amount, 0);
   const totalCons = (k: string) => (consOf.get(k) ?? []).reduce((s, e) => s + e.amount, 0) + external(k);
 
@@ -278,7 +309,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   for (const { p } of used) {
     const outs = Object.entries(p.perMin).filter(([, v]) => v > 0);
     let main: string | null = null;
-    if (!moneyMode && p.perMin[req.item]! > 0) main = req.item;
+    if (!noItem && p.perMin[req.item]! > 0) main = req.item;
+    else if (p.eff.recipe.pollutionPerHour !== undefined && p.eff.recipe.pollutionPerHour < 0 && !outs.some(([k]) => totalCons(k) > 1e-9)) main = POLLUTION;
     else if (outs.length) {
       let best = -1;
       for (const [k, v] of outs.sort(([a], [b]) => a.localeCompare(b))) {
@@ -319,7 +351,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   }
 
   const finals = [
-    ...used.filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : mainOf.get(p.id) === req.item)).map(({ p }) => keyOf(p.id)),
+    ...used.filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : energyMode ? mainOf.get(p.id) === ENERGY : mainOf.get(p.id) === req.item)).map(({ p }) => keyOf(p.id)),
     // Une production existante peut fournir directement l'objectif.
     ...[...res.supplies.keys()].filter((k) => (moneyMode ? res.sells.has(k) : k === req.item)).map((k) => `existant:${k}`),
   ];
@@ -362,9 +394,12 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     const r = eff.recipe;
     const m = p.machine;
     const machines = ceilTol(x);
-    const choice = main === ENERGY ? null : chooser.choose(main);
+    const choice = main === ENERGY || main === POLLUTION ? null : chooser.choose(main);
     const access = machineAccess(data, player, r.machine);
-    const pollution = m?.pollutionPerHour ?? null;
+    // Pollution par machine : celle de la recette (Scrubber), sinon de la machine ; installation : par unité.
+    const pollution = r.pollutionPerHour ?? (p.parts ? p.pollution : (m?.pollutionPerHour ?? null));
+    const parts: StepPart[] | undefined = p.parts?.map((q) => ({ machine: q.machine, exact: x * q.count, count: ceilTol(x * q.count) }));
+    const partSum = (k: "cost" | "area" | "pollution") => (p.parts!.some((q) => q[k] === null) ? null : p.parts!.reduce((s2, q, i) => s2 + parts![i]!.count * q[k]!, 0));
     const isForced = req.forced?.[main] === r.id;
     const ratePerMachineMain = main === ENERGY ? -(p.energy ?? 0) : (ratePerMachine(eff, main) ?? 0);
     const step: Step = {
@@ -393,10 +428,18 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       energyAvg: r.energyMFps === null ? null : x * r.energyMFps,
       energyPeak: r.energyMFps === null ? null : machines * r.energyMFps,
       area: p.area,
-      footprint: p.area === null ? null : machines * p.area,
-      unitCost: m?.cost ?? null,
-      buildCost: m?.cost == null ? null : machines * m.cost,
-      pollutionPerHour: pollution === null ? null : typeof pollution === "number" ? machines * pollution : [machines * pollution[0], machines * pollution[1]],
+      footprint: parts ? partSum("area") : p.area === null ? null : machines * p.area,
+      unitCost: parts ? p.cost : (m?.cost ?? null),
+      buildCost: parts ? partSum("cost") : m?.cost == null ? null : machines * m.cost,
+      pollutionPerHour: parts
+        ? r.pollutionPerHour !== undefined
+          ? machines * r.pollutionPerHour
+          : partSum("pollution")
+        : pollution === null
+          ? null
+          : typeof pollution === "number"
+            ? machines * pollution
+            : [machines * pollution[0], machines * pollution[1]],
       isRaw: p.isRaw,
       usesUnverified: eff.blocking.length > 0,
       verify: r.verify,
@@ -404,6 +447,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       access,
       ...(eff.growth ? { growth: eff.growth } : {}),
       alternatives: choice?.candidates ?? [],
+      ...(parts ? { parts } : {}),
     };
     steps.push(step);
     for (const f of r.verify) verify.push({ scope: "recette", id: r.id, item: main, flag: f, used: true });
@@ -522,7 +566,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   };
   for (const s of steps) {
     if (s.machineKind === "farm") totals.farms += s.machines;
-    else totals.machines += s.machines;
+    else totals.machines += s.parts ? s.parts.reduce((n, q) => n + q.count, 0) : s.machines;
     if (s.energyAvg === null) totals.energyUnknownSteps++;
     else if (s.energyAvg >= 0) {
       totals.energyAvg += s.energyAvg;
@@ -563,7 +607,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   }
 
   const economy = economyOf(data, player, req, steps, unresolved, totals, nested);
-  const raw: Flow[] = steps.filter((s) => s.isRaw).map((s) => ({ item: s.item, perMin: s.demandPerMin }));
+  // Matières premières : les extracteurs (le solaire et l'éolien n'extraient rien).
+  const raw: Flow[] = steps.filter((s) => s.isRaw && s.item !== ENERGY && s.item !== POLLUTION).map((s) => ({ item: s.item, perMin: s.demandPerMin }));
   const status: Plan["status"] = !finals.length
     ? "impossible"
     : unresolved.length || res.energyImport > 0
@@ -572,7 +617,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const plan: Plan = {
     status,
     engine: "simplexe",
-    target: { kind: moneyMode ? "argent" : "objet", item: moneyMode ? "" : req.item, ratePerMin, finalMachines: moneyMode ? null : (req.finalMachines ?? null) },
+    target: { kind: moneyMode ? "argent" : energyMode ? "énergie" : "objet", item: noItem ? "" : req.item, ratePerMin, finalMachines: noItem ? null : (req.finalMachines ?? null) },
     criterion,
     steps,
     finals,
@@ -583,6 +628,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     sales,
     depots,
     existing: [...res.supplies].map(([item, used]) => ({ item, key: `existant:${item}`, available: req.existing![item]!, used })),
+    distribution: totals.energyProduced > 0 ? distributionOf(data, player, req, totals.energyProduced) : null,
     totals,
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
     verify: dedupeVerify(verify),
@@ -619,6 +665,26 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     }
     return economyFrom(data, player, nodeSet, machinesToOwn, totals);
   }
+}
+
+/**
+ * Réseau : pour transporter P MF/s, il faut ⌈P / débit par nœud⌉ lignes de câble ; sur une distance
+ * D (cases), chaque ligne demande ⌈D / portée⌉ + 1 poteaux. Indicatif : la règle des couleurs de
+ * nœuds et le tracé réel viendront avec les plans de construction (E4).
+ */
+function distributionOf(data: GameData, player: PlayerState, req: SolveRequest, mfps: number): Distribution | null {
+  const poles = (req.poles ?? []).filter((p) => p.perNodeMFps > 0 && machineAccess(data, player, p.id).available);
+  if (!poles.length) return null;
+  const d = req.distanceTiles != null && req.distanceTiles > 0 ? req.distanceTiles : null;
+  const options = poles.map((p) => {
+    const lines = Math.ceil(mfps / p.perNodeMFps - 1e-9);
+    const polesPerLine = d !== null && p.rangeTiles ? Math.ceil(d / p.rangeTiles - 1e-9) + 1 : null;
+    const poles = polesPerLine === null ? null : lines * polesPerLine;
+    const unit = data.machines.get(p.id)?.cost ?? null;
+    return { id: p.id, name: p.name, perNodeMFps: p.perNodeMFps, lines, polesPerLine, poles, cost: poles === null || unit === null ? null : poles * unit };
+  });
+  options.sort((a, b) => a.lines - b.lines || (a.cost ?? Infinity) - (b.cost ?? Infinity));
+  return { mfps, distanceTiles: d, options };
 }
 
 function economyFrom(data: GameData, player: PlayerState, nodeSet: Set<string>, machinesToOwn: Set<string>, totals: { buildCost: number; buildCostUnknownSteps: number }): Economy {
@@ -694,6 +760,7 @@ function fromV1(p: PlanV1, req: SolveRequest): Plan {
     sales: [],
     depots: [],
     existing: [],
+    distribution: null,
     totals: { ...p.totals, depots: 0, energyProduced: 0, revenuePerMin: 0 },
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
     warnings: [...p.warnings, { code: "simplexe", message: "Le simplexe n'a pas abouti : choix des recettes par l'heuristique (moteur v1), sans réutilisation des sous-produits." }],
@@ -721,7 +788,7 @@ function emptyPlan(req: SolveRequest, criterion: Criterion, ratePerMin: number, 
   return {
     status: "impossible",
     engine: "simplexe",
-    target: { kind: req.moneyPerMin !== undefined ? "argent" : "objet", item: req.moneyPerMin !== undefined ? "" : req.item, ratePerMin, finalMachines: null },
+    target: { kind: req.moneyPerMin !== undefined ? "argent" : req.energyMFps !== undefined ? "énergie" : "objet", item: req.moneyPerMin !== undefined || req.energyMFps !== undefined ? "" : req.item, ratePerMin, finalMachines: null },
     criterion,
     steps: [],
     finals: [],
@@ -732,6 +799,7 @@ function emptyPlan(req: SolveRequest, criterion: Criterion, ratePerMin: number, 
     sales: [],
     depots: [],
     existing: [],
+    distribution: null,
     totals,
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
     verify: [],

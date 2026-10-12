@@ -9,6 +9,8 @@ import { join } from "node:path";
 import type { DataMeta, MachinesFile, Source, VerifyFlag } from "../src/engine/types.ts";
 import type {
   DepotEntry,
+  EnergyFile,
+  EnergySetup,
   Fact,
   LogisticsFile,
   PipePiece,
@@ -19,6 +21,7 @@ import type {
   StorageEntry,
   WorldFile,
 } from "../src/engine/extension-types.ts";
+import { extractEnergyFacts } from "./lib/energy-extract.ts";
 import { extractRpFormulas, extractWorld, parsePerNode, parsePipeTables, parsePowerRange, parseRangeTiles, type Found } from "./lib/extension-extract.ts";
 import type { CachedPage } from "./lib/wiki-config.ts";
 import { parseTemplate, slugify } from "./lib/wiki-extract.ts";
@@ -255,9 +258,268 @@ if (!powerEntries.find((e) => e.id === "large-turbine")?.tempCurve) {
 }
 flagLines.push("| Steam Turbine | énergie · puissance selon la température | approximatif | Seulement une plage (432 MF/s à 9,36 kMF/s) : pas de courbe sur le wiki. |");
 
+// ---------------------------------------------------------------- énergie : installations complètes (E2)
+const energyPageNames = ["Firebox", "Boiler", "Large Turbine", "Gas Burner", "Industrial Firebox", "Geothermal Well", "Scrubber", "Solar Panel", "Wind Turbine3"];
+const energyPages = Object.fromEntries(energyPageNames.map((t) => [t, pageOf(t)])) as Record<string, CachedPage | null>;
+const ef = extractEnergyFacts(Object.fromEntries(energyPageNames.map((t) => [t, energyPages[t]?.content ?? ""])));
+const energyFacts: Record<string, Fact<unknown>> = {};
+const factOf = <T>(key: string, f: Found<T>): T | null => {
+  const pg = energyPages[f.page];
+  const source: Source = pg ? sourceOf(pg) : { wiki: "miraheze", page: f.page, fetchedAt: latest };
+  if (f.value === null) {
+    issues.push(`Énergie — ${f.page} : ${"problem" in f ? f.problem : "?"}`);
+    energyFacts[key] = { value: null, source, problem: "problem" in f ? f.problem : undefined };
+    return null;
+  }
+  energyFacts[key] = { value: f.value, source, quote: "quote" in f ? f.quote : undefined };
+  return f.value;
+};
+const srcOfPage = (t: string): Source[] => (energyPages[t] ? [sourceOf(energyPages[t]!)] : []);
+const recipesFile = JSON.parse(readFileSync(join(OUT, "recipes.json"), "utf8")) as { recipes: { id: string; machine: string; durationS: number | null; inputs: Record<string, number | null> }[] };
+const recipeById = new Map(recipesFile.recipes.map((r) => [r.id, r]));
+const machineById = new Map(machines.map((m) => [m.id, m]));
+const pollutionOfMachine = (id: string) => {
+  const p = machineById.get(id)?.pollutionPerHour;
+  return p == null ? null : typeof p === "number" ? p : p[1];
+};
+const partsPollution = (parts: { machine: string; count: number }[]) => parts.reduce((s, p) => s + (pollutionOfMachine(p.machine) ?? 0) * p.count, 0);
+
+const boilerCoolant = factOf("boiler.coolantPerSec", ef.boiler.coolantPerSec);
+const boilerSteam = factOf("boiler.steamPerSec", ef.boiler.steamPerSec);
+const turbineSteam = factOf("largeTurbine.steamPerSec", ef.largeTurbine.steamPerSec);
+const curve = powerEntries.find((e) => e.id === "large-turbine")?.tempCurve ?? null;
+/** Puissance d'une Large Turbine à plein régime selon la température de la vapeur (interpolation de la courbe). */
+const turbineAt = (t: number): number | null => {
+  const pts = curve?.points;
+  if (!pts?.length || t < pts[0]![0] || t > pts.at(-1)![0]) return null;
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1]!;
+    const [x1, y1] = pts[i]!;
+    if (t <= x1) return y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
+  }
+  return pts.at(-1)![1];
+};
+/** Nombre au format français, pour les notes affichées (virgule décimale, espace des milliers). */
+const frNum = (x: number, d: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: d }).format(x);
+const turbinesPerBoiler = boilerSteam && turbineSteam ? boilerSteam / turbineSteam : null;
+const setups: EnergySetup[] = [];
+const notComputed: EnergyFile["notComputed"] = [];
+const steamRelevé = (releves as unknown as { steamTempC?: Record<string, number> } | null)?.steamTempC ?? {};
+
+/** Chauffe-eau + Boilers + Large Turbines, à partir de la température de la vapeur (ou d'une puissance donnée par le wiki). */
+function thermal(heater: string, recipeId: string, boilers: number | null, steam: { tempC: number; note: string; flag: VerifyFlag | null; sources: Source[] } | { mfps: number; note: string; flag: VerifyFlag; sources: Source[] }) {
+  const r = recipeById.get(recipeId);
+  const m = machineById.get(heater);
+  if (!r || !m || !boilers || !turbinesPerBoiler || !r.durationS) {
+    notComputed.push({ machine: heater, reason: `données incomplètes (recette ${recipeId}, Boilers par chauffe-eau, vapeur par turbine)` });
+    return;
+  }
+  const turbines = boilers * turbinesPerBoiler;
+  const perTurbine = "tempC" in steam ? turbineAt(steam.tempC) : null;
+  const mfps = "mfps" in steam ? steam.mfps : perTurbine === null ? null : perTurbine * turbines;
+  if (mfps === null) {
+    notComputed.push({ machine: heater, reason: "température de la vapeur hors de la courbe des turbines" });
+    return;
+  }
+  // Combustible seulement : l'eau tourne en boucle fermée (Firebox, Gas Burner : aucune perte).
+  const fuel = Object.fromEntries(
+    Object.entries(r.inputs)
+      .filter(([k, v]) => v !== null && !/water/.test(k))
+      .map(([k, v]) => [k, v! / r.durationS!]),
+  );
+  const parts = [
+    { machine: heater, count: 1 },
+    { machine: "boiler", count: boilers },
+    { machine: "large-turbine", count: turbines },
+  ];
+  const fuelName = Object.keys(fuel).join(" + ") || "?";
+  setups.push({
+    id: `centrale:${recipeId}`,
+    name: `${m.name} (${fuelName}) + ${boilers} Boiler${boilers > 1 ? "s" : ""} + ${turbines} Large Turbine${turbines > 1 ? "s" : ""}`,
+    kind: "thermique",
+    machine: heater,
+    parts,
+    inputsPerSec: fuel,
+    outputsPerSec: {},
+    mfps,
+    guaranteed: true,
+    pollutionPerHour: partsPollution(parts),
+    note: `${steam.note} Boucle d'eau fermée : seul le remplissage initial demande de l'eau.`,
+    sources: [...steam.sources, ...srcOfPage("Boiler"), ...srcOfPage("Large Turbine"), ...(curve ? [curve.source] : [])],
+    verify: steam.flag ? [steam.flag] : [],
+  });
+}
+
+// Firebox : eau chaude à 240 °C, vapeur vers 190 °C (215 °C avec recirculation), 2 Boilers.
+{
+  const t = factOf("firebox.steamTempC", ef.firebox.steamTempC);
+  const tMax = factOf("firebox.steamTempMaxC", ef.firebox.steamTempMaxC);
+  factOf("firebox.coolantTempC", ef.firebox.coolantTempC);
+  const boilers = factOf("firebox.boilers", ef.firebox.boilers);
+  const measured = steamRelevé["firebox"];
+  // Eau normale seulement : l'eau tourne en boucle, les variantes filtrée et distillée brûlent le même charbon
+  // (leur gain d'efficacité dans le Boiler n'est pas chiffré par le wiki).
+  for (const rid of ["firebox_01"]) {
+    if (measured !== undefined) {
+      thermal("firebox", rid, boilers, { tempC: measured, note: `Vapeur à ${measured} °C (relevé en jeu).`, flag: null, sources: releves ? [releves.source] : [] });
+    } else if (t !== null) {
+      thermal("firebox", rid, boilers, {
+        tempC: t,
+        note: `Vapeur vers ${t} °C d'après le wiki${tMax ? ` (jusqu'à ${tMax} °C en renvoyant l'eau usée du Boiler dans sa seconde entrée)` : ""}.`,
+        flag: { field: "energyMFps", reason: "approximatif", detail: `température de la vapeur « around ${t} » °C d'après la page Firebox : à confirmer en jeu` },
+        sources: srcOfPage("Firebox"),
+      });
+    }
+  }
+}
+// Gas Burner : le wiki donne directement la puissance d'un brûleur et de ses 10 Boilers.
+{
+  const power = factOf("gasBurner.powerMFps", ef.gasBurner.powerMFps);
+  const boilers = factOf("gasBurner.boilers", ef.gasBurner.boilers);
+  factOf("gasBurner.coolantTempC", ef.gasBurner.coolantTempC);
+  const measured = steamRelevé["gas-burner"];
+  for (const rid of ["gas_burner_01", "gas_burner_02"]) {
+    if (measured !== undefined) thermal("gas-burner", rid, boilers, { tempC: measured, note: `Vapeur à ${measured} °C (relevé en jeu).`, flag: null, sources: releves ? [releves.source] : [] });
+    else if (power) {
+      thermal("gas-burner", rid, boilers, {
+        mfps: power[0],
+        note: `Puissance d'un brûleur : ${frNum(power[0] / 1e6, 2)} à ${frNum(power[1] / 1e6, 2)} MMF/s d'après le wiki ; on compte la borne basse.`,
+        flag: { field: "energyMFps", reason: "approximatif", detail: `${power[0] / 1e6} à ${power[1] / 1e6} MMF/s par brûleur d'après la page Gas Burner : borne basse retenue` },
+        sources: srcOfPage("Gas Burner"),
+      });
+    }
+  }
+}
+// Chauffe-eau dont la vapeur n'est pas documentée : calculés seulement avec un relevé en jeu.
+{
+  const ifbTemp = factOf("industrialFirebox.coolantTempC", ef.industrialFirebox.coolantTempC);
+  const ifbBoilers = factOf("industrialFirebox.boilers", ef.industrialFirebox.boilers);
+  const geoMax = factOf("geothermal.maxTempC", ef.geothermal.maxTempC);
+  const ifb = steamRelevé["industrial-firebox"];
+  if (ifb !== undefined) {
+    for (const rid of ["industrial_firebox_09", "industrial_firebox_10", "industrial_firebox_11", "industrial_firebox_12"]) {
+      thermal("industrial-firebox", rid, ifbBoilers, { tempC: ifb, note: `Vapeur à ${ifb} °C (relevé en jeu).`, flag: null, sources: releves ? [releves.source] : [] });
+    }
+  } else notComputed.push({ machine: "industrial-firebox", reason: `eau chaude à ${ifbTemp ?? "?"} °C, mais température de la vapeur inconnue : à relever en jeu` });
+  notComputed.push({ machine: "geothermal-well", reason: `jusqu'à ${geoMax ?? "?"} °C avec trois puits en chaîne, perte d'un tiers de l'eau ; température de la vapeur inconnue : à relever en jeu` });
+  notComputed.push({ machine: "electric-water-heater", reason: "d'après le wiki, une installation Boiler + turbine ne couvre même pas sa propre consommation" });
+  notComputed.push({ machine: "steam-turbine", reason: "puissance de 432 MF/s à 9,36 kMF/s selon la température, sans courbe" });
+  for (const id of ["coal-power-plant", "nuclear-power-plant", "turbine-generator", "diesel-engine-generator"]) {
+    notComputed.push({ machine: id, reason: "grande centrale modulaire : réglages et données insuffisants pour un calcul fiable" });
+  }
+}
+// Solaire : seul le Solar Panel a un profil heure par heure (moyenne et stockage de nuit exacts).
+{
+  const hourly = factOf("solarPanel.hourly", ef.solarPanel);
+  const dayMinutes = Number(worldFacts.dayMinutes?.value) || null;
+  const panel = machineById.get("solar-panel");
+  if (hourly && panel && dayMinutes) {
+    const avg = hourly.reduce((s, v) => s + v, 0) / 24;
+    const hourSec = (dayMinutes * 60) / 24;
+    // Niveau de la batterie sur une journée si l'on garantit « avg » : l'amplitude est la capacité utile.
+    let level = 0;
+    let lo = 0;
+    let hi = 0;
+    for (const v of hourly) {
+      level += (v - avg) * hourSec;
+      lo = Math.min(lo, level);
+      hi = Math.max(hi, level);
+    }
+    const storage = hi - lo;
+    const rate = Math.max(avg - Math.min(...hourly), Math.max(...hourly) - avg);
+    const src = srcOfPage("Solar Panel");
+    const pollutionNote = "La pollution et les orages réduisent la production : valeur par temps clair, à 0 % de pollution.";
+    setups.push({
+      id: "solaire:solar-panel",
+      name: "Solar Panel",
+      kind: "solaire",
+      machine: "solar-panel",
+      parts: [{ machine: "solar-panel", count: 1 }],
+      inputsPerSec: {},
+      outputsPerSec: {},
+      mfps: avg,
+      guaranteed: false,
+      pollutionPerHour: 0,
+      note: `Moyenne sur la journée (${Math.min(...hourly)} à ${Math.max(...hourly)} MF/s selon l'heure). ${pollutionNote}`,
+      sources: src,
+      verify: [],
+    });
+    for (const b of ["rusty-battery", "mv-battery", "double-mv-battery", "hv-battery", "hv-battery-mk2"]) {
+      const e = powerEntries.find((x) => x.id === b);
+      const cap = e?.capacity?.perNode;
+      const tr = e?.transfer?.perNode;
+      if (!e || !cap || !tr) continue;
+      const f = Math.max(storage / cap, rate / tr);
+      setups.push({
+        id: `solaire+stockage:${b}`,
+        name: `Solar Panel + ${e.name} (stockage de nuit)`,
+        kind: "solaire",
+        machine: "solar-panel",
+        parts: [
+          { machine: "solar-panel", count: 1 },
+          { machine: b, count: f },
+        ],
+        inputsPerSec: {},
+        outputsPerSec: {},
+        mfps: avg,
+        guaranteed: true,
+        pollutionPerHour: 0,
+        note: `Production lissée jour et nuit : chaque panneau demande ${frNum(storage, 0)} MF de stockage et ${frNum(rate, 2)} MF/s de débit de batterie (1 ${e.name} pour ${frNum(Math.floor(1 / f), 0)} panneaux). ${pollutionNote}`,
+        sources: [...src, ...e.sources],
+        verify: [],
+      });
+    }
+  }
+  notComputed.push({ machine: "solar-panel2", reason: "production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer" });
+  notComputed.push({ machine: "solar-panel3", reason: "production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer" });
+  notComputed.push({ machine: "solar-farm1", reason: "production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer" });
+}
+// Éolien : la vitesse du vent n'est jamais nulle ; on compte la production minimale (garantie).
+{
+  const never = factOf("wind.neverZero", ef.windNeverZero);
+  for (const id of ["wind-turbine1", "wind-turbine2", "wind-turbine3"]) {
+    const e = powerEntries.find((x) => x.id === id);
+    const range = Array.isArray(e?.output) ? (e!.output as [number, number]) : null;
+    if (!e || !range || !never) continue;
+    setups.push({
+      id: `éolien:${id}`,
+      name: e.name,
+      kind: "éolien",
+      machine: id,
+      parts: [{ machine: id, count: 1 }],
+      inputsPerSec: {},
+      outputsPerSec: {},
+      mfps: range[0],
+      guaranteed: true,
+      pollutionPerHour: 0,
+      note: `Production minimale (vent faible) : ${range[0]} MF/s ; jusqu'à ${range[1]} MF/s par grand vent. La moyenne n'est pas connue.${id === "wind-turbine3" ? " Une seule par cercle de 50 studs." : ""}`,
+      sources: [...e.sources, ...srcOfPage("Wind Turbine3")],
+      verify: [],
+    });
+  }
+}
+// Scrubbers : pollution retirée selon l'eau utilisée (et ajoutée par la recette au Residue).
+const scrubbers: EnergyFile["scrubbers"] = [];
+{
+  const pairs: [string, Found<number>, string][] = [
+    ["scrubber_01", ef.scrubber.water, "scrubber.water"],
+    ["scrubber_02", ef.scrubber.filtered, "scrubber.filtered"],
+    ["scrubber_03", ef.scrubber.distilled, "scrubber.distilled"],
+    ["scrubber_04", ef.scrubber.residue, "scrubber.residue"],
+  ];
+  for (const [recipe, f, key] of pairs) {
+    const v = factOf(key, f);
+    if (v === null || !recipeById.has(recipe) || !energyPages["Scrubber"]) continue;
+    scrubbers.push({ recipe, pollutionPerHour: v, source: sourceOf(energyPages["Scrubber"]!), quote: "quote" in f ? f.quote : "" });
+  }
+}
+for (const s of setups) for (const f of s.verify) flagLines.push(`| ${s.name} | énergie · ${f.field} | ${f.reason} | ${f.detail} |`);
+for (const n of notComputed) flagLines.push(`| ${machineById.get(n.machine)?.name ?? n.machine} | énergie · non calculé | manquant | ${n.reason} |`);
+
 // ---------------------------------------------------------------- écriture
 const meta = (counts: Record<string, number>): DataMeta => ({ generatedAt: latest, primary: "miraheze", counts });
 const write = (file: string, data: unknown) => writeFileSync(join(OUT, file), JSON.stringify(data, null, 1) + "\n");
+write("energy.json", { meta: meta({ setups: setups.length, notComputed: notComputed.length, scrubbers: scrubbers.length }), setups, notComputed, scrubbers, facts: energyFacts } satisfies EnergyFile);
 write("logistics.json", { meta: meta({ pipes: pipes.length, storage: storage.length, depots: depots.length }), pipes, storage, depots } satisfies LogisticsFile);
 write("power.json", { meta: meta({ entries: powerEntries.length }), entries: powerEntries } satisfies PowerFile);
 write("research-stations.json", {
@@ -312,4 +574,5 @@ console.log(`logistics.json        ${pipes.length} pièces, ${storage.length} si
 console.log(`research-stations.json formules RP ${issues.some((i) => i.startsWith("RP")) ? "INCOMPLÈTES" : "complètes"}`);
 console.log(`world.json            ${Object.keys(worldFacts).length} faits ; grille ${grid.cellStuds === null ? "à relever en jeu" : `relevée (1 case = ${grid.cellStuds} studs)`}`);
 console.log(`ports.json            ${Object.keys(ports.machines).length} bâtiment(s) relevé(s)`);
+console.log(`energy.json           ${setups.length} installations, ${notComputed.length} non calculées, ${scrubbers.length} recettes de Scrubber`);
 if (issues.length) console.log(`⚠ ${issues.length} problème(s) : voir a-verifier.md`);

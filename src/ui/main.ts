@@ -36,7 +36,9 @@ import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
 import portsJson from "../../data/ports.json";
 import logisticsJson from "../../data/logistics.json";
-import type { LogisticsFile, PortsFile } from "../engine/extension-types.ts";
+import energyJson from "../../data/energy.json";
+import powerJson from "../../data/power.json";
+import type { EnergyFile, LogisticsFile, PortsFile, PowerFile } from "../engine/extension-types.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
@@ -55,7 +57,12 @@ import {
   type Settings,
 } from "./state.ts";
 
-const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson } as unknown as RawFiles;
+const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
+/** Poteaux de transport d'énergie (réseau de l'objectif énergie). */
+const POLES = (powerJson as unknown as PowerFile).entries
+  .filter((e) => e.subcategory === "Transfer Poles" && e.transfer)
+  .map((e) => ({ id: e.id, name: e.name, perNodeMFps: e.transfer!.perNode, nodes: e.transfer!.nodes, rangeTiles: e.rangeTiles?.tiles ?? null }));
+const ENERGY_FILE = energyJson as unknown as EnergyFile;
 const repoOverrides = overridesJson as unknown as OverridesFile;
 /** Dépôts de vente (objectif argent) : débit de vente relevé ou lu sur le wiki. */
 const DEPOTS = (logisticsJson as unknown as LogisticsFile).depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
@@ -134,13 +141,26 @@ function syncForm(): void {
   ($("max-pollution") as HTMLInputElement).value = settings.maxPollution === null ? "" : String(settings.maxPollution);
   ($("self-powered") as HTMLInputElement).checked = settings.selfPowered;
   ($("use-budget") as HTMLInputElement).checked = settings.useBudget;
+  ($("energy") as HTMLInputElement).value = String(settings.energyMFps / 1000);
+  ($("energy-mode") as HTMLSelectElement).value = settings.energyGuaranteed ? "garantie" : "moyenne";
+  ($("no-fuel") as HTMLInputElement).checked = settings.energyNoFuel;
+  ($("distance") as HTMLInputElement).value = settings.distanceTiles === null ? "" : String(settings.distanceTiles);
 }
 
 function render(): void {
   const money = settings.goal === "argent";
+  const energy = settings.goal === "énergie";
   plan = solve(data, playerState(), {
     item: settings.item,
-    ...(money ? { moneyPerMin: settings.money } : settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }),
+    ...(money
+      ? { moneyPerMin: settings.money }
+      : energy
+        ? { energyMFps: settings.energyMFps, guaranteedEnergy: settings.energyGuaranteed, noFuel: settings.energyNoFuel }
+        : settings.mode === "rate"
+          ? { ratePerMin: settings.rate }
+          : { finalMachines: settings.machines }),
+    poles: POLES,
+    distanceTiles: settings.distanceTiles,
     criterion: settings.criterion,
     forced: settings.forced,
     useUnverified: settings.useUnverified,
@@ -156,10 +176,12 @@ function render(): void {
   const finals = plan.steps.filter((s) => plan!.finals.includes(s.key));
   if (settings.mode === "machines" && document.activeElement !== $("rate")) ($("rate") as HTMLInputElement).value = fmt(plan.target.ratePerMin, 2).replace(/\s/g, "").replace(",", ".");
   if (settings.mode === "rate" && finals.length && document.activeElement !== $("machines")) ($("machines") as HTMLInputElement).value = String(finals.reduce((n, s) => n + s.machines, 0));
-  $("item-fields").hidden = money;
+  $("item-fields").hidden = money || energy;
   $("money-fields").hidden = !money;
+  $("energy-fields").hidden = !energy;
+  $("energy-hint").textContent = `Comparées : centrales thermiques (Firebox, Gas Burner), générateurs à combustible, solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed.map((n) => data.machines.get(n.machine)?.name ?? n.machine).join(", ")}.`;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-goal]")) b.setAttribute("aria-checked", String(b.dataset.goal === settings.goal));
-  $("mode-hint").textContent = money ? "" : settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
+  $("mode-hint").textContent = money || energy ? "" : settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
   $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans « Ma partie »)" : `(${fmtMoney(player.money)})`;
   $("rate").closest("label")!.classList.toggle("active", settings.mode === "rate");
   $("machines").closest("label")!.classList.toggle("active", settings.mode === "machines");
@@ -815,6 +837,29 @@ function bind(): void {
     else return;
     renderSoon();
   });
+  $("energy").addEventListener("input", (e) => {
+    const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
+    if (v > 0) {
+      settings.energyMFps = v * 1000;
+      renderSoon();
+    }
+  });
+  $("energy-mode").addEventListener("change", (e) => {
+    settings.energyGuaranteed = (e.target as HTMLSelectElement).value === "garantie";
+    render();
+  });
+  $("no-fuel").addEventListener("change", (e) => {
+    settings.energyNoFuel = (e.target as HTMLInputElement).checked;
+    render();
+  });
+  $("distance").addEventListener("input", (e) => {
+    const raw = (e.target as HTMLInputElement).value.trim();
+    const v = parseFloat(raw.replace(",", "."));
+    if (!raw) settings.distanceTiles = null;
+    else if (v >= 0) settings.distanceTiles = v;
+    else return;
+    renderSoon();
+  });
   $("self-powered").addEventListener("change", (e) => {
     settings.selfPowered = (e.target as HTMLInputElement).checked;
     render();
@@ -831,6 +876,7 @@ function bind(): void {
     if (!(v > 0)) return;
     const final = Number(b.dataset.final);
     if (settings.goal === "argent") settings.money = Math.round(v * 100) / 100;
+    else if (settings.goal === "énergie") settings.energyMFps = v;
     else if (final > 0) {
       // Palier sur un nombre entier de machines finales : calcul exact par ce nombre.
       settings.mode = "machines";

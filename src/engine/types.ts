@@ -88,6 +88,18 @@ export type Recipe = {
   research: string | null;
   /** Durée qui dépend de la pollution (arbres). */
   durationByPollution?: boolean;
+  /**
+   * Installation composée (énergie, phase E2) : machines par installation, la recette décrivant
+   * l'installation entière (ex. 1 Firebox + 2 Boilers + 2 Large Turbines).
+   */
+  parts?: { machine: string; count: number }[];
+  /** Nom lisible d'une installation composée, et sa note (hypothèses, conseils). */
+  setupName?: string;
+  setupNote?: string;
+  /** Pollution propre à la recette (%/h par machine), si elle diffère de celle de la machine (Scrubber). */
+  pollutionPerHour?: number;
+  /** Production d'énergie constante (nuit, vent faible) ; false : moyenne sur la journée. */
+  energyGuaranteed?: boolean;
   sources: Source[];
   verify: VerifyFlag[];
   corrections?: Correction[];

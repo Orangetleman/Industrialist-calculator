@@ -81,6 +81,44 @@ export type WorldFile = {
   grid: { cellStuds: number | null; snap: string | null; rotations: number | null; sources: Source[]; verify: VerifyFlag[] };
 };
 
+/** Machine d'une installation composée, et combien par installation (fractionnaire pour les batteries). */
+export type EnergySetupPart = { machine: string; count: number };
+
+/**
+ * Installation énergétique complète (phase E2) : chauffe-eau + Boilers + turbines, panneau
+ * solaire avec son stockage de nuit, éolienne… Calculée à partir des faits du wiki et de la courbe
+ * des turbines ; le moteur la traite comme une recette « composée ».
+ */
+export type EnergySetup = {
+  id: string;
+  name: string;
+  kind: "thermique" | "solaire" | "éolien";
+  /** Machine principale (déblocage, affichage). */
+  machine: string;
+  parts: EnergySetupPart[];
+  /** Consommation (combustible) et sorties hors énergie, par seconde et par installation. */
+  inputsPerSec: Record<string, number>;
+  outputsPerSec: Record<string, number>;
+  /** Puissance produite par installation (MF/s). */
+  mfps: number;
+  /** Production constante, nuit et vent faible compris (sinon : moyenne sur la journée). */
+  guaranteed: boolean;
+  pollutionPerHour: number | null;
+  note: string;
+  sources: Source[];
+  verify: VerifyFlag[];
+};
+
+export type EnergyFile = {
+  meta: DataMeta;
+  setups: EnergySetup[];
+  /** Installations non calculées faute de donnée (à relever en jeu), avec la raison. */
+  notComputed: { machine: string; reason: string }[];
+  /** Pollution par Scrubber en fonctionnement selon la recette (%/h ; < 0 = retirée). */
+  scrubbers: { recipe: string; pollutionPerHour: number; source: Source; quote: string }[];
+  facts: Record<string, Fact<unknown>>;
+};
+
 /** Port d'un bâtiment, relevé en jeu (RELEVES.md). */
 export type Port = {
   type: "objet" | "fluide" | "énergie" | "logique";

@@ -2,7 +2,7 @@
 // main.ts se charge de les insérer et de brancher les événements.
 
 import type { GameData } from "../engine/data.ts";
-import { ENERGY } from "../engine/resources.ts";
+import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, VerifyEntry } from "../engine/solve.ts";
 import type { OverridesFile, Recipe, Source } from "../engine/types.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, fmtMoney, fmtPollution, fmtRP, isEditableField, REASON_LABEL } from "./format.ts";
@@ -11,7 +11,7 @@ import type { Settings } from "./state.ts";
 
 export type Ctx = { data: GameData; plan: Plan; settings: Settings; corrections: OverridesFile };
 
-const itemN = (ctx: Ctx, id: string) => (id === ENERGY ? "Énergie (générateurs)" : (ctx.data.items.get(id)?.name ?? id));
+const itemN = (ctx: Ctx, id: string) => (id === ENERGY ? "Énergie (générateurs)" : id === POLLUTION ? "Pollution retirée (Scrubbers)" : (ctx.data.items.get(id)?.name ?? id));
 const machineN = (ctx: Ctx, id: string) => ctx.data.machines.get(id)?.name ?? id;
 const nodeN = (ctx: Ctx, id: string) => ctx.data.nodes.get(id)?.name ?? id;
 
@@ -41,6 +41,8 @@ export function renderStatus(ctx: Ctx): string {
     p.status === "impossible"
       ? p.target.kind === "argent"
         ? `Impossible de gagner ${esc(fmtMoney(p.target.ratePerMin))}/min avec ta progression actuelle. Voir les avertissements ci-dessous.`
+        : p.target.kind === "énergie"
+          ? `Impossible de produire ${esc(fmtMF(p.target.ratePerMin))} avec ta progression et ces options. Voir les avertissements ci-dessous.`
         : `<b>${esc(itemN(ctx, p.target.item))}</b> ne peut pas être produit avec ta progression actuelle. Voir ci-dessous ce qui manque.`
       : `Plan partiel : ${p.unresolved.length} item(s) ne sont pas produits (verrouillés, sans recette ou en boucle). Ils sont marqués en pointillés dans le graphe.`;
   return `<div class="banner ${p.status === "impossible" ? "bad" : "warn"}" role="status">${msg}</div>`;
@@ -54,6 +56,8 @@ export function renderSummary(ctx: Ctx): string {
   const cards: [string, string][] = [
     p.target.kind === "argent"
       ? [fmtMoney(t.revenuePerMin || p.target.ratePerMin), "de ventes / min"]
+      : p.target.kind === "énergie"
+        ? [fmtMF(p.target.ratePerMin), "fournis au réseau (net)"]
       : [p.status === "impossible" && !p.target.ratePerMin ? "—" : fmt(p.target.ratePerMin, 2), `${esc(itemN(ctx, p.target.item))} / min`],
     [String(t.machines), "machines"],
     ...(t.farms ? ([[`≈ ${t.farms}`, "arbres (indicatif)"]] as [string, string][]) : []),
@@ -91,7 +95,13 @@ export function renderSummary(ctx: Ctx): string {
   const existing = p.existing.length
     ? `<p class="list-line"><b>Production existante utilisée :</b> ${p.existing.map((x) => `<span class="chip ok">${esc(itemN(ctx, x.item))} <span class="num">${fmt(x.used, 2)} / ${fmt(x.available, 2)} par min</span></span>`).join(" ")}</p>`
     : "";
-  return `<div class="stats">${stats}</div>${sales}${existing}${raw}${surplus}${research}${own}${renderTiers(ctx)}`;
+  const net = p.distribution
+    ? `<p class="list-line"><b>Réseau :</b> ${esc(fmtMF(p.distribution.mfps))} à transporter${p.distribution.distanceTiles !== null ? ` sur ${fmt(p.distribution.distanceTiles, 0)} cases` : ""} — ${p.distribution.options
+        .slice(0, 3)
+        .map((o) => `<span class="chip">${esc(o.name)} <span class="num">${o.lines} ligne(s)${o.poles !== null ? ` · ${o.poles} poteaux${o.cost !== null ? ` · ${esc(fmtMoney(o.cost))}` : ""}` : ""}</span></span>`)
+        .join(" ")}${p.distribution.distanceTiles === null ? ` <span class="hint">(indique une distance pour compter les poteaux)</span>` : ""}</p>`
+    : "";
+  return `<div class="stats">${stats}</div>${sales}${existing}${net}${raw}${surplus}${research}${own}${renderTiers(ctx)}`;
 }
 
 /** Paliers ronds : débits où chaque étape tombe sur un nombre entier de machines (cliquables). */
@@ -99,15 +109,16 @@ export function renderTiers(ctx: Ctx): string {
   const p = ctx.plan;
   if (p.tiers.length < 2) return "";
   const money = p.target.kind === "argent";
-  const unit = (r: number) => (money ? `${fmtMoney(r)}/min` : `${fmt(r, 2)}/min`);
+  const energy = p.target.kind === "énergie";
+  const unit = (r: number) => (money ? `${fmtMoney(r)}/min` : energy ? fmtMF(r) : `${fmt(r, 2)}/min`);
   const chips = p.tiers
     .map((t) => {
-      const final = money ? "" : ` · ${fmt(t.finalMachines, 2)} finale(s)`;
+      const final = money || energy ? "" : ` · ${fmt(t.finalMachines, 2)} finale(s)`;
       const label = `${unit(t.ratePerMin)}${final} · ${t.machines} machines · ${fmt(t.efficiency * 100, 0)} %`;
       const title = t.exact ? "Chaque étape tombe exactement sur un nombre entier de machines." : `Occupation moyenne des machines : ${fmt(t.efficiency * 100, 1)} %.`;
       return t.current
         ? `<span class="chip tier current" title="Débit actuel. ${esc(title)}">${esc(label)}${t.exact ? " ●" : ""}</span>`
-        : `<button type="button" class="chip tier${t.exact ? " exact" : ""}" data-tier="${t.ratePerMin}"${!money && Math.abs(t.finalMachines - Math.round(t.finalMachines)) < 1e-6 ? ` data-final="${Math.round(t.finalMachines)}"` : ""} title="${esc(title)}">${esc(label)}${t.exact ? " ●" : ""}</button>`;
+        : `<button type="button" class="chip tier${t.exact ? " exact" : ""}" data-tier="${t.ratePerMin}"${!money && !energy && Math.abs(t.finalMachines - Math.round(t.finalMachines)) < 1e-6 ? ` data-final="${Math.round(t.finalMachines)}"` : ""} title="${esc(title)}">${esc(label)}${t.exact ? " ●" : ""}</button>`;
     })
     .join(" ");
   const note =
@@ -143,7 +154,15 @@ export function renderGraph(ctx: Ctx): string {
     const fill = n.kind === "raw" || n.kind === "existing" ? "var(--bg)" : n.kind === "unresolved" ? "var(--surface)" : "var(--steel-soft)";
     const stroke = n.kind === "unresolved" ? "var(--accent)" : n.kind === "existing" ? "var(--ok)" : "var(--steel)";
     const dash = n.kind === "unresolved" ? ` stroke-dasharray="5 4"` : "";
-    const line2 = ex ? "déjà en place" : st ? (st.machineKind === "farm" ? `≈ ${st.machines} arbres` : `${trunc(machineN(ctx, st.machine), 17)} ×${st.machines}`) : `non produit (${u?.reason ?? "?"})`;
+    const line2 = ex
+      ? "déjà en place"
+      : st
+        ? st.machineKind === "farm"
+          ? `≈ ${st.machines} arbres`
+          : st.parts
+            ? `${trunc(st.parts.map((q) => `${q.count} ${machineN(ctx, q.machine)}`).join(" + "), 22)}`
+            : `${trunc(machineN(ctx, st.machine), 17)} ×${st.machines}`
+        : `non produit (${u?.reason ?? "?"})`;
     const line3 = st
       ? st.machineKind === "farm"
         ? `${fmt(st.durationS, 0)} s / pousse`
@@ -200,7 +219,11 @@ function stepCard(ctx: Ctx, s: Step, i: number): string {
   if (!s.access.available) tags.push("Machine non débloquée");
   const usedFlags = p.verify.filter((v) => v.used && v.item === s.item);
   const util = Math.round(s.utilization * 100);
-  const count = s.machineKind === "farm" ? `≈ ${s.machines} arbres` : `${s.machines} × ${esc(machineN(ctx, s.machine))}`;
+  const count =
+    s.machineKind === "farm" ? `≈ ${s.machines} arbres` : s.parts ? `${s.machines} installation(s)` : `${s.machines} × ${esc(machineN(ctx, s.machine))}`;
+  const setup = s.parts
+    ? `<div class="meta"><span><b>${esc(r.setupName ?? "")}</b> : ${s.parts.map((q) => `${q.count} × ${esc(machineN(ctx, q.machine))} <span class="muted">(${fmt(q.exact, 2)})</span>`).join(", ")}</span></div>${r.setupNote ? `<div class="meta"><span class="muted">${esc(r.setupNote)}</span></div>` : ""}`
+    : "";
   const ins = s.inputs.map((f) => `${fmt(f.perMin, 2)} ${esc(itemN(ctx, f.item))}`).join(" + ");
   const outs = s.consumers.map((f) => `${fmt(f.perMin, 2)} → ${esc(itemN(ctx, f.item))}`).join(" · ");
   const by = s.byproducts.map((f) => `${fmt(f.perMin, 2)} ${esc(itemN(ctx, f.item))}`).join(" + ");
@@ -209,7 +232,8 @@ function stepCard(ctx: Ctx, s: Step, i: number): string {
   return `<li class="step" id="step-${esc(s.key)}"><div class="n">${String(i + 1).padStart(2, "0")}</div><div class="body">
     ${tags.length || usedFlags.length ? `<div class="tags">${tags.map((t) => `<span class="tag">${t}</span>`).join("")}${usedFlags.length ? `<a class="tag warn" href="#verifier">⚠ ${usedFlags.length} valeur(s) à vérifier</a>` : ""}</div>` : ""}
     <div class="top"><h3>${esc(itemN(ctx, s.item))}</h3><span class="count">${count}</span></div>
-    <div class="recipe">${esc(recipeText(ctx, r, s.durationS))} <span class="muted">(${esc(r.id)})</span></div>
+    <div class="recipe">${s.parts ? (Object.keys(r.inputs).length ? `Consomme par seconde : ${esc(Object.entries(r.inputs).map(([k, v]) => `${fmt(v ?? 0, 2)} ${itemN(ctx, k)}`).join(" + "))}` : "Aucun combustible") : esc(recipeText(ctx, r, s.durationS))} <span class="muted">(${esc(r.id)})</span></div>
+    ${setup}
     <div class="meta"><span>Produit : <b class="num">${produced}</b></span>${ins ? `<span>Consomme : <span class="num">${ins}</span> /min</span>` : ""}${outs ? `<span>Envoie : <span class="num">${outs}</span></span>` : ""}${
       s.machineKind === "farm" ? "" : energy
     }</div>
@@ -220,8 +244,8 @@ function stepCard(ctx: Ctx, s: Step, i: number): string {
       s.footprint !== null ? `<span>Surface : <span class="num">${fmt(s.footprint, 0)}</span> cases</span>` : ""
     }</div>
     <div class="bar" aria-hidden="true"><i class="${util < 60 ? "low" : ""}" style="width:${util}%"></i></div>
-    ${s.item === ENERGY ? "" : recipeSelect(ctx, s.item, s.recipeId, s.alternatives)}
-    ${s.item === ENERGY ? "" : haveButton(s.item, s.demandPerMin)}
+    ${s.item === ENERGY || s.item === POLLUTION ? "" : recipeSelect(ctx, s.item, s.recipeId, s.alternatives)}
+    ${s.item === ENERGY || s.item === POLLUTION ? "" : haveButton(s.item, s.demandPerMin)}
   </div></li>`;
 }
 

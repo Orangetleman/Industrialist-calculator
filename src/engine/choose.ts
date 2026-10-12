@@ -7,7 +7,7 @@ import type { Machine, Recipe, VerifyFlag } from "./types.ts";
 import { machineAccess, type MachineAccess, type Progress } from "./unlock.ts";
 
 /** Critères d’optimisation. « pollution » et « cost » ne sont traités que par le simplexe (moteur v2). */
-export type Criterion = "machines" | "energy" | "raw" | "steps" | "pollution" | "cost";
+export type Criterion = "machines" | "energy" | "raw" | "steps" | "pollution" | "cost" | "area";
 
 export type ChoiceOptions = {
   criterion: Criterion;
@@ -207,6 +207,8 @@ export class Chooser {
     const eff = this.eff(recipe);
     if (!(eff.durationS !== null && eff.durationS > 0) || Object.values(eff.net).some((v) => v === null)) return false;
     if (!machineAccess(this.data, this.progress, recipe.machine).available) return false;
+    // Installation composée : toutes ses machines doivent être débloquées.
+    if (recipe.parts?.some((p) => !machineAccess(this.data, this.progress, p.machine).available)) return false;
     return !(eff.blocking.length && !this.opts.useUnverified);
   }
 

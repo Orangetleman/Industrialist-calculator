@@ -54,6 +54,7 @@
         <div class="seg" role="radiogroup" aria-label="Objectif">
           <button type="button" role="radio" data-goal="objet" aria-checked="true">Produire un objet</button>
           <button type="button" role="radio" data-goal="argent" aria-checked="false">Gagner de l'argent</button>
+          <button type="button" role="radio" data-goal="énergie" aria-checked="false">Produire de l'énergie</button>
         </div>
       </div>
       <div class="fields" id="money-fields" hidden>
@@ -61,6 +62,22 @@
           <input id="money" type="number" min="1" step="any" inputmode="decimal">
         </label>
         <p class="hint wide">Le calcul choisit les objets à vendre et les dépôts (Truck, Van, Huge Truck Depot) selon le critère. Objets solides seulement : la capacité des dépôts de liquides n'est pas connue.</p>
+      </div>
+      <div class="fields" id="energy-fields" hidden>
+        <label for="energy" class="active">Puissance voulue (kMF/s)
+          <input id="energy" type="number" min="0.001" step="any" inputmode="decimal">
+        </label>
+        <label for="energy-mode">Production
+          <select id="energy-mode">
+            <option value="moyenne">En moyenne sur la journée</option>
+            <option value="garantie">Garantie (nuit et vent faible compris)</option>
+          </select>
+        </label>
+        <label for="distance">Distance jusqu'aux machines (cases)
+          <input id="distance" type="number" min="0" step="1" inputmode="numeric" placeholder="facultatif">
+        </label>
+        <label class="check-inline"><input type="checkbox" id="no-fuel"> Sans combustible (solaire, éolien…)</label>
+        <p class="hint wide" id="energy-hint"></p>
       </div>
       <div class="fields" id="item-fields">
         <label for="item" class="wide">Item à produire
@@ -85,6 +102,7 @@
             <option value="steps">Moins d'étapes</option>
             <option value="pollution">Moins de pollution</option>
             <option value="cost">Moins cher à construire</option>
+            <option value="area">Moins de place au sol</option>
           </select>
         </label>
         <label for="max-pollution">Pollution max (%/h)

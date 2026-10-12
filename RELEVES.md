@@ -50,6 +50,20 @@ Onglet **Bâtiments** de https://industrialist.myprisme.fr :
 
 N'importe qui peut s'en servir pour ajouter un bâtiment, et l'export fonctionne de la même façon.
 
+## Températures de vapeur (énergie)
+
+La puissance d'une Large Turbine dépend de la température de la vapeur. Le wiki ne la donne que
+pour la Firebox (vers 190 °C). Pour calculer les autres installations, il me faut, en jeu, la
+température de la vapeur en sortie du Boiler, une fois stabilisée :
+
+- Firebox, pour confirmer les 190 °C ;
+- Industrial Firebox (eau chauffée à 300 °C) ;
+- Geothermal Well (trois puits en chaîne) ;
+- Gas Burner, si possible.
+
+Indique aussi comment l'eau usée du Boiler est branchée (renvoyée ou non dans sa seconde
+entrée).
+
 ## Sans le site : la fiche texte
 
 Si c'est plus simple sur le moment, envoie la capture vue de dessus avec, pour chaque port qui ne

@@ -13,6 +13,8 @@ import { machineAccess, type Progress } from "./unlock.ts";
 
 /** Pseudo-item des générateurs : leur « produit » est l'énergie. */
 export const ENERGY = "énergie";
+/** Pseudo-item des Scrubbers : leur « produit » est la pollution retirée. */
+export const POLLUTION = "pollution";
 
 /** Dépôt de vente (logistics.json) : débit de vente en objets/s, null si inconnu. */
 export type DepotSpec = { id: string; name: string; kind: "objet" | "fluide"; itemsPerSec: number | null };
@@ -32,6 +34,10 @@ export type RecipeProc = {
   area: number | null;
   /** Aucune entrée : matière première (foreuse, pompe, arbre…). */
   isRaw: boolean;
+  /** Machines par unité (installation composée : la somme de ses pièces ; sinon 1). */
+  units: number;
+  /** Pièces d'une installation composée, avec leurs valeurs unitaires. */
+  parts: { machine: string; count: number; cost: number | null; pollution: number | null; area: number | null }[] | null;
 };
 
 export type DepotProc = { kind: "dépôt"; id: string; name: string; itemsPerMin: number; machine: Machine | undefined; cost: number | null; area: number | null };
@@ -59,6 +65,12 @@ export type ModelOptions = {
   money: boolean;
   /** La chaîne produit sa propre énergie (générateurs inclus). */
   selfPowered: boolean;
+  /** Seulement les sources dont la production est constante (nuit, vent faible) : puissance garantie. */
+  guaranteedOnly?: boolean;
+  /** Seulement les sources sans combustible (l'eau n'en est pas un). */
+  noFuel?: boolean;
+  /** Scrubbers candidats (critère pollution, ou pollution maximale). */
+  scrubbers?: boolean;
   /** Recettes imposées par item (critère « moins d'étapes » : choix de l'heuristique). */
   restrictTo?: (item: string) => string[] | null;
   depots?: DepotSpec[];
@@ -70,22 +82,32 @@ const pollutionOf = (m: Machine | undefined) => {
   return p === null || p === undefined ? null : typeof p === "number" ? p : p[1];
 };
 
-export function recipeProc(eff: EffRecipe): RecipeProc {
+export function recipeProc(eff: EffRecipe, machines?: Map<string, Machine>): RecipeProc {
   const d = eff.durationS!;
   const perMin: Record<string, number> = {};
   for (const [k, v] of Object.entries(eff.net)) if (v) perMin[k] = (v! / d) * 60;
   const m = eff.machine;
+  const r = eff.recipe;
+  const parts = r.parts
+    ? r.parts.map((p) => {
+        const pm = machines?.get(p.machine);
+        return { machine: p.machine, count: p.count, cost: pm?.cost ?? null, pollution: pollutionOf(pm), area: area(pm) };
+      })
+    : null;
+  const sum = (k: "cost" | "pollution" | "area") => (parts!.some((p) => p[k] === null) ? null : parts!.reduce((s, p) => s + p.count * p[k]!, 0));
   return {
     kind: "recette",
-    id: eff.recipe.id,
+    id: r.id,
     eff,
     machine: m,
     perMin,
-    energy: eff.recipe.energyMFps,
-    pollution: pollutionOf(m),
-    cost: m?.cost ?? null,
-    area: area(m),
+    energy: r.energyMFps,
+    pollution: r.pollutionPerHour ?? (parts ? sum("pollution") : pollutionOf(m)),
+    cost: parts ? sum("cost") : (m?.cost ?? null),
+    area: parts ? sum("area") : area(m),
     isRaw: !Object.values(perMin).some((v) => v < 0),
+    units: parts ? parts.reduce((s, p) => s + p.count, 0) : 1,
+    parts,
   };
 }
 
@@ -101,7 +123,7 @@ export function buildFlowModel(data: GameData, player: Progress, chooser: Choose
   };
   const addRecipe = (eff: EffRecipe) => {
     if (procs.has(eff.recipe.id)) return;
-    const p = recipeProc(eff);
+    const p = recipeProc(eff, data.machines);
     procs.set(p.id, p);
     for (const [k, v] of Object.entries(p.perMin)) if (v < 0 && k !== ENERGY) visit(k);
   };
@@ -119,10 +141,19 @@ export function buildFlowModel(data: GameData, player: Progress, chooser: Choose
   for (const t of opts.targets) visit(t);
 
   const generators: string[] = [];
+  const isWater = (k: string) => /(^|-)water$/.test(k);
   if (opts.selfPowered) {
     for (const r of [...data.recipes.values()].sort((a, b) => a.id.localeCompare(b.id))) {
       if (!(r.energyMFps !== null && r.energyMFps < 0) || !chooser.isUsable(r)) continue;
+      if (opts.guaranteedOnly && r.energyGuaranteed === false) continue;
+      if (opts.noFuel && Object.entries(r.inputs).some(([k, v]) => v && !isWater(k) && (r.outputs[k] ?? 0) < v)) continue;
       generators.push(r.id);
+      addRecipe(chooser.eff(r));
+    }
+  }
+  if (opts.scrubbers) {
+    for (const r of [...data.recipes.values()].sort((a, b) => a.id.localeCompare(b.id))) {
+      if (!(r.pollutionPerHour !== undefined && r.pollutionPerHour < 0) || !chooser.isUsable(r)) continue;
       addRecipe(chooser.eff(r));
     }
   }

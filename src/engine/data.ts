@@ -16,6 +16,7 @@ import type {
   TreeGrowth,
   VerifyFlag,
 } from "./types.ts";
+import type { EnergyFile } from "./extension-types.ts";
 
 export type GameData = {
   items: Map<string, Item>;
@@ -27,7 +28,8 @@ export type GameData = {
   treeGrowth: TreeGrowth;
 };
 
-export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile };
+/** `energy` (facultatif) : installations énergétiques composées et pollution des Scrubbers (E2). */
+export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile };
 
 export type OverrideResult = { data: GameData; errors: string[]; applied: number };
 
@@ -39,6 +41,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   const nodes = new Map(structuredClone(files.research.nodes).map((x) => [x.id, x]));
   const errors: string[] = [];
   let applied = 0;
+  addEnergy(recipes, machines, files.energy);
   for (const o of overrides) {
     const r = applyOverrides({ items, machines, recipes, nodes }, o);
     errors.push(...r.errors);
@@ -55,6 +58,37 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   }
   for (const list of producers.values()) list.sort((a, b) => a.id.localeCompare(b.id));
   return { data: { items, machines, recipes, nodes, producers, treeGrowth: structuredClone(files.machines.treeGrowth) }, errors, applied };
+}
+
+/**
+ * Installations énergétiques : une recette composée par installation (durée 1 s, quantités par
+ * seconde, énergie négative = production). Les Scrubbers reçoivent leur pollution propre.
+ */
+function addEnergy(recipes: Map<string, Recipe>, machines: Map<string, Machine>, energy: EnergyFile | undefined): void {
+  if (!energy) return;
+  for (const s of energy.setups) {
+    if (!machines.has(s.machine) || s.parts.some((p) => !machines.has(p.machine))) continue;
+    recipes.set(s.id, {
+      id: s.id,
+      machine: s.machine,
+      durationS: 1,
+      inputs: { ...s.inputsPerSec },
+      outputs: { ...s.outputsPerSec },
+      energyMFps: -s.mfps,
+      research: null,
+      parts: s.parts.map((p) => ({ ...p })),
+      setupName: s.name,
+      setupNote: s.note,
+      ...(s.pollutionPerHour !== null ? { pollutionPerHour: s.pollutionPerHour } : {}),
+      energyGuaranteed: s.guaranteed,
+      sources: structuredClone(s.sources),
+      verify: structuredClone(s.verify),
+    });
+  }
+  for (const sc of energy.scrubbers) {
+    const r = recipes.get(sc.recipe);
+    if (r) r.pollutionPerHour = sc.pollutionPerHour;
+  }
 }
 
 type Maps = Pick<GameData, "items" | "machines" | "recipes" | "nodes">;

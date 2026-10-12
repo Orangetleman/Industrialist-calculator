@@ -20,6 +20,8 @@ export type OptimizeRequest = {
   /** Objectif argent ($/min) ; null en mode objet. */
   moneyPerMin: number | null;
   selfPowered: boolean;
+  /** Objectif énergie : puissance nette à fournir en plus de la consommation de la chaîne (MF/s). */
+  energyTarget?: number;
   maxPollution: number | null;
   budget: number | null;
   /** Production déjà en place chez le joueur (/min par item) : source gratuite, plafonnée. */
@@ -97,7 +99,7 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
       if (p.energy) t.push([j, -p.energy]);
     });
     t.push([energyCol, 1]);
-    rows.push({ terms: t, op: ">=", rhs: 0 });
+    rows.push({ terms: t, op: ">=", rhs: req.energyTarget ?? 0 });
   }
   if (req.moneyPerMin !== null) {
     rows.push({ terms: sells.map((s) => [s.col, model.sellable.get(s.item)!]), op: ">=", rhs: req.moneyPerMin });
@@ -120,7 +122,9 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
   const pollutionRow: Row | null = req.maxPollution !== null ? { terms: pollutionTerms, op: "<=", rhs: req.maxPollution } : null;
   const budgetRow: Row | null = req.budget !== null ? { terms: costTerms, op: "<=", rhs: req.budget } : null;
 
-  const machinesObj: Term[] = [...R.map((_, j): Term => [j, 1]), ...depots.map((d): Term => [d.col, 1])];
+  const machinesObj: Term[] = [...R.map((p, j): Term => [j, p.units]), ...depots.map((d): Term => [d.col, 1])];
+  // Avec des Scrubbers, « moins de pollution » s'arrête à zéro (sinon : Scrubbers à l'infini).
+  if (req.criterion === "pollution" && pollutionTerms.some(([, v]) => v < 0)) rows.push({ terms: pollutionTerms, op: ">=", rhs: 0 });
   const objectives: Built["objectives"] = {
     imports: [
       ...imports.map((im): Term => [im.col, (req.demand.get(im.item) ?? 0) > 0 ? TARGET_PENALTY : 1]),
@@ -146,7 +150,7 @@ function levels(b: Built, criterion: Criterion): Term[][] {
   const out: Term[][] = [];
   if (b.objectives.imports.length) out.push(b.objectives.imports);
   out.push(b.objectives[criterion]);
-  out.push(b.objectives.area);
+  if (criterion !== "area") out.push(b.objectives.area);
   for (const k of ["machines", "energy", "raw"] as const) if (k !== criterion && !(criterion === "steps" && k === "machines")) out.push(b.objectives[k]);
   return out.filter((t) => t.length);
 }
@@ -212,6 +216,9 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
   //    arrondie. Pour les critères qui se comptent en machines entières (machines, prix,
   //    pollution), on compare plusieurs solutions sur le total arrondi : la solution exacte, des
   //    variantes élaguées (sans les recettes à moins d'une machine) et le choix de l'heuristique.
+  // Machines entières : une installation composée s'arrondit pièce par pièce.
+  const rounded = (p: (typeof model.recipes)[number], x: number, value: (q: { cost: number | null; pollution: number | null; area: number | null }) => number) =>
+    p.parts ? p.parts.reduce((s, q) => s + Math.ceil(x * q.count - 1e-9) * value(q), 0) : Math.ceil(x - 1e-9) * value(p);
   const real = (x: number[]): [number, number] => {
     let v = 0;
     let used = 0;
@@ -219,9 +226,10 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
     model.recipes.forEach((p, j) => {
       if (x[j]! <= 1e-9) return;
       used++;
-      if (req.criterion === "cost") v += ceil(x[j]!) * (p.cost ?? 0);
-      else if (req.criterion === "pollution") v += ceil(x[j]!) * (p.pollution ?? 0);
-      else if (req.criterion === "machines" || req.criterion === "steps") v += ceil(x[j]!);
+      if (req.criterion === "cost") v += rounded(p, x[j]!, (q) => q.cost ?? 0);
+      else if (req.criterion === "pollution") v += p.parts ? rounded(p, x[j]!, (q) => q.pollution ?? 0) : ceil(x[j]!) * (p.pollution ?? 0);
+      else if (req.criterion === "area") v += rounded(p, x[j]!, (q) => q.area ?? 0);
+      else if (req.criterion === "machines" || req.criterion === "steps") v += rounded(p, x[j]!, () => 1);
       else v += b.objectives[req.criterion].reduce((s, [k, a]) => (k === j ? s + a * x[j]! : s), 0);
     });
     b.depots.forEach((d, k) => {
@@ -239,7 +247,7 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
   };
   let x = solveOn(() => true);
   if (!x) return fail();
-  if (req.criterion === "machines" || req.criterion === "cost" || req.criterion === "pollution") {
+  if (req.criterion === "machines" || req.criterion === "cost" || req.criterion === "pollution" || req.criterion === "area") {
     const banned = new Set<number>();
     let cur = x;
     for (let round = 0; round < 8; round++) {

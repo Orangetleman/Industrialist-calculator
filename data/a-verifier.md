@@ -494,6 +494,20 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | Liquid Truck Depot | logistique · itemsPerSec | manquant | litres par voyage inconnus (cycle relevé en jeu : 80 s) : à relever en jeu |
 | Truck Depot | logistique · itemsPerSec | approximatif | 10 objets toutes les ~15 s d'après le wiki |
 | Steam Turbine | énergie · puissance selon la température | approximatif | Seulement une plage (432 MF/s à 9,36 kMF/s) : pas de courbe sur le wiki. |
+| Firebox (coal) + 2 Boilers + 2 Large Turbines | énergie · energyMFps | approximatif | température de la vapeur « around 190 » °C d'après la page Firebox : à confirmer en jeu |
+| Gas Burner (refined-gas) + 10 Boilers + 10 Large Turbines | énergie · energyMFps | approximatif | 4.5 à 5 MMF/s par brûleur d'après la page Gas Burner : borne basse retenue |
+| Gas Burner (hydrogen) + 10 Boilers + 10 Large Turbines | énergie · energyMFps | approximatif | 4.5 à 5 MMF/s par brûleur d'après la page Gas Burner : borne basse retenue |
+| Industrial Firebox | énergie · non calculé | manquant | eau chaude à 300 °C, mais température de la vapeur inconnue : à relever en jeu |
+| Geothermal Well | énergie · non calculé | manquant | jusqu'à 220 °C avec trois puits en chaîne, perte d'un tiers de l'eau ; température de la vapeur inconnue : à relever en jeu |
+| Electric Water Heater | énergie · non calculé | manquant | d'après le wiki, une installation Boiler + turbine ne couvre même pas sa propre consommation |
+| Steam Turbine | énergie · non calculé | manquant | puissance de 432 MF/s à 9,36 kMF/s selon la température, sans courbe |
+| Coal Power Plant | énergie · non calculé | manquant | grande centrale modulaire : réglages et données insuffisants pour un calcul fiable |
+| Nuclear Power Plant | énergie · non calculé | manquant | grande centrale modulaire : réglages et données insuffisants pour un calcul fiable |
+| Turbine Generator | énergie · non calculé | manquant | grande centrale modulaire : réglages et données insuffisants pour un calcul fiable |
+| Diesel Engine Generator | énergie · non calculé | manquant | grande centrale modulaire : réglages et données insuffisants pour un calcul fiable |
+| Solar Panel2 | énergie · non calculé | manquant | production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer |
+| Solar Panel3 | énergie · non calculé | manquant | production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer |
+| Solar Farm1 | énergie · non calculé | manquant | production selon l'heure inconnue (seulement une plage) : moyenne impossible à calculer |
 <!-- extension:fin -->
 
 ## Notes manuelles

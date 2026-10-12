@@ -231,6 +231,8 @@ button.chip.tier:hover { border-color: var(--accent); }
 .set-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .set-head h2 { margin: 0; }
 .fields > .hint.wide { grid-column: 1 / -1; margin: 0; }
+.fields label.check-inline { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: .88rem; }
+.fields label.check-inline input { width: 16px; }
 .pill { font-family: var(--f-mono); font-size: .75rem; background: var(--steel-soft); color: var(--steel); border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
 
 /* graphe */

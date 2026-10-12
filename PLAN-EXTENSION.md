@@ -1,8 +1,8 @@
 # Plan d'extension et de refonte — Calculateur Industrialist
 
 > Statut : **validé le 2026-10-12** (décisions en § 8). E0 terminée (données, relevés en jeu,
-> éditeur de bâtiments, 16 bâtiments relevés) ; E1 terminée (moteur v2 et simplexe, bilan en § 4) ;
-> E2 en attente du feu vert.
+> éditeur de bâtiments, 16 bâtiments relevés) ; E1 terminée (moteur v2 et simplexe) ; E2 terminée
+> (énergie) ; bilans en § 4. E3 en attente du feu vert.
 > Rédigé le 2026-10-12 après une lecture du wiki Miraheze (pages Pipes, Research Station1 à 4,
 > Satellite Dish Controller, RP Making, Weather & Time, Steam, Logic, Truck Depot, et les fiches
 > des 264 bâtiments déjà en cache).
@@ -188,6 +188,32 @@ Pi, puis j'attends ton feu vert.
   - le bilan de pollution et le coût.
 - **Tests** : cas calculés à la main (charbon, Firebox → Boiler → turbines, solaire avec
   batteries), puis contrainte de pollution respectée.
+
+**Bilan E2 (2026-10-12, fait).**
+
+- **`data/energy.json`** (généré par `build-extension`, faits extraits avec leur citation) :
+  installations complètes, traitées par le moteur comme des recettes « composées » :
+  - **Firebox + 2 Boilers + 2 Large Turbines** : vapeur vers 190 °C d'après le wiki, d'où
+    639,7 kMF/s pour 1 charbon/s (courbe des turbines) ; signalé « approximatif » ;
+  - **Gas Burner + 10 Boilers + 10 Large Turbines** : 4,5 MMF/s, la borne basse du wiki ;
+  - **Solar Panel** : moyenne exacte de 183,75 MF/s (tableau heure par heure), et variantes
+    **avec stockage de nuit**, une par type de batterie (24 750 MF et 63,75 MF/s par panneau) ;
+  - **éoliennes** : production minimale, garantie (« le vent n'est jamais nul ») ;
+  - **Scrubbers** : −3,24 / −3,57 / −6,29 %/h selon l'eau, +6,48 %/h pour la recette au Residue.
+- **Non calculés, faute de données** (listés dans l'outil) :
+  - Industrial Firebox et Geothermal Well : température de la vapeur inconnue ;
+  - Solar Panel2, Solar Panel3 et Solar Farm : pas de profil horaire ;
+  - Steam Turbine : pas de courbe ;
+  - grandes centrales modulaires.
+
+  Un relevé de température de vapeur dans `releves.json` (`steamTempC`) les active.
+- **Moteur** : objectif « X MF/s nets », en moyenne ou en **puissance garantie** ; option « sans
+  combustible » ; critère « moins de place au sol ». Les générateurs à combustible et leur
+  chaîne viennent des recettes existantes. Avec « moins de pollution », les Scrubbers ramènent la
+  pollution à zéro, sans aller au-delà.
+- **Réseau** : nombre de lignes par type de poteau (débit par nœud), et nombre de poteaux si une
+  distance est donnée. C'est indicatif : la règle des couleurs de nœuds et le tracé viendront en E4.
+- **Effet sur E1** : l'option « produire ma propre énergie » profite des centrales thermiques.
 
 ### E3 — Points de recherche (RP)
 
