@@ -1,6 +1,6 @@
 # Plan d'extension et de refonte — Calculateur Industrialist
 
-> Statut : **proposition, en attente de validation**. Rien de ce plan n'est codé.
+> Statut : **validé le 2026-10-12** (décisions en § 8). Phase E0 en cours.
 > Rédigé le 2026-10-12 après une lecture du wiki Miraheze (pages Pipes, Research Station1 à 4,
 > Satellite Dish Controller, RP Making, Weather & Time, Steam, Logic, Truck Depot, et les fiches
 > des 264 bâtiments déjà en cache).
@@ -337,3 +337,27 @@ fois E1 fait, mais tu ne l'as pas demandé : à toi de voir (question Q4).
    vendus dans une passe de jeu : faut-il les proposer dans les plans, en option ?
 6. **Q6 — Priorité.** L'ordre E0 → E1 → E2 → E3 → E4 → E5 (refonte progressive) te convient-il,
    ou préfères-tu avancer plus tôt sur les plans de construction ?
+
+## 8. Décisions (2026-10-12)
+
+| Question | Décision |
+| --- | --- |
+| Q1 Unité de la grille | À mesurer en jeu, selon la procédure de [RELEVES.md](RELEVES.md) § 0. |
+| Q2 Ports | Oui. Méthode de relevé : [RELEVES.md](RELEVES.md), avec une fiche texte et trois captures (vue normale, onglet 2, onglet 3). |
+| Q3 Simplexe | Oui, écrit à la main, sans dépendance. |
+| Q4 Argent | Oui, et pour **tous les objectifs** : proposer des **paliers ronds**, c'est-à-dire les débits où, avec la progression actuelle, chaque étape tombe sur un nombre entier de machines (ou presque), comme les 15 assembleurs de la référence. |
+| Q5 Passe de jeu | Les compteurs de débit sont proposés seulement si « J'ai la passe de jeu » est coché dans « Ma partie ». |
+| Q6 Ordre | E0 → E1 → E2 → E3 → E4 → E5, la refonte se faisant au fil des phases. |
+| Identité | Logo original (engrenage et flèche de flux), icônes et image d'aperçu des liens : fait le 2026-10-12. |
+
+**Mécanique de liaison observée en jeu** (captures du 2026-10-12), à intégrer en E4 :
+
+- En mode construction, l'**onglet 2** sert aux connexions **électriques et logiques** (câbles
+  tirés d'un nœud à l'autre) et l'**onglet 3** aux connexions de **tuyaux**. Sélectionnés, ils
+  affichent les **vecteurs** de liaison entre éléments.
+- Les liaisons sont donc des **arêtes explicites** entre ports, et non une simple contiguïté. Les
+  plans représenteront ces arêtes : câble d'un nœud de poteau à une prise, tuyau d'une sortie à
+  une entrée.
+- Les **prises électriques** sont souvent sur le dessus des machines. La portée d'un poteau se
+  mesure jusqu'à la prise, et la machine peut gêner le câble selon sa taille. Les plans placeront
+  les poteaux en tenant compte de la position et de la hauteur relevées de la prise.
