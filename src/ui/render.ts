@@ -6,7 +6,7 @@ import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, VerifyEntry } from "../engine/solve.ts";
 import type { OverridesFile, Recipe, Source } from "../engine/types.ts";
 import { esc, fieldLabel, fmt, fmtRP, isEditableField, REASON_LABEL } from "./format.ts";
-import type { Settings } from "./state.ts";
+import { noteKey, type Notes, type Settings } from "./state.ts";
 
 export type Ctx = { data: GameData; plan: Plan; settings: Settings; corrections: OverridesFile };
 
@@ -83,7 +83,22 @@ function currentValue(ctx: Ctx, v: VerifyEntry): unknown {
   const e: any = v.scope === "recette" ? ctx.data.recipes.get(v.id) : ctx.data.machines.get(v.id);
   if (!e) return undefined;
   const m = /^(inputs|outputs)\.(.+)$/.exec(v.flag.field);
-  return m ? e[m[1]!]?.[m[2]!] : e[v.flag.field];
+  const raw = m ? e[m[1]!]?.[m[2]!] : e[v.flag.field];
+  // Une recherche s'affiche par son nom, pas par son identifiant.
+  return v.flag.field === "unlockedBy" && typeof raw === "string" ? nodeN(ctx, raw) : raw;
+}
+
+/** Toutes les valeurs à vérifier des données (recettes et machines), celles du plan d'abord. */
+export function allVerifyEntries(ctx: Pick<Ctx, "data" | "plan">): VerifyEntry[] {
+  const used = new Set(ctx.plan.verify.filter((v) => v.used).map((v) => `${v.scope}|${v.id}`));
+  const out: VerifyEntry[] = [];
+  for (const r of ctx.data.recipes.values()) {
+    for (const flag of r.verify) out.push({ scope: "recette", id: r.id, item: Object.keys(r.outputs)[0] ?? "", flag, used: used.has(`recette|${r.id}`) });
+  }
+  for (const m of ctx.data.machines.values()) {
+    for (const flag of m.verify) out.push({ scope: "machine", id: m.id, item: "", flag, used: used.has(`machine|${m.id}`) });
+  }
+  return out;
 }
 
 function showValue(v: unknown): string {
@@ -95,10 +110,15 @@ function showValue(v: unknown): string {
   return s.length > 80 ? `${s.slice(0, 79)}…` : s;
 }
 
-export function renderVerify(ctx: Ctx): string {
-  const p = ctx.plan;
+/**
+ * Valeurs à vérifier, groupées par recette ou machine. `entries` : celles du plan (par défaut) ou
+ * toutes ; `notes` : les notes laissées (affichées sous chaque valeur, avec de quoi en écrire une).
+ */
+export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: Notes; all?: boolean } = {}): string {
+  const entries = opts.entries ?? ctx.plan.verify;
+  const notes = opts.notes ?? {};
   const groups = new Map<string, VerifyEntry[]>();
-  for (const v of p.verify) {
+  for (const v of entries) {
     const k = `${v.scope}|${v.id}`;
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k)!.push(v);
@@ -120,6 +140,12 @@ export function renderVerify(ctx: Ctx): string {
         const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value))}</b> selon ${sourceLink(a.source)}`).join(" ; ");
         // Pour une contradiction, le détail répète les valeurs : on le remplace par « retenu / autre ».
         const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${esc(v.flag.detail)}</div>`;
+        const nk = noteKey(scopeKey, v.id, v.flag.field);
+        const note = notes[nk];
+        const noteBox = `<details class="vnote"${note ? " open" : ""}><summary>${note ? "Ta note" : "Laisser une note plutôt qu'une valeur"}</summary>
+            <form class="note-form" data-note="${esc(nk)}"><label class="sr-only" for="note-${esc(nk)}">Note</label>
+            <textarea id="note-${esc(nk)}" name="note" rows="2" maxlength="1000" placeholder="ex. deux ports d'entrée : l'un pour l'eau chaude, l'autre pour l'eau à convertir">${esc(note?.text ?? "")}</textarea>
+            <div class="row"><button type="submit">Enregistrer la note</button>${note ? `<button type="button" class="link" data-note-del="${esc(nk)}">effacer</button> <span class="muted small">${esc(note.at.slice(0, 10))}</span>` : ""}</div></form></details>`;
         const input = editable
           ? `<form class="fix" data-scope="${scopeKey}" data-id="${esc(v.id)}" data-field="${esc(v.flag.field)}">
               <label for="${esc(fid)}">Valeur relevée en jeu</label>
@@ -129,14 +155,14 @@ export function renderVerify(ctx: Ctx): string {
         return `<li class="vrow"><div class="vhead"><span class="vfield">${esc(fieldLabel(v.flag.field, (id) => itemN(ctx, id)))}</span>
             <span class="badge ${esc(v.flag.reason)}">${esc(REASON_LABEL[v.flag.reason] ?? v.flag.reason)}</span></div>
           <div class="vvals">Retenu : <b class="num">${esc(showValue(currentValue(ctx, v)))}</b>${primary ? ` selon ${sourceLink(primary)}` : ""}${alts ? ` · Autre : ${alts}` : ""}</div>
-          ${detail}${input}</li>`;
+          ${detail}${input}${noteBox}</li>`;
       })
       .join("");
     return `<div class="verify-group panel${head.used ? "" : " unused"}"><h3>${title}</h3>
-      <p class="vstate">${head.used ? "Utilisée dans le calcul" : "Recette écartée (elle pourrait être meilleure une fois vérifiée)"}</p>
+      <p class="vstate">${head.used ? "Utilisée dans le calcul" : opts.all ? "Pas utilisée par le dernier calcul" : "Recette écartée (elle pourrait être meilleure une fois vérifiée)"}</p>
       <ul class="vrows">${rows}</ul></div>`;
   });
-  if (!blocks.length) return `<p class="muted">Aucune valeur douteuse dans cette chaîne.</p>`;
+  if (!blocks.length) return `<p class="muted">${opts.all ? "Aucune valeur ne correspond." : "Aucune valeur douteuse dans cette chaîne."}</p>`;
   return blocks.join("");
 }
 

@@ -374,17 +374,25 @@ par étape, au choix dans la liste.
 - **Tests** : rotations, ports du Craft Assembler, routage (croisement, obstacle), et sur 5 étapes
   réelles : aucun chevauchement, chaque port raccordé, chaque liaison réciproque, pièces comptées.
 
-Hypothèses (affichées avec chaque plan) et questions pour la suite :
-1. « Junction » est-elle un embranchement à 3 voies, et « Section » à 4 voies ?
-2. Un croisement de tier III (Pipe Intersection) se raccorde-t-il à des tuyaux de tier I ?
-3. La portée des poteaux (10,5) est-elle en cases (un Short Pipe) ?
-4. Règle des nœuds : combien de câbles par nœud, et un câble entre deux poteaux prend-il un
-   nœud ? Aujourd'hui, le plan signale seulement quand le module consomme plus qu'un nœud.
-5. Un collecteur qui longe N machines et les alimente par des embranchements répartit-il bien
-   les objets entre elles ?
+Réponses de l'utilisateur (2026-10-13), intégrées :
+1. « Junction » = embranchement à 3 voies, « Section » = 4 voies.
+2. Un croisement de tier III se raccorde aux tuyaux de tier I. Ajouté : option « Seulement des
+   tuyaux de tier III ». Au-delà de 120/s, plusieurs collecteurs en parallèle ; le gros tuyau de
+   tier IV (fluides, 12 000 L/s) servira à amener le fluide jusqu'au module (usine assemblée).
+3. Portée des poteaux : 1 tuile = 2 cases (Short Pipes) ; 10,5 tuiles = 21 cases
+   (`releves.json`, `grid.tileCells`). La distance de l'objectif énergie se saisit en cases.
+4. Pas de limite de câbles par nœud : la limite est la puissance que porte le poteau. Une file de
+   poteaux, alimentée par un bout, prend le poteau le moins cher qui porte toute sa consommation.
+5. Un collecteur répartit bien les objets entre les machines qu'il longe.
 
-Pas encore fait : arbres et centrales composées, collecteurs en parallèle au-delà de 120/s,
-sous-produits vers un silo ou un brûleur, logique, usine assemblée (E4b).
+À confirmer (captures du 2026-10-13) : on peut relier directement deux ports, y compris une
+entrée à une autre entrée, et les liaisons se croisent sans pièce de croisement. Questions :
+quelle longueur maximale pour une liaison directe ? Une entrée reliée à une autre entrée fait-elle
+passer les objets à la machine suivante (chaînage) ? Les objets arrivés par « la mauvaise »
+entrée vont-ils quand même au bon endroit dans la machine ?
+
+Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
+logique, liaisons directes entre ports, usine assemblée (E4b).
 
 ### E5 — Refonte de l'interface
 

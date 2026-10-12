@@ -10,7 +10,9 @@ const C = 16; // unités SVG par case
 const PALETTE = ["#f0913a", "#6cc792", "#8fb8d6", "#e3b25a", "#d77fd0", "#5fd4d4", "#ff8a80", "#c5d86d"];
 
 export function netColors(m: ModulePlan): Map<string, string> {
-  return new Map(m.nets.map((n, i) => [n.item, PALETTE[i % PALETTE.length]!]));
+  // Une couleur par ressource ; ses collecteurs parallèles partagent la même.
+  const items = [...new Set(m.nets.map((n) => n.item))];
+  return new Map(m.nets.map((n) => [n.id, PALETTE[items.indexOf(n.item) % PALETTE.length]!]));
 }
 
 /** Dessin du module (SVG), à placer dans un cadre navigable. */
@@ -42,9 +44,10 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string): { 
   // Tuyaux : un trait du centre de la case vers chaque liaison ; croisement : le second réseau passe dessus.
   const seg = (x: number, y: number, d: Dir, col: string, wide: boolean, bridge = false) =>
     `<line class="${bridge ? "pp bridge" : "pp"}" x1="${cx(x)}" y1="${cy(y)}" x2="${cx(x) + (STEP[d].x * C) / 2}" y2="${cy(y) + (STEP[d].y * C) / 2}" stroke="${col}" stroke-width="${wide ? 5 : 3}"/>`;
-  const tier = new Map(m.nets.map((n) => [n.item, n.pipe?.tier ?? 1]));
+  const tier = new Map(m.nets.map((n) => [n.id, n.pipe?.tier ?? 1]));
+  const res = (id: string) => name(id.replace(/#\d+$/, ""));
   for (const p of m.pieces) {
-    const tip = p.role === "croisement" ? `Croisement : ${name(p.net)} / ${name(p.crossNet ?? "")}` : `${name(p.net)} — ${p.role}`;
+    const tip = p.role === "croisement" ? `Croisement : ${res(p.net)} / ${res(p.crossNet ?? "")}` : `${res(p.net)} — ${p.role}`;
     s += `<g><title>${esc(tip)}</title>`;
     for (const d of p.links) s += seg(p.x, p.y, d, color.get(p.net)!, tier.get(p.net) === 3);
     if (p.crossNet) for (const d of p.crossLinks ?? []) s += seg(p.x, p.y, d, color.get(p.crossNet)!, tier.get(p.crossNet) === 3, true);
@@ -58,7 +61,7 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string): { 
     const x = cx(n.end.x) + (STEP[n.end.dir].x * C) / 2;
     const y = cy(n.end.y);
     const out = n.end.dir === "E";
-    s += `<g class="end"><title>${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}</title><path d="M${x - (out ? 0 : 7)},${y - 5} L${x + (out ? 7 : 0)},${y} L${x - (out ? 0 : 7)},${y + 5} z" fill="${color.get(n.item)}"/></g>`;
+    s += `<g class="end"><title>${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}</title><path d="M${x - (out ? 0 : 7)},${y - 5} L${x + (out ? 7 : 0)},${y} L${x - (out ? 0 : 7)},${y + 5} z" fill="${color.get(n.id)}"/></g>`;
   }
   // Poteaux.
   for (const p of m.poles) s += `<g class="pole"><title>${esc(`${name(p.pole)}${p.covers.length ? ` — machines ${p.covers.map((c) => c.slice(1)).join(", ")}` : " — relais"}`)}</title><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${C * p.w}" height="${C * p.h}" rx="4"/><text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text></g>`;
@@ -78,7 +81,7 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string): {
   const legend = `<ul class="mod-legend">${m.nets
     .map(
       (n) =>
-        `<li><i style="background:${color.get(n.item)}"></i>${esc(name(n.item))} <span class="muted">· ${n.role === "entrée" ? "entre" : "sort"} ${esc(fmt(n.perSec, 2))}/s · ${n.pipe ? `tier ${n.pipe.tier === 1 ? "I" : "III"} (${n.pipe.flowPerSec}/s)` : "aucun tuyau assez rapide"}</span></li>`,
+        `<li><i style="background:${color.get(n.id)}"></i>${esc(name(n.item))}${n.line ? ` n° ${n.line}` : ""} <span class="muted">· ${n.role === "entrée" ? "entre" : "sort"} ${esc(fmt(n.perSec, 2))}/s · ${n.pipe ? `tier ${n.pipe.tier === 1 ? "I" : "III"} (${n.pipe.flowPerSec}/s)` : "aucun tuyau assez rapide"}</span></li>`,
     )
     .join("")}<li><i class="sw-plug"></i>Prise électrique</li>${m.poles.length ? `<li><i class="sw-pole"></i>Poteau</li>` : ""}</ul>`;
   const rows = m.parts

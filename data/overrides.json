@@ -74,7 +74,18 @@
    }
   }
  },
- "machines": {},
+ "machines": {
+  "industrial-diesel-refinery": {
+   "unlockedBy": {
+    "value": "industrial-diesel-refining",
+    "source": {
+     "wiki": "saisie",
+     "fetchedAt": "2026-10-13T08:00:00.000Z",
+     "note": "Choix de l’utilisateur (2026-10-13) : la recherche « Industrial Diesel Refining » ; « Industrial Diesel Refinery » dans l’infobox est le nom de la machine, aucune recherche ne porte ce nom."
+    }
+   }
+  }
+ },
  "items": {},
  "research": {}
 }

@@ -49,11 +49,15 @@ import { initBuildings } from "./buildings.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import type { ResearchView } from "./research-plan.ts";
-import { renderCorrections, renderVerify } from "./render.ts";
+import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import {
   builtFor,
+  cleanNotes,
   countCorrections,
+  loadNotes,
+  saveNotes,
+  type Notes,
   CRITERIA,
   isOverridesFile,
   loadBuilt,
@@ -84,7 +88,10 @@ const repoOverrides = overridesJson as unknown as OverridesFile;
 /** Dépôts de vente (objectif argent) : débit de vente relevé ou lu sur le wiki. */
 const DEPOTS = (logisticsJson as unknown as LogisticsFile).depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
 /** Pièces de construction (tuyaux, croisements, poteaux) pour les plans de pose. */
-const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, (relevesJson as { poleRangeTiles?: Record<string, number> }).poleRangeTiles ?? {});
+const RELEVES = relevesJson as { poleRangeTiles?: Record<string, number>; grid?: { tileCells?: number } };
+/** Une tuile (portée des poteaux) = 2 cases, relevé en jeu. */
+const CELLS_PER_TILE = RELEVES.grid?.tileCells ?? 2;
+const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, RELEVES.poleRangeTiles ?? {}, CELLS_PER_TILE);
 const PORTS = (portsJson as unknown as PortsFile).machines;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -102,6 +109,11 @@ let dataErrors: string[] = [];
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
 let built = loadBuilt();
+/** Notes sur les valeurs à vérifier : celles du dépôt (overrides.json, clé `_notes`), puis les miennes. */
+const repoNotes: Notes = cleanNotes((overridesJson as { _notes?: unknown })._notes);
+let notes: Notes = loadNotes();
+let verifyAll = false;
+let verifyFilter = "";
 const treeView: TreeView = { category: "Production", filter: "" };
 
 /** Dernier calcul (recalculé seulement quand un réglage, la progression ou les données changent). */
@@ -269,7 +281,7 @@ function ensurePlan(): void {
       item: settings.item,
       ...target,
       poles: POLES,
-      distanceTiles: settings.distanceTiles,
+      distanceTiles: settings.distanceTiles === null ? null : settings.distanceTiles / CELLS_PER_TILE,
       criterion: settings.criteria[goal],
       forced: settings.forced,
       useUnverified: settings.useUnverified,
@@ -499,15 +511,15 @@ let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
 function moduleOf(key: string): ModulePlan | null {
-  if (modulesFor !== signature) {
+  if (modulesFor !== `${signature}|${settings.tier3Only}`) {
     modules.clear();
-    modulesFor = signature;
+    modulesFor = `${signature}|${settings.tier3Only}`;
   }
   if (!modules.has(key)) {
     const s = plan?.steps.find((x) => x.key === key);
     const m = s ? data.machines.get(s.machine) : undefined;
     const req = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
-    modules.set(key, req && m ? designModule(req, PORTS[m.id] ?? null, m.size, CATALOG, anyName) : null);
+    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only }, PORTS[m.id] ?? null, m.size, CATALOG, anyName) : null);
   }
   return modules.get(key) ?? null;
 }
@@ -551,7 +563,8 @@ function renderPose(): void {
       return { x: w >= c.w ? (c.w - w) / 2 : 0, y: (c.h - h) / 2, w, h };
     },
   });
-  const k = `${signature}|${poseStep}`;
+  input("pose-tier3").checked = settings.tier3Only;
+  const k = `${signature}|${poseStep}|${settings.tier3Only}`;
   posePZ.attach(canvas.querySelector("svg")!, f.width, f.height, k === poseKey);
   poseKey = k;
 }
@@ -717,7 +730,18 @@ function renderData(): void {
   const v = viewCtx();
   const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(GOAL_TITLE[settings.goal].toLowerCase())}</a>`;
   $("verify-context").innerHTML = `Valeurs de la chaîne du dernier calcul : ${esc(planLabel(v))} (${where}).`;
-  $("verify").innerHTML = renderVerify(v);
+  const everything = allVerifyEntries(v);
+  $("verify-all-count").textContent = String(new Set(everything.map((x) => `${x.scope}|${x.id}`)).size);
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-vscope]")) b.setAttribute("aria-checked", String((b.dataset.vscope === "all") === verifyAll));
+  const q = verifyFilter.trim().toLowerCase();
+  const match = (x: (typeof everything)[number]) => {
+    if (!q) return true;
+    const r = x.scope === "recette" ? data.recipes.get(x.id) : undefined;
+    const names = [x.id, x.item && itemN(v, x.item), x.scope === "machine" ? machineN(v, x.id) : r ? machineN(v, r.machine) : "", ...(r ? Object.keys({ ...r.inputs, ...r.outputs }).map((i) => itemN(v, i)) : [])];
+    return names.some((n) => n && n.toLowerCase().includes(q));
+  };
+  const shown = (verifyAll ? everything : v.plan.verify).filter(match);
+  $("verify").innerHTML = renderVerify(v, { entries: shown, notes: { ...repoNotes, ...notes }, all: verifyAll });
   $("verify-count").textContent = String(v.plan.verify.filter((x) => x.used).length);
   $("corrections").innerHTML = renderCorrections(v);
   $("corrections-count").textContent = String(countCorrections(corrections));
@@ -1016,6 +1040,11 @@ function bindPlan(): void {
     }
     update();
     $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
+  });
+  $("pose-tier3").addEventListener("change", (e) => {
+    settings.tier3Only = (e.target as HTMLInputElement).checked;
+    saveSettings(settings);
+    renderPose();
   });
   $("pose-step").addEventListener("change", (e) => {
     poseStep = (e.target as HTMLSelectElement).value;
@@ -1344,7 +1373,41 @@ function bindData(): void {
     rebuildData();
     update();
   });
-  $("export").addEventListener("click", () => downloadJson(mergeCorrections(repoOverrides, corrections), "overrides.json"));
+  $("export").addEventListener("click", () => downloadJson({ ...mergeCorrections(repoOverrides, corrections), _notes: { ...repoNotes, ...notes } }, "overrides.json"));
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-vscope]")) {
+    b.addEventListener("click", () => {
+      verifyAll = b.dataset.vscope === "all";
+      renderData();
+    });
+  }
+  $("verify-filter").addEventListener("input", (e) => {
+    verifyFilter = (e.target as HTMLInputElement).value;
+    renderData();
+  });
+  // Notes : une explication au lieu d'une valeur, gardée dans ce navigateur et exportée.
+  $("verify").addEventListener("submit", (e) => {
+    const form = (e.target as HTMLElement).closest<HTMLFormElement>("form.note-form");
+    if (!form) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const k = form.dataset.note!;
+    const text = (form.elements.namedItem("note") as HTMLTextAreaElement).value.trim();
+    if (text) notes = { ...notes, [k]: { text: text.slice(0, 1000), at: new Date().toISOString() } };
+    else {
+      const { [k]: _, ...rest } = notes;
+      notes = rest;
+    }
+    saveNotes(notes);
+    renderData();
+  }, true);
+  $("verify").addEventListener("click", (e) => {
+    const del = (e.target as HTMLElement).closest<HTMLElement>("[data-note-del]");
+    if (!del) return;
+    const { [del.dataset.noteDel!]: _, ...rest } = notes;
+    notes = rest;
+    saveNotes(notes);
+    renderData();
+  });
   $("import").addEventListener("change", async (e) => {
     const box = e.target as HTMLInputElement;
     const file = box.files?.[0];
@@ -1353,6 +1416,8 @@ function bindData(): void {
     try {
       const parsed: unknown = JSON.parse(await file.text());
       if (!isOverridesFile(parsed)) throw new Error("format inattendu");
+      notes = { ...notes, ...cleanNotes((parsed as { _notes?: unknown })._notes) };
+      saveNotes(notes);
       corrections = mergeCorrections(corrections, parsed);
       saveCorrections(corrections);
       rebuildData();

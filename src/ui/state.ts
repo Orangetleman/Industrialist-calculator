@@ -47,7 +47,10 @@ export type Settings = {
   energyMFps: number;
   energyGuaranteed: boolean;
   energyNoFuel: boolean;
+  /** Distance jusqu'aux machines, en cases (Short Pipes) ; le moteur compte en tuiles (2 cases). */
   distanceTiles: number | null;
+  /** Plans de pose : seulement des tuyaux de tier III. */
+  tier3Only: boolean;
   /** Objectif recherche : but, vitesse, recherche visée, délai, plafond (null = automatique), options. */
   rpMode: "rate" | "node" | "plan";
   rpRate: number;
@@ -80,6 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
   energyGuaranteed: false,
   energyNoFuel: false,
   distanceTiles: null,
+  tier3Only: false,
   rpMode: "rate",
   rpRate: 50,
   rpNode: null,
@@ -93,6 +97,7 @@ export const DEFAULT_SETTINGS: Settings = {
 const KEY_SETTINGS = "ind-calc:v1:settings";
 const KEY_CORRECTIONS = "ind-calc:v1:corrections";
 const KEY_BUILT = "ind-calc:v1:built";
+const KEY_NOTES = "ind-calc:v1:notes";
 
 function read<T>(key: string): T | null {
   try {
@@ -133,6 +138,7 @@ export function loadSettings(): Settings {
   out.energyGuaranteed = out.energyGuaranteed === true;
   out.energyNoFuel = out.energyNoFuel === true;
   if (out.distanceTiles !== null && !(out.distanceTiles >= 0)) out.distanceTiles = null;
+  out.tier3Only = out.tier3Only === true;
   if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;
@@ -240,6 +246,36 @@ export function pruneIntegratedCorrections(local: OverridesFile, repo: Overrides
     }
   }
   return { kept, dropped };
+}
+
+// ---------------------------------------------------------------- notes sur les valeurs à vérifier
+
+/**
+ * Notes laissées sur une valeur à vérifier, quand une valeur seule ne suffit pas (ex. deux ports
+ * d'entrée pour la même ressource). Clé : « recipes|id|champ » ou « machines|id|champ ».
+ * Exportées avec les corrections (clé `_notes` de overrides.json), ignorées par le calcul.
+ */
+export type Notes = Record<string, { text: string; at: string }>;
+
+export const noteKey = (scope: "recipes" | "machines", id: string, field: string) => `${scope}|${id}|${field}`;
+
+export function loadNotes(): Notes {
+  const n = read<Notes>(KEY_NOTES);
+  return n && typeof n === "object" && !Array.isArray(n) ? cleanNotes(n) : {};
+}
+export function saveNotes(n: Notes): void {
+  write(KEY_NOTES, n);
+}
+/** Garde les notes bien formées (texte non vide, 1000 caractères au plus). */
+export function cleanNotes(raw: unknown): Notes {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Notes = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const t = (v as { text?: unknown })?.text;
+    const at = (v as { at?: unknown })?.at;
+    if (typeof t === "string" && t.trim() && /^(recipes|machines)\|[^|]+\|.+$/.test(k)) out[k] = { text: t.trim().slice(0, 1000), at: typeof at === "string" ? at : new Date().toISOString() };
+  }
+  return out;
 }
 
 /** Valide grossièrement un fichier importé. */

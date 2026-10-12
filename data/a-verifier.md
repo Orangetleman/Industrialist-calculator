@@ -8,9 +8,9 @@
 
 | Fichier | Objets | Dont à vérifier |
 |---|---|---|
-| recipes.json | 447 | 110 |
+| recipes.json | 447 | 109 |
 | machines.json | 264 | 19 |
-| items.json | 212 | 2 |
+| items.json | 213 | 2 |
 | research.json | 149 | 24 |
 
 Contrôle Fandom : 409 recettes distinctes lues, 254 identiques à Miraheze, 101 en contradiction, 54 absentes de Miraheze, 0 ambiguës.
@@ -32,7 +32,7 @@ Identiques : Steel Rod (Roller) = `roller_03` ; Steel Ingot (Blast Furnace) = `b
 
 ## Recettes
 
-### Contradictions (valeur Miraheze retenue) — 89
+### Contradictions (valeur Miraheze retenue) — 88
 
 Le moteur utilise la valeur Miraheze et affiche l'alternative.
 
@@ -64,7 +64,6 @@ Le moteur utilise la valeur Miraheze et affiche l'alternative.
 | [`blast_furnace_14`](https://industrialist.miraheze.org/wiki/Module:Recipes/Blast_Furnace) | Blast Furnace | 4 Coal + 4 Rock → 4 Iron Mix | inputs.coal | Miraheze : 4 ; Fandom : 2 | 2 ([fandom](https://industrialist.fandom.com/wiki/Iron_Mix)) |
 | [`blast_furnace_MK2_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Blast_Furnace_MK2) | Blast Furnace MK2 | 300 Coal + 100 Iron Ingot → 200 Steel Ingot | durationS | Miraheze : 20 ; Fandom : 5 | 5 ([fandom](https://industrialist.fandom.com/wiki/Coal)) |
 | [`blast_furnace_MK2_02`](https://industrialist.miraheze.org/wiki/Module:Recipes/Blast_Furnace_MK2) | Blast Furnace MK2 | 200 Coal + 50 Oak Log → 300 Coke Fuel | durationS | Miraheze : 20 ; Fandom : 5 | 5 ([fandom](https://industrialist.fandom.com/wiki/Coal)) |
-| [`boiler_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Boiler) | Boiler | 6 Water → 3 Water + 90 Steam | inputs.water | Miraheze : 6 ; Fandom : 3 | 3 ([fandom](https://industrialist.fandom.com/wiki/Steam)) |
 | [`chemical_reactor_13`](https://industrialist.miraheze.org/wiki/Module:Recipes/Chemical_Reactor) | Chemical Reactor | 20 Chlorine + 20 Hydrogen + 5 Distilled Water → 5 Hydrochloric Acid | energyMFps | Miraheze : 600000 ; Fandom : 60000 | 60000 ([fandom](https://industrialist.fandom.com/wiki/Hydrochloric_Acid)) |
 | [`coal_generator_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Coal_Generator) | Coal Generator | 0.25 Coal + 1.45 Water → 3 Steam | energyMFps | Miraheze : -7000 ; Fandom : -4500 | -4500 ([fandom](https://industrialist.fandom.com/wiki/Coal)) |
 | [`coal_generator_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Coal_Generator) | Coal Generator | 0.25 Coal + 1.45 Water → 3 Steam | inputs.coal | Miraheze : 0.25 ; Fandom : 0.5 | 0.5 ([fandom](https://industrialist.fandom.com/wiki/Coal)) |
@@ -104,7 +103,7 @@ Le moteur utilise la valeur Miraheze et affiche l'alternative.
 | [`foundry_10`](https://industrialist.miraheze.org/wiki/Module:Recipes/Foundry) | Foundry | 400 Treated Raw Iron + 1680 Coal + 3500 Water → 1200 Iron Ingot | inputs.coal | Miraheze : 1680 ; Fandom : 2400 | 2400 ([fandom](https://industrialist.fandom.com/wiki/Iron_Ingot)) |
 | [`foundry_10`](https://industrialist.miraheze.org/wiki/Module:Recipes/Foundry) | Foundry | 400 Treated Raw Iron + 1680 Coal + 3500 Water → 1200 Iron Ingot | inputs.water | Miraheze : 3500 ; Fandom : 5000 | 5000 ([fandom](https://industrialist.fandom.com/wiki/Iron_Ingot)) |
 | [`foundry_10`](https://industrialist.miraheze.org/wiki/Module:Recipes/Foundry) | Foundry | 400 Treated Raw Iron + 1680 Coal + 3500 Water → 1200 Iron Ingot | outputs.iron-ingot | Miraheze : 1200 ; Fandom : 1000 | 1000 ([fandom](https://industrialist.fandom.com/wiki/Iron_Ingot)) |
-| [`gas_burner_02`](https://industrialist.miraheze.org/wiki/Module:Recipes/Gas_Burner) | Gas Burner | 20 Hydrogen + 30 Water → 30 Water | inputs.hydrogen | Miraheze : 20 ; Fandom : 12 | 12 ([fandom](https://industrialist.fandom.com/wiki/Hydrogen)) |
+| [`gas_burner_02`](https://industrialist.miraheze.org/wiki/Module:Recipes/Gas_Burner) | Gas Burner | 20 Hydrogen + 30 Water → 30 Hot Water | inputs.hydrogen | Miraheze : 20 ; Fandom : 12 | 12 ([fandom](https://industrialist.fandom.com/wiki/Hydrogen)) |
 | [`geothermal_well_03`](https://industrialist.miraheze.org/wiki/Module:Recipes/Geothermal_Well) | Geothermal Well | 9.09 Distilled Water → 6.05 Distilled Water | durationS | Miraheze : 1 ; Fandom : 3.67 | 3.67 ([fandom](https://industrialist.fandom.com/wiki/Distilled_Water)) |
 | [`geothermal_well_03`](https://industrialist.miraheze.org/wiki/Module:Recipes/Geothermal_Well) | Geothermal Well | 9.09 Distilled Water → 6.05 Distilled Water | energyMFps | Miraheze : 3000 ; Fandom : 11000 | 11000 ([fandom](https://industrialist.fandom.com/wiki/Distilled_Water)) |
 | [`gold_acid_refinery_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Gold_Acid_Refinery) | Gold Acid Refinery | 2 Acetic Acid + 6 Water + 1 Rich Soil → 8 Residue + 1 10 Karat Gold | outputs.10-karat-gold | Miraheze : 1 ; Fandom : 5 | 5 ([fandom](https://industrialist.fandom.com/wiki/Gold/10_Karat_Gold)) |
@@ -293,11 +292,10 @@ Le wiki donne une valeur de base et un mode (vitesse du Chemical Plant, tempéra
 | [`tree_01`](https://industrialist.miraheze.org/wiki/Tree) | Tree | ∅ → 2 Oak Log | durationS | « 0% - 5% (Normal) → ~363s (Normal) » : valeur arrondie (~) et dépendante de la pollution |  |
 | [`tree_01`](https://industrialist.miraheze.org/wiki/Tree) | Tree | ∅ → 2 Oak Log | outputs.oak-log | le wiki dit « au moins 2 » Oak Logs par arbre |  |
 
-### Valeurs sans source fiable — 4
+### Valeurs sans source fiable — 3
 
 | Recette | Machine | Entrées → sorties | Champ | Détail | Alternatives |
 |---|---|---|---|---|---|
-| [`boiler_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Boiler) | Boiler | 6 Water → 3 Water + 90 Steam | inputs.water | Water apparaît deux fois ; quantités additionnées |  |
 | [`chemical_reactor_07`](https://industrialist.miraheze.org/wiki/Module:Recipes/Chemical_Reactor) | Chemical Reactor | 5 Microchip Scrap + 7 Sulfuric Acid + 20 Distilled Water → 1 Gold Ingot | inputs.sulfuric-acid | Sulfuric Acid apparaît deux fois ; quantités additionnées |  |
 | [`heat_exchanger_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Heat_Exchanger) | Heat Exchanger | 800 Distilled Water → 400 Distilled Water + 12000 High Pressure Steam | inputs.distilled-water | Distilled Water apparaît deux fois ; quantités additionnées |  |
 | [`vertical_heat_exchanger_01`](https://industrialist.miraheze.org/wiki/Module:Recipes/Vertical_Heat_Exchanger) | Vertical Heat Exchanger | 800 Distilled Water → 400 Distilled Water + 12000 High Pressure Steam | inputs.distilled-water | Distilled Water apparaît deux fois ; quantités additionnées |  |
@@ -531,4 +529,17 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
   l'installation proposée (un seul type de station à la fois) ; les installations mixtes ne sont
   pas proposées. À préciser en jeu : le plafond vient-il de la station la plus forte, ou de leur
   somme ?
+- **2026-10-13, Boiler** : deux entrées d'eau (ports relevés) : l'eau convertie en vapeur et
+  l'eau chaude d'un chauffe-eau. Miraheze (6) compte les deux, le Fandom (3) seulement la
+  première. **Fait** : ressource « Hot Water » (releves.json `hotWater`) ; les chauffe-eau
+  (Firebox, Gas Burner, Industrial Firebox, Geothermal Well) rendent de l'eau chaude, le Boiler
+  en consomme 3 avec 3 d'eau ; pas de vapeur sans chauffe-eau. Les variantes à l'eau filtrée ou
+  distillée ne sont pas encore reliées au Boiler.
+- **2026-10-13, prudence** : quand une valeur est une plage, la plus défavorable est retenue
+  (pollution : la borne haute), tant qu'aucun relevé ne la remplace.
+- **2026-10-13, Scrubber** : pollution prise recette par recette sur la page du wiki
+  (−3,24 / −3,57 / −6,29 / +6,48 %/h).
+- **2026-10-13, Industrial Diesel Refinery** : débloquée par la recherche « Industrial Diesel
+  Refining » (overrides.json) ; « Industrial Diesel Refinery » dans l'infobox est le nom de la
+  machine.
 <!-- notes-manuelles:fin -->

@@ -359,7 +359,7 @@ export function buildRows(v: ViewCtx): BuildRow[] {
       countText: fmt(pole.poles!, 0),
       machine: pole.name,
       product: fmtMF(net.mfps),
-      rate: `sur ${fmt(net.distanceTiles!, 0)} cases`,
+      rate: `sur ${fmt(net.distanceTiles! * 2, 0)} cases`,
       feeds: "",
       energy: "—",
       note: `${plural(pole.lines, "ligne", "lignes")} de ${pole.polesPerLine} poteaux${pole.cost !== null ? ` · ${fmtMoney(pole.cost)}` : ""} (autres poteaux : Détails)`,
@@ -562,7 +562,7 @@ export function renderDetails(v: ViewCtx): string {
     parts.push(
       more(
         "Réseau électrique (poteaux)",
-        `<p>${esc(fmtMF(d.mfps))} à transporter${d.distanceTiles !== null ? ` sur ${fmt(d.distanceTiles, 0)} cases` : " — indique la distance dans les options pour compter les poteaux"}.</p><ul class="notes">${d.options
+        `<p>${esc(fmtMF(d.mfps))} à transporter${d.distanceTiles !== null ? ` sur ${fmt(d.distanceTiles * 2, 0)} cases (${fmt(d.distanceTiles, 1)} tuiles de portée)` : " — indique la distance dans les options pour compter les poteaux"}.</p><ul class="notes">${d.options
           .map((o) => `<li>${esc(o.name)} : ${plural(o.lines, "ligne", "lignes")}${o.poles !== null ? `, ${o.poles} poteaux${o.cost !== null ? `, ${esc(fmtMoney(o.cost))}` : ""}` : ""}</li>`)
           .join("")}</ul>`,
       ),

@@ -3,7 +3,7 @@
   "generatedAt": "2026-10-12T07:24:21.774Z",
   "primary": "miraheze",
   "counts": {
-   "items": 212,
+   "items": 213,
    "aVerifier": 2
   }
  },
@@ -3620,6 +3620,21 @@
      "page": "Zirconium Rod",
      "revisionId": 40206,
      "fetchedAt": "2026-10-11T01:03:58.138Z"
+    }
+   ],
+   "verify": []
+  },
+  {
+   "id": "hot-water",
+   "name": "Hot Water",
+   "isFluid": true,
+   "sellValue": null,
+   "researchValue": null,
+   "sources": [
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []

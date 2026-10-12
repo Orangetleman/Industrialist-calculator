@@ -15,7 +15,8 @@ export type Catalog = {
   pipes: PipeSet[];
   /** Croisement d'une case (deux lignes qui se croisent sans se mélanger), par paire de types. */
   crossings: { objet: Piece | null; fluide: Piece | null; mixte: Piece | null };
-  poles: { id: string; name: string; perNodeMFps: number; nodes: number; rangeTiles: number; size: { w: number; h: number }; price: number | null }[];
+  /** Portée en tuiles (unité du wiki) et en cases : relevé en jeu, une tuile = deux cases. */
+  poles: { id: string; name: string; perNodeMFps: number; nodes: number; rangeTiles: number; rangeCells: number; size: { w: number; h: number }; price: number | null }[];
   /** Hypothèses faites faute de donnée, à confirmer en jeu (affichées avec chaque plan). */
   assumptions: string[];
 };
@@ -28,7 +29,7 @@ const SETS: { kind: PipeKind; tier: PipeTier; ids: Record<Exclude<PieceRole, "cr
   { kind: "fluide", tier: 3, ids: { droit: "short-fluid-pipe2", coude: "pipe-fluid-turn2", té: "pipe-fluid-junction2", croix: "pipe-fluid-section2" } },
 ];
 
-export function buildCatalog(logistics: LogisticsFile, power: PowerFile, poleRangeTiles: Record<string, number> = {}): Catalog {
+export function buildCatalog(logistics: LogisticsFile, power: PowerFile, poleRangeTiles: Record<string, number> = {}, cellsPerTile = 2): Catalog {
   const byId = new Map(logistics.pipes.map((p) => [p.id, p]));
   const piece = (id: string): Piece | null => {
     const p = byId.get(id);
@@ -49,6 +50,7 @@ export function buildCatalog(logistics: LogisticsFile, power: PowerFile, poleRan
       perNodeMFps: e.transfer!.perNode,
       nodes: e.transfer!.nodes,
       rangeTiles: poleRangeTiles[e.id] ?? e.rangeTiles?.tiles ?? 0,
+      rangeCells: (poleRangeTiles[e.id] ?? e.rangeTiles?.tiles ?? 0) * cellsPerTile,
       size: { w: e.size?.w ?? 1, h: e.size?.l ?? 1 },
       price: e.cost,
     }))
@@ -57,16 +59,14 @@ export function buildCatalog(logistics: LogisticsFile, power: PowerFile, poleRan
     pipes,
     crossings: { objet: piece("pipe-intersection"), fluide: piece("fluid-pipe-intersection"), mixte: piece("fluid-pipe-and-item-intersection") },
     poles,
-    assumptions: [
-      "« Junction » = embranchement à 3 voies, « Section » = embranchement à 4 voies (les noms du wiki ne le précisent pas).",
-      "Un croisement de tier III (Pipe Intersection) se raccorde aussi à des tuyaux de tier I.",
-      "Portée des poteaux : une tuile = une case (un Short Pipe).",
-    ],
+    // Relevés de l'utilisateur (2026-10-13) : Junction = 3 voies, Section = 4 voies ; un croisement de
+    // tier III se raccorde aux tuyaux de tier I ; un collecteur répartit les objets entre les machines.
+    assumptions: [],
   };
 }
 
 /** Jeu de tuyaux le moins cher qui porte ce débit (objets ou litres par seconde), ou null s'il n'y en a pas. */
-export function pipeFor(cat: Catalog, kind: PipeKind, perSec: number): PipeSet | null {
-  const ok = cat.pipes.filter((p) => p.kind === kind && p.flowPerSec >= perSec - 1e-9);
+export function pipeFor(cat: Catalog, kind: PipeKind, perSec: number, tier3Only = false): PipeSet | null {
+  const ok = cat.pipes.filter((p) => p.kind === kind && p.flowPerSec >= perSec - 1e-9 && (!tier3Only || p.tier === 3));
   return ok.sort((a, b) => (a.pieces.droit.price ?? Infinity) - (b.pieces.droit.price ?? Infinity) || a.tier - b.tier)[0] ?? null;
 }

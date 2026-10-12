@@ -132,7 +132,7 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
             const n = add(pc, d);
             const back = linksOf(n.x, n.y, net);
             const toPort = portCells.get(key(pc))?.facing === OPPOSITE[d];
-            const end = mod.nets.some((x) => x.item === net && x.end?.x === pc.x && x.end.y === pc.y && x.end.dir === d);
+            const end = mod.nets.some((x) => x.id === net && x.end?.x === pc.x && x.end.y === pc.y && x.end.dir === d);
             expect(back?.includes(OPPOSITE[d]) || toPort || end, `${item} : ${key(pc)} → ${d} (${net})`).toBe(true);
           }
         }
@@ -153,6 +153,23 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(mod.template).toBe("double rangée");
     expect(mod.width * mod.height).toBeLessThan(15 * 9 * 12);
     expect(mod.poles.length).toBeGreaterThan(0);
+  });
+
+  it("option « tier III seulement » : aucun tuyau de tier I", () => {
+    const { req } = moduleFor("steel-rod");
+    const mod = designModule({ ...req, tier3Only: true }, PORTS["roller"]!, null, cat);
+    expect(mod.nets.every((n) => n.pipe?.tier === 3)).toBe(true);
+    expect(mod.parts.some((p) => p.id === "short-pipe")).toBe(false);
+  });
+
+  it("au-delà d'un tuyau (120/s) : plusieurs collecteurs en parallèle, chacun sous sa capacité", () => {
+    const { req } = moduleFor("steel-rod");
+    const big = { ...req, count: 24, inputs: req.inputs.map((f) => ({ ...f, perMin: f.perMin * 3 * 24 / req.count })), outputs: req.outputs.map((f) => ({ ...f, perMin: 9000 })) };
+    const mod = designModule(big, PORTS["roller"]!, null, cat);
+    const out = mod.nets.filter((n) => n.item === "steel-rod");
+    expect(out.map((n) => n.line)).toEqual([1, 2]);
+    for (const n of out) expect(n.perSec).toBeLessThanOrEqual(n.pipe!.flowPerSec);
+    expect(mod.problems.filter((p) => p.level === "erreur")).toEqual([]);
   });
 
   it("bâtiment non relevé : ports supposés, et le plan le dit", () => {

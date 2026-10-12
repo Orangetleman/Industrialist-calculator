@@ -6,6 +6,8 @@
   "snap": "une case entière (un Short Pipe) ; pas de demi-case",
   "rotations": 4,
   "rotationsNote": "quarts de tour seulement, pour tous les bâtiments : pas de 45° (d'où les pièces Light et Inclined Light)",
+  "tileCells": 2,
+  "tileNote": "La portée des poteaux se compte en tuiles : 1 tuile = 2 cases (2 Short Pipes), d'après l'utilisateur (2026-10-13).",
   "note": "1 case = 1 Short Pipe = 2×2 studs. La taille des machines du wiki est en cases, mais pas toujours dans l'ordre largeur × hauteur de la vue de dessus."
  },
  "poleRangeTiles": {
@@ -36,6 +38,12 @@
   "startUnlocked": ["transportation", "truck-depot"],
   "startUnlockedNote": "Transportation et Truck Depot sont acquis d'office dans un nouveau monde (confirmé en jeu par l'utilisateur, 2026-10-12).",
   "note": "La Research Station3 accepte deux fois le même item, avec la pénalité de 30 % appliquée."
+ },
+ "hotWater": {
+  "item": { "id": "hot-water", "name": "Hot Water" },
+  "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur.",
+  "heaters": ["firebox_01", "gas_burner_01", "gas_burner_02", "industrial_firebox_09", "industrial_firebox_10", "industrial_firebox_11", "industrial_firebox_12", "geothermal_well_01"],
+  "boilers": { "boiler_01": { "water": 3, "hot-water": 3 } }
  },
  "steamObservedC": {
   "range": [105, 115],

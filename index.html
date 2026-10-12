@@ -165,6 +165,7 @@
       <label class="pose-pick" for="pose-step">Étape
         <select id="pose-step"></select>
       </label>
+      <label class="check-line"><input type="checkbox" id="pose-tier3"> Seulement des tuyaux de tier III <span class="hint">(plus rapides, plus chers)</span></label>
       <div id="pose-head"></div>
       <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
         <div id="pose-canvas"></div>
@@ -316,8 +317,17 @@
       <button type="button" role="tab" id="dtab-batiments" data-dtab="batiments" aria-controls="dpanel-batiments">Éditeur de bâtiments</button>
     </div>
     <div class="rpanel" role="tabpanel" id="dpanel-verifier" aria-labelledby="dtab-verifier">
+      <div class="verify-tools">
+        <div class="seg" role="radiogroup" aria-label="Valeurs affichées">
+          <button type="button" role="radio" data-vscope="plan" aria-checked="true">Celles du dernier calcul</button>
+          <button type="button" role="radio" data-vscope="all" aria-checked="false">Toutes <span class="pill" id="verify-all-count"></span></button>
+        </div>
+        <label class="tree-filter" for="verify-filter"><span class="sr-only">Filtrer les valeurs à vérifier</span>
+          <input id="verify-filter" type="search" placeholder="Filtrer (recette, machine, objet)…" autocomplete="off">
+        </label>
+      </div>
       <p class="hint" id="verify-context"></p>
-      <p>Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : les calculs en tiennent compte aussitôt et la correction est gardée dans ce navigateur.</p>
+      <p>Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : les calculs en tiennent compte aussitôt et la correction est gardée dans ce navigateur. Si une valeur seule ne suffit pas, laisse plutôt une note : elle part avec l'export.</p>
       <div id="verify"></div>
       <div class="corrections-panel">
         <h2>Mes corrections <span class="pill" id="corrections-count">0</span></h2>

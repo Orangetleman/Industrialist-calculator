@@ -4,7 +4,7 @@
   "primary": "miraheze",
   "counts": {
    "recipes": 447,
-   "aVerifier": 110
+   "aVerifier": 109
   }
  },
  "recipes": [
@@ -2205,7 +2205,8 @@
    "machine": "boiler",
    "durationS": 1,
    "inputs": {
-    "water": 6
+    "water": 3,
+    "hot-water": 3
    },
    "outputs": {
     "water": 3,
@@ -2220,32 +2221,14 @@
      "page": "Module:Recipes/Boiler",
      "revisionId": 31542,
      "fetchedAt": "2026-10-11T01:03:14.469Z"
-    }
-   ],
-   "verify": [
-    {
-     "field": "inputs.water",
-     "reason": "non-sourcé",
-     "detail": "Water apparaît deux fois ; quantités additionnées"
     },
     {
-     "field": "inputs.water",
-     "reason": "contradiction",
-     "detail": "Miraheze : 6 ; Fandom : 3",
-     "alternatives": [
-      {
-       "value": 3,
-       "source": {
-        "wiki": "fandom",
-        "url": "https://industrialist.fandom.com/wiki/Steam",
-        "page": "Steam",
-        "revisionId": 17987,
-        "fetchedAt": "2026-10-11T01:04:17.605Z"
-       }
-      }
-     ]
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
-   ]
+   ],
+   "verify": []
   },
   {
    "id": "bottling_plant_01",
@@ -5360,7 +5343,7 @@
     "water": 6
    },
    "outputs": {
-    "water": 6
+    "hot-water": 6
    },
    "energyMFps": 0,
    "research": "firebox",
@@ -5371,6 +5354,11 @@
      "page": "Module:Recipes/Firebox",
      "revisionId": 31544,
      "fetchedAt": "2026-10-11T01:03:15.936Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []
@@ -5926,7 +5914,7 @@
     "water": 30
    },
    "outputs": {
-    "water": 30
+    "hot-water": 30
    },
    "energyMFps": 0,
    "research": "gas-burner",
@@ -5937,6 +5925,11 @@
      "page": "Module:Recipes/Gas Burner",
      "revisionId": 31608,
      "fetchedAt": "2026-10-11T01:03:15.937Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []
@@ -5950,7 +5943,7 @@
     "water": 30
    },
    "outputs": {
-    "water": 30
+    "hot-water": 30
    },
    "energyMFps": 0,
    "research": "gas-burner",
@@ -5961,6 +5954,11 @@
      "page": "Module:Recipes/Gas Burner",
      "revisionId": 31608,
      "fetchedAt": "2026-10-11T01:03:15.937Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": [
@@ -6128,7 +6126,7 @@
     "water": 9.09
    },
    "outputs": {
-    "water": 6.05
+    "hot-water": 6.05
    },
    "energyMFps": 3000,
    "research": "geothermal-plant",
@@ -6139,6 +6137,11 @@
      "page": "Module:Recipes/Geothermal Well",
      "revisionId": 31559,
      "fetchedAt": "2026-10-11T01:03:17.445Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []
@@ -8045,7 +8048,7 @@
     "coke-fuel": 1
    },
    "outputs": {
-    "water": 12
+    "hot-water": 12
    },
    "energyMFps": 0,
    "research": "industrial-firebox",
@@ -8056,6 +8059,11 @@
      "page": "Module:Recipes/Industrial Firebox",
      "revisionId": 42080,
      "fetchedAt": "2026-10-11T01:03:17.452Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []
@@ -8069,7 +8077,7 @@
     "coal": 10
    },
    "outputs": {
-    "water": 12
+    "hot-water": 12
    },
    "energyMFps": 0,
    "research": "industrial-firebox",
@@ -8080,6 +8088,11 @@
      "page": "Module:Recipes/Industrial Firebox",
      "revisionId": 42080,
      "fetchedAt": "2026-10-11T01:03:17.452Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []
@@ -8093,7 +8106,7 @@
     "planks": 34
    },
    "outputs": {
-    "water": 12
+    "hot-water": 12
    },
    "energyMFps": 0,
    "research": "industrial-firebox",
@@ -8104,6 +8117,11 @@
      "page": "Module:Recipes/Industrial Firebox",
      "revisionId": 42080,
      "fetchedAt": "2026-10-11T01:03:17.452Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []
@@ -8117,7 +8135,7 @@
     "oak-log": 19
    },
    "outputs": {
-    "water": 12
+    "hot-water": 12
    },
    "energyMFps": 0,
    "research": "industrial-firebox",
@@ -8128,6 +8146,11 @@
      "page": "Module:Recipes/Industrial Firebox",
      "revisionId": 42080,
      "fetchedAt": "2026-10-11T01:03:17.452Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "Le Boiler a deux entrées d'eau (ports relevés en jeu) : « Water in (to convert to steam) » et « Hot water in », plus « Used water out ». Miraheze compte les deux entrées (6), le Fandom seulement l'eau convertie (3) : les deux ont raison (utilisateur, 2026-10-13). L'eau chaude vient d'un chauffe-eau (« Coolant out (put into boiler coolant in) ») : sans chauffe-eau, pas de vapeur."
     }
    ],
    "verify": []

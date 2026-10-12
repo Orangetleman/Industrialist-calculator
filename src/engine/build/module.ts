@@ -20,10 +20,16 @@ export type ModuleRequest = {
   powerMFps: number | null;
   /** Prix d'une machine ($), si connu. */
   machineCost: number | null;
+  /** N'utiliser que des tuyaux de tier III (plus rapides, plus chers). */
+  tier3Only?: boolean;
 };
 
 export type Net = {
+  /** Identifiant du réseau : la ressource, suivie de « #n » quand plusieurs collecteurs la portent. */
+  id: string;
   item: string;
+  /** Numéro du collecteur parallèle (null s'il est seul). */
+  line: number | null;
   kind: PipeKind;
   role: "entrée" | "sortie";
   perSec: number;
@@ -127,7 +133,21 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   const pitch = probe.w + gap;
 
   // Collecteurs : chaque ressource du côté où sont la plupart de ses ports (nord ou sud de la rangée).
+  // Au-delà du tuyau le plus rapide permis, plusieurs collecteurs en parallèle, chacun pour un
+  // groupe de machines voisines.
   const items = [...new Set(assign.map((a) => a.item))];
+  const flowOf = new Map(items.map((it) => {
+    const a = assign.find((x) => x.item === it)!;
+    const f = (a.role === "entrée" ? req.inputs : req.outputs).find((x) => x.item === it)!;
+    return [it, { a, perSec: f.perMin / 60 }] as const;
+  }));
+  const linesOf = new Map(items.map((it) => {
+    const { a, perSec } = flowOf.get(it)!;
+    if (pipeFor(cat, a.kind, perSec, req.tier3Only)) return [it, 1] as const;
+    const fastest = Math.max(...cat.pipes.filter((x) => x.kind === a.kind).map((x) => x.flowPerSec));
+    return [it, Math.min(req.count, Math.ceil(perSec / fastest - 1e-9))] as const;
+  }));
+  const netId = (it: string, i: number) => (linesOf.get(it)! > 1 ? `${it}#${1 + Math.floor((i * linesOf.get(it)!) / req.count)}` : it);
   const sideOf = new Map<string, "haut" | "bas">();
   for (const it of items) {
     const ps = pipePorts.filter((p) => used.get(p.index)!.item === it);
@@ -135,8 +155,10 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const south = ps.filter((p) => p.facing === "S").length;
     sideOf.set(it, double ? "bas" : north > south ? "haut" : "bas");
   }
-  const above = items.filter((it) => sideOf.get(it) === "haut");
-  const below = items.filter((it) => sideOf.get(it) === "bas");
+  const netIds = items.flatMap((it) => (linesOf.get(it)! > 1 ? Array.from({ length: linesOf.get(it)! }, (_, j) => `${it}#${j + 1}`) : [it]));
+  const itemOf = (id: string) => id.replace(/#\d+$/, "");
+  const above = netIds.filter((id) => sideOf.get(itemOf(id)) === "haut");
+  const below = netIds.filter((id) => sideOf.get(itemOf(id)) === "bas");
   // Une rangée de raccord (les cases qui touchent les ports), puis un collecteur par ressource.
   const touchN = sideCount("N") ? stubOut("N") + 1 : 0;
   const touchS = sideCount("S") ? stubOut("S") + 1 : 0;
@@ -161,41 +183,53 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
       grid.block(c, pm.id);
     }
   }
-  const allPorts = machines.flatMap((m) => m.ports.filter((p) => used.has(p.index)).map((p) => ({ m, p, a: used.get(p.index)! })));
-  for (const { p, a } of allPorts) {
+  const allPorts = machines.flatMap((m, i) => m.ports.filter((p) => used.has(p.index)).map((p) => ({ m, p, a: used.get(p.index)!, net: netId(used.get(p.index)!.item, i) })));
+  for (const { p, net } of allPorts) {
     if (grid.get(p.cell)) return null;
-    grid.reserve(p.cell, a.item);
+    grid.reserve(p.cell, net);
   }
   const xMax = Math.max(...machines.map((m) => m.x + m.w), ...allPorts.map((q) => q.p.cell.x + 1));
   const yMax = Math.max(...machines.map((m) => m.y + m.h), ...allPorts.map((q) => q.p.cell.y + 1), laneBelow0 + below.length);
   const bounds: Bounds = { x0: 0, y0: 0, x1: xMax, y1: Math.max(yMax, laneBelow0 + below.length) + 1 };
 
-  const nets: Net[] = items.map((it) => {
-    const a = assign.find((x) => x.item === it)!;
-    const flow = (a.role === "entrée" ? req.inputs : req.outputs).find((f) => f.item === it)!;
-    const perSec = flow.perMin / 60;
-    const pipe = pipeFor(cat, a.kind, perSec);
-    if (!pipe) problems.push({ level: "erreur", message: `${name(it)} : ${num(perSec)} par seconde, au-delà du tuyau le plus rapide (120/s) : il faut plusieurs collecteurs en parallèle (pas encore proposé).` });
-    return { item: it, kind: a.kind, role: a.role, perSec, pipe, lane: null, end: null };
+  const nets: Net[] = netIds.map((id) => {
+    const it = itemOf(id);
+    const { a, perSec } = flowOf.get(it)!;
+    const k = linesOf.get(it)!;
+    const share = k > 1 ? allPorts.filter((q) => q.net === id && q.a.item === it).length / allPorts.filter((q) => q.a.item === it).length : 1;
+    const pipe = pipeFor(cat, a.kind, perSec * share, req.tier3Only);
+    if (!pipe) problems.push({ level: "erreur", message: `${name(it)} : ${num(perSec * share)} par seconde pour une seule machine, au-delà du tuyau le plus rapide.` });
+    return { id, item: it, line: k > 1 ? Number(id.split("#")[1]) : null, kind: a.kind, role: a.role, perSec: perSec * share, pipe, lane: null, end: null };
   });
+  for (const it of items) {
+    const k = linesOf.get(it)!;
+    if (k < 2) continue;
+    const { a, perSec } = flowOf.get(it)!;
+    problems.push({
+      level: "attention",
+      message: `${name(it)} : ${num(perSec)} par seconde, plus qu'un seul tuyau : ${k} collecteurs en parallèle.${
+        a.kind === "fluide" ? " Pour l'amener jusqu'au module, un gros tuyau de tier IV (Large Fluid Pipe) puis une Large Fluid Pipe Conversion par collecteur : ce sera dans l'usine assemblée." : ""
+      }`,
+    });
+  }
   // Collecteurs droits : les entrées arrivent par la gauche (colonne 0), les sorties partent à droite.
-  const laneRow = (it: string) => (sideOf.get(it) === "haut" ? above.length - 1 - above.indexOf(it) : laneBelow0 + below.indexOf(it));
+  const laneRow = (id: string) => (sideOf.get(itemOf(id)) === "haut" ? above.length - 1 - above.indexOf(id) : laneBelow0 + below.indexOf(id));
   for (const n of nets) {
-    const xs = allPorts.filter((q) => q.a.item === n.item).map((q) => q.p.cell.x);
-    const y = laneRow(n.item);
+    const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
+    const y = laneRow(n.id);
     const lane = n.role === "entrée" ? { y, x0: 0, x1: Math.max(...xs) } : { y, x0: Math.min(...xs), x1: bounds.x1 };
     for (let x = lane.x0; x <= lane.x1; x++) if (grid.get({ x, y })) return null;
-    grid.straight({ x: lane.x0, y }, { x: lane.x1, y }, n.item);
-    grid.link({ x: n.role === "entrée" ? lane.x0 : lane.x1, y }, n.role === "entrée" ? "W" : "E", n.item); // arrivée ou départ
+    grid.straight({ x: lane.x0, y }, { x: lane.x1, y }, n.id);
+    grid.link({ x: n.role === "entrée" ? lane.x0 : lane.x1, y }, n.role === "entrée" ? "W" : "E", n.id); // arrivée ou départ
     n.lane = lane;
     n.end = n.role === "entrée" ? { x: lane.x0, y, dir: "W" } : { x: lane.x1, y, dir: "E" };
   }
   // Raccords : du port vers le collecteur, les plus proches d'abord.
-  const order = [...allPorts].sort((a, b) => Math.abs(a.p.cell.y - laneRow(a.a.item)) - Math.abs(b.p.cell.y - laneRow(b.a.item)) || a.p.cell.x - b.p.cell.x);
-  for (const { m, p, a } of order) {
-    const lane = nets.find((n) => n.item === a.item)!.lane!;
+  const order = [...allPorts].sort((a, b) => Math.abs(a.p.cell.y - laneRow(a.net)) - Math.abs(b.p.cell.y - laneRow(b.net)) || a.p.cell.x - b.p.cell.x);
+  for (const { m, p, a, net } of order) {
+    const lane = nets.find((n) => n.id === net)!.lane!;
     const h = (c: Cell) => Math.abs(c.y - lane.y) + Math.max(0, lane.x0 - c.x, c.x - lane.x1);
-    if (!route(grid, a.item, p.cell, OPPOSITE[p.facing], bounds, h)) {
+    if (!route(grid, net, p.cell, OPPOSITE[p.facing], bounds, h)) {
       problems.push({ level: "erreur", message: `Machine ${m.id.slice(1)} : impossible de raccorder le port ${a.role === "entrée" ? "d'entrée" : "de sortie"} (${name(a.item)}) à son collecteur.` });
       return { grid, machines, nets, problems, bounds, template: double ? "double rangée" : "rangée", rot };
     }
@@ -203,27 +237,53 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   return { grid, machines, nets, problems, bounds, template: double ? "double rangée" : "rangée", rot };
 }
 
+type Pole = Catalog["poles"][number];
+
 /**
  * Poteaux : une file au-dessus du module et, si besoin, une au-dessous (double rangée) ; chaque
  * prise va à la file la plus proche, puis les poteaux sont placés pour que toutes soient à portée.
+ * Une file est alimentée par un bout : son premier poteau porte toute sa consommation. On prend le
+ * poteau le moins cher dont chaque file ne demande qu'une alimentation ; sinon le plus fort, avec
+ * plusieurs alimentations.
  */
-function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): { poles: PlacedPole[]; problems: Problem[]; pole: Catalog["poles"][number] | null } {
+function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): { poles: PlacedPole[]; problems: Problem[]; pole: Pole | null } {
   const plugs = l.machines.flatMap((m) => m.power.filter((p) => p.type === "énergie" && p.direction !== "sortie").map((p) => ({ m: m.id, x: p.x, y: p.y })));
   if (!plugs.length) return { poles: [], problems: [], pole: null };
-  const total = (req.powerMFps ?? 0) * l.machines.length;
-  // Distribution : le moins cher des poteaux dont un nœud porte une machine. Si le module consomme
-  // plus qu'un nœud, un avertissement propose plusieurs lignes ou un poteau plus fort à l'arrivée.
-  const pole = cat.poles.filter((p) => p.perNodeMFps >= (req.powerMFps ?? 0)).sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))[0] ?? null;
-  if (!pole) return { poles: [], problems: [{ level: "attention", message: "Aucun poteau connu ne porte la consommation d'une machine." }], pole: null };
+  const each = req.powerMFps ?? 0;
+  const types = cat.poles.filter((p) => p.perNodeMFps >= each);
+  if (!types.length) return { poles: [], problems: [{ level: "attention", message: "Aucun poteau connu ne porte la consommation d'une machine." }], pole: null };
+  const tries = types.map((pole) => ({ pole, ...polesWith(l, plugs, pole, each) }));
+  const oneFeed = tries.filter((t) => t.files.every((f) => f.feeds <= 1));
+  const best = oneFeed.length
+    ? oneFeed.sort((a, b) => a.cost - b.cost)[0]!
+    : tries.sort((a, b) => a.files.reduce((s, f) => s + f.feeds, 0) - b.files.reduce((s, f) => s + f.feeds, 0) || a.cost - b.cost)[0]!;
+  const problems = [...best.problems];
+  for (const f of best.files) {
+    if (f.feeds > 1)
+      problems.push({
+        level: "attention",
+        message: `File de poteaux ${f.label} : ${Math.round(f.load).toLocaleString("fr-FR")} MF/s, plus que ce que porte un ${name(best.pole.id)} (${best.pole.perNodeMFps.toLocaleString("fr-FR")} MF/s) : alimente-la par ${f.feeds} lignes séparées.`,
+      });
+  }
+  return { poles: best.poles, problems, pole: best.pole };
+}
+
+function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole: Pole, each: number) {
   const problems: Problem[] = [];
   const ys = [...l.grid.cells.keys()].map((k) => Number(k.split(",")[1]));
+  const xs = [...l.grid.cells.keys()].map((k) => Number(k.split(",")[0]));
   const rows = [Math.min(...ys) - pole.size.h, Math.max(...ys) + 1]; // haut de chaque file
-  const R = pole.rangeTiles;
+  const R = pole.rangeCells;
+  // Un poteau reste au-dessus (ou au-dessous) du module, sans l'élargir.
+  const xLo = Math.min(...xs) + pole.size.w / 2;
+  const xHi = Math.max(...xs) + 1 - pole.size.w / 2;
   const poles: PlacedPole[] = [];
+  const files: { label: string; load: number; feeds: number }[] = [];
   const dist = (p: { y: number }, r: number) => Math.abs(p.y - (r + pole.size.h / 2));
   rows.forEach((py, ri) => {
     const cy = py + pole.size.h / 2;
     const mine = plugs.filter((p) => (ri === 0 ? dist(p, rows[0]!) <= dist(p, rows[1]!) : dist(p, rows[1]!) < dist(p, rows[0]!)));
+    if (!mine.length) return;
     const spans = mine.map((p) => {
       const dy = Math.abs(p.y - cy);
       const r = dy <= R ? Math.sqrt(R * R - dy * dy) : -1;
@@ -235,7 +295,7 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
     const row: PlacedPole[] = [];
     for (let i = 0; i < todo.length; i++) {
       if (covered.has(i)) continue;
-      const cx = todo[i]!.hi;
+      const cx = Math.max(todo[i]!.lo, Math.min(todo[i]!.hi, xHi, Math.max(xLo, todo[i]!.hi)));
       const covers: string[] = [];
       todo.forEach((s, j) => {
         if (!covered.has(j) && s.lo <= cx + 1e-9 && s.hi >= cx - 1e-9) {
@@ -251,18 +311,13 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
       while (row[i]!.x - row[i - 1]!.x > R) row.splice(i, 0, { x: row[i - 1]!.x + Math.floor(R), y: py, w: pole.size.w, h: pole.size.h, pole: pole.id, covers: [] });
     }
     poles.push(...row);
+    const load = new Set(mine.map((p) => p.m)).size * each;
+    files.push({ label: ri === 0 ? "du haut" : "du bas", load, feeds: Math.max(1, Math.ceil(load / pole.perNodeMFps - 1e-9)) });
   });
-  if (new Set(poles.map((p) => p.y)).size === 2 && rows[1]! - rows[0]! > R) {
+  if (files.length === 2 && rows[1]! - rows[0]! > R) {
     problems.push({ level: "attention", message: `Les deux files de poteaux sont à ${rows[1]! - rows[0]!} cases l'une de l'autre, plus que la portée (${num(R)}) : relie-les par un poteau sur le côté du module.` });
   }
-  if (total > pole.perNodeMFps) {
-    const lines = Math.ceil(total / pole.perNodeMFps - 1e-9);
-    problems.push({
-      level: "attention",
-      message: `Le module consomme ${Math.round(total).toLocaleString("fr-FR")} MF/s, plus qu'un nœud de ${name(pole.id)} (${pole.perNodeMFps.toLocaleString("fr-FR")} MF/s) : prévois ${lines} lignes d'alimentation, ou un poteau plus fort à l'arrivée.`,
-    });
-  }
-  return { poles, problems, pole };
+  return { poles, problems, files, cost: poles.length * (pole.price ?? 0) };
 }
 
 /** Meilleur module pour une étape : gabarits × orientations, le plus compact puis le moins cher. */
@@ -311,7 +366,7 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
 }
 
 function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog, problems: Problem[], name: Namer): ModulePlan {
-  const netOf = new Map(l.nets.map((n) => [n.item, n]));
+  const netOf = new Map(l.nets.map((n) => [n.id, n]));
   const pieces: PlacedPiece[] = [];
   for (const [k, o] of l.grid.cells) {
     if (o.kind !== "tuyau") continue;
@@ -359,7 +414,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   for (const pc of pieces) {
     const def = allPieces.find((x) => x.id === pc.pieceId);
     if (def) addPart(def.id, def.name, def.price);
-    else problems.push({ level: "erreur", message: `Pièce inconnue pour un ${pc.role} de ${name(pc.net)}.` });
+    else problems.push({ level: "erreur", message: `Pièce inconnue pour un ${pc.role} de ${name(pc.net.replace(/#\d+$/, ""))}.` });
   }
   if (power.pole) addPart(power.pole.id, power.pole.name, power.pole.price, power.poles.length);
   const list = [...parts.values()];
@@ -370,7 +425,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   if (!portsKnown) assumptions.unshift("Ports supposés (bâtiment pas encore relevé) : entrées à gauche, sorties à droite. Relève-le dans Données → Éditeur de bâtiments.");
   const order = [
     `Poser les ${req.count} ${name(req.machine)} en ${l.template}${l.template === "double rangée" ? " (la seconde tournée d'un demi-tour, ports face à face)" : ""}.`,
-    ...nets.map((n) => `Collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}, ${n.pipe ? `tuyaux tier ${n.pipe.tier === 1 ? "I" : "III"}` : "tuyau à choisir"} (${num(n.perSec)} par seconde).`),
+    ...nets.map((n) => `Collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, ${n.pipe ? `tuyaux tier ${n.pipe.tier === 1 ? "I" : "III"}` : "tuyau à choisir"} (${num(n.perSec)} par seconde).`),
     `Raccorder chaque port à son collecteur${crossings ? `, avec ${crossings} croisement(s)` : ""}.`,
     ...(power.poles.length ? [`Poser ${power.poles.length} ${power.pole!.name} ${new Set(power.poles.map((p) => p.y)).size > 1 ? "au-dessus et au-dessous" : "le long"} du module, et relier chaque prise.`] : []),
   ];

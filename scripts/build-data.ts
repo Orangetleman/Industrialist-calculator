@@ -508,6 +508,36 @@ for (const fr of fixture.recipes) {
   else concordanceOk.push(`${fr.product} (${fr.machine}) = \`${r.id}\``);
 }
 
+// ---------------------------------------------------------------- eau chaude (relevé en jeu)
+// Le Boiler convertit de l'eau en vapeur grâce à l'eau chaude d'un chauffe-eau, qui ressort usée.
+// Les deux eaux passent par des ports différents : l'eau chaude devient une ressource à part.
+{
+  const relevesPath = join(OUT, "releves.json");
+  type HotWater = { item: { id: string; name: string }; note: string; heaters: string[]; boilers: Record<string, Record<string, number>> };
+  const releves = existsSync(relevesPath) ? (JSON.parse(readFileSync(relevesPath, "utf8")) as { source: Source; hotWater?: HotWater }) : null;
+  const hw = releves?.hotWater;
+  if (hw) {
+    const src: Source = { ...releves!.source, note: hw.note };
+    items.push({ id: hw.item.id, name: hw.item.name, isFluid: true, sellValue: null, researchValue: null, sources: [src], verify: [] });
+    for (const id of hw.heaters) {
+      const r = recipes.find((x) => x.id === id);
+      if (!r) throw new Error(`releves.json : chauffe-eau inconnu « ${id} »`);
+      const w = r.outputs.water;
+      if (w === undefined) throw new Error(`releves.json : ${id} ne rend pas d'eau`);
+      delete r.outputs.water;
+      r.outputs[hw.item.id] = w;
+      r.sources = [...r.sources, src];
+    }
+    for (const [id, inputs] of Object.entries(hw.boilers)) {
+      const r = recipes.find((x) => x.id === id);
+      if (!r) throw new Error(`releves.json : boiler inconnu « ${id} »`);
+      r.inputs = { ...inputs };
+      r.verify = r.verify.filter((f) => f.field !== "inputs.water");
+      r.sources = [...r.sources, src];
+    }
+  }
+}
+
 // ---------------------------------------------------------------- écriture des JSON
 const meta = (counts: Record<string, number>): DataMeta => ({ generatedAt: latestFetch, primary: "miraheze", counts });
 mkdirSync(OUT, { recursive: true });

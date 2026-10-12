@@ -47,6 +47,26 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     errors.push(...r.errors);
     applied += r.applied;
   }
+  // « Contradiction » de recherche qui n'en est pas une : les deux sources nomment la même recherche
+  // (son nom d'un côté, son identifiant de l'autre).
+  const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const nodeOf = (v: unknown) => {
+    if (typeof v !== "string") return null;
+    if (nodes.has(v)) return v;
+    const byName = [...nodes.values()].find((n) => n.name.toLowerCase() === v.toLowerCase());
+    return byName?.id ?? (nodes.has(slug(v)) ? slug(v) : null);
+  };
+  for (const m of machines.values()) {
+    m.verify = m.verify.filter((f) => !(f.field === "unlockedBy" && f.reason === "contradiction" && f.alternatives?.length && f.alternatives.every((x) => nodeOf(x.value) === m.unlockedBy)));
+  }
+  // Par prudence (consigne de l'utilisateur, 2026-10-13) : une pollution donnée en plage compte
+  // pour sa borne la plus forte, tant qu'aucun relevé ne la remplace.
+  for (const m of machines.values()) {
+    const p = m.pollutionPerHour;
+    if (!Array.isArray(p)) continue;
+    m.pollutionPerHour = Math.max(p[0], p[1]);
+    for (const f of m.verify) if (f.field === "pollutionPerHour") f.detail = `${f.detail} : la plus forte (${String(m.pollutionPerHour).replace(".", ",")} %/h) est retenue, par prudence`;
+  }
   const producers = new Map<string, Recipe[]>();
   for (const r of recipes.values()) {
     for (const [item, amount] of Object.entries(r.outputs)) {
@@ -88,7 +108,11 @@ function addEnergy(recipes: Map<string, Recipe>, machines: Map<string, Machine>,
   }
   for (const sc of energy.scrubbers) {
     const r = recipes.get(sc.recipe);
-    if (r) r.pollutionPerHour = sc.pollutionPerHour;
+    if (!r) continue;
+    r.pollutionPerHour = sc.pollutionPerHour;
+    // La pollution « selon l'entrée » de la machine est donnée recette par recette (page Scrubber).
+    const m = machines.get(r.machine);
+    if (m) m.verify = m.verify.filter((f) => f.field !== "pollutionPerHour");
   }
 }
 

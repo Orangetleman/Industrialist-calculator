@@ -201,6 +201,7 @@ button.link.have:hover { color: var(--steel); }
 .pose-pick { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); max-width: 100%; }
 .pose-pick select { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 7px 10px; font-size: .92rem; max-width: 100%; }
 .mod-sum { font-size: .92rem; }
+.check-line { font-size: .88rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .mg line { stroke: #2a3038; stroke-width: 1; }
 .mm rect { fill: #33404c; stroke: #8fb8d6; stroke-width: 1.2; }
 .mm rect.stub { fill: #4a5866; stroke: none; }
@@ -270,6 +271,11 @@ table.mini td.num { white-space: nowrap; }
 /* ---------------------------------------------------------------- Données */
 .corrections-panel { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
 #verify-context:empty, #data-errors:empty { display: none; }
+.verify-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.vnote summary { cursor: pointer; color: var(--steel); font-size: .82rem; }
+.vnote[open] summary { margin-bottom: 4px; }
+.note-form { display: flex; flex-direction: column; gap: 6px; }
+.note-form textarea { font: inherit; font-size: .86rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; resize: vertical; width: 100%; }
 
 /* ---------------------------------------------------------------- dialogue et bandeaux */
 dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); max-width: min(480px, calc(100vw - 32px)); padding: 18px; }
