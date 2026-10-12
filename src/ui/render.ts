@@ -88,7 +88,10 @@ export function renderSummary(ctx: Ctx): string {
         p.depots.length ? ` — dépôts : ${p.depots.map((d) => `${d.machines} × ${esc(d.name)}`).join(", ")}` : ""
       }</p>`
     : "";
-  return `<div class="stats">${stats}</div>${sales}${raw}${surplus}${research}${own}${renderTiers(ctx)}`;
+  const existing = p.existing.length
+    ? `<p class="list-line"><b>Production existante utilisée :</b> ${p.existing.map((x) => `<span class="chip ok">${esc(itemN(ctx, x.item))} <span class="num">${fmt(x.used, 2)} / ${fmt(x.available, 2)} par min</span></span>`).join(" ")}</p>`
+    : "";
+  return `<div class="stats">${stats}</div>${sales}${existing}${raw}${surplus}${research}${own}${renderTiers(ctx)}`;
 }
 
 /** Paliers ronds : débits où chaque étape tombe sur un nombre entier de machines (cliquables). */
@@ -107,7 +110,10 @@ export function renderTiers(ctx: Ctx): string {
         : `<button type="button" class="chip tier${t.exact ? " exact" : ""}" data-tier="${t.ratePerMin}"${!money && Math.abs(t.finalMachines - Math.round(t.finalMachines)) < 1e-6 ? ` data-final="${Math.round(t.finalMachines)}"` : ""} title="${esc(title)}">${esc(label)}${t.exact ? " ●" : ""}</button>`;
     })
     .join(" ");
-  const note = p.constraints.maxPollution !== null || p.constraints.budget !== null ? " Avec une limite de pollution ou de budget, un autre débit peut changer les recettes." : "";
+  const note =
+    p.constraints.maxPollution !== null || p.constraints.budget !== null || p.existing.length
+      ? " Avec une limite de pollution ou de budget, ou une production existante, un autre débit peut changer les recettes."
+      : "";
   return `<p class="list-line tiers"><b>Paliers ronds :</b> ${chips}<br><span class="hint">● : chaque étape tombe juste. Le pourcentage est l'occupation moyenne des machines.${esc(note)}</span></p>`;
 }
 
@@ -123,6 +129,7 @@ export function renderGraph(ctx: Ctx): string {
   const g = layoutGraph(p);
   const steps = new Map(p.steps.map((s) => [s.key, s]));
   const unres = new Map(p.unresolved.map((u) => [u.item, u]));
+  const existing = new Map(p.existing.map((x) => [x.key, x]));
   let s = `<svg viewBox="0 0 ${g.width} ${g.height}" style="${g.width < 620 ? "width:100%;max-width:620px" : `width:${g.width}px`}" role="img" aria-label="Graphe de production de ${esc(p.target.kind === "argent" ? "l'objectif argent" : itemN(ctx, p.target.item))}">
 <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker></defs>`;
   for (const e of g.edges) {
@@ -131,18 +138,21 @@ export function renderGraph(ctx: Ctx): string {
   for (const n of g.nodes) {
     const st = steps.get(n.item);
     const u = unres.get(n.item);
-    const name = itemN(ctx, st?.item ?? n.item);
-    const fill = n.kind === "raw" ? "var(--bg)" : n.kind === "unresolved" ? "var(--surface)" : "var(--steel-soft)";
-    const stroke = n.kind === "unresolved" ? "var(--accent)" : "var(--steel)";
+    const ex = existing.get(n.item);
+    const name = itemN(ctx, st?.item ?? ex?.item ?? n.item);
+    const fill = n.kind === "raw" || n.kind === "existing" ? "var(--bg)" : n.kind === "unresolved" ? "var(--surface)" : "var(--steel-soft)";
+    const stroke = n.kind === "unresolved" ? "var(--accent)" : n.kind === "existing" ? "var(--ok)" : "var(--steel)";
     const dash = n.kind === "unresolved" ? ` stroke-dasharray="5 4"` : "";
-    const line2 = st ? (st.machineKind === "farm" ? `≈ ${st.machines} arbres` : `${trunc(machineN(ctx, st.machine), 17)} ×${st.machines}`) : `non produit (${u?.reason ?? "?"})`;
+    const line2 = ex ? "déjà en place" : st ? (st.machineKind === "farm" ? `≈ ${st.machines} arbres` : `${trunc(machineN(ctx, st.machine), 17)} ×${st.machines}`) : `non produit (${u?.reason ?? "?"})`;
     const line3 = st
       ? st.machineKind === "farm"
         ? `${fmt(st.durationS, 0)} s / pousse`
         : st.energyAvg !== null && st.energyAvg < 0
           ? `+${fmtMF(-st.energyAvg)}`
           : fmtMF(st.energyAvg)
-      : `${fmt(u?.perMin ?? 0, 2)}/min`;
+      : ex
+        ? `${fmt(ex.used, 2)} / ${fmt(ex.available, 2)} par min`
+        : `${fmt(u?.perMin ?? 0, 2)}/min`;
     const warn = st && p.verify.some((v) => v.used && v.item === st.item);
     const cx = n.x + NODE_W / 2;
     s += `<g><title>${esc(name)}${st ? ` — ${esc(machineN(ctx, st.machine))} ×${st.machines}, ${esc(fmt(st.demandPerMin, 2))}/min` : ""}</title>
@@ -211,6 +221,21 @@ function stepCard(ctx: Ctx, s: Step, i: number): string {
     }</div>
     <div class="bar" aria-hidden="true"><i class="${util < 60 ? "low" : ""}" style="width:${util}%"></i></div>
     ${s.item === ENERGY ? "" : recipeSelect(ctx, s.item, s.recipeId, s.alternatives)}
+    ${s.item === ENERGY ? "" : haveButton(s.item, s.demandPerMin)}
+  </div></li>`;
+}
+
+/** « J'ai déjà cette production » : l'item est ajouté à la production existante (géré par main.ts). */
+function haveButton(item: string, perMin: number): string {
+  return `<button type="button" class="link" data-have="${esc(item)}" data-amount="${Math.round(perMin * 100) / 100}">J'ai déjà cette production…</button>`;
+}
+
+function existingCard(ctx: Ctx, x: Plan["existing"][number], i: number): string {
+  return `<li class="step existing" id="step-${esc(x.key)}"><div class="n">${String(i + 1).padStart(2, "0")}</div><div class="body">
+    <div class="tags"><span class="tag">Production existante</span></div>
+    <div class="top"><h3>${esc(itemN(ctx, x.item))}</h3><span class="count">${fmt(x.used, 2)}/min utilisés</span></div>
+    <div class="meta"><span>Déjà en place chez toi : <b class="num">${fmt(x.available, 2)}/min</b>${x.used < x.available - 1e-9 ? ` — il en reste ${fmt(x.available - x.used, 2)}/min` : ""}. Rien à construire pour cette part.</span></div>
+    <div class="actions"><button type="button" class="link" data-existing-del="${esc(x.item)}">Retirer de ma production existante</button></div>
   </div></li>`;
 }
 
@@ -254,13 +279,15 @@ function unresolvedCard(ctx: Ctx, u: Unresolved, i: number): string {
     <div class="meta"><span>${esc(LEAF_TEXT[u.reason] ?? u.reason)}</span></div>
     ${u.unlock ? `<div class="meta warn-text">${esc(lockText(ctx, u.unlock))} ${accessButton(u.unlock)}</div>` : ""}
     ${recipeSelect(ctx, u.item, null, u.candidates)}
+    ${haveButton(u.item, u.perMin)}
   </div></li>`;
 }
 
 export function renderPlan(ctx: Ctx): string {
   const p = ctx.plan;
   const cards = p.steps.map((s, i) => stepCard(ctx, s, i));
-  p.unresolved.forEach((u, j) => cards.push(unresolvedCard(ctx, u, p.steps.length + j)));
+  p.existing.forEach((x, j) => cards.push(existingCard(ctx, x, p.steps.length + j)));
+  p.unresolved.forEach((u, j) => cards.push(unresolvedCard(ctx, u, p.steps.length + p.existing.length + j)));
   return cards.join("");
 }
 

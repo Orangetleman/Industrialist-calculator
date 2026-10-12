@@ -230,6 +230,17 @@ for (const node of nodes) {
   }
   if (!node.isRoot && !node.parents.length) node.verify.push({ field: "parents", reason: "manquant", detail: "aucun parent : nœud inaccessible dans l'arbre" });
 }
+// Recherches acquises d'office dans un nouveau monde (relevé en jeu, data/releves.json).
+{
+  const relevesPath = join(OUT, "releves.json");
+  const releves = existsSync(relevesPath) ? (JSON.parse(readFileSync(relevesPath, "utf8")) as { source: Source; research?: { startUnlocked?: string[] } }) : null;
+  for (const id of releves?.research?.startUnlocked ?? []) {
+    const node = nodes.find((n) => n.id === id);
+    if (!node) throw new Error(`releves.json : recherche acquise d'office inconnue « ${id} »`);
+    node.startUnlocked = true;
+    node.sources = [...node.sources, releves!.source];
+  }
+}
 
 // ---------------------------------------------------------------- machines
 /** RS/Data écrit parfois « Page#ancre; Nom affiché » : on garde le nom affiché. */

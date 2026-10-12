@@ -16,14 +16,14 @@ const GAP_Y = 78;
 const MARGIN = 14;
 
 /** `item` est l'identifiant du nœud : clé de l'étape (souvent l'item), ou item non produit. */
-export type GNode = { item: string; x: number; y: number; depth: number; kind: "final" | "step" | "raw" | "unresolved" };
+export type GNode = { item: string; x: number; y: number; depth: number; kind: "final" | "step" | "raw" | "unresolved" | "existing" };
 /** `loop` : arc de retour d'une boucle (sous-produit qui remonte la chaîne), tracé à part. */
 export type GEdge = { from: string; to: string; perMin: number; points: [number, number][]; lx: number; ly: number; loop?: boolean };
 export type GraphLayout = { nodes: GNode[]; edges: GEdge[]; width: number; height: number };
 
 type Ent = { id: string; virtual: boolean; w: number; x: number; up: string[] };
 
-export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | "target" | "finals">): GraphLayout {
+export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | "target" | "finals"> & Partial<Pick<Plan, "existing">>): GraphLayout {
   const depth = new Map<string, number>();
   const kind = new Map<string, GNode["kind"]>();
   for (const s of plan.steps) {
@@ -35,6 +35,12 @@ export function layoutGraph(plan: Pick<Plan, "steps" | "unresolved" | "edges" | 
     const consumers = plan.edges.filter((e) => e.from === u.item).map((e) => depth.get(e.to) ?? 0);
     depth.set(u.item, u.item === plan.target.item ? 0 : consumers.length ? Math.max(...consumers) + 1 : 1);
     kind.set(u.item, "unresolved");
+  }
+  // Production existante du joueur : un nœud source, sous ses consommateurs (ou en haut si c'est l'objectif).
+  for (const x of plan.existing ?? []) {
+    const consumers = plan.edges.filter((e) => e.from === x.key).map((e) => depth.get(e.to) ?? 0);
+    depth.set(x.key, plan.finals.includes(x.key) ? 0 : consumers.length ? Math.max(...consumers) + 1 : 1);
+    kind.set(x.key, "existing");
   }
   // Les feuilles non résolues peuvent dépendre d'autres feuilles : recalcul jusqu'à stabilité.
   for (let i = 0; i < 5; i++) {

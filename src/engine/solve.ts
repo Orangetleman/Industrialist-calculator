@@ -41,6 +41,8 @@ export type SolveRequest = {
   budget?: number | null;
   /** Dépôts de vente (logistics.json), pour l'objectif argent. */
   depots?: DepotSpec[];
+  /** Production déjà en place (/min par item) : utilisée avant de construire quoi que ce soit. */
+  existing?: Record<string, number>;
   /** Calculer les paliers ronds (défaut : oui). */
   tiers?: boolean;
 };
@@ -128,6 +130,8 @@ export type Economy = {
   machinesToOwn: string[];
 };
 
+/** Production existante du joueur : disponible et réellement utilisée par le plan (/min). */
+export type ExistingUse = { item: string; key: string; available: number; used: number };
 export type Sale = { item: string; perMin: number; price: number; revenuePerMin: number };
 export type DepotUse = { id: string; name: string; machinesExact: number; machines: number; itemsPerMin: number; unitCost: number | null };
 
@@ -146,6 +150,8 @@ export type Plan = {
   surplus: Surplus[];
   sales: Sale[];
   depots: DepotUse[];
+  /** Productions existantes du joueur que le plan utilise. */
+  existing: ExistingUse[];
   totals: {
     machines: number;
     farms: number;
@@ -226,6 +232,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       maxPollution: req.maxPollution ?? null,
       budget: req.budget ?? null,
       preferred,
+      existing: new Map(Object.entries(req.existing ?? {})),
     });
   if (!moneyMode && req.finalMachines !== undefined) {
     const unit = run(1);
@@ -298,6 +305,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const edges: Edge[] = [];
   const sources = new Map<string, { key: string; id: string; amount: number }[]>();
   for (const [k, producers] of prodOf) sources.set(k, producers.map((p) => ({ key: keyOf(p.id), id: p.id, amount: p.amount })));
+  for (const [k, amount] of res.supplies) sources.set(k, [...(sources.get(k) ?? []), { key: `existant:${k}`, id: `existant:${k}`, amount }]);
   for (const [k, amount] of res.imports) sources.set(k, [...(sources.get(k) ?? []), { key: k, id: `manque:${k}`, amount }]);
   for (const [k, list] of sources) {
     const S = list.reduce((s, x) => s + x.amount, 0);
@@ -310,7 +318,11 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     }
   }
 
-  const finals = used.filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : mainOf.get(p.id) === req.item)).map(({ p }) => keyOf(p.id));
+  const finals = [
+    ...used.filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : mainOf.get(p.id) === req.item)).map(({ p }) => keyOf(p.id)),
+    // Une production existante peut fournir directement l'objectif.
+    ...[...res.supplies.keys()].filter((k) => (moneyMode ? res.sells.has(k) : k === req.item)).map((k) => `existant:${k}`),
+  ];
   // Profondeur : plus long chemin depuis l'objectif. Les boucles rentables (un sous-produit qui
   // revient plus haut dans la chaîne) existent désormais : leurs arcs de retour sont marqués
   // `loop` et ignorés pour la profondeur (parcours en profondeur depuis l'objectif).
@@ -570,6 +582,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     surplus,
     sales,
     depots,
+    existing: [...res.supplies].map(([item, used]) => ({ item, key: `existant:${item}`, available: req.existing![item]!, used })),
     totals,
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
     verify: dedupeVerify(verify),
@@ -680,6 +693,7 @@ function fromV1(p: PlanV1, req: SolveRequest): Plan {
     edges: p.edges.map((e) => ({ ...e, item: e.from })),
     sales: [],
     depots: [],
+    existing: [],
     totals: { ...p.totals, depots: 0, energyProduced: 0, revenuePerMin: 0 },
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
     warnings: [...p.warnings, { code: "simplexe", message: "Le simplexe n'a pas abouti : choix des recettes par l'heuristique (moteur v1), sans réutilisation des sous-produits." }],
@@ -717,6 +731,7 @@ function emptyPlan(req: SolveRequest, criterion: Criterion, ratePerMin: number, 
     surplus: [],
     sales: [],
     depots: [],
+    existing: [],
     totals,
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
     verify: [],

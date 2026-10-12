@@ -21,6 +21,8 @@ export type Settings = {
   maxPollution: number | null;
   /** Ne pas dépasser l'argent renseigné dans « Ma partie ». */
   useBudget: boolean;
+  /** Production déjà en place chez le joueur : item → débit (/min). */
+  existing: Record<string, number>;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   selfPowered: false,
   maxPollution: null,
   useBudget: false,
+  existing: {},
 };
 
 const KEY_SETTINGS = "ind-calc:v1:settings";
@@ -68,6 +71,8 @@ export function loadSettings(): Settings {
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;
   out.useBudget = out.useBudget === true;
+  const ex = out.existing && typeof out.existing === "object" && !Array.isArray(out.existing) ? out.existing : {};
+  out.existing = Object.fromEntries(Object.entries(ex).filter(([k, v]) => typeof k === "string" && typeof v === "number" && v > 0));
   if (out.mode !== "rate" && out.mode !== "machines") out.mode = DEFAULT_SETTINGS.mode;
   if (!(out.rate > 0)) out.rate = DEFAULT_SETTINGS.rate;
   if (!(out.machines > 0)) out.machines = DEFAULT_SETTINGS.machines;

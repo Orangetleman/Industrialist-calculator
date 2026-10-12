@@ -10,7 +10,7 @@ import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { layoutGraph, NODE_H, NODE_W } from "./graph-layout.ts";
 import { renderGraph, renderPlan, renderSummary, renderVerify } from "./render.ts";
-import { exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress } from "./progress.ts";
+import { currentRp, exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setCorrection } from "./state.ts";
@@ -110,9 +110,20 @@ describe("progression et « Ma partie »", () => {
 
   it("export puis import de la progression : aller-retour identique", () => {
     const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
-    const player = { pollutionPct: 12.5, money: 1000, rp: null, rpPerSec: 2 };
+    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z") };
     const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
     expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" });
+  });
+
+  it("les RP évoluent avec les RP/s ; changer la vitesse garde les RP accumulés", () => {
+    const t0 = Date.parse("2026-10-12T09:00:00Z");
+    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0 };
+    expect(currentRp(p, t0 + 60_000)).toBe(620); // + 2 RP/s × 60 s
+    expect(currentRp({ ...p, rpPerSec: null }, t0 + 60_000)).toBe(500);
+    expect(currentRp({ ...p, rp: null }, t0)).toBeNull();
+    const q = withRpRate(p, 5, t0 + 60_000); // 620 RP acquis, puis 5 RP/s
+    expect(q).toMatchObject({ rp: 620, rpPerSec: 5, rpAt: t0 + 60_000 });
+    expect(currentRp(q, t0 + 120_000)).toBe(920);
   });
 
   it("import : refuse un fichier étranger, ignore les ids disparus", () => {

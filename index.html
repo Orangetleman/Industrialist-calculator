@@ -96,6 +96,17 @@
         <label><input type="checkbox" id="use-budget"> Ne pas dépasser mon argent <span class="hint" id="budget-hint"></span></label>
         <label><input type="checkbox" id="unverified"> Utiliser aussi les recettes « à vérifier » (valeurs variables ou manquantes)</label>
       </div>
+      <details class="existing-box" id="existing-box">
+        <summary>Production déjà en place <span class="pill" id="existing-count"></span></summary>
+        <p class="hint">Si tu produis déjà un item (ex. du plastique avec ton industrie pétrochimique), indique son débit : le calcul s'en sert avant de construire quoi que ce soit. Tu peux aussi l'ajouter depuis le plan, avec « J'ai déjà cette production… ».</p>
+        <ul id="existing-list" class="existing-list"></ul>
+        <form id="existing-add" class="existing-add">
+          <label>Item <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets"></label>
+          <label>Débit (/min) <input name="rate" type="number" min="0.01" step="any" inputmode="decimal"></label>
+          <button type="submit">Ajouter</button>
+        </form>
+        <p class="hint" id="existing-hint" role="status"></p>
+      </details>
       <p class="hint" id="context-hint"></p>
       <button type="button" id="forced-reset" class="link" hidden>Annuler toutes les recettes forcées</button>
     </section>
@@ -265,7 +276,8 @@
         </label>
       </div>
       <p class="hint" id="player-hint" role="status"></p>
-      <p class="hint">Utilisé pour : la pousse des arbres (pollution), l'argent manquant, les RP manquants et le temps estimé pour les obtenir. Les RP disponibles colorent aussi l'arbre de recherche (gris clair = pas assez de RP).</p>
+      <p class="hint" id="rp-live" aria-live="off"></p>
+      <p class="hint">Utilisé pour : la pousse des arbres (pollution), l'argent manquant, les RP manquants et le temps estimé pour les obtenir. Les RP disponibles colorent aussi l'arbre de recherche (gris clair = pas assez de RP). Avec une production de RP, les RP montent tout seuls à partir du moment où tu les as saisis.</p>
       <p class="fold-sub" id="player-summary"></p>
     </section>
   </div>

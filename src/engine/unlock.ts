@@ -28,7 +28,7 @@ export type MachineAccess =
 
 export function isNodeUnlocked(data: GameData, progress: Progress, nodeId: string): boolean {
   const n = data.nodes.get(nodeId);
-  return !!n && (n.isRoot || progress.unlocked.has(nodeId));
+  return !!n && (n.isRoot || !!n.startUnlocked || progress.unlocked.has(nodeId));
 }
 
 /**

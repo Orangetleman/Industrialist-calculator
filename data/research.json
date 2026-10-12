@@ -4453,9 +4453,15 @@
      "page": "Module:RS/Data",
      "revisionId": 42735,
      "fetchedAt": "2026-10-11T01:03:23.483Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": []
+   "verify": [],
+   "startUnlocked": true
   },
   {
    "id": "truck-depot",
@@ -4482,9 +4488,15 @@
      "page": "Module:RS/Data",
      "revisionId": 42735,
      "fetchedAt": "2026-10-11T01:03:23.483Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": []
+   "verify": [],
+   "startUnlocked": true
   },
   {
    "id": "utility",

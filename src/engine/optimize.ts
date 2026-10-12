@@ -22,6 +22,8 @@ export type OptimizeRequest = {
   selfPowered: boolean;
   maxPollution: number | null;
   budget: number | null;
+  /** Production déjà en place chez le joueur (/min par item) : source gratuite, plafonnée. */
+  existing?: Map<string, number>;
   /** Recettes du choix heuristique (moteur v1) : une solution candidate de plus. */
   preferred?: Set<string>;
 };
@@ -33,6 +35,8 @@ export type OptimizeResult = {
   imports: Map<string, number>;
   energyImport: number;
   sells: Map<string, number>;
+  /** Production existante utilisée (/min par item). */
+  supplies: Map<string, number>;
   depots: Map<string, number>;
   /** Contraintes impossibles à tenir sans manque supplémentaire ; le plan est calculé sans elles. */
   impossible: { pollution?: number; budget?: number };
@@ -48,6 +52,7 @@ type Built = {
   imports: { item: string; col: number }[];
   energyCol: number;
   sells: { item: string; col: number }[];
+  supplies: { item: string; col: number }[];
   depots: { id: string; col: number }[];
   objectives: Record<"imports" | Criterion | "area", Term[]>;
   pollutionRow: Row | null;
@@ -61,6 +66,7 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
   for (const p of R) for (const [k, v] of Object.entries(p.perMin)) if (v < 0) consumed.add(k);
   const needs = [...model.items].filter((i) => consumed.has(i) || (req.demand.get(i) ?? 0) > 0).sort();
   const imports = needs.filter((i) => loopImports || model.leaves.has(i)).map((item) => ({ item, col: n++ }));
+  const supplies = [...(req.existing ?? [])].filter(([item, v]) => v > 0 && model.items.has(item)).sort(([a], [b]) => a.localeCompare(b)).map(([item]) => ({ item, col: n++ }));
   const energyCol = req.selfPowered ? n++ : -1;
   const sells = req.moneyPerMin !== null ? [...model.sellable.keys()].sort().map((item) => ({ item, col: n++ })) : [];
   const depots = req.moneyPerMin !== null ? model.depots.map((d) => ({ id: d.id, col: n++ })) : [];
@@ -76,6 +82,7 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
   });
   for (const im of imports) termsFor(im.item).push([im.col, 1]);
   for (const s of sells) termsFor(s.item).push([s.col, -1]);
+  for (const s of supplies) termsFor(s.item).push([s.col, 1]);
   const rows: Row[] = [];
   for (const [item, terms] of [...rowsOf].sort(([a], [b]) => a.localeCompare(b))) {
     const d = req.demand.get(item) ?? 0;
@@ -130,7 +137,9 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
       ...depots.map((d, k): Term => [d.col, model.depots[k]!.area ?? UNKNOWN_AREA]),
     ],
   };
-  return { lp: { nVars: n, rows }, imports, energyCol, sells, depots, objectives, pollutionRow, budgetRow };
+  // Production existante : au plus ce que le joueur a déjà, sans coût (elle est construite).
+  for (const s of supplies) rows.push({ terms: [[s.col, 1]], op: "<=", rhs: req.existing!.get(s.item)! });
+  return { lp: { nVars: n, rows }, imports, energyCol, sells, supplies, depots, objectives, pollutionRow, budgetRow };
 }
 
 function levels(b: Built, criterion: Criterion): Term[][] {
@@ -156,7 +165,7 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
     base = solveLP(b.lp, b.objectives.imports.length ? b.objectives.imports : [[0, 0]]);
     iterations += base.iterations;
   }
-  const fail = (): OptimizeResult => ({ status: "échec", machines: new Map(), imports: new Map(), energyImport: 0, sells: new Map(), depots: new Map(), impossible: {}, iterations });
+  const fail = (): OptimizeResult => ({ status: "échec", machines: new Map(), imports: new Map(), energyImport: 0, sells: new Map(), supplies: new Map(), depots: new Map(), impossible: {}, iterations });
   if (base.status !== "optimal") return fail();
   const importsFloor = b.objectives.imports.length ? base.value : 0;
   const noExtraImports: Row | null = b.objectives.imports.length ? { terms: b.objectives.imports, op: "<=", rhs: importsFloor + 1e-7 * Math.max(1, Math.abs(importsFloor)) } : null;
@@ -264,5 +273,7 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
   for (const s of b.sells) if (keep(x[s.col]!)) sells.set(s.item, x[s.col]!);
   const depots = new Map<string, number>();
   for (const d of b.depots) if (keep(x[d.col]!)) depots.set(d.id, x[d.col]!);
-  return { status: "ok", machines, imports, energyImport: b.energyCol >= 0 && keep(x[b.energyCol]!) ? x[b.energyCol]! : 0, sells, depots, impossible, iterations };
+  const supplies = new Map<string, number>();
+  for (const s of b.supplies) if (keep(x[s.col]!)) supplies.set(s.item, x[s.col]!);
+  return { status: "ok", machines, imports, energyImport: b.energyCol >= 0 && keep(x[b.energyCol]!) ? x[b.energyCol]! : 0, sells, supplies, depots, impossible, iterations };
 }

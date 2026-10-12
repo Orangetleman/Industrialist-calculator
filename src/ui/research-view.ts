@@ -12,7 +12,7 @@ export type NodeState = "done" | "available" | "expensive" | "locked" | "incoher
 /** États comme dans le jeu : vert débloqué, blanc disponible, gris clair trop cher, gris foncé verrouillé. */
 export function nodeState(data: GameData, p: Progress, n: ResearchNode, rp: number | null): NodeState {
   const parentsOk = n.requires === "any" ? n.parents.some((x) => isNodeUnlocked(data, p, x)) : n.parents.every((x) => isNodeUnlocked(data, p, x));
-  if (n.isRoot || p.unlocked.has(n.id)) return parentsOk || n.isRoot ? "done" : "incoherent";
+  if (n.isRoot || n.startUnlocked || p.unlocked.has(n.id)) return parentsOk || n.isRoot || n.startUnlocked ? "done" : "incoherent";
   if (!parentsOk) return "locked";
   return rp !== null && rp < n.rp ? "expensive" : "available";
 }
@@ -105,7 +105,8 @@ export function renderNodeDetail(data: GameData, p: Progress, id: string | null,
   const nodeName = (x: string) => data.nodes.get(x)?.name ?? x;
   const buildings = n.unlocksMachines.map((m) => data.machines.get(m)).filter((m): m is Machine => !!m);
   const actions: string[] = [];
-  if (!n.isRoot) {
+  if (n.startUnlocked) actions.push(`<p class="hint">Acquise d'office dans un nouveau monde.</p>`);
+  else if (!n.isRoot) {
     if (p.unlocked.has(n.id)) actions.push(`<button type="button" data-rs-action="lock" data-id="${esc(n.id)}">Marquer comme non débloquée${deps.length ? ` (+ ${deps.length} dépendante(s))` : ""}</button>`);
     else if (missing.length) {
       actions.push(`<button type="button" class="primary" data-rs-action="unlock-all" data-id="${esc(n.id)}">Débloquer avec ses ${missing.length} prérequis (${esc(fmtRP(rpCost(data, [...missing, n.id])))})</button>`);

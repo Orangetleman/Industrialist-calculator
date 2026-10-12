@@ -33,6 +33,8 @@
  "depotNote": "80 s relevé pour les dépôts de liquides ; 80 s aussi pour les autres d'après l'utilisateur (« je crois »), comme le wiki.",
  "research": {
   "rs3SameItemAllowed": true,
+  "startUnlocked": ["transportation", "truck-depot"],
+  "startUnlockedNote": "Transportation et Truck Depot sont acquis d'office dans un nouveau monde (confirmé en jeu par l'utilisateur, 2026-10-12).",
   "note": "La Research Station3 accepte deux fois le même item, avec la pénalité de 30 % appliquée."
  }
 }

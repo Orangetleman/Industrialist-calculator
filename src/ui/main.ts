@@ -14,6 +14,7 @@ import { dependentsOf, missingNodes, rpCost, unlockUpTo } from "../engine/unlock
 import { esc, fmt, fmtMoney, fmtRP, parseInput } from "./format.ts";
 import {
   exportProgress,
+  currentRp,
   loadPlayer,
   loadProgress,
   parseOptional,
@@ -23,6 +24,7 @@ import {
   renderTree,
   sanitizeProgress,
   savePlayer,
+  withRpRate,
   saveProgress,
   toEngineProgress,
   type PlayerInfo,
@@ -98,7 +100,7 @@ function rebuildData(): void {
 }
 
 function playerState(): PlayerState {
-  return { ...toEngineProgress(prog), ...player };
+  return { ...toEngineProgress(prog), ...player, rp: currentRp(player) };
 }
 
 // ---------------------------------------------------------------- recherche d'item
@@ -145,6 +147,7 @@ function render(): void {
     maxPollution: settings.maxPollution,
     budget: settings.useBudget && player.money !== null ? player.money : null,
     depots: DEPOTS,
+    existing: Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))),
   });
   const ctx: Ctx = { data, plan, settings, corrections };
 
@@ -172,6 +175,7 @@ function render(): void {
   $("rec").innerHTML = renderRecipes(ctx);
   $("warnings").innerHTML = renderWarnings(ctx);
   $("forced-reset").hidden = !Object.keys(settings.forced).length;
+  renderExisting();
   saveSettings(settings);
   renderProgress();
 }
@@ -200,7 +204,7 @@ function renderProgress(): void {
   const parts = [
     player.pollutionPct !== null ? `pollution ${fmt(player.pollutionPct, 1)} %` : null,
     player.money !== null ? fmtMoney(player.money) : null,
-    player.rp !== null ? fmtRP(player.rp) : null,
+    player.rp !== null ? `${fmtRP(currentRp(player))}${player.rpPerSec && player.rpAt !== null ? " (estimé)" : ""}` : null,
     player.rpPerSec !== null ? `${fmt(player.rpPerSec, 2)} RP/s` : null,
   ].filter(Boolean);
   $("player-summary").textContent = parts.length ? parts.join(" · ") : "non renseignée";
@@ -228,7 +232,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const p = toEngineProgress(prog);
   const layout = researchLayout();
   if (ui.selected && data.nodes.get(ui.selected)?.category !== treeView.category) ui.selected = null;
-  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, player.rp);
+  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, currentRp(player));
   const svg = $("rs-canvas").querySelector("svg") as SVGSVGElement;
   if (treeView.filter.trim()) {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
@@ -238,7 +242,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
-  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, player.rp);
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, currentRp(player));
   renderHud();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
 }
@@ -247,8 +251,8 @@ function renderResearchCanvas(focusKey: string | null): void {
 function renderHud(): void {
   const n = ui.selected ? data.nodes.get(ui.selected) : undefined;
   const btn = $("rs-hud-action") as HTMLButtonElement;
-  if (!n || n.isRoot) {
-    $("rs-hud-info").textContent = n ? n.name : "";
+  if (!n || n.isRoot || n.startUnlocked) {
+    $("rs-hud-info").textContent = n ? `${n.name}${n.startUnlocked ? " · acquise d'office" : ""}` : "";
     btn.hidden = true;
     return;
   }
@@ -402,7 +406,9 @@ function syncPlayerForm(): void {
   };
   set("p-pollution", player.pollutionPct);
   set("p-money", player.money);
-  set("p-rp", player.rp);
+  const rp = currentRp(player);
+  set("p-rp", rp === null ? null : Math.floor(rp));
+  renderRpLive();
   set("p-rps", player.rpPerSec);
 }
 
@@ -574,11 +580,48 @@ function bindProgress(): void {
       $(id).setAttribute("aria-invalid", String(v === "invalide"));
       $("player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
       if (v === "invalide") return;
-      player = { ...player, [key]: v };
+      if (key === "rpPerSec") player = withRpRate(player, v);
+      else if (key === "rp") player = { ...player, rp: v, rpAt: v === null ? null : Date.now() };
+      else player = { ...player, [key]: v };
       savePlayer(player);
+      renderRpLive();
       renderSoon();
     });
   }
+
+  // Production déjà en place : ajout, modification, retrait (réglage et plan).
+  $("existing-add").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const name = (form.elements.namedItem("item") as HTMLInputElement).value;
+    const id = resolveItem(name);
+    const v = parseFloat((form.elements.namedItem("rate") as HTMLInputElement).value.replace(",", "."));
+    if (!id) return void ($("existing-hint").textContent = "Item introuvable : choisis un nom dans la liste.");
+    if (!(v > 0)) return void ($("existing-hint").textContent = "Indique un débit positif, par minute.");
+    $("existing-hint").textContent = "";
+    form.reset();
+    addExisting(id, v);
+  });
+  $("existing-list").addEventListener("input", (e) => {
+    const t = e.target as HTMLInputElement;
+    const id = t.dataset.existingRate;
+    const v = parseFloat(t.value.replace(",", "."));
+    if (!id || !(v > 0)) return;
+    settings.existing = { ...settings.existing, [id]: v };
+    renderSoon();
+  });
+  document.querySelector(".wrap")!.addEventListener("click", (e) => {
+    const t = e.target as HTMLElement;
+    const del = t.closest<HTMLElement>("[data-existing-del]");
+    if (del) {
+      const { [del.dataset.existingDel!]: _, ...rest } = settings.existing;
+      settings.existing = rest;
+      render();
+      return;
+    }
+    const have = t.closest<HTMLElement>("[data-have]");
+    if (have) addExisting(have.dataset.have!, Number(have.dataset.amount) > 0 ? Number(have.dataset.amount) : 1);
+  });
 
   // Boutons du plan : « Je les ai débloquées », « Je la possède »
   document.querySelector(".wrap")!.addEventListener("click", (e) => {
@@ -605,6 +648,66 @@ function downloadJson(value: unknown, filename: string): void {
 }
 
 let timer: number | undefined;
+/** Liste « Production déjà en place » du réglage. */
+function renderExisting(): void {
+  const entries = Object.entries(settings.existing);
+  $("existing-count").textContent = entries.length ? String(entries.length) : "";
+  const used = new Map((plan?.existing ?? []).map((x) => [x.item, x.used]));
+  $("existing-list").innerHTML = entries
+    .map(([id, v]) => {
+      const name = data.items.get(id)?.name ?? id;
+      const u = used.get(id);
+      return `<li><span class="name">${esc(name)}</span>
+        <label class="sr-only" for="ex-${esc(id)}">Débit de ${esc(name)}</label>
+        <input id="ex-${esc(id)}" type="number" min="0.01" step="any" inputmode="decimal" data-existing-rate="${esc(id)}" value="${v}"> /min
+        <span class="hint">${u === undefined ? "pas utilisé par ce plan" : `${fmt(u, 2)}/min utilisés`}</span>
+        <button type="button" class="link" data-existing-del="${esc(id)}" aria-label="Retirer ${esc(name)}">retirer</button></li>`;
+    })
+    .join("");
+}
+
+/** « Ma partie » : RP estimés maintenant, d'après les RP/s. */
+function renderRpLive(): void {
+  const rp = currentRp(player);
+  $("rp-live").textContent =
+    rp !== null && player.rpPerSec && player.rpAt !== null
+      ? `≈ ${fmtRP(rp)} maintenant : ${fmtRP(player.rp)} saisis le ${new Date(player.rpAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}, + ${fmt(player.rpPerSec, 2)} RP/s depuis. Estimation : si ta production de RP change en jeu, corrige-la ici.`
+      : "";
+}
+
+/** Les RP montent tout seuls : affichage rafraîchi, et l'arbre ou le plan quand ça change quelque chose. */
+let rpSignature = "";
+let lastRpPlanRender = 0;
+function tickRp(): void {
+  if (player.rp === null || !player.rpPerSec || player.rpAt === null) return;
+  const rp = currentRp(player)!;
+  const input = $("p-rp") as HTMLInputElement;
+  if (document.activeElement !== input) input.value = String(Math.floor(rp));
+  renderRpLive();
+  // Recherches qui deviennent abordables : l'arbre change de couleur.
+  const sig = [...data.nodes.values()].filter((n) => !n.isRoot && n.rp <= rp).length.toString();
+  const tab = currentTab();
+  if (sig !== rpSignature) {
+    rpSignature = sig;
+    if (tab === "recherche") renderProgress();
+  }
+  // Temps restant pour les RP du plan : au plus toutes les 30 s.
+  if (tab === "production" && (plan?.economy.rpNeeded ?? 0) > 0 && Date.now() - lastRpPlanRender > 30_000) {
+    lastRpPlanRender = Date.now();
+    render();
+  }
+}
+
+/** Ajoute (ou met à jour) une production existante, puis ouvre la liste sur elle. */
+function addExisting(id: string, perMin: number): void {
+  settings.existing = { ...settings.existing, [id]: perMin };
+  render();
+  ($("existing-box") as HTMLDetailsElement).open = true;
+  const input = document.getElementById(`ex-${id}`) as HTMLInputElement | null;
+  input?.focus();
+  input?.select();
+}
+
 function renderSoon(): void {
   clearTimeout(timer);
   timer = window.setTimeout(render, 120);
@@ -786,3 +889,4 @@ initBuildings($("bld-root"), data, portsJson as unknown as PortsFile);
 if (!location.hash && !prog.unlocked.length) history.replaceState(null, "", "#recherche");
 render();
 showTab(currentTab());
+window.setInterval(tickRp, 5000);

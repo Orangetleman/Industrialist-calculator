@@ -138,3 +138,51 @@ describe("paliers ronds", () => {
     expect(plan.tiers.map((t) => t.ratePerMin)).toEqual([...plan.tiers.map((t) => t.ratePerMin)].sort((a, b) => a - b));
   });
 });
+
+describe("production existante du joueur", () => {
+  // t demande 1 a par unité ; a demande 2 s ; 6 t/min.
+  const d = makeData({
+    recipes: [
+      { id: "rt", machine: "m", t: 10, in: { a: 1 }, out: { t: 1 } }, // 6 t/min
+      { id: "ra", machine: "m", t: 10, in: { s: 2 }, out: { a: 1 } }, // 6 a/min
+      { id: "rs", machine: "m", t: 1, out: { s: 1 } }, // 60 s/min
+    ],
+  });
+
+  it("utilisée avant de construire : seul le complément est produit", () => {
+    const plan = solve(d, all, { item: "t", ratePerMin: 6, existing: { a: 3 } });
+    expect(plan.status).toBe("ok");
+    expect(step(plan, "a").machinesExact).toBeCloseTo(0.5);
+    expect(step(plan, "s").machinesExact).toBeCloseTo(0.1);
+    expect(plan.existing).toEqual([{ item: "a", key: "existant:a", available: 3, used: 3 }]);
+    expect(plan.edges).toContainEqual({ from: "existant:a", to: "t", item: "a", perMin: 3 });
+  });
+
+  it("plus que nécessaire : on n'en prend que ce qu'il faut, rien n'est construit en amont", () => {
+    const plan = solve(d, all, { item: "t", ratePerMin: 6, existing: { a: 50 } });
+    expect(plan.existing[0]).toMatchObject({ item: "a", used: 6, available: 50 });
+    expect(plan.steps.map((s) => s.recipeId)).toEqual(["rt"]);
+  });
+
+  it("l'objectif lui-même déjà produit : plan complet sans machine", () => {
+    const plan = solve(d, all, { item: "t", ratePerMin: 4, existing: { t: 10 } });
+    expect(plan.status).toBe("ok");
+    expect(plan.steps).toEqual([]);
+    expect(plan.finals).toEqual(["existant:t"]);
+  });
+
+  it("un item verrouillé mais déjà produit par le joueur n'est plus un manque", () => {
+    const locked = makeData({
+      nodes: [{ id: "n", rp: 5 }],
+      machines: [{ id: "lk", unlockedBy: "n" }],
+      recipes: [
+        { id: "rt", machine: "m", t: 10, in: { a: 1 }, out: { t: 1 } },
+        { id: "ra", machine: "lk", t: 10, out: { a: 1 } },
+      ],
+    });
+    expect(solve(locked, all, { item: "t", ratePerMin: 6 }).status).toBe("partiel");
+    const plan = solve(locked, all, { item: "t", ratePerMin: 6, existing: { a: 6 } });
+    expect(plan.status).toBe("ok");
+    expect(plan.unresolved).toEqual([]);
+  });
+});

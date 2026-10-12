@@ -462,6 +462,7 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | Small Fluid Storage Silo | capacité | — | **500 L** |
 | Small Item Storage Silo | capacité | — | **250 unités** |
 | Van Depot | durée d'un cycle de vente (s) | 80 | **80** (confirmé) |
+| Recherche | acquises d'office dans un nouveau monde | — | **transportation, truck-depot** |
 | Research Station3 | deux fois le même item | contradiction sur le wiki | **accepté, avec la pénalité de 30 %** |
 | Grille de construction | 1 case | — | **2 studs = 1 Short Pipe ; une case entière (un Short Pipe) ; pas de demi-case** |
 | Grille de construction | rotations | — | **4 : quarts de tour seulement, pour tous les bâtiments : pas de 45° (d'où les pièces Light et Inclined Light)** |

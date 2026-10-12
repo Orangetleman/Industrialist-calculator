@@ -98,7 +98,7 @@ type Releves = {
   poleRangeTiles: Record<string, number>;
   storageCapacity: Record<string, number>;
   depotCycleSeconds: Record<string, number>;
-  research: { rs3SameItemAllowed?: boolean; note?: string };
+  research: { rs3SameItemAllowed?: boolean; startUnlocked?: string[]; note?: string };
 };
 const relevesPath = join(OUT, "releves.json");
 const releves: Releves | null = existsSync(relevesPath) ? JSON.parse(readFileSync(relevesPath, "utf8")) : null;
@@ -224,6 +224,9 @@ const toFact = <T>(f: Found<T>): Fact<T> => {
 };
 const mapFacts = <T extends Record<string, Found<unknown>>>(o: T) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, toFact(v)]));
 const rs3Text = rpPages["Research Station3"]?.content ?? "";
+if (releves?.research.startUnlocked?.length) {
+  appliedLines.push(`| Recherche | acquises d'office dans un nouveau monde | — | **${releves.research.startUnlocked.join(", ")}** |`);
+}
 if (releves?.research.rs3SameItemAllowed) {
   appliedLines.push("| Research Station3 | deux fois le même item | contradiction sur le wiki | **accepté, avec la pénalité de 30 %** |");
 } else if (/two different Items/i.test(rs3Text) && formulas.rs3.samePenalty.value !== null) {

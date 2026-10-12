@@ -9,6 +9,7 @@ import researchJson from "../data/research.json";
 import { buildGameData, type RawFiles } from "../src/engine/data.ts";
 import { solve, type Plan } from "../src/engine/solve.ts";
 import { solveV1 } from "../src/engine/solve-v1.ts";
+import { machineAccess } from "../src/engine/unlock.ts";
 import type { LogisticsFile } from "../src/engine/extension-types.ts";
 import type { OverridesFile } from "../src/engine/types.ts";
 import fixtureJson from "./fixtures/reference-crankshaft.json";
@@ -165,10 +166,11 @@ describe("vraies données (Miraheze)", () => {
     expect(money.status).toBe("ok");
     expect(money.totals.revenuePerMin).toBeGreaterThanOrEqual(100_000 * (1 - 1e-9));
     expect(money.depots.length).toBeGreaterThan(0);
-    // Sans recherche : aucun dépôt ; le plan dit quoi débloquer. Avec le Truck Depot : il vend.
+    // Transportation et Truck Depot sont acquis d'office (relevé en jeu) : sans aucune recherche,
+    // le dépôt est là, mais rien n'est encore productible à vendre.
+    expect(machineAccess(real, progress(), "truck-depot").available).toBe(true);
     const none = solve(real, progress(), { item: "", moneyPerMin: 10, depots });
-    expect(none.status).toBe("impossible");
-    expect(none.economy.nodesToUnlock).toEqual(["transportation", "truck-depot"]);
+    expect(none.warnings.some((w) => w.code === "dépôt")).toBe(false);
     const early = progress([...real.nodes.keys()].filter((n) => n !== "van-depot" && n !== "huge-truck-depot"));
     const start = solve(real, early, { item: "", moneyPerMin: 10, depots });
     expect(start.depots.map((d) => d.id)).toEqual(["truck-depot"]);

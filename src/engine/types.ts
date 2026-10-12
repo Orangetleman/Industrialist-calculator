@@ -109,6 +109,8 @@ export type ResearchNode = {
   unlocksOther: string[];
   reqItems: { item: string; amount: number }[];
   isRoot: boolean;
+  /** Acquise d'office dans un nouveau monde (relevé en jeu), comme les racines. */
+  startUnlocked?: boolean;
   /** Description affichée en jeu : absente des wikis, saisie par le joueur (correction). */
   description?: string | null;
   sources: Source[];

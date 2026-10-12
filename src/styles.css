@@ -216,6 +216,18 @@ button.chip.tier:hover { border-color: var(--accent); }
 .chip.tier.exact { border-color: var(--ok); }
 .chip.tier.current { border-color: var(--steel); background: var(--steel-soft); font-weight: 600; }
 .tiers .hint { margin: 0; }
+/* Production déjà en place (réglage) */
+.existing-box { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.existing-box summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+.existing-list { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.existing-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: .88rem; }
+.existing-list .name { min-width: 140px; font-weight: 600; }
+.existing-list input { width: 100px; font: inherit; font-family: var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.existing-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.existing-add label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.existing-add input { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 120px; }
+.chip.ok { border-color: var(--ok); }
+.step.existing { border-left: 3px solid var(--ok); }
 .set-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .set-head h2 { margin: 0; }
 .fields > .hint.wide { grid-column: 1 / -1; margin: 0; }
