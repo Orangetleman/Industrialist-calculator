@@ -514,4 +514,15 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 
 <!-- notes-manuelles:debut -->
 _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à chaque régénération._
+
+- **2026-10-12, vapeur des Boilers** : en jeu, la vapeur en sortie de Boiler tourne souvent entre
+  105 et 115 °C au maximum, loin des 190 °C donnés par le wiki pour une installation à Firebox.
+  À 110 °C, une Large Turbine produit environ 132 kMF/s au lieu de 320 kMF/s (courbe des
+  turbines) : les centrales thermiques de `energy.json` sont peut-être surestimées d'un facteur
+  2 à 2,5. Le jeu annonce lui-même des valeurs qu'il ne tient pas (Industrial Firebox : 12 L d'eau
+  chauffés par seconde, non constaté). À présenter en fourchette (observé / wiki).
+- **2026-10-12, paraboles** : le « log » du bonus est décimal (confirmé par l'utilisateur,
+  « je crois »).
+- **2026-10-12, plafond de RP** : d'après l'utilisateur, c'est un plafond général (commun à toutes
+  les stations), pas un plafond par type de station.
 <!-- notes-manuelles:fin -->
