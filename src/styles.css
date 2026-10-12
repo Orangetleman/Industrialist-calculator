@@ -297,3 +297,49 @@ footer.src { border-top: 1px solid var(--line); padding-top: 14px; }
 .brand { display: flex; align-items: center; gap: 14px; }
 .brand-logo { flex: none; border-radius: 12px; box-shadow: 0 2px 8px #0003; }
 @media (max-width: 480px) { .brand-logo { width: 40px; height: 40px; } }
+
+/* éditeur de bâtiments */
+.bld { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 900px) { .bld { display: grid; grid-template-columns: 260px minmax(0, 1fr); align-items: start; } }
+.bld-list { display: flex; flex-direction: column; gap: 8px; }
+.bld-list input[type="search"] { font: inherit; font-size: .9rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+#bld-items { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+#bld-items button { width: 100%; text-align: left; border: none; background: none; padding: 5px 8px; border-radius: 6px; display: flex; justify-content: space-between; gap: 6px; font-size: .86rem; }
+#bld-items button:hover { background: var(--bg); }
+#bld-items button.on { background: var(--accent-soft); font-weight: 600; }
+.bld-badge { font-size: .68rem; font-family: var(--f-mono); border-radius: 999px; padding: 0 6px; white-space: nowrap; align-self: center; }
+.bld-badge.repo { background: var(--steel-soft); color: var(--steel); }
+.bld-badge.local { background: var(--accent-soft); color: var(--accent); }
+.bld-editor { display: flex; flex-direction: column; gap: 10px; }
+.bld-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
+.bld-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }
+.bld-row label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.bld-row input[type="number"], .bld-row select { width: 90px; font: inherit; font-family: var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+.bld-tools { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.bld-tools button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.bld-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.bld-canvas { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; background: #1d2126; }
+.bld-canvas svg { display: block; width: 100%; min-width: 260px; max-width: 900px; margin: 0 auto; height: auto; cursor: crosshair; }
+.bld-margin { fill: #2a3038; stroke: #3a4048; stroke-width: 1; }
+.bld-corner { fill: #1d2126; stroke: none; }
+.bld-body { fill: rgba(47, 93, 124, .28); stroke: rgba(143, 184, 214, .25); stroke-width: 1; }
+.bld-outline { fill: none; stroke: #8fb8d6; stroke-width: 2.5; pointer-events: none; }
+.bld-port rect { stroke: #000a; stroke-width: 1.5; }
+.bld-port text { font-size: 15px; font-weight: 700; fill: #fff; pointer-events: none; }
+.bld-port.objet.in rect { fill: #d9b300; } .bld-port.objet.out rect { fill: #b03ab8; }
+.bld-port.fluide.in rect { fill: #2f7fd0; } .bld-port.fluide.out rect { fill: #14a3a3; }
+.bld-port.logique rect { fill: #7a4bd0; }
+.bld-port.énergie rect { fill: #f2d21b; } .bld-port.énergie text { fill: #222; }
+.bld-port.sel rect { stroke: #fff; stroke-width: 3; }
+.bld-stub { font-size: 10px !important; fill: #fff; }
+.bld-portform { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.bld-portform b { width: 100%; }
+.bld-portform label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.bld-portform input, .bld-portform select { font: inherit; font-size: .88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-width: 180px; }
+.bld-portform input[type="number"] { min-width: 70px; width: 70px; }
+.bld-bg summary { cursor: pointer; color: var(--steel); font-size: .86rem; }
+.bld-bg .bld-row { margin-top: 8px; }
+.bld-notes { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.bld-notes textarea { font: inherit; font-size: .88rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.bld-problems { margin: 0; padding-left: 18px; color: var(--warn); font-size: .84rem; }
+.ok-text { margin: 0; color: var(--ok); font-size: .86rem; font-weight: 600; }

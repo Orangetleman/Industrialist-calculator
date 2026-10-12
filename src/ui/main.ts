@@ -30,6 +30,9 @@ import {
   type TreeView,
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
+import { initBuildings } from "./buildings.ts";
+import portsJson from "../../data/ports.json";
+import type { PortsFile } from "../engine/extension-types.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
@@ -60,8 +63,8 @@ let plan: Plan | undefined;
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
 const treeView: TreeView = { category: "Production", filter: "" };
-type Tab = "production" | "recherche" | "verifier" | "partie";
-const TABS: Tab[] = ["production", "recherche", "verifier", "partie"];
+type Tab = "production" | "recherche" | "verifier" | "batiments" | "partie";
+const TABS: Tab[] = ["production", "recherche", "verifier", "batiments", "partie"];
 const KEY_UI = "ind-calc:v1:ui";
 let ui: { view: "tree" | "list"; selected: string | null } = { view: "tree", selected: null };
 try {
@@ -268,7 +271,7 @@ function showTab(tab: Tab, focus = false): void {
     link.tabIndex = on ? 0 : -1;
     if (on && focus) link.focus();
   }
-  document.body.classList.toggle("wide", tab === "recherche");
+  document.body.classList.toggle("wide", tab === "recherche" || tab === "batiments");
   // Le canevas mesure son cadre : il faut le recaler quand l'onglet devient visible.
   if (tab === "recherche" && ui.view === "tree") renderResearchCanvas(null);
 }
@@ -709,6 +712,7 @@ bind();
 bindProgress();
 bindTabs();
 bindResearchCanvas();
+initBuildings($("bld-root"), data, portsJson as unknown as PortsFile);
 // Première visite (aucune recherche cochée) : on commence par l'onglet Recherche.
 if (!location.hash && !prog.unlocked.length) history.replaceState(null, "", "#recherche");
 render();

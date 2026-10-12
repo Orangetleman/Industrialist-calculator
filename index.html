@@ -41,6 +41,7 @@
     <a role="tab" id="tab-production" href="#production" aria-controls="panel-production" aria-selected="true">Production</a>
     <a role="tab" id="tab-recherche" href="#recherche" aria-controls="panel-recherche" aria-selected="false">Recherche <span class="pill" id="tab-research-count"></span></a>
     <a role="tab" id="tab-verifier" href="#verifier" aria-controls="panel-verifier" aria-selected="false">À vérifier <span class="pill" id="verify-count">0</span></a>
+    <a role="tab" id="tab-batiments" href="#batiments" aria-controls="panel-batiments" aria-selected="false">Bâtiments</a>
     <a role="tab" id="tab-partie" href="#partie" aria-controls="panel-partie" aria-selected="false">Ma partie</a>
   </nav>
 
@@ -216,6 +217,11 @@
       </div>
       <p class="hint">L'export produit un <code>overrides.json</code> (corrections du dépôt + les tiennes) à placer dans <code>data/</code> pour les rendre permanentes.</p>
     </section>
+  </div>
+
+  <!-- ====================================================== BÂTIMENTS -->
+  <div class="tabpanel" id="panel-batiments" role="tabpanel" aria-labelledby="tab-batiments" hidden>
+    <section aria-label="Éditeur de bâtiments"><div id="bld-root"></div></section>
   </div>
 
   <!-- ====================================================== MA PARTIE -->
