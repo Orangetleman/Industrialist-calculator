@@ -1,9 +1,8 @@
 {
- "_lisezMoi": "Ports des bâtiments relevés en jeu (voir RELEVES.md). Clé = id du bâtiment (machines.json). Empreinte en cases (1 case = 1 Short Pipe), vue de dessus sans rotation : w = largeur à l'écran, h = hauteur à l'écran. Côtés : haut/bas/gauche/droite de l'écran, ou « dessus » pour un boîtier posé sur la machine. Case : numéro le long du bord (depuis la gauche ou depuis le haut, à partir de 1), ou [colonne, ligne] pour le dessus ; les demi-valeurs (1.5) sont permises pour les boîtiers électriques. stub = nombre de cases dont le plot du port dépasse du bâtiment.",
+ "_lisezMoi": "Ports des bâtiments relevés en jeu (voir RELEVES.md). Clé = id du bâtiment (machines.json). Empreinte en cases (1 case = 1 Short Pipe), vue de dessus sans rotation : w = largeur à l'écran, h = hauteur à l'écran ; tous les bâtiments ont 4 rotations (quarts de tour, voir world.json). Côtés : haut/bas/gauche/droite de l'écran, ou « dessus » pour un boîtier posé sur la machine. Case : numéro le long du bord (depuis la gauche ou depuis le haut, à partir de 1), ou [colonne, ligne] pour le dessus ; les demi-valeurs (1.5) sont permises pour les boîtiers électriques. Sens : entrée, sortie ou « les deux » (poteaux, stockages). stub = nombre de cases dont le plot du port dépasse du bâtiment. noPower = bâtiment sans prise électrique.",
  "machines": {
   "press": {
    "footprint": { "w": 4, "h": 2 },
-   "rotations": null,
    "ports": [
     { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1, "stub": 1, "shown": "flèche jaune vers le haut", "tip": "input for metal ingot" },
     { "type": "objet", "direction": "sortie", "side": "bas", "cell": 4, "stub": 1, "shown": "flèche violette vers le bas", "tip": "Outpour for metal plates" },
@@ -14,7 +13,6 @@
   },
   "iron-drill": {
    "footprint": { "w": 2, "h": 6 },
-   "rotations": null,
    "ports": [
     { "type": "objet", "direction": "sortie", "side": "bas", "cell": 1, "stub": 1, "shown": "flèche violette vers le bas" },
     { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [1.5, 6], "shown": "boîtier jaune, 1 nœud" }
@@ -24,7 +22,6 @@
   },
   "coal-drill": {
    "footprint": { "w": 2, "h": 6 },
-   "rotations": null,
    "ports": [
     { "type": "objet", "direction": "sortie", "side": "bas", "cell": 2, "stub": 1, "shown": "flèche violette vers le bas", "tip": "Outpots a unit of coal when powered" },
     { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [1.5, 6], "shown": "boîtier jaune, 1 nœud" }
@@ -34,7 +31,6 @@
   },
   "grinder": {
    "footprint": { "w": 6, "h": 4 },
-   "rotations": null,
    "ports": [
     { "type": "objet", "direction": "entrée", "side": "gauche", "cell": 4, "stub": 1 },
     { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 3, "stub": 1 },
@@ -46,7 +42,6 @@
   },
   "industrial-kiln": {
    "footprint": { "w": 10, "h": 20 },
-   "rotations": null,
    "ports": [
     { "type": "objet", "direction": "entrée", "side": "gauche", "cell": 4, "stub": 1, "tip": "input for fuel" },
     { "type": "objet", "direction": "entrée", "side": "droite", "cell": 8, "stub": 1 },
@@ -58,7 +53,6 @@
   },
   "blast-furnace": {
    "footprint": { "w": 8, "h": 8 },
-   "rotations": null,
    "ports": [
     { "type": "objet", "direction": "entrée", "side": "droite", "cell": 4, "stub": 1, "tip": "Input for Iron Ingots/Metal Powders/Metal mixes/Oak Logs/Crushed bauxite/Rock" },
     { "type": "objet", "direction": "entrée", "side": "droite", "cell": 5, "stub": 1, "tip": "Input for Coal or coke Fuel" },
@@ -66,6 +60,108 @@
     { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [7.5, 7.5], "shown": "boîtier jaune, 1 nœud" }
    ],
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T10:00:00Z", "note": "fiche et capture de l'utilisateur" }
+  },
+  "roller": {
+   "footprint": { "w": 4, "h": 2 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1, "stub": 1, "tip": "input for metal plate" },
+    { "type": "objet", "direction": "sortie", "side": "bas", "cell": 4, "stub": 1, "tip": "output for wires/coils" },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [1, 2] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:22:39.451Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "craft-assembler": {
+   "footprint": { "w": 8, "h": 4 },
+   "ports": [
+    { "type": "objet", "direction": "sortie", "side": "bas", "cell": 3, "stub": 1, "tip": "Output for crafted item" },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 7, "stub": 1, "tip": "Input for the second item (check the recipe book)" },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 8, "stub": 1, "tip": "Input for first item (check the recipe book)" },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [8, 4] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:27:23.544Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "boiler": {
+   "footprint": { "w": 8, "h": 6 },
+   "noPower": true,
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "stub": 1, "tip": "Water in (to convert to steam)" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 5, "stub": 1, "tip": "Hot water in" },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 2, "stub": 1, "tip": "Steam out (To Turbine)" },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 6, "stub": 1, "tip": "Used water out" }
+   ],
+   "notes": "N'a pas d'arrivée électrique.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:32:18.831Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "firebox": {
+   "footprint": { "w": 4, "h": 6 },
+   "noPower": true,
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "droite", "cell": 1, "stub": 1, "tip": "Coolant in (heats up water)" },
+    { "type": "fluide", "direction": "sortie", "side": "droite", "cell": 3, "stub": 1, "tip": "Coolant out (put into boiler coolant in)" },
+    { "type": "objet", "direction": "entrée", "side": "droite", "cell": 4, "stub": 1, "tip": "Input for COAL" }
+   ],
+   "notes": "Pas de prise électrique.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:36:22.662Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "large-turbine": {
+   "footprint": { "w": 5, "h": 4 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "haut", "cell": 1, "stub": 1, "tip": "Steam in for power (you might want to use the better pipes you can research later on, they are in tier 3)" },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 1, "stub": 1 },
+    { "type": "énergie", "direction": "sortie", "side": "dessus", "cell": [5, 2.5] }
+   ],
+   "notes": "Prise électrique en sortie : c'est un générateur (l'éditeur imposait « entrée »).",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:45:18.455Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "steam-turbine": {
+   "footprint": { "w": 4, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 1, "stub": 1, "tip": "after wteam is converted into power  water will be the side product" },
+    { "type": "fluide", "direction": "entrée", "side": "haut", "cell": 1, "stub": 1, "tip": "Steam in for power (from coal generator)" },
+    { "type": "énergie", "direction": "sortie", "side": "dessus", "cell": [1, 1.5] }
+   ],
+   "notes": "Prise électrique en sortie : c'est un générateur (l'éditeur imposait « entrée »).",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:43:21.980Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "lv-pole": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "énergie", "direction": "les deux", "side": "dessus", "cell": [2, 1.5], "shown": "en hauteur" },
+    { "type": "énergie", "direction": "les deux", "side": "dessus", "cell": [1, 1.5], "shown": "en hauteur" }
+   ],
+   "notes": "Points de raccordement en « les deux » (poteau) ; l'éditeur ne proposait pas encore ce sens.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:48:25.407Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "mv-pole": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "énergie", "direction": "les deux", "side": "dessus", "cell": [1, 1.5], "shown": "en hauteur" },
+    { "type": "énergie", "direction": "les deux", "side": "dessus", "cell": [2, 1.5], "shown": "en hauteur" }
+   ],
+   "notes": "Points de raccordement en « les deux » (poteau) ; l'éditeur ne proposait pas encore ce sens.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:50:14.041Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "small-item-storage-silo": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 2, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 1, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 2, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 1, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 2, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 2, "stub": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1, "stub": 1 }
+   ],
+   "notes": "Ports en « les deux » (stockage : entrée et sortie) ; l'éditeur ne proposait pas encore ce sens. Relevés tous « sortie » dans l'export.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:54:55.743Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "truck-depot": {
+   "footprint": { "w": 10, "h": 8 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "haut", "cell": 8, "stub": 1 }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:56:52.922Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
   }
  }
 }

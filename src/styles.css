@@ -307,8 +307,10 @@ footer.src { border-top: 1px solid var(--line); padding-top: 14px; }
 #bld-items button { width: 100%; text-align: left; border: none; background: none; padding: 5px 8px; border-radius: 6px; display: flex; justify-content: space-between; gap: 6px; font-size: .86rem; }
 #bld-items button:hover { background: var(--bg); }
 #bld-items button.on { background: var(--accent-soft); font-weight: 600; }
-.bld-badge { font-size: .68rem; font-family: var(--f-mono); border-radius: 999px; padding: 0 6px; white-space: nowrap; align-self: center; }
-.bld-badge.repo { background: var(--steel-soft); color: var(--steel); }
+.bld-badges { display: inline-flex; gap: 3px; align-self: center; flex-shrink: 0; }
+.bld-badge { font-size: .68rem; font-family: var(--f-mono); border-radius: 999px; padding: 0 6px; white-space: nowrap; align-self: center; font-weight: 500; }
+.bld-badge.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.bld-badge.warn { background: var(--warn-soft); color: var(--warn); }
 .bld-badge.local { background: var(--accent-soft); color: var(--accent); }
 .bld-editor { display: flex; flex-direction: column; gap: 10px; }
 .bld-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
@@ -318,20 +320,47 @@ footer.src { border-top: 1px solid var(--line); padding-top: 14px; }
 .bld-tools { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .bld-tools button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .bld-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
-.bld-canvas { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; background: #1d2126; }
-.bld-canvas svg { display: block; width: 100%; min-width: 260px; max-width: 900px; margin: 0 auto; height: auto; cursor: crosshair; }
+.bld-tools button:disabled { opacity: .45; }
+.bld-dirlabel { font-size: .78rem; color: var(--muted); margin-right: 2px; }
+.bld-check { flex-direction: row !important; align-items: center; gap: 6px !important; font-size: .86rem !important; color: var(--ink) !important; padding-bottom: 6px; }
+.bld-powerhint { align-self: center; margin: 0; }
+/* Grille : se manipule comme l'arbre de recherche (glisser, molette). */
+.bld-frame { position: relative; height: min(62vh, 560px); min-height: 300px; border-radius: 10px; border: 1px solid var(--line); background: #1d2126; overflow: hidden; touch-action: none; cursor: crosshair; }
+.bld-frame.mode-capture { cursor: move; }
+.bld-frame.mode-coins { cursor: cell; }
+.bld-frame.dragging { cursor: grabbing; }
+.bld-frame:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#bld-canvas, #bld-canvas svg { width: 100%; height: 100%; display: block; }
+.bld-help { position: absolute; left: 12px; right: 56px; top: 8px; margin: 0; font-size: .78rem; color: #dde2e7; text-align: center; pointer-events: none; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+.bld-mode { position: absolute; left: 10px; bottom: 10px; box-shadow: 0 2px 8px #0008; }
+.bld-mode button { padding: 6px 12px; }
+.bld-msg { margin: 0; font-size: .86rem; color: var(--steel); min-height: 1.3em; }
+.bld-msg:empty { display: none; }
 .bld-margin { fill: #2a3038; stroke: #3a4048; stroke-width: 1; }
 .bld-corner { fill: #1d2126; stroke: none; }
 .bld-body { fill: rgba(47, 93, 124, .28); stroke: rgba(143, 184, 214, .25); stroke-width: 1; }
+.bld-cellline { fill: rgba(0, 0, 0, .12); stroke: rgba(255, 255, 255, .28); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.bld-bodyline { fill: rgba(47, 93, 124, .10); stroke: rgba(143, 184, 214, .30); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .bld-outline { fill: none; stroke: #8fb8d6; stroke-width: 2.5; pointer-events: none; }
+.bld-mark line { stroke: #ff5a36; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.bld-port { cursor: pointer; }
 .bld-port rect { stroke: #000a; stroke-width: 1.5; }
-.bld-port text { font-size: 15px; font-weight: 700; fill: #fff; pointer-events: none; }
-.bld-port.objet.in rect { fill: #d9b300; } .bld-port.objet.out rect { fill: #b03ab8; }
-.bld-port.fluide.in rect { fill: #2f7fd0; } .bld-port.fluide.out rect { fill: #14a3a3; }
-.bld-port.logique rect { fill: #7a4bd0; }
-.bld-port.énergie rect { fill: #f2d21b; } .bld-port.énergie text { fill: #222; }
+.bld-port .half { stroke: none; pointer-events: none; }
+.bld-port text { font-size: 15px; font-weight: 700; fill: #fff; pointer-events: none; paint-order: stroke; stroke: #0007; stroke-width: 2px; }
+.bld-port.objet.in rect, .bld-port.objet.both rect { fill: #d9b300; } .bld-port.objet.out rect, .bld-port.objet .half { fill: #b03ab8; }
+.bld-port.fluide.in rect, .bld-port.fluide.both rect { fill: #2f7fd0; } .bld-port.fluide.out rect, .bld-port.fluide .half { fill: #14a3a3; }
+.bld-port.logique rect { fill: #7a4bd0; } .bld-port.logique .half { fill: #4b2a90; }
+.bld-port.énergie rect { fill: #f2d21b; } .bld-port.énergie.out rect, .bld-port.énergie .half { fill: #ff8a1a; }
+.bld-port.énergie text { fill: #222; stroke: none; }
 .bld-port.sel rect { stroke: #fff; stroke-width: 3; }
 .bld-stub { font-size: 10px !important; fill: #fff; }
+.bld-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 0; font-size: .76rem; color: var(--muted); }
+.bld-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1px solid #0004; }
+.sw-oi { background: #d9b300; } .sw-oo { background: #b03ab8; } .sw-fi { background: #2f7fd0; } .sw-fo { background: #14a3a3; }
+.sw-ei { background: #f2d21b; } .sw-eo { background: #ff8a1a; } .sw-l { background: #7a4bd0; }
+.sw-both { background: linear-gradient(135deg, #d9b300 50%, #b03ab8 50%); }
+.bld-steps { margin: 6px 0 0; padding-left: 20px; }
+.bld-steps li { margin: 2px 0; }
 .bld-portform { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .bld-portform b { width: 100%; }
 .bld-portform label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }

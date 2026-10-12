@@ -124,7 +124,7 @@
  "grid": {
   "cellStuds": 2,
   "snap": "une case entière (un Short Pipe) ; pas de demi-case",
-  "rotations": null,
+  "rotations": 4,
   "sources": [
    {
     "wiki": "jeu",
@@ -132,12 +132,6 @@
     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
    }
   ],
-  "verify": [
-   {
-    "field": "rotations",
-    "reason": "manquant",
-    "detail": "nombre de rotations possibles d'une machine (4 quarts de tour ?) : à confirmer en jeu"
-   }
-  ]
+  "verify": []
  }
 }

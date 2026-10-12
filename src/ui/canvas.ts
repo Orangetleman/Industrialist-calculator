@@ -1,10 +1,22 @@
 // Déplacement et zoom d'un SVG dans un cadre, comme le canevas de recherche du jeu :
 // glisser pour se déplacer, molette (ou boutons, ou touches + / − / 0) pour zoomer.
 
-type Box = { x: number; y: number; w: number; h: number };
+export type Box = { x: number; y: number; w: number; h: number };
+
+export type PanZoomOptions = {
+  /** Largeur visible minimale, en unités SVG (zoom maximal). 200 par défaut. */
+  minWidth?: number;
+  /** Largeur visible maximale (zoom minimal) ; par défaut 1,6 × le contenu. */
+  maxWidth?: () => number;
+  /** La vue de départ montre tout le contenu (au lieu de la taille réelle calée à gauche). */
+  fitOnReset?: boolean;
+};
 
 export class PanZoom {
   private readonly frame: HTMLElement;
+  private readonly opts: PanZoomOptions;
+  /** En pause, le cadre laisse la molette, le glisser et les touches à un autre gestionnaire. */
+  paused = false;
   private svg: SVGSVGElement | null = null;
   private content = { w: 1, h: 1 };
   /** Point à montrer au départ (ex. la racine de l'arbre), calé à gauche et centré en hauteur. */
@@ -15,8 +27,9 @@ export class PanZoom {
   suppressClick = false;
   private measuredWidth = 0;
 
-  constructor(frame: HTMLElement) {
+  constructor(frame: HTMLElement, opts: PanZoomOptions = {}) {
     this.frame = frame;
+    this.opts = opts;
     frame.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
     frame.addEventListener("pointerdown", (e) => this.onDown(e));
     frame.addEventListener("pointermove", (e) => this.onMove(e));
@@ -48,10 +61,16 @@ export class PanZoom {
     return Math.max(this.vb.w / Math.max(1, r.width), this.vb.h / Math.max(1, r.height));
   }
 
-  /** Vue de départ : taille réelle, calée à gauche sur la racine, comme en jeu. */
+  /** Unités SVG par pixel écran (pour convertir un glisser). */
+  unitsPerPixel(): number {
+    return this.scale();
+  }
+
+  /** Vue de départ : taille réelle, calée à gauche sur la racine, comme en jeu (ou tout le contenu). */
   reset(): void {
     const r = this.frame.getBoundingClientRect();
     this.measuredWidth = r.width;
+    if (this.opts.fitOnReset) return this.fit();
     const w = r.width > 0 ? r.width : 800;
     const h = r.height > 0 ? r.height : 500;
     this.vb = { x: 0, y: this.home ? Math.max(0, Math.min(this.home.y - h / 2, this.content.h - h)) : 0, w, h };
@@ -60,15 +79,20 @@ export class PanZoom {
 
   /** Tout voir. */
   fit(): void {
+    this.fitBox({ x: 0, y: 0, w: this.content.w, h: this.content.h });
+  }
+
+  /** Cadre la vue sur un rectangle (en unités SVG), centré. */
+  fitBox(b: Box): void {
     const r = this.frame.getBoundingClientRect();
     const ratio = Math.max(1, r.width) / Math.max(1, r.height);
-    let w = this.content.w;
+    let w = b.w;
     let h = w / ratio;
-    if (h < this.content.h) {
-      h = this.content.h;
+    if (h < b.h) {
+      h = b.h;
       w = h * ratio;
     }
-    this.vb = { x: (this.content.w - w) / 2, y: (this.content.h - h) / 2, w, h };
+    this.vb = { x: b.x + (b.w - w) / 2, y: b.y + (b.h - h) / 2, w, h };
     this.apply();
   }
 
@@ -79,8 +103,8 @@ export class PanZoom {
     const s = this.scale();
     const px = this.vb.x + (cx - r.left) * s;
     const py = this.vb.y + (cy - r.top) * s;
-    const minW = 200;
-    const maxW = Math.max(this.content.w, this.content.h * (r.width / Math.max(1, r.height))) * 1.6;
+    const minW = this.opts.minWidth ?? 200;
+    const maxW = this.opts.maxWidth?.() ?? Math.max(this.content.w, this.content.h * (r.width / Math.max(1, r.height))) * 1.6;
     const w = Math.min(maxW, Math.max(minW, this.vb.w / factor));
     const k = w / this.vb.w;
     this.vb = { x: px - (px - this.vb.x) * k, y: py - (py - this.vb.y) * k, w, h: this.vb.h * k };
@@ -111,12 +135,13 @@ export class PanZoom {
   }
 
   private onWheel(e: WheelEvent): void {
+    if (this.paused) return;
     e.preventDefault();
     this.zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
   }
 
   private onDown(e: PointerEvent): void {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || this.paused) return;
     this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vb: { ...this.vb }, moved: false };
   }
 
@@ -148,7 +173,7 @@ export class PanZoom {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (e.target !== this.frame) return; // les nœuds gèrent leurs propres touches
+    if (e.target !== this.frame || this.paused) return; // les nœuds gèrent leurs propres touches
     const step = 60 * this.scale();
     const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
     if (e.key === "+" || e.key === "=") this.zoom(1.2);

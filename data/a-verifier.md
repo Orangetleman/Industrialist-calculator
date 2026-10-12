@@ -439,7 +439,7 @@ Le moteur les signalera comme « source inconnue » s'ils apparaissent dans une 
 <!-- extension:debut -->
 ## Extension : énergie, logistique, RP, monde
 
-Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **6** bâtiment(s) (voir RELEVES.md).
+Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **16** bâtiment(s) (voir RELEVES.md).
 
 Toutes les formules et tous les faits attendus ont été reconnus.
 
@@ -450,17 +450,21 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | LV Pole | portée (tuiles) | 10 | **10.5** |
 | MV Pole | portée (tuiles) | — | **10.5** |
 | Advanced MV Pole | portée (tuiles) | 8 | **10.5** |
+| Small MV Pole | portée (tuiles) | — | **10.5** |
 | HMVT | portée (tuiles) | 22 | **22** |
 | Gold Fluid Storage Silo | capacité | — | **1000000 L** |
 | Gold Item Storage Silo | capacité | — | **1000000 unités** |
-| Huge Truck Depot | durée d'un cycle de vente (s) | 80 | **75** |
+| Huge Truck Depot | durée d'un cycle de vente (s) | 80 | **80** (confirmé) |
+| Large Liquid Truck Depot | durée d'un cycle de vente (s) | 80 | **80** (confirmé) |
+| Liquid Truck Depot | durée d'un cycle de vente (s) | 80 | **80** (confirmé) |
 | Medium Fluid Storage Silo | capacité | — | **3000 L** |
 | Medium Item Storage Silo | capacité | — | **5000 unités** |
 | Small Fluid Storage Silo | capacité | — | **500 L** |
 | Small Item Storage Silo | capacité | — | **250 unités** |
-| Van Depot | durée d'un cycle de vente (s) | 80 | **75** |
+| Van Depot | durée d'un cycle de vente (s) | 80 | **80** (confirmé) |
 | Research Station3 | deux fois le même item | contradiction sur le wiki | **accepté, avec la pénalité de 30 %** |
 | Grille de construction | 1 case | — | **2 studs = 1 Short Pipe ; une case entière (un Short Pipe) ; pas de demi-case** |
+| Grille de construction | rotations | — | **4 : quarts de tour seulement, pour tous les bâtiments : pas de 45° (d'où les pièces Light et Inclined Light)** |
 
 **Reste à vérifier :**
 
@@ -476,7 +480,6 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | Nuclear Power Plant | énergie · input | variable | valeur du wiki non lisible telle quelle : « Varies (HV/MV) » |
 | Nuclear Power Plant | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 100MMF (HV) ⚡2MMF (MV) » |
 | Resistor | énergie · capacity | non-sourcé | valeur du wiki non lisible telle quelle : « 550kMF* » |
-| Small MV Pole | énergie · rangeTiles | manquant | portée du poteau absente de sa page : à relever en jeu |
 | Solar Farm1 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 664.1kMF/s |
 | Solar Panel | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 120MF/s - 240MF/s |
 | Solar Panel2 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 0MF/s - 5kMF/s |
@@ -486,10 +489,9 @@ Toutes les formules et tous les faits attendus ont été reconnus.
 | Wind Turbine1 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 700MF/s - 4.97kMF/s |
 | Wind Turbine2 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 2.35kMF/s - 16.24kMF/s |
 | Wind Turbine3 | énergie · output | approximatif | puissance variable (météo, heure, vapeur ou combustible) : 10.37kMF/s - 68.72kMF/s |
-| Large Liquid Truck Depot | logistique · itemsPerSec | manquant | capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu |
-| Liquid Truck Depot | logistique · itemsPerSec | manquant | capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu |
+| Large Liquid Truck Depot | logistique · itemsPerSec | manquant | litres par voyage inconnus (cycle relevé en jeu : 80 s) : à relever en jeu |
+| Liquid Truck Depot | logistique · itemsPerSec | manquant | litres par voyage inconnus (cycle relevé en jeu : 80 s) : à relever en jeu |
 | Truck Depot | logistique · itemsPerSec | approximatif | 10 objets toutes les ~15 s d'après le wiki |
-| Grille de construction | monde · rotations | manquant | nombre de rotations possibles d'une machine (4 quarts de tour ?) : à confirmer en jeu |
 | Steam Turbine | énergie · puissance selon la température | approximatif | Seulement une plage (432 MF/s à 9,36 kMF/s) : pas de courbe sur le wiki. |
 <!-- extension:fin -->
 

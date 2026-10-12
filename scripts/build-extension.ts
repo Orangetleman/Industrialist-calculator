@@ -94,7 +94,7 @@ for (const m of machines) {
 // ---------------------------------------------------------------- relevés en jeu (prioritaires)
 type Releves = {
   source: Source;
-  grid: { cellStuds: number | null; snap: string | null; rotations: number | null; note?: string };
+  grid: { cellStuds: number | null; snap: string | null; rotations: number | null; rotationsNote?: string; note?: string };
   poleRangeTiles: Record<string, number>;
   storageCapacity: Record<string, number>;
   depotCycleSeconds: Record<string, number>;
@@ -188,9 +188,12 @@ for (const m of machines) {
     const cycle = measuredCycle ?? wikiCycle;
     const verify: VerifyFlag[] = [];
     if (measuredCycle !== undefined) {
-      appliedLines.push(`| ${m.name} | durée d'un cycle de vente (s) | ${fmtV(wikiCycle)} | **${measuredCycle}** |`);
+      appliedLines.push(`| ${m.name} | durée d'un cycle de vente (s) | ${fmtV(wikiCycle)} | **${measuredCycle}**${measuredCycle === wikiCycle ? " (confirmé)" : ""} |`);
     }
-    if (cap === undefined || cycle === undefined) verify.push({ field: "itemsPerSec", reason: "manquant", detail: `capacité par voyage (${fmtV(cap)}) ou durée du cycle (${fmtV(cycle)}) inconnue : à relever en jeu` });
+    const unit = kind === "fluide" ? "litres" : "objets";
+    if (cap === undefined && cycle !== undefined)
+      verify.push({ field: "itemsPerSec", reason: "manquant", detail: `${unit} par voyage inconnus (cycle ${measuredCycle !== undefined ? "relevé en jeu" : "d'après le wiki"} : ${cycle} s) : à relever en jeu` });
+    else if (cap === undefined || cycle === undefined) verify.push({ field: "itemsPerSec", reason: "manquant", detail: `capacité par voyage (${fmtV(cap)}) ou durée du cycle (${fmtV(cycle)}) inconnue : à relever en jeu` });
     else if (measuredCycle === undefined) verify.push({ field: "itemsPerSec", reason: "approximatif", detail: `${cap} objets toutes les ~${cycle} s d'après le wiki` });
     depots.push({
       id: m.id,
@@ -241,7 +244,8 @@ const grid = releves?.grid ?? { cellStuds: null, snap: null, rotations: null };
 const gridVerify: VerifyFlag[] = [];
 if (grid.cellStuds === null) gridVerify.push({ field: "cellStuds", reason: "manquant", detail: "taille d'une case de la grille, en studs : à relever en jeu (RELEVES.md § 0)" });
 else appliedLines.push(`| Grille de construction | 1 case | — | **${grid.cellStuds} studs = 1 Short Pipe ; ${grid.snap ?? ""}** |`);
-if (grid.rotations === null) gridVerify.push({ field: "rotations", reason: "manquant", detail: "nombre de rotations possibles d'une machine (4 quarts de tour ?) : à confirmer en jeu" });
+if (grid.rotations !== null) appliedLines.push(`| Grille de construction | rotations | — | **${grid.rotations}${grid.rotationsNote ? ` : ${grid.rotationsNote}` : ""}** |`);
+else gridVerify.push({ field: "rotations", reason: "manquant", detail: "nombre de rotations possibles d'une machine (4 quarts de tour ?) : à confirmer en jeu" });
 for (const f of gridVerify) flagLines.push(`| Grille de construction | monde · ${f.field} | ${f.reason} | ${f.detail} |`);
 if (!powerEntries.find((e) => e.id === "large-turbine")?.tempCurve) {
   flagLines.push("| Large Turbine | énergie · puissance selon la température | manquant | Courbe température → puissance introuvable (graphique Desmos de la page Large Turbine). |");

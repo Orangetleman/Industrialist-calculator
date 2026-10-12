@@ -8,6 +8,9 @@ export const CELL = 30; // pixels par case dans le SVG (la vue est ensuite mise 
 
 export type Tool = "objet" | "fluide" | "énergie" | "logique" | "gomme";
 
+/** Placement de la capture en fond : coin haut-gauche en cases, unités SVG par pixel de l'image. */
+export type BgPlacement = { x: number; y: number; scale: number };
+
 /** Case de la marge cliquée → bord et numéro de case ; null si c'est un coin ou hors marge. */
 export function marginToPort(w: number, h: number, gx: number, gy: number): { side: Port["side"]; cell: number } | null {
   if (gy === 0 && gx >= 1 && gx <= w) return { side: "haut", cell: gx };
@@ -56,7 +59,7 @@ export function applyTool(ports: Port[], tool: Tool, place: Pick<Port, "side" | 
   const next: Port = {
     ...(previous && previous.type === type ? previous : {}),
     type,
-    direction: type === "énergie" ? "entrée" : direction,
+    direction,
     side: place.side,
     cell: place.cell,
     ...(place.side !== "dessus" ? { stub: previous?.stub ?? 1 } : {}),
@@ -64,12 +67,14 @@ export function applyTool(ports: Port[], tool: Tool, place: Pick<Port, "side" | 
   return [...others, next];
 }
 
-/** Contrôles avant export : renvoie la liste des problèmes (vide = relevé exploitable). */
+/** Contrôles du relevé : renvoie la liste des problèmes (vide = relevé complet). */
 export function checkEntry(e: PortsEntry): string[] {
   const out: string[] = [];
   if (!e.footprint || !(e.footprint.w > 0) || !(e.footprint.h > 0)) out.push("empreinte manquante");
   if (!e.ports.length) out.push("aucun port");
-  if (!e.ports.some((p) => p.type === "énergie")) out.push("pas de prise électrique (normal seulement pour un bâtiment sans énergie)");
+  const hasPower = e.ports.some((p) => p.type === "énergie");
+  if (!hasPower && !e.noPower) out.push("pas de prise électrique : pose-la, ou coche « Sans prise électrique » si le bâtiment n'en a pas");
+  if (hasPower && e.noPower) out.push("« Sans prise électrique » est coché alors qu'une prise est posée");
   const w = e.footprint?.w ?? 0;
   const h = e.footprint?.h ?? 0;
   for (const p of e.ports) {
@@ -84,6 +89,8 @@ export function checkEntry(e: PortsEntry): string[] {
   return out;
 }
 
+export const isComplete = (e: PortsEntry) => checkEntry(e).length === 0;
+
 /** Fichier d'export (même format que data/ports.json). */
 export function exportSurveys(local: Record<string, PortsEntry>): PortsFile {
   return {
@@ -96,14 +103,64 @@ export function surveySource(note = "relevé dans l'éditeur de bâtiments du ca
   return { wiki: "saisie", fetchedAt: new Date().toISOString(), note };
 }
 
-/** Lecture prudente d'un fichier importé. */
+/** Lecture prudente d'un fichier importé (l'ancien champ « rotations » par bâtiment est ignoré). */
 export function parseSurveys(raw: unknown): Record<string, PortsEntry> | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const m = (raw as { machines?: unknown }).machines;
   if (!m || typeof m !== "object" || Array.isArray(m)) return null;
   const out: Record<string, PortsEntry> = {};
-  for (const [id, e] of Object.entries(m as Record<string, PortsEntry>)) {
-    if (e && Array.isArray(e.ports) && e.source?.fetchedAt) out[id] = e;
+  for (const [id, e] of Object.entries(m as Record<string, PortsEntry & { rotations?: unknown }>)) {
+    if (!e || !Array.isArray(e.ports) || !e.source?.fetchedAt) continue;
+    const { rotations: _old, noPower, ...rest } = e;
+    out[id] = noPower === true ? { ...rest, noPower: true } : rest;
   }
   return out;
+}
+
+/**
+ * Relevés locaux déjà intégrés aux données (même date de relevé) : la copie locale n'a plus
+ * lieu d'être, sinon elle masquerait la version intégrée (éventuellement corrigée).
+ */
+export function pruneIntegrated(local: Record<string, PortsEntry>, repo: PortsFile): { kept: Record<string, PortsEntry>; dropped: string[] } {
+  const kept: Record<string, PortsEntry> = {};
+  const dropped: string[] = [];
+  for (const [id, e] of Object.entries(local)) {
+    if (repo.machines[id]?.source.fetchedAt === e.source.fetchedAt) dropped.push(id);
+    else kept[id] = e;
+  }
+  return { kept, dropped };
+}
+
+/** Agrandit ou réduit la capture d'un facteur, autour d'un point fixe (px, py) en unités SVG. */
+export function scaleAround(b: BgPlacement, factor: number, px: number, py: number): BgPlacement {
+  const tx = b.x * CELL;
+  const ty = b.y * CELL;
+  return { x: (px - factor * (px - tx)) / CELL, y: (py - factor * (py - ty)) / CELL, scale: b.scale * factor };
+}
+
+/**
+ * Calage sur deux coins : p1 et p2 (en unités SVG) sont deux coins opposés du bâtiment tels
+ * qu'on les voit sur la capture. On cherche l'agrandissement et le déplacement qui les amènent
+ * sur les coins du rectangle de l'empreinte. L'échelle reste la même en largeur et en hauteur ;
+ * `ratio` mesure l'écart entre les deux (1 = proportions identiques).
+ */
+export function fitTwoCorners(
+  b: BgPlacement,
+  p1: [number, number],
+  p2: [number, number],
+  w: number,
+  h: number,
+): (BgPlacement & { ratio: number }) | null {
+  const dx = Math.abs(p2[0] - p1[0]);
+  const dy = Math.abs(p2[1] - p1[1]);
+  if (dx < 2 || dy < 2) return null;
+  const kx = (w * CELL) / dx;
+  const ky = (h * CELL) / dy;
+  const k = Math.sqrt(kx * ky);
+  const mx = (p1[0] + p2[0]) / 2;
+  const my = (p1[1] + p2[1]) / 2;
+  const cx = CELL + (w * CELL) / 2;
+  const cy = CELL + (h * CELL) / 2;
+  // nouveau point = k × (ancien − milieu cliqué) + centre de l'empreinte
+  return { x: (k * (b.x * CELL - mx) + cx) / CELL, y: (k * (b.y * CELL - my) + cy) / CELL, scale: b.scale * k, ratio: kx / ky };
 }

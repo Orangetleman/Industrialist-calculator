@@ -1449,7 +1449,7 @@
     "l": 8
    },
    "cost": 3200,
-   "itemsPerSec": 5.333333333333333,
+   "itemsPerSec": 5,
    "sources": [
     {
      "wiki": "miraheze",
@@ -1483,13 +1483,18 @@
      "page": "Large Liquid Truck Depot",
      "revisionId": 42610,
      "fetchedAt": "2026-10-11T02:15:47.487Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
    "verify": [
     {
      "field": "itemsPerSec",
      "reason": "manquant",
-     "detail": "capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu"
+     "detail": "litres par voyage inconnus (cycle relevé en jeu : 80 s) : à relever en jeu"
     }
    ]
   },
@@ -1510,13 +1515,18 @@
      "page": "Liquid Truck Depot",
      "revisionId": 42609,
      "fetchedAt": "2026-10-11T02:15:47.493Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
    "verify": [
     {
      "field": "itemsPerSec",
      "reason": "manquant",
-     "detail": "capacité par voyage (—) ou durée du cycle (80) inconnue : à relever en jeu"
+     "detail": "litres par voyage inconnus (cycle relevé en jeu : 80 s) : à relever en jeu"
     }
    ]
   },
@@ -1556,7 +1566,7 @@
     "l": 8
    },
    "cost": 160,
-   "itemsPerSec": 1.1333333333333333,
+   "itemsPerSec": 1.0625,
    "sources": [
     {
      "wiki": "miraheze",

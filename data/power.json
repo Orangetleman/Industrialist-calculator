@@ -2088,7 +2088,10 @@
     "perNode": 50000,
     "nodes": 1
    },
-   "rangeTiles": null,
+   "rangeTiles": {
+    "tiles": 10.5,
+    "approx": false
+   },
    "size": {
     "w": 2,
     "l": 2
@@ -2102,15 +2105,14 @@
      "page": "Small MV Pole",
      "revisionId": 41847,
      "fetchedAt": "2026-10-11T02:15:54.895Z"
+    },
+    {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T10:00:00Z",
+     "note": "relevé en jeu par l'utilisateur (conversation du 2026-10-12)"
     }
    ],
-   "verify": [
-    {
-     "field": "rangeTiles",
-     "reason": "manquant",
-     "detail": "portée du poteau absente de sa page : à relever en jeu"
-    }
-   ]
+   "verify": []
   },
   {
    "id": "solar-farm1",

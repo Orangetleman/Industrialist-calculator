@@ -1,29 +1,63 @@
 // Éditeur de bâtiments (onglet « Bâtiments ») : relever l'empreinte et les ports d'un bâtiment
 // directement sur une grille, en s'aidant d'une capture d'écran posée en fond.
+// La grille se manipule comme l'arbre de recherche (glisser, molette). La capture se cale en
+// deux clics (deux coins du bâtiment), puis s'ajuste à la main en mode « Capture ».
 // La capture reste dans le navigateur (jamais envoyée) ; les relevés sont gardés localement
 // et s'exportent au format de data/ports.json.
 
 import type { GameData } from "../engine/data.ts";
 import type { Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
-import { applyTool, bodyPoint, CELL, checkEntry, exportSurveys, marginToPort, parseSurveys, portCenter, surveySource, type Tool } from "./buildings-model.ts";
-import { esc } from "./format.ts";
+import {
+  applyTool,
+  type BgPlacement,
+  bodyPoint,
+  CELL,
+  checkEntry,
+  exportSurveys,
+  fitTwoCorners,
+  isComplete,
+  marginToPort,
+  parseSurveys,
+  portCenter,
+  pruneIntegrated,
+  scaleAround,
+  surveySource,
+  type Tool,
+} from "./buildings-model.ts";
+import { PanZoom } from "./canvas.ts";
+import { esc, fmtMF } from "./format.ts";
 
 const KEY = "ind-calc:v1:batiments";
 
-type Bg = { url: string; scale: number; x: number; y: number; rot: number; opacity: number; natW: number; natH: number };
+type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: number; natH: number };
+/** Ce que fait la souris sur la grille. */
+type Mode = "ports" | "capture" | "coins";
+type PortTool = Exclude<Tool, "gomme">;
+
+const TOOL_LABEL: Record<Tool, string> = { objet: "Port objet", fluide: "Port fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" };
+const HELP: Record<Mode, string> = {
+  ports: "Glisse pour te déplacer · molette pour zoomer · clique dans la marge (ports) ou sur le corps (prise ⚡)",
+  capture: "Glisse pour déplacer la capture · molette pour l'agrandir ou la réduire (Maj : plus fin) · flèches : réglage fin",
+  coins: "",
+};
 
 export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile): void {
-  let local: Record<string, PortsEntry> = load();
+  const pruned = pruneIntegrated(load(), repo);
+  let local: Record<string, PortsEntry> = pruned.kept;
+  if (pruned.dropped.length) save();
   let selectedId: string | null = null;
   let entry: PortsEntry | null = null;
   let tool: Tool = "objet";
-  let direction: Port["direction"] = "entrée";
+  // Un sens par outil : passer de « sortie objet » à la prise ⚡ ne fait pas une prise en sortie.
+  const dirByTool: Record<PortTool, Port["direction"]> = { objet: "entrée", fluide: "entrée", énergie: "entrée", logique: "entrée" };
   let selectedPort: number | null = null;
   let filter = "";
   let bg: Bg | null = null;
+  let mode: Mode = "ports";
+  let corners: [number, number][] = [];
+  let message = pruned.dropped.length ? `${pruned.dropped.length} relevé(s) local(aux) déjà intégré(s) aux données : copie locale retirée.` : "";
 
   const machines = [...data.machines.values()].sort((a, b) => Number(a.kind === "building") - Number(b.kind === "building") || a.name.localeCompare(b.name));
-  const surveyed = (id: string) => (local[id] ? "local" : repo.machines[id] ? "repo" : null);
 
   root.innerHTML = `
     <div class="bld">
@@ -37,14 +71,51 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
         </div>
         <p class="hint" id="bld-io"></p>
       </aside>
-      <div class="bld-main" id="bld-main"></div>
+      <div class="bld-main">
+        <div class="panel" id="bld-intro">
+          <h3>Éditeur de bâtiments</h3>
+          <p>Choisis un bâtiment dans la liste. Tu poses ses entrées, ses sorties et sa prise électrique sur une grille, en t'aidant d'une capture d'écran en vue de dessus. Les relevés sont gardés dans ce navigateur ; « Exporter mes relevés » produit un fichier à m'envoyer (ou à mettre dans <code>data/ports.json</code>).</p>
+          <p class="hint">1 case = 1 Short Pipe. Pose le bâtiment sans le faire pivoter : tous les bâtiments ont 4 rotations (quarts de tour), le calculateur les déduit.</p>
+        </div>
+        <div class="panel bld-editor" id="bld-editor" hidden>
+          <div class="bld-head" id="bld-head"></div>
+          <div class="bld-row" id="bld-dims"></div>
+          <div class="bld-tools" id="bld-tools" role="toolbar" aria-label="Outils"></div>
+          <div class="bld-frame" id="bld-frame" tabindex="0" aria-label="Grille du bâtiment : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour tout voir">
+            <div id="bld-canvas"></div>
+            <p class="bld-help" id="bld-help"></p>
+            <div class="seg bld-mode" id="bld-mode" role="radiogroup" aria-label="Ce que fait la souris" hidden>
+              <button type="button" role="radio" data-mode="ports" title="Poser et modifier les ports">✎ Ports</button>
+              <button type="button" role="radio" data-mode="capture" title="Déplacer et agrandir la capture à la main">✥ Capture</button>
+            </div>
+            <div class="rs-zoom">
+              <button type="button" data-bzoom="in" aria-label="Zoomer">+</button>
+              <button type="button" data-bzoom="out" aria-label="Dézoomer">−</button>
+              <button type="button" data-bzoom="fit" aria-label="Tout voir">⤢</button>
+            </div>
+          </div>
+          <p class="bld-legend">
+            <span><i class="sw-oi"></i>objet entrée</span><span><i class="sw-oo"></i>objet sortie</span>
+            <span><i class="sw-fi"></i>fluide entrée</span><span><i class="sw-fo"></i>fluide sortie</span>
+            <span><i class="sw-ei"></i>prise ⚡</span><span><i class="sw-eo"></i>⚡ produite</span><span><i class="sw-l"></i>logique</span>
+            <span><i class="sw-both"></i>deux couleurs = les deux sens</span>
+          </p>
+          <p class="bld-msg" id="bld-msg" aria-live="polite"></p>
+          <div id="bld-portform"></div>
+          <details class="bld-bg" id="bld-bg"><summary>Capture d'écran en fond (reste dans ton navigateur)</summary><div id="bld-bgbody"></div></details>
+          <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. la sortie déborde d'une case"></textarea></label>
+          <div id="bld-status" aria-live="polite"></div>
+          <div class="actions" id="bld-actions"></div>
+        </div>
+      </div>
     </div>`;
   const $ = (sel: string) => root.querySelector(sel) as HTMLElement;
+  const frame = $("#bld-frame");
+  const pz = new PanZoom(frame, { minWidth: 2 * CELL, maxWidth: maxViewWidth, fitOnReset: true });
 
   function load(): Record<string, PortsEntry> {
     try {
-      const r = parseSurveys(JSON.parse(localStorage.getItem(KEY) ?? "null"));
-      return r ?? {};
+      return parseSurveys(JSON.parse(localStorage.getItem(KEY) ?? "null")) ?? {};
     } catch {
       return {};
     }
@@ -57,76 +128,173 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     }
   }
 
+  // ---------------------------------------------------------------- liste
   function renderList(): void {
     const q = filter.trim().toLowerCase();
     $("#bld-items").innerHTML = machines
       .filter((m) => !q || m.name.toLowerCase().includes(q))
-      .slice(0, 120)
       .map((m) => {
-        const s = surveyed(m.id);
-        return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}">${esc(m.name)}${
-          s ? `<span class="bld-badge ${s}" title="${s === "local" ? "relevé dans ce navigateur" : "relevé intégré aux données"}">${s === "local" ? "à envoyer" : "relevé"}</span>` : ""
-        }</button></li>`;
+        const e = local[m.id] ?? repo.machines[m.id];
+        const badges = e
+          ? `<span class="bld-badges">${
+              isComplete(e) ? `<span class="bld-badge ok" title="tout ce qui est obligatoire est relevé">complet</span>` : `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>`
+            }${local[m.id] ? `<span class="bld-badge local" title="relevé dans ce navigateur, pas encore intégré aux données">à envoyer</span>` : ""}</span>`
+          : "";
+        return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");
   }
 
   function select(id: string): void {
+    if (id !== selectedId) clearBg();
     selectedId = id;
     const m = data.machines.get(id)!;
     const base = local[id] ?? repo.machines[id];
-    entry = base
-      ? structuredClone(base)
-      : { footprint: m.size ? { w: m.size.w, h: m.size.l } : { w: 2, h: 2 }, rotations: null, ports: [], source: surveySource() };
+    entry = base ? structuredClone(base) : { footprint: m.size ? { w: m.size.w, h: m.size.l } : { w: 2, h: 2 }, ports: [], source: surveySource() };
     selectedPort = null;
+    mode = "ports";
+    corners = [];
+    message = "";
     renderList();
-    renderEditor();
+    renderEditor(false);
   }
+
+  // ---------------------------------------------------------------- dessin
+  const bgTransform = (b: Bg) => `translate(${b.x * CELL} ${b.y * CELL}) scale(${b.scale}) rotate(${b.rot} ${b.natW / 2} ${b.natH / 2})`;
 
   function svg(): string {
     const e = entry!;
-    const w = e.footprint!.w;
-    const h = e.footprint!.h;
+    const { w, h } = e.footprint!;
     const W = (w + 2) * CELL;
     const H = (h + 2) * CELL;
-    let s = `<svg id="bld-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grille du bâtiment : marge pour les ports, corps pour la prise électrique">`;
-    if (bg) {
-      const cx = bg.natW / 2;
-      const cy = bg.natH / 2;
-      s += `<g opacity="${bg.opacity}" transform="translate(${bg.x * CELL} ${bg.y * CELL}) scale(${bg.scale}) rotate(${bg.rot} ${cx} ${cy})"><image href="${bg.url}" width="${bg.natW}" height="${bg.natH}"/></g>`;
-    }
+    let s = `<svg id="bld-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grille du bâtiment : marge pour les ports, corps pour la prise électrique">`;
+    if (bg) s += `<g id="bld-bgimg" opacity="${bg.opacity}" transform="${bgTransform(bg)}"><image href="${bg.url}" width="${bg.natW}" height="${bg.natH}"/></g>`;
+    // Sans capture : cases pleines. Avec capture : seulement les traits, pour voir les plots dessous.
     for (let gx = 0; gx < w + 2; gx++) {
       for (let gy = 0; gy < h + 2; gy++) {
         const inBody = gx >= 1 && gx <= w && gy >= 1 && gy <= h;
         const corner = (gx === 0 || gx === w + 1) && (gy === 0 || gy === h + 1);
-        s += `<rect x="${gx * CELL}" y="${gy * CELL}" width="${CELL}" height="${CELL}" class="${inBody ? "bld-body" : corner ? "bld-corner" : "bld-margin"}"/>`;
+        const cls = bg ? (inBody ? "bld-bodyline" : corner ? "" : "bld-cellline") : inBody ? "bld-body" : corner ? "bld-corner" : "bld-margin";
+        if (cls) s += `<rect x="${gx * CELL}" y="${gy * CELL}" width="${CELL}" height="${CELL}" class="${cls}"/>`;
       }
     }
     s += `<rect x="${CELL}" y="${CELL}" width="${w * CELL}" height="${h * CELL}" class="bld-outline"/>`;
     e.ports.forEach((p, i) => {
       const [x, y] = portCenter(w, h, p);
       const sel = i === selectedPort ? " sel" : "";
-      if (p.side === "dessus") {
-        s += `<g class="bld-port ${p.type}${sel}" data-port="${i}"><rect x="${x - 11}" y="${y - 11}" width="22" height="22" rx="3"/><text x="${x}" y="${y + 5}" text-anchor="middle">${p.type === "énergie" ? "⚡" : "◆"}</text></g>`;
-        return;
+      const dir = p.direction === "sortie" ? "out" : p.direction === "les deux" ? "both" : "in";
+      const r = p.side === "dessus" ? 11 : 13;
+      const half = dir === "both" ? `<path class="half" d="M${x + r} ${y - r}L${x + r} ${y + r}L${x - r} ${y + r}Z"/>` : "";
+      let glyph: string;
+      if (p.side === "dessus") glyph = p.type === "énergie" ? "⚡" : "◆";
+      else if (dir === "both") glyph = p.side === "haut" || p.side === "bas" ? "↕" : "↔";
+      else {
+        const inward = { haut: "▼", bas: "▲", gauche: "▶", droite: "◀" }[p.side];
+        const outward = { haut: "▲", bas: "▼", gauche: "◀", droite: "▶" }[p.side];
+        glyph = dir === "out" ? outward : inward;
       }
-      const inward = { haut: "▼", bas: "▲", gauche: "▶", droite: "◀" }[p.side];
-      const outward = { haut: "▲", bas: "▼", gauche: "◀", droite: "▶" }[p.side];
-      const arrow = p.direction === "sortie" ? outward : inward;
-      s += `<g class="bld-port ${p.type} ${p.direction === "sortie" ? "out" : "in"}${sel}" data-port="${i}"><rect x="${x - 13}" y="${y - 13}" width="26" height="26" rx="4"/><text x="${x}" y="${y + 6}" text-anchor="middle">${arrow}</text>${
-        (p.stub ?? 1) !== 1 ? `<text x="${x + 10}" y="${y - 8}" class="bld-stub">${p.stub}</text>` : ""
+      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}<text x="${x}" y="${y + (p.side === "dessus" ? 5 : 6)}" text-anchor="middle">${glyph}</text>${
+        p.side !== "dessus" && (p.stub ?? 1) !== 1 ? `<text x="${x + 10}" y="${y - 8}" class="bld-stub">${p.stub}</text>` : ""
       }</g>`;
     });
+    for (const [cx, cy] of corners) s += `<g class="bld-mark"><line x1="${cx - 12}" y1="${cy}" x2="${cx + 12}" y2="${cy}"/><line x1="${cx}" y1="${cy - 12}" x2="${cx}" y2="${cy + 12}"/></g>`;
     return `${s}</svg>`;
   }
 
-  function portForm(): string {
-    if (selectedPort === null || !entry!.ports[selectedPort]) return `<p class="hint">Clique dans la marge grise pour poser une entrée ou une sortie, et sur le corps pour poser la prise électrique. Clique sur un port pour le modifier.</p>`;
+  /** Redessine la grille ; `keepView` garde le cadrage (sauf si la taille de la grille change). */
+  function refreshCanvas(keepView = true): void {
+    if (!entry) return;
+    const c = $("#bld-canvas");
+    c.innerHTML = svg();
+    const { w, h } = entry.footprint!;
+    pz.attach(c.querySelector("svg") as SVGSVGElement, (w + 2) * CELL, (h + 2) * CELL, keepView);
+    renderStatus();
+  }
+
+  function maxViewWidth(): number {
+    const { w, h } = entry?.footprint ?? { w: 2, h: 2 };
+    const grid = Math.max(w + 2, h + 2) * CELL;
+    const img = bg ? Math.max(bg.natW, bg.natH) * bg.scale + 2 * Math.max(Math.abs(bg.x), Math.abs(bg.y)) * CELL : 0;
+    return Math.max(grid, img) * 2;
+  }
+
+  function imageBox(b: Bg) {
+    return { x: b.x * CELL, y: b.y * CELL, w: b.natW * b.scale, h: b.natH * b.scale };
+  }
+
+  function toSvg(clientX: number, clientY: number): [number, number] | null {
+    const el = root.querySelector<SVGSVGElement>("#bld-svg");
+    const ctm = el?.getScreenCTM();
+    if (!el || !ctm) return null;
+    const pt = el.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const p = pt.matrixTransform(ctm.inverse());
+    return [p.x, p.y];
+  }
+
+  /** Déplacement fluide de la capture : seule la transformation de l'image change. */
+  function moveBg(): void {
+    const g = root.querySelector("#bld-bgimg");
+    if (g && bg) g.setAttribute("transform", bgTransform(bg));
+  }
+
+  function clearBg(): void {
+    if (bg) URL.revokeObjectURL(bg.url);
+    bg = null;
+    if (mode !== "ports") mode = "ports";
+  }
+
+  // ---------------------------------------------------------------- panneaux
+  function powerHint(id: string): string {
+    const recs = [...data.recipes.values()].filter((r) => r.machine === id && r.energyMFps !== null);
+    if (!recs.length) return "";
+    const max = Math.max(...recs.map((r) => r.energyMFps!));
+    return max === 0 ? "D'après le wiki, ce bâtiment ne consomme pas d'énergie." : `D'après le wiki, il consomme jusqu'à ${fmtMF(max)} : il a une prise électrique.`;
+  }
+
+  function renderEditor(keepView = true): void {
+    $("#bld-intro").hidden = !!entry;
+    $("#bld-editor").hidden = !entry;
+    if (!entry || !selectedId) return;
+    const m = data.machines.get(selectedId)!;
+    const where = local[selectedId] ? "relevé local, à envoyer" : repo.machines[selectedId] ? "relevé intégré aux données" : "pas encore relevé";
+    $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3><span class="hint">Taille wiki : ${m.size ? `${m.size.w}×${m.size.l}` : "—"} · ${where}</span>`;
+    const hint = powerHint(selectedId);
+    $("#bld-dims").innerHTML = `
+      <label>Largeur (cases) <input type="number" min="1" max="200" id="bld-w" value="${entry.footprint!.w}"></label>
+      <label>Hauteur (cases) <input type="number" min="1" max="200" id="bld-h" value="${entry.footprint!.h}"></label>
+      <button type="button" id="bld-swap" title="Échanger largeur et hauteur">⇄</button>
+      <label class="bld-check"><input type="checkbox" id="bld-nopower"${entry.noPower ? " checked" : ""}> Sans prise électrique</label>
+      ${hint ? `<span class="hint bld-powerhint">${esc(hint)}</span>` : ""}`;
+    renderTools();
+    refreshCanvas(keepView);
+    renderPortForm();
+    renderBgPanel();
+    ($("#bld-notes") as HTMLTextAreaElement).value = entry.notes ?? "";
+    renderActions();
+    renderMode();
+  }
+
+  function renderTools(): void {
+    const dir = tool === "gomme" ? null : dirByTool[tool];
+    $("#bld-tools").innerHTML = `
+      ${(["objet", "fluide", "énergie", "logique", "gomme"] as Tool[]).map((t) => `<button type="button" data-tool="${t}" aria-pressed="${t === tool}">${TOOL_LABEL[t]}</button>`).join("")}
+      <span class="bld-sep"></span><span class="bld-dirlabel">Sens</span>
+      ${(["entrée", "sortie", "les deux"] as const).map((d) => `<button type="button" data-dir="${d}" aria-pressed="${d === dir}"${dir ? "" : " disabled"}>${d}</button>`).join("")}`;
+  }
+
+  function renderPortForm(): void {
+    const box = $("#bld-portform");
+    if (selectedPort === null || !entry!.ports[selectedPort]) {
+      box.innerHTML = `<p class="hint">Clique dans la marge pour poser une entrée ou une sortie, et sur le corps pour la prise électrique. Clique sur un port pour le modifier. « Les deux » sert aux poteaux et aux stockages.</p>`;
+      return;
+    }
     const p = entry!.ports[selectedPort]!;
     const where = p.side === "dessus" ? `dessus, case ${(p.cell as number[]).join(", ")}` : `${p.side}, case ${p.cell}`;
-    return `<div class="bld-portform">
+    box.innerHTML = `<div class="bld-portform">
       <b>${esc(p.type)} · ${esc(where)}</b>
-      ${p.type !== "énergie" ? `<label>Sens <select data-pf="direction"><option${p.direction === "entrée" ? " selected" : ""}>entrée</option><option${p.direction === "sortie" ? " selected" : ""}>sortie</option><option${p.direction === "les deux" ? " selected" : ""}>les deux</option></select></label>` : ""}
+      <label>Sens <select data-pf="direction">${(["entrée", "sortie", "les deux"] as const).map((d) => `<option${p.direction === d ? " selected" : ""}>${d}</option>`).join("")}</select></label>
       <label>Info-bulle du jeu <input data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="ex. Input for Coal or coke Fuel"></label>
       ${p.side !== "dessus" ? `<label>Plot (cases hors du bâtiment) <input data-pf="stub" type="number" min="0" max="4" step="1" value="${p.stub ?? 1}"></label>` : ""}
       <label>Ce que le jeu affiche <input data-pf="shown" value="${esc(p.shown ?? "")}" placeholder="ex. flèche violette vers le bas"></label>
@@ -134,46 +302,118 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     </div>`;
   }
 
-  function renderEditor(): void {
-    const main = $("#bld-main");
-    if (!entry || !selectedId) {
-      main.innerHTML = `<div class="panel"><h3>Éditeur de bâtiments</h3><p>Choisis un bâtiment dans la liste. Tu poses ses entrées, ses sorties et sa prise électrique sur une grille, en t'aidant d'une capture d'écran en vue de dessus. Les relevés sont gardés dans ce navigateur ; « Exporter mes relevés » produit un fichier à m'envoyer (ou à mettre dans <code>data/ports.json</code>).</p><p class="hint">1 case = 1 Short Pipe. Pose le bâtiment sans le faire pivoter.</p></div>`;
-      return;
-    }
-    const m = data.machines.get(selectedId)!;
-    const e = entry;
-    const problems = checkEntry(e);
-    main.innerHTML = `<div class="panel bld-editor">
-      <div class="bld-head"><h3>${esc(m.name)}</h3><span class="hint">Taille wiki : ${m.size ? `${m.size.w}×${m.size.l}` : "—"} · ${surveyed(selectedId) === "repo" && !local[selectedId] ? "relevé intégré aux données" : surveyed(selectedId) === "local" ? "relevé local, à envoyer" : "pas encore relevé"}</span></div>
+  function renderBgPanel(): void {
+    const details = $("#bld-bg") as HTMLDetailsElement;
+    if (bg) details.open = true;
+    $("#bld-bgbody").innerHTML = `
       <div class="bld-row">
-        <label>Largeur (cases) <input type="number" min="1" max="200" id="bld-w" value="${e.footprint!.w}"></label>
-        <label>Hauteur (cases) <input type="number" min="1" max="200" id="bld-h" value="${e.footprint!.h}"></label>
-        <button type="button" id="bld-swap" title="Échanger largeur et hauteur">⇄</button>
-        <label>Rotations <select id="bld-rot"><option value="">?</option>${[1, 2, 4].map((r) => `<option${e.rotations === r ? " selected" : ""}>${r}</option>`).join("")}</select></label>
-      </div>
-      <div class="bld-tools" role="toolbar" aria-label="Outils">
-        ${(["objet", "fluide", "énergie", "logique", "gomme"] as Tool[]).map((t) => `<button type="button" data-tool="${t}" aria-pressed="${t === tool}">${{ objet: "Port objet", fluide: "Port fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" }[t]}</button>`).join("")}
-        <span class="bld-sep"></span>
-        ${(["entrée", "sortie"] as const).map((d) => `<button type="button" data-dir="${d}" aria-pressed="${d === direction}">${d}</button>`).join("")}
-      </div>
-      <div class="bld-canvas">${svg()}</div>
-      ${portForm()}
-      <details class="bld-bg"${bg ? " open" : ""}><summary>Capture d'écran en fond (reste dans ton navigateur)</summary>
-        <div class="bld-row">
-          <label class="button">Choisir une capture…<input type="file" id="bld-bgfile" accept="image/*" hidden></label>
-          ${bg ? `<label>Échelle <input type="range" id="bld-bgs" min="0.02" max="4" step="0.005" value="${bg.scale}"></label>
-          <label>Position X <input type="range" id="bld-bgx" min="-30" max="${e.footprint!.w + 30}" step="0.05" value="${bg.x}"></label>
-          <label>Position Y <input type="range" id="bld-bgy" min="-30" max="${e.footprint!.h + 30}" step="0.05" value="${bg.y}"></label>
+        <label class="button">${bg ? "Changer de capture…" : "Choisir une capture…"}<input type="file" id="bld-bgfile" accept="image/*" hidden></label>
+        ${
+          bg
+            ? `<button type="button" id="bld-corners"${mode === "coins" ? ' aria-pressed="true"' : ""}>Caler sur 2 coins</button>
+          <button type="button" id="bld-bgr">Pivoter 90°</button>
           <label>Opacité <input type="range" id="bld-bgo" min="0.1" max="1" step="0.05" value="${bg.opacity}"></label>
-          <button type="button" id="bld-bgr">Pivoter 90°</button>` : ""}
-        </div>
-        <p class="hint">Astuce : règle l'échelle pour qu'un Short Pipe de la capture fasse exactement une case, puis cale le bâtiment sur le rectangle bleu.</p>
-      </details>
-      <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. la sortie déborde d'une case">${esc(e.notes ?? "")}</textarea></label>
-      ${problems.length ? `<ul class="bld-problems">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : `<p class="ok-text">Relevé complet.</p>`}
-      <div class="actions"><button type="button" class="primary" id="bld-save">Enregistrer le relevé</button>${local[selectedId] ? `<button type="button" class="link" id="bld-forget">Oublier mon relevé local</button>` : ""}</div>
-    </div>`;
+          <button type="button" class="link" id="bld-bgdel">Retirer la capture</button>`
+            : ""
+        }
+      </div>
+      <ol class="hint bld-steps">
+        <li>Choisis ta capture vue de dessus : elle s'affiche derrière la grille.</li>
+        <li><b>Caler sur 2 coins</b> : clique le coin haut-gauche du bâtiment sur la capture, puis son coin bas-droit. La capture se met à l'échelle toute seule (zoome avant de cliquer pour être précis).</li>
+        <li>Pour ajuster : mode <b>✥ Capture</b> (en bas à gauche de la grille), glisse pour la déplacer, molette pour l'agrandir (Maj + molette : plus fin), flèches du clavier pour un réglage fin.</li>
+      </ol>`;
   }
+
+  function renderStatus(): void {
+    if (!entry) return;
+    const list = checkEntry(entry);
+    $("#bld-status").innerHTML = list.length ? `<ul class="bld-problems">${list.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : `<p class="ok-text">Relevé complet.</p>`;
+  }
+
+  function renderActions(): void {
+    $("#bld-actions").innerHTML = `<button type="button" class="primary" id="bld-save">Enregistrer le relevé</button>${
+      selectedId && local[selectedId] ? `<button type="button" class="link" id="bld-forget">Oublier mon relevé local</button>` : ""
+    }`;
+  }
+
+  function renderMode(): void {
+    if (!bg && mode !== "ports") mode = "ports";
+    pz.paused = mode === "capture";
+    frame.classList.toggle("mode-capture", mode === "capture");
+    frame.classList.toggle("mode-coins", mode === "coins");
+    const seg = $("#bld-mode");
+    seg.hidden = !bg;
+    for (const b of seg.querySelectorAll<HTMLElement>("[data-mode]")) b.setAttribute("aria-checked", String(b.dataset.mode === mode || (mode === "coins" && b.dataset.mode === "ports")));
+    $("#bld-help").textContent =
+      mode === "coins" ? (corners.length ? "Clique maintenant le coin bas-droit du bâtiment · Échap pour annuler" : "Clique le coin haut-gauche du bâtiment sur ta capture (zoome si besoin) · Échap pour annuler") : HELP[mode];
+    $("#bld-msg").textContent = message;
+    const cb = root.querySelector("#bld-corners");
+    if (cb) cb.setAttribute("aria-pressed", String(mode === "coins"));
+  }
+
+  function setMode(m: Mode): void {
+    mode = m;
+    corners = [];
+    refreshCanvas(true);
+    renderMode();
+  }
+
+  // ---------------------------------------------------------------- capture : glisser, molette, clavier
+  let bgDrag: { id: number; x: number; y: number; start: BgPlacement } | null = null;
+  frame.addEventListener("pointerdown", (e) => {
+    if (mode !== "capture" || !bg || e.button !== 0 || (e.target as Element).closest("button")) return;
+    bgDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, start: { x: bg.x, y: bg.y, scale: bg.scale } };
+    frame.setPointerCapture(e.pointerId);
+    frame.classList.add("dragging");
+    frame.focus({ preventScroll: true });
+  });
+  frame.addEventListener("pointermove", (e) => {
+    if (!bgDrag || !bg || e.pointerId !== bgDrag.id) return;
+    const u = pz.unitsPerPixel() / CELL;
+    bg.x = bgDrag.start.x + (e.clientX - bgDrag.x) * u;
+    bg.y = bgDrag.start.y + (e.clientY - bgDrag.y) * u;
+    moveBg();
+  });
+  const endDrag = (e: PointerEvent) => {
+    if (!bgDrag || e.pointerId !== bgDrag.id) return;
+    bgDrag = null;
+    frame.classList.remove("dragging");
+  };
+  frame.addEventListener("pointerup", endDrag);
+  frame.addEventListener("pointercancel", endDrag);
+  frame.addEventListener(
+    "wheel",
+    (e) => {
+      if (mode !== "capture" || !bg) return;
+      e.preventDefault();
+      // Maj + molette : certains navigateurs envoient alors un défilement horizontal.
+      const delta = (e.deltaY || e.deltaX) * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+      const p = toSvg(e.clientX, e.clientY);
+      if (!p) return;
+      Object.assign(bg, scaleAround(bg, Math.exp(-delta * (e.shiftKey ? 0.0001 : 0.0005)), p[0], p[1]));
+      moveBg();
+    },
+    { passive: false },
+  );
+  frame.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && mode !== "ports") {
+      message = mode === "coins" ? "Calage annulé." : "";
+      setMode("ports");
+      return e.preventDefault();
+    }
+    if (mode !== "capture" || !bg || e.target !== frame) return;
+    const step = e.shiftKey ? 1 : 0.1; // en cases
+    const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const { w, h } = entry!.footprint!;
+    if (moves[e.key]) {
+      bg.x += moves[e.key]![0];
+      bg.y += moves[e.key]![1];
+    } else if (e.key === "+" || e.key === "=" || e.key === "-") {
+      Object.assign(bg, scaleAround(bg, e.key === "-" ? 1 / 1.01 : 1.01, (w / 2 + 1) * CELL, (h / 2 + 1) * CELL));
+    } else return;
+    moveBg();
+    e.preventDefault();
+  });
 
   // ---------------------------------------------------------------- événements
   root.addEventListener("input", (ev) => {
@@ -189,13 +429,9 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       entry.footprint = { w: t.id === "bld-w" ? v : entry.footprint!.w, h: t.id === "bld-h" ? v : entry.footprint!.h };
       refreshCanvas();
     } else if (t.id === "bld-notes") entry.notes = t.value || undefined;
-    else if (bg && ["bld-bgs", "bld-bgx", "bld-bgy", "bld-bgo"].includes(t.id)) {
-      const v = Number(t.value);
-      if (t.id === "bld-bgs") bg.scale = v;
-      if (t.id === "bld-bgx") bg.x = v;
-      if (t.id === "bld-bgy") bg.y = v;
-      if (t.id === "bld-bgo") bg.opacity = v;
-      refreshCanvas();
+    else if (t.id === "bld-bgo" && bg) {
+      bg.opacity = Number(t.value);
+      root.querySelector("#bld-bgimg")?.setAttribute("opacity", String(bg.opacity));
     } else if (t.dataset.pf && selectedPort !== null) {
       const p = entry.ports[selectedPort]!;
       if (t.dataset.pf === "tip") p.tip = t.value || undefined;
@@ -204,22 +440,50 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       refreshCanvas();
     }
   });
+
   root.addEventListener("change", async (ev) => {
     const t = ev.target as HTMLInputElement & HTMLSelectElement;
     if (!entry && t.id !== "bld-import") return;
-    if (t.id === "bld-rot") entry!.rotations = t.value ? Number(t.value) : null;
-    else if (t.dataset.pf === "direction" && selectedPort !== null) {
+    if (t.id === "bld-nopower") {
+      if (t.checked) entry!.noPower = true;
+      else delete entry!.noPower;
+      renderStatus();
+    } else if (t.dataset.pf === "direction" && selectedPort !== null) {
       entry!.ports[selectedPort]!.direction = t.value as Port["direction"];
       refreshCanvas();
     } else if (t.id === "bld-bgfile" && t.files?.[0]) {
       const url = URL.createObjectURL(t.files[0]);
       const img = new Image();
       img.src = url;
-      await img.decode();
+      try {
+        await img.decode();
+      } catch {
+        URL.revokeObjectURL(url);
+        message = "Image illisible : choisis une capture PNG ou JPEG.";
+        return renderMode();
+      }
       if (bg) URL.revokeObjectURL(bg.url);
-      const W = (entry!.footprint!.w + 2) * CELL;
-      bg = { url, natW: img.naturalWidth, natH: img.naturalHeight, scale: W / img.naturalWidth, x: 0, y: 0, rot: 0, opacity: 0.6 };
-      renderEditor();
+      // Départ : capture 3 fois plus large que la grille, centrée ; le calage sur 2 coins fait le reste.
+      const { w, h } = entry!.footprint!;
+      const scale = (3 * (w + 2) * CELL) / img.naturalWidth;
+      bg = {
+        url,
+        natW: img.naturalWidth,
+        natH: img.naturalHeight,
+        scale,
+        x: ((w + 2) / 2) - (img.naturalWidth * scale) / 2 / CELL,
+        y: ((h + 2) / 2) - (img.naturalHeight * scale) / 2 / CELL,
+        rot: 0,
+        opacity: 0.85,
+      };
+      message = "";
+      mode = "coins";
+      corners = [];
+      renderBgPanel();
+      refreshCanvas(true);
+      pz.fitBox(imageBox(bg));
+      renderMode();
+      frame.focus({ preventScroll: true });
     } else if (t.id === "bld-import" && t.files?.[0]) {
       try {
         const parsed = parseSurveys(JSON.parse(await t.files[0].text()));
@@ -235,33 +499,58 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       t.value = "";
     }
   });
+
   root.addEventListener("click", (ev) => {
     const target = ev.target as Element;
     const item = target.closest<HTMLElement>("[data-bld]");
     if (item) return select(item.dataset.bld!);
+    if (target.closest("#bld-export")) return exportFile();
+    if (!entry || !selectedId) return;
     const toolBtn = target.closest<HTMLElement>("[data-tool]");
     if (toolBtn) {
       tool = toolBtn.dataset.tool as Tool;
-      return renderEditor();
-    }
-    const dirBtn = target.closest<HTMLElement>("[data-dir]");
-    if (dirBtn) {
-      direction = dirBtn.dataset.dir as Port["direction"];
-      return renderEditor();
-    }
-    if (!entry || !selectedId) {
-      if (target.closest("#bld-export")) exportFile();
+      renderTools();
+      if (mode === "capture") setMode("ports"); // choisir un outil, c'est vouloir poser un port
       return;
     }
-    if (target.closest("#bld-export")) return exportFile();
+    const dirBtn = target.closest<HTMLElement>("[data-dir]");
+    if (dirBtn && tool !== "gomme") {
+      dirByTool[tool] = dirBtn.dataset.dir as Port["direction"];
+      return renderTools();
+    }
+    const modeBtn = target.closest<HTMLElement>("[data-mode]");
+    if (modeBtn) {
+      message = "";
+      return setMode(modeBtn.dataset.mode as Mode);
+    }
+    const zoomBtn = target.closest<HTMLElement>("[data-bzoom]");
+    if (zoomBtn) {
+      const z = zoomBtn.dataset.bzoom;
+      if (z === "in") pz.zoom(1.25);
+      else if (z === "out") pz.zoom(1 / 1.25);
+      else pz.fit();
+      return;
+    }
     if (target.closest("#bld-swap")) {
       const f = entry.footprint!;
       entry.footprint = { w: f.h, h: f.w };
       return renderEditor();
     }
+    if (target.closest("#bld-corners") && bg) {
+      message = "";
+      setMode(mode === "coins" ? "ports" : "coins");
+      renderBgPanel();
+      return frame.focus({ preventScroll: true });
+    }
     if (target.closest("#bld-bgr") && bg) {
       bg.rot = (bg.rot + 90) % 360;
-      return refreshCanvas();
+      return moveBg();
+    }
+    if (target.closest("#bld-bgdel")) {
+      clearBg();
+      renderBgPanel();
+      refreshCanvas(true);
+      return renderMode();
     }
     if (target.closest("[data-pf-del]") && selectedPort !== null) {
       entry.ports.splice(selectedPort, 1);
@@ -272,6 +561,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       entry.source = surveySource();
       local[selectedId] = structuredClone(entry);
       save();
+      message = isComplete(entry) ? "Relevé enregistré dans ce navigateur. Pense à l'exporter." : "Relevé enregistré, mais encore incomplet (voir la liste ci-dessous).";
       renderList();
       return renderEditor();
     }
@@ -280,43 +570,65 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       save();
       return select(selectedId);
     }
-    const svgEl = target.closest("#bld-svg") as SVGSVGElement | null;
-    if (!svgEl) return;
-    const portEl = target.closest<SVGGElement>("[data-port]");
-    if (portEl && tool !== "gomme") {
-      selectedPort = Number(portEl.dataset.port);
-      return renderEditor();
-    }
-    const pt = svgEl.createSVGPoint();
-    pt.x = (ev as MouseEvent).clientX;
-    pt.y = (ev as MouseEvent).clientY;
-    const local2 = pt.matrixTransform(svgEl.getScreenCTM()!.inverse());
+
+    // Clic sur la grille.
+    if (!target.closest("#bld-svg") || pz.suppressClick || mode === "capture") return;
+    const pt = toSvg((ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
+    if (!pt) return;
     const { w, h } = entry.footprint!;
-    const gx = Math.floor(local2.x / CELL);
-    const gy = Math.floor(local2.y / CELL);
+    if (mode === "coins" && bg) {
+      corners.push(pt);
+      if (corners.length < 2) {
+        refreshCanvas(true);
+        return renderMode();
+      }
+      const fit = fitTwoCorners(bg, corners[0]!, corners[1]!, w, h);
+      corners = [];
+      if (!fit) {
+        message = "Les deux coins sont trop proches : recommence (coin haut-gauche, puis bas-droit).";
+        refreshCanvas(true);
+        return renderMode();
+      }
+      bg.x = fit.x;
+      bg.y = fit.y;
+      bg.scale = fit.scale;
+      const gap = Math.max(fit.ratio, 1 / fit.ratio) - 1;
+      message =
+        gap > 0.12
+          ? `Capture calée, mais ses proportions diffèrent de ${Math.round(gap * 100)} % de l'empreinte : vérifie la largeur et la hauteur (⇄ si elles sont inversées), puis recommence.`
+          : "Capture calée. Ajuste si besoin en mode ✥ Capture, puis pose les ports.";
+      mode = "ports";
+      refreshCanvas(true);
+      pz.fit();
+      renderBgPanel();
+      return renderMode();
+    }
+    const portEl = target.closest<SVGGElement>("[data-port]");
+    if (portEl) {
+      const i = Number(portEl.dataset.port);
+      if (tool === "gomme") {
+        entry.ports.splice(i, 1);
+        selectedPort = null;
+      } else selectedPort = i;
+      refreshCanvas(true);
+      return renderPortForm();
+    }
+    const gx = Math.floor(pt[0] / CELL);
+    const gy = Math.floor(pt[1] / CELL);
     const inBody = gx >= 1 && gx <= w && gy >= 1 && gy <= h;
     let place: Pick<Port, "side" | "cell"> | null = null;
     if (inBody && (tool === "énergie" || tool === "logique" || tool === "gomme")) {
-      const p = bodyPoint(w, h, local2.x, local2.y);
+      const p = bodyPoint(w, h, pt[0], pt[1]);
       if (p) place = { side: "dessus", cell: p };
     } else if (!inBody && tool !== "énergie") {
       place = marginToPort(w, h, gx, gy);
     }
     if (!place) return;
-    entry.ports = applyTool(entry.ports, tool, place, direction);
+    entry.ports = applyTool(entry.ports, tool, place, tool === "gomme" ? "entrée" : dirByTool[tool]);
     selectedPort = tool === "gomme" ? null : entry.ports.length - 1;
-    renderEditor();
+    refreshCanvas(true);
+    renderPortForm();
   });
-
-  function refreshCanvas(): void {
-    const c = root.querySelector(".bld-canvas");
-    if (c) c.innerHTML = svg();
-    const problems = root.querySelector(".bld-problems, .ok-text");
-    if (problems && entry) {
-      const list = checkEntry(entry);
-      problems.outerHTML = list.length ? `<ul class="bld-problems">${list.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : `<p class="ok-text">Relevé complet.</p>`;
-    }
-  }
 
   function exportFile(): void {
     const n = Object.keys(local).length;
@@ -335,4 +647,5 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
 
   renderList();
   renderEditor();
+  if (message) $("#bld-io").textContent = message;
 }

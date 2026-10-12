@@ -6,8 +6,9 @@ import powerJson from "../data/power.json";
 import stationsJson from "../data/research-stations.json";
 import worldJson from "../data/world.json";
 import machinesJson from "../data/machines.json";
+import recipesJson from "../data/recipes.json";
 import type { LogisticsFile, PortsFile, PowerFile, ResearchStationsFile, WorldFile } from "../src/engine/extension-types.ts";
-import type { MachinesFile } from "../src/engine/types.ts";
+import type { MachinesFile, RecipesFile } from "../src/engine/types.ts";
 
 const logistics = logisticsJson as unknown as LogisticsFile;
 const power = powerJson as unknown as PowerFile;
@@ -15,6 +16,7 @@ const stations = stationsJson as unknown as ResearchStationsFile;
 const world = worldJson as unknown as WorldFile;
 const ports = portsJson as unknown as PortsFile;
 const machineIds = new Set((machinesJson as unknown as MachinesFile).machines.map((m) => m.id));
+const recipes = (recipesJson as unknown as RecipesFile).recipes;
 
 describe("données de l'extension", () => {
   it("chaque entrée a une source du wiki", () => {
@@ -75,11 +77,14 @@ describe("données de l'extension", () => {
     expect(short.sizeStuds).toEqual({ w: world.grid.cellStuds, l: world.grid.cellStuds });
   });
 
-  it("relevés appliqués : portées, silos, dépôts", () => {
+  it("relevés appliqués : portées, silos, dépôts, rotations", () => {
     const by = new Map(power.entries.map((e) => [e.id, e]));
     expect(by.get("advanced-mv-pole")?.rangeTiles?.tiles).toBe(10.5); // le wiki disait 8
     expect(logistics.storage.find((s) => s.id === "medium-item-storage-silo")?.capacity).toBe(5000);
-    expect(logistics.depots.find((d) => d.id === "huge-truck-depot")?.itemsPerSec).toBeCloseTo(400 / 75);
+    expect(by.get("small-mv-pole")?.rangeTiles?.tiles).toBe(10.5); // comme les autres, seul le HMVT diffère
+    expect(logistics.depots.find((d) => d.id === "huge-truck-depot")?.itemsPerSec).toBeCloseTo(400 / 80);
+    expect(world.grid.rotations).toBe(4);
+    expect(world.grid.verify.some((f) => f.field === "rotations")).toBe(false);
     expect(by.get("large-turbine")?.tempCurve?.points.at(-1)).toEqual([400, 514862]);
   });
 
@@ -99,5 +104,26 @@ describe("données de l'extension", () => {
         }
       }
     }
+  });
+
+  it("ports cohérents avec le wiki : prise électrique, générateurs, plus de rotations par bâtiment", () => {
+    expect(Object.keys(ports.machines).length).toBeGreaterThanOrEqual(16);
+    // Toutes les machines de la ligne de référence (Vilebrequin) sont relevées, sauf la ferme d'arbres.
+    for (const id of ["craft-assembler", "roller", "press", "blast-furnace", "industrial-kiln", "grinder", "iron-drill", "coal-drill"]) expect(ports.machines[id], id).toBeTruthy();
+    const generators = new Set(power.entries.filter((e) => e.output !== null).map((e) => e.id));
+    for (const [id, e] of Object.entries(ports.machines)) {
+      expect("rotations" in e, id).toBe(false); // 4 pour tous : world.json
+      const energy = recipes.filter((r) => r.machine === id && r.energyMFps !== null).map((r) => r.energyMFps!);
+      const hasPlug = e.ports.some((p) => p.type === "énergie");
+      if (e.noPower) {
+        expect(hasPlug, id).toBe(false);
+        expect(energy.every((x) => x === 0), `${id} : sans prise mais consomme d'après le wiki`).toBe(true);
+      }
+      if (energy.some((x) => x > 0)) expect(hasPlug, `${id} consomme de l'énergie : prise attendue`).toBe(true);
+      // Un générateur fournit l'énergie : sa prise n'est pas une simple entrée.
+      if (generators.has(id)) for (const p of e.ports.filter((q) => q.type === "énergie")) expect(p.direction, id).not.toBe("entrée");
+    }
+    expect(ports.machines["boiler"]?.noPower).toBe(true);
+    expect(ports.machines["lv-pole"]?.ports.every((p) => p.direction === "les deux")).toBe(true);
   });
 });

@@ -77,7 +77,7 @@ export type ResearchStationsFile = {
 export type WorldFile = {
   meta: DataMeta;
   facts: Record<string, Fact<unknown>>;
-  /** Unité de la grille de construction : à relever en jeu (RELEVES.md § 0). */
+  /** Grille de construction relevée en jeu ; `rotations` vaut pour tous les bâtiments (quarts de tour). */
   grid: { cellStuds: number | null; snap: string | null; rotations: number | null; sources: Source[]; verify: VerifyFlag[] };
 };
 
@@ -95,5 +95,13 @@ export type Port = {
   /** Info-bulle du jeu pour ce port (ex. « Input for Coal or coke Fuel »). */
   tip?: string;
 };
-export type PortsEntry = { footprint: { w: number; h: number } | null; rotations: number | null; ports: Port[]; notes?: string; source: Source };
+/** Relevé d'un bâtiment. Les rotations ne sont pas par bâtiment : 4 quarts de tour pour tous (world.json). */
+export type PortsEntry = {
+  footprint: { w: number; h: number } | null;
+  ports: Port[];
+  /** Bâtiment sans prise électrique (ex. Boiler, Firebox) : le relevé est complet sans elle. */
+  noPower?: boolean;
+  notes?: string;
+  source: Source;
+};
 export type PortsFile = { _lisezMoi?: string; machines: Record<string, PortsEntry> };
