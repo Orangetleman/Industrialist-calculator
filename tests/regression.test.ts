@@ -111,8 +111,12 @@ describe("vraies données (Miraheze)", () => {
       "oak-log": 46,
     });
     expect(plan.totals.machines).toBe(120);
-    // Écarts connus avec Fandom : affichés, pas cachés.
-    expect(plan.verify.some((v) => v.id === "craft_assembler_05" && v.flag.reason === "contradiction")).toBe(true);
+    // L'écart avec Fandom sur le Crankshaft est tranché par un relevé en jeu (overrides.json) :
+    // la valeur Miraheze est confirmée, la contradiction n'est plus signalée.
+    expect(plan.verify.some((v) => v.id === "craft_assembler_05")).toBe(false);
+    expect(real.recipes.get("craft_assembler_05")?.corrections?.map((c) => c.source.wiki)).toEqual(["jeu", "jeu"]);
+    // Ce qui reste incertain est affiché, pas caché : le rendement des arbres (« au moins 2 »).
+    expect(plan.verify.map((v) => `${v.id} ${v.flag.field} ${v.flag.reason}`)).toEqual(["tree_01 outputs.oak-log approximatif"]);
   });
 
   it("Crankshaft, toute la recherche débloquée : chaîne complète avec chaque critère", () => {

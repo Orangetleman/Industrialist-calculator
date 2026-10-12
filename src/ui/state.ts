@@ -106,6 +106,27 @@ export function mergeCorrections(a: OverridesFile, b: OverridesFile): OverridesF
   return out;
 }
 
+/**
+ * Corrections locales déjà intégrées à data/overrides.json (même date de saisie) : la copie
+ * locale est retirée. Renvoie le nombre de corrections retirées.
+ */
+export function pruneIntegratedCorrections(local: OverridesFile, repo: OverridesFile): { kept: OverridesFile; dropped: number } {
+  const kept: OverridesFile = structuredClone(local);
+  let dropped = 0;
+  for (const scope of ["recipes", "machines", "items", "research"] as Scope[]) {
+    for (const [id, fields] of Object.entries(kept[scope] ?? {})) {
+      for (const [field, entry] of Object.entries(fields)) {
+        if (repo[scope]?.[id]?.[field]?.source.fetchedAt === entry.source?.fetchedAt) {
+          delete fields[field];
+          dropped++;
+        }
+      }
+      if (!Object.keys(fields).length) delete kept[scope]![id];
+    }
+  }
+  return { kept, dropped };
+}
+
 /** Valide grossièrement un fichier importé. */
 export function isOverridesFile(x: unknown): x is OverridesFile {
   if (!x || typeof x !== "object" || Array.isArray(x)) return false;

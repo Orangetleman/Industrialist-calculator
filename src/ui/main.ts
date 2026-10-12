@@ -42,6 +42,7 @@ import {
   loadCorrections,
   loadSettings,
   mergeCorrections,
+  pruneIntegratedCorrections,
   removeCorrection,
   saveCorrections,
   saveSettings,
@@ -56,7 +57,10 @@ const repoOverrides = overridesJson as unknown as OverridesFile;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 let settings: Settings = loadSettings();
-let corrections: OverridesFile = loadCorrections();
+// Corrections locales déjà intégrées aux données (même date) : la copie locale est retirée.
+const prunedCorrections = pruneIntegratedCorrections(loadCorrections(), repoOverrides);
+let corrections: OverridesFile = prunedCorrections.kept;
+if (prunedCorrections.dropped) saveCorrections(corrections);
 let data: GameData = buildGameData(files, []).data;
 let dataErrors: string[] = [];
 let plan: Plan | undefined;

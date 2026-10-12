@@ -1,6 +1,79 @@
 {
  "_lisezMoi": "Corrections prioritaires sur les données du wiki. Format : { recipes|machines|items|research : { <id> : { <champ> : { value, source: { wiki: 'jeu'|'saisie', fetchedAt, note } } } } }. Ex. champ « durationS » ou « inputs.steel-ingot ». Le plus simple : corriger dans l'appli puis « Exporter mes corrections ».",
- "recipes": {},
+ "recipes": {
+  "craft_assembler_05": {
+   "durationS": {
+    "value": 15,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:40:17.212Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   },
+   "energyMFps": {
+    "value": 4000,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:40:24.037Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   }
+  },
+  "press_03": {
+   "durationS": {
+    "value": 4,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:40:57.715Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   },
+   "energyMFps": {
+    "value": 12500,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:41:06.839Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   }
+  },
+  "ingot_molder_03": {
+   "durationS": {
+    "value": 4,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:44:10.561Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   },
+   "inputs.liquid-iron": {
+    "value": 4,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:44:24.969Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   },
+   "outputs.iron-ingot": {
+    "value": 2,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:44:30.796Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   }
+  },
+  "tree_01": {
+   "durationS": {
+    "value": 363,
+    "source": {
+     "wiki": "jeu",
+     "fetchedAt": "2026-10-12T11:45:08.504Z",
+     "note": "relevé en jeu par l’utilisateur (corrections du calculateur)"
+    }
+   }
+  }
+ },
  "machines": {},
  "items": {},
  "research": {}

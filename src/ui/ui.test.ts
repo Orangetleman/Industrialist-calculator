@@ -13,7 +13,7 @@ import { renderGraph, renderPlan, renderSummary, renderVerify } from "./render.t
 import { exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, toEngineProgress } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, removeCorrection, setCorrection } from "./state.ts";
+import { DEFAULT_SETTINGS, isOverridesFile, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setCorrection } from "./state.ts";
 
 describe("mise en forme", () => {
   it("nombres et puissances au format français", () => {
@@ -56,6 +56,15 @@ describe("corrections locales", () => {
     expect(Object.keys(c.recipes!.r1!)).toEqual(["durationS", "energyMFps"]);
     c = removeCorrection(removeCorrection(c, "recipes", "r1", "durationS"), "recipes", "r1", "energyMFps");
     expect(c.recipes).toEqual({});
+  });
+
+  it("une correction locale déjà intégrée aux données (même date) est retirée", () => {
+    const e = (v: number, at: string) => ({ value: v, source: { wiki: "saisie" as const, fetchedAt: at } });
+    const local = { recipes: { r1: { durationS: e(15, "a"), energyMFps: e(9, "b") }, r2: { durationS: e(4, "c") } } };
+    const repo = { recipes: { r1: { durationS: { ...e(15, "a"), source: { wiki: "jeu" as const, fetchedAt: "a" } } }, r2: { durationS: e(4, "c") } } };
+    const r = pruneIntegratedCorrections(local, repo);
+    expect(r.dropped).toBe(2);
+    expect(r.kept.recipes).toEqual({ r1: { energyMFps: e(9, "b") } });
   });
 
   it("refuse un fichier importé mal formé", () => {
