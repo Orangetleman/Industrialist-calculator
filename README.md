@@ -22,7 +22,7 @@ Puis ouvre http://localhost:5173. Tout tourne dans le navigateur, sans serveur :
 
 Les onglets :
 
-- **Production** : objectif (un item à X/min ou N machines finales, ou X $/min de ventes), critère (machines, énergie, matières premières, étapes, pollution, prix), limites facultatives (pollution maximale, budget), option « produire ma propre énergie » ; résumé, paliers ronds, graphe des flux, plan d'action, recettes et sources, avertissements.
+- **Production** : objectif (un item à X/min ou N machines finales, X $/min de ventes, X MF/s d'énergie, ou une installation de recherche : X RP/s, une recherche dans un délai, ce qui manque au plan), critère (machines, énergie, matières premières, étapes, pollution, prix), limites facultatives (pollution maximale, budget), option « produire ma propre énergie » ; résumé, paliers ronds, graphe des flux, plan d'action, recettes et sources, avertissements.
 - **Bâtiments** : éditeur des entrées, sorties et prises électriques des bâtiments, sur une grille, avec une capture d'écran en fond.
 - **Recherche** : l'arbre comme en jeu (glisser, molette, clic sur une recherche pour voir ce qu'elle débloque) ou en liste ; « tout débloquer jusqu'à… » ; machines spéciales possédées.
 - **À vérifier** : les valeurs douteuses de la chaîne affichée ; tu peux saisir la valeur relevée en jeu, puis exporter tes corrections.

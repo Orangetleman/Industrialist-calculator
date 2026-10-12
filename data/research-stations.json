@@ -316,6 +316,85 @@
   },
   "quote": "{{RP|50}} for worlds on {{Difficulties|Normal}} or with {{Difficulties|Sandbox}} enabled, and {{RP|300}} for the other"
  },
+ "power": {
+  "research-station1": {
+   "value": 2100,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station1",
+    "page": "Research Station1",
+    "revisionId": 40723,
+    "fetchedAt": "2026-10-11T02:15:53.709Z"
+   },
+   "quote": "PowerInput=2.1kMF/s"
+  },
+  "research-station2": {
+   "value": 17000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station2",
+    "page": "Research Station2",
+    "revisionId": 43078,
+    "fetchedAt": "2026-10-11T02:15:53.710Z"
+   },
+   "quote": "PowerInput=17kMF/s"
+  },
+  "research-station3": {
+   "value": 600000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station3",
+    "page": "Research Station3",
+    "revisionId": 43244,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "PowerInput=600kMF/s"
+  },
+  "research-station4": {
+   "value": 5000000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+    "page": "Research Station4",
+    "revisionId": 43251,
+    "fetchedAt": "2026-10-11T02:15:53.711Z"
+   },
+   "quote": "PowerInput=5MMF/s"
+  },
+  "satellite-dish-controller": {
+   "value": 75000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish_Controller",
+    "page": "Satellite Dish Controller",
+    "revisionId": 43418,
+    "fetchedAt": "2026-10-11T02:15:53.715Z"
+   },
+   "quote": "PowerInput=75kMF/s"
+  },
+  "satellite-dish": {
+   "value": 75000,
+   "source": {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Satellite_Dish",
+    "page": "Satellite Dish",
+    "revisionId": 38504,
+    "fetchedAt": "2026-10-11T02:15:53.714Z"
+   },
+   "quote": "PowerInput=75kMF/s"
+  }
+ },
+ "logicTicks": {
+  "value": 5,
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Research_Station4",
+   "page": "Research Station4",
+   "revisionId": 43251,
+   "fetchedAt": "2026-10-11T02:15:53.711Z"
+  },
+  "quote": "fastest stable time with circuits provided below is 5 ticks per cycle"
+ },
  "buildings": [
   "research-station1",
   "research-station2",

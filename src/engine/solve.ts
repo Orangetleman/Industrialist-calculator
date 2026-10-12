@@ -30,6 +30,10 @@ export type SolveRequest = {
   finalMachines?: number;
   /** Objectif argent : $ par minute (l'item est alors ignoré). */
   moneyPerMin?: number;
+  /** Plusieurs cibles à la fois (item → /min), ex. les items des stations de recherche. */
+  demands?: Record<string, number>;
+  /** Charge électrique fixe en plus de la chaîne (stations de recherche…), en MF/s. */
+  extraLoadMFps?: number;
   /** Objectif énergie : MF/s à fournir (l'item est alors ignoré). */
   energyMFps?: number;
   /** Énergie : seulement des sources à production constante (nuit et vent faible compris). */
@@ -213,7 +217,10 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const criterion = req.criterion ?? "machines";
   const moneyMode = req.moneyPerMin !== undefined;
   const energyMode = !moneyMode && req.energyMFps !== undefined;
-  const noItem = moneyMode || energyMode;
+  const multi = !moneyMode && !energyMode && req.demands !== undefined;
+  const demands = new Map(Object.entries(req.demands ?? {}).filter(([, v]) => v > 0));
+  const noItem = moneyMode || energyMode || multi;
+  const extraLoad = Math.max(0, req.extraLoadMFps ?? 0);
   const chooser = new Chooser(data, player, {
     criterion,
     forced: req.forced ?? {},
@@ -234,7 +241,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
         }
       : undefined;
   const model = buildFlowModel(data, player, chooser, {
-    targets: noItem ? [] : [req.item],
+    targets: multi ? [...demands.keys()] : noItem ? [] : [req.item],
     money: moneyMode,
     selfPowered: energyMode || !!req.selfPowered,
     guaranteedOnly: energyMode && !!req.guaranteedEnergy,
@@ -255,10 +262,10 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const run = (rate: number) =>
     optimize(model, {
       criterion,
-      demand: noItem ? new Map() : new Map([[req.item, rate]]),
+      demand: multi ? demands : noItem ? new Map() : new Map([[req.item, rate]]),
       moneyPerMin: moneyMode ? rate : null,
       selfPowered: energyMode || !!req.selfPowered,
-      ...(energyMode ? { energyTarget: rate } : {}),
+      ...(energyMode ? { energyTarget: rate + extraLoad } : req.selfPowered && extraLoad ? { energyTarget: extraLoad } : {}),
       maxPollution: req.maxPollution ?? null,
       budget: req.budget ?? null,
       preferred,
@@ -284,6 +291,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const res = run(ratePerMin);
   if (res.status !== "ok") {
     if (energyMode) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti : aucune source d'énergie utilisable avec ta progression et ces options." }], player, data);
+    if (multi) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: "Le calcul de la chaîne n'a pas abouti." }], player, data);
     if (!moneyMode) return fromV1(solveV1(data, player, { ...req, criterion: criterion === "pollution" || criterion === "cost" || criterion === "area" ? "machines" : criterion }), req);
     return emptyPlan(req, criterion, ratePerMin, model.depots.length ? [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti (aucune vente possible avec ta progression)." }] : warnings, player, data, depotUnlock?.missingNodes ?? []);
   }
@@ -300,7 +308,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       map.get(k)!.push({ id: p.id, amount: Math.abs(v) * x });
     }
   }
-  const external = (item: string) => (moneyMode ? (res.sells.get(item) ?? 0) : energyMode ? 0 : item === req.item ? ratePerMin : 0);
+  const external = (item: string) => (moneyMode ? (res.sells.get(item) ?? 0) : energyMode ? 0 : multi ? (demands.get(item) ?? 0) : item === req.item ? ratePerMin : 0);
   const totalProd = (k: string) => (prodOf.get(k) ?? []).reduce((s, e) => s + e.amount, 0);
   const totalCons = (k: string) => (consOf.get(k) ?? []).reduce((s, e) => s + e.amount, 0) + external(k);
 
@@ -310,6 +318,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     const outs = Object.entries(p.perMin).filter(([, v]) => v > 0);
     let main: string | null = null;
     if (!noItem && p.perMin[req.item]! > 0) main = req.item;
+    else if (multi && outs.some(([k]) => demands.has(k))) main = outs.filter(([k]) => demands.has(k)).sort(([, a], [, b]) => b - a)[0]![0];
     else if (p.eff.recipe.pollutionPerHour !== undefined && p.eff.recipe.pollutionPerHour < 0 && !outs.some(([k]) => totalCons(k) > 1e-9)) main = POLLUTION;
     else if (outs.length) {
       let best = -1;
@@ -351,9 +360,11 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   }
 
   const finals = [
-    ...used.filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : energyMode ? mainOf.get(p.id) === ENERGY : mainOf.get(p.id) === req.item)).map(({ p }) => keyOf(p.id)),
+    ...used
+      .filter(({ p }) => (moneyMode ? res.sells.has(mainOf.get(p.id)!) : energyMode ? mainOf.get(p.id) === ENERGY : multi ? demands.has(mainOf.get(p.id)!) : mainOf.get(p.id) === req.item))
+      .map(({ p }) => keyOf(p.id)),
     // Une production existante peut fournir directement l'objectif.
-    ...[...res.supplies.keys()].filter((k) => (moneyMode ? res.sells.has(k) : k === req.item)).map((k) => `existant:${k}`),
+    ...[...res.supplies.keys()].filter((k) => (moneyMode ? res.sells.has(k) : multi ? demands.has(k) : k === req.item)).map((k) => `existant:${k}`),
   ];
   // Profondeur : plus long chemin depuis l'objectif. Les boucles rentables (un sous-produit qui
   // revient plus haut dans la chaîne) existent désormais : leurs arcs de retour sont marqués
@@ -589,6 +600,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     if (d.unitCost === null) totals.buildCostUnknownSteps++;
     else totals.buildCost += d.machines * d.unitCost;
   }
+  totals.energyAvg += extraLoad;
+  totals.energyPeak += extraLoad;
   if (totals.energyUnknownSteps) {
     warnings.push({ code: "énergie-inconnue", message: `Énergie inconnue pour ${totals.energyUnknownSteps} étape(s) : le total affiché est un minimum.` });
   }

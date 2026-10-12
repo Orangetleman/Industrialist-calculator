@@ -5,7 +5,7 @@ import type { OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Settings = {
   /** Objectif : produire un objet, ou gagner de l'argent ($/min). */
-  goal: "objet" | "argent" | "énergie";
+  goal: "objet" | "argent" | "énergie" | "recherche";
   item: string;
   mode: "rate" | "machines";
   rate: number;
@@ -28,6 +28,15 @@ export type Settings = {
   energyGuaranteed: boolean;
   energyNoFuel: boolean;
   distanceTiles: number | null;
+  /** Objectif recherche : but, vitesse, recherche visée, délai, plafond (null = automatique), options. */
+  rpMode: "rate" | "node" | "plan";
+  rpRate: number;
+  rpNode: string | null;
+  rpMinutes: number;
+  rpCap: number | null;
+  rpSatellites: boolean;
+  rpLogic: boolean;
+  rpCurrent: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -48,6 +57,14 @@ export const DEFAULT_SETTINGS: Settings = {
   energyGuaranteed: false,
   energyNoFuel: false,
   distanceTiles: null,
+  rpMode: "rate",
+  rpRate: 50,
+  rpNode: null,
+  rpMinutes: 60,
+  rpCap: null,
+  rpSatellites: true,
+  rpLogic: false,
+  rpCurrent: true,
 };
 
 const KEY_SETTINGS = "ind-calc:v1:settings";
@@ -75,7 +92,13 @@ export function loadSettings(): Settings {
   const { allUnlocked: _ancien, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown };
   const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
   if (!["machines", "energy", "raw", "steps", "pollution", "cost", "area"].includes(out.criterion)) out.criterion = DEFAULT_SETTINGS.criterion;
-  if (out.goal !== "objet" && out.goal !== "argent" && out.goal !== "énergie") out.goal = "objet";
+  if (out.goal !== "objet" && out.goal !== "argent" && out.goal !== "énergie" && out.goal !== "recherche") out.goal = "objet";
+  if (out.rpMode !== "rate" && out.rpMode !== "node" && out.rpMode !== "plan") out.rpMode = "rate";
+  if (!(out.rpRate > 0)) out.rpRate = DEFAULT_SETTINGS.rpRate;
+  if (!(out.rpMinutes > 0)) out.rpMinutes = DEFAULT_SETTINGS.rpMinutes;
+  if (out.rpCap !== null && !(out.rpCap >= 0)) out.rpCap = null;
+  if (typeof out.rpNode !== "string") out.rpNode = null;
+  for (const k of ["rpSatellites", "rpLogic", "rpCurrent"] as const) out[k] = out[k] === true;
   if (!(out.energyMFps > 0)) out.energyMFps = DEFAULT_SETTINGS.energyMFps;
   out.energyGuaranteed = out.energyGuaranteed === true;
   out.energyNoFuel = out.energyNoFuel === true;

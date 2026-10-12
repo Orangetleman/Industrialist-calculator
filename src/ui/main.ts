@@ -37,10 +37,13 @@ import { initBuildings } from "./buildings.ts";
 import portsJson from "../../data/ports.json";
 import logisticsJson from "../../data/logistics.json";
 import energyJson from "../../data/energy.json";
+import stationsJson from "../../data/research-stations.json";
+import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
 import powerJson from "../../data/power.json";
-import type { EnergyFile, LogisticsFile, PortsFile, PowerFile } from "../engine/extension-types.ts";
+import type { EnergyFile, LogisticsFile, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
+import { renderResearch, renderResearchStatus } from "./research-plan.ts";
 import { renderCorrections, renderGraph, renderPlan, renderRecipes, renderStatus, renderSummary, renderVerify, renderWarnings, type Ctx } from "./render.ts";
 import {
   countCorrections,
@@ -63,6 +66,9 @@ const POLES = (powerJson as unknown as PowerFile).entries
   .filter((e) => e.subcategory === "Transfer Poles" && e.transfer)
   .map((e) => ({ id: e.id, name: e.name, perNodeMFps: e.transfer!.perNode, nodes: e.transfer!.nodes, rangeTiles: e.rangeTiles?.tiles ?? null }));
 const ENERGY_FILE = energyJson as unknown as EnergyFile;
+const RP_PARAMS = rpParams(stationsJson as unknown as ResearchStationsFile);
+/** Dernier calcul de l'objectif recherche (installation, chronologie). */
+let rpView: (RpResult & { nodes: string[]; capNeeded: number; targetRate: number; timeline: ReturnType<typeof unlockTimeline>; timelineNow: ReturnType<typeof unlockTimeline>; currentRate: number | null }) | null = null;
 const repoOverrides = overridesJson as unknown as OverridesFile;
 /** Dépôts de vente (objectif argent) : débit de vente relevé ou lu sur le wiki. */
 const DEPOTS = (logisticsJson as unknown as LogisticsFile).depots.map((d) => ({ id: d.id, name: d.name, kind: d.kind, itemsPerSec: d.itemsPerSec }));
@@ -145,12 +151,63 @@ function syncForm(): void {
   ($("energy-mode") as HTMLSelectElement).value = settings.energyGuaranteed ? "garantie" : "moyenne";
   ($("no-fuel") as HTMLInputElement).checked = settings.energyNoFuel;
   ($("distance") as HTMLInputElement).value = settings.distanceTiles === null ? "" : String(settings.distanceTiles);
+  ($("rp-mode") as HTMLSelectElement).value = settings.rpMode;
+  ($("rp-rate") as HTMLInputElement).value = String(settings.rpRate);
+  ($("rp-node") as HTMLInputElement).value = settings.rpNode ? (data.nodes.get(settings.rpNode)?.name ?? "") : "";
+  ($("rp-minutes") as HTMLInputElement).value = String(settings.rpMinutes);
+  ($("rp-cap") as HTMLInputElement).value = settings.rpCap === null ? "" : String(settings.rpCap);
+  ($("rp-satellites") as HTMLInputElement).checked = settings.rpSatellites;
+  ($("rp-logic") as HTMLInputElement).checked = settings.rpLogic;
+  ($("rp-current") as HTMLInputElement).checked = settings.rpCurrent;
+}
+
+/** Objectif recherche : recherches visées, vitesse et plafond nécessaires, installation, chronologie. */
+function computeResearch() {
+  if (!RP_PARAMS) return null;
+  const ps = playerState();
+  const p = toEngineProgress(prog);
+  const rp0 = ps.rp ?? 0;
+  const current = settings.rpCurrent && player.rpPerSec ? player.rpPerSec : 0;
+  let nodes: string[] = [];
+  if (settings.rpMode === "node" && settings.rpNode) nodes = missingNodes(data, p, settings.rpNode);
+  if (settings.rpMode === "plan") {
+    const itemPlan = solve(data, ps, { item: settings.item, ...(settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }), criterion: settings.criterion, forced: settings.forced, useUnverified: settings.useUnverified, tiers: false });
+    nodes = itemPlan.economy.nodesToUnlock;
+  }
+  const costs = nodes.map((id) => ({ id, rp: data.nodes.get(id)?.rp ?? 0 }));
+  const remaining = [...data.nodes.values()].filter((n) => !n.isRoot && !n.startUnlocked && !p.unlocked.has(n.id));
+  const capNeeded = settings.rpCap ?? (settings.rpMode === "rate" ? Math.max(0, ...remaining.map((n) => n.rp)) : Math.max(0, ...costs.map((c) => c.rp)));
+  const total = costs.reduce((s, c) => s + c.rp, 0);
+  const wanted = settings.rpMode === "rate" ? settings.rpRate : Math.max(0, total - rp0) / (settings.rpMinutes * 60);
+  const targetRate = Math.max(0, wanted - current);
+  const result: RpResult =
+    targetRate > 0 || settings.rpMode === "rate"
+      ? designResearch(data, ps, RP_PARAMS, {
+          targetRate: Math.max(targetRate, 1e-6),
+          capNeeded,
+          satellites: settings.rpSatellites,
+          logic: settings.rpLogic,
+          criterion: settings.criterion === "steps" ? "machines" : settings.criterion,
+          useUnverified: settings.useUnverified,
+          selfPowered: settings.selfPowered,
+          existing: settings.existing,
+        })
+      : { best: null, others: [], warnings: [total <= rp0 ? "Tu as déjà assez de RP pour tout débloquer." : "Ta production actuelle suffit pour ce délai."] };
+  const d = result.best?.design;
+  const kind = d?.kind ?? "rs2";
+  const timeline = d ? unlockTimeline(costs, rp0, d.rate + current, d.cap, kind) : null;
+  const timelineNow = current > 0 ? unlockTimeline(costs, rp0, current, Infinity, kind) : null;
+  return { ...result, nodes, capNeeded, targetRate, timeline, timelineNow, currentRate: current || null };
 }
 
 function render(): void {
   const money = settings.goal === "argent";
   const energy = settings.goal === "énergie";
-  plan = solve(data, playerState(), {
+  const research = settings.goal === "recherche";
+  rpView = research ? computeResearch() : null;
+  plan = research
+    ? (rpView?.best?.plan ?? solve(data, playerState(), { item: "", demands: {}, tiers: false }))
+    : solve(data, playerState(), {
     item: settings.item,
     ...(money
       ? { moneyPerMin: settings.money }
@@ -176,18 +233,29 @@ function render(): void {
   const finals = plan.steps.filter((s) => plan!.finals.includes(s.key));
   if (settings.mode === "machines" && document.activeElement !== $("rate")) ($("rate") as HTMLInputElement).value = fmt(plan.target.ratePerMin, 2).replace(/\s/g, "").replace(",", ".");
   if (settings.mode === "rate" && finals.length && document.activeElement !== $("machines")) ($("machines") as HTMLInputElement).value = String(finals.reduce((n, s) => n + s.machines, 0));
-  $("item-fields").hidden = money || energy;
+  $("item-fields").hidden = money || energy || research;
   $("money-fields").hidden = !money;
   $("energy-fields").hidden = !energy;
+  $("rp-fields").hidden = !research;
+  $("rp-rate-label").hidden = settings.rpMode !== "rate";
+  $("rp-node-label").hidden = settings.rpMode !== "node";
+  $("rp-minutes-label").hidden = settings.rpMode === "rate";
+  $("rp-hint").textContent = research && rpView
+    ? settings.rpMode === "plan"
+      ? `Plan d'objet : ${data.items.get(settings.item)?.name ?? settings.item} (réglé dans « Produire un objet »). ${rpView.nodes.length} recherche(s) à débloquer.`
+      : settings.rpMode === "node"
+        ? `${rpView.nodes.length} recherche(s) à débloquer, prérequis compris.`
+        : `Plafond automatique : la recherche la plus chère qu'il te reste (${fmtRP(rpView.capNeeded)}).`
+    : "";
   $("energy-hint").textContent = `Comparées : centrales thermiques (Firebox, Gas Burner), générateurs à combustible, solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed.map((n) => data.machines.get(n.machine)?.name ?? n.machine).join(", ")}.`;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-goal]")) b.setAttribute("aria-checked", String(b.dataset.goal === settings.goal));
-  $("mode-hint").textContent = money || energy ? "" : settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
+  $("mode-hint").textContent = money || energy || research ? "" : settings.mode === "machines" ? "Calcul à partir du nombre de machines finales." : "Calcul à partir du débit voulu.";
   $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans « Ma partie »)" : `(${fmtMoney(player.money)})`;
   $("rate").closest("label")!.classList.toggle("active", settings.mode === "rate");
   $("machines").closest("label")!.classList.toggle("active", settings.mode === "machines");
 
-  $("status").innerHTML = renderStatus(ctx);
-  $("stats").innerHTML = renderSummary(ctx);
+  $("status").innerHTML = research ? renderResearchStatus(rpView) : renderStatus(ctx);
+  $("stats").innerHTML = research ? renderResearch(ctx, rpView, (id) => data.nodes.get(id)?.name ?? id) + renderSummary(ctx) : renderSummary(ctx);
   $("graph").innerHTML = renderGraph(ctx);
   $("plan").innerHTML = renderPlan(ctx);
   $("verify").innerHTML = renderVerify(ctx);
@@ -837,6 +905,34 @@ function bind(): void {
     else return;
     renderSoon();
   });
+  $("rp-mode").addEventListener("change", (e) => {
+    settings.rpMode = (e.target as HTMLSelectElement).value as Settings["rpMode"];
+    render();
+  });
+  const rpNumber = (id: string, set: (v: number | null) => void, allowEmpty = false) =>
+    $(id).addEventListener("input", (e) => {
+      const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
+      const v = parseFloat(raw);
+      if (allowEmpty && !raw) set(null);
+      else if (v > 0 || (allowEmpty && v >= 0)) set(v);
+      else return;
+      renderSoon();
+    });
+  rpNumber("rp-rate", (v) => (settings.rpRate = v ?? settings.rpRate));
+  rpNumber("rp-minutes", (v) => (settings.rpMinutes = v ?? settings.rpMinutes));
+  rpNumber("rp-cap", (v) => (settings.rpCap = v), true);
+  $("rp-node").addEventListener("change", (e) => {
+    const text = (e.target as HTMLInputElement).value.trim().toLowerCase();
+    const node = [...data.nodes.values()].find((n) => !n.isRoot && n.name.toLowerCase() === text);
+    settings.rpNode = node?.id ?? null;
+    render();
+  });
+  for (const [id, key] of [["rp-satellites", "rpSatellites"], ["rp-logic", "rpLogic"], ["rp-current", "rpCurrent"]] as const) {
+    $(id).addEventListener("change", (e) => {
+      settings[key] = (e.target as HTMLInputElement).checked;
+      render();
+    });
+  }
   $("energy").addEventListener("input", (e) => {
     const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
     if (v > 0) {

@@ -55,6 +55,7 @@
           <button type="button" role="radio" data-goal="objet" aria-checked="true">Produire un objet</button>
           <button type="button" role="radio" data-goal="argent" aria-checked="false">Gagner de l'argent</button>
           <button type="button" role="radio" data-goal="énergie" aria-checked="false">Produire de l'énergie</button>
+          <button type="button" role="radio" data-goal="recherche" aria-checked="false">Recherche (RP)</button>
         </div>
       </div>
       <div class="fields" id="money-fields" hidden>
@@ -78,6 +79,31 @@
         </label>
         <label class="check-inline"><input type="checkbox" id="no-fuel"> Sans combustible (solaire, éolien…)</label>
         <p class="hint wide" id="energy-hint"></p>
+      </div>
+      <div class="fields" id="rp-fields" hidden>
+        <label for="rp-mode">But
+          <select id="rp-mode">
+            <option value="rate">Atteindre une vitesse (RP/s)</option>
+            <option value="node">Débloquer une recherche dans un délai</option>
+            <option value="plan">Débloquer ce qui manque à mon plan d'objet</option>
+          </select>
+        </label>
+        <label for="rp-rate" id="rp-rate-label">RP/s voulus
+          <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal">
+        </label>
+        <label for="rp-node" id="rp-node-label" class="wide">Recherche à débloquer
+          <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3">
+        </label>
+        <label for="rp-minutes" id="rp-minutes-label">En combien de temps (minutes)
+          <input id="rp-minutes" type="number" min="1" step="any" inputmode="decimal">
+        </label>
+        <label for="rp-cap" id="rp-cap-label">Plafond de RP voulu
+          <input id="rp-cap" type="number" min="0" step="any" inputmode="decimal" placeholder="automatique">
+        </label>
+        <label class="check-inline"><input type="checkbox" id="rp-satellites"> Paraboles satellites</label>
+        <label class="check-inline"><input type="checkbox" id="rp-logic"> Mini-jeu Logic des RS4</label>
+        <label class="check-inline"><input type="checkbox" id="rp-current"> Compter ma production actuelle de RP (Ma partie)</label>
+        <p class="hint wide" id="rp-hint"></p>
       </div>
       <div class="fields" id="item-fields">
         <label for="item" class="wide">Item à produire

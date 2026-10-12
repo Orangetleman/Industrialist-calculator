@@ -197,6 +197,13 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .banner { border-radius: 10px; padding: 12px 14px; border: 1px solid; }
 .banner.warn { background: var(--warn-soft); border-color: var(--warn); }
 .banner.bad { background: var(--bad-soft); border-color: var(--bad); }
+.banner.ok { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); border-color: var(--ok); }
+/* Objectif recherche : chronologie et autres installations */
+.timeline, .alts { margin: 8px 0; }
+.timeline summary, .alts summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+table.mini { border-collapse: collapse; margin-top: 6px; font-size: .86rem; width: 100%; max-width: 640px; }
+table.mini th, table.mini td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line); }
+table.mini td.num { font-family: var(--f-mono); white-space: nowrap; }
 .banner ul { margin: 6px 0 0; padding-left: 18px; }
 #status:empty, #data-errors:empty { display: none; }
 

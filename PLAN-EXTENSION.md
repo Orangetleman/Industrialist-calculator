@@ -1,8 +1,8 @@
 # Plan d'extension et de refonte — Calculateur Industrialist
 
 > Statut : **validé le 2026-10-12** (décisions en § 8). E0 terminée (données, relevés en jeu,
-> éditeur de bâtiments, 16 bâtiments relevés) ; E1 terminée (moteur v2 et simplexe) ; E2 terminée
-> (énergie) ; bilans en § 4. E3 en attente du feu vert.
+> éditeur de bâtiments, 16 bâtiments relevés) ; E1 (moteur v2 et simplexe), E2 (énergie) et E3
+> (points de recherche) terminées ; bilans en § 4. E4 en attente du feu vert.
 > Rédigé le 2026-10-12 après une lecture du wiki Miraheze (pages Pipes, Research Station1 à 4,
 > Satellite Dish Controller, RP Making, Weather & Time, Steam, Logic, Truck Depot, et les fiches
 > des 264 bâtiments déjà en cache).
@@ -237,6 +237,35 @@ Pi, puis j'attends ton feu vert.
   production, son énergie, et la courbe du temps pour débloquer.
 - **Tests** : chaque formule contre les exemples et tableaux du wiki (par exemple 13 RS1 donnent
   un plafond de 761 RP) ; plafond souple ; nombre de paraboles.
+
+**Bilan E3 (2026-10-12, fait).**
+
+- **Formules** (`src/engine/research-points.ts`, paramètres sourcés dans `research-stations.json`) :
+  vitesse et plafond des RS1 à RS4, facteur de plafond selon le prix, pénalité de 30 %, circuits
+  du mini-jeu Logic (5 ticks par résolution d'après le wiki), paraboles, plafond souple.
+  Vérifiées contre le wiki :
+  - 13 RS1 → 761 ;
+  - tableau des plafonds RS2 ;
+  - 2,45 et 3,03 RP/s pour la RS3 ;
+  - 6 paraboles et 17 % par parabole.
+- **Consommations** (infobox) : RS1 2,1 kMF/s, RS2 17 kMF/s, RS3 600 kMF/s, paire RS3 + RS4
+  5 MMF/s, contrôleur et parabole 75 kMF/s.
+- **Installation** : toutes les stations débloquées, les items productibles (RS2) et les paires
+  d'items (RS3/RS4), avec 0 à 4 contrôleurs de paraboles et le meilleur liquide. Un premier tri
+  estime le coût de la chaîne au simplexe, à l'unité ; les 6 meilleures sont ensuite calculées
+  exactement, chaîne comprise. Pour cela, `solve` accepte maintenant plusieurs cibles à la fois
+  et une charge électrique fixe.
+- **Objectifs** :
+  - « X RP/s » (plafond automatique : la recherche la plus chère qu'il te reste) ;
+  - « débloquer telle recherche en N minutes » ;
+  - « débloquer ce qui manque à mon plan d'objet ».
+
+  La chronologie de déblocage tient compte de la dépense de chaque recherche et du plafond
+  souple ; elle est comparée au rythme actuel.
+- **À confirmer en jeu** :
+  - la base du logarithme des paraboles (« log » : décimal retenu) ;
+  - les RP/s de plusieurs types de stations s'additionnent-ils (l'outil propose un seul type
+    à la fois) ?
 
 ### E4 — Plans de construction (grille vue de dessus)
 

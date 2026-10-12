@@ -22,7 +22,7 @@ import type {
   WorldFile,
 } from "../src/engine/extension-types.ts";
 import { extractEnergyFacts } from "./lib/energy-extract.ts";
-import { extractRpFormulas, extractWorld, parsePerNode, parsePipeTables, parsePowerRange, parseRangeTiles, type Found } from "./lib/extension-extract.ts";
+import { extractRpFormulas, extractWorld, parseMF, parsePerNode, parsePipeTables, parsePowerRange, parseRangeTiles, type Found } from "./lib/extension-extract.ts";
 import type { CachedPage } from "./lib/wiki-config.ts";
 import { parseTemplate, slugify } from "./lib/wiki-extract.ts";
 
@@ -237,6 +237,22 @@ if (releves?.research.rs3SameItemAllowed) {
     "| Research Station3 | RP · items en entrée | contradiction | La page dit « Requires two different Items to operate » et décrit aussi une pénalité de 30 % « if both input Items are the same ». À vérifier en jeu : la station accepte-t-elle deux fois le même item ? |",
   );
 }
+
+// Consommation des stations et des paraboles (infobox), vitesse du mini-jeu Logic (RS4).
+const stationPower: Record<string, Fact<number>> = {};
+for (const id of ["research-station1", "research-station2", "research-station3", "research-station4", "satellite-dish-controller", "satellite-dish"]) {
+  const m = machines.find((x) => x.id === id);
+  const found = m ? infobox(m) : null;
+  const v = found ? parseMF(found.ib.PowerInput) : null;
+  if (!found || v === null) {
+    issues.push(`RP — consommation de ${id} introuvable dans l'infobox`);
+    continue;
+  }
+  stationPower[id] = { value: v, source: sourceOf(found.page), quote: `PowerInput=${found.ib.PowerInput?.trim()}` };
+}
+const rs4Text = (rpPages["Research Station4"]?.content ?? "").replace(/\s+/g, " ");
+const logicMatch = /fastest stable time with circuits provided below is (\d+) ticks per cycle/.exec(rs4Text);
+const logicTicks: Found<number> = logicMatch ? { value: Number(logicMatch[1]), page: "Research Station4", quote: logicMatch[0] } : { value: null, page: "Research Station4", problem: "durée de résolution du mini-jeu introuvable" };
 
 // ---------------------------------------------------------------- monde et grille
 const worldFacts: Record<string, Fact<unknown>> = {};
@@ -531,6 +547,8 @@ write("research-stations.json", {
   satellite: mapFacts(formulas.satellite) as ResearchStationsFile["satellite"],
   softCap: mapFacts(formulas.softCap) as ResearchStationsFile["softCap"],
   startRp: toFact(formulas.startRp),
+  power: stationPower,
+  logicTicks: toFact(logicTicks),
   buildings: machines.filter((m) => /^research-station\d$|^satellite-dish|^research-tracking-panel$/.test(m.id)).map((m) => m.id),
 } satisfies ResearchStationsFile);
 write("world.json", { meta: meta({ facts: Object.keys(worldFacts).length }), facts: worldFacts, grid: { cellStuds: grid.cellStuds, snap: grid.snap, rotations: grid.rotations, sources: releves && grid.cellStuds !== null ? [releves.source] : [], verify: gridVerify } } satisfies WorldFile);

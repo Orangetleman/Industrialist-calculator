@@ -70,6 +70,13 @@ export type ResearchStationsFile = {
   satellite: { boostCoef: Fact<number>; dishes: Fact<string>; liquidPerSec: Fact<number> };
   softCap: { rs123: Fact<string>; rs4: Fact<string>; x: Fact<string> };
   startRp: Fact<{ normal: number; other: number }>;
+  /**
+   * Consommation électrique par bâtiment (MF/s, infobox du wiki). Pour la RS4, c'est la
+   * consommation de la paire RS3 + RS4 (« increases power consumption to 5 MMF/s »).
+   */
+  power: Record<string, Fact<number>>;
+  /** Mini-jeu Logic de la RS4 : durée d'une résolution, en ticks logiques (la plus rapide qui reste stable). */
+  logicTicks: Fact<number>;
   /** Bâtiments liés (stations, paraboles) : identifiants dans machines.json. */
   buildings: string[];
 };
