@@ -5,7 +5,8 @@
 import { add, key, OPPOSITE, type Cell, type Dir } from "./geometry.ts";
 
 export type PipeCell = { net: string; links: Set<Dir>; cross?: { net: string; links: Set<Dir> } };
-export type Occupant = { kind: "bloc"; owner: string } | { kind: "réservé"; net: string } | ({ kind: "tuyau" } & PipeCell);
+/** Case réservée à un port ; avec `facing` (sens du port), un autre réseau peut la traverser en travers du port. */
+export type Occupant = { kind: "bloc"; owner: string } | { kind: "réservé"; net: string; facing?: Dir } | ({ kind: "tuyau" } & PipeCell);
 export type Bounds = { x0: number; y0: number; x1: number; y1: number };
 
 const COST = { step: 1, turn: 0.6, cross: 8 };
@@ -19,8 +20,8 @@ export class Grid {
   block(c: Cell, owner: string): void {
     this.cells.set(key(c), { kind: "bloc", owner });
   }
-  reserve(c: Cell, net: string): void {
-    this.cells.set(key(c), { kind: "réservé", net });
+  reserve(c: Cell, net: string, facing?: Dir): void {
+    this.cells.set(key(c), facing ? { kind: "réservé", net, facing } : { kind: "réservé", net });
   }
   /** Ajoute une liaison du réseau `net` dans la case `c` (crée le tuyau si la case est libre ou réservée pour lui). */
   link(c: Cell, d: Dir, net: string): void {
@@ -92,6 +93,13 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
         const vertical = d === "N" || d === "S";
         const straightOther = o.net !== net && !o.cross && o.links.size === 2 && (vertical ? o.links.has("E") && o.links.has("W") : o.links.has("N") && o.links.has("S"));
         if (!straightOther) continue;
+        const g = cur.g + COST.step + COST.cross + turnCost;
+        push(open, best, { c: n, d, g, f: g + h(n), prev: cur, crossing: true });
+        continue;
+      }
+      // Case d'un port d'un autre réseau, traversée en travers du port : elle deviendra un croisement collé
+      // au port (en jeu, les deux tuyaux du croisement se relient à la machine).
+      if (o?.kind === "réservé" && o.net !== net && o.facing && (o.facing === "N" || o.facing === "S") !== (d === "N" || d === "S")) {
         const g = cur.g + COST.step + COST.cross + turnCost;
         push(open, best, { c: n, d, g, f: g + h(n), prev: cur, crossing: true });
         continue;

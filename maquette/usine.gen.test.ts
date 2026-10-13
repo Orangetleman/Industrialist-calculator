@@ -69,7 +69,7 @@ function modules() {
   return { plan, boxes, name };
 }
 
-function design(glue: boolean, globalPoles: boolean) {
+function design(glue: boolean, globalPoles: boolean, full = false) {
   const { plan, boxes, name } = modules();
   const byKey = new Map(boxes.map((b) => [b.key, b]));
   const endOf = (b: Box, item: string, role: "entrée" | "sortie") => b.mod?.nets.find((n) => n.role === role && name(n.item) === name(item))?.end ?? null;
@@ -276,6 +276,159 @@ function design(glue: boolean, globalPoles: boolean) {
   const pool = tries.some((t) => t.fits) ? tries.filter((t) => t.fits) : tries;
   const bestTry = [...pool].sort((a, b) => a.area + 10 * a.pipes - (b.area + 10 * b.pipes))[0];
   if (bestTry) attempt(bestTry.CLR, bestTry.wDist, bestTry.bySize);
+  // ------------------------------------------------------------ recalcul complet du tuyautage
+  // Option « recalculé pour l'usine entière » : les machines restent à leur place, mais les tuyaux sont
+  // retracés pour toute l'usine, de port à port, sans passer par les sorties « officielles » des modules.
+  const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
+  if (full) {
+    // Les collecteurs de chaque module sont gardés (ils résolvent bien l'intérieur d'un module) ; mais un
+    // module se branche n'importe où sur le collecteur de son fournisseur, pas seulement à sa sortie
+    // « officielle », et les tuyaux peuvent passer dans les espaces libres des modules.
+    const g = new Grid();
+    const netId = (b: Box, item: string, role: "entrée" | "sortie") => {
+      if (role === "sortie") return plan.edges.some((e) => e.from === b.key && e.item === item) ? `${b.key}:${item}` : `${b.key}:${item}:fin`;
+      const ins = plan.edges.filter((e) => e.to === b.key && e.item === item);
+      return ins.length ? `${ins[0]!.from}:${item}` : `${b.key}:${item}:ext`;
+    };
+    const comp = new Map<string, Set<string>>(); // `${module}|${réseau}` → ses cases
+    for (const b of boxes) {
+      if (!b.mod) {
+        for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) g.block({ x: b.x + i, y: b.y + j }, b.key);
+        continue;
+      }
+      for (const m of b.mod.machines) for (const c of m.cells) g.block({ x: b.x + c.x, y: b.y + c.y }, b.key);
+      const ren = new Map(b.mod.nets.map((n) => [n.id, netId(b, n.item, n.role)]));
+      for (const pc of b.mod.pieces) {
+        const k = `${b.x + pc.x},${b.y + pc.y}`;
+        const net = ren.get(pc.net)!;
+        g.cells.set(k, { kind: "tuyau", net, links: new Set(pc.links), ...(pc.crossNet ? { cross: { net: ren.get(pc.crossNet)!, links: new Set(pc.crossLinks ?? []) } } : {}) });
+        if (!pc.crossNet) comp.set(`${b.key}|${net}`, (comp.get(`${b.key}|${net}`) ?? new Set()).add(k));
+      }
+    }
+    // Liaison entre deux collecteurs (A* à départs multiples) : de n'importe quelle case du collecteur client
+    // vers n'importe quelle case du collecteur fournisseur ; croisements à angle droit seulement.
+    const bounds = { x0: 0, y0: 0, x1: W - 1, y1: H - 1 };
+    const cellOf = (k: string) => {
+      const [x, y] = k.split(",").map(Number) as [number, number];
+      return { x, y };
+    };
+    const connect = (net: string, from: Set<string>, to: Set<string>): boolean => {
+      const tb = [...to].map(cellOf);
+      const h = (c: Pt) => Math.min(...tb.map((t) => Math.abs(t.x - c.x) + Math.abs(t.y - c.y)));
+      type N = { c: Pt; d: Dir; g: number; f: number; prev: N | null; crossing: boolean; root: string };
+      const open: N[] = [];
+      const best = new Map<string, number>();
+      const pipeOk = (k: string) => {
+        const o = g.cells.get(k);
+        return o?.kind === "tuyau" && o.net === net && !o.cross && o.links.size < 4;
+      };
+      for (const k of from) {
+        if (!pipeOk(k)) continue;
+        const c = cellOf(k);
+        for (const d of ["N", "E", "S", "W"] as Dir[]) {
+          if (g.cells.get(k)!.kind === "tuyau" && (g.cells.get(k) as { links: Set<Dir> }).links.has(d)) continue;
+          const n = { x: c.x + STEP[d].x, y: c.y + STEP[d].y };
+          if (n.x < bounds.x0 || n.y < bounds.y0 || n.x > bounds.x1 || n.y > bounds.y1 || g.cells.get(`${n.x},${n.y}`)) continue;
+          open.push({ c: n, d, g: 1, f: 1 + h(n), prev: null, crossing: false, root: k });
+        }
+      }
+      let found: N | null = null;
+      let target = "";
+      for (let guard = 0; open.length && guard < 300_000; guard++) {
+        let bi = 0;
+        for (let i = 1; i < open.length; i++) if (open[i]!.f < open[bi]!.f) bi = i;
+        const cur = open.splice(bi, 1)[0]!;
+        if (found && cur.f >= found.g) break;
+        const dirs: Dir[] = cur.crossing ? [cur.d] : (["N", "E", "S", "W"] as Dir[]).filter((d) => d !== OPPOSITE[cur.d]);
+        for (const d of dirs) {
+          const n = { x: cur.c.x + STEP[d].x, y: cur.c.y + STEP[d].y };
+          if (n.x < bounds.x0 || n.y < bounds.y0 || n.x > bounds.x1 || n.y > bounds.y1) continue;
+          const k = `${n.x},${n.y}`;
+          const o = g.cells.get(k);
+          const turn = d !== cur.d ? 0.6 : 0;
+          if (to.has(k) && pipeOk(k)) {
+            const gg = cur.g + 1 + turn;
+            if (!found || gg < found.g) [found, target] = [{ c: n, d, g: gg, f: gg, prev: cur, crossing: false, root: cur.root }, k];
+            continue;
+          }
+          let crossing = false;
+          if (o) {
+            const vertical = d === "N" || d === "S";
+            const straight = o.kind === "tuyau" && o.net !== net && !o.cross && o.links.size === 2 && (vertical ? o.links.has("E") && o.links.has("W") : o.links.has("N") && o.links.has("S"));
+            if (!straight) continue;
+            crossing = true;
+          }
+          const gg = cur.g + 1 + turn + (crossing ? 8 : 0);
+          const sk = `${k}|${d}|${crossing}`;
+          if ((best.get(sk) ?? Infinity) <= gg) continue;
+          best.set(sk, gg);
+          open.push({ c: n, d, g: gg, f: gg + h(n), prev: cur, crossing, root: cur.root });
+        }
+      }
+      if (!found) return false;
+      const path: N[] = [];
+      for (let n: N | null = found; n; n = n.prev) path.unshift(n);
+      const root = cellOf(path[0]!.root);
+      g.link(root, path[0]!.d, net);
+      let prev = root;
+      for (const n of path) {
+        g.link(prev, n.d, net);
+        g.link(n.c, OPPOSITE[n.d], net);
+        prev = n.c;
+        if (n !== path.at(-1)) to.add(`${n.c.x},${n.c.y}`); // le chemin rejoint le réseau
+      }
+      void target;
+      for (const k of from) to.add(k);
+      return true;
+    };
+    problems = [];
+    // Liaisons les plus longues d'abord (elles ont le plus besoin de place).
+    const pairs = plan.edges
+      .filter((e) => byKey.get(e.from)!.mod && byKey.get(e.to)!.mod)
+      .map((e) => ({ e, net: `${e.from}:${e.item}` }))
+      .sort((a, b) => {
+        const dd = (x: typeof a) => Math.abs(byKey.get(x.e.from)!.x - byKey.get(x.e.to)!.x) + Math.abs(byKey.get(x.e.from)!.y - byKey.get(x.e.to)!.y);
+        return dd(b) - dd(a);
+      });
+    const trunk = new Map<string, Set<string>>(); // réseau → cases déjà reliées au fournisseur
+    for (const { e, net } of pairs) {
+      const prod = trunk.get(net) ?? new Set(comp.get(`${e.from}|${net}`) ?? []);
+      trunk.set(net, prod);
+      const cons = comp.get(`${e.to}|${net}`) ?? new Set<string>();
+      if (!prod.size || !cons.size || !connect(net, cons, prod)) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
+    }
+    // Arbres (pas encore dessinés) : un départ au bord de leur emplacement, relié au collecteur du client.
+    for (const e of plan.edges.filter((x) => !byKey.get(x.from)!.mod && byKey.get(x.to)!.mod)) {
+      const f = byKey.get(e.from)!;
+      const net = `${e.from}:${e.item}`;
+      const cons = comp.get(`${e.to}|${net}`) ?? new Set<string>();
+      const c = byKey.get(e.to)!;
+      // Cases libres tout autour de l'emplacement, de la plus proche du client à la plus éloignée.
+      const around: { p: Pt; d: Dir }[] = [];
+      for (let i = 0; i < f.w; i++) around.push({ p: { x: f.x + i, y: f.y - 1 }, d: "S" }, { p: { x: f.x + i, y: f.y + f.h }, d: "N" });
+      for (let j = 0; j < f.h; j++) around.push({ p: { x: f.x - 1, y: f.y + j }, d: "E" }, { p: { x: f.x + f.w, y: f.y + j }, d: "W" });
+      const dist = (q: Pt) => Math.abs(q.x - (c.x + c.w / 2)) + Math.abs(q.y - (c.y + c.h / 2));
+      let ok = false;
+      for (const { p: a, d } of around.filter(({ p: q }) => !g.cells.get(`${q.x},${q.y}`)).sort((u, v) => dist(u.p) - dist(v.p)).slice(0, 12)) {
+        g.link(a, d, net);
+        if (cons.size && connect(net, cons, new Set([`${a.x},${a.y}`]))) {
+          ok = true;
+          break;
+        }
+        g.cells.delete(`${a.x},${a.y}`);
+      }
+      if (!ok) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
+    }
+    grid = g;
+    glued = [];
+    nets = [...new Set([...g.cells.values()].flatMap((o) => (o.kind === "tuyau" ? [o.net, ...(o.cross ? [o.cross.net] : [])] : [])))].map((id) => {
+      const [from, item, tag] = id.split(":") as [string, string, string | undefined];
+      const es = plan.edges.filter((e) => e.from === from && e.item === item);
+      return { id, item, perMin: es.reduce((t, e) => t + e.perMin, 0), from: tag === "ext" ? "" : from, to: tag ? [] : es.map((e) => e.to) };
+    }).filter((n) => n.from && byKey.has(n.from));
+  }
+  const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
+  const allPipeCells = full ? [...grid.cells.values()].filter((o) => o.kind === "tuyau").length : [...grid.cells.values()].filter((o) => o.kind === "tuyau").length + modulePipeCells;
   const color = new Map([...new Set(plan.edges.map((e) => e.item))].map((it, i) => [it, PALETTE[i % PALETTE.length]!]));
   const cellsOf = (id: string) => [...grid.cells.values()].filter((o) => o.kind === "tuyau" && (o.net === id || o.cross?.net === id)).length;
   const crossings = [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length;
@@ -297,7 +450,7 @@ function design(glue: boolean, globalPoles: boolean) {
       plugs.push(...ps);
       plugsByMachine.set(`${b.key}|${m.id}`, ps);
     }
-    for (const p of b.mod.pieces) occupied.add(`${b.x + p.x},${b.y + p.y}`);
+    if (!full) for (const p of b.mod.pieces) occupied.add(`${b.x + p.x},${b.y + p.y}`);
     if (!globalPoles) for (const q of b.mod.poles) for (let i = 0; i < q.w; i++) for (let j = 0; j < q.h; j++) occupied.add(`${b.x + q.x + i},${b.y + q.y + j}`);
   }
   for (const [k, o] of grid.cells) if (o.kind === "tuyau") occupied.add(k);
@@ -398,21 +551,21 @@ function design(glue: boolean, globalPoles: boolean) {
   const total = boxes.reduce((s, b) => s + b.power, 0);
   const polesCost = poleNodes.reduce((s, p) => s + (p.type.price ?? 0), 0) + relays * (cat.poles.find((p) => p.rangeCells === R)?.price ?? 0);
   const modulesCost = boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0);
-  return { plan, boxes, grid, nets, W, H, color, pipeCells, crossings, modulesCost, glued, problems, name, cellsOf, links, relays, poleNodes, feed, total, overloaded, polesCost, CLRused, upgraded, plugs };
+  return { plan, boxes, grid, nets, W, H, color, pipeCells, crossings, modulesCost, glued, problems, name, cellsOf, links, relays, poleNodes, feed, total, overloaded, polesCost, CLRused, upgraded, plugs, full, allPipeCells, allCrossings: full ? [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length : [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length + moduleCrossings };
 }
 
 type D = ReturnType<typeof design>;
 
-function svg(d: D): string {
+function svg(d: D, uid: string): string {
   const C = 10;
   const VW = Math.max(d.W, PLOT.w) + 2;
   const VH = Math.max(d.H, PLOT.h) + 2;
   let s = `<svg viewBox="0 0 ${VW * C} ${VH * C}" xmlns="http://www.w3.org/2000/svg" data-w="${VW * C}" data-h="${VH * C}">`;
-  s += `<defs><marker id="pa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd54a"/></marker>
-<marker id="pb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c9a83a"/></marker>
-<pattern id="g1" width="${C}" height="${C}" patternUnits="userSpaceOnUse"><path d="M${C} 0 L0 0 0 ${C}" fill="none" stroke="#262c33" stroke-width="1"/></pattern>
-<pattern id="g10" width="${C * 10}" height="${C * 10}" patternUnits="userSpaceOnUse"><rect width="${C * 10}" height="${C * 10}" fill="url(#g1)"/><path d="M${C * 10} 0 L0 0 0 ${C * 10}" fill="none" stroke="#323a43" stroke-width="1.5"/></pattern></defs>`;
-  s += `<rect width="${VW * C}" height="${VH * C}" fill="#1d2126"/><rect width="${VW * C}" height="${VH * C}" fill="url(#g10)"/>`;
+  s += `<defs><marker id="pa-${uid}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd54a"/></marker>
+<marker id="pb-${uid}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c9a83a"/></marker>
+<pattern id="g1-${uid}" width="${C}" height="${C}" patternUnits="userSpaceOnUse"><path d="M${C} 0 L0 0 0 ${C}" fill="none" stroke="#262c33" stroke-width="1"/></pattern>
+<pattern id="g10-${uid}" width="${C * 10}" height="${C * 10}" patternUnits="userSpaceOnUse"><rect width="${C * 10}" height="${C * 10}" fill="url(#g1-${uid})"/><path d="M${C * 10} 0 L0 0 0 ${C * 10}" fill="none" stroke="#323a43" stroke-width="1.5"/></pattern></defs>`;
+  s += `<rect width="${VW * C}" height="${VH * C}" fill="#1d2126"/><rect width="${VW * C}" height="${VH * C}" fill="url(#g10-${uid})"/>`;
   s += `<rect class="plot" x="0" y="0" width="${PLOT.w * C}" height="${PLOT.h * C}" data-tip="Ta parcelle (exemple : ${PLOT.w} × ${PLOT.h} cases)"/><text class="plot-t" x="${PLOT.w * C - 10}" y="${PLOT.h * C - 10}">parcelle ${PLOT.w} × ${PLOT.h}</text>`;
   s += `<rect class="bbox" x="0" y="0" width="${d.W * C}" height="${d.H * C}"/><text class="bbox-t" x="${d.W * C - 8}" y="${d.H * C + 16}">usine ${d.W} × ${d.H}</text>`;
   for (const b of d.boxes) {
@@ -422,7 +575,7 @@ function svg(d: D): string {
     if (b.mod) {
       s += `<g class="detail">`;
       for (const m of b.mod.machines) s += `<rect x="${(b.x + m.x) * C + 1}" y="${(b.y + m.y) * C + 1}" width="${m.w * C - 2}" height="${m.h * C - 2}" rx="2" class="mach"/>`;
-      for (const p of b.mod.pieces) {
+      for (const p of d.full ? [] : b.mod.pieces) {
         const cx = (b.x + p.x + 0.5) * C;
         const cy = (b.y + p.y + 0.5) * C;
         const item = (net: string) => b.mod!.nets.find((n) => n.id === net)?.item ?? "";
@@ -451,7 +604,8 @@ function svg(d: D): string {
   }
   for (const n of d.nets) {
     const from = d.boxes.find((b) => b.key === n.from)!;
-    const tip = `${d.name(n.item)} · ${fr(n.perMin)}/min — de ${from.sub} (${from.label}) vers ${n.to.map((t) => d.boxes.find((b) => b.key === t)!.sub).join(" et ")} · ${d.cellsOf(n.id)} cases de tuyau`;
+    const dest = n.to.length ? n.to.map((t) => d.boxes.find((b) => b.key === t)!.sub).join(" et ") : "la sortie de l'usine";
+    const tip = `${d.name(n.item)}${n.perMin ? ` · ${fr(n.perMin)}/min` : ""} — de ${from.sub} (${from.label}) vers ${dest} · ${d.cellsOf(n.id)} cases de tuyau${d.full ? ", collecteurs des modules compris" : ""}`;
     s += `<g class="net" data-sel="${esc(n.id)}" data-tip="${esc(tip)}"><path class="net-hit" d="${byNet.get(n.id) ?? ""}"/><path class="net-line" d="${byNet.get(n.id) ?? ""}" stroke="${d.color.get(n.item)}"/></g>`;
   }
   for (const [k, o] of d.grid.cells) {
@@ -470,11 +624,11 @@ function svg(d: D): string {
   // (ceux d'un même module seulement avec « Tout afficher »), poteaux, arrivée.
   s += `<g class="power">`;
   for (const p of d.poleNodes)
-    for (const q of p.plugs) s += `<line class="plugline" x1="${p.x * C}" y1="${p.y * C}" x2="${q.x * C}" y2="${q.y * C}" marker-end="url(#pb)"/>`;
+    for (const q of p.plugs) s += `<line class="plugline" x1="${p.x * C}" y1="${p.y * C}" x2="${q.x * C}" y2="${q.y * C}" marker-end="url(#pb-${uid})"/>`;
   for (const l of d.links) {
     const to = d.boxes.find((b) => b.key === (l.to.module ?? l.to.plugs[0]?.key))!;
     const tip = `${l.internal ? "Câble entre deux poteaux du module" : "Câble"} vers ${l.to.module ? to.sub : `un poteau (${l.to.plugs.length} prise${l.to.plugs.length > 1 ? "s" : ""})`} : porte ${mf(l.load)} (tout ce qui est en aval) ; un ${l.to.type.name} porte ${mf(l.to.type.capacityMFps)} (tous ses nœuds)${l.lines > 1 ? ` : ${l.lines} lignes en parallèle` : ""}${l.relays ? ` · ${l.relays} poteau(x) relais (portée ${l.to.type.rangeCells} cases)` : ""}`;
-    s += `<g class="cable${l.internal ? " internal" : ""}${l.lines > 1 ? " over" : ""}" data-sel="c${esc(l.to.id)}" data-tip="${esc(tip)}"><line class="cable-hit" x1="${l.from.x * C}" y1="${l.from.y * C}" x2="${l.to.x * C}" y2="${l.to.y * C}"/><line class="cable-line" x1="${l.from.x * C}" y1="${l.from.y * C}" x2="${l.to.x * C}" y2="${l.to.y * C}" marker-end="url(#pa)"/></g>`;
+    s += `<g class="cable${l.internal ? " internal" : ""}${l.lines > 1 ? " over" : ""}" data-sel="c${esc(l.to.id)}" data-tip="${esc(tip)}"><line class="cable-hit" x1="${l.from.x * C}" y1="${l.from.y * C}" x2="${l.to.x * C}" y2="${l.to.y * C}"/><line class="cable-line" x1="${l.from.x * C}" y1="${l.from.y * C}" x2="${l.to.x * C}" y2="${l.to.y * C}" marker-end="url(#pa-${uid})"/></g>`;
   }
   for (const p of d.poleNodes) s += `<rect class="pole" x="${(p.x - p.type.size.w / 2) * C}" y="${(p.y - p.type.size.h / 2) * C}" width="${p.type.size.w * C}" height="${p.type.size.h * C}" data-tip="${esc(`${p.type.name} : ${p.plugs.length} prise(s), ${mf(p.load)} sur ${mf(p.type.capacityMFps)} (tous ses nœuds)`)}"/>`;
   s += `<circle cx="${d.feed.x * C}" cy="${d.feed.y * C}" r="9" class="feed" data-tip="Arrivée du réseau électrique (${mf(d.total)} pour toute l'usine)"/>`;
@@ -483,21 +637,21 @@ function svg(d: D): string {
 }
 
 it("maquette usine", () => {
-  const V = { tm: design(false, false), tg: design(false, true), gm: design(true, false), gg: design(true, true) };
+  const V = { tm: design(false, false), gm: design(true, false), f: design(false, true, true) };
   const sum = (d: D) => {
     const fit = d.W <= PLOT.w && d.H <= PLOT.h ? ["ok", "tient sur ta parcelle"] : d.H <= PLOT.w && d.W <= PLOT.h ? ["ok", "tient en tournant d'un quart de tour"] : ["warn", "ne tient pas sur ta parcelle"];
-    return `<b>${d.W} × ${d.H} cases</b> · <span class="${fit[0]}">${fit[1]}</span> <span class="hint">(${PLOT.w} × ${PLOT.h}, exemple)</span> · tuyaux entre modules : ${d.pipeCells} cases, ${d.crossings} croisement${d.crossings > 1 ? "s" : ""}${d.glued.length ? `, ${d.glued.length} contact direct` : ""} · électricité : ${mf(d.total)}, ${d.poleNodes.length} poteaux${d.relays ? ` + ${d.relays} relais` : ""}${d.upgraded ? ` (dont ${d.upgraded} renforcés)` : ""}, ${fr(d.polesCost)} $${d.overloaded ? ` · <span class="warn">${d.overloaded} câble(s) à doubler</span>` : ""}${d.problems.length ? ` · <span class="warn">${d.problems.length} liaison(s) non tracée(s)</span>` : ""}`;
+    return `<b>${d.W} × ${d.H} cases</b> · <span class="${fit[0]}">${fit[1]}</span> <span class="hint">(${PLOT.w} × ${PLOT.h}, exemple)</span> · tuyaux : ${d.full ? `${fr(d.allPipeCells)} cases en tout` : `${d.pipeCells} cases entre modules, ${fr(d.allPipeCells)} en tout`}, ${d.allCrossings} croisements en tout${d.glued.length ? `, ${d.glued.length} contact direct` : ""} · électricité : ${mf(d.total)}, ${d.poleNodes.length} poteaux${d.relays ? ` + ${d.relays} relais` : ""}${d.upgraded ? ` (dont ${d.upgraded} renforcés)` : ""}, ${fr(d.polesCost)} $${d.overloaded ? ` · <span class="warn">${d.overloaded} câble(s) à doubler</span>` : ""}${d.problems.length ? ` · <span class="warn">${d.problems.length} liaison(s) non tracée(s)</span>` : ""}`;
   };
   const rows = (d: D) =>
     d.nets
       .map((n) => {
         const tier = pipeFor(cat, data.items.get(n.item)?.isFluid ? "fluide" : "objet", n.perMin / 60);
-        return `<tr data-sel="${esc(n.id)}"><td><i style="background:${d.color.get(n.item)}"></i>${esc(d.name(n.item))}</td><td>${esc(d.boxes.find((b) => b.key === n.from)!.sub)}</td><td>${n.to.map((t) => esc(d.boxes.find((b) => b.key === t)!.sub)).join(", ")}</td><td class="num">${fr(n.perMin)}/min</td><td class="num">${d.cellsOf(n.id)}</td><td>${tier ? `tier ${tier.tier === 1 ? "I" : "III"}` : "—"}</td></tr>`;
+        return `<tr data-sel="${esc(n.id)}"><td><i style="background:${d.color.get(n.item)}"></i>${esc(d.name(n.item))}</td><td>${esc(d.boxes.find((b) => b.key === n.from)!.sub)}</td><td>${n.to.length ? n.to.map((t) => esc(d.boxes.find((b) => b.key === t)!.sub)).join(", ") : "sortie de l'usine"}</td><td class="num">${fr(n.perMin)}/min</td><td class="num">${d.cellsOf(n.id)}</td><td>${tier ? `tier ${tier.tier === 1 ? "I" : "III"}` : "—"}</td></tr>`;
       })
       .join("");
   const block = (k: keyof typeof V) =>
-    `<div class="variant v-${k}"><p class="sum">${sum(V[k])}</p>
-<div class="frame" tabindex="0">${svg(V[k])}<p class="help">Glisse pour te déplacer · molette pour zoomer · survole ou clique un tuyau, un câble, un module</p><div class="zoom"><button data-z="in" aria-label="Zoomer">+</button><button data-z="out" aria-label="Dézoomer">−</button><button data-z="fit" aria-label="Tout voir">⤢</button></div><div class="tip"></div><div class="pick" hidden></div></div>
+    `<div class="variant v-${k}${V[k].full ? " full" : ""}"><p class="sum">${sum(V[k])}</p>
+<div class="frame" tabindex="0">${svg(V[k], k)}<p class="help">Glisse pour te déplacer · molette pour zoomer · survole ou clique un tuyau, un câble, un module</p><div class="zoom"><button data-z="in" aria-label="Zoomer">+</button><button data-z="out" aria-label="Dézoomer">−</button><button data-z="fit" aria-label="Tout voir">⤢</button></div><div class="tip"></div><div class="pick" hidden></div></div>
 <details><summary>Liste des liaisons (${V[k].nets.length})</summary><table><thead><tr><th>Produit</th><th>De</th><th>Vers</th><th>Débit</th><th>Cases</th><th>Tuyau</th></tr></thead><tbody>${rows(V[k])}</tbody></table></details></div>`;
   const html = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -541,24 +695,25 @@ svg .plugline { display: none; stroke: #c9a83a; stroke-width: 1; opacity: .8; po
 svg .pole { fill: #5a4320; stroke: #ffd54a; stroke-width: 1.2; } svg .feed { fill: #ffd54a; stroke: #1d2126; stroke-width: 3; }
 .no-power svg .power { display: none; }
 .variant { display: none; }
-body:has(#l-tubes:checked):has(#p-mod:checked) .v-tm, body:has(#l-tubes:checked):has(#p-all:checked) .v-tg,
-body:has(#l-glue:checked):has(#p-mod:checked) .v-gm, body:has(#l-glue:checked):has(#p-all:checked) .v-gg { display: block; }
+body:has(#k-mod:checked):has(#l-tubes:checked) .v-tm, body:has(#k-mod:checked):has(#l-glue:checked) .v-gm, body:has(#k-all:checked) .v-f { display: block; }
+body:has(#k-all:checked) .bar .liaisons { opacity: .45; pointer-events: none; }
+.full svg .detail { display: inline; } .full svg .lbl { opacity: .35; } .full svg .box { fill: #22272e; }
 table { border-collapse: collapse; width: 100%; font-size: .86rem; } th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
 tr[data-sel] { cursor: pointer; } tr.on td { background: #2b1f14; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; } td i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
 details summary { cursor: pointer; color: var(--muted); margin-top: 10px; }
 ol.q li { margin-bottom: 5px; }
 </style></head><body><main>
-<p><span class="tag">MAQUETTE v4 à valider</span></p>
+<p><span class="tag">MAQUETTE v6 à valider</span></p>
 <h1>Plans de pose : toute l'usine</h1>
 <p class="lead">Calcul réel figé : Crankshaft 60/min, toute la recherche. Modules = vrais plans de pose (« forme ramassée » d'abord), placés au plus serré sur la grille ; tuyaux tracés par le vrai routeur ; poteaux comptés avec tous leurs nœuds. Parcelle : exemple.</p>
 <div class="bar">
-  <span class="grp"><b>Liaisons</b><label><input type="radio" name="liaison" id="l-tubes" checked> des tuyaux</label><label><input type="radio" name="liaison" id="l-glue"> coller quand c'est possible</label></span>
-  <span class="grp"><b>Poteaux</b><label><input type="radio" name="poteaux" id="p-mod" checked> ceux de chaque module</label><label><input type="radio" name="poteaux" id="p-all"> recalculés pour l'usine entière <span class="hint">(plus de calcul)</span></label></span>
+  <span class="grp"><b>Calcul</b><label><input type="radio" name="calcul" id="k-mod" checked> module par module</label><label><input type="radio" name="calcul" id="k-all"> recalculé pour l'usine entière <span class="hint">(tuyaux de port à port, puis poteaux ; plus de calcul)</span></label></span>
+  <span class="grp liaisons"><b>Liaisons</b><label><input type="radio" name="liaison" id="l-tubes" checked> des tuyaux</label><label><input type="radio" name="liaison" id="l-glue"> coller quand c'est possible</label></span>
   <span class="grp"><label><input type="checkbox" id="detail"> Tout afficher</label><label><input type="checkbox" id="power" checked> Réseau électrique</label></span>
   <span class="grp sub"><b>Câbles</b><label><input type="radio" name="cables" id="c-poles" checked> entre poteaux</label><label><input type="radio" name="cables" id="c-plugs"> et vers chaque machine</label></span>
 </div>
-${block("tm")}${block("tg")}${block("gm")}${block("gg")}
+${block("tm")}${block("gm")}${block("f")}
 <h2>Notes</h2>
 <ul class="hint">
 <li>Portée d'un câble : la même entre deux poteaux et vers une machine ; quand le câble part d'une machine qui produit de l'électricité (générateur…), c'est la portée de cette machine (à relever).</li>
@@ -612,5 +767,6 @@ for (const id of ["detail", "power", "c-poles", "c-plugs"]) document.getElementB
 `;
   writeFileSync("maquette/usine.html", html);
   const NL = String.fromCharCode(10);
+  if (process.env.ESSAIS) writeFileSync(process.env.ESSAIS + "pb.txt", V.f.problems.join(NL));
   writeFileSync("maquette/usine-resume.txt", (Object.keys(V) as (keyof typeof V)[]).map((k) => `${k}: ${sum(V[k]).replace(/<[^>]+>/g, "")}`).join(NL) + NL);
 }, 900_000);
