@@ -41,6 +41,7 @@ import {
   saveProgress,
   toEngineProgress,
   withRpRate,
+  plotOf,
   type PlayerInfo,
   type ProgressState,
   type TreeView,
@@ -381,7 +382,7 @@ function ensurePlan(): void {
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data, plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh() };
+  return { data, plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player) };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
@@ -693,7 +694,7 @@ function renderPose(): void {
     return;
   }
   const survey = surveyState(m.machine, REPO_PORTS, currentPorts().local);
-  const info = renderModuleInfo(m, anyName, survey);
+  const info = renderModuleInfo(m, anyName, survey, plotOf(player));
   const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
   $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p>${renderStepLinks(viewCtx(), poseStep)}`;
   $("pose-head").innerHTML = info.head;
@@ -739,6 +740,8 @@ function syncPlayerForm(): void {
   };
   set("p-pollution", player.pollutionPct);
   set("p-money", player.money);
+  set("p-plotw", player.plotW);
+  set("p-ploth", player.plotH);
   const rp = currentRp(player);
   set("p-rp", rp === null ? null : Math.floor(rp));
   set("p-rps", player.rpPerSec);
@@ -1354,12 +1357,14 @@ function bindUsine(): void {
     ["p-money", "money"],
     ["p-rp", "rp"],
     ["p-rps", "rpPerSec"],
+    ["p-plotw", "plotW"],
+    ["p-ploth", "plotH"],
   ];
   for (const [id, key] of playerFields) {
     $(id).addEventListener("input", (e) => {
       const v = parseOptional((e.target as HTMLInputElement).value);
       $(id).setAttribute("aria-invalid", String(v === "invalide"));
-      $("player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+      $(key === "plotW" || key === "plotH" ? "plot-hint" : "player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
       if (v === "invalide") return;
       if (key === "rpPerSec") player = withRpRate(player, v);
       else if (key === "rp") player = { ...player, rp: v, rpAt: v === null ? null : Date.now() };

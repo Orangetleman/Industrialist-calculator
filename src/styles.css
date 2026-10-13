@@ -219,6 +219,7 @@ button.link.have:hover { color: var(--steel); }
 .fa { fill: #f0913a; }
 .fl rect { fill: #2b1f14; stroke: #a8642a; stroke-width: .8; }
 .fl text { fill: #f0b37a; font: 500 10.5px var(--f-mono); }
+.fl text.fl-name { fill: #e6ebf0; font: 500 10.5px var(--f-body); }
 
 /* Plans de pose (vue de dessus d'un module) */
 .pose-pick { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); max-width: 100%; }

@@ -434,6 +434,12 @@ Calcul : l'essai rapide des dispositions est partagé entre les tailles de bloc 
 disposition est calculée une fois (les poteaux l'interrogeaient des dizaines de fois) : environ
 1,5 s au pire pour 50 machines. Limite : chaque bloc garde sa propre file de poteaux, à relier.
 
+Retours du 2026-10-13 (fin) : le schéma affiche sur chaque flèche le produit au-dessus du débit
+(étiquette sur deux lignes ; si une étiquette ne trouve pas de place libre, la disposition est
+refaite plus espacée : jamais de chevauchement). « Mon usine » demande la taille de la parcelle
+(cases) ; chaque plan de pose dit s'il y tient, tel quel ou tourné, et sinon si l'autre choix
+tiendrait ; la réponse signale quand la surface des machines dépasse déjà la parcelle.
+
 Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
 logique, liaisons directes entre ports, usine assemblée (E4b).
 

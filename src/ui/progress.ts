@@ -23,7 +23,20 @@ export type PlayerInfo = {
   spendRp: boolean;
   /** Le joueur a le passe du jeu (compteurs de débit Item Rate Meter et Fluid Rate Meter). */
   gamePass: boolean;
+  /** Taille de sa parcelle, en cases (1 case = 1 Short Pipe) ; null si non renseignée. */
+  plotW: number | null;
+  plotH: number | null;
 };
+
+/** Un module (ou une usine) de `w` × `h` cases tient-il sur la parcelle, tel quel ou tourné d'un quart de tour ? */
+export function fitsPlot(w: number, h: number, plot: { w: number; h: number }): "oui" | "tourné" | "non" {
+  if (w <= plot.w && h <= plot.h) return "oui";
+  if (h <= plot.w && w <= plot.h) return "tourné";
+  return "non";
+}
+
+/** La parcelle, si ses deux côtés sont renseignés. */
+export const plotOf = (p: PlayerInfo) => (p.plotW && p.plotH ? { w: p.plotW, h: p.plotH } : null);
 
 /** RP estimés à l'instant `now` : RP saisis + RP/s × temps écoulé depuis la saisie. */
 export function currentRp(p: PlayerInfo, now = Date.now()): number | null {
@@ -55,7 +68,7 @@ const KEY_PROGRESS = "ind-calc:v1:progress";
 const KEY_PLAYER = "ind-calc:v1:player";
 
 export const EMPTY_PROGRESS: ProgressState = { unlocked: [], reqItemsDone: [], owned: [] };
-export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false };
+export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null };
 
 const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
 const numOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
@@ -80,7 +93,7 @@ export function loadPlayer(): PlayerInfo {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
-    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true };
+    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH) };
   } catch {
     return { ...EMPTY_PLAYER };
   }
@@ -136,7 +149,7 @@ export function parseProgressExport(
   return {
     ok: true,
     progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
-    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true },
+    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH) },
     dropped,
     exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,
   };

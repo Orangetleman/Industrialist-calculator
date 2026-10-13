@@ -12,7 +12,8 @@ import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, r
 import type { Goal } from "./state.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
-export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean };
+/** `plot` : la parcelle du joueur (cases), si renseignée. */
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null };
 
 // ---------------------------------------------------------------- priorité
 
@@ -156,7 +157,12 @@ function kpis(v: ViewCtx): [string, string][] {
     fmtPol(t.pollutionPerHour),
     `${removes ? "pollution : les Scrubbers en retirent plus qu'il n'en est ajouté" : "pollution ajoutée"}${t.pollutionUnknownSteps ? ` (${t.pollutionUnknownSteps} inconnue[s])` : ""}`,
   ];
-  const area: [string, string] = [`${fmt(t.footprint, 0)}${unk(t.footprintUnknownSteps)}`, "cases au sol"];
+  // Surface des machines seules (sans tuyaux ni poteaux) : si elle dépasse la parcelle, rien ne tiendra.
+  const plotArea = v.plot ? v.plot.w * v.plot.h : null;
+  const area: [string, string] = [
+    `${fmt(t.footprint, 0)}${unk(t.footprintUnknownSteps)}`,
+    plotArea === null ? "cases au sol" : t.footprint > plotArea ? `cases au sol : plus que ta parcelle (${fmt(plotArea, 0)})` : `cases au sol, machines seules (parcelle : ${fmt(plotArea, 0)})`,
+  ];
   if (v.goal === "recherche" && v.research?.best) {
     const d = v.research.best.design;
     return [
@@ -535,7 +541,7 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
 export function renderFlow(v: ViewCtx): { svg: string; width: number; height: number } | null {
   const p = v.plan;
   if (!p.steps.length && !p.unresolved.length) return null;
-  const L = layoutFlow(p);
+  const L = layoutFlow(p, (id) => itemN(v, id));
   const steps = new Map(p.steps.map((s) => [s.key, s]));
   const unres = new Map(p.unresolved.map((u) => [u.item, u]));
   const existing = new Map(p.existing.map((x) => [x.key, x]));
@@ -569,7 +575,8 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
 <text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, 26))}</text>${st && warned.has(st.item) ? `<text class="fn-warn" x="${n.x + FW - 12}" y="${n.y + 44}" text-anchor="end">⚠</text>` : ""}</g>`;
   }
   for (const e of L.edges) {
-    s += `<g class="fl" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text x="${e.lx.toFixed(1)}" y="${(e.ly + 4).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
+    // Étiquette sur deux lignes : le produit, puis son débit (nom entier au survol).
+    s += `<g class="fl" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><title>${esc(`${itemN(v, e.item)} : ${flowLabel(e.perMin)}`)}</title><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text class="fl-name" x="${e.lx.toFixed(1)}" y="${(e.ly - 2).toFixed(1)}" text-anchor="middle">${esc(e.name)}</text><text x="${e.lx.toFixed(1)}" y="${(e.ly + 10).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
   }
   return { svg: s + "</svg>", width: L.width, height: L.height };
 }

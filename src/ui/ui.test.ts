@@ -11,7 +11,7 @@ import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.t
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
 import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, renderAnswer, renderBuildList, renderDetails, renderFlow, type ViewCtx } from "./plan-view.ts";
 import { renderVerify } from "./render.ts";
-import { currentRp, exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
+import { currentRp, EMPTY_PLAYER, exportProgress, fitsPlot, parseOptional, parseProgressExport, plotOf, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { moveBefore, moveItem } from "./prio-list.ts";
@@ -112,20 +112,27 @@ describe("progression et « Ma partie »", () => {
 
   it("export puis import de la progression : aller-retour identique", () => {
     const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
-    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true };
+    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true, plotW: 120, plotH: 96 };
     const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
     expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" });
   });
 
   it("les RP évoluent avec les RP/s ; changer la vitesse garde les RP accumulés", () => {
     const t0 = Date.parse("2026-10-12T09:00:00Z");
-    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false };
+    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false, plotW: null, plotH: null };
     expect(currentRp(p, t0 + 60_000)).toBe(620); // + 2 RP/s × 60 s
     expect(currentRp({ ...p, rpPerSec: null }, t0 + 60_000)).toBe(500);
     expect(currentRp({ ...p, rp: null }, t0)).toBeNull();
     const q = withRpRate(p, 5, t0 + 60_000); // 620 RP acquis, puis 5 RP/s
     expect(q).toMatchObject({ rp: 620, rpPerSec: 5, rpAt: t0 + 60_000 });
     expect(currentRp(q, t0 + 120_000)).toBe(920);
+  });
+
+  it("parcelle : le plan tient tel quel, tourné d'un quart de tour, ou pas", () => {
+    expect(fitsPlot(60, 20, { w: 100, h: 50 })).toBe("oui");
+    expect(fitsPlot(20, 60, { w: 100, h: 50 })).toBe("tourné");
+    expect(fitsPlot(120, 13, { w: 100, h: 100 })).toBe("non");
+    expect(plotOf({ ...EMPTY_PLAYER, plotW: 100 })).toBeNull(); // un seul côté : pas de vérification
   });
 
   it("coût en RP d'un changement de progression : ajoutées dépensées, retirées rendues", () => {
@@ -162,7 +169,7 @@ describe("schéma des flux (de gauche à droite)", () => {
     it(`aucun chevauchement, flèches vers la droite, boucles repérées (priorité ${criterion})`, () => {
       for (const item of items) {
         const plan = solve(data, all, { item, ratePerMin: 60, criterion, tiers: false });
-        const g = layoutFlow(plan);
+        const g = layoutFlow(plan, (id) => data.items.get(id)?.name ?? id);
         const known = new Set(plan.steps.map((st) => st.key));
         const extra = plan.unresolved.filter((u) => !known.has(u.item)).length + plan.existing.length;
         expect(g.nodes, item).toHaveLength(plan.steps.length + extra);

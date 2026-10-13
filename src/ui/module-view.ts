@@ -5,6 +5,7 @@ import type { ModulePlan, PoseCriterion } from "../engine/build/module.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { SurveyState } from "./buildings-model.ts";
 import { esc, fmt, fmtMoney } from "./format.ts";
+import { fitsPlot } from "./progress.ts";
 
 const C = 16; // unités SVG par case
 const CRIT_NAME: Record<PoseCriterion, string> = { place: "Place au sol", forme: "Forme ramassée", prix: "Prix", pieces: "Pièces à poser" };
@@ -76,11 +77,22 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string): { 
   return { svg: s + "</svg>", width: W, height: H };
 }
 
+/** Le module tient-il sur la parcelle du joueur ? Sinon, l'autre choix tiendrait-il ? */
+function plotLine(m: ModulePlan, plot: { w: number; h: number } | null): string {
+  if (!plot) return `<p class="mod-other">Indique la taille de ta parcelle dans <a href="#usine">Mon usine</a> pour vérifier que ce plan tient sur ton terrain.</p>`;
+  const fit = fitsPlot(m.width, m.height, plot);
+  const size = `${plot.w} × ${plot.h} cases`;
+  if (fit === "oui") return `<p class="mod-fit ok-text">Tient sur ta parcelle (${size}).</p>`;
+  if (fit === "tourné") return `<p class="mod-fit ok-text">Tient sur ta parcelle (${size}) en le tournant d'un quart de tour.</p>`;
+  const alt = m.other && fitsPlot(m.other.width, m.other.height, plot) !== "non" ? ` Avec « ${esc(CRIT_NAME[m.other.first])} » en premier, il tiendrait.` : "";
+  return `<p class="mod-fit warn-text">Ne tient pas sur ta parcelle (${size}) : ${m.width} × ${m.height} cases.${alt}</p>`;
+}
+
 /** « double rangée », ou « 3 blocs empilés (double rangée) » pour des rangées repliées. */
 const layoutName = (m: { template: string; folds: number }) => (m.folds > 1 ? `${m.folds} blocs empilés (${m.template})` : m.template);
 
 /** Texte autour du dessin : résumé, problèmes, ressources, pièces, ordre de pose, hypothèses. */
-export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, survey: SurveyState = m.portsKnown ? "depot" : "manquant"): { head: string; legend: string; details: string } {
+export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, survey: SurveyState = m.portsKnown ? "depot" : "manquant", plot: { w: number; h: number } | null = null): { head: string; legend: string; details: string } {
   const color = netColors(m);
   const crossings = m.parts.filter((p) => /intersection/i.test(p.id));
   const crossCost = crossings.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
@@ -92,7 +104,7 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, su
       : survey === "local"
         ? ` <span class="muted">Ports d'après ton relevé local (dans ce navigateur, pas encore envoyé).</span>`
         : ""
-  }</p>${
+  }</p>${plotLine(m, plot)}${
     m.other
       ? `<p class="mod-other">Avec « ${esc(CRIT_NAME[m.other.first])} » en premier : ${esc(layoutName(m.other))} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.pieces} pièces à poser dont ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-first="${m.other.first}">le mettre en premier</button></p>`
       : ""

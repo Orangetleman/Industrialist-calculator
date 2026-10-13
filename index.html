@@ -228,6 +228,16 @@
       </div>
 
       <div class="box">
+        <h2>Ta parcelle</h2>
+        <div class="row fields4">
+          <label for="p-plotw">Largeur (cases)<input id="p-plotw" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
+          <label for="p-ploth">Profondeur (cases)<input id="p-ploth" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
+        </div>
+        <p class="hint" id="plot-hint" role="status"></p>
+        <p class="hint">1 case = 1 Short Pipe (1 tuile = 2 cases). Sert à vérifier que chaque plan de pose tient sur ton terrain, tel quel ou tourné d'un quart de tour.</p>
+      </div>
+
+      <div class="box">
         <h2>Production déjà en place <span class="pill" id="existing-count"></span></h2>
         <p class="hint">Ce que tes usines produisent déjà (ex. du plastique avec ton industrie pétrochimique) : les calculs s'en servent avant de construire du neuf. Tu peux aussi l'ajouter depuis une liste de construction (« je l'ai déjà »).</p>
         <ul id="existing-list" class="existing-list"></ul>
