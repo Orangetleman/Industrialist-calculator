@@ -16,7 +16,7 @@ import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog, pipeFor } from "./catalog.ts";
 import { add, key, OPPOSITE, place, rotateCell, rotatePoint, type Dir } from "./geometry.ts";
-import { designModule, normalPriority, portAssignments, redesign, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
+import { alternatives, designModule, normalPriority, portAssignments, redesign, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
 import { Grid, route } from "./route.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
@@ -230,6 +230,20 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(f.nets.find((n) => n.item === item)!.end!.x).toBeLessThan(f.width / 2);
     expect(fold.mod.nets.find((n) => n.item === item)!.end!.x).toBeGreaterThan(fold.mod.width / 2);
     checkModule(f, fold.req, "raw-iron replié, sortie à gauche");
+  });
+
+  it("collecteur « milieu » : du premier au dernier port, sans bout imposé ; autres dispositions du module", () => {
+    const flat = moduleFor("steel-rod", PLACE);
+    const ends = Object.fromEntries(flat.mod.nets.map((n) => [n.item, "milieu" as const]));
+    const m = redesign(flat.mod, { ...flat.req, ends }, PORTS["roller"]!, null, cat)!;
+    expect(m).not.toBeNull();
+    for (const n of m.nets) {
+      expect(n.end).toBeNull();
+      expect(n.lane!.x1 - n.lane!.x0).toBeLessThanOrEqual(flat.mod.nets.find((x) => x.id === n.id)!.lane!.x1 - flat.mod.nets.find((x) => x.id === n.id)!.lane!.x0);
+    }
+    const alts = alternatives(flat.mod, flat.req, PORTS["roller"]!, null, cat);
+    expect(alts.length).toBeGreaterThan(0);
+    for (const a of alts) checkModule(a, flat.req, "steel-rod, autre disposition");
   });
 
   it("ordre des critères : complété et sans doublon", () => {

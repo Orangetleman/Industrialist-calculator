@@ -27,9 +27,10 @@ export type ModuleRequest = {
   /**
    * Bout par lequel chaque collecteur (par ressource) entre ou sort du module : « début » (à gauche de la
    * rangée) ou « fin » (à droite). Par défaut, les entrées au début et les sorties à la fin. Sert à tourner
-   * les sorties d'un module vers ses voisins quand toute l'usine est assemblée.
+   * les sorties d'un module vers ses voisins quand toute l'usine est assemblée. « milieu » : le collecteur
+   * ne va que de son premier à son dernier port, sans bout ; l'usine assemblée y raccorde un seul tuyau.
    */
-  ends?: Record<string, "début" | "fin">;
+  ends?: Record<string, "début" | "fin" | "milieu">;
   /** Module replié : le tuyau principal de chaque ressource arrive ou part par le haut (défaut) ou par le bas. */
   trunkExit?: Record<string, "haut" | "bas">;
 };
@@ -282,8 +283,10 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
     const y = laneRow(n.id);
     // Bout du collecteur : au début (colonne 0, à gauche) ou à la fin (dernière colonne, à droite).
-    const atEnd = (req.ends?.[n.item] ?? (n.role === "entrée" ? "début" : "fin")) === "fin";
-    const lane = atEnd ? { y, x0: Math.min(...xs), x1: bounds.x1 } : { y, x0: 0, x1: Math.max(...xs) };
+    const endKind = req.ends?.[n.item] ?? (n.role === "entrée" ? "début" : "fin");
+    const atEnd = endKind === "fin";
+    // « milieu » : au moins deux cases, pour qu'il y ait un tuyau où raccorder les ports.
+    const lane = endKind === "milieu" ? { y, x0: Math.min(...xs), x1: Math.max(Math.max(...xs), Math.min(...xs) + 1) } : atEnd ? { y, x0: Math.min(...xs), x1: bounds.x1 } : { y, x0: 0, x1: Math.max(...xs) };
     for (let x = lane.x0; x <= lane.x1; x++) {
       // Un collecteur collé passe sur les cases de raccord des ports qui lui font face, pas ailleurs.
       const o = grid.get({ x, y });
@@ -291,9 +294,11 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
       if (o && !(o.kind === "réservé" && (facing === "N" || facing === "S"))) return null;
     }
     grid.straight({ x: lane.x0, y }, { x: lane.x1, y }, n.id);
-    grid.link({ x: atEnd ? lane.x1 : lane.x0, y }, atEnd ? "E" : "W", n.id); // arrivée ou départ
     n.lane = lane;
-    n.end = atEnd ? { x: lane.x1, y, dir: "E" } : { x: lane.x0, y, dir: "W" };
+    if (endKind !== "milieu") {
+      grid.link({ x: atEnd ? lane.x1 : lane.x0, y }, atEnd ? "E" : "W", n.id); // arrivée ou départ
+      n.end = atEnd ? { x: lane.x1, y, dir: "E" } : { x: lane.x0, y, dir: "W" };
+    }
   }
   // Raccords : du port vers le collecteur, les plus proches d'abord.
   const order = [...allPorts].sort((a, b) => Math.abs(a.p.cell.y - laneRow(a.net)) - Math.abs(b.p.cell.y - laneRow(b.net)) || a.p.cell.x - b.p.cell.x);
@@ -717,6 +722,37 @@ export function redesign(plan: ModulePlan, req: ModuleRequest, entry: PortsEntry
     out.priority = plan.priority;
     out.other = plan.other;
   }
+  return out;
+}
+
+/**
+ * Les autres dispositions internes d'un module simple (mêmes machines ; la taille peut varier d'une ou deux cases) :
+ * collecteurs au-dessus ou au-dessous de la rangée, rangée retournée, collecteur collé ou non, autre
+ * choix des ports. Sert à tourner les collecteurs vers les voisins quand l'usine est assemblée.
+ */
+export function alternatives(plan: ModulePlan, req: ModuleRequest, entry: PortsEntry | null, wikiSize: { w: number; l: number } | null, cat: Catalog, name: Namer = (id) => id): ModulePlan[] {
+  const c = plan.config;
+  if (!c || plan.folds > 1) return [];
+  const portsKnown = !!entry?.footprint;
+  const e = portsKnown ? entry! : assumedEntry(wikiSize, req);
+  const items = [...new Set(c.assign.map((a) => a.item))];
+  const sideSets: (Record<string, "haut" | "bas"> | null)[] = c.double || items.length > 4 ? [c.sides] : [];
+  for (let mask = 0; !c.double && items.length <= 4 && mask < 1 << items.length; mask++) sideSets.push(Object.fromEntries(items.map((it, k) => [it, mask & (1 << k) ? "haut" : "bas"])));
+  const assigns = [c.assign, ...portAssignments(e, req, portsKnown ? 4 : 1).filter((a) => JSON.stringify(a) !== JSON.stringify(c.assign))];
+  const out: ModulePlan[] = [];
+  for (const assign of assigns)
+    for (const rot of [c.rot, ((c.rot + 2) % 4) as Rot])
+      for (const sides of sideSets)
+        for (const hug of [false, true]) {
+          const l = layout(e, assign, req, rot, c.double, c.extra, cat, name, sides, hug);
+          if (!l) continue;
+          const p = finish(l, req, portsKnown, cat, [...l.problems], name);
+          if (p.problems.some((x) => x.level === "erreur")) continue;
+          p.config = { assign, double: c.double, rot, sides, hug, extra: c.extra };
+          p.priority = plan.priority;
+          p.other = plan.other;
+          out.push(p);
+        }
   return out;
 }
 
