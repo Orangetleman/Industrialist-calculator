@@ -131,6 +131,23 @@ export function pruneIntegrated(local: Record<string, PortsEntry>, repo: PortsFi
   return { kept, dropped };
 }
 
+/**
+ * Où en est le relevé d'un bâtiment :
+ * - « depot » : intégré aux données du site (data/ports.json), il sert à tout le monde ;
+ * - « local » : relevé dans ce navigateur, déjà utilisé par les plans de pose, à envoyer ;
+ * - « manquant » : aucun relevé, les plans de pose supposent ses ports.
+ */
+export type SurveyState = "depot" | "local" | "manquant";
+
+export function surveyState(id: string, repo: PortsFile, local: Record<string, PortsEntry>): SurveyState {
+  return local[id] ? "local" : repo.machines[id] ? "depot" : "manquant";
+}
+
+/** Relevés utilisés par les plans de pose : ceux du dépôt, remplacés par les relevés locaux. */
+export function mergeSurveys(repo: PortsFile, local: Record<string, PortsEntry>): Record<string, PortsEntry> {
+  return { ...repo.machines, ...local };
+}
+
 /** Agrandit ou réduit la capture d'un facteur, autour d'un point fixe (px, py) en unités SVG. */
 export function scaleAround(b: BgPlacement, factor: number, px: number, py: number): BgPlacement {
   const tx = b.x * CELL;

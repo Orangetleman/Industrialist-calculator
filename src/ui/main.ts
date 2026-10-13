@@ -20,7 +20,7 @@ import { renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
-import type { EnergyFile, LogisticsFile, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
+import type { EnergyFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
 import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
 import { dependentsOf, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { esc, fmt, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
@@ -46,6 +46,8 @@ import {
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
+import { mergeSurveys, surveyState } from "./buildings-model.ts";
+import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import type { ResearchView } from "./research-plan.ts";
@@ -92,7 +94,17 @@ const RELEVES = relevesJson as { poleRangeTiles?: Record<string, number>; grid?:
 /** Une tuile (portée des poteaux) = 2 cases, relevé en jeu. */
 const CELLS_PER_TILE = RELEVES.grid?.tileCells ?? 2;
 const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, RELEVES.poleRangeTiles ?? {}, CELLS_PER_TILE);
-const PORTS = (portsJson as unknown as PortsFile).machines;
+const REPO_PORTS = portsJson as unknown as PortsFile;
+/** Relevés de bâtiments pour les plans de pose : ceux du dépôt, remplacés par les relevés locaux. */
+let ports = { sig: null as string | null, machines: REPO_PORTS.machines, local: {} as Record<string, PortsEntry> };
+function currentPorts(): typeof ports {
+  const sig = rawLocalSurveys();
+  if (sig !== ports.sig) {
+    const local = loadLocalSurveys();
+    ports = { sig, machines: mergeSurveys(REPO_PORTS, local), local };
+  }
+  return ports;
+}
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -511,17 +523,24 @@ let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
 function moduleOf(key: string): ModulePlan | null {
-  if (modulesFor !== `${signature}|${settings.tier3Only}`) {
+  const pts = currentPorts();
+  if (modulesFor !== `${signature}|${settings.tier3Only}|${pts.sig}`) {
     modules.clear();
-    modulesFor = `${signature}|${settings.tier3Only}`;
+    modulesFor = `${signature}|${settings.tier3Only}|${pts.sig}`;
   }
   if (!modules.has(key)) {
     const s = plan?.steps.find((x) => x.key === key);
     const m = s ? data.machines.get(s.machine) : undefined;
     const req = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
-    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only }, PORTS[m.id] ?? null, m.size, CATALOG, anyName) : null);
+    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only }, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
   }
   return modules.get(key) ?? null;
+}
+
+/** Après le nom d'une étape : d'où viennent les ports de sa machine, quand ce n'est pas le dépôt. */
+function portsLabel(machine: string): string {
+  const st = surveyState(machine, REPO_PORTS, currentPorts().local);
+  return st === "local" ? " (relevé local)" : st === "manquant" ? " (ports supposés)" : "";
 }
 
 function renderPose(): void {
@@ -536,14 +555,14 @@ function renderPose(): void {
     return;
   }
   if (!poseStep || !choices.some((s) => s.key === poseStep)) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
-  sel.innerHTML = choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${PORTS[s.machine] ? "" : " (ports supposés)"}</option>`).join("");
+  sel.innerHTML = choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${portsLabel(s.machine)}</option>`).join("");
   const m = moduleOf(poseStep);
   $("pose-frame").hidden = !m;
   if (!m) {
     $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cette étape.</p>`;
     return;
   }
-  const info = renderModuleInfo(m, anyName);
+  const info = renderModuleInfo(m, anyName, surveyState(m.machine, REPO_PORTS, currentPorts().local));
   $("pose-head").innerHTML = info.head;
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
@@ -1474,7 +1493,7 @@ bindShared();
 bindUsine();
 bindTree();
 bindData();
-initBuildings($("bld-root"), data, portsJson as unknown as PortsFile);
+initBuildings($("bld-root"), data, REPO_PORTS);
 window.addEventListener("hashchange", showPage);
 showPage();
 window.setInterval(tickRp, 5000);

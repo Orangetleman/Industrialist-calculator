@@ -438,6 +438,8 @@ ul.corrections { margin: 0; padding-left: 18px; font-size: .85rem; display: flex
 .bld-badge.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
 .bld-badge.warn { background: var(--warn-soft); color: var(--warn); }
 .bld-badge.local { background: var(--accent-soft); color: var(--accent); }
+.bld-badge.none { color: var(--muted); border: 1px solid var(--line); }
+.bld-states { margin: 6px 0; }
 .bld-editor { display: flex; flex-direction: column; gap: 10px; }
 .bld-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
 .bld-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }

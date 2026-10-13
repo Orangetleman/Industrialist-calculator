@@ -21,18 +21,25 @@ import {
   portCenter,
   pruneIntegrated,
   scaleAround,
+  type SurveyState,
   surveySource,
+  surveyState,
   type Tool,
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
+import { loadLocalSurveys, saveLocalSurveys } from "./surveys.ts";
 import { esc, fmtMF } from "./format.ts";
-
-const KEY = "ind-calc:v1:batiments";
 
 type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: number; natH: number };
 /** Ce que fait la souris sur la grille. */
 type Mode = "ports" | "capture" | "coins";
 type PortTool = Exclude<Tool, "gomme">;
+
+const STATE_BADGE: Record<SurveyState, string> = {
+  depot: `<span class="bld-badge ok" title="intégré aux données du site : sert à tout le monde">dépôt</span>`,
+  local: `<span class="bld-badge local" title="relevé dans ce navigateur : déjà utilisé par tes plans de pose ; exporte-le pour l'intégrer au site">local · à envoyer</span>`,
+  manquant: `<span class="bld-badge none" title="pas encore relevé : les plans de pose supposent ses ports">manquant</span>`,
+};
 
 const TOOL_LABEL: Record<Tool, string> = { objet: "Port objet", fluide: "Port fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" };
 const HELP: Record<Mode, string> = {
@@ -42,7 +49,7 @@ const HELP: Record<Mode, string> = {
 };
 
 export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile): void {
-  const pruned = pruneIntegrated(load(), repo);
+  const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
   if (pruned.dropped.length) save();
   let selectedId: string | null = null;
@@ -64,6 +71,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       <aside class="bld-list panel">
         <label class="sr-only" for="bld-search">Chercher un bâtiment</label>
         <input id="bld-search" type="search" placeholder="Chercher un bâtiment…" autocomplete="off">
+        <p class="hint bld-states" id="bld-states"></p>
         <ul id="bld-items"></ul>
         <div class="actions">
           <button type="button" id="bld-export">Exporter mes relevés</button>
@@ -113,33 +121,22 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
   const frame = $("#bld-frame");
   const pz = new PanZoom(frame, { minWidth: 2 * CELL, maxWidth: maxViewWidth, fitOnReset: true });
 
-  function load(): Record<string, PortsEntry> {
-    try {
-      return parseSurveys(JSON.parse(localStorage.getItem(KEY) ?? "null")) ?? {};
-    } catch {
-      return {};
-    }
-  }
   function save(): void {
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ machines: local }));
-    } catch {
-      // stockage indisponible : le relevé vaut pour la session
-    }
+    saveLocalSurveys(local);
   }
 
   // ---------------------------------------------------------------- liste
   function renderList(): void {
     const q = filter.trim().toLowerCase();
+    const n = { depot: 0, local: 0, manquant: 0 };
+    for (const m of machines) n[surveyState(m.id, repo, local)]++;
+    $("#bld-states").innerHTML = `<b>${n.depot}</b> dans le dépôt (intégrés au site) · <b>${n.local}</b> local (dans ce navigateur, déjà utilisés par tes plans de pose ; « Exporter » pour les envoyer) · <b>${n.manquant}</b> manquants (ports supposés)`;
     $("#bld-items").innerHTML = machines
       .filter((m) => !q || m.name.toLowerCase().includes(q))
       .map((m) => {
         const e = local[m.id] ?? repo.machines[m.id];
-        const badges = e
-          ? `<span class="bld-badges">${
-              isComplete(e) ? `<span class="bld-badge ok" title="tout ce qui est obligatoire est relevé">complet</span>` : `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>`
-            }${local[m.id] ? `<span class="bld-badge local" title="relevé dans ce navigateur, pas encore intégré aux données">à envoyer</span>` : ""}</span>`
-          : "";
+        const st = surveyState(m.id, repo, local);
+        const badges = `<span class="bld-badges">${STATE_BADGE[st]}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>` : ""}</span>`;
         return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");
@@ -258,7 +255,13 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     $("#bld-editor").hidden = !entry;
     if (!entry || !selectedId) return;
     const m = data.machines.get(selectedId)!;
-    const where = local[selectedId] ? "relevé local, à envoyer" : repo.machines[selectedId] ? "relevé intégré aux données" : "pas encore relevé";
+    const st = surveyState(selectedId, repo, local);
+    const where =
+      st === "local"
+        ? `relevé local : déjà utilisé par tes plans de pose${repo.machines[selectedId] ? " (à la place de celui du dépôt)" : ""}, à envoyer`
+        : st === "depot"
+          ? "dans le dépôt : intégré au site"
+          : "manquant : les plans de pose supposent ses ports";
     $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3><span class="hint">Taille wiki : ${m.size ? `${m.size.w}×${m.size.l}` : "—"} · ${where}</span>`;
     const hint = powerHint(selectedId);
     $("#bld-dims").innerHTML = `

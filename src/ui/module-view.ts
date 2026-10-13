@@ -3,6 +3,7 @@
 
 import type { ModulePlan } from "../engine/build/module.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
+import type { SurveyState } from "./buildings-model.ts";
 import { esc, fmt, fmtMoney } from "./format.ts";
 
 const C = 16; // unités SVG par case
@@ -69,13 +70,19 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string): { 
 }
 
 /** Texte autour du dessin : résumé, problèmes, ressources, pièces, ordre de pose, hypothèses. */
-export function renderModuleInfo(m: ModulePlan, name: (id: string) => string): { head: string; legend: string; details: string } {
+export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, survey: SurveyState = m.portsKnown ? "depot" : "manquant"): { head: string; legend: string; details: string } {
   const color = netColors(m);
   const crossings = m.parts.filter((p) => /intersection/i.test(p.id));
   const crossCost = crossings.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
   const head = `<p class="mod-sum"><b>${m.count} × ${esc(name(m.machine))}</b> en ${esc(m.template)} : ${m.width} × ${m.height} cases, ${esc(fmtMoney(m.cost))}${m.costUnknown ? " (prix incomplets)" : ""}${
     crossCost ? `, dont ${esc(fmtMoney(crossCost))} de croisements` : ""
-  }.${m.portsKnown ? "" : ` <span class="warn-text">Ports supposés : ce bâtiment n'est pas encore relevé.</span>`}</p>${
+  }.${
+    !m.portsKnown
+      ? ` <span class="warn-text">Ports supposés : ce bâtiment n'est pas encore relevé.</span>`
+      : survey === "local"
+        ? ` <span class="muted">Ports d'après ton relevé local (dans ce navigateur, pas encore envoyé).</span>`
+        : ""
+  }</p>${
     m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${esc(p.message)}</li>`).join("")}</ul>` : ""
   }`;
   const legend = `<ul class="mod-legend">${m.nets

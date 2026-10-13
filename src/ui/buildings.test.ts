@@ -10,10 +10,12 @@ import {
   fitTwoCorners,
   isComplete,
   marginToPort,
+  mergeSurveys,
   parseSurveys,
   portCenter,
   pruneIntegrated,
   scaleAround,
+  surveyState,
 } from "./buildings-model.ts";
 
 const src = { wiki: "saisie" as const, fetchedAt: "2026-10-12T09:00:00Z" };
@@ -91,6 +93,22 @@ describe("éditeur de bâtiments", () => {
     const r = pruneIntegrated(local, repo);
     expect(r.dropped).toEqual(["roller"]);
     expect(Object.keys(r.kept)).toEqual(["press"]); // relevé plus récent que la version intégrée : gardé
+  });
+
+  it("les plans de pose utilisent les relevés locaux, qui l'emportent sur le dépôt", () => {
+    const repo = portsJson as unknown as PortsFile;
+    expect(repo.machines["bottling-plant"]).toBeUndefined(); // le cas signalé : pas dans le dépôt
+    const bottling: PortsEntry = { footprint: { w: 6, h: 4 }, ports: [{ side: "gauche", cell: 1, type: "objet", direction: "entrée" }], source: src };
+    const press: PortsEntry = { ...repo.machines.press!, ports: [], source: src };
+    const local = { "bottling-plant": bottling, press };
+    const merged = mergeSurveys(repo, local);
+    expect(merged["bottling-plant"]).toBe(bottling);
+    expect(merged.press).toBe(press);
+    expect(merged.roller).toBe(repo.machines.roller);
+    expect(surveyState("bottling-plant", repo, local)).toBe("local");
+    expect(surveyState("press", repo, local)).toBe("local");
+    expect(surveyState("roller", repo, local)).toBe("depot");
+    expect(surveyState("bottling-plant", repo, {})).toBe("manquant");
   });
 
   it("molette sur la capture : le point sous la souris ne bouge pas", () => {
