@@ -11,6 +11,8 @@ export type Criterion = "machines" | "energy" | "raw" | "steps" | "pollution" | 
 
 export type ChoiceOptions = {
   criterion: Criterion;
+  /** Critères suivants, dans l'ordre : ils départagent ce qui est égal sur le premier. */
+  then?: Criterion[];
   /** Recettes imposées : itemId → recipeId. */
   forced: Record<string, string>;
   /** Accepter les recettes « à vérifier » (valeurs variables ou manquantes) dans le choix automatique. */
@@ -111,21 +113,28 @@ export function machineArea(m: Machine | undefined): number | null {
   return m?.size ? m.size.w * m.size.l : null;
 }
 
+/**
+ * Ordre de départage : le critère, ceux choisis ensuite par le joueur, puis l'ordre habituel (la
+ * machine la plus petite au sol d'abord, décision Q2 ; puis machines, énergie, matières, étapes).
+ */
+export function tieOrder(criterion: Criterion, then: Criterion[] = []): Criterion[] {
+  const out: Criterion[] = [];
+  for (const k of [criterion, ...then, "area", "machines", "energy", "raw", "steps"] as Criterion[]) if (!out.includes(k)) out.push(k);
+  return out;
+}
+
 /** < 0 si a est meilleur que b. */
-function compare(a: { cost: Cost; area: number | null; id: string }, b: { cost: Cost; area: number | null; id: string }, criterion: Criterion): number {
+function compare(a: { cost: Cost; area: number | null; id: string }, b: { cost: Cost; area: number | null; id: string }, criterion: Criterion, then?: Criterion[]): number {
   if (a.cost.unresolved !== b.cost.unresolved) return a.cost.unresolved - b.cost.unresolved;
   if (criterion === "energy" && a.cost.energyUnknown !== b.cost.energyUnknown) return a.cost.energyUnknown - b.cost.energyUnknown;
-  const pa = metric(a.cost, criterion);
-  const pb = metric(b.cost, criterion);
-  if (!same(pa, pb)) return pa - pb;
-  // Départage (décision Q2) : la machine la plus petite au sol, par unité produite.
-  if (a.area !== b.area) {
-    if (a.area === null) return 1;
-    if (b.area === null) return -1;
-    if (!same(a.area, b.area)) return a.area - b.area;
-  }
-  for (const k of ["machines", "energy", "raw", ...(criterion === "steps" ? [] : ["steps"])] as Criterion[]) {
-    if (k === criterion) continue;
+  for (const k of tieOrder(criterion, then)) {
+    if (k === "area") {
+      if (a.area === b.area) continue;
+      if (a.area === null) return 1;
+      if (b.area === null) return -1;
+      if (!same(a.area, b.area)) return a.area - b.area;
+      continue;
+    }
     const x = metric(a.cost, k);
     const y = metric(b.cost, k);
     if (!same(x, y)) return x - y;
@@ -134,10 +143,10 @@ function compare(a: { cost: Cost; area: number | null; id: string }, b: { cost: 
 }
 
 /** a strictement meilleur que b, sans les départages (taille, id). */
-function strictlyBetter(a: Cost, b: Cost, criterion: Criterion): boolean {
+function strictlyBetter(a: Cost, b: Cost, criterion: Criterion, then?: Criterion[]): boolean {
   if (a.unresolved !== b.unresolved) return a.unresolved < b.unresolved;
   if (criterion === "energy" && a.energyUnknown !== b.energyUnknown) return a.energyUnknown < b.energyUnknown;
-  for (const k of [criterion, ...(["machines", "energy", "raw", "steps"] as Criterion[]).filter((x) => x !== criterion)]) {
+  for (const k of tieOrder(criterion, then).filter((x) => x !== "area")) {
     const x = metric(a, k);
     const y = metric(b, k);
     if (!same(x, y)) return x < y;
@@ -312,7 +321,7 @@ export class Chooser {
       let candidate: Entry | null = null;
       for (const u of usableOf(it)) {
         const e = this.entryFor(u, it, lookup);
-        if (e && (!candidate || compare(e, candidate, this.opts.criterion) < 0)) candidate = e;
+        if (e && (!candidate || compare(e, candidate, this.opts.criterion, this.opts.then) < 0)) candidate = e;
       }
       return candidate;
     };
@@ -335,10 +344,10 @@ export class Chooser {
           const refreshed = u ? this.entryFor(u, it, costOf) : null;
           // On ne change de recette que pour un gain réel : les départages (taille, id)
           // ne suffisent pas, sinon une boucle « gratuite » pourrait l'emporter.
-          if (candidate.id !== current.id && (!refreshed || strictlyBetter(candidate.cost, refreshed.cost, this.opts.criterion))) {
+          if (candidate.id !== current.id && (!refreshed || strictlyBetter(candidate.cost, refreshed.cost, this.opts.criterion, this.opts.then))) {
             best.set(it, candidate);
             changed = true;
-          } else if (refreshed && !sameCost(refreshed.cost, current.cost) && !strictlyBetter(current.cost, refreshed.cost, this.opts.criterion)) {
+          } else if (refreshed && !sameCost(refreshed.cost, current.cost) && !strictlyBetter(current.cost, refreshed.cost, this.opts.criterion, this.opts.then)) {
             // Les coûts ne font que baisser (principe du point fixe) : une hausse vient d'une boucle, on l'ignore.
             best.set(it, refreshed);
             changed = true;

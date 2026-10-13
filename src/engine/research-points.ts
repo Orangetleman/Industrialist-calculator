@@ -123,6 +123,8 @@ export type RpRequest = {
   satellites: boolean;
   logic: boolean;
   criterion: Criterion;
+  /** Critères suivants, dans l'ordre : ils départagent les solutions égales sur le premier. */
+  then?: Criterion[];
   useUnverified?: boolean;
   selfPowered?: boolean;
   existing?: Record<string, number>;
@@ -222,7 +224,7 @@ function designFor(p: RpParams, data: GameData, kind: StationKind, items: string
  */
 export function designResearch(data: GameData, player: PlayerState, p: RpParams, req: RpRequest): RpResult {
   const warnings: string[] = [];
-  const chooser = new Chooser(data, player, { criterion: req.criterion, forced: {}, useUnverified: !!req.useUnverified, pollutionPct: player.pollutionPct ?? null });
+  const chooser = new Chooser(data, player, { criterion: req.criterion, then: req.then, forced: {}, useUnverified: !!req.useUnverified, pollutionPct: player.pollutionPct ?? null });
   const available = (kind: StationKind) => STATION[kind].every((m) => machineAccess(data, player, m).available);
   const kinds = (req.kinds ?? (["rs1", "rs2", "rs3", "rs4"] as StationKind[])).filter(available);
   if (!kinds.length) return { best: null, others: [], warnings: ["Aucune station de recherche débloquée."] };
@@ -260,7 +262,7 @@ export function designResearch(data: GameData, player: PlayerState, p: RpParams,
   const lpUnit = new Map<string, number>();
   const unitOf = (id: string): number => {
     if (!lpUnit.has(id)) {
-      const pl = solve(data, player, { item: id, ratePerMin: 1, criterion: req.criterion, useUnverified: req.useUnverified, existing: req.existing, tiers: false });
+      const pl = solve(data, player, { item: id, ratePerMin: 1, criterion: req.criterion, then: req.then, useUnverified: req.useUnverified, existing: req.existing, tiers: false });
       lpUnit.set(id, pl.status === "ok" ? metricOf(pl, { buildings: 0, cost: 0, power: 0 }) : 1e12);
     }
     return lpUnit.get(id)!;
@@ -318,6 +320,7 @@ export function designResearch(data: GameData, player: PlayerState, p: RpParams,
       item: "",
       demands: design.consumption,
       criterion: req.criterion,
+      then: req.then,
       useUnverified: req.useUnverified,
       selfPowered: req.selfPowered,
       existing: req.existing,

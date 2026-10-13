@@ -14,7 +14,8 @@ import { renderVerify } from "./render.ts";
 import { currentRp, exportProgress, parseOptional, parseProgressExport, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { builtFor, CRITERIA, DEFAULT_SETTINGS, GOALS, isOverridesFile, loadSettings, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setBuilt, setCorrection } from "./state.ts";
+import { moveBefore, moveItem } from "./prio-list.ts";
+import { builtFor, CRITERIA, criteriaList, DEFAULT_SETTINGS, GOALS, isOverridesFile, loadSettings, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setBuilt, setCorrection } from "./state.ts";
 
 describe("mise en forme", () => {
   it("nombres et puissances au format français", () => {
@@ -257,11 +258,16 @@ describe("vue d'un plan : réponse, liste de construction, schéma, détails", (
 describe("priorité (critère) expliquée, par objectif", () => {
   it("chaque objectif propose ses priorités, avec un libellé et une explication", () => {
     for (const g of GOALS) {
-      expect(CRITERIA[g]).toContain(DEFAULT_SETTINGS.criteria[g]);
+      expect([...DEFAULT_SETTINGS.criteria[g]].sort()).toEqual([...CRITERIA[g]].sort()); // toutes, dans un ordre
       for (const c of CRITERIA[g]) expect(criterionHint(g, c)).toContain(CRITERION_TEXT[c].label);
     }
     expect(CRITERIA["énergie"]).not.toContain("energy");
     expect(CRITERIA["énergie"]).not.toContain("steps");
+  });
+
+  it("liste des priorités : complétée, sans doublon ni priorité hors sujet", () => {
+    expect(criteriaList("énergie", ["cost", "energy", "cost"])).toEqual(["cost", "machines", "raw", "pollution", "area"]);
+    expect(criteriaList("recherche", "nimporte")).toEqual(DEFAULT_SETTINGS.criteria.recherche);
   });
 
   it("reprend l'ancien critère unique comme priorité de l'objectif objet", () => {
@@ -271,13 +277,26 @@ describe("priorité (critère) expliquée, par objectif", () => {
     g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: () => {} };
     try {
       const st = loadSettings();
-      expect(st.criteria.objet).toBe("cost");
-      expect(st.criteria["énergie"]).toBe(DEFAULT_SETTINGS.criteria["énergie"]); // « energy » n'a pas de sens pour l'objectif énergie
+      expect(st.criteria.objet[0]).toBe("cost"); // l'ancien choix unique passe en tête
+      expect(st.criteria.objet).toHaveLength(CRITERIA.objet.length);
+      expect(st.criteria["énergie"]).toEqual(DEFAULT_SETTINGS.criteria["énergie"]); // « energy » n'a pas de sens pour l'objectif énergie
       expect(st.goal).toBe("objet");
       expect(st.useExisting).toBe(true);
     } finally {
       g.localStorage = before;
     }
+  });
+});
+
+describe("liste à réordonner", () => {
+  it("↑ ↓ : échange avec la voisine, sans sortir de la liste", () => {
+    expect(moveItem(["a", "b", "c"], "b", -1)).toEqual(["b", "a", "c"]);
+    expect(moveItem(["a", "b", "c"], "c", 1)).toEqual(["a", "b", "c"]);
+  });
+  it("glisser sur une ligne : prend sa place, vers le haut comme vers le bas", () => {
+    expect(moveBefore(["a", "b", "c", "d"], "d", "b")).toEqual(["a", "d", "b", "c"]);
+    expect(moveBefore(["a", "b", "c", "d"], "a", "c")).toEqual(["b", "c", "a", "d"]);
+    expect(moveBefore(["a", "b"], "a", "a")).toEqual(["a", "b"]);
   });
 });
 

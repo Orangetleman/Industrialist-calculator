@@ -420,6 +420,11 @@ poteaux quand elle atteint toutes les prises. Les priorités sont une liste à r
 15 Craft Assemblers, place d'abord : 66 × 15 cases (66 × 19 avant). Reste : les modules très longs
 (rangées repliées), puis l'usine assemblée.
 
+Priorité principale du plan, elle aussi en liste à réordonner (2026-10-13, demande de
+l'utilisateur) : la première décide quand un objet se fabrique de plusieurs façons, les suivantes
+départagent les égalités (simplexe par niveaux et choix heuristique, `then` dans la requête). Repliée,
+la liste montre ses trois premières priorités sur une ligne.
+
 Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
 logique, liaisons directes entre ports, usine assemblée (E4b).
 

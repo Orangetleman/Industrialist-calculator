@@ -115,9 +115,11 @@
         <input id="money" type="number" min="1" step="any" inputmode="decimal">
       </label>
       <!-- commun -->
-      <label for="criterion">Priorité
-        <select id="criterion"></select>
-      </label>
+      <details class="criteria" id="criteria">
+        <summary><span class="criteria-title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit">changer l'ordre</span></summary>
+        <p class="hint">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise ↑ ↓.</p>
+        <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre"></ol>
+      </details>
       <p class="hint crit-hint" id="criterion-hint"></p>
       <p class="hint" id="goal-hint"></p>
 

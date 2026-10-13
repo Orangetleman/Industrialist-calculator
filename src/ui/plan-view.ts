@@ -27,15 +27,18 @@ export const CRITERION_TEXT: Record<Criterion, { label: string; why: string }> =
   steps: { label: "La chaîne la plus courte", why: "une seule recette par objet, avec le moins d'étapes, même s'il faut plus de machines." },
 };
 
-/** Phrase d'aide sous le menu « Priorité » : ce que fait le choix actuel. */
+/** Ce que fait une priorité, selon l'objectif. */
+export function criterionWhy(goal: Goal, c: Criterion): string {
+  return goal === "énergie" && c === "machines"
+    ? "garde les centrales qui demandent le moins de bâtiments (extraction du combustible comprise)."
+    : goal === "recherche" && c === "machines"
+      ? "garde l'installation qui demande le moins de bâtiments (stations et chaîne des items)."
+      : CRITERION_TEXT[c].why;
+}
+
+/** Phrase d'aide sous les priorités : ce que fait la première, et le rôle des suivantes. */
 export function criterionHint(goal: Goal, c: Criterion): string {
-  const why =
-    goal === "énergie" && c === "machines"
-      ? "garde les centrales qui demandent le moins de bâtiments (extraction du combustible comprise)."
-      : goal === "recherche" && c === "machines"
-        ? "garde l'installation qui demande le moins de bâtiments (stations et chaîne des items)."
-        : CRITERION_TEXT[c].why;
-  return `${CRITERION_TEXT[c].label} : ${why} C'est elle qui décide quand un objet se fabrique de plusieurs façons.`;
+  return `${CRITERION_TEXT[c].label} : ${criterionWhy(goal, c)} C'est elle qui décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité.`;
 }
 
 // ---------------------------------------------------------------- petits outils

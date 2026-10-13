@@ -15,6 +15,15 @@ export const CRITERIA: Record<Goal, Criterion[]> = {
   recherche: ["machines", "energy", "cost"],
 };
 
+/** Liste complète des priorités d'un objectif : celles enregistrées (valides, sans doublon), puis les autres. */
+export function criteriaList(goal: Goal, raw: unknown): Criterion[] {
+  const allowed = CRITERIA[goal];
+  const asked = (Array.isArray(raw) ? raw : [raw]).filter((c): c is Criterion => allowed.includes(c as Criterion));
+  const seen = [...new Set(asked)];
+  const rest = DEFAULT_SETTINGS.criteria[goal].filter((c) => !seen.includes(c));
+  return [...seen, ...rest];
+}
+
 export type ResultTab = "liste" | "schema" | "pose" | "details";
 
 export type Settings = {
@@ -25,7 +34,8 @@ export type Settings = {
   rate: number;
   machines: number;
   /** Priorité de chaque objectif (critère d'optimisation). */
-  criteria: Record<Goal, Criterion>;
+  /** Priorités par objectif, dans l'ordre : la première décide, les suivantes départagent. */
+  criteria: Record<Goal, Criterion[]>;
   useUnverified: boolean;
   forced: Record<string, string>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
@@ -71,7 +81,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: "rate",
   rate: 60,
   machines: 15,
-  criteria: { objet: "energy", argent: "machines", énergie: "machines", recherche: "machines" },
+  criteria: { objet: ["energy", "machines", "cost", "pollution", "area", "raw", "steps"], argent: ["machines", "energy", "cost", "pollution", "area", "raw"], énergie: ["machines", "cost", "raw", "pollution", "area"], recherche: ["machines", "energy", "cost"] },
   useUnverified: false,
   forced: {},
   money: 10000,
@@ -127,7 +137,8 @@ export function loadSettings(): Settings {
   const out: Settings = { ...DEFAULT_SETTINGS, ...rest };
   const saved = (rest.criteria && typeof rest.criteria === "object" ? rest.criteria : {}) as Partial<Record<Goal, unknown>>;
   if (typeof old === "string" && saved.objet === undefined) saved.objet = old;
-  out.criteria = Object.fromEntries(GOALS.map((g) => [g, CRITERIA[g].includes(saved[g] as Criterion) ? saved[g] : DEFAULT_SETTINGS.criteria[g]])) as Settings["criteria"];
+  // Ancien format : une seule priorité par objectif ; elle passe en tête de la liste.
+  out.criteria = Object.fromEntries(GOALS.map((g) => [g, criteriaList(g, saved[g])])) as Settings["criteria"];
   if (!GOALS.includes(out.goal)) out.goal = "objet";
   out.useExisting = out.useExisting !== false;
   if (!["liste", "schema", "pose", "details"].includes(out.resultTab)) out.resultTab = "liste";

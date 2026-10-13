@@ -186,3 +186,26 @@ describe("production existante du joueur", () => {
     expect(plan.unresolved).toEqual([]);
   });
 });
+
+describe("priorités dans l'ordre : les suivantes départagent les égalités", () => {
+  // Deux recettes de même surface : l'une moins chère, l'autre sans énergie.
+  const recipes: R[] = [
+    { id: "cheap", machine: "ma", t: 1, e: 1000, out: { x: 1 } },
+    { id: "green", machine: "mb", t: 1, e: 0, out: { x: 1 } },
+  ];
+  const machines = [
+    { id: "ma", size: [2, 2] as [number, number], cost: 100 },
+    { id: "mb", size: [2, 2] as [number, number], cost: 500 },
+  ];
+  const d = makeData({ recipes, machines });
+  const pick = (then?: ("cost" | "energy")[]) => solve(d, all, { item: "x", ratePerMin: 60, criterion: "area", then }).steps.find((s) => s.item === "x")!.recipeId;
+
+  it("le premier critère ne départage pas (même surface) : le suivant décide", () => {
+    expect(pick(["cost"])).toBe("cheap");
+    expect(pick(["energy"])).toBe("green");
+  });
+
+  it("sans liste : l'ordre habituel (surface, machines, énergie…)", () => {
+    expect(pick()).toBe("green");
+  });
+});

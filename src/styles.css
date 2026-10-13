@@ -224,6 +224,17 @@ button.link.have:hover { color: var(--steel); }
 .pose-pick { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); max-width: 100%; }
 .pose-pick select { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 7px 10px; font-size: .92rem; max-width: 100%; }
 .mod-sum { font-size: .92rem; }
+.criteria { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+.criteria > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; list-style: none; }
+.criteria > summary::-webkit-details-marker { display: none; }
+.criteria-title { font-weight: 600; }
+.criteria-order { display: inline-flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; font-size: .9rem; }
+.criteria-order .ord b { font-family: var(--f-mono); color: var(--accent); margin-right: 2px; }
+.criteria-order .ord:not(:first-child) { color: var(--muted); }
+.criteria-order .sep { color: var(--muted); }
+.criteria-edit { margin-left: auto; color: var(--steel); text-decoration: underline; font-size: .85rem; }
+.criteria[open] .criteria-edit { visibility: hidden; }
+.criteria .prio-list { margin: 6px 0 4px; }
 .pose-prio { margin: 8px 0; }
 .pose-prio-title { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 4px; }
 .pose-prio-title .hint { font-weight: 400; }

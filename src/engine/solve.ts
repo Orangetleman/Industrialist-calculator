@@ -44,6 +44,8 @@ export type SolveRequest = {
   poles?: PoleSpec[];
   distanceTiles?: number | null;
   criterion?: Criterion;
+  /** Critères suivants, dans l'ordre : ils départagent les solutions égales sur le premier. */
+  then?: Criterion[];
   forced?: Record<string, string>;
   useUnverified?: boolean;
   /** La chaîne produit sa propre énergie avec les générateurs débloqués. */
@@ -225,6 +227,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const extraLoad = Math.max(0, req.extraLoadMFps ?? 0);
   const chooser = new Chooser(data, player, {
     criterion,
+    then: req.then,
     forced: req.forced ?? {},
     useUnverified: !!req.useUnverified,
     pollutionPct: player.pollutionPct ?? null,
@@ -264,6 +267,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   const run = (rate: number) =>
     optimize(model, {
       criterion,
+      then: req.then,
       demand: multi ? demands : noItem ? new Map() : new Map([[req.item, rate]]),
       moneyPerMin: moneyMode ? rate : null,
       selfPowered: energyMode || !!req.selfPowered,

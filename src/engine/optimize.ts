@@ -10,11 +10,13 @@
 //   4. les autres critères : machines, énergie, matières premières.
 
 import { solveLexicographic, solveLP, type LP, type Row, type Term } from "./lp.ts";
-import type { Criterion } from "./choose.ts";
+import { tieOrder, type Criterion } from "./choose.ts";
 import type { FlowModel } from "./resources.ts";
 
 export type OptimizeRequest = {
   criterion: Criterion;
+  /** Critères suivants, dans l'ordre : ils départagent les solutions égales sur le premier. */
+  then?: Criterion[];
   /** Demande par item (/min) : la cible en mode objet. */
   demand: Map<string, number>;
   /** Objectif argent ($/min) ; null en mode objet. */
@@ -124,7 +126,7 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
 
   const machinesObj: Term[] = [...R.map((p, j): Term => [j, p.units]), ...depots.map((d): Term => [d.col, 1])];
   // Avec des Scrubbers, « moins de pollution » s'arrête à zéro (sinon : Scrubbers à l'infini).
-  if (req.criterion === "pollution" && pollutionTerms.some(([, v]) => v < 0)) rows.push({ terms: pollutionTerms, op: ">=", rhs: 0 });
+  if ((req.criterion === "pollution" || req.then?.includes("pollution")) && pollutionTerms.some(([, v]) => v < 0)) rows.push({ terms: pollutionTerms, op: ">=", rhs: 0 });
   const objectives: Built["objectives"] = {
     imports: [
       ...imports.map((im): Term => [im.col, (req.demand.get(im.item) ?? 0) > 0 ? TARGET_PENALTY : 1]),
@@ -146,12 +148,13 @@ export function build(model: FlowModel, req: OptimizeRequest, loopImports: boole
   return { lp: { nVars: n, rows }, imports, energyCol, sells, supplies, depots, objectives, pollutionRow, budgetRow };
 }
 
-function levels(b: Built, criterion: Criterion): Term[][] {
+/** Niveaux d'optimisation : les manques, le critère, ceux choisis ensuite, puis l'ordre habituel. */
+function levels(b: Built, criterion: Criterion, then: Criterion[] = []): Term[][] {
   const out: Term[][] = [];
   if (b.objectives.imports.length) out.push(b.objectives.imports);
-  out.push(b.objectives[criterion]);
-  if (criterion !== "area") out.push(b.objectives.area);
-  for (const k of ["machines", "energy", "raw"] as const) if (k !== criterion && !(criterion === "steps" && k === "machines")) out.push(b.objectives[k]);
+  // « Étapes » se compte comme les machines une fois les recettes choisies.
+  const keys = tieOrder(criterion, then).map((k) => (k === "steps" ? "machines" : k));
+  for (const k of [...new Set(keys)]) out.push(b.objectives[k]);
   return out.filter((t) => t.length);
 }
 
@@ -197,7 +200,7 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
 
   // 3. Optimisation par niveaux, sur un ensemble de variables autorisées.
   const full = withRows(b, constraints);
-  const lv = levels(b, req.criterion);
+  const lv = levels(b, req.criterion, req.then);
   const nR = model.recipes.length;
   const hasImports = b.objectives.imports.length > 0;
   const solveOn = (allowed: (j: number) => boolean): number[] | null => {

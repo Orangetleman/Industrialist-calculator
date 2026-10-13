@@ -19,6 +19,7 @@ import { designModule, requestFromStep, type ModulePlan, type PoseCriterion } fr
 import { renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
+import type { Criterion } from "../engine/choose.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import type { EnergyFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
 import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
@@ -46,6 +47,7 @@ import {
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
+import { bindPrioList, focusItem, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeTitle, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
@@ -53,7 +55,7 @@ import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layo
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
-import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import {
   builtFor,
   cleanNotes,
@@ -61,7 +63,6 @@ import {
   loadNotes,
   saveNotes,
   type Notes,
-  CRITERIA,
   isOverridesFile,
   loadBuilt,
   loadCorrections,
@@ -295,7 +296,7 @@ function computeResearch(): ResearchView | null {
     const itemPlan = solve(data, ps, {
       item: settings.item,
       ...(settings.mode === "rate" ? { ratePerMin: settings.rate } : { finalMachines: settings.machines }),
-      criterion: settings.criteria.objet,
+      criterion: settings.criteria.objet[0], then: settings.criteria.objet.slice(1),
       forced: settings.forced,
       useUnverified: settings.useUnverified,
       tiers: false,
@@ -315,7 +316,7 @@ function computeResearch(): ResearchView | null {
           capNeeded,
           satellites: settings.rpSatellites,
           logic: settings.rpLogic,
-          criterion: settings.criteria.recherche,
+          criterion: settings.criteria.recherche[0]!, then: settings.criteria.recherche.slice(1),
           useUnverified: settings.useUnverified,
           selfPowered: settings.selfPowered,
           existing: settings.useExisting ? settings.existing : {},
@@ -355,7 +356,7 @@ function ensurePlan(): void {
       ...target,
       poles: POLES,
       distanceTiles: settings.distanceTiles === null ? null : settings.distanceTiles / CELLS_PER_TILE,
-      criterion: settings.criteria[goal],
+      criterion: settings.criteria[goal][0], then: settings.criteria[goal].slice(1),
       forced: settings.forced,
       useUnverified: settings.useUnverified,
       selfPowered: settings.selfPowered,
@@ -477,15 +478,8 @@ function renderPlanPage(): void {
   $("rp-minutes-label").hidden = goal !== "recherche" || settings.rpMode === "rate";
   syncForm();
 
-  // Priorité : seulement celles qui ont un sens pour cet objectif, avec ce qu'elle fait.
-  const crit = $<HTMLSelectElement>("criterion");
-  const options = CRITERIA[goal];
-  if (crit.dataset.goal !== goal) {
-    crit.innerHTML = options.map((c) => `<option value="${c}">${esc(CRITERION_TEXT[c].label)}</option>`).join("");
-    crit.dataset.goal = goal;
-  }
-  crit.value = settings.criteria[goal];
-  $("criterion-hint").textContent = criterionHint(goal, settings.criteria[goal]);
+  // Priorités : seulement celles qui ont un sens pour cet objectif, dans l'ordre du joueur.
+  renderCriteria();
 
   // Textes d'aide propres à l'objectif.
   const existingN = Object.keys(settings.existing).length;
@@ -625,20 +619,35 @@ const CRIT_TEXT: Record<PoseCriterion, { label: string; why: string }> = {
   pieces: { label: "Pièces à poser", why: "le moins de tuyaux et de poteaux à placer" },
 };
 
+/** Priorités du plan (objectif en cours) : l'ordre en une ligne, la liste à réordonner dépliée. */
+function renderCriteria(): void {
+  const goal = settings.goal;
+  const list = settings.criteria[goal];
+  // Repliée : les trois premières suffisent (les suivantes ne jouent qu'à égalité).
+  $("criteria-order").innerHTML =
+    list
+      .slice(0, 3)
+      .map((c, i) => `<span class="ord"><b>${i + 1}</b> ${esc(CRITERION_TEXT[c].label)}</span>`)
+      .join(`<span class="sep" aria-hidden="true">›</span>`) + (list.length > 3 ? `<span class="sep">› …</span>` : "");
+  $("criteria-list").innerHTML = renderPrioItems(list.map((c, i) => ({ key: c, label: CRITERION_TEXT[c].label, why: i === 0 ? criterionWhy(goal, c) : CRITERION_TEXT[c].why })));
+  $("criterion-hint").textContent = criterionHint(goal, list[0]!);
+}
+
+function setCriteria(list: Criterion[], focus?: Criterion): void {
+  settings.criteria = { ...settings.criteria, [settings.goal]: list };
+  update();
+  if (focus) focusItem($("criteria-list"), focus);
+}
+
 function renderPriority(): void {
-  const list = settings.posePriority;
-  $("pose-priority").innerHTML = list
-    .map(
-      (k, i) => `<li draggable="true" data-crit="${k}"><span class="grip" aria-hidden="true">⋮⋮</span><span class="rank">${i + 1}</span><span class="crit"><b>${esc(CRIT_TEXT[k].label)}</b> <span class="hint">${esc(CRIT_TEXT[k].why)}</span></span><button type="button" class="mv" data-move="-1" aria-label="Monter ${esc(CRIT_TEXT[k].label)}"${i === 0 ? " disabled" : ""}>↑</button><button type="button" class="mv" data-move="1" aria-label="Descendre ${esc(CRIT_TEXT[k].label)}"${i === list.length - 1 ? " disabled" : ""}>↓</button></li>`,
-    )
-    .join("");
+  $("pose-priority").innerHTML = renderPrioItems(settings.posePriority.map((k) => ({ key: k, ...CRIT_TEXT[k] })));
 }
 
 function setPriority(list: PoseCriterion[], focus?: PoseCriterion): void {
   settings.posePriority = list;
   saveSettings(settings);
   renderPose();
-  if (focus) $("pose-priority").querySelector<HTMLButtonElement>(`[data-crit="${focus}"] .mv:not(:disabled)`)?.focus();
+  if (focus) focusItem($("pose-priority"), focus);
 }
 
 function moduleOf(key: string): ModulePlan | null {
@@ -1131,10 +1140,7 @@ function bindPlan(): void {
       update();
     });
   }
-  $("criterion").addEventListener("change", (e) => {
-    settings.criteria = { ...settings.criteria, [settings.goal]: (e.target as HTMLSelectElement).value as Settings["criteria"][Goal] };
-    update();
-  });
+  bindPrioList($("criteria-list"), () => settings.criteria[settings.goal], setCriteria);
   $("query").addEventListener("submit", (e) => e.preventDefault());
 
   // Onglets du résultat (flèches gauche/droite comme des onglets).
@@ -1188,47 +1194,7 @@ function bindPlan(): void {
     setPriority([k, ...settings.posePriority.filter((x) => x !== k)]);
   });
   // Liste des priorités : ↑ ↓, ou glisser une ligne.
-  const prio = $("pose-priority");
-  prio.addEventListener("click", (e) => {
-    const b = (e.target as Element).closest<HTMLButtonElement>("[data-move]");
-    if (!b) return;
-    const k = b.closest<HTMLElement>("[data-crit]")!.dataset.crit as PoseCriterion;
-    const list = [...settings.posePriority];
-    const i = list.indexOf(k);
-    const j = i + Number(b.dataset.move);
-    if (j < 0 || j >= list.length) return;
-    [list[i], list[j]] = [list[j]!, list[i]!];
-    setPriority(list, k);
-  });
-  let dragged: PoseCriterion | null = null;
-  prio.addEventListener("dragstart", (e) => {
-    const li = (e.target as Element).closest<HTMLElement>("[data-crit]");
-    if (!li) return;
-    dragged = li.dataset.crit as PoseCriterion;
-    li.classList.add("dragging");
-    e.dataTransfer?.setData("text/plain", dragged);
-  });
-  prio.addEventListener("dragover", (e) => {
-    if (!dragged) return;
-    e.preventDefault();
-    const li = (e.target as Element).closest<HTMLElement>("[data-crit]");
-    for (const x of prio.querySelectorAll(".drop")) x.classList.remove("drop");
-    if (li && li.dataset.crit !== dragged) li.classList.add("drop");
-  });
-  prio.addEventListener("dragend", () => {
-    dragged = null;
-    for (const x of prio.querySelectorAll(".dragging, .drop")) x.classList.remove("dragging", "drop");
-  });
-  prio.addEventListener("drop", (e) => {
-    e.preventDefault();
-    const li = (e.target as Element).closest<HTMLElement>("[data-crit]");
-    if (!dragged || !li) return;
-    const to = li.dataset.crit as PoseCriterion;
-    const list = settings.posePriority.filter((x) => x !== dragged);
-    list.splice(settings.posePriority.indexOf(to), 0, dragged);
-    dragged = null;
-    setPriority(list);
-  });
+  bindPrioList($("pose-priority"), () => settings.posePriority, setPriority);
   $("pose-tier3").addEventListener("change", (e) => {
     settings.tier3Only = (e.target as HTMLInputElement).checked;
     saveSettings(settings);
