@@ -97,18 +97,18 @@ describe("éditeur de bâtiments", () => {
 
   it("les plans de pose utilisent les relevés locaux, qui l'emportent sur le dépôt", () => {
     const repo = portsJson as unknown as PortsFile;
-    expect(repo.machines["bottling-plant"]).toBeUndefined(); // le cas signalé : pas dans le dépôt
-    const bottling: PortsEntry = { footprint: { w: 6, h: 4 }, ports: [{ side: "gauche", cell: 1, type: "objet", direction: "entrée" }], source: src };
+    expect(repo.machines["oil-rig"]).toBeUndefined(); // pas encore dans le dépôt
+    const rig: PortsEntry = { footprint: { w: 6, h: 4 }, ports: [{ side: "gauche", cell: 1, type: "objet", direction: "entrée" }], source: src };
     const press: PortsEntry = { ...repo.machines.press!, ports: [], source: src };
-    const local = { "bottling-plant": bottling, press };
+    const local = { "oil-rig": rig, press };
     const merged = mergeSurveys(repo, local);
-    expect(merged["bottling-plant"]).toBe(bottling);
+    expect(merged["oil-rig"]).toBe(rig);
     expect(merged.press).toBe(press);
     expect(merged.roller).toBe(repo.machines.roller);
-    expect(surveyState("bottling-plant", repo, local)).toBe("local");
+    expect(surveyState("oil-rig", repo, local)).toBe("local");
     expect(surveyState("press", repo, local)).toBe("local");
     expect(surveyState("roller", repo, local)).toBe("depot");
-    expect(surveyState("bottling-plant", repo, {})).toBe("manquant");
+    expect(surveyState("oil-rig", repo, {})).toBe("manquant");
   });
 
   it("molette sur la capture : le point sous la souris ne bouge pas", () => {

@@ -687,7 +687,9 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
 }
 
 /**
- * Réseau : pour transporter P MF/s, il faut ⌈P / débit par nœud⌉ lignes de câble ; sur une distance
+ * Réseau : pour transporter P MF/s, il faut ⌈P / capacité du poteau⌉ lignes de câble (capacité = débit
+ * par nœud × nombre de nœuds : un poteau compte comme si tous ses nœuds étaient reliés, relevé du
+ * 2026-10-13) ; sur une distance
  * D (cases), chaque ligne demande ⌈D / portée⌉ + 1 poteaux. Indicatif : la règle des couleurs de
  * nœuds et le tracé réel viendront avec les plans de construction (E4).
  */
@@ -696,7 +698,7 @@ function distributionOf(data: GameData, player: PlayerState, req: SolveRequest, 
   if (!poles.length) return null;
   const d = req.distanceTiles != null && req.distanceTiles > 0 ? req.distanceTiles : null;
   const options = poles.map((p) => {
-    const lines = Math.ceil(mfps / p.perNodeMFps - 1e-9);
+    const lines = Math.ceil(mfps / (p.perNodeMFps * Math.max(1, p.nodes)) - 1e-9);
     const polesPerLine = d !== null && p.rangeTiles ? Math.ceil(d / p.rangeTiles - 1e-9) + 1 : null;
     const poles = polesPerLine === null ? null : lines * polesPerLine;
     const unit = data.machines.get(p.id)?.cost ?? null;

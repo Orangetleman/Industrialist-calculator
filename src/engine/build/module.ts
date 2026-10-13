@@ -304,7 +304,7 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
   const plugs = l.machines.flatMap((m) => m.power.filter((p) => p.type === "énergie" && p.direction !== "sortie").map((p) => ({ m: m.id, x: p.x, y: p.y })));
   if (!plugs.length) return { poles: [], problems: [], pole: null };
   const each = req.powerMFps ?? 0;
-  const types = cat.poles.filter((p) => p.perNodeMFps >= each);
+  const types = cat.poles.filter((p) => p.capacityMFps >= each);
   if (!types.length) return { poles: [], problems: [{ level: "attention", message: "Aucun poteau connu ne porte la consommation d'une machine." }], pole: null };
   // Une seule file (au-dessus ou au-dessous) quand elle atteint toutes les prises : deux rangées de moins.
   const pick = (use: FileUse) => {
@@ -321,7 +321,7 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
     if (f.feeds > 1)
       problems.push({
         level: "attention",
-        message: `File de poteaux ${f.label} : ${Math.round(f.load).toLocaleString("fr-FR")} MF/s, plus que ce que porte un ${name(best.pole.id)} (${best.pole.perNodeMFps.toLocaleString("fr-FR")} MF/s) : alimente-la par ${f.feeds} lignes séparées.`,
+        message: `File de poteaux ${f.label} : ${Math.round(f.load).toLocaleString("fr-FR")} MF/s, plus que ce que porte un ${name(best.pole.id)} (${best.pole.capacityMFps.toLocaleString("fr-FR")} MF/s, tous ses nœuds) : alimente-la par ${f.feeds} lignes séparées.`,
       });
   }
   return { poles: best.poles, problems, pole: best.pole };
@@ -396,7 +396,7 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
     }
     poles.push(...row);
     const load = new Set(mine.map((p) => p.m)).size * each;
-    files.push({ label: ri === 0 ? "du haut" : "du bas", load, feeds: Math.max(1, Math.ceil(load / pole.perNodeMFps - 1e-9)) });
+    files.push({ label: ri === 0 ? "du haut" : "du bas", load, feeds: Math.max(1, Math.ceil(load / pole.capacityMFps - 1e-9)) });
   });
   if (files.length === 2 && rows[1]! - rows[0]! > R) {
     problems.push({ level: "attention", message: `Les deux files de poteaux sont à ${rows[1]! - rows[0]!} cases l'une de l'autre, plus que la portée (${num(R)}) : relie-les par un poteau sur le côté du module.` });

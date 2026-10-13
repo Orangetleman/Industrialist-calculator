@@ -555,4 +555,9 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
 - **2026-10-13, Rusty Pipe Intersection** (capture vue de dessus) : socle 2 × 2 cases, une croix
   dont les deux tuyaux se croisent sur une case décentrée du socle, un raccord au bout de chaque
   bras. À confirmer avant de l'utiliser : longueur de chaque bras et case exacte du croisement.
+- **2026-10-13, poteaux électriques** : un poteau a plusieurs nœuds (1, 2 ou 4 selon le modèle, comme
+  sur le wiki : Small MV 1, LV et MV 2, Advanced MV et HMVT 4) ; sa capacité est la somme de celle de
+  ses nœuds, et il peut se relier à autant d'engins qu'il faut. Les câbles sont des vecteurs : un seul
+  sens par liaison. **Fait** : capacité = débit par nœud × nœuds, dans les plans de pose et le réseau
+  de l'objectif énergie. Relevés de 13 bâtiments intégrés à `data/ports.json` (dont les poteaux).
 <!-- notes-manuelles:fin -->

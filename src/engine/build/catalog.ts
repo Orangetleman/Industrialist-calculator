@@ -16,7 +16,7 @@ export type Catalog = {
   /** Croisement d'une case (deux lignes qui se croisent sans se mélanger), par paire de types. */
   crossings: { objet: Piece | null; fluide: Piece | null; mixte: Piece | null };
   /** Portée en tuiles (unité du wiki) et en cases : relevé en jeu, une tuile = deux cases. */
-  poles: { id: string; name: string; perNodeMFps: number; nodes: number; rangeTiles: number; rangeCells: number; size: { w: number; h: number }; price: number | null }[];
+  poles: { id: string; name: string; perNodeMFps: number; nodes: number; /** Capacité du poteau : la somme de ses nœuds (relevé du 2026-10-13 : on compte le poteau comme si tous ses nœuds étaient reliés). */ capacityMFps: number; rangeTiles: number; rangeCells: number; size: { w: number; h: number }; price: number | null }[];
   /** Hypothèses faites faute de donnée, à confirmer en jeu (affichées avec chaque plan). */
   assumptions: string[];
 };
@@ -48,6 +48,7 @@ export function buildCatalog(logistics: LogisticsFile, power: PowerFile, poleRan
       id: e.id,
       name: e.name,
       perNodeMFps: e.transfer!.perNode,
+      capacityMFps: e.transfer!.perNode * Math.max(1, e.transfer!.nodes ?? 1),
       nodes: e.transfer!.nodes,
       rangeTiles: poleRangeTiles[e.id] ?? e.rangeTiles?.tiles ?? 0,
       rangeCells: (poleRangeTiles[e.id] ?? e.rangeTiles?.tiles ?? 0) * cellsPerTile,

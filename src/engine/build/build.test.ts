@@ -75,6 +75,13 @@ describe("routage", () => {
     expect(route(g, "a", { x: 3, y: 0 }, "N", { x0: 0, y0: 0, x1: 6, y1: 4 }, (c) => Math.abs(c.y - 4))).toBe(false);
   });
 
+  it("capacité d'un poteau : la somme de ses nœuds (relevé du 2026-10-13)", () => {
+    const hmvt = cat.poles.find((p) => p.id === "hmvt")!;
+    expect(hmvt.nodes).toBe(4);
+    expect(hmvt.capacityMFps).toBe(hmvt.perNodeMFps * 4);
+    expect(cat.poles.find((p) => p.id === "small-mv-pole")!.capacityMFps).toBe(cat.poles.find((p) => p.id === "small-mv-pole")!.perNodeMFps);
+  });
+
   it("choisit le tuyau le moins cher qui porte le débit", () => {
     expect(pipeFor(cat, "objet", 4)?.tier).toBe(1);
     expect(pipeFor(cat, "objet", 50)?.tier).toBe(3);
