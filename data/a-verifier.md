@@ -560,4 +560,7 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
   ses nœuds, et il peut se relier à autant d'engins qu'il faut. Les câbles sont des vecteurs : un seul
   sens par liaison. **Fait** : capacité = débit par nœud × nœuds, dans les plans de pose et le réseau
   de l'objectif énergie. Relevés de 13 bâtiments intégrés à `data/ports.json` (dont les poteaux).
+- **2026-10-14, portée des câbles** : la même entre deux poteaux et d'un poteau vers une machine ; mais
+  quand le câble part d'une machine qui produit de l'électricité (générateur…), la portée est celle de
+  cette machine. **À relever** : la portée de câble de chaque générateur (aucune donnée pour l'instant).
 <!-- notes-manuelles:fin -->
