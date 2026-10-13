@@ -24,7 +24,18 @@ export type ModuleRequest = {
   tier3Only?: boolean;
   /** Ce qui départage les dispositions, dans l'ordre (par défaut : place, prix, pièces). */
   priority?: PoseCriterion[];
+  /**
+   * Bout par lequel chaque collecteur (par ressource) entre ou sort du module : « début » (à gauche de la
+   * rangée) ou « fin » (à droite). Par défaut, les entrées au début et les sorties à la fin. Sert à tourner
+   * les sorties d'un module vers ses voisins quand toute l'usine est assemblée.
+   */
+  ends?: Record<string, "début" | "fin">;
+  /** Module replié : le tuyau principal de chaque ressource arrive ou part par le haut (défaut) ou par le bas. */
+  trunkExit?: Record<string, "haut" | "bas">;
 };
+
+/** Disposition retenue, pour refaire le même module avec d'autres bouts (`redesign`). */
+type FlatConfig = { assign: Assign[]; double: boolean; rot: Rot; sides: Record<string, "haut" | "bas"> | null; hug: boolean; extra: number };
 
 /** Critères des plans de pose : place au sol, forme ramassée (plus grand côté), prix, pièces à poser. */
 export type PoseCriterion = "place" | "forme" | "prix" | "pieces";
@@ -57,6 +68,8 @@ export type ModulePlan = {
   template: "rangée" | "double rangée";
   /** Rangées repliées : le module est fait de `folds` blocs empilés (1 : pas replié). */
   folds: number;
+  /** Les blocs d'un module replié (pour `redesign`). */
+  blocks?: ModulePlan[];
   rot: Rot;
   /** Ports relevés en jeu, ou supposés faute de relevé. */
   portsKnown: boolean;
@@ -72,6 +85,8 @@ export type ModulePlan = {
   problems: Problem[];
   assumptions: string[];
   order: string[];
+  /** Disposition retenue (rangée simple ou double), pour `redesign`. */
+  config?: FlatConfig;
   /** Ordre des critères qui a choisi ce module, et ce que donnerait le 2e critère mis en premier. */
   priority: PoseCriterion[];
   other: { first: PoseCriterion; width: number; height: number; cost: number; pieces: number; crossings: number; template: ModulePlan["template"]; folds: number } | null;
@@ -266,7 +281,9 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   for (const n of nets) {
     const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
     const y = laneRow(n.id);
-    const lane = n.role === "entrée" ? { y, x0: 0, x1: Math.max(...xs) } : { y, x0: Math.min(...xs), x1: bounds.x1 };
+    // Bout du collecteur : au début (colonne 0, à gauche) ou à la fin (dernière colonne, à droite).
+    const atEnd = (req.ends?.[n.item] ?? (n.role === "entrée" ? "début" : "fin")) === "fin";
+    const lane = atEnd ? { y, x0: Math.min(...xs), x1: bounds.x1 } : { y, x0: 0, x1: Math.max(...xs) };
     for (let x = lane.x0; x <= lane.x1; x++) {
       // Un collecteur collé passe sur les cases de raccord des ports qui lui font face, pas ailleurs.
       const o = grid.get({ x, y });
@@ -274,9 +291,9 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
       if (o && !(o.kind === "réservé" && (facing === "N" || facing === "S"))) return null;
     }
     grid.straight({ x: lane.x0, y }, { x: lane.x1, y }, n.id);
-    grid.link({ x: n.role === "entrée" ? lane.x0 : lane.x1, y }, n.role === "entrée" ? "W" : "E", n.id); // arrivée ou départ
+    grid.link({ x: atEnd ? lane.x1 : lane.x0, y }, atEnd ? "E" : "W", n.id); // arrivée ou départ
     n.lane = lane;
-    n.end = n.role === "entrée" ? { x: lane.x0, y, dir: "W" } : { x: lane.x1, y, dir: "E" };
+    n.end = atEnd ? { x: lane.x1, y, dir: "E" } : { x: lane.x0, y, dir: "W" };
   }
   // Raccords : du port vers le collecteur, les plus proches d'abord.
   const order = [...allPorts].sort((a, b) => Math.abs(a.p.cell.y - laneRow(a.net)) - Math.abs(b.p.cell.y - laneRow(b.net)) || a.p.cell.x - b.p.cell.x);
@@ -430,6 +447,7 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       const l = layout(e, c.assign, r, c.rot, c.double, extra, cat, name, c.sides, c.hug);
       if (!l) continue;
       last = finish(l, r, portsKnown, cat, [...c.problems, ...l.problems], name);
+      last.config = { assign: c.assign, double: c.double, rot: c.rot, sides: c.sides, hug: c.hug, extra };
       // Plus d'espace entre les machines n'aide que si un raccord n'a pas trouvé de chemin.
       if (!l.problems.some((p) => p.level === "erreur" && p.message.includes("impossible de raccorder"))) break;
     }
@@ -546,8 +564,10 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
   const first = blocks[0]!;
   const ids = [...new Set(blocks.flatMap((b) => b.nets.map((n) => n.id)))];
   const netOf = (id: string) => blocks.flatMap((b) => b.nets).find((n) => n.id === id)!;
-  const ins = ids.filter((id) => netOf(id).role === "entrée");
-  const outs = ids.filter((id) => netOf(id).role === "sortie");
+  // Côté de chaque tuyau principal : celui du bout des collecteurs (par défaut, entrées à gauche, sorties à droite).
+  const right = (id: string) => (req.ends?.[netOf(id).item] ?? (netOf(id).role === "entrée" ? "début" : "fin")) === "fin";
+  const ins = ids.filter((id) => !right(id));
+  const outs = ids.filter((id) => right(id));
   // Tuyau principal de chaque ressource : le débit de tous les blocs.
   const trunkPipe = new Map<string, PipeSet>();
   for (const id of ids) {
@@ -602,14 +622,15 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
     return new Map(bestP.map((id, pos) => [id, colOf(pos)]));
   };
   const col = new Map([...arrange(ins, "gauche"), ...arrange(outs, "droite")]);
-  // Tuyau principal : de la rangée du haut jusqu'au bloc le plus bas, puis un embranchement par bloc.
+  // Tuyau principal : du haut (ou du bas) du module jusqu'au bloc le plus éloigné, puis un embranchement par bloc.
+  const low = (id: string) => req.trunkExit?.[netOf(id).item] === "bas";
   for (const id of ids) {
     const c = col.get(id)!;
     const ends = lanes.get(id)!;
-    const bottom = Math.max(...ends.map((e) => e.y));
-    for (let y = 0; y <= bottom; y++) pipeAt.set(`${c},${y}`, trunkPipe.get(id)!);
-    grid.straight({ x: c, y: 0 }, { x: c, y: bottom }, id);
-    grid.link({ x: c, y: 0 }, "N", id); // arrivée (entrée) ou départ (sortie), par le haut
+    const [y0t, y1t] = low(id) ? [Math.min(...ends.map((e) => e.y)), H - 1] : [0, Math.max(...ends.map((e) => e.y))];
+    for (let y = y0t; y <= y1t; y++) pipeAt.set(`${c},${y}`, trunkPipe.get(id)!);
+    grid.straight({ x: c, y: y0t }, { x: c, y: y1t }, id);
+    grid.link({ x: c, y: low(id) ? H - 1 : 0 }, low(id) ? "S" : "N", id); // arrivée (entrée) ou départ (sortie)
     for (const e of ends) {
       const [a, b] = c < e.x ? [c, e.x] : [e.x, c];
       for (let x = a; x <= b; x++) {
@@ -641,7 +662,7 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
   const nets: Net[] = ids.map((id) => {
     const n = netOf(id);
     const perSec = blocks.reduce((s, b) => s + (b.nets.find((x) => x.id === id)?.perSec ?? 0), 0);
-    return { ...n, perSec, pipe: trunkPipe.get(id)!, lane: null, end: { x: col.get(id)!, y: 0, dir: "N" } };
+    return { ...n, perSec, pipe: trunkPipe.get(id)!, lane: null, end: low(id) ? { x: col.get(id)!, y: H - 1, dir: "S" } : { x: col.get(id)!, y: 0, dir: "N" } };
   });
   const problems: Problem[] = [...blocks.flatMap((b) => b.problems).filter((p, i, a) => a.findIndex((q) => q.message === p.message) === i)];
   const tally = countParts(req, pieces, poles, cat, name, problems);
@@ -650,6 +671,7 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
     ...first,
     count: machines.length,
     folds: blocks.length,
+    blocks,
     width,
     height: H,
     machines,
@@ -660,12 +682,42 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
     problems,
     order: [
       `Poser ${blocks.length} blocs de ${first.count} ${name(req.machine)} en ${first.template}, les uns sous les autres${blocks.at(-1)!.count !== first.count ? ` (le dernier n'en a que ${blocks.at(-1)!.count})` : ""}.`,
-      ...nets.map((n) => `Tuyau principal ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, tier ${n.pipe!.tier === 1 ? "I" : "III"} (${num(n.perSec)} par seconde), par le haut, avec un embranchement vers chaque bloc.`),
+      ...nets.map((n) => `Tuyau principal ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, tier ${n.pipe!.tier === 1 ? "I" : "III"} (${num(n.perSec)} par seconde), ${right(n.id) ? "à droite" : "à gauche"}, par ${low(n.id) ? "le bas" : "le haut"}, avec un embranchement vers chaque bloc.`),
       ...first.order.slice(1).map((o) => `Dans chaque bloc : ${o.charAt(0).toLowerCase()}${o.slice(1)}`),
       ...(crossings ? [`En tout, ${crossings} croisement(s).`] : []),
     ],
     other: null,
   };
+}
+
+/**
+ * Le même module (même disposition, mêmes machines), refait avec d'autres bouts de collecteurs
+ * (`req.ends`) : quand l'usine est assemblée, chaque module tourne ses entrées et ses sorties vers ses
+ * voisins, et ses collecteurs ne s'étendent que jusqu'à leurs ports. null si ce n'est pas possible.
+ */
+export function redesign(plan: ModulePlan, req: ModuleRequest, entry: PortsEntry | null, wikiSize: { w: number; l: number } | null, cat: Catalog, name: Namer = (id) => id): ModulePlan | null {
+  const portsKnown = !!entry?.footprint;
+  const e = portsKnown ? entry! : assumedEntry(wikiSize, req);
+  const one = (p: ModulePlan, r: ModuleRequest): ModulePlan | null => {
+    const c = p.config;
+    if (!c) return null;
+    const l = layout(e, c.assign, r, c.rot, c.double, c.extra, cat, name, c.sides, c.hug);
+    if (!l) return null;
+    const out = finish(l, r, portsKnown, cat, [...l.problems], name);
+    out.config = c;
+    return out.problems.some((x) => x.level === "erreur") ? null : out;
+  };
+  let out: ModulePlan | null;
+  if (plan.folds > 1 && plan.blocks) {
+    const blocks = plan.blocks.map((b) => one(b, scaleRequest(req, b.count)));
+    if (blocks.some((b) => !b)) return null;
+    out = foldModule(blocks as ModulePlan[], req, cat, name);
+  } else out = one(plan, req);
+  if (out) {
+    out.priority = plan.priority;
+    out.other = plan.other;
+  }
+  return out;
 }
 
 /** Liste des pièces et coût : machines, tuyaux, croisements, poteaux. */

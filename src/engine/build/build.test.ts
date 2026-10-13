@@ -16,7 +16,7 @@ import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog, pipeFor } from "./catalog.ts";
 import { add, key, OPPOSITE, place, rotateCell, rotatePoint, type Dir } from "./geometry.ts";
-import { designModule, normalPriority, portAssignments, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
+import { designModule, normalPriority, portAssignments, redesign, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
 import { Grid, route } from "./route.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
@@ -210,6 +210,26 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(mod.nets.every((n) => n.end?.dir === "N" && n.end.y === 0)).toBe(true);
     // Le plan le plus compact annonce la version repliée (2e critère : la forme).
     expect(flat.other).toMatchObject({ first: "forme" });
+  });
+
+  it("bouts des collecteurs au choix (redesign) : même disposition, sorties et entrées tournées", () => {
+    const { mod, req } = moduleFor("steel-rod", PLACE);
+    const out = req.outputs[0]!.item;
+    const inn = req.inputs[0]!.item;
+    const r = redesign(mod, { ...req, ends: { [out]: "début", [inn]: "fin" } }, PORTS["roller"]!, null, cat)!;
+    expect(r).not.toBeNull();
+    expect([r.width, r.height]).toEqual([mod.width, mod.height]);
+    expect(r.nets.find((n) => n.item === out)!.end!.dir).toBe("W");
+    expect(r.nets.find((n) => n.item === inn)!.end!.dir).toBe("E");
+    checkModule(r, req, "steel-rod tourné");
+    // Module replié : le tuyau principal change de côté.
+    const fold = moduleFor("raw-iron", ["forme", "place", "prix", "pieces"]);
+    const item = fold.req.outputs[0]!.item;
+    const f = redesign(fold.mod, { ...fold.req, ends: { [item]: "début" } }, PORTS["iron-drill"]!, null, cat)!;
+    expect(f.folds).toBe(fold.mod.folds);
+    expect(f.nets.find((n) => n.item === item)!.end!.x).toBeLessThan(f.width / 2);
+    expect(fold.mod.nets.find((n) => n.item === item)!.end!.x).toBeGreaterThan(fold.mod.width / 2);
+    checkModule(f, fold.req, "raw-iron replié, sortie à gauche");
   });
 
   it("ordre des critères : complété et sans doublon", () => {

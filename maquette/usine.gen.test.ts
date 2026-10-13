@@ -15,11 +15,11 @@ import logisticsJson from "../data/logistics.json";
 import powerJson from "../data/power.json";
 import relevesJson from "../data/releves.json";
 import { buildGameData, type RawFiles } from "../src/engine/data.ts";
-import type { LogisticsFile, PortsFile, PowerFile } from "../src/engine/extension-types.ts";
+import type { LogisticsFile, PortsEntry, PortsFile, PowerFile } from "../src/engine/extension-types.ts";
 import type { OverridesFile } from "../src/engine/types.ts";
 import { solve } from "../src/engine/solve.ts";
 import { buildCatalog, pipeFor, type Catalog } from "../src/engine/build/catalog.ts";
-import { designModule, requestFromStep, type ModulePlan } from "../src/engine/build/module.ts";
+import { designModule, redesign, requestFromStep, type ModulePlan, type ModuleRequest } from "../src/engine/build/module.ts";
 import { OPPOSITE, STEP, type Dir } from "../src/engine/build/geometry.ts";
 import { Grid, route } from "../src/engine/build/route.ts";
 
@@ -34,7 +34,7 @@ const PALETTE = ["#f0913a", "#6cc792", "#8fb8d6", "#e3b25a", "#d77fd0", "#5fd4d4
 const PLOT = { w: 160, h: 110 };
 type Pole = Catalog["poles"][number];
 type Pt = { x: number; y: number };
-type Box = { key: string; label: string; sub: string; w: number; h: number; x: number; y: number; col: number; mod: ModulePlan | null; placed: boolean; power: number; variants: ModulePlan[]; rot: number };
+type Box = { key: string; label: string; sub: string; w: number; h: number; x: number; y: number; col: number; mod: ModulePlan | null; placed: boolean; power: number; variants: ModulePlan[]; rot: number; req: ModuleRequest | null; entry: PortsEntry | null; size: { w: number; l: number } | null };
 
 /** Le module tourné d'un quart de tour (sens horaire) : tous les bâtiments ont 4 rotations en jeu. */
 const TURN: Record<Dir, Dir> = { N: "E", E: "S", S: "W", W: "N" };
@@ -64,7 +64,7 @@ function modules() {
     const m = data.machines.get(s.machine)!;
     const req = requestFromStep(s as never, (id) => !!data.items.get(id)?.isFluid, m.cost);
     const mod = req ? designModule({ ...req, priority: ["forme", "place", "prix", "pieces"] }, PORTS[m.id] ?? null, m.size, cat, name) : null;
-    return { key: s.key, label: `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${name(s.machine)}`, sub: name(s.item), w: mod?.width ?? 12, h: mod?.height ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: Math.max(0, s.energyAvg ?? 0), variants: mod ? [mod, turnModule(mod), turnModule(turnModule(mod)), turnModule(turnModule(turnModule(mod)))] : [], rot: 0 };
+    return { key: s.key, label: `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${name(s.machine)}`, sub: name(s.item), w: mod?.width ?? 12, h: mod?.height ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: Math.max(0, s.energyAvg ?? 0), variants: mod ? [mod, turnModule(mod), turnModule(turnModule(mod)), turnModule(turnModule(turnModule(mod)))] : [], rot: 0, req: req ? { ...req, priority: ["forme", "place", "prix", "pieces"] } : null, entry: PORTS[m.id] ?? null, size: m.size };
   });
   return { plan, boxes, name };
 }
@@ -77,75 +77,17 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
   const producers = (k: string) => plan.edges.filter((e) => e.to === k && !e.loop).map((e) => ({ e, p: byKey.get(e.from)! }));
 
   // ------------------------------------------------------------ placement serré
-  const place = (CLR: number, wDist: number, bySize: boolean) => {
-    for (const b of boxes) b.placed = false;
-    const glued: string[] = [];
+  const setRot = (b: Box, r: number) => {
+    if (!b.variants.length) return;
+    b.rot = r;
+    b.mod = b.variants[r]!;
+    b.w = b.mod.width;
+    b.h = b.mod.height;
+  };
+  // Amélioration du placement, puis tassement (sert aussi après le recalcul des modules).
+  const improve = (CLR: number, glued: string[]) => {
     const sep = (b: Box, x: number, y: number, o: Box) => x + b.w + CLR <= o.x || o.x + o.w + CLR <= x || y + b.h + CLR <= o.y || o.y + o.h + CLR <= y;
     const free = (b: Box, x: number, y: number, except?: Box) => x >= 0 && y >= 0 && boxes.every((o) => !o.placed || o === b || o === except || sep(b, x, y, o));
-    const order = [...boxes].sort((a, b) => (bySize ? b.w * b.h - a.w * a.h || a.col - b.col : a.col - b.col || b.w * b.h - a.w * a.h));
-    const setRot = (b: Box, r: number) => {
-      if (!b.variants.length) return;
-      b.rot = r;
-      b.mod = b.variants[r]!;
-      b.w = b.mod.width;
-      b.h = b.mod.height;
-    };
-    for (const b of boxes) setRot(b, 0);
-    for (const b of order) {
-      const placed = boxes.filter((o) => o.placed);
-      const prods = producers(b.key);
-      if (glue && prods.length === 1 && plan.edges.filter((e) => e.from === prods[0]!.e.from).length === 1) {
-        const { e, p } = prods[0]!;
-        const out = endOf(p, e.item, "sortie");
-        const inn = endOf(b, e.item, "entrée");
-        if (out && inn && out.dir === "E" && inn.dir === "W") {
-          const x = p.x + p.w;
-          const y = p.y + out.y - inn.y;
-          if (free(b, x, y, p)) {
-            Object.assign(b, { x, y, placed: true });
-            glued.push(`${p.key}>${b.key}`);
-            continue;
-          }
-        }
-      }
-      // Toutes les positions de la grille autour de ce qui est posé : la plus serrée, près des fournisseurs.
-      const curW = placed.length ? Math.max(...placed.map((o) => o.x + o.w)) : 0;
-      const curH = placed.length ? Math.max(...placed.map((o) => o.y + o.h)) : 0;
-      // Liaisons avec ce qui est déjà posé, dans les deux sens : distance entre les vrais ports (sortie du
-      // fournisseur, entrée du client), pour chaque rotation du module.
-      const links = plan.edges
-        .filter((e) => !e.loop && ((e.to === b.key && byKey.get(e.from)!.placed) || (e.from === b.key && byKey.get(e.to)!.placed)))
-        .map((e) => ({ e, other: byKey.get(e.to === b.key ? e.from : e.to)!, mine: e.to === b.key ? ("entrée" as const) : ("sortie" as const) }));
-      const portAt = (o: Box, item: string, role: "entrée" | "sortie") => {
-        const end = endOf(o, item, role);
-        return end ? { x: o.x + end.x + STEP[end.dir].x, y: o.y + end.y + STEP[end.dir].y } : { x: o.x + o.w / 2, y: o.y + o.h / 2 };
-      };
-      const fixed = links.map((l) => portAt(l.other, l.e.item, l.mine === "entrée" ? "sortie" : "entrée"));
-      let best: [number, number, number] = [0, 0, 0];
-      let bestScore = Infinity;
-      for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
-        setRot(b, r);
-        const mineEnds = links.map((l) => endOf(b, l.e.item, l.mine));
-        for (let x = 0; x <= curW + CLR; x++) {
-          for (let y = 0; y <= curH + CLR; y++) {
-            if (!free(b, x, y)) continue;
-            const W = Math.max(x + b.w, curW);
-            const H = Math.max(y + b.h, curH);
-            const over = Math.max(0, W - PLOT.w) + Math.max(0, H - PLOT.h);
-            let dist = 0;
-            links.forEach((_, i) => {
-              const end = mineEnds[i];
-              const q = end ? { x: x + end.x + STEP[end.dir].x, y: y + end.y + STEP[end.dir].y } : { x: x + b.w / 2, y: y + b.h / 2 };
-              dist += Math.abs(q.x - fixed[i]!.x) + Math.abs(q.y - fixed[i]!.y);
-            });
-            const score = W * H + 4000 * over + wDist * dist;
-            if (score < bestScore) [best, bestScore] = [[x, y, r], score];
-          }
-        }
-      }
-      setRot(b, best[2]);
-      Object.assign(b, { x: best[0], y: best[1], placed: true });
-    }
     // Amélioration : chaque module est retiré puis reposé (position et rotation) là où surface + 10 × distance
     // entre ses ports et ceux de ses partenaires est la plus faible ; tant que ça s'améliore.
     const portOf = (o: Box, item: string, role: "entrée" | "sortie") => {
@@ -205,6 +147,70 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
         while (free(b, b.x - 1, b.y)) [b.x, moved] = [b.x - 1, true];
       }
     }
+  };
+  const place = (CLR: number, wDist: number, bySize: boolean) => {
+    for (const b of boxes) b.placed = false;
+    const glued: string[] = [];
+    const sep = (b: Box, x: number, y: number, o: Box) => x + b.w + CLR <= o.x || o.x + o.w + CLR <= x || y + b.h + CLR <= o.y || o.y + o.h + CLR <= y;
+    const free = (b: Box, x: number, y: number, except?: Box) => x >= 0 && y >= 0 && boxes.every((o) => !o.placed || o === b || o === except || sep(b, x, y, o));
+    const order = [...boxes].sort((a, b) => (bySize ? b.w * b.h - a.w * a.h || a.col - b.col : a.col - b.col || b.w * b.h - a.w * a.h));
+    for (const b of boxes) setRot(b, 0);
+    for (const b of order) {
+      const placed = boxes.filter((o) => o.placed);
+      const prods = producers(b.key);
+      if (glue && prods.length === 1 && plan.edges.filter((e) => e.from === prods[0]!.e.from).length === 1) {
+        const { e, p } = prods[0]!;
+        const out = endOf(p, e.item, "sortie");
+        const inn = endOf(b, e.item, "entrée");
+        if (out && inn && out.dir === "E" && inn.dir === "W") {
+          const x = p.x + p.w;
+          const y = p.y + out.y - inn.y;
+          if (free(b, x, y, p)) {
+            Object.assign(b, { x, y, placed: true });
+            glued.push(`${p.key}>${b.key}`);
+            continue;
+          }
+        }
+      }
+      // Toutes les positions de la grille autour de ce qui est posé : la plus serrée, près des fournisseurs.
+      const curW = placed.length ? Math.max(...placed.map((o) => o.x + o.w)) : 0;
+      const curH = placed.length ? Math.max(...placed.map((o) => o.y + o.h)) : 0;
+      // Liaisons avec ce qui est déjà posé, dans les deux sens : distance entre les vrais ports (sortie du
+      // fournisseur, entrée du client), pour chaque rotation du module.
+      const links = plan.edges
+        .filter((e) => !e.loop && ((e.to === b.key && byKey.get(e.from)!.placed) || (e.from === b.key && byKey.get(e.to)!.placed)))
+        .map((e) => ({ e, other: byKey.get(e.to === b.key ? e.from : e.to)!, mine: e.to === b.key ? ("entrée" as const) : ("sortie" as const) }));
+      const portAt = (o: Box, item: string, role: "entrée" | "sortie") => {
+        const end = endOf(o, item, role);
+        return end ? { x: o.x + end.x + STEP[end.dir].x, y: o.y + end.y + STEP[end.dir].y } : { x: o.x + o.w / 2, y: o.y + o.h / 2 };
+      };
+      const fixed = links.map((l) => portAt(l.other, l.e.item, l.mine === "entrée" ? "sortie" : "entrée"));
+      let best: [number, number, number] = [0, 0, 0];
+      let bestScore = Infinity;
+      for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
+        setRot(b, r);
+        const mineEnds = links.map((l) => endOf(b, l.e.item, l.mine));
+        for (let x = 0; x <= curW + CLR; x++) {
+          for (let y = 0; y <= curH + CLR; y++) {
+            if (!free(b, x, y)) continue;
+            const W = Math.max(x + b.w, curW);
+            const H = Math.max(y + b.h, curH);
+            const over = Math.max(0, W - PLOT.w) + Math.max(0, H - PLOT.h);
+            let dist = 0;
+            links.forEach((_, i) => {
+              const end = mineEnds[i];
+              const q = end ? { x: x + end.x + STEP[end.dir].x, y: y + end.y + STEP[end.dir].y } : { x: x + b.w / 2, y: y + b.h / 2 };
+              dist += Math.abs(q.x - fixed[i]!.x) + Math.abs(q.y - fixed[i]!.y);
+            });
+            const score = W * H + 4000 * over + wDist * dist;
+            if (score < bestScore) [best, bestScore] = [[x, y, r], score];
+          }
+        }
+      }
+      setRot(b, best[2]);
+      Object.assign(b, { x: best[0], y: best[1], placed: true });
+    }
+    improve(CLR, glued);
     return glued;
   };
 
@@ -216,15 +222,8 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
   let W = 0;
   let H = 0;
   let CLRused = 0;
-  const attempt = (CLR: number, wDist: number, bySize: boolean) => {
-    glued = place(CLR, wDist, bySize);
-    CLRused = CLR;
-    const M = 3;
-    const minX = Math.min(...boxes.map((b) => b.x));
-    const minY = Math.min(...boxes.map((b) => b.y));
-    for (const b of boxes) [b.x, b.y] = [b.x + M - minX, b.y + M - minY];
-    W = Math.max(...boxes.map((b) => b.x + b.w)) + M;
-    H = Math.max(...boxes.map((b) => b.y + b.h)) + M;
+  // Tuyaux entre modules : de la sortie (unique) de chaque module vers l'entrée de ses clients.
+  const routeBetween = () => {
     grid = new Grid();
     nets = [];
     problems = [];
@@ -256,6 +255,17 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
       const target = { x: p.x + p.w, y: p.y + p.h / 2 };
       if (!route(grid, id, start, inn ? OPPOSITE[inn.dir] : "E", bounds, (q) => Math.abs(q.x - target.x) + Math.abs(q.y - target.y))) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
     }
+  };
+  const attempt = (CLR: number, wDist: number, bySize: boolean) => {
+    glued = place(CLR, wDist, bySize);
+    CLRused = CLR;
+    const M = 3;
+    const minX = Math.min(...boxes.map((b) => b.x));
+    const minY = Math.min(...boxes.map((b) => b.y));
+    for (const b of boxes) [b.x, b.y] = [b.x + M - minX, b.y + M - minY];
+    W = Math.max(...boxes.map((b) => b.x + b.w)) + M;
+    H = Math.max(...boxes.map((b) => b.y + b.h)) + M;
+    routeBetween();
     const fits = (W <= PLOT.w && H <= PLOT.h) || (H <= PLOT.w && W <= PLOT.h);
     return { area: W * H, pipes: [...grid.cells.values()].filter((o) => o.kind === "tuyau").length, fits };
   };
@@ -277,158 +287,74 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
   const bestTry = [...pool].sort((a, b) => a.area + 10 * a.pipes - (b.area + 10 * b.pipes))[0];
   if (bestTry) attempt(bestTry.CLR, bestTry.wDist, bestTry.bySize);
   // ------------------------------------------------------------ recalcul complet du tuyautage
-  // Option « recalculé pour l'usine entière » : les machines restent à leur place, mais les tuyaux sont
-  // retracés pour toute l'usine, de port à port, sans passer par les sorties « officielles » des modules.
-  const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
+  // Option « recalculé pour l'usine entière » : une fois les modules placés, chaque module est refait
+  // (même disposition des machines) avec ses collecteurs tournés vers ses voisins : chaque ressource
+  // est rassemblée dans un seul tuyau avant de sortir, du côté le plus proche de ses clients (ou de ses
+  // fournisseurs pour une entrée), et les collecteurs ne s'étendent que jusqu'à leurs ports.
   if (full) {
-    // Les collecteurs de chaque module sont gardés (ils résolvent bien l'intérieur d'un module) ; mais un
-    // module se branche n'importe où sur le collecteur de son fournisseur, pas seulement à sa sortie
-    // « officielle », et les tuyaux peuvent passer dans les espaces libres des modules.
-    const g = new Grid();
-    const netId = (b: Box, item: string, role: "entrée" | "sortie") => {
-      if (role === "sortie") return plan.edges.some((e) => e.from === b.key && e.item === item) ? `${b.key}:${item}` : `${b.key}:${item}:fin`;
-      const ins = plan.edges.filter((e) => e.to === b.key && e.item === item);
-      return ins.length ? `${ins[0]!.from}:${item}` : `${b.key}:${item}:ext`;
-    };
-    const comp = new Map<string, Set<string>>(); // `${module}|${réseau}` → ses cases
-    for (const b of boxes) {
-      if (!b.mod) {
-        for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) g.block({ x: b.x + i, y: b.y + j }, b.key);
-        continue;
+    const turnPt = (p: Pt, w: number, h: number, r: number) => {
+      let q = p;
+      let [ww, hh] = [w, h];
+      for (let k = 0; k < r; k++) {
+        q = { x: hh - 1 - q.y, y: q.x };
+        [ww, hh] = [hh, ww];
       }
-      for (const m of b.mod.machines) for (const c of m.cells) g.block({ x: b.x + c.x, y: b.y + c.y }, b.key);
-      const ren = new Map(b.mod.nets.map((n) => [n.id, netId(b, n.item, n.role)]));
-      for (const pc of b.mod.pieces) {
-        const k = `${b.x + pc.x},${b.y + pc.y}`;
-        const net = ren.get(pc.net)!;
-        g.cells.set(k, { kind: "tuyau", net, links: new Set(pc.links), ...(pc.crossNet ? { cross: { net: ren.get(pc.crossNet)!, links: new Set(pc.crossLinks ?? []) } } : {}) });
-        if (!pc.crossNet) comp.set(`${b.key}|${net}`, (comp.get(`${b.key}|${net}`) ?? new Set()).add(k));
+      return q;
+    };
+    const anchorOf = (o: Box, item: string, role: "entrée" | "sortie") => {
+      const end = endOf(o, item, role);
+      return end ? { x: o.x + end.x + STEP[end.dir].x, y: o.y + end.y + STEP[end.dir].y } : { x: o.x + o.w / 2, y: o.y + o.h / 2 };
+    };
+    const M = 3;
+    const normalize = () => {
+      const minX = Math.min(...boxes.map((b) => b.x));
+      const minY = Math.min(...boxes.map((b) => b.y));
+      for (const b of boxes) [b.x, b.y] = [b.x + M - minX, b.y + M - minY];
+      W = Math.max(...boxes.map((b) => b.x + b.w)) + M;
+      H = Math.max(...boxes.map((b) => b.y + b.h)) + M;
+    };
+    for (let pass = 0; pass < 4; pass++) {
+      // Les modules bougent en connaissant leurs nouvelles sorties (passes impaires), puis on rechoisit les bouts.
+      if (pass % 2) {
+        improve(CLRused, []);
+        normalize();
+      }
+      for (const b of boxes) {
+        if (!b.mod || !b.req) continue;
+        const base = b.variants[0]!;
+        const ends: Record<string, "début" | "fin"> = {};
+        const trunkExit: Record<string, "haut" | "bas"> = {};
+        for (const n of base.nets) {
+          if (!n.end || ends[n.item]) continue;
+          const partners = plan.edges
+            .filter((e) => e.item === n.item && (n.role === "entrée" ? e.to === b.key : e.from === b.key))
+            .map((e) => anchorOf(byKey.get(n.role === "entrée" ? e.from : e.to)!, e.item, n.role === "entrée" ? "sortie" : "entrée"));
+          if (!partners.length) continue;
+          // Les bouts possibles, dans le module de base, puis tournés et placés comme le module : à gauche ou
+          // à droite de la rangée ; pour un module replié, aussi en haut ou en bas.
+          const cands: { side: "début" | "fin"; exit: "haut" | "bas"; p: Pt }[] = [];
+          for (const side of ["début", "fin"] as const)
+            for (const exit of base.folds > 1 ? (["haut", "bas"] as const) : (["haut"] as const))
+              cands.push({ side, exit, p: { x: side === "début" ? 0 : base.width - 1, y: base.folds > 1 ? (exit === "haut" ? 0 : base.height - 1) : n.end.y } });
+          const cost = (c: (typeof cands)[number]) => {
+            const q = turnPt(c.p, base.width, base.height, b.rot);
+            return partners.reduce((t, p) => t + Math.abs(b.x + q.x - p.x) + Math.abs(b.y + q.y - p.y), 0);
+          };
+          const bestEnd = [...cands].sort((u, v) => cost(u) - cost(v))[0]!;
+          ends[n.item] = bestEnd.side;
+          if (base.folds > 1) trunkExit[n.item] = bestEnd.exit;
+        }
+        const r = redesign(base, { ...b.req, ends, trunkExit }, b.entry, b.size, cat, name);
+        if (!r || r.width !== base.width || r.height !== base.height) continue;
+        b.variants = [r, turnModule(r), turnModule(turnModule(r)), turnModule(turnModule(turnModule(r)))];
+        b.mod = b.variants[b.rot]!;
       }
     }
-    // Liaison entre deux collecteurs (A* à départs multiples) : de n'importe quelle case du collecteur client
-    // vers n'importe quelle case du collecteur fournisseur ; croisements à angle droit seulement.
-    const bounds = { x0: 0, y0: 0, x1: W - 1, y1: H - 1 };
-    const cellOf = (k: string) => {
-      const [x, y] = k.split(",").map(Number) as [number, number];
-      return { x, y };
-    };
-    const connect = (net: string, from: Set<string>, to: Set<string>): boolean => {
-      const tb = [...to].map(cellOf);
-      const h = (c: Pt) => Math.min(...tb.map((t) => Math.abs(t.x - c.x) + Math.abs(t.y - c.y)));
-      type N = { c: Pt; d: Dir; g: number; f: number; prev: N | null; crossing: boolean; root: string };
-      const open: N[] = [];
-      const best = new Map<string, number>();
-      const pipeOk = (k: string) => {
-        const o = g.cells.get(k);
-        return o?.kind === "tuyau" && o.net === net && !o.cross && o.links.size < 4;
-      };
-      for (const k of from) {
-        if (!pipeOk(k)) continue;
-        const c = cellOf(k);
-        for (const d of ["N", "E", "S", "W"] as Dir[]) {
-          if (g.cells.get(k)!.kind === "tuyau" && (g.cells.get(k) as { links: Set<Dir> }).links.has(d)) continue;
-          const n = { x: c.x + STEP[d].x, y: c.y + STEP[d].y };
-          if (n.x < bounds.x0 || n.y < bounds.y0 || n.x > bounds.x1 || n.y > bounds.y1 || g.cells.get(`${n.x},${n.y}`)) continue;
-          open.push({ c: n, d, g: 1, f: 1 + h(n), prev: null, crossing: false, root: k });
-        }
-      }
-      let found: N | null = null;
-      let target = "";
-      for (let guard = 0; open.length && guard < 300_000; guard++) {
-        let bi = 0;
-        for (let i = 1; i < open.length; i++) if (open[i]!.f < open[bi]!.f) bi = i;
-        const cur = open.splice(bi, 1)[0]!;
-        if (found && cur.f >= found.g) break;
-        const dirs: Dir[] = cur.crossing ? [cur.d] : (["N", "E", "S", "W"] as Dir[]).filter((d) => d !== OPPOSITE[cur.d]);
-        for (const d of dirs) {
-          const n = { x: cur.c.x + STEP[d].x, y: cur.c.y + STEP[d].y };
-          if (n.x < bounds.x0 || n.y < bounds.y0 || n.x > bounds.x1 || n.y > bounds.y1) continue;
-          const k = `${n.x},${n.y}`;
-          const o = g.cells.get(k);
-          const turn = d !== cur.d ? 0.6 : 0;
-          if (to.has(k) && pipeOk(k)) {
-            const gg = cur.g + 1 + turn;
-            if (!found || gg < found.g) [found, target] = [{ c: n, d, g: gg, f: gg, prev: cur, crossing: false, root: cur.root }, k];
-            continue;
-          }
-          let crossing = false;
-          if (o) {
-            const vertical = d === "N" || d === "S";
-            const straight = o.kind === "tuyau" && o.net !== net && !o.cross && o.links.size === 2 && (vertical ? o.links.has("E") && o.links.has("W") : o.links.has("N") && o.links.has("S"));
-            if (!straight) continue;
-            crossing = true;
-          }
-          const gg = cur.g + 1 + turn + (crossing ? 8 : 0);
-          const sk = `${k}|${d}|${crossing}`;
-          if ((best.get(sk) ?? Infinity) <= gg) continue;
-          best.set(sk, gg);
-          open.push({ c: n, d, g: gg, f: gg + h(n), prev: cur, crossing, root: cur.root });
-        }
-      }
-      if (!found) return false;
-      const path: N[] = [];
-      for (let n: N | null = found; n; n = n.prev) path.unshift(n);
-      const root = cellOf(path[0]!.root);
-      g.link(root, path[0]!.d, net);
-      let prev = root;
-      for (const n of path) {
-        g.link(prev, n.d, net);
-        g.link(n.c, OPPOSITE[n.d], net);
-        prev = n.c;
-        if (n !== path.at(-1)) to.add(`${n.c.x},${n.c.y}`); // le chemin rejoint le réseau
-      }
-      void target;
-      for (const k of from) to.add(k);
-      return true;
-    };
-    problems = [];
-    // Liaisons les plus longues d'abord (elles ont le plus besoin de place).
-    const pairs = plan.edges
-      .filter((e) => byKey.get(e.from)!.mod && byKey.get(e.to)!.mod)
-      .map((e) => ({ e, net: `${e.from}:${e.item}` }))
-      .sort((a, b) => {
-        const dd = (x: typeof a) => Math.abs(byKey.get(x.e.from)!.x - byKey.get(x.e.to)!.x) + Math.abs(byKey.get(x.e.from)!.y - byKey.get(x.e.to)!.y);
-        return dd(b) - dd(a);
-      });
-    const trunk = new Map<string, Set<string>>(); // réseau → cases déjà reliées au fournisseur
-    for (const { e, net } of pairs) {
-      const prod = trunk.get(net) ?? new Set(comp.get(`${e.from}|${net}`) ?? []);
-      trunk.set(net, prod);
-      const cons = comp.get(`${e.to}|${net}`) ?? new Set<string>();
-      if (!prod.size || !cons.size || !connect(net, cons, prod)) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
-    }
-    // Arbres (pas encore dessinés) : un départ au bord de leur emplacement, relié au collecteur du client.
-    for (const e of plan.edges.filter((x) => !byKey.get(x.from)!.mod && byKey.get(x.to)!.mod)) {
-      const f = byKey.get(e.from)!;
-      const net = `${e.from}:${e.item}`;
-      const cons = comp.get(`${e.to}|${net}`) ?? new Set<string>();
-      const c = byKey.get(e.to)!;
-      // Cases libres tout autour de l'emplacement, de la plus proche du client à la plus éloignée.
-      const around: { p: Pt; d: Dir }[] = [];
-      for (let i = 0; i < f.w; i++) around.push({ p: { x: f.x + i, y: f.y - 1 }, d: "S" }, { p: { x: f.x + i, y: f.y + f.h }, d: "N" });
-      for (let j = 0; j < f.h; j++) around.push({ p: { x: f.x - 1, y: f.y + j }, d: "E" }, { p: { x: f.x + f.w, y: f.y + j }, d: "W" });
-      const dist = (q: Pt) => Math.abs(q.x - (c.x + c.w / 2)) + Math.abs(q.y - (c.y + c.h / 2));
-      let ok = false;
-      for (const { p: a, d } of around.filter(({ p: q }) => !g.cells.get(`${q.x},${q.y}`)).sort((u, v) => dist(u.p) - dist(v.p)).slice(0, 12)) {
-        g.link(a, d, net);
-        if (cons.size && connect(net, cons, new Set([`${a.x},${a.y}`]))) {
-          ok = true;
-          break;
-        }
-        g.cells.delete(`${a.x},${a.y}`);
-      }
-      if (!ok) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
-    }
-    grid = g;
-    glued = [];
-    nets = [...new Set([...g.cells.values()].flatMap((o) => (o.kind === "tuyau" ? [o.net, ...(o.cross ? [o.cross.net] : [])] : [])))].map((id) => {
-      const [from, item, tag] = id.split(":") as [string, string, string | undefined];
-      const es = plan.edges.filter((e) => e.from === from && e.item === item);
-      return { id, item, perMin: es.reduce((t, e) => t + e.perMin, 0), from: tag === "ext" ? "" : from, to: tag ? [] : es.map((e) => e.to) };
-    }).filter((n) => n.from && byKey.has(n.from));
+    routeBetween();
   }
+  const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
   const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
-  const allPipeCells = full ? [...grid.cells.values()].filter((o) => o.kind === "tuyau").length : [...grid.cells.values()].filter((o) => o.kind === "tuyau").length + modulePipeCells;
+  const allPipeCells = [...grid.cells.values()].filter((o) => o.kind === "tuyau").length + modulePipeCells;
   const color = new Map([...new Set(plan.edges.map((e) => e.item))].map((it, i) => [it, PALETTE[i % PALETTE.length]!]));
   const cellsOf = (id: string) => [...grid.cells.values()].filter((o) => o.kind === "tuyau" && (o.net === id || o.cross?.net === id)).length;
   const crossings = [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length;
@@ -450,7 +376,7 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
       plugs.push(...ps);
       plugsByMachine.set(`${b.key}|${m.id}`, ps);
     }
-    if (!full) for (const p of b.mod.pieces) occupied.add(`${b.x + p.x},${b.y + p.y}`);
+    for (const p of b.mod.pieces) occupied.add(`${b.x + p.x},${b.y + p.y}`);
     if (!globalPoles) for (const q of b.mod.poles) for (let i = 0; i < q.w; i++) for (let j = 0; j < q.h; j++) occupied.add(`${b.x + q.x + i},${b.y + q.y + j}`);
   }
   for (const [k, o] of grid.cells) if (o.kind === "tuyau") occupied.add(k);
@@ -551,7 +477,7 @@ function design(glue: boolean, globalPoles: boolean, full = false) {
   const total = boxes.reduce((s, b) => s + b.power, 0);
   const polesCost = poleNodes.reduce((s, p) => s + (p.type.price ?? 0), 0) + relays * (cat.poles.find((p) => p.rangeCells === R)?.price ?? 0);
   const modulesCost = boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0);
-  return { plan, boxes, grid, nets, W, H, color, pipeCells, crossings, modulesCost, glued, problems, name, cellsOf, links, relays, poleNodes, feed, total, overloaded, polesCost, CLRused, upgraded, plugs, full, allPipeCells, allCrossings: full ? [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length : [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length + moduleCrossings };
+  return { plan, boxes, grid, nets, W, H, color, pipeCells, crossings, modulesCost, glued, problems, name, cellsOf, links, relays, poleNodes, feed, total, overloaded, polesCost, CLRused, upgraded, plugs, full, allPipeCells, allCrossings: [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length + moduleCrossings };
 }
 
 type D = ReturnType<typeof design>;
@@ -575,12 +501,12 @@ function svg(d: D, uid: string): string {
     if (b.mod) {
       s += `<g class="detail">`;
       for (const m of b.mod.machines) s += `<rect x="${(b.x + m.x) * C + 1}" y="${(b.y + m.y) * C + 1}" width="${m.w * C - 2}" height="${m.h * C - 2}" rx="2" class="mach"/>`;
-      for (const p of d.full ? [] : b.mod.pieces) {
+      for (const p of b.mod.pieces) {
         const cx = (b.x + p.x + 0.5) * C;
         const cy = (b.y + p.y + 0.5) * C;
         const item = (net: string) => b.mod!.nets.find((n) => n.id === net)?.item ?? "";
         for (const [net, links] of [[p.net, p.links], ...(p.crossNet ? [[p.crossNet, p.crossLinks ?? []]] : [])] as [string, Dir[]][])
-          for (const dd of links) s += `<line x1="${cx}" y1="${cy}" x2="${cx + (STEP[dd].x * C) / 2}" y2="${cy + (STEP[dd].y * C) / 2}" stroke="${d.color.get(item(net)) ?? "#9aa7b4"}" stroke-width="2.2"/>`;
+          for (const dd of links) s += `<line x1="${cx}" y1="${cy}" x2="${cx + (STEP[dd].x * C) / 2}" y2="${cy + (STEP[dd].y * C) / 2}" stroke="${d.color.get(item(net)) ?? "#9aa7b4"}" stroke-width="${b.mod!.nets.find((n) => n.id === net)?.pipe?.tier === 3 ? 4 : 2.2}"/>`;
       }
       s += `</g>`;
     }
@@ -606,7 +532,8 @@ function svg(d: D, uid: string): string {
     const from = d.boxes.find((b) => b.key === n.from)!;
     const dest = n.to.length ? n.to.map((t) => d.boxes.find((b) => b.key === t)!.sub).join(" et ") : "la sortie de l'usine";
     const tip = `${d.name(n.item)}${n.perMin ? ` · ${fr(n.perMin)}/min` : ""} — de ${from.sub} (${from.label}) vers ${dest} · ${d.cellsOf(n.id)} cases de tuyau${d.full ? ", collecteurs des modules compris" : ""}`;
-    s += `<g class="net" data-sel="${esc(n.id)}" data-tip="${esc(tip)}"><path class="net-hit" d="${byNet.get(n.id) ?? ""}"/><path class="net-line" d="${byNet.get(n.id) ?? ""}" stroke="${d.color.get(n.item)}"/></g>`;
+    const tier = pipeFor(cat, data.items.get(n.item)?.isFluid ? "fluide" : "objet", n.perMin / 60)?.tier ?? 3;
+    s += `<g class="net${tier === 3 ? " t3" : ""}" data-sel="${esc(n.id)}" data-tip="${esc(`${tip} · tier ${tier === 3 ? "III" : "I"}`)}"><path class="net-hit" d="${byNet.get(n.id) ?? ""}"/><path class="net-line" d="${byNet.get(n.id) ?? ""}" stroke="${d.color.get(n.item)}"/></g>`;
   }
   for (const [k, o] of d.grid.cells) {
     if (o.kind !== "tuyau" || !o.cross) continue;
@@ -684,7 +611,7 @@ svg .plot { fill: none; stroke: #6cc792; stroke-dasharray: 14 10; stroke-width: 
 svg .bbox { fill: none; stroke: #e6ebf0; stroke-dasharray: 3 5; stroke-width: 1.5; opacity: .6; pointer-events: none; } svg .bbox-t { fill: #9aa7b4; font-size: 12px; text-anchor: end; }
 svg .detail { display: none; } .show-detail svg .detail { display: inline; } .show-detail svg .lbl { opacity: .35; } .show-detail svg .box { fill: #22272e; }
 svg .mach { fill: #39414b; stroke: #56606b; }
-svg .net-line { fill: none; stroke-width: 4; stroke-linecap: round; pointer-events: none; } svg .net-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
+svg .net-line { fill: none; stroke-width: 2.6; stroke-linecap: round; pointer-events: none; } svg .net.t3 .net-line { stroke-width: 4.6; } svg .net-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
 svg .net:hover .net-line { stroke-width: 7; }
 .frame.hl svg .net:not(.on), .frame.hl svg .cable:not(.on), .frame.hl svg .plugline { opacity: .15; } svg .on .net-line { stroke-width: 7; } svg .on .cable-line { stroke-width: 4; }
 svg .xing { fill: #1d2126; stroke: #e6ebf0; stroke-width: 1.4; } svg .contact { stroke: #fff; stroke-width: 2; }
@@ -704,11 +631,11 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; } td i { display
 details summary { cursor: pointer; color: var(--muted); margin-top: 10px; }
 ol.q li { margin-bottom: 5px; }
 </style></head><body><main>
-<p><span class="tag">MAQUETTE v6 à valider</span></p>
+<p><span class="tag">MAQUETTE v7 à valider</span></p>
 <h1>Plans de pose : toute l'usine</h1>
 <p class="lead">Calcul réel figé : Crankshaft 60/min, toute la recherche. Modules = vrais plans de pose (« forme ramassée » d'abord), placés au plus serré sur la grille ; tuyaux tracés par le vrai routeur ; poteaux comptés avec tous leurs nœuds. Parcelle : exemple.</p>
 <div class="bar">
-  <span class="grp"><b>Calcul</b><label><input type="radio" name="calcul" id="k-mod" checked> module par module</label><label><input type="radio" name="calcul" id="k-all"> recalculé pour l'usine entière <span class="hint">(tuyaux de port à port, puis poteaux ; plus de calcul)</span></label></span>
+  <span class="grp"><b>Calcul</b><label><input type="radio" name="calcul" id="k-mod" checked> module par module</label><label><input type="radio" name="calcul" id="k-all"> recalculé pour l'usine entière <span class="hint">(modules refaits pour sortir vers leurs voisins, puis poteaux ; plus de calcul)</span></label></span>
   <span class="grp liaisons"><b>Liaisons</b><label><input type="radio" name="liaison" id="l-tubes" checked> des tuyaux</label><label><input type="radio" name="liaison" id="l-glue"> coller quand c'est possible</label></span>
   <span class="grp"><label><input type="checkbox" id="detail"> Tout afficher</label><label><input type="checkbox" id="power" checked> Réseau électrique</label></span>
   <span class="grp sub"><b>Câbles</b><label><input type="radio" name="cables" id="c-poles" checked> entre poteaux</label><label><input type="radio" name="cables" id="c-plugs"> et vers chaque machine</label></span>

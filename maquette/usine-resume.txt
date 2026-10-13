@@ -1,3 +1,3 @@
 tm: 87 × 96 cases · tient sur ta parcelle (160 × 110, exemple) · tuyaux : 314 cases entre modules, 1 333 en tout, 69 croisements en tout · électricité : 455,2 kMF/s, 13 poteaux + 4 relais (dont 8 renforcés), 42 945 $
 gm: 87 × 96 cases · tient sur ta parcelle (160 × 110, exemple) · tuyaux : 314 cases entre modules, 1 333 en tout, 69 croisements en tout · électricité : 455,2 kMF/s, 13 poteaux + 4 relais (dont 8 renforcés), 42 945 $
-f: 87 × 96 cases · tient sur ta parcelle (160 × 110, exemple) · tuyaux : 1 241 cases en tout, 69 croisements en tout · électricité : 455,2 kMF/s, 14 poteaux + 7 relais (dont 9 renforcés), 53 700 $
+f: 85 × 96 cases · tient sur ta parcelle (160 × 110, exemple) · tuyaux : 1 274 cases en tout, 68 croisements en tout · électricité : 455,2 kMF/s, 14 poteaux + 6 relais (dont 9 renforcés), 72 800 $
