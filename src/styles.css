@@ -216,6 +216,10 @@ button.link.have:hover { color: var(--steel); }
 .pose-actions { margin: 6px 0; }
 .fe { fill: none; stroke: #f0913a; stroke-width: 1.6; opacity: .7; }
 .fe.loop { stroke-dasharray: 5 4; opacity: .55; }
+.fe-hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; pointer-events: stroke; }
+.fe.hover { stroke-width: 3.4; opacity: 1; stroke: #ffc27a; }
+.fl { cursor: pointer; }
+.fl.hover rect, .fl.hl rect { stroke: #ffc27a; stroke-width: 1.6; }
 .fa { fill: #f0913a; }
 .fl rect { fill: #2b1f14; stroke: #a8642a; stroke-width: .8; }
 .fl text { fill: #f0b37a; font: 500 10.5px var(--f-mono); }

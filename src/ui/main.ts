@@ -56,7 +56,7 @@ import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layo
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
-import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import {
   builtFor,
   cleanNotes,
@@ -533,8 +533,10 @@ function renderResultTabs(): void {
 
 // Schéma : cadre navigable comme l'arbre de recherche.
 let flowPZ: PanZoom | null = null;
-/** Bloc sélectionné dans le schéma (clé d'étape). */
+/** Bloc sélectionné dans le schéma (clé d'étape), ou flèche sélectionnée (numéro). */
 let flowSel: string | null = null;
+let flowEdge: number | null = null;
+let flowEdgeBefore: number | null = null;
 let flowKey = "";
 /** Échelle de départ : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
 const FLOW_MIN_SCALE = 0.6;
@@ -593,12 +595,25 @@ function applyFlowSel(): void {
       }
     }
   }
-  hud.hidden = !flowSel;
-  hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : "";
+  // Flèche sélectionnée : elle, son étiquette et ses deux blocs en évidence.
+  const hit = flowEdge !== null && !flowSel ? svg?.querySelector<SVGElement>(`.fe-hit[data-edge="${flowEdge}"]`) : null;
+  if (!hit) flowEdge = null;
+  if (svg && hit) {
+    svg.classList.add("has-sel");
+    for (const el of svg.querySelectorAll<SVGElement>(`[data-edge="${flowEdge}"]`)) el.classList.add("hl");
+    for (const k of [hit.dataset.from!, hit.dataset.to!]) svg.querySelector(`.fn[data-key="${CSS.escape(k)}"]`)?.classList.add("hl");
+  }
+  hud.hidden = !flowSel && !hit;
+  hud.innerHTML = flowSel
+    ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local))
+    : hit
+      ? renderEdgeHud(viewCtx(), { from: hit.dataset.from!, to: hit.dataset.to!, item: hit.dataset.item!, perMin: Number(hit.dataset.rate), loop: !!hit.dataset.loop })
+      : "";
 }
 
 function selectFlow(key: string | null): void {
   flowSel = key;
+  flowEdge = null;
   refine({ page: "plan", goal: settings.goal, tab: "schema", ...(key ? { step: key } : {}) });
   applyFlowSel();
 }
@@ -1222,8 +1237,30 @@ function bindPlan(): void {
   $("flow-canvas").addEventListener("click", (e) => {
     if (flowPZ?.suppressClick) return;
     const node = (e.target as Element).closest<SVGGElement>(".fn[data-key]");
+    const edge = (e.target as Element).closest<SVGElement>("[data-edge]");
+    if (!node && edge) {
+      // Flèche (ou son étiquette) : sélectionnée, ou désélectionnée au second clic.
+      const i = Number(edge.dataset.edge);
+      selectFlow(null);
+      flowEdge = i === flowEdgeBefore ? null : i;
+      flowEdgeBefore = flowEdge;
+      applyFlowSel();
+      return;
+    }
+    flowEdgeBefore = null;
     selectFlow(node ? (node.dataset.key === flowSel ? null : node.dataset.key!) : null);
   });
+  // Survol d'une flèche : elle et son étiquette ressortent.
+  let hovered: string | null = null;
+  const hover = (i: string | null) => {
+    const svg = $("flow-canvas").querySelector("svg");
+    if (!svg || i === hovered) return;
+    for (const el of svg.querySelectorAll(".hover")) el.classList.remove("hover");
+    hovered = i;
+    if (i !== null) for (const el of svg.querySelectorAll(`[data-edge="${i}"]`)) el.classList.add("hover");
+  };
+  $("flow-canvas").addEventListener("pointerover", (e) => hover((e.target as Element).closest<SVGElement>("[data-edge]")?.dataset.edge ?? null));
+  $("flow-canvas").addEventListener("pointerleave", () => hover(null));
   $("flow-hud").addEventListener("click", (e) => {
     if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
   });

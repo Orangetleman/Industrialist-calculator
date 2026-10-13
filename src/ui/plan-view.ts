@@ -519,6 +519,14 @@ export function renderStepLinks(v: ViewCtx, key: string): string {
   return `<div class="step-links">${list("Entrées : d'où elles viennent", ins, "Aucune entrée (extraction).")}${list("Sorties : où elles partent", outs, "Rien ne part de cette étape.")}</div>`;
 }
 
+/** Barre du bas du schéma pour une flèche sélectionnée : ce qui passe, d'où, vers où. */
+export function renderEdgeHud(v: ViewCtx, e: { from: string; to: string; item: string; perMin: number; loop: boolean }): string {
+  const a = nodeText(v, e.from);
+  const b = nodeText(v, e.to);
+  const info = `<b>${esc(itemN(v, e.item))} · ${esc(flowLabel(e.perMin))}</b><span>de ${esc(a.text)} vers ${esc(b.text)}${e.loop ? " · boucle : remonte la chaîne" : ""}</span>`;
+  return `<div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">◂ Départ</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">Arrivée ▸</button><button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div>`;
+}
+
 /** Barre du bas du schéma pour le bloc sélectionné : ce qu'il est, et où aller. */
 export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string) => "depot" | "local" | "manquant"): string {
   const n = nodeText(v, key);
@@ -548,10 +556,14 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
   const warned = new Set(p.verify.filter((x) => x.used).map((x) => x.item));
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Schéma des flux, des matières premières (à gauche) vers l'objectif (à droite)">
 <defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="fa"/></marker></defs>`;
-  for (const e of L.edges) {
+  L.edges.forEach((e, i) => {
+    s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" marker-end="url(#fa)"/>`;
+  });
+  // Zones de survol larges et invisibles : une flèche fine se survole et se sélectionne facilement.
+  L.edges.forEach((e, i) => {
     const tip = `${itemN(v, e.item)} : ${flowLabel(e.perMin)}${e.loop ? " (boucle : sous-produit qui remonte la chaîne)" : ""}`;
-    s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" marker-end="url(#fa)"><title>${esc(tip)}</title></path>`;
-  }
+    s += `<path d="${e.d}" class="fe-hit" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" data-item="${esc(e.item)}" data-rate="${e.perMin}"${e.loop ? ' data-loop="1"' : ""}><title>${esc(tip)}</title></path>`;
+  });
   for (const n of L.nodes) {
     const st = steps.get(n.id);
     const u = unres.get(n.id);
@@ -574,9 +586,9 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
 <text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : ""}
 <text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, 26))}</text>${st && warned.has(st.item) ? `<text class="fn-warn" x="${n.x + FW - 12}" y="${n.y + 44}" text-anchor="end">⚠</text>` : ""}</g>`;
   }
-  for (const e of L.edges) {
+  for (const [i, e] of L.edges.entries()) {
     // Étiquette sur deux lignes : le produit, puis son débit (nom entier au survol).
-    s += `<g class="fl" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><title>${esc(`${itemN(v, e.item)} : ${flowLabel(e.perMin)}`)}</title><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text class="fl-name" x="${e.lx.toFixed(1)}" y="${(e.ly - 2).toFixed(1)}" text-anchor="middle">${esc(e.name)}</text><text x="${e.lx.toFixed(1)}" y="${(e.ly + 10).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
+    s += `<g class="fl" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><title>${esc(`${itemN(v, e.item)} : ${flowLabel(e.perMin)}`)}</title><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text class="fl-name" x="${e.lx.toFixed(1)}" y="${(e.ly - 2).toFixed(1)}" text-anchor="middle">${esc(e.name)}</text><text x="${e.lx.toFixed(1)}" y="${(e.ly + 10).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
   }
   return { svg: s + "</svg>", width: L.width, height: L.height };
 }
