@@ -46,13 +46,14 @@ import {
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
+import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeTitle, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
-import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import {
   builtFor,
   cleanNotes,
@@ -173,21 +174,60 @@ const itemName = (id: string) => data.items.get(id)?.name ?? id;
 
 // ---------------------------------------------------------------- pages et adresses
 
-type Page = "accueil" | "plan" | "usine" | "arbre" | "donnees";
-const PAGES: Page[] = ["accueil", "plan", "usine", "arbre", "donnees"];
-const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
-const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
-const GOAL_TITLE: Record<Goal, string> = { objet: "Produire un objet", énergie: "Produire de l'énergie", recherche: "Gagner des points de recherche", argent: "Gagner de l'argent" };
 /** Adresses d'avant la refonte. */
 const OLD_ROUTES: Record<string, string> = { production: "", recherche: "arbre", verifier: "donnees", batiments: "donnees", partie: "usine" };
+const KEY_STACK = "ind-calc:v1:pile";
 
-function currentPage(): Page {
-  const h = decodeURIComponent(location.hash.replace("#", ""));
-  if (ROUTE_GOAL[h]) return "plan";
-  return (PAGES as string[]).includes(h) && h !== "plan" ? (h as Page) : "accueil";
+let route: Route = parseRoute(location.hash);
+const currentPage = (): Page => route.page;
+
+/** Vues visitées dans cet onglet (pour le bouton « Retour »), et défilement de chacune. */
+let stack: string[] = (() => {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(KEY_STACK) ?? "[]");
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+})();
+const scrollOf = new Map<string, number>();
+function saveStack(): void {
+  try {
+    sessionStorage.setItem(KEY_STACK, JSON.stringify(stack));
+  } catch {
+    // pile indisponible : le bouton « Retour » se contente de la session en cours
+  }
 }
 
-/** Lit l'adresse : objectif choisi, anciennes adresses redirigées. */
+/** Aller à une vue (nouvelle entrée d'historique : « Retour » y ramène). */
+function go(r: Route): void {
+  const h = routeHash(r);
+  if (h === location.hash) showPage();
+  else location.hash = h;
+}
+/** Préciser la vue en cours sans créer d'entrée d'historique (choix d'une étape, d'un bloc). */
+function refine(r: Route): void {
+  const h = routeHash(r);
+  if (h === location.hash) return;
+  history.replaceState(null, "", h);
+  route = r;
+  stack = [...stack.slice(0, -1), h];
+  saveStack();
+  renderBack();
+}
+
+function renderBack(): void {
+  const b = $<HTMLButtonElement>("back");
+  const prev = stack.length >= 2 ? stack.at(-2)! : null;
+  b.hidden = !prev;
+  if (!prev) return;
+  const t = routeTitle(parseRoute(prev));
+  b.title = `Revenir à : ${t}`;
+  b.setAttribute("aria-label", `Retour : ${t}`);
+  $("back-to").textContent = t;
+}
+
+/** Lit l'adresse : vue demandée, anciennes adresses redirigées. */
 function readRoute(): void {
   const h = decodeURIComponent(location.hash.replace("#", ""));
   if (h in OLD_ROUTES) {
@@ -195,16 +235,33 @@ function readRoute(): void {
     if (h === "verifier") ui.dataTab = "verifier";
     history.replaceState(null, "", `#${OLD_ROUTES[h] || GOAL_ROUTE[settings.goal]}`);
   }
-  const goal = ROUTE_GOAL[decodeURIComponent(location.hash.replace("#", ""))];
-  if (goal && goal !== settings.goal) {
-    settings.goal = goal;
+  route = parseRoute(location.hash);
+  if (route.goal && route.goal !== settings.goal) {
+    settings.goal = route.goal;
     planDirty = true;
+  }
+  if (route.tab && route.tab !== settings.resultTab) {
+    settings.resultTab = route.tab;
+    saveSettings(settings);
+  }
+  if (route.tab === "pose" && route.step) poseStep = route.step;
+  if (route.tab === "schema") flowSel = route.step ?? null;
+  if (route.dataTab && route.dataTab !== ui.dataTab) {
+    ui.dataTab = route.dataTab;
+    saveUi();
   }
 }
 
 let lastPage: Page | null = null;
+let lastHash = "";
 function showPage(): void {
+  if (lastHash) scrollOf.set(lastHash, window.scrollY);
   readRoute();
+  const before = stack.length;
+  stack = nextStack(stack, location.hash);
+  const wentBack = stack.length < before;
+  saveStack();
+  lastHash = location.hash;
   const page = currentPage();
   for (const p of PAGES) $(`page-${p}`).hidden = p !== page;
   for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-nav]")) {
@@ -212,11 +269,15 @@ function showPage(): void {
     else a.removeAttribute("aria-current");
   }
   document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
-  if (page !== lastPage) window.scrollTo(0, 0);
-  lastPage = page;
   const titles: Record<Page, string> = { accueil: "", plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", donnees: "Données" };
   document.title = titles[page] ? `${titles[page]} — Calculateur de production` : "Calculateur de production";
+  renderBack();
   render();
+  if (page === "donnees" && route.machine) buildings.show(route.machine);
+  // Retour : la vue reprend où on l'avait laissée ; nouvelle page : en haut.
+  if (wentBack && scrollOf.has(location.hash)) window.scrollTo(0, scrollOf.get(location.hash)!);
+  else if (page !== lastPage) window.scrollTo(0, 0);
+  lastPage = page;
 }
 
 // ---------------------------------------------------------------- calcul
@@ -477,6 +538,8 @@ function renderResultTabs(): void {
 
 // Schéma : cadre navigable comme l'arbre de recherche.
 let flowPZ: PanZoom | null = null;
+/** Bloc sélectionné dans le schéma (clé d'étape). */
+let flowSel: string | null = null;
 let flowKey = "";
 /** Échelle de départ : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
 const FLOW_MIN_SCALE = 0.6;
@@ -510,6 +573,39 @@ function renderFlowCanvas(): void {
   });
   flowPZ.attach(canvas.querySelector("svg")!, f.width, f.height, signature === flowKey);
   flowKey = signature;
+  applyFlowSel();
+}
+
+/** Bloc sélectionné : lui et ses flux en évidence, et la barre du bas pour aller plus loin. */
+function applyFlowSel(): void {
+  const svg = $("flow-canvas").querySelector("svg");
+  const hud = $("flow-hud");
+  if (flowSel && !svg?.querySelector(`.fn[data-key="${CSS.escape(flowSel)}"]`)) flowSel = null;
+  if (svg) {
+    svg.classList.toggle("has-sel", !!flowSel);
+    for (const el of svg.querySelectorAll<SVGElement>(".sel, .hl")) el.classList.remove("sel", "hl");
+    if (flowSel) {
+      const k = CSS.escape(flowSel);
+      const node = svg.querySelector(`.fn[data-key="${k}"]`)!;
+      node.classList.add("sel");
+      const r = node.querySelector("rect")!;
+      const n = (a: string) => Number(r.getAttribute(a));
+      flowPZ?.reveal(n("x") - 20, n("y"), n("width") + 70, n("height")); // à l'écart des boutons de zoom
+      for (const el of svg.querySelectorAll<SVGElement>(`[data-from="${k}"], [data-to="${k}"]`)) el.classList.add("hl");
+      for (const el of svg.querySelectorAll<SVGElement>(".fe.hl, .fl.hl")) {
+        const other = el.dataset.from === flowSel ? el.dataset.to : el.dataset.from;
+        if (other) svg.querySelector(`.fn[data-key="${CSS.escape(other)}"]`)?.classList.add("hl");
+      }
+    }
+  }
+  hud.hidden = !flowSel;
+  hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : "";
+}
+
+function selectFlow(key: string | null): void {
+  flowSel = key;
+  refine({ page: "plan", goal: settings.goal, tab: "schema", ...(key ? { step: key } : {}) });
+  applyFlowSel();
 }
 
 // ---------------------------------------------------------------- plans de pose (E4)
@@ -545,13 +641,13 @@ function portsLabel(machine: string): string {
 
 function renderPose(): void {
   const p = plan!;
-  const choices = p.steps.filter((s) => s.machineKind !== "farm" && !s.parts && s.machines >= 1);
+  const choices = p.steps.filter(isPosable);
   const sel = $<HTMLSelectElement>("pose-step");
   if (!choices.length) {
     sel.innerHTML = "";
     $("pose-head").innerHTML = `<p class="muted">Aucune étape à poser dans ce plan (les arbres et les centrales composées ne sont pas encore dessinés).</p>`;
     $("pose-frame").hidden = true;
-    $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
+    $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
     return;
   }
   if (!poseStep || !choices.some((s) => s.key === poseStep)) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
@@ -560,9 +656,13 @@ function renderPose(): void {
   $("pose-frame").hidden = !m;
   if (!m) {
     $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cette étape.</p>`;
+    $("pose-links").innerHTML = "";
     return;
   }
-  const info = renderModuleInfo(m, anyName, surveyState(m.machine, REPO_PORTS, currentPorts().local));
+  const survey = surveyState(m.machine, REPO_PORTS, currentPorts().local);
+  const info = renderModuleInfo(m, anyName, survey);
+  const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
+  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p>${renderStepLinks(viewCtx(), poseStep)}`;
   $("pose-head").innerHTML = info.head;
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
@@ -1016,11 +1116,7 @@ function bindPlan(): void {
   // Onglets du résultat (flèches gauche/droite comme des onglets).
   const tabs = [...document.querySelectorAll<HTMLButtonElement>("[data-rtab]")];
   for (const b of tabs) {
-    b.addEventListener("click", () => {
-      settings.resultTab = b.dataset.rtab as ResultTab;
-      saveSettings(settings);
-      renderResultTabs();
-    });
+    b.addEventListener("click", () => go({ page: "plan", goal: settings.goal, tab: b.dataset.rtab as ResultTab }));
     b.addEventListener("keydown", (e) => {
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
       const i = tabs.indexOf(b);
@@ -1067,6 +1163,7 @@ function bindPlan(): void {
   });
   $("pose-step").addEventListener("change", (e) => {
     poseStep = (e.target as HTMLSelectElement).value;
+    refine({ page: "plan", goal: settings.goal, tab: "pose", step: poseStep });
     renderPose();
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-pzoom]")) {
@@ -1078,6 +1175,15 @@ function bindPlan(): void {
       else posePZ?.reset();
     });
   }
+  // Schéma : un clic sur un bloc le sélectionne ; ailleurs, désélectionne (pas après un glisser).
+  $("flow-canvas").addEventListener("click", (e) => {
+    if (flowPZ?.suppressClick) return;
+    const node = (e.target as Element).closest<SVGGElement>(".fn[data-key]");
+    selectFlow(node ? (node.dataset.key === flowSel ? null : node.dataset.key!) : null);
+  });
+  $("flow-hud").addEventListener("click", (e) => {
+    if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
+  });
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-fzoom]")) {
     b.addEventListener("click", () => {
       const z = b.dataset.fzoom;
@@ -1093,6 +1199,13 @@ function bindPlan(): void {
 function bindShared(): void {
   document.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
+    // Liens entre vues : plan de pose d'une étape, bloc du schéma, bâtiment dans l'éditeur.
+    const pose = t.closest<HTMLElement>("[data-pose]");
+    if (pose) return go({ page: "plan", goal: settings.goal, tab: "pose", step: pose.dataset.pose! });
+    const flow = t.closest<HTMLElement>("[data-flow]");
+    if (flow) return go({ page: "plan", goal: settings.goal, tab: "schema", step: flow.dataset.flow! });
+    const edit = t.closest<HTMLElement>("[data-edit]");
+    if (edit) return go({ page: "donnees", dataTab: "batiments", machine: edit.dataset.edit! });
     const tier = t.closest<HTMLElement>("[data-tier]");
     if (tier) {
       const v = Number(tier.dataset.tier);
@@ -1360,11 +1473,7 @@ function bindTree(): void {
 
 function bindData(): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-dtab]")) {
-    b.addEventListener("click", () => {
-      ui.dataTab = b.dataset.dtab === "batiments" ? "batiments" : "verifier";
-      saveUi();
-      renderData();
-    });
+    b.addEventListener("click", () => go({ page: "donnees", dataTab: b.dataset.dtab === "batiments" ? "batiments" : "verifier" }));
   }
   // Saisie d'une valeur relevée en jeu
   $("verify").addEventListener("submit", (e) => {
@@ -1493,7 +1602,8 @@ bindShared();
 bindUsine();
 bindTree();
 bindData();
-initBuildings($("bld-root"), data, REPO_PORTS);
+const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }));
+$("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);
 showPage();
 window.setInterval(tickRp, 5000);

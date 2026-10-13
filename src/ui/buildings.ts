@@ -48,7 +48,11 @@ const HELP: Record<Mode, string> = {
   coins: "",
 };
 
-export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile): void {
+/**
+ * `onSelect` : appelé quand un bâtiment est choisi (pour l'adresse de la page).
+ * Renvoie `show(id)` : ouvrir un bâtiment depuis une autre page (schéma, plan de pose).
+ */
+export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile, onSelect: (id: string) => void = () => {}): { show(id: string): void } {
   const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
   if (pruned.dropped.length) save();
@@ -154,6 +158,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     message = "";
     renderList();
     renderEditor(false);
+    onSelect(id);
   }
 
   // ---------------------------------------------------------------- dessin
@@ -651,4 +656,16 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
   renderList();
   renderEditor();
   if (message) $("#bld-io").textContent = message;
+
+  return {
+    show(id: string): void {
+      if (id === selectedId || !data.machines.has(id)) return;
+      if (filter && !data.machines.get(id)!.name.toLowerCase().includes(filter.trim().toLowerCase())) {
+        filter = "";
+        ($("#bld-search") as HTMLInputElement).value = "";
+      }
+      select(id);
+      root.querySelector(`[data-bld="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" });
+    },
+  };
 }

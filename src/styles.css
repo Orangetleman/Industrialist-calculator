@@ -67,6 +67,10 @@ input, select, textarea { font: inherit; color: var(--ink); }
 body.wide .top-in, body.wide main { max-width: 1480px; }
 .brand { display: flex; align-items: center; gap: 8px; font: 700 1.05rem var(--f-display); letter-spacing: .01em; color: var(--ink); text-decoration: none; white-space: nowrap; }
 .brand-logo { border-radius: 7px; flex: none; }
+.back { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; font-size: .85rem; max-width: 220px; white-space: nowrap; }
+.back[hidden] { display: none; }
+.back-to { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 600px) { .back-to { display: none; } }
 .mainnav { display: flex; gap: 2px; }
 .mainnav a { text-decoration: none; padding: 6px 11px; border-radius: 8px; color: var(--muted); font-weight: 500; white-space: nowrap; }
 .mainnav a:hover { color: var(--ink); background: var(--bg); }
@@ -191,6 +195,25 @@ button.link.have:hover { color: var(--steel); }
 .fn-sub { fill: #9aa7b4; font: 400 11.5px var(--f-mono); }
 .fn-rate { fill: #f0b37a; font: 600 12px var(--f-mono); }
 .fn-warn { fill: #e3b25a; font-size: 12px; }
+.fn { cursor: pointer; }
+.fn:hover rect { stroke: #8fb8d6; }
+.fn.sel rect { stroke: #2ec4c9; stroke-width: 2.6; }
+.has-sel .fn:not(.sel):not(.hl) { opacity: .35; }
+.has-sel .fe:not(.hl), .has-sel .fl:not(.hl) { opacity: .12; }
+.has-sel .fe.hl { stroke-width: 2.4; }
+.flow-hud { margin-top: 8px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 14px; padding: 10px 12px; border-radius: 10px; background: #262c33f0; border: 1px solid #4a525c; color: #e6ebf0; }
+.flow-hud[hidden] { display: none; }
+.flow-hud-info { display: flex; flex-direction: column; min-width: 0; }
+.flow-hud-info b { font-size: 1.02rem; }
+.flow-hud-info span { font-family: var(--f-mono); font-size: .78rem; color: #9aa7b4; }
+.flow-hud-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.flow-hud-btn { background: #2a3038; color: #e6ebf0; border-color: #4a525c; font-size: .85rem; padding: 6px 12px; }
+.flow-hud-btn.primary { background: #f0913a; border-color: #f0913a; color: #17212b; font-weight: 600; }
+.flow-hud-x { background: transparent; border: none; color: #9aa7b4; font-size: 1.2rem; padding: 2px 6px; }
+.step-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4px 20px; margin: 4px 0 10px; }
+.step-links h4 { margin: 4px 0; font-size: .92rem; }
+.links-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: .9rem; }
+.pose-actions { margin: 6px 0; }
 .fe { fill: none; stroke: #f0913a; stroke-width: 1.6; opacity: .7; }
 .fe.loop { stroke-dasharray: 5 4; opacity: .55; }
 .fa { fill: #f0913a; }

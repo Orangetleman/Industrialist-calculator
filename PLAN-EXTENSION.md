@@ -391,6 +391,17 @@ quelle longueur maximale pour une liaison directe ? Une entrée reliée à une a
 passer les objets à la machine suivante (chaînage) ? Les objets arrivés par « la mauvaise »
 entrée vont-ils quand même au bon endroit dans la machine ?
 
+Retours du 2026-10-13 (suite), faits :
+- Les plans de pose utilisent aussi les relevés locaux de l'éditeur (le local l'emporte) ; l'éditeur
+  dit l'état de chaque bâtiment : dépôt, local à envoyer, manquant.
+- Navigation : chaque vue a son adresse (`#objet/schema/<étape>`, `#objet/pose/<étape>`,
+  `#donnees/batiments/<bâtiment>`) et un bouton « ← Retour » dans la barre du haut ramène à la
+  précédente (position de défilement comprise). Dans le schéma, un clic sur un bloc le met en
+  évidence avec ses flux et propose « Plan de pose » et « Bâtiment ✎ » (éditeur). Chaque plan de
+  pose liste ses raccordements : d'où vient chaque entrée, où part chaque sortie (boucles, objectif,
+  surplus), avec des liens vers les étapes voisines. La liste de construction a un lien « plan de
+  pose » par étape.
+
 Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
 logique, liaisons directes entre ports, usine assemblée (E4b).
 

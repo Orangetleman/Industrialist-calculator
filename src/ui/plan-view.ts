@@ -284,6 +284,8 @@ export type BuildRow = {
   buildable: boolean;
   /** Objet pour « je l'ai déjà » (production existante). */
   have?: { item: string; perMin: number };
+  /** Étape qui a un plan de pose (clé d'étape). */
+  pose?: string;
 };
 
 const STAGES = ["Extraction", "Transformation", "Produit final", "Vente", "Centrales électriques", "Énergie", "Dépollution", "Stations de recherche", "Réseau électrique", "Déjà en place", "Non produit"] as const;
@@ -312,6 +314,7 @@ function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
     note: [occupied, farm && s.growth ? "nombre indicatif (pousse)" : "", locked].filter(Boolean).join(" · "),
     buildable: true,
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
+    pose: isPosable(s) ? s.key : undefined,
   };
 }
 
@@ -437,7 +440,7 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
         ? ` <button type="button" class="link small have" data-have="${esc(r.have.item)}" data-amount="${Math.round(r.have.perMin * 100) / 100}" title="Tu produis déjà cet objet ailleurs : le calcul s'en servira au lieu de construire.">je l'ai déjà</button>`
         : "";
       body += `<tr class="${[on ? "done" : "", r.buildable ? "" : "info"].filter(Boolean).join(" ")}"><td class="chk">${box}</td>
-        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
+        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="Comment poser ces machines : disposition, tuyaux, poteaux">plan de pose</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
         <td class="prod">${esc(r.product)}${r.rate ? ` <span class="sub num">${esc(r.rate)}</span>` : ""}${have}</td>
         <td class="feeds">${r.feeds ? `<span class="sub-k">alimente</span> ${esc(r.feeds)}` : ""}</td>
         <td class="num energy">${esc(r.energy)}</td></tr>`;
@@ -453,6 +456,78 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
 
 // ---------------------------------------------------------------- schéma
 
+/** Étape qui a un plan de pose : des machines à poser (pas d'arbres ni de centrale composée, pour l'instant). */
+export const isPosable = (s: Step) => s.machineKind !== "farm" && !s.parts && s.machines >= 1;
+
+/** Nom court d'un bloc du schéma (étape, manque ou production existante), pour les raccordements. */
+function nodeText(v: ViewCtx, key: string): { text: string; step: Step | null } {
+  const st = v.plan.steps.find((s) => s.key === key) ?? null;
+  if (st) {
+    const what = st.parts ? st.parts.map((q) => `${q.count} ${machineN(v, q.machine)}`).join(" + ") : `${st.machineKind === "farm" ? "≈ " : ""}${st.machines} × ${machineN(v, st.machine)}`;
+    return { text: `${what} (${itemN(v, st.item)})`, step: st };
+  }
+  const ex = v.plan.existing.find((x) => x.key === key);
+  if (ex) return { text: `ta production déjà en place (${itemN(v, ex.item)})`, step: null };
+  return { text: `non produit dans ce plan : à apporter`, step: null };
+}
+
+/** Boutons vers une autre étape : son plan de pose, sa place dans le schéma. */
+function nodeButtons(st: Step | null, key: string): string {
+  return `${st && isPosable(st) ? `<button type="button" class="link small" data-pose="${esc(key)}">son plan de pose</button> ` : ""}<button type="button" class="link small" data-flow="${esc(key)}">au schéma</button>`;
+}
+
+/**
+ * Raccordements d'une étape : d'où viennent ses entrées et où partent ses sorties (une étape peut
+ * en alimenter plusieurs et être alimentée par plusieurs, en amont comme en aval pour les boucles).
+ */
+export function renderStepLinks(v: ViewCtx, key: string): string {
+  const p = v.plan;
+  const st = p.steps.find((s) => s.key === key);
+  if (!st) return "";
+  const loopTag = `<span class="tag" title="flux qui remonte la chaîne : il revient vers une étape en amont">boucle</span>`;
+  const ins = p.edges
+    .filter((e) => e.to === key)
+    .map((e) => {
+      const n = nodeText(v, e.from);
+      return `<li><b>${esc(itemN(v, e.item))}</b> <span class="num">${esc(fmtRate(e.perMin))}/min</span> ← ${esc(n.text)}${e.loop ? ` ${loopTag}` : ""} ${nodeButtons(n.step, e.from)}</li>`;
+    });
+  const outs = p.edges
+    .filter((e) => e.from === key)
+    .map((e) => {
+      const n = nodeText(v, e.to);
+      return `<li><b>${esc(itemN(v, e.item))}</b> <span class="num">${esc(fmtRate(e.perMin))}/min</span> → ${esc(n.text)}${e.loop ? ` ${loopTag}` : ""} ${nodeButtons(n.step, e.to)}</li>`;
+    });
+  if (p.finals.includes(key)) {
+    const sale = p.sales.find((x) => x.item === st.item);
+    // Ce qui reste pour l'objectif, une fois servies les autres étapes de la chaîne.
+    const kept = st.demandPerMin - p.edges.filter((e) => e.from === key && e.item === st.item).reduce((t, e) => t + e.perMin, 0);
+    outs.unshift(`<li><b>${esc(itemN(v, st.item))}</b> <span class="num">${esc(fmtRate(sale?.perMin ?? kept))}/min</span> → ${sale ? "à vendre (objectif)" : "objectif du plan"}</li>`);
+  }
+  for (const x of p.surplus.filter((x) => x.from.includes(st.recipeId))) {
+    outs.push(`<li><b>${esc(itemN(v, x.item))}</b> <span class="num">${esc(fmtRate(x.perMin))}/min</span> → surplus${x.from.length > 1 ? " du plan (toutes étapes)" : ""} : à stocker, vendre ou détruire</li>`);
+  }
+  const list = (title: string, items: string[], none: string) => `<div><h4>${title}</h4>${items.length ? `<ul class="links-list">${items.join("")}</ul>` : `<p class="muted">${none}</p>`}</div>`;
+  return `<div class="step-links">${list("Entrées : d'où elles viennent", ins, "Aucune entrée (extraction).")}${list("Sorties : où elles partent", outs, "Rien ne part de cette étape.")}</div>`;
+}
+
+/** Barre du bas du schéma pour le bloc sélectionné : ce qu'il est, et où aller. */
+export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string) => "depot" | "local" | "manquant"): string {
+  const n = nodeText(v, key);
+  const st = n.step;
+  const ins = v.plan.edges.filter((e) => e.to === key).length;
+  const outs = v.plan.edges.filter((e) => e.from === key).length + (v.plan.finals.includes(key) ? 1 : 0);
+  const name = st ? itemN(v, st.item) : itemN(v, v.plan.existing.find((x) => x.key === key)?.item ?? key);
+  const info = `<b>${esc(name)}</b><span>${esc(st ? n.text.replace(/ \([^)]*\)$/, "") : n.text)}${st ? ` · reçoit ${ins} flux · en envoie ${outs}` : ""}</span>`;
+  const acts: string[] = [];
+  if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
+  if (st && !st.parts) {
+    const state = survey(st.machine);
+    const label = state === "depot" ? "ports relevés" : state === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
+    acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="Ouvrir ${esc(machineN(v, st.machine))} dans l'éditeur de bâtiments">Bâtiment : ${esc(label)} ✎</button>`);
+  }
+  return `<div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div>`;
+}
+
 /** Schéma des flux (SVG), à placer dans un cadre navigable. */
 export function renderFlow(v: ViewCtx): { svg: string; width: number; height: number } | null {
   const p = v.plan;
@@ -466,7 +541,7 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
 <defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="fa"/></marker></defs>`;
   for (const e of L.edges) {
     const tip = `${itemN(v, e.item)} : ${flowLabel(e.perMin)}${e.loop ? " (boucle : sous-produit qui remonte la chaîne)" : ""}`;
-    s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" marker-end="url(#fa)"><title>${esc(tip)}</title></path>`;
+    s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" marker-end="url(#fa)"><title>${esc(tip)}</title></path>`;
   }
   for (const n of L.nodes) {
     const st = steps.get(n.id);
@@ -486,12 +561,12 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
       : ex
         ? `${name} — ta production existante : ${fmtRate(ex.used)} sur ${fmtRate(ex.available)} par min`
         : `${name} — ${u ? (LEAF_TEXT[u.reason] ?? u.reason) : ""}`;
-    s += `<g class="fn ${n.kind}"><title>${esc(tip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
+    s += `<g class="fn ${n.kind}" data-key="${esc(n.id)}"><title>${esc(tip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
 <text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : ""}
 <text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, 26))}</text>${st && warned.has(st.item) ? `<text class="fn-warn" x="${n.x + FW - 12}" y="${n.y + 44}" text-anchor="end">⚠</text>` : ""}</g>`;
   }
   for (const e of L.edges) {
-    s += `<g class="fl"><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text x="${e.lx.toFixed(1)}" y="${(e.ly + 4).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
+    s += `<g class="fl" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text x="${e.lx.toFixed(1)}" y="${(e.ly + 4).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
   }
   return { svg: s + "</svg>", width: L.width, height: L.height };
 }

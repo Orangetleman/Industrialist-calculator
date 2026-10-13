@@ -29,6 +29,7 @@
 <!-- Barre du haut : navigation courte + état du joueur, toujours visible -->
 <header class="top">
   <div class="top-in">
+    <button type="button" class="back" id="back" hidden><span aria-hidden="true">←</span> <span class="back-to" id="back-to"></span></button>
     <a class="brand" href="#accueil"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span>Calculateur<span class="long"> Industrialist</span></span></a>
     <nav class="mainnav" aria-label="Sections">
       <a href="#accueil" data-nav="accueil">Accueil</a>
@@ -151,7 +152,7 @@
     <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
       <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
         <div id="flow-canvas"></div>
-        <p class="flow-help">Glisse pour te déplacer · molette pour zoomer</p>
+        <p class="flow-help">Glisse pour te déplacer · molette pour zoomer · clique un bloc</p>
         <div class="rs-zoom">
           <button type="button" data-fzoom="in" aria-label="Zoomer">+</button>
           <button type="button" data-fzoom="out" aria-label="Dézoomer">−</button>
@@ -159,7 +160,8 @@
           <button type="button" data-fzoom="reset" aria-label="Vue de départ">⌂</button>
         </div>
       </div>
-      <p class="hint">De gauche (extraction) à droite (objectif). Survole un bloc ou une flèche pour le détail. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
+      <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
+      <p class="hint">De gauche (extraction) à droite (objectif). Clique un bloc pour voir ses flux et ouvrir son plan de pose ou son bâtiment ; survole une flèche pour le détail. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-pose" aria-labelledby="rtab-pose" hidden>
       <label class="pose-pick" for="pose-step">Étape
@@ -167,6 +169,7 @@
       </label>
       <label class="check-line"><input type="checkbox" id="pose-tier3"> Seulement des tuyaux de tier III <span class="hint">(plus rapides, plus chers)</span></label>
       <div id="pose-head"></div>
+      <div id="pose-links"></div>
       <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
         <div id="pose-canvas"></div>
         <p class="flow-help">Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer</p>
