@@ -34,7 +34,25 @@ const PALETTE = ["#f0913a", "#6cc792", "#8fb8d6", "#e3b25a", "#d77fd0", "#5fd4d4
 const PLOT = { w: 160, h: 110 };
 type Pole = Catalog["poles"][number];
 type Pt = { x: number; y: number };
-type Box = { key: string; label: string; sub: string; w: number; h: number; x: number; y: number; col: number; mod: ModulePlan | null; placed: boolean; power: number };
+type Box = { key: string; label: string; sub: string; w: number; h: number; x: number; y: number; col: number; mod: ModulePlan | null; placed: boolean; power: number; variants: ModulePlan[]; rot: number };
+
+/** Le module tourné d'un quart de tour (sens horaire) : tous les bâtiments ont 4 rotations en jeu. */
+const TURN: Record<Dir, Dir> = { N: "E", E: "S", S: "W", W: "N" };
+function turnModule(m: ModulePlan): ModulePlan {
+  const H = m.height;
+  const cell = <T extends { x: number; y: number }>(o: T): T => ({ ...o, x: H - 1 - o.y, y: o.x });
+  const point = <T extends { x: number; y: number }>(o: T): T => ({ ...o, x: H - o.y, y: o.x });
+  const rect = <T extends { x: number; y: number; w: number; h: number }>(o: T): T => ({ ...o, x: H - o.y - o.h, y: o.x, w: o.h, h: o.w });
+  return {
+    ...m,
+    width: m.height,
+    height: m.width,
+    machines: m.machines.map((q) => ({ ...rect(q), cells: q.cells.map(cell), power: q.power.map(point), ports: q.ports.map((pt) => ({ ...pt, cell: cell(pt.cell), facing: TURN[pt.facing] })) })),
+    pieces: m.pieces.map((pc) => ({ ...cell(pc), links: pc.links.map((d) => TURN[d]), ...(pc.crossLinks ? { crossLinks: pc.crossLinks.map((d) => TURN[d]) } : {}) })),
+    nets: m.nets.map((n) => ({ ...n, end: n.end ? { ...cell(n.end), dir: TURN[n.end.dir] } : null })),
+    poles: m.poles.map(rect),
+  };
+}
 type Plug = Pt & { key: string; load: number };
 type PNode = Pt & { id: string; type: Pole; plugs: Plug[]; load: number; module?: string };
 
@@ -46,7 +64,7 @@ function modules() {
     const m = data.machines.get(s.machine)!;
     const req = requestFromStep(s as never, (id) => !!data.items.get(id)?.isFluid, m.cost);
     const mod = req ? designModule({ ...req, priority: ["forme", "place", "prix", "pieces"] }, PORTS[m.id] ?? null, m.size, cat, name) : null;
-    return { key: s.key, label: `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${name(s.machine)}`, sub: name(s.item), w: mod?.width ?? 12, h: mod?.height ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: Math.max(0, s.energyAvg ?? 0) };
+    return { key: s.key, label: `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${name(s.machine)}`, sub: name(s.item), w: mod?.width ?? 12, h: mod?.height ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: Math.max(0, s.energyAvg ?? 0), variants: mod ? [mod, turnModule(mod), turnModule(turnModule(mod)), turnModule(turnModule(turnModule(mod)))] : [], rot: 0 };
   });
   return { plan, boxes, name };
 }
@@ -65,6 +83,14 @@ function design(glue: boolean, globalPoles: boolean) {
     const sep = (b: Box, x: number, y: number, o: Box) => x + b.w + CLR <= o.x || o.x + o.w + CLR <= x || y + b.h + CLR <= o.y || o.y + o.h + CLR <= y;
     const free = (b: Box, x: number, y: number, except?: Box) => x >= 0 && y >= 0 && boxes.every((o) => !o.placed || o === b || o === except || sep(b, x, y, o));
     const order = [...boxes].sort((a, b) => (bySize ? b.w * b.h - a.w * a.h || a.col - b.col : a.col - b.col || b.w * b.h - a.w * a.h));
+    const setRot = (b: Box, r: number) => {
+      if (!b.variants.length) return;
+      b.rot = r;
+      b.mod = b.variants[r]!;
+      b.w = b.mod.width;
+      b.h = b.mod.height;
+    };
+    for (const b of boxes) setRot(b, 0);
     for (const b of order) {
       const placed = boxes.filter((o) => o.placed);
       const prods = producers(b.key);
@@ -85,20 +111,90 @@ function design(glue: boolean, globalPoles: boolean) {
       // Toutes les positions de la grille autour de ce qui est posé : la plus serrée, près des fournisseurs.
       const curW = placed.length ? Math.max(...placed.map((o) => o.x + o.w)) : 0;
       const curH = placed.length ? Math.max(...placed.map((o) => o.y + o.h)) : 0;
-      let best: [number, number] = [0, 0];
+      // Liaisons avec ce qui est déjà posé, dans les deux sens : distance entre les vrais ports (sortie du
+      // fournisseur, entrée du client), pour chaque rotation du module.
+      const links = plan.edges
+        .filter((e) => !e.loop && ((e.to === b.key && byKey.get(e.from)!.placed) || (e.from === b.key && byKey.get(e.to)!.placed)))
+        .map((e) => ({ e, other: byKey.get(e.to === b.key ? e.from : e.to)!, mine: e.to === b.key ? ("entrée" as const) : ("sortie" as const) }));
+      const portAt = (o: Box, item: string, role: "entrée" | "sortie") => {
+        const end = endOf(o, item, role);
+        return end ? { x: o.x + end.x + STEP[end.dir].x, y: o.y + end.y + STEP[end.dir].y } : { x: o.x + o.w / 2, y: o.y + o.h / 2 };
+      };
+      const fixed = links.map((l) => portAt(l.other, l.e.item, l.mine === "entrée" ? "sortie" : "entrée"));
+      let best: [number, number, number] = [0, 0, 0];
       let bestScore = Infinity;
-      for (let x = 0; x <= curW + CLR; x++) {
-        for (let y = 0; y <= curH + CLR; y++) {
-          if (!free(b, x, y)) continue;
-          const W = Math.max(x + b.w, curW);
-          const H = Math.max(y + b.h, curH);
-          const over = Math.max(0, W - PLOT.w) + Math.max(0, H - PLOT.h);
-          const dist = prods.reduce((s, { p }) => s + Math.abs(p.x + p.w - x) + Math.abs(p.y + p.h / 2 - (y + b.h / 2)), 0);
-          const score = W * H + 4000 * over + wDist * dist + (prods.some(({ p }) => x + b.w <= p.x) ? 2000 : 0);
-          if (score < bestScore) [best, bestScore] = [[x, y], score];
+      for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
+        setRot(b, r);
+        const mineEnds = links.map((l) => endOf(b, l.e.item, l.mine));
+        for (let x = 0; x <= curW + CLR; x++) {
+          for (let y = 0; y <= curH + CLR; y++) {
+            if (!free(b, x, y)) continue;
+            const W = Math.max(x + b.w, curW);
+            const H = Math.max(y + b.h, curH);
+            const over = Math.max(0, W - PLOT.w) + Math.max(0, H - PLOT.h);
+            let dist = 0;
+            links.forEach((_, i) => {
+              const end = mineEnds[i];
+              const q = end ? { x: x + end.x + STEP[end.dir].x, y: y + end.y + STEP[end.dir].y } : { x: x + b.w / 2, y: y + b.h / 2 };
+              dist += Math.abs(q.x - fixed[i]!.x) + Math.abs(q.y - fixed[i]!.y);
+            });
+            const score = W * H + 4000 * over + wDist * dist;
+            if (score < bestScore) [best, bestScore] = [[x, y, r], score];
+          }
         }
       }
+      setRot(b, best[2]);
       Object.assign(b, { x: best[0], y: best[1], placed: true });
+    }
+    // Amélioration : chaque module est retiré puis reposé (position et rotation) là où surface + 10 × distance
+    // entre ses ports et ceux de ses partenaires est la plus faible ; tant que ça s'améliore.
+    const portOf = (o: Box, item: string, role: "entrée" | "sortie") => {
+      const end = endOf(o, item, role);
+      return end ? { x: o.x + end.x + STEP[end.dir].x, y: o.y + end.y + STEP[end.dir].y } : { x: o.x + o.w / 2, y: o.y + o.h / 2 };
+    };
+    const linkDist = (b: Box) =>
+      plan.edges
+        .filter((e) => !e.loop && (e.from === b.key || e.to === b.key))
+        .reduce((sum, e) => {
+          const a = portOf(byKey.get(e.from)!, e.item, "sortie");
+          const c = portOf(byKey.get(e.to)!, e.item, "entrée");
+          return sum + Math.abs(a.x - c.x) + Math.abs(a.y - c.y);
+        }, 0);
+    for (let pass = 0; pass < 4; pass++) {
+      let improved = false;
+      for (const b of boxes) {
+        if (glued.some((g) => g.endsWith(`>${b.key}`) || g.startsWith(`${b.key}>`))) continue;
+        const others = boxes.filter((o) => o !== b);
+        const bbox = (x: number, y: number) => {
+          const W = Math.max(x + b.w, ...others.map((o) => o.x + o.w));
+          const H = Math.max(y + b.h, ...others.map((o) => o.y + o.h));
+          const X0 = Math.min(x, ...others.map((o) => o.x));
+          const Y0 = Math.min(y, ...others.map((o) => o.y));
+          return { area: (W - X0) * (H - Y0), over: Math.max(0, W - X0 - PLOT.w) + Math.max(0, H - Y0 - PLOT.h) };
+        };
+        const scoreAt = () => {
+          const bb = bbox(b.x, b.y);
+          return bb.area + 4000 * bb.over + 10 * linkDist(b);
+        };
+        const start = { x: b.x, y: b.y, r: b.rot, score: scoreAt() };
+        let best = start;
+        const curW = Math.max(...others.map((o) => o.x + o.w));
+        const curH = Math.max(...others.map((o) => o.y + o.h));
+        for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
+          setRot(b, r);
+          for (let x = 0; x <= curW + CLR; x++)
+            for (let y = 0; y <= curH + CLR; y++) {
+              if (!free(b, x, y)) continue;
+              [b.x, b.y] = [x, y];
+              const sc = scoreAt();
+              if (sc < best.score - 1e-9) best = { x, y, r, score: sc };
+            }
+        }
+        setRot(b, best.r);
+        [b.x, b.y] = [best.x, best.y];
+        if (best !== start) improved = true;
+      }
+      if (!improved) break;
     }
     // Tassement : chaque module glisse vers le haut et la gauche tant que c'est libre.
     for (let moved = true, guard = 0; moved && guard < 50; guard++) {
@@ -160,17 +256,25 @@ function design(glue: boolean, globalPoles: boolean) {
       const target = { x: p.x + p.w, y: p.y + p.h / 2 };
       if (!route(grid, id, start, inn ? OPPOSITE[inn.dir] : "E", bounds, (q) => Math.abs(q.x - target.x) + Math.abs(q.y - target.y))) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
     }
-    return { area: W * H, pipes: [...grid.cells.values()].filter((o) => o.kind === "tuyau").length };
+    const fits = (W <= PLOT.w && H <= PLOT.h) || (H <= PLOT.w && W <= PLOT.h);
+    return { area: W * H, pipes: [...grid.cells.values()].filter((o) => o.kind === "tuyau").length, fits };
   };
-  // On garde le plus petit essai entièrement raccordé (puis le moins de tuyaux), et on le refait.
-  let bestTry: { area: number; pipes: number; CLR: number; wDist: number; bySize: boolean } | null = null;
+  // Parmi les essais entièrement raccordés : le meilleur compromis surface / longueur des tuyaux.
+  // Le gagnant est refait pour retrouver ses tuyaux.
+  const tries: { area: number; pipes: number; fits: boolean; CLR: number; wDist: number; bySize: boolean }[] = [];
   for (const CLR of [2, 3])
-    for (const wDist of [0, 3, 8, 15])
+    for (const wDist of [3, 8, 15, 30])
       for (const bySize of [false, true]) {
         const r = attempt(CLR, wDist, bySize);
-        if (problems.length) continue;
-        if (!bestTry || r.area < bestTry.area || (r.area === bestTry.area && r.pipes < bestTry.pipes)) bestTry = { ...r, CLR, wDist, bySize };
+        if (!problems.length) tries.push({ ...r, CLR, wDist, bySize });
       }
+  const minArea = Math.min(...tries.map((t) => t.area));
+  if (process.env.ESSAIS) writeFileSync(process.env.ESSAIS + (globalPoles ? "g" : "m") + (glue ? "c" : "t") + ".txt", tries.map((t) => `${t.area} ${t.pipes} CLR${t.CLR} w${t.wDist} ${t.bySize}`).join(String.fromCharCode(10)));
+  void minArea;
+  // Une case de tuyau compte comme 10 cases de surface : un peu plus de place plutôt que des détours.
+  // D'abord ceux qui tiennent sur la parcelle.
+  const pool = tries.some((t) => t.fits) ? tries.filter((t) => t.fits) : tries;
+  const bestTry = [...pool].sort((a, b) => a.area + 10 * a.pipes - (b.area + 10 * b.pipes))[0];
   if (bestTry) attempt(bestTry.CLR, bestTry.wDist, bestTry.bySize);
   const color = new Map([...new Set(plan.edges.map((e) => e.item))].map((it, i) => [it, PALETTE[i % PALETTE.length]!]));
   const cellsOf = (id: string) => [...grid.cells.values()].filter((o) => o.kind === "tuyau" && (o.net === id || o.cross?.net === id)).length;
@@ -507,4 +611,6 @@ for (const id of ["detail", "power", "c-poles", "c-plugs"]) document.getElementB
 </body></html>
 `;
   writeFileSync("maquette/usine.html", html);
+  const NL = String.fromCharCode(10);
+  writeFileSync("maquette/usine-resume.txt", (Object.keys(V) as (keyof typeof V)[]).map((k) => `${k}: ${sum(V[k]).replace(/<[^>]+>/g, "")}`).join(NL) + NL);
 }, 900_000);
