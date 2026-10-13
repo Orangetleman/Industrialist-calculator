@@ -16,7 +16,7 @@ import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog, pipeFor } from "./catalog.ts";
 import { add, key, OPPOSITE, place, rotateCell, rotatePoint, type Dir } from "./geometry.ts";
-import { designModule, portAssignments, type ModulePlan, type ModuleRequest } from "./module.ts";
+import { designModule, normalPriority, portAssignments, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
 import { Grid, route } from "./route.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
@@ -87,7 +87,10 @@ const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recip
 const all = { unlocked: new Set(data.nodes.keys()) };
 const fluid = (id: string) => !!data.items.get(id)?.isFluid;
 
-function moduleFor(stepItem: string, prefer: ModuleRequest["prefer"] = "compact"): { mod: ModulePlan; req: ModuleRequest } {
+const PLACE: PoseCriterion[] = ["place", "prix", "pieces"];
+const PRIX: PoseCriterion[] = ["prix", "place", "pieces"];
+
+function moduleFor(stepItem: string, priority: PoseCriterion[] = PLACE): { mod: ModulePlan; req: ModuleRequest } {
   const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy", tiers: false });
   const s = plan.steps.find((x) => x.item === stepItem)!;
   const m = data.machines.get(s.machine)!;
@@ -98,15 +101,15 @@ function moduleFor(stepItem: string, prefer: ModuleRequest["prefer"] = "compact"
     outputs: [{ item: s.item, perMin: s.demandPerMin, fluid: fluid(s.item) }, ...s.byproducts.map((f) => ({ item: f.item, perMin: f.perMin, fluid: fluid(f.item) }))],
     powerMFps: s.energyAvg !== null ? s.energyAvg / s.machines : null,
     machineCost: m.cost,
-    prefer,
+    priority,
   };
   return { mod: designModule(req, PORTS[s.machine] ?? null, m.size, cat), req };
 }
 
 describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
-  for (const [item, prefer] of ["crankshaft", "steel-rod", "steel-ingot", "raw-iron", "coal"].flatMap((i) => [[i, "compact"], [i, "cheap"]] as const)) {
-    it(`${item} (${prefer === "compact" ? "le plus compact" : "le moins cher"}) : rien ne se chevauche, chaque port est raccordé, chaque réseau est continu`, () => {
-      const { mod, req } = moduleFor(item, prefer);
+  for (const [item, prio] of ["crankshaft", "steel-rod", "steel-ingot", "raw-iron", "coal"].flatMap((i) => [[i, PLACE], [i, PRIX]] as const)) {
+    it(`${item} (${prio[0]} d'abord) : rien ne se chevauche, chaque port est raccordé, chaque réseau est continu`, () => {
+      const { mod, req } = moduleFor(item, prio);
       expect(mod.problems.filter((p) => p.level === "erreur"), item).toEqual([]);
       expect(mod.portsKnown).toBe(true);
       expect(mod.machines).toHaveLength(req.count);
@@ -141,7 +144,8 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
       // Chaque port utilisé touche un tuyau de sa ressource, ouvert vers lui.
       const used = mod.pieces.filter((p) => portCells.has(key(p)));
       expect(used.length).toBe(req.count * (req.inputs.length + req.outputs.length));
-      for (const p of used) expect(p.links).toContain(OPPOSITE[portCells.get(key(p))!.facing]);
+      // Croisement collé à un port : l'un de ses deux tuyaux s'ouvre vers lui.
+      for (const p of used) expect([...p.links, ...(p.crossLinks ?? [])]).toContain(OPPOSITE[portCells.get(key(p))!.facing]);
       // Liste des pièces : machines, chaque tuyau, chaque poteau.
       const count = (id: string) => mod.parts.find((p) => p.id === id)?.count ?? 0;
       expect(count(req.machine)).toBe(req.count);
@@ -164,16 +168,30 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(opts.map((o) => o.filter((a) => a.role === "entrée").map((a) => a.port).join(","))).toEqual(["1,2", "2,1"]);
   });
 
-  it("« le moins cher » : les raccords contournent les machines au lieu de croiser les collecteurs", () => {
-    const compact = moduleFor("crankshaft", "compact").mod;
-    const cheap = moduleFor("crankshaft", "cheap").mod;
+  it("le prix d'abord : les raccords contournent les machines au lieu de croiser les collecteurs", () => {
+    const compact = moduleFor("crankshaft", PLACE).mod;
+    const cheap = moduleFor("crankshaft", PRIX).mod;
     const crossings = (m: ModulePlan) => m.pieces.filter((p) => p.role === "croisement").length;
     expect(cheap.cost).toBeLessThan(compact.cost * 0.7);
     expect(crossings(cheap)).toBeLessThan(crossings(compact) / 2);
     expect(cheap.width * cheap.height).toBeGreaterThanOrEqual(compact.width * compact.height);
     // Chacun annonce l'autre choix.
-    expect(compact.other).toMatchObject({ width: cheap.width, height: cheap.height, crossings: crossings(cheap) });
-    expect(cheap.other).toMatchObject({ width: compact.width, height: compact.height });
+    expect(compact.other).toMatchObject({ first: "prix", width: cheap.width, height: cheap.height, crossings: crossings(cheap) });
+    expect(cheap.other).toMatchObject({ first: "place", width: compact.width, height: compact.height });
+  });
+
+  it("collecteur collé aux machines : la place gagnée, et les croisements collés aux ports", () => {
+    const { mod } = moduleFor("crankshaft", PLACE);
+    expect(mod.height).toBeLessThanOrEqual(15); // 19 avant (rangée de raccord libre, deux files de poteaux)
+    const ports = new Set(mod.machines.flatMap((m) => m.ports.map((p) => `${p.cell.x},${p.cell.y}`)));
+    expect(mod.pieces.some((p) => p.role === "croisement" && ports.has(`${p.x},${p.y}`))).toBe(true);
+    expect(new Set(mod.poles.map((p) => p.y)).size).toBe(1); // une seule file atteint toutes les prises
+  });
+
+  it("ordre des critères : complété et sans doublon", () => {
+    expect(normalPriority(undefined)).toEqual(["place", "prix", "pieces"]);
+    expect(normalPriority(["pieces"])).toEqual(["pieces", "place", "prix"]);
+    expect(normalPriority(["prix", "prix", "x" as PoseCriterion])).toEqual(["prix", "place", "pieces"]);
   });
 
   it("option « tier III seulement » : aucun tuyau de tier I", () => {

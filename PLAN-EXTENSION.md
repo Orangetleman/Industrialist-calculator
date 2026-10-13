@@ -412,6 +412,14 @@ croisements (un par machine : c'est le minimum avec trois ressources sur une ran
 moins d'une seconde par étape (essai rapide de chaque disposition sur 2 machines, puis les
 meilleures en vrai).
 
+Place d'abord (retours du 2026-10-13, suite) : le collecteur le plus proche passe sur la rangée de
+raccord, collé aux machines ; une autre ressource le traverse par un croisement collé au port (les
+deux tuyaux du croisement se relient à la machine, confirmé par l'utilisateur). Une seule file de
+poteaux quand elle atteint toutes les prises. Les priorités sont une liste à réordonner (glisser ou
+↑ ↓) : place au sol, prix, pièces à poser ; le plan annonce ce que donnerait le 2e critère en premier.
+15 Craft Assemblers, place d'abord : 66 × 15 cases (66 × 19 avant). Reste : les modules très longs
+(rangées repliées), puis l'usine assemblée.
+
 Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
 logique, liaisons directes entre ports, usine assemblée (E4b).
 

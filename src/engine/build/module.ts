@@ -22,9 +22,13 @@ export type ModuleRequest = {
   machineCost: number | null;
   /** N'utiliser que des tuyaux de tier III (plus rapides, plus chers). */
   tier3Only?: boolean;
-  /** Module préféré : le plus compact (par défaut), ou le moins cher. */
-  prefer?: "compact" | "cheap";
+  /** Ce qui départage les dispositions, dans l'ordre (par défaut : place, prix, pièces). */
+  priority?: PoseCriterion[];
 };
+
+/** Critères des plans de pose : place au sol, prix total, nombre de pièces à poser. */
+export type PoseCriterion = "place" | "prix" | "pieces";
+export const POSE_CRITERIA: PoseCriterion[] = ["place", "prix", "pieces"];
 
 export type Net = {
   /** Identifiant du réseau : la ressource, suivie de « #n » quand plusieurs collecteurs la portent. */
@@ -66,9 +70,9 @@ export type ModulePlan = {
   problems: Problem[];
   assumptions: string[];
   order: string[];
-  /** Priorité qui a choisi ce module, et ce que donnerait l'autre (si elle donne un autre module). */
-  prefer: "compact" | "cheap";
-  other: { width: number; height: number; cost: number; crossings: number; template: ModulePlan["template"] } | null;
+  /** Ordre des critères qui a choisi ce module, et ce que donnerait le 2e critère mis en premier. */
+  priority: PoseCriterion[];
+  other: { first: PoseCriterion; width: number; height: number; cost: number; pieces: number; crossings: number; template: ModulePlan["template"] } | null;
 };
 
 /** Nombre pour les messages : deux décimales au plus, virgule décimale. */
@@ -155,7 +159,7 @@ type Layout = { grid: Grid; machines: Placed[]; nets: Net[]; problems: Problem[]
  * Pose N machines en une rangée (ou deux rangées dos à dos), trace un collecteur par ressource
  * le long de la rangée, puis raccorde chaque port au collecteur de sa ressource.
  */
-function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer, sides: Record<string, "haut" | "bas"> | null = null): Layout | null {
+function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer, sides: Record<string, "haut" | "bas"> | null = null, hug = false): Layout | null {
   const problems: Problem[] = [];
   const probe = place("m", req.machine, entry, 0, 0, rot);
   const used = new Map(assign.map((a) => [a.port, a]));
@@ -194,16 +198,23 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   const itemOf = (id: string) => id.replace(/#\d+$/, "");
   const above = netIds.filter((id) => sideOf.get(itemOf(id)) === "haut");
   const below = netIds.filter((id) => sideOf.get(itemOf(id)) === "bas");
-  // Une rangée de raccord (les cases qui touchent les ports), puis un collecteur par ressource.
+  // Les cases qui touchent les ports (rangée de raccord), puis un collecteur par ressource. Collecteur
+  // collé (`hug`) : le plus proche passe sur la rangée de raccord ; une autre ressource le traverse
+  // par un croisement collé au port (en jeu, les deux tuyaux du croisement se relient à la machine).
   const touchN = sideCount("N") ? stubOut("N") + 1 : 0;
   const touchS = sideCount("S") ? stubOut("S") + 1 : 0;
-  const y0 = above.length + touchN; // haut de la (première) rangée
-  const laneBelow0 = y0 + probe.h + touchS;
+  const hugN = hug && !!above.length && !!touchN;
+  const hugS = hug && !!below.length && !!touchS;
+  const y0 = above.length + touchN - (hugN ? 1 : 0); // haut de la (première) rangée
+  const aboveRow = (k: number) => y0 - touchN - (hugN ? k : k + 1);
+  const touchRowS = y0 + probe.h + touchS - 1; // sous la (première) rangée
+  const belowRow = (k: number) => touchRowS + (hugS ? k : k + 1);
+  const lastBelow = below.length ? belowRow(below.length - 1) : touchRowS;
   // Double rangée : la seconde rangée est tournée d'un demi-tour, ports vers le collecteur central.
   const rot2 = ((rot + 2) % 4) as Rot;
   const probe2 = place("m", req.machine, entry, 0, 0, rot2);
   const touchN2 = probe2.ports.some((p) => used.has(p.index) && p.facing === "N") ? Math.max(0, ...probe2.cells.map((c) => -c.y)) + 1 : 0;
-  const row2y = laneBelow0 + below.length + touchN2;
+  const row2y = touchN2 ? (hug && below.length ? lastBelow : lastBelow + 1) + touchN2 : lastBelow + 1;
 
   const grid = new Grid();
   const machines: Placed[] = [];
@@ -224,8 +235,8 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     grid.reserve(p.cell, net);
   }
   const xMax = Math.max(...machines.map((m) => m.x + m.w), ...allPorts.map((q) => q.p.cell.x + 1));
-  const yMax = Math.max(...machines.map((m) => m.y + m.h), ...allPorts.map((q) => q.p.cell.y + 1), laneBelow0 + below.length);
-  const bounds: Bounds = { x0: 0, y0: 0, x1: xMax, y1: Math.max(yMax, laneBelow0 + below.length) + 1 };
+  const yMax = Math.max(...machines.map((m) => m.y + m.h), ...allPorts.map((q) => q.p.cell.y + 1), lastBelow + 1);
+  const bounds: Bounds = { x0: 0, y0: 0, x1: xMax, y1: yMax + 1 };
 
   const nets: Net[] = netIds.map((id) => {
     const it = itemOf(id);
@@ -248,12 +259,18 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     });
   }
   // Collecteurs droits : les entrées arrivent par la gauche (colonne 0), les sorties partent à droite.
-  const laneRow = (id: string) => (sideOf.get(itemOf(id)) === "haut" ? above.length - 1 - above.indexOf(id) : laneBelow0 + below.indexOf(id));
+  const laneRow = (id: string) => (sideOf.get(itemOf(id)) === "haut" ? aboveRow(above.indexOf(id)) : belowRow(below.indexOf(id)));
+  const portAt = new Map(allPorts.map((q) => [`${q.p.cell.x},${q.p.cell.y}`, q.p.facing]));
   for (const n of nets) {
     const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
     const y = laneRow(n.id);
     const lane = n.role === "entrée" ? { y, x0: 0, x1: Math.max(...xs) } : { y, x0: Math.min(...xs), x1: bounds.x1 };
-    for (let x = lane.x0; x <= lane.x1; x++) if (grid.get({ x, y })) return null;
+    for (let x = lane.x0; x <= lane.x1; x++) {
+      // Un collecteur collé passe sur les cases de raccord des ports qui lui font face, pas ailleurs.
+      const o = grid.get({ x, y });
+      const facing = portAt.get(`${x},${y}`);
+      if (o && !(o.kind === "réservé" && (facing === "N" || facing === "S"))) return null;
+    }
     grid.straight({ x: lane.x0, y }, { x: lane.x1, y }, n.id);
     grid.link({ x: n.role === "entrée" ? lane.x0 : lane.x1, y }, n.role === "entrée" ? "W" : "E", n.id); // arrivée ou départ
     n.lane = lane;
@@ -287,11 +304,16 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
   const each = req.powerMFps ?? 0;
   const types = cat.poles.filter((p) => p.perNodeMFps >= each);
   if (!types.length) return { poles: [], problems: [{ level: "attention", message: "Aucun poteau connu ne porte la consommation d'une machine." }], pole: null };
-  const tries = types.map((pole) => ({ pole, ...polesWith(l, plugs, pole, each) }));
-  const oneFeed = tries.filter((t) => t.files.every((f) => f.feeds <= 1));
-  const best = oneFeed.length
-    ? oneFeed.sort((a, b) => a.cost - b.cost)[0]!
-    : tries.sort((a, b) => a.files.reduce((s, f) => s + f.feeds, 0) - b.files.reduce((s, f) => s + f.feeds, 0) || a.cost - b.cost)[0]!;
+  // Une seule file (au-dessus ou au-dessous) quand elle atteint toutes les prises : deux rangées de moins.
+  const pick = (use: FileUse) => {
+    const tries = types.map((pole) => ({ pole, ...polesWith(l, plugs, pole, each, use) }));
+    const oneFeed = tries.filter((t) => t.files.every((f) => f.feeds <= 1));
+    return oneFeed.length
+      ? oneFeed.sort((a, b) => a.cost - b.cost)[0]!
+      : tries.sort((a, b) => a.files.reduce((s, f) => s + f.feeds, 0) - b.files.reduce((s, f) => s + f.feeds, 0) || a.cost - b.cost)[0]!;
+  };
+  const single = (["haut", "bas"] as const).map(pick).filter((t) => !t.outOfRange).sort((a, b) => a.cost - b.cost)[0];
+  const best = single ?? pick("deux");
   const problems = [...best.problems];
   for (const f of best.files) {
     if (f.feeds > 1)
@@ -303,7 +325,9 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
   return { poles: best.poles, problems, pole: best.pole };
 }
 
-function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole: Pole, each: number) {
+type FileUse = "deux" | "haut" | "bas";
+
+function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole: Pole, each: number, use: FileUse = "deux") {
   const problems: Problem[] = [];
   const ys = [...l.grid.cells.keys()].map((k) => Number(k.split(",")[1]));
   const xs = [...l.grid.cells.keys()].map((k) => Number(k.split(",")[0]));
@@ -314,17 +338,21 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
   const xHi = Math.max(...xs) + 1 - pole.size.w / 2;
   const poles: PlacedPole[] = [];
   const files: { label: string; load: number; feeds: number }[] = [];
+  let outOfRange = false;
   const dist = (p: { y: number }, r: number) => Math.abs(p.y - (r + pole.size.h / 2));
   rows.forEach((py, ri) => {
     const cy = py + pole.size.h / 2;
-    const mine = plugs.filter((p) => (ri === 0 ? dist(p, rows[0]!) <= dist(p, rows[1]!) : dist(p, rows[1]!) < dist(p, rows[0]!)));
+    const mine = use === "deux" ? plugs.filter((p) => (ri === 0 ? dist(p, rows[0]!) <= dist(p, rows[1]!) : dist(p, rows[1]!) < dist(p, rows[0]!))) : (use === "haut") === (ri === 0) ? plugs : [];
     if (!mine.length) return;
     const spans = mine.map((p) => {
       const dy = Math.abs(p.y - cy);
       const r = dy <= R ? Math.sqrt(R * R - dy * dy) : -1;
       return { ...p, lo: p.x - r, hi: p.x + r, ok: r >= 0 };
     });
-    for (const s of spans.filter((s) => !s.ok)) problems.push({ level: "attention", message: `Machine ${s.m.slice(1)} : prise à plus de ${num(R)} cases de la file de poteaux.` });
+    for (const s of spans.filter((s) => !s.ok)) {
+      outOfRange = true;
+      problems.push({ level: "attention", message: `Machine ${s.m.slice(1)} : prise à plus de ${num(R)} cases de la file de poteaux.` });
+    }
     const todo = spans.filter((s) => s.ok).sort((a, b) => a.hi - b.hi);
     const covered = new Set<number>();
     const row: PlacedPole[] = [];
@@ -352,7 +380,7 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
   if (files.length === 2 && rows[1]! - rows[0]! > R) {
     problems.push({ level: "attention", message: `Les deux files de poteaux sont à ${rows[1]! - rows[0]!} cases l'une de l'autre, plus que la portée (${num(R)}) : relie-les par un poteau sur le côté du module.` });
   }
-  return { poles, problems, files, cost: poles.length * (pole.price ?? 0) };
+  return { poles, problems, files, cost: poles.length * (pole.price ?? 0), outOfRange };
 }
 
 /** Meilleur module pour une étape : gabarits × orientations × ports × côtés des collecteurs. */
@@ -365,21 +393,20 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
   const assigns: { assign: Assign[]; problems: Problem[] }[] = options.length ? options.map((assign) => ({ assign, problems: [] })) : [fallback];
   const items = [...new Set(assigns[0]!.assign.map((a) => a.item))];
   // Côtés des collecteurs (rangée simple) : tous les choix au-dessus / au-dessous, jusqu'à 4 ressources.
-  const sideSets: (Record<string, "haut" | "bas"> | null)[] = [null];
-  if (items.length <= 4) {
-    for (let mask = 0; mask < 1 << items.length; mask++) sideSets.push(Object.fromEntries(items.map((it, k) => [it, mask & (1 << k) ? "haut" : "bas"])));
-  }
-  type Config = { assign: Assign[]; problems: Problem[]; double: boolean; rot: Rot; sides: Record<string, "haut" | "bas"> | null };
+  // (Au-delà, le côté où sont la plupart des ports de chaque ressource.)
+  const sideSets: (Record<string, "haut" | "bas"> | null)[] = items.length <= 4 ? [] : [null];
+  for (let mask = 0; items.length <= 4 && mask < 1 << items.length; mask++) sideSets.push(Object.fromEntries(items.map((it, k) => [it, mask & (1 << k) ? "haut" : "bas"])));
+  type Config = { assign: Assign[]; problems: Problem[]; double: boolean; rot: Rot; sides: Record<string, "haut" | "bas"> | null; hug: boolean };
   const configs: Config[] = [];
   for (const a of assigns) {
     for (const double of req.count >= 2 ? [false, true] : [false]) {
-      for (const rot of [0, 1, 2, 3] as Rot[]) for (const sides of double ? [null] : sideSets) configs.push({ ...a, double, rot, sides });
+      for (const rot of [0, 1, 2, 3] as Rot[]) for (const sides of double ? [null] : sideSets) for (const hug of [false, true]) configs.push({ ...a, double, rot, sides, hug });
     }
   }
   const build = (c: Config, r: ModuleRequest): ModulePlan | null => {
     let last: ModulePlan | null = null;
-    for (let extra = 0; extra <= 2 + items.length; extra++) {
-      const l = layout(e, c.assign, r, c.rot, c.double, extra, cat, name, c.sides);
+    for (let extra = 0; extra <= 3; extra++) {
+      const l = layout(e, c.assign, r, c.rot, c.double, extra, cat, name, c.sides, c.hug);
       if (!l) continue;
       last = finish(l, r, portsKnown, cat, [...c.problems, ...l.problems], name);
       // Plus d'espace entre les machines n'aide que si un raccord n'a pas trouvé de chemin.
@@ -388,34 +415,47 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
     return last;
   };
   const errors = (p: ModulePlan) => p.problems.filter((x) => x.level === "erreur").length;
-  const order = (a: [number, number, number], b: [number, number, number]) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
-  const score = (prefer: ModulePlan["prefer"], p: ModulePlan, area: number, cost: number): [number, number, number] => (prefer === "cheap" ? [errors(p), cost, area] : [errors(p), area, cost]);
-  // 1. Essai rapide de chaque configuration sur 2 machines (4 en double rangée) : surface et coût par machine.
+  const pieceCount = (p: ModulePlan) => p.pieces.length + p.poles.length;
+  type Metrics = { place: number; prix: number; pieces: number };
+  const score = (prio: PoseCriterion[], p: ModulePlan, m: Metrics) => [errors(p), ...prio.map((k) => m[k])];
+  const order = (a: number[], b: number[]) => {
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i]! - b[i]!;
+    return 0;
+  };
+  const metrics = (p: ModulePlan, n = 1): Metrics => ({ place: (p.width * p.height) / n, prix: p.cost / n, pieces: pieceCount(p) / n });
+  // 1. Essai rapide de chaque configuration sur 2 machines (4 en double rangée) : valeurs par machine.
   const probeN = (c: Config) => Math.min(req.count, c.double ? 4 : 2);
   const probed = configs
     .map((c) => {
       const n = probeN(c);
       const p = build(c, scaleRequest(req, n));
-      return p ? { c, p, area: (p.width * p.height) / n, cost: p.cost / n } : null;
+      return p ? { c, p, m: metrics(p, n) } : null;
     })
-    .filter((x): x is { c: Config; p: ModulePlan; area: number; cost: number } => !!x);
-  // 2. Pour chaque priorité, les meilleures en vrai.
-  const best = (prefer: ModulePlan["prefer"]): ModulePlan | null =>
+    .filter((x): x is { c: Config; p: ModulePlan; m: Metrics } => !!x);
+  // 2. Pour un ordre des critères, les meilleures en vrai (une disposition calculée une seule fois).
+  const full = new Map<Config, ModulePlan | null>();
+  const real = (c: Config) => {
+    if (!full.has(c)) full.set(c, build(c, req));
+    return full.get(c)!;
+  };
+  const best = (prio: PoseCriterion[]): ModulePlan | null =>
     [...probed]
-      .sort((a, b) => order(score(prefer, a.p, a.area, a.cost), score(prefer, b.p, b.area, b.cost)))
-      .slice(0, 4)
-      .map((x) => build(x.c, req))
+      .sort((a, b) => order(score(prio, a.p, a.m), score(prio, b.p, b.m)))
+      .slice(0, 3)
+      .map((x) => real(x.c))
       .filter((p): p is ModulePlan => !!p)
-      .sort((a, b) => order(score(prefer, a, a.width * a.height, a.cost), score(prefer, b, b.width * b.height, b.cost)))[0] ?? null;
-  const prefer = req.prefer ?? "compact";
-  const chosen = best(prefer);
-  const alt = best(prefer === "compact" ? "cheap" : "compact");
+      .sort((a, b) => order(score(prio, a, metrics(a)), score(prio, b, metrics(b))))[0] ?? null;
+  const priority = normalPriority(req.priority);
+  const chosen = best(priority);
+  // L'autre choix : le 2e critère passé en premier.
+  const swapped = [priority[1]!, priority[0]!, ...priority.slice(2)];
+  const alt = best(swapped);
   const crossings = (p: ModulePlan) => p.pieces.filter((x) => x.role === "croisement").length;
   if (chosen) {
-    chosen.prefer = prefer;
+    chosen.priority = priority;
     chosen.other =
       alt && (alt.width !== chosen.width || alt.height !== chosen.height || Math.round(alt.cost) !== Math.round(chosen.cost)) && !errors(alt)
-        ? { width: alt.width, height: alt.height, cost: alt.cost, crossings: crossings(alt), template: alt.template }
+        ? { first: swapped[0]!, width: alt.width, height: alt.height, cost: alt.cost, pieces: pieceCount(alt), crossings: crossings(alt), template: alt.template }
         : null;
   }
   return (
@@ -437,10 +477,16 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       problems: [...fallback.problems, { level: "erreur", message: "Aucune disposition trouvée." }],
       assumptions: cat.assumptions,
       order: [],
-      prefer: req.prefer ?? "compact",
+      priority: normalPriority(req.priority),
       other: null,
     }
   );
+}
+
+/** Ordre complet des critères : ceux demandés (sans doublon), puis les autres dans l'ordre par défaut. */
+export function normalPriority(p: PoseCriterion[] | undefined): PoseCriterion[] {
+  const seen = [...new Set((p ?? []).filter((k) => POSE_CRITERIA.includes(k)))];
+  return [...seen, ...POSE_CRITERIA.filter((k) => !seen.includes(k))];
 }
 
 /** La même demande pour `n` machines (débits au prorata) : sert à comparer les dispositions vite. */
@@ -506,12 +552,17 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   const cost = list.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
   const costUnknown = list.filter((p) => p.unitPrice === null).length;
   const crossings = pieces.filter((p) => p.role === "croisement").length;
+  const portCells = new Set(l.machines.flatMap((m) => m.ports.map((p) => `${p.cell.x},${p.cell.y}`)));
+  const atPorts = pieces.filter((p) => p.role === "croisement" && portCells.has(`${p.x},${p.y}`)).length;
   const assumptions = [...cat.assumptions];
   if (!portsKnown) assumptions.unshift("Ports supposés (bâtiment pas encore relevé) : entrées à gauche, sorties à droite. Relève-le dans Données → Éditeur de bâtiments.");
   const order = [
     `Poser les ${req.count} ${name(req.machine)} en ${l.template}${l.template === "double rangée" ? " (la seconde tournée d'un demi-tour, ports face à face)" : ""}.`,
     ...nets.map((n) => `Collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, ${n.pipe ? `tuyaux tier ${n.pipe.tier === 1 ? "I" : "III"}` : "tuyau à choisir"} (${num(n.perSec)} par seconde).`),
     `Raccorder chaque port à son collecteur${crossings ? `, avec ${crossings} croisement(s)` : ""}.`,
+    ...(atPorts
+      ? [`${atPorts} croisement(s) sont collés à un port : ses deux tuyaux se relient à la machine ; dans l'onglet 3 du mode construction, dirige chaque vecteur vers la bonne entrée ou sortie.`]
+      : []),
     ...(power.poles.length ? [`Poser ${power.poles.length} ${power.pole!.name} ${new Set(power.poles.map((p) => p.y)).size > 1 ? "au-dessus et au-dessous" : "le long"} du module, et relier chaque prise.`] : []),
   ];
   return {
@@ -532,7 +583,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
     problems: [...problems, ...power.problems],
     assumptions,
     order,
-    prefer: req.prefer ?? "compact",
+    priority: normalPriority(req.priority),
     other: null,
   };
 }

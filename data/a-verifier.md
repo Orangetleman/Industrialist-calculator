@@ -549,6 +549,10 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
   ports se touchent peuvent échanger directement, une seule marchandise par contact (un vecteur ne
   fait que donner le sens du flux). **Fait** : les plans de pose choisissent librement le port de
   chaque ressource, et le côté de chaque collecteur (priorité « le moins cher » : les raccords
-  contournent les machines). **Pas encore utilisé** : le croisement collé à un port, les machines
-  collées entre elles, le Rusty Pipe Intersection (250 $, 6/s, mais 2 × 2 cases).
+  contournent les machines) ; un collecteur passe collé aux machines et une autre ressource le
+  traverse par un croisement collé au port. **Pas encore utilisé** : les machines collées entre
+  elles (usine assemblée), le Rusty Pipe Intersection (250 $, 6/s ; l'utilisateur ne s'en sert pas).
+- **2026-10-13, Rusty Pipe Intersection** (capture vue de dessus) : socle 2 × 2 cases, une croix
+  dont les deux tuyaux se croisent sur une case décentrée du socle, un raccord au bout de chaque
+  bras. À confirmer avant de l'utiliser : longueur de chaque bras et case exacte du croisement.
 <!-- notes-manuelles:fin -->

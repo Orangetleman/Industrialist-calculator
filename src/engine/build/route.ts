@@ -53,9 +53,19 @@ export class Grid {
  */
 export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds: Bounds, h: (c: Cell) => number): boolean {
   const so = grid.get(start);
-  if (so && !(so.kind === "réservé" && so.net === net)) return false;
+  // Collecteur de la même ressource collé au port : il l'alimente directement (té).
+  if (so?.kind === "tuyau" && (so.net === net || so.cross?.net === net)) {
+    grid.link(start, toPort, net);
+    return true;
+  }
+  // Collecteur d'une autre ressource collé au port : on le traverse par un croisement collé au port
+  // (en jeu, les deux tuyaux d'un croisement collé à un port se relient à la machine).
+  const away = OPPOSITE[toPort];
+  const across = away === "N" || away === "S" ? ["E", "W"] : ["N", "S"];
+  const startCross = so?.kind === "tuyau" && !so.cross && so.links.size === 2 && across.every((d) => so.links.has(d as Dir));
+  if (so && !(so.kind === "réservé" && so.net === net) && !startCross) return false;
   type Node = { c: Cell; d: Dir | null; g: number; f: number; prev: Node | null; crossing: boolean };
-  const open: Node[] = [{ c: start, d: null, g: 0, f: h(start), prev: null, crossing: false }];
+  const open: Node[] = [{ c: start, d: startCross ? away : null, g: startCross ? COST.cross : 0, f: h(start), prev: null, crossing: startCross }];
   const best = new Map<string, number>();
   let found: Node | null = null;
   let guard = 0;

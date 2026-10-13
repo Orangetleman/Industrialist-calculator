@@ -1,5 +1,6 @@
 // État de l'interface et persistance locale (localStorage, toujours dans un try/catch).
 
+import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
@@ -51,8 +52,8 @@ export type Settings = {
   distanceTiles: number | null;
   /** Plans de pose : seulement des tuyaux de tier III. */
   tier3Only: boolean;
-  /** Plans de pose : le module le plus compact, ou le moins cher. */
-  posePrefer: "compact" | "cheap";
+  /** Plans de pose : ordre des critères qui départagent les dispositions. */
+  posePriority: PoseCriterion[];
   /** Objectif recherche : but, vitesse, recherche visée, délai, plafond (null = automatique), options. */
   rpMode: "rate" | "node" | "plan";
   rpRate: number;
@@ -86,7 +87,7 @@ export const DEFAULT_SETTINGS: Settings = {
   energyNoFuel: false,
   distanceTiles: null,
   tier3Only: false,
-  posePrefer: "compact",
+  posePriority: [...POSE_CRITERIA],
   rpMode: "rate",
   rpRate: 50,
   rpNode: null,
@@ -142,7 +143,7 @@ export function loadSettings(): Settings {
   out.energyNoFuel = out.energyNoFuel === true;
   if (out.distanceTiles !== null && !(out.distanceTiles >= 0)) out.distanceTiles = null;
   out.tier3Only = out.tier3Only === true;
-  out.posePrefer = out.posePrefer === "cheap" ? "cheap" : "compact";
+  out.posePriority = normalPriority(Array.isArray(out.posePriority) ? out.posePriority : undefined);
   if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;

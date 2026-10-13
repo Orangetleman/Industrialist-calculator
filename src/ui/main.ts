@@ -15,7 +15,7 @@ import stationsJson from "../../data/research-stations.json";
 import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import { buildCatalog } from "../engine/build/catalog.ts";
-import { designModule, requestFromStep, type ModulePlan } from "../engine/build/module.ts";
+import { designModule, requestFromStep, type ModulePlan, type PoseCriterion } from "../engine/build/module.ts";
 import { renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
@@ -618,22 +618,40 @@ let posePZ: PanZoom | null = null;
 let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
-const PREFER_HINT: Record<Settings["posePrefer"], string> = {
-  compact: "Le moins de place au sol, quitte à payer des croisements de tuyaux.",
-  cheap: "Le moins de dépenses : les tuyaux contournent les machines au lieu de se croiser, le module est plus long.",
+/** Critères des plans de pose, en mots de joueur. */
+const CRIT_TEXT: Record<PoseCriterion, { label: string; why: string }> = {
+  place: { label: "Place au sol", why: "la plus petite surface, poteaux compris" },
+  prix: { label: "Prix", why: "le moins de dépenses : croisements, tuyaux, poteaux" },
+  pieces: { label: "Pièces à poser", why: "le moins de tuyaux et de poteaux à placer" },
 };
+
+function renderPriority(): void {
+  const list = settings.posePriority;
+  $("pose-priority").innerHTML = list
+    .map(
+      (k, i) => `<li draggable="true" data-crit="${k}"><span class="grip" aria-hidden="true">⋮⋮</span><span class="rank">${i + 1}</span><span class="crit"><b>${esc(CRIT_TEXT[k].label)}</b> <span class="hint">${esc(CRIT_TEXT[k].why)}</span></span><button type="button" class="mv" data-move="-1" aria-label="Monter ${esc(CRIT_TEXT[k].label)}"${i === 0 ? " disabled" : ""}>↑</button><button type="button" class="mv" data-move="1" aria-label="Descendre ${esc(CRIT_TEXT[k].label)}"${i === list.length - 1 ? " disabled" : ""}>↓</button></li>`,
+    )
+    .join("");
+}
+
+function setPriority(list: PoseCriterion[], focus?: PoseCriterion): void {
+  settings.posePriority = list;
+  saveSettings(settings);
+  renderPose();
+  if (focus) $("pose-priority").querySelector<HTMLButtonElement>(`[data-crit="${focus}"] .mv:not(:disabled)`)?.focus();
+}
 
 function moduleOf(key: string): ModulePlan | null {
   const pts = currentPorts();
-  if (modulesFor !== `${signature}|${settings.tier3Only}|${settings.posePrefer}|${pts.sig}`) {
+  if (modulesFor !== `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${pts.sig}`) {
     modules.clear();
-    modulesFor = `${signature}|${settings.tier3Only}|${settings.posePrefer}|${pts.sig}`;
+    modulesFor = `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${pts.sig}`;
   }
   if (!modules.has(key)) {
     const s = plan?.steps.find((x) => x.key === key);
     const m = s ? data.machines.get(s.machine) : undefined;
     const req = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
-    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only, prefer: settings.posePrefer }, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
+    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only, priority: settings.posePriority }, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
   }
   return modules.get(key) ?? null;
 }
@@ -688,9 +706,8 @@ function renderPose(): void {
     },
   });
   input("pose-tier3").checked = settings.tier3Only;
-  $<HTMLSelectElement>("pose-prefer").value = settings.posePrefer;
-  $("pose-prefer-hint").textContent = PREFER_HINT[settings.posePrefer];
-  const k = `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePrefer}`;
+  renderPriority();
+  const k = `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePriority.join(",")}`;
   posePZ.attach(canvas.querySelector("svg")!, f.width, f.height, k === poseKey);
   poseKey = k;
 }
@@ -1163,17 +1180,54 @@ function bindPlan(): void {
     update();
     $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
   });
+  // « Le mettre en premier » (sous le résumé du plan).
   $("pose-head").addEventListener("click", (e) => {
-    const b = (e.target as Element).closest<HTMLElement>("[data-prefer]");
+    const b = (e.target as Element).closest<HTMLElement>("[data-first]");
     if (!b) return;
-    settings.posePrefer = b.dataset.prefer === "cheap" ? "cheap" : "compact";
-    saveSettings(settings);
-    renderPose();
+    const k = b.dataset.first as PoseCriterion;
+    setPriority([k, ...settings.posePriority.filter((x) => x !== k)]);
   });
-  $("pose-prefer").addEventListener("change", (e) => {
-    settings.posePrefer = (e.target as HTMLSelectElement).value === "cheap" ? "cheap" : "compact";
-    saveSettings(settings);
-    renderPose();
+  // Liste des priorités : ↑ ↓, ou glisser une ligne.
+  const prio = $("pose-priority");
+  prio.addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>("[data-move]");
+    if (!b) return;
+    const k = b.closest<HTMLElement>("[data-crit]")!.dataset.crit as PoseCriterion;
+    const list = [...settings.posePriority];
+    const i = list.indexOf(k);
+    const j = i + Number(b.dataset.move);
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j]!, list[i]!];
+    setPriority(list, k);
+  });
+  let dragged: PoseCriterion | null = null;
+  prio.addEventListener("dragstart", (e) => {
+    const li = (e.target as Element).closest<HTMLElement>("[data-crit]");
+    if (!li) return;
+    dragged = li.dataset.crit as PoseCriterion;
+    li.classList.add("dragging");
+    e.dataTransfer?.setData("text/plain", dragged);
+  });
+  prio.addEventListener("dragover", (e) => {
+    if (!dragged) return;
+    e.preventDefault();
+    const li = (e.target as Element).closest<HTMLElement>("[data-crit]");
+    for (const x of prio.querySelectorAll(".drop")) x.classList.remove("drop");
+    if (li && li.dataset.crit !== dragged) li.classList.add("drop");
+  });
+  prio.addEventListener("dragend", () => {
+    dragged = null;
+    for (const x of prio.querySelectorAll(".dragging, .drop")) x.classList.remove("dragging", "drop");
+  });
+  prio.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const li = (e.target as Element).closest<HTMLElement>("[data-crit]");
+    if (!dragged || !li) return;
+    const to = li.dataset.crit as PoseCriterion;
+    const list = settings.posePriority.filter((x) => x !== dragged);
+    list.splice(settings.posePriority.indexOf(to), 0, dragged);
+    dragged = null;
+    setPriority(list);
   });
   $("pose-tier3").addEventListener("change", (e) => {
     settings.tier3Only = (e.target as HTMLInputElement).checked;

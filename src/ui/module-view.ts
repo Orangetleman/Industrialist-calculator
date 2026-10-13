@@ -1,12 +1,13 @@
 // Plan de pose d'une étape (E4a) : dessin vue de dessus du module, ressources, pièces à acheter,
 // ordre de pose. Fonctions pures (chaînes HTML/SVG) ; main.ts gère le choix de l'étape et le cadre.
 
-import type { ModulePlan } from "../engine/build/module.ts";
+import type { ModulePlan, PoseCriterion } from "../engine/build/module.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { SurveyState } from "./buildings-model.ts";
 import { esc, fmt, fmtMoney } from "./format.ts";
 
 const C = 16; // unités SVG par case
+const CRIT_NAME: Record<PoseCriterion, string> = { place: "Place au sol", prix: "Prix", pieces: "Pièces à poser" };
 /** Couleurs des ressources, lisibles sur le fond sombre du cadre. */
 const PALETTE = ["#f0913a", "#6cc792", "#8fb8d6", "#e3b25a", "#d77fd0", "#5fd4d4", "#ff8a80", "#c5d86d"];
 
@@ -84,7 +85,7 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, su
         : ""
   }</p>${
     m.other
-      ? `<p class="mod-other">${m.prefer === "compact" ? "Le moins cher" : "Le plus compact"} : ${esc(m.other.template)} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-prefer="${m.prefer === "compact" ? "cheap" : "compact"}">voir ce plan</button></p>`
+      ? `<p class="mod-other">Avec « ${esc(CRIT_NAME[m.other.first])} » en premier : ${esc(m.other.template)} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.pieces} pièces à poser dont ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-first="${m.other.first}">le mettre en premier</button></p>`
       : ""
   }${
     m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${esc(p.message)}</li>`).join("")}</ul>` : ""
