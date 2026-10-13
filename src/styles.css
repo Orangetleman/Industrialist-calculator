@@ -224,6 +224,7 @@ button.link.have:hover { color: var(--steel); }
 .pose-pick { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); max-width: 100%; }
 .pose-pick select { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 7px 10px; font-size: .92rem; max-width: 100%; }
 .mod-sum { font-size: .92rem; }
+.mod-other { font-size: .86rem; color: var(--muted); margin-top: 2px; }
 .check-line { font-size: .88rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .mg line { stroke: #2a3038; stroke-width: 1; }
 .mm rect { fill: #33404c; stroke: #8fb8d6; stroke-width: 1.2; }

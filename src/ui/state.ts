@@ -51,6 +51,8 @@ export type Settings = {
   distanceTiles: number | null;
   /** Plans de pose : seulement des tuyaux de tier III. */
   tier3Only: boolean;
+  /** Plans de pose : le module le plus compact, ou le moins cher. */
+  posePrefer: "compact" | "cheap";
   /** Objectif recherche : but, vitesse, recherche visée, délai, plafond (null = automatique), options. */
   rpMode: "rate" | "node" | "plan";
   rpRate: number;
@@ -84,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   energyNoFuel: false,
   distanceTiles: null,
   tier3Only: false,
+  posePrefer: "compact",
   rpMode: "rate",
   rpRate: 50,
   rpNode: null,
@@ -139,6 +142,7 @@ export function loadSettings(): Settings {
   out.energyNoFuel = out.energyNoFuel === true;
   if (out.distanceTiles !== null && !(out.distanceTiles >= 0)) out.distanceTiles = null;
   out.tier3Only = out.tier3Only === true;
+  out.posePrefer = out.posePrefer === "cheap" ? "cheap" : "compact";
   if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;

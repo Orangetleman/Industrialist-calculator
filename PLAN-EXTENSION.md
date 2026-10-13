@@ -402,6 +402,16 @@ Retours du 2026-10-13 (suite), faits :
   surplus), avec des liens vers les étapes voisines. La liste de construction a un lien « plan de
   pose » par étape.
 
+Ports et vecteurs (réponses du 2026-10-13, notes dans `data/a-verifier.md`) : le jeu redirige un
+port vers n'importe quelle entrée ou sortie de même type ; un tuyau ne porte qu'une ressource.
+Fait : chaque ressource prend le port qui convient le mieux, et chaque collecteur le côté de la
+rangée qui évite le plus de croisements (le raccord contourne alors la machine). Le plan propose
+deux priorités, avec les chiffres de l'autre : « le plus compact » (défaut) et « le moins cher ».
+15 Craft Assemblers : 66 × 19 cases, 185 k$ et 42 croisements, ou 120 × 13 cases, 102 k$ et 14
+croisements (un par machine : c'est le minimum avec trois ressources sur une rangée). Calcul :
+moins d'une seconde par étape (essai rapide de chaque disposition sur 2 machines, puis les
+meilleures en vrai).
+
 Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
 logique, liaisons directes entre ports, usine assemblée (E4b).
 

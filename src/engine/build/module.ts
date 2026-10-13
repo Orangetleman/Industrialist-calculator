@@ -22,6 +22,8 @@ export type ModuleRequest = {
   machineCost: number | null;
   /** N'utiliser que des tuyaux de tier III (plus rapides, plus chers). */
   tier3Only?: boolean;
+  /** Module préféré : le plus compact (par défaut), ou le moins cher. */
+  prefer?: "compact" | "cheap";
 };
 
 export type Net = {
@@ -64,6 +66,9 @@ export type ModulePlan = {
   problems: Problem[];
   assumptions: string[];
   order: string[];
+  /** Priorité qui a choisi ce module, et ce que donnerait l'autre (si elle donne un autre module). */
+  prefer: "compact" | "cheap";
+  other: { width: number; height: number; cost: number; crossings: number; template: ModulePlan["template"] } | null;
 };
 
 /** Nombre pour les messages : deux décimales au plus, virgule décimale. */
@@ -73,6 +78,35 @@ type Assign = { port: number; item: string; role: "entrée" | "sortie"; kind: Pi
 
 /** Associe chaque ressource à un port du bon type (objet/fluide) et du bon sens. */
 export type Namer = (id: string) => string;
+
+/**
+ * Toutes les façons d'associer les ressources aux ports : en jeu, l'onglet 3 du mode construction
+ * redirige un port vers n'importe quelle entrée (ou sortie) de la machine, du moment que le type
+ * (objet ou fluide) et le sens correspondent. La première est celle de `assignPorts`. Plafonné à `max`.
+ */
+export function portAssignments(entry: Pick<PortsEntry, "ports">, req: Pick<ModuleRequest, "inputs" | "outputs">, max = 24): Assign[][] {
+  const wants = [...req.inputs.map((f) => ({ f, role: "entrée" as const })), ...req.outputs.map((f) => ({ f, role: "sortie" as const }))];
+  const out: Assign[][] = [];
+  const walk = (i: number, used: Set<number>, acc: Assign[]) => {
+    if (out.length >= max) return;
+    if (i === wants.length) {
+      out.push([...acc]);
+      return;
+    }
+    const { f, role } = wants[i]!;
+    const kind: PipeKind = f.fluid ? "fluide" : "objet";
+    entry.ports.forEach((p, j) => {
+      if (used.has(j) || p.type !== kind || !(p.direction === role || p.direction === "les deux")) return;
+      used.add(j);
+      acc.push({ port: j, item: f.item, role, kind });
+      walk(i + 1, used, acc);
+      acc.pop();
+      used.delete(j);
+    });
+  };
+  walk(0, new Set(), []);
+  return out;
+}
 
 export function assignPorts(entry: Pick<PortsEntry, "ports">, req: Pick<ModuleRequest, "inputs" | "outputs">, name: Namer = (id) => id): { assign: Assign[]; problems: Problem[] } {
   const used = new Set<number>();
@@ -121,7 +155,7 @@ type Layout = { grid: Grid; machines: Placed[]; nets: Net[]; problems: Problem[]
  * Pose N machines en une rangée (ou deux rangées dos à dos), trace un collecteur par ressource
  * le long de la rangée, puis raccorde chaque port au collecteur de sa ressource.
  */
-function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer): Layout | null {
+function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer, sides: Record<string, "haut" | "bas"> | null = null): Layout | null {
   const problems: Problem[] = [];
   const probe = place("m", req.machine, entry, 0, 0, rot);
   const used = new Map(assign.map((a) => [a.port, a]));
@@ -153,7 +187,8 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const ps = pipePorts.filter((p) => used.get(p.index)!.item === it);
     const north = ps.filter((p) => p.facing === "N").length;
     const south = ps.filter((p) => p.facing === "S").length;
-    sideOf.set(it, double ? "bas" : north > south ? "haut" : "bas");
+    // Côté imposé (rangée simple) : un raccord peut contourner la machine pour éviter un croisement.
+    sideOf.set(it, double ? "bas" : (sides?.[it] ?? (north > south ? "haut" : "bas")));
   }
   const netIds = items.flatMap((it) => (linesOf.get(it)! > 1 ? Array.from({ length: linesOf.get(it)! }, (_, j) => `${it}#${j + 1}`) : [it]));
   const itemOf = (id: string) => id.replace(/#\d+$/, "");
@@ -320,30 +355,71 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
   return { poles, problems, files, cost: poles.length * (pole.price ?? 0) };
 }
 
-/** Meilleur module pour une étape : gabarits × orientations, le plus compact puis le moins cher. */
+/** Meilleur module pour une étape : gabarits × orientations × ports × côtés des collecteurs. */
 export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiSize: { w: number; l: number } | null, cat: Catalog, name: Namer = (id) => id): ModulePlan {
   const portsKnown = !!entry?.footprint;
   const e = portsKnown ? entry! : assumedEntry(wikiSize, req);
-  const { assign, problems: assignProblems } = assignPorts(e, req, name);
-  const candidates: ModulePlan[] = [];
-  for (const double of req.count >= 2 ? [false, true] : [false]) {
-    for (const rot of [0, 1, 2, 3] as Rot[]) {
-      for (let extra = 0; extra <= 2; extra++) {
-        const l = layout(e, assign, req, rot, double, extra, cat, name);
-        if (!l) continue;
-        const plan = finish(l, req, portsKnown, cat, [...assignProblems, ...l.problems], name);
-        candidates.push(plan);
-        if (!plan.problems.some((p) => p.level === "erreur")) break;
-      }
+  // Ports supposés : leur place est déjà une hypothèse, inutile d'en essayer d'autres combinaisons.
+  const options = portAssignments(e, req, portsKnown ? 8 : 1);
+  const fallback = assignPorts(e, req, name);
+  const assigns: { assign: Assign[]; problems: Problem[] }[] = options.length ? options.map((assign) => ({ assign, problems: [] })) : [fallback];
+  const items = [...new Set(assigns[0]!.assign.map((a) => a.item))];
+  // Côtés des collecteurs (rangée simple) : tous les choix au-dessus / au-dessous, jusqu'à 4 ressources.
+  const sideSets: (Record<string, "haut" | "bas"> | null)[] = [null];
+  if (items.length <= 4) {
+    for (let mask = 0; mask < 1 << items.length; mask++) sideSets.push(Object.fromEntries(items.map((it, k) => [it, mask & (1 << k) ? "haut" : "bas"])));
+  }
+  type Config = { assign: Assign[]; problems: Problem[]; double: boolean; rot: Rot; sides: Record<string, "haut" | "bas"> | null };
+  const configs: Config[] = [];
+  for (const a of assigns) {
+    for (const double of req.count >= 2 ? [false, true] : [false]) {
+      for (const rot of [0, 1, 2, 3] as Rot[]) for (const sides of double ? [null] : sideSets) configs.push({ ...a, double, rot, sides });
     }
   }
-  const score = (p: ModulePlan) => [p.problems.filter((x) => x.level === "erreur").length, p.width * p.height, p.cost] as const;
-  candidates.sort((a, b) => {
-    const [x, y] = [score(a), score(b)];
-    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
-  });
+  const build = (c: Config, r: ModuleRequest): ModulePlan | null => {
+    let last: ModulePlan | null = null;
+    for (let extra = 0; extra <= 2 + items.length; extra++) {
+      const l = layout(e, c.assign, r, c.rot, c.double, extra, cat, name, c.sides);
+      if (!l) continue;
+      last = finish(l, r, portsKnown, cat, [...c.problems, ...l.problems], name);
+      // Plus d'espace entre les machines n'aide que si un raccord n'a pas trouvé de chemin.
+      if (!l.problems.some((p) => p.level === "erreur" && p.message.includes("impossible de raccorder"))) break;
+    }
+    return last;
+  };
+  const errors = (p: ModulePlan) => p.problems.filter((x) => x.level === "erreur").length;
+  const order = (a: [number, number, number], b: [number, number, number]) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  const score = (prefer: ModulePlan["prefer"], p: ModulePlan, area: number, cost: number): [number, number, number] => (prefer === "cheap" ? [errors(p), cost, area] : [errors(p), area, cost]);
+  // 1. Essai rapide de chaque configuration sur 2 machines (4 en double rangée) : surface et coût par machine.
+  const probeN = (c: Config) => Math.min(req.count, c.double ? 4 : 2);
+  const probed = configs
+    .map((c) => {
+      const n = probeN(c);
+      const p = build(c, scaleRequest(req, n));
+      return p ? { c, p, area: (p.width * p.height) / n, cost: p.cost / n } : null;
+    })
+    .filter((x): x is { c: Config; p: ModulePlan; area: number; cost: number } => !!x);
+  // 2. Pour chaque priorité, les meilleures en vrai.
+  const best = (prefer: ModulePlan["prefer"]): ModulePlan | null =>
+    [...probed]
+      .sort((a, b) => order(score(prefer, a.p, a.area, a.cost), score(prefer, b.p, b.area, b.cost)))
+      .slice(0, 4)
+      .map((x) => build(x.c, req))
+      .filter((p): p is ModulePlan => !!p)
+      .sort((a, b) => order(score(prefer, a, a.width * a.height, a.cost), score(prefer, b, b.width * b.height, b.cost)))[0] ?? null;
+  const prefer = req.prefer ?? "compact";
+  const chosen = best(prefer);
+  const alt = best(prefer === "compact" ? "cheap" : "compact");
+  const crossings = (p: ModulePlan) => p.pieces.filter((x) => x.role === "croisement").length;
+  if (chosen) {
+    chosen.prefer = prefer;
+    chosen.other =
+      alt && (alt.width !== chosen.width || alt.height !== chosen.height || Math.round(alt.cost) !== Math.round(chosen.cost)) && !errors(alt)
+        ? { width: alt.width, height: alt.height, cost: alt.cost, crossings: crossings(alt), template: alt.template }
+        : null;
+  }
   return (
-    candidates[0] ?? {
+    chosen ?? {
       machine: req.machine,
       count: req.count,
       template: "rangée",
@@ -358,11 +434,20 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       parts: [],
       cost: 0,
       costUnknown: 0,
-      problems: [...assignProblems, { level: "erreur", message: "Aucune disposition trouvée." }],
+      problems: [...fallback.problems, { level: "erreur", message: "Aucune disposition trouvée." }],
       assumptions: cat.assumptions,
       order: [],
+      prefer: req.prefer ?? "compact",
+      other: null,
     }
   );
+}
+
+/** La même demande pour `n` machines (débits au prorata) : sert à comparer les dispositions vite. */
+function scaleRequest(req: ModuleRequest, n: number): ModuleRequest {
+  if (n === req.count) return req;
+  const k = n / req.count;
+  return { ...req, count: n, inputs: req.inputs.map((f) => ({ ...f, perMin: f.perMin * k })), outputs: req.outputs.map((f) => ({ ...f, perMin: f.perMin * k })) };
 }
 
 function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog, problems: Problem[], name: Namer): ModulePlan {
@@ -447,6 +532,8 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
     problems: [...problems, ...power.problems],
     assumptions,
     order,
+    prefer: req.prefer ?? "compact",
+    other: null,
   };
 }
 

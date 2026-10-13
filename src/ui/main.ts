@@ -560,7 +560,7 @@ function renderFlowCanvas(): void {
   // Hauteur du cadre : le schéma à l'échelle de départ, entre 240 px et 70 % de l'écran.
   const fw = frame.clientWidth || 800;
   const s = flowStartScale({ w: fw, h: window.innerHeight * 0.7 }, { w: f.width, h: f.height });
-  frame.style.height = `${Math.round(Math.min(window.innerHeight * 0.7, Math.max(240, f.height * s + 8)))}px`;
+  frame.style.height = `${Math.round(Math.max(240, Math.min(window.innerHeight * 0.7, f.height * s + 8)))}px`;
   flowPZ ??= new PanZoom(frame, {
     minWidth: 150,
     initialView: (fr, c) => {
@@ -618,17 +618,22 @@ let posePZ: PanZoom | null = null;
 let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
+const PREFER_HINT: Record<Settings["posePrefer"], string> = {
+  compact: "Le moins de place au sol, quitte à payer des croisements de tuyaux.",
+  cheap: "Le moins de dépenses : les tuyaux contournent les machines au lieu de se croiser, le module est plus long.",
+};
+
 function moduleOf(key: string): ModulePlan | null {
   const pts = currentPorts();
-  if (modulesFor !== `${signature}|${settings.tier3Only}|${pts.sig}`) {
+  if (modulesFor !== `${signature}|${settings.tier3Only}|${settings.posePrefer}|${pts.sig}`) {
     modules.clear();
-    modulesFor = `${signature}|${settings.tier3Only}|${pts.sig}`;
+    modulesFor = `${signature}|${settings.tier3Only}|${settings.posePrefer}|${pts.sig}`;
   }
   if (!modules.has(key)) {
     const s = plan?.steps.find((x) => x.key === key);
     const m = s ? data.machines.get(s.machine) : undefined;
     const req = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
-    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only }, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
+    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only, prefer: settings.posePrefer }, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
   }
   return modules.get(key) ?? null;
 }
@@ -672,7 +677,7 @@ function renderPose(): void {
   canvas.innerHTML = f.svg;
   const fw = frame.clientWidth || 800;
   const sc = flowStartScale({ w: fw, h: window.innerHeight * 0.7 }, { w: f.width, h: f.height });
-  frame.style.height = `${Math.round(Math.min(window.innerHeight * 0.7, Math.max(260, f.height * sc + 8)))}px`;
+  frame.style.height = `${Math.round(Math.max(260, Math.min(window.innerHeight * 0.7, f.height * sc + 8)))}px`;
   posePZ ??= new PanZoom(frame, {
     minWidth: 120,
     initialView: (fr, c) => {
@@ -683,7 +688,9 @@ function renderPose(): void {
     },
   });
   input("pose-tier3").checked = settings.tier3Only;
-  const k = `${signature}|${poseStep}|${settings.tier3Only}`;
+  $<HTMLSelectElement>("pose-prefer").value = settings.posePrefer;
+  $("pose-prefer-hint").textContent = PREFER_HINT[settings.posePrefer];
+  const k = `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePrefer}`;
   posePZ.attach(canvas.querySelector("svg")!, f.width, f.height, k === poseKey);
   poseKey = k;
 }
@@ -1155,6 +1162,18 @@ function bindPlan(): void {
     }
     update();
     $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
+  });
+  $("pose-head").addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-prefer]");
+    if (!b) return;
+    settings.posePrefer = b.dataset.prefer === "cheap" ? "cheap" : "compact";
+    saveSettings(settings);
+    renderPose();
+  });
+  $("pose-prefer").addEventListener("change", (e) => {
+    settings.posePrefer = (e.target as HTMLSelectElement).value === "cheap" ? "cheap" : "compact";
+    saveSettings(settings);
+    renderPose();
   });
   $("pose-tier3").addEventListener("change", (e) => {
     settings.tier3Only = (e.target as HTMLInputElement).checked;

@@ -542,4 +542,13 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
 - **2026-10-13, Industrial Diesel Refinery** : débloquée par la recherche « Industrial Diesel
   Refining » (overrides.json) ; « Industrial Diesel Refinery » dans l'infobox est le nom de la
   machine.
+- **2026-10-13, ports et vecteurs (onglet 3)** : un port n'est qu'un point de contact ; le jeu
+  redirige ce qui arrive sur un port vers n'importe quelle entrée (ou sortie) de la machine, du
+  même type (objet ou fluide). Un tuyau ne porte qu'une ressource ; un croisement compte pour
+  deux tuyaux, donc un croisement collé à un port peut y amener deux flux. Deux machines dont les
+  ports se touchent peuvent échanger directement, une seule marchandise par contact (un vecteur ne
+  fait que donner le sens du flux). **Fait** : les plans de pose choisissent librement le port de
+  chaque ressource, et le côté de chaque collecteur (priorité « le moins cher » : les raccords
+  contournent les machines). **Pas encore utilisé** : le croisement collé à un port, les machines
+  collées entre elles, le Rusty Pipe Intersection (250 $, 6/s, mais 2 × 2 cases).
 <!-- notes-manuelles:fin -->

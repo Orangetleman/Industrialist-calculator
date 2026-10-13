@@ -16,7 +16,7 @@ import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog, pipeFor } from "./catalog.ts";
 import { add, key, OPPOSITE, place, rotateCell, rotatePoint, type Dir } from "./geometry.ts";
-import { designModule, type ModulePlan, type ModuleRequest } from "./module.ts";
+import { designModule, portAssignments, type ModulePlan, type ModuleRequest } from "./module.ts";
 import { Grid, route } from "./route.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
@@ -87,7 +87,7 @@ const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recip
 const all = { unlocked: new Set(data.nodes.keys()) };
 const fluid = (id: string) => !!data.items.get(id)?.isFluid;
 
-function moduleFor(stepItem: string): { mod: ModulePlan; req: ModuleRequest } {
+function moduleFor(stepItem: string, prefer: ModuleRequest["prefer"] = "compact"): { mod: ModulePlan; req: ModuleRequest } {
   const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy", tiers: false });
   const s = plan.steps.find((x) => x.item === stepItem)!;
   const m = data.machines.get(s.machine)!;
@@ -98,14 +98,15 @@ function moduleFor(stepItem: string): { mod: ModulePlan; req: ModuleRequest } {
     outputs: [{ item: s.item, perMin: s.demandPerMin, fluid: fluid(s.item) }, ...s.byproducts.map((f) => ({ item: f.item, perMin: f.perMin, fluid: fluid(f.item) }))],
     powerMFps: s.energyAvg !== null ? s.energyAvg / s.machines : null,
     machineCost: m.cost,
+    prefer,
   };
   return { mod: designModule(req, PORTS[s.machine] ?? null, m.size, cat), req };
 }
 
 describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
-  for (const item of ["crankshaft", "steel-rod", "steel-ingot", "raw-iron", "coal"]) {
-    it(`${item} : rien ne se chevauche, chaque port est raccordé, chaque réseau est continu`, () => {
-      const { mod, req } = moduleFor(item);
+  for (const [item, prefer] of ["crankshaft", "steel-rod", "steel-ingot", "raw-iron", "coal"].flatMap((i) => [[i, "compact"], [i, "cheap"]] as const)) {
+    it(`${item} (${prefer === "compact" ? "le plus compact" : "le moins cher"}) : rien ne se chevauche, chaque port est raccordé, chaque réseau est continu`, () => {
+      const { mod, req } = moduleFor(item, prefer);
       expect(mod.problems.filter((p) => p.level === "erreur"), item).toEqual([]);
       expect(mod.portsKnown).toBe(true);
       expect(mod.machines).toHaveLength(req.count);
@@ -153,6 +154,26 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(mod.template).toBe("double rangée");
     expect(mod.width * mod.height).toBeLessThan(15 * 9 * 12);
     expect(mod.poles.length).toBeGreaterThan(0);
+  });
+
+  it("ports au choix : chaque ressource peut prendre n'importe quel port de son type et de son sens", () => {
+    const { req } = moduleFor("crankshaft");
+    const opts = portAssignments(PORTS["craft-assembler"]!, req);
+    expect(opts).toHaveLength(2); // deux entrées d'objets, deux ports d'entrée : deux façons
+    for (const o of opts) expect(new Set(o.map((a) => a.port)).size).toBe(o.length);
+    expect(opts.map((o) => o.filter((a) => a.role === "entrée").map((a) => a.port).join(","))).toEqual(["1,2", "2,1"]);
+  });
+
+  it("« le moins cher » : les raccords contournent les machines au lieu de croiser les collecteurs", () => {
+    const compact = moduleFor("crankshaft", "compact").mod;
+    const cheap = moduleFor("crankshaft", "cheap").mod;
+    const crossings = (m: ModulePlan) => m.pieces.filter((p) => p.role === "croisement").length;
+    expect(cheap.cost).toBeLessThan(compact.cost * 0.7);
+    expect(crossings(cheap)).toBeLessThan(crossings(compact) / 2);
+    expect(cheap.width * cheap.height).toBeGreaterThanOrEqual(compact.width * compact.height);
+    // Chacun annonce l'autre choix.
+    expect(compact.other).toMatchObject({ width: cheap.width, height: cheap.height, crossings: crossings(cheap) });
+    expect(cheap.other).toMatchObject({ width: compact.width, height: compact.height });
   });
 
   it("option « tier III seulement » : aucun tuyau de tier I", () => {

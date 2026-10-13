@@ -83,6 +83,10 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, su
         ? ` <span class="muted">Ports d'après ton relevé local (dans ce navigateur, pas encore envoyé).</span>`
         : ""
   }</p>${
+    m.other
+      ? `<p class="mod-other">${m.prefer === "compact" ? "Le moins cher" : "Le plus compact"} : ${esc(m.other.template)} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-prefer="${m.prefer === "compact" ? "cheap" : "compact"}">voir ce plan</button></p>`
+      : ""
+  }${
     m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${esc(p.message)}</li>`).join("")}</ul>` : ""
   }`;
   const legend = `<ul class="mod-legend">${m.nets
