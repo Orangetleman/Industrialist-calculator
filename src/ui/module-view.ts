@@ -7,7 +7,7 @@ import type { SurveyState } from "./buildings-model.ts";
 import { esc, fmt, fmtMoney } from "./format.ts";
 
 const C = 16; // unités SVG par case
-const CRIT_NAME: Record<PoseCriterion, string> = { place: "Place au sol", prix: "Prix", pieces: "Pièces à poser" };
+const CRIT_NAME: Record<PoseCriterion, string> = { place: "Place au sol", forme: "Forme ramassée", prix: "Prix", pieces: "Pièces à poser" };
 /** Couleurs des ressources, lisibles sur le fond sombre du cadre. */
 const PALETTE = ["#f0913a", "#6cc792", "#8fb8d6", "#e3b25a", "#d77fd0", "#5fd4d4", "#ff8a80", "#c5d86d"];
 
@@ -60,22 +60,31 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string): { 
   // Arrivées et départs du module.
   for (const n of m.nets) {
     if (!n.end) continue;
-    const x = cx(n.end.x) + (STEP[n.end.dir].x * C) / 2;
-    const y = cy(n.end.y);
-    const out = n.end.dir === "E";
-    s += `<g class="end"><title>${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}</title><path d="M${x - (out ? 0 : 7)},${y - 5} L${x + (out ? 7 : 0)},${y} L${x - (out ? 0 : 7)},${y + 5} z" fill="${color.get(n.id)}"/></g>`;
+    // Flèche au bord de la case, dans le sens du flux (vers le module pour une arrivée).
+    const d = STEP[n.end.dir];
+    const ex = cx(n.end.x) + (d.x * C) / 2;
+    const ey = cy(n.end.y) + (d.y * C) / 2;
+    const out = n.role === "sortie";
+    const f = out ? d : { x: -d.x, y: -d.y };
+    const bx = out ? ex : ex - 7 * f.x;
+    const by = out ? ey : ey - 7 * f.y;
+    const pts = [[bx - 5 * f.y, by + 5 * f.x], [bx + 7 * f.x, by + 7 * f.y], [bx + 5 * f.y, by - 5 * f.x]].map(([a, b]) => `${a},${b}`).join(" L");
+    s += `<g class="end"><title>${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}</title><path d="M${pts} z" fill="${color.get(n.id)}"/></g>`;
   }
   // Poteaux.
   for (const p of m.poles) s += `<g class="pole"><title>${esc(`${name(p.pole)}${p.covers.length ? ` — machines ${p.covers.map((c) => c.slice(1)).join(", ")}` : " — relais"}`)}</title><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${C * p.w}" height="${C * p.h}" rx="4"/><text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text></g>`;
   return { svg: s + "</svg>", width: W, height: H };
 }
 
+/** « double rangée », ou « 3 blocs empilés (double rangée) » pour des rangées repliées. */
+const layoutName = (m: { template: string; folds: number }) => (m.folds > 1 ? `${m.folds} blocs empilés (${m.template})` : m.template);
+
 /** Texte autour du dessin : résumé, problèmes, ressources, pièces, ordre de pose, hypothèses. */
 export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, survey: SurveyState = m.portsKnown ? "depot" : "manquant"): { head: string; legend: string; details: string } {
   const color = netColors(m);
   const crossings = m.parts.filter((p) => /intersection/i.test(p.id));
   const crossCost = crossings.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
-  const head = `<p class="mod-sum"><b>${m.count} × ${esc(name(m.machine))}</b> en ${esc(m.template)} : ${m.width} × ${m.height} cases, ${esc(fmtMoney(m.cost))}${m.costUnknown ? " (prix incomplets)" : ""}${
+  const head = `<p class="mod-sum"><b>${m.count} × ${esc(name(m.machine))}</b> en ${esc(layoutName(m))} : ${m.width} × ${m.height} cases, ${esc(fmtMoney(m.cost))}${m.costUnknown ? " (prix incomplets)" : ""}${
     crossCost ? `, dont ${esc(fmtMoney(crossCost))} de croisements` : ""
   }.${
     !m.portsKnown
@@ -85,7 +94,7 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, su
         : ""
   }</p>${
     m.other
-      ? `<p class="mod-other">Avec « ${esc(CRIT_NAME[m.other.first])} » en premier : ${esc(m.other.template)} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.pieces} pièces à poser dont ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-first="${m.other.first}">le mettre en premier</button></p>`
+      ? `<p class="mod-other">Avec « ${esc(CRIT_NAME[m.other.first])} » en premier : ${esc(layoutName(m.other))} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.pieces} pièces à poser dont ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-first="${m.other.first}">le mettre en premier</button></p>`
       : ""
   }${
     m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${esc(p.message)}</li>`).join("")}</ul>` : ""

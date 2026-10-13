@@ -65,14 +65,13 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
   const startCross = so?.kind === "tuyau" && !so.cross && so.links.size === 2 && across.every((d) => so.links.has(d as Dir));
   if (so && !(so.kind === "réservé" && so.net === net) && !startCross) return false;
   type Node = { c: Cell; d: Dir | null; g: number; f: number; prev: Node | null; crossing: boolean };
-  const open: Node[] = [{ c: start, d: startCross ? away : null, g: startCross ? COST.cross : 0, f: h(start), prev: null, crossing: startCross }];
+  const open = new Heap<Node>();
+  open.push({ c: start, d: startCross ? away : null, g: startCross ? COST.cross : 0, f: h(start), prev: null, crossing: startCross });
   const best = new Map<string, number>();
   let found: Node | null = null;
   let guard = 0;
-  while (open.length && guard++ < 200_000) {
-    let bi = 0;
-    for (let i = 1; i < open.length; i++) if (open[i]!.f < open[bi]!.f) bi = i;
-    const cur = open.splice(bi, 1)[0]!;
+  while (open.size && guard++ < 200_000) {
+    const cur = open.pop()!;
     const sk = `${key(cur.c)}|${cur.d}|${cur.crossing}`;
     if ((best.get(sk) ?? Infinity) <= cur.g - 1e-9 && cur.prev) continue;
     const dirs: Dir[] = cur.crossing ? [cur.d!] : (["N", "E", "S", "W"] as Dir[]).filter((d) => !cur.d || d !== OPPOSITE[cur.d]);
@@ -101,7 +100,7 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
       const g = cur.g + COST.step + turnCost;
       push(open, best, { c: n, d, g, f: g + h(n), prev: cur, crossing: false });
     }
-    if (found && open.every((x) => x.f >= found!.g)) break;
+    if (found && (!open.size || open.peek()!.f >= found.g)) break;
   }
   if (!found) return false;
   // Pose : la case de départ se raccorde au port, puis chaque pas relie deux cases.
@@ -116,9 +115,62 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
   return true;
 }
 
-function push(open: { c: Cell; d: Dir | null; g: number; f: number; crossing: boolean }[], best: Map<string, number>, n: { c: Cell; d: Dir | null; g: number; f: number; prev: unknown; crossing: boolean }): void {
+function push<T extends { c: Cell; d: Dir | null; g: number; f: number; crossing: boolean }>(open: Heap<T>, best: Map<string, number>, n: T): void {
   const sk = `${key(n.c)}|${n.d}|${n.crossing}`;
   if ((best.get(sk) ?? Infinity) <= n.g) return;
   best.set(sk, n.g);
-  open.push(n as never);
+  open.push(n);
+}
+
+/**
+ * File de priorité (tas binaire) : le plus petit `f` d'abord ; à égalité, le premier entré
+ * (comme une recherche linéaire du minimum, mais en temps logarithmique).
+ */
+class Heap<T extends { f: number }> {
+  private a: { v: T; seq: number }[] = [];
+  private seq = 0;
+  get size(): number {
+    return this.a.length;
+  }
+  peek(): T | undefined {
+    return this.a[0]?.v;
+  }
+  private less(i: number, j: number): boolean {
+    const x = this.a[i]!;
+    const y = this.a[j]!;
+    return x.v.f < y.v.f || (x.v.f === y.v.f && x.seq < y.seq);
+  }
+  private swap(i: number, j: number): void {
+    [this.a[i], this.a[j]] = [this.a[j]!, this.a[i]!];
+  }
+  push(v: T): void {
+    this.a.push({ v, seq: this.seq++ });
+    let i = this.a.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (!this.less(i, p)) break;
+      this.swap(i, p);
+      i = p;
+    }
+  }
+  pop(): T | undefined {
+    if (!this.a.length) return undefined;
+    const top = this.a[0]!.v;
+    const last = this.a.pop()!;
+    if (this.a.length) {
+      this.a[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < this.a.length && this.less(l, m)) m = l;
+        if (r < this.a.length && this.less(r, m)) m = r;
+        if (m === i) break;
+        this.swap(i, m);
+        i = m;
+      }
+    }
+    return top;
+  }
 }

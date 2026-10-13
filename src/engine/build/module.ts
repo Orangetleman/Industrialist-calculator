@@ -26,9 +26,9 @@ export type ModuleRequest = {
   priority?: PoseCriterion[];
 };
 
-/** Critères des plans de pose : place au sol, prix total, nombre de pièces à poser. */
-export type PoseCriterion = "place" | "prix" | "pieces";
-export const POSE_CRITERIA: PoseCriterion[] = ["place", "prix", "pieces"];
+/** Critères des plans de pose : place au sol, forme ramassée (plus grand côté), prix, pièces à poser. */
+export type PoseCriterion = "place" | "forme" | "prix" | "pieces";
+export const POSE_CRITERIA: PoseCriterion[] = ["place", "forme", "prix", "pieces"];
 
 export type Net = {
   /** Identifiant du réseau : la ressource, suivie de « #n » quand plusieurs collecteurs la portent. */
@@ -55,6 +55,8 @@ export type ModulePlan = {
   machine: string;
   count: number;
   template: "rangée" | "double rangée";
+  /** Rangées repliées : le module est fait de `folds` blocs empilés (1 : pas replié). */
+  folds: number;
   rot: Rot;
   /** Ports relevés en jeu, ou supposés faute de relevé. */
   portsKnown: boolean;
@@ -72,7 +74,7 @@ export type ModulePlan = {
   order: string[];
   /** Ordre des critères qui a choisi ce module, et ce que donnerait le 2e critère mis en premier. */
   priority: PoseCriterion[];
-  other: { first: PoseCriterion; width: number; height: number; cost: number; pieces: number; crossings: number; template: ModulePlan["template"] } | null;
+  other: { first: PoseCriterion; width: number; height: number; cost: number; pieces: number; crossings: number; template: ModulePlan["template"]; folds: number } | null;
 };
 
 /** Nombre pour les messages : deux décimales au plus, virgule décimale. */
@@ -327,15 +329,34 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
 
 type FileUse = "deux" | "haut" | "bas";
 
+/** Emprise de ce qui est posé (calculée une fois par disposition : les poteaux l'interrogent souvent). */
+const extents = new WeakMap<Layout, { minX: number; maxX: number; minY: number; maxY: number }>();
+function extentOf(l: Layout) {
+  let e = extents.get(l);
+  if (!e) {
+    e = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    for (const k of l.grid.cells.keys()) {
+      const i = k.indexOf(",");
+      const x = Number(k.slice(0, i));
+      const y = Number(k.slice(i + 1));
+      if (x < e.minX) e.minX = x;
+      if (x > e.maxX) e.maxX = x;
+      if (y < e.minY) e.minY = y;
+      if (y > e.maxY) e.maxY = y;
+    }
+    extents.set(l, e);
+  }
+  return e;
+}
+
 function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole: Pole, each: number, use: FileUse = "deux") {
   const problems: Problem[] = [];
-  const ys = [...l.grid.cells.keys()].map((k) => Number(k.split(",")[1]));
-  const xs = [...l.grid.cells.keys()].map((k) => Number(k.split(",")[0]));
-  const rows = [Math.min(...ys) - pole.size.h, Math.max(...ys) + 1]; // haut de chaque file
+  const ext = extentOf(l);
+  const rows = [ext.minY - pole.size.h, ext.maxY + 1]; // haut de chaque file
   const R = pole.rangeCells;
   // Un poteau reste au-dessus (ou au-dessous) du module, sans l'élargir.
-  const xLo = Math.min(...xs) + pole.size.w / 2;
-  const xHi = Math.max(...xs) + 1 - pole.size.w / 2;
+  const xLo = ext.minX + pole.size.w / 2;
+  const xHi = ext.maxX + 1 - pole.size.w / 2;
   const poles: PlacedPole[] = [];
   const files: { label: string; load: number; feeds: number }[] = [];
   let outOfRange = false;
@@ -416,46 +437,77 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
   };
   const errors = (p: ModulePlan) => p.problems.filter((x) => x.level === "erreur").length;
   const pieceCount = (p: ModulePlan) => p.pieces.length + p.poles.length;
-  type Metrics = { place: number; prix: number; pieces: number };
+  type Metrics = Record<PoseCriterion, number>;
   const score = (prio: PoseCriterion[], p: ModulePlan, m: Metrics) => [errors(p), ...prio.map((k) => m[k])];
   const order = (a: number[], b: number[]) => {
     for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i]! - b[i]!;
     return 0;
   };
-  const metrics = (p: ModulePlan, n = 1): Metrics => ({ place: (p.width * p.height) / n, prix: p.cost / n, pieces: pieceCount(p) / n });
-  // 1. Essai rapide de chaque configuration sur 2 machines (4 en double rangée) : valeurs par machine.
+  const metrics = (p: ModulePlan): Metrics => ({ place: p.width * p.height, forme: Math.max(p.width, p.height), prix: p.cost, pieces: pieceCount(p) });
+  // 1. Essai rapide de chaque configuration sur 2 machines (4 en double rangée) : valeurs par machine,
+  //    et forme estimée pour `count` machines (la longueur croît avec le nombre de machines).
   const probeN = (c: Config) => Math.min(req.count, c.double ? 4 : 2);
   const probed = configs
     .map((c) => {
       const n = probeN(c);
       const p = build(c, scaleRequest(req, n));
-      return p ? { c, p, m: metrics(p, n) } : null;
+      return p ? { c, p, n } : null;
     })
-    .filter((x): x is { c: Config; p: ModulePlan; m: Metrics } => !!x);
-  // 2. Pour un ordre des critères, les meilleures en vrai (une disposition calculée une seule fois).
-  const full = new Map<Config, ModulePlan | null>();
-  const real = (c: Config) => {
-    if (!full.has(c)) full.set(c, build(c, req));
-    return full.get(c)!;
+    .filter((x): x is { c: Config; p: ModulePlan; n: number } => !!x);
+  const estimate = (x: (typeof probed)[number], count: number): Metrics => ({
+    place: (x.p.width * x.p.height * count) / x.n,
+    forme: Math.max((x.p.width * count) / x.n, x.p.height),
+    prix: (x.p.cost * count) / x.n,
+    pieces: (pieceCount(x.p) * count) / x.n,
+  });
+  // 2. Pour un nombre de machines et un ordre des critères, les meilleures en vrai (calculées une fois).
+  const full = new Map<string, ModulePlan | null>();
+  const real = (k: number, count: number) => {
+    const key = `${k}|${count}`;
+    if (!full.has(key)) full.set(key, build(probed[k]!.c, scaleRequest(req, count)));
+    return full.get(key)!;
   };
-  const best = (prio: PoseCriterion[]): ModulePlan | null =>
-    [...probed]
-      .sort((a, b) => order(score(prio, a.p, a.m), score(prio, b.p, b.m)))
-      .slice(0, 3)
-      .map((x) => real(x.c))
+  const best = (count: number, prio: PoseCriterion[], tries = 3): ModulePlan | null =>
+    probed
+      .map((x, k) => ({ k, s: score(prio, x.p, estimate(x, count)) }))
+      .sort((a, b) => order(a.s, b.s))
+      .slice(0, tries)
+      .map((x) => real(x.k, count))
       .filter((p): p is ModulePlan => !!p)
       .sort((a, b) => order(score(prio, a, metrics(a)), score(prio, b, metrics(b))))[0] ?? null;
+  // 3. Rangées repliées : le même module en blocs empilés, alimentés par des tuyaux principaux. On
+  //    essaie le nombre de blocs qui rend l'ensemble à peu près carré, et ses voisins (2 à 4 blocs).
+  const candidates = (prio: PoseCriterion[]): ModulePlan[] => {
+    const out: ModulePlan[] = [];
+    const flat = best(req.count, prio);
+    if (!flat) return out;
+    out.push(flat);
+    if (flat.width <= 2 * flat.height && flat.height <= 2 * flat.width) return out; // déjà ramassé
+    const ideal = Math.round(Math.sqrt(Math.max(flat.width, flat.height) / Math.min(flat.width, flat.height)));
+    for (const k of [...new Set([ideal - 1, ideal, ideal + 1])].filter((k) => k >= 2 && k <= 4)) {
+      const n = Math.ceil(req.count / k);
+      const last = req.count - (k - 1) * n;
+      if (n < 2 || last < 1) continue;
+      const a = best(n, prio, 1);
+      const b = last === n ? a : best(last, prio, 1);
+      if (!a || !b || errors(a) || errors(b)) continue;
+      const f = foldModule([...Array.from({ length: k - 1 }, () => a), b], req, cat, name);
+      if (f) out.push(f);
+    }
+    return out;
+  };
+  const pick = (prio: PoseCriterion[]) => candidates(prio).sort((a, b) => order(score(prio, a, metrics(a)), score(prio, b, metrics(b))))[0] ?? null;
   const priority = normalPriority(req.priority);
-  const chosen = best(priority);
+  const chosen = pick(priority);
   // L'autre choix : le 2e critère passé en premier.
   const swapped = [priority[1]!, priority[0]!, ...priority.slice(2)];
-  const alt = best(swapped);
+  const alt = pick(swapped);
   const crossings = (p: ModulePlan) => p.pieces.filter((x) => x.role === "croisement").length;
   if (chosen) {
     chosen.priority = priority;
     chosen.other =
       alt && (alt.width !== chosen.width || alt.height !== chosen.height || Math.round(alt.cost) !== Math.round(chosen.cost)) && !errors(alt)
-        ? { first: swapped[0]!, width: alt.width, height: alt.height, cost: alt.cost, pieces: pieceCount(alt), crossings: crossings(alt), template: alt.template }
+        ? { first: swapped[0]!, width: alt.width, height: alt.height, cost: alt.cost, pieces: pieceCount(alt), crossings: crossings(alt), template: alt.template, folds: alt.folds }
         : null;
   }
   return (
@@ -463,6 +515,7 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       machine: req.machine,
       count: req.count,
       template: "rangée",
+      folds: 1,
       rot: 0,
       portsKnown,
       width: 0,
@@ -481,6 +534,161 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       other: null,
     }
   );
+}
+
+/**
+ * Rangées repliées : les blocs (modules déjà dessinés) sont empilés ; chaque ressource arrive par un
+ * tuyau principal vertical, à gauche pour les entrées et à droite pour les sorties, avec un
+ * embranchement vers le collecteur de chaque bloc. Le tuyau principal porte le débit de tous les
+ * blocs : null s'il n'existe pas de tuyau assez rapide.
+ */
+export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalog, name: Namer = (id) => id): ModulePlan | null {
+  const first = blocks[0]!;
+  const ids = [...new Set(blocks.flatMap((b) => b.nets.map((n) => n.id)))];
+  const netOf = (id: string) => blocks.flatMap((b) => b.nets).find((n) => n.id === id)!;
+  const ins = ids.filter((id) => netOf(id).role === "entrée");
+  const outs = ids.filter((id) => netOf(id).role === "sortie");
+  // Tuyau principal de chaque ressource : le débit de tous les blocs.
+  const trunkPipe = new Map<string, PipeSet>();
+  for (const id of ids) {
+    const total = blocks.reduce((s, b) => s + (b.nets.find((n) => n.id === id)?.perSec ?? 0), 0);
+    const pipe = pipeFor(cat, netOf(id).kind, total, req.tier3Only);
+    if (!pipe) return null;
+    trunkPipe.set(id, pipe);
+  }
+  const L = ins.length + 1; // colonnes des tuyaux d'entrée, puis une case libre
+  const widest = Math.max(...blocks.map((b) => b.width));
+  const grid = new Grid();
+  const pipeAt = new Map<string, PipeSet | null>();
+  const machines: Placed[] = [];
+  const poles: PlacedPole[] = [];
+  const lanes = new Map<string, { y: number; x: number }[]>(); // bouts des collecteurs, par ressource
+  let y0 = 0;
+  for (const b of blocks) {
+    const ox = L;
+    const ren = new Map(b.machines.map((m, i) => [m.id, `m${machines.length + i + 1}`]));
+    for (const m of b.machines) {
+      const mv = <T extends { x: number; y: number }>(o: T): T => ({ ...o, x: o.x + ox, y: o.y + y0 });
+      const pm = { ...mv(m), id: ren.get(m.id)!, cells: m.cells.map(mv), ports: m.ports.map((q) => ({ ...q, cell: mv(q.cell) })), power: m.power.map(mv) };
+      machines.push(pm);
+      for (const c of pm.cells) grid.block(c, pm.id);
+    }
+    for (const q of b.poles) poles.push({ ...q, x: q.x + ox, y: q.y + y0, covers: q.covers.map((c) => ren.get(c) ?? c) });
+    for (const pc of b.pieces) {
+      const c = { x: pc.x + ox, y: pc.y + y0 };
+      grid.cells.set(`${c.x},${c.y}`, { kind: "tuyau", net: pc.net, links: new Set(pc.links), ...(pc.crossNet ? { cross: { net: pc.crossNet, links: new Set(pc.crossLinks ?? []) } } : {}) });
+      pipeAt.set(`${c.x},${c.y}`, b.nets.find((n) => n.id === pc.net)?.pipe ?? null);
+    }
+    for (const n of b.nets) if (n.end) lanes.set(n.id, [...(lanes.get(n.id) ?? []), { y: n.end.y + y0, x: n.end.x + ox }]);
+    y0 += b.height;
+  }
+  const H = y0;
+  const R0 = L + widest + 1; // première colonne des tuyaux de sortie
+  // Ordre des tuyaux principaux : le moins de croisements avec les embranchements des autres.
+  const arrange = (list: string[], side: "gauche" | "droite") => {
+    const perms = (a: string[]): string[][] => (a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map((r) => [x, ...r])));
+    const colOf = (pos: number) => (side === "gauche" ? L - 2 - pos : R0 + pos); // pos 0 : le plus près du module
+    let bestP = list;
+    let bestN = Infinity;
+    for (const pm of list.length <= 5 ? perms(list) : [list]) {
+      let n = 0;
+      pm.forEach((id, pos) => {
+        const bottom = Math.max(...lanes.get(id)!.map((e) => e.y));
+        // Les embranchements des ressources plus éloignées traversent ce tuyau s'il descend jusqu'à eux.
+        for (const other of pm.slice(pos + 1)) n += lanes.get(other)!.filter((e) => e.y <= bottom).length;
+      });
+      if (n < bestN) [bestN, bestP] = [n, pm];
+    }
+    return new Map(bestP.map((id, pos) => [id, colOf(pos)]));
+  };
+  const col = new Map([...arrange(ins, "gauche"), ...arrange(outs, "droite")]);
+  // Tuyau principal : de la rangée du haut jusqu'au bloc le plus bas, puis un embranchement par bloc.
+  for (const id of ids) {
+    const c = col.get(id)!;
+    const ends = lanes.get(id)!;
+    const bottom = Math.max(...ends.map((e) => e.y));
+    for (let y = 0; y <= bottom; y++) pipeAt.set(`${c},${y}`, trunkPipe.get(id)!);
+    grid.straight({ x: c, y: 0 }, { x: c, y: bottom }, id);
+    grid.link({ x: c, y: 0 }, "N", id); // arrivée (entrée) ou départ (sortie), par le haut
+    for (const e of ends) {
+      const [a, b] = c < e.x ? [c, e.x] : [e.x, c];
+      for (let x = a; x <= b; x++) {
+        const k = `${x},${e.y}`;
+        const o = grid.cells.get(k);
+        if (o && o.kind !== "tuyau") return null;
+        if (!pipeAt.has(k)) pipeAt.set(k, blocks.flatMap((bl) => bl.nets).find((n) => n.id === id)?.pipe ?? trunkPipe.get(id)!);
+      }
+      grid.straight({ x: a, y: e.y }, { x: b, y: e.y }, id);
+    }
+  }
+  // Pièces : rôle selon les liaisons ; tuyau du bloc, ou du tuyau principal.
+  const kindOf = (id: string) => netOf(id).kind;
+  const pieces: PlacedPiece[] = [];
+  for (const [k, o] of grid.cells) {
+    if (o.kind !== "tuyau") continue;
+    const [x, y] = k.split(",").map(Number) as [number, number];
+    if (o.cross) {
+      const kinds = new Set([kindOf(o.net), kindOf(o.cross.net)]);
+      const piece = kinds.size > 1 ? cat.crossings.mixte : kinds.has("fluide") ? cat.crossings.fluide : cat.crossings.objet;
+      pieces.push({ x, y, net: o.net, crossNet: o.cross.net, role: "croisement", links: [...o.links], crossLinks: [...o.cross.links], pieceId: piece?.id ?? null });
+      continue;
+    }
+    const role = ROLE_OF(o.links);
+    const set = pipeAt.get(k) ?? null;
+    pieces.push({ x, y, net: o.net, role, links: [...o.links], pieceId: set ? set.pieces[role === "croisement" ? "droit" : role].id : null });
+  }
+  const width = R0 + outs.length;
+  const nets: Net[] = ids.map((id) => {
+    const n = netOf(id);
+    const perSec = blocks.reduce((s, b) => s + (b.nets.find((x) => x.id === id)?.perSec ?? 0), 0);
+    return { ...n, perSec, pipe: trunkPipe.get(id)!, lane: null, end: { x: col.get(id)!, y: 0, dir: "N" } };
+  });
+  const problems: Problem[] = [...blocks.flatMap((b) => b.problems).filter((p, i, a) => a.findIndex((q) => q.message === p.message) === i)];
+  const tally = countParts(req, pieces, poles, cat, name, problems);
+  const crossings = pieces.filter((pc) => pc.role === "croisement").length;
+  return {
+    ...first,
+    count: machines.length,
+    folds: blocks.length,
+    width,
+    height: H,
+    machines,
+    pieces,
+    nets,
+    poles,
+    ...tally,
+    problems,
+    order: [
+      `Poser ${blocks.length} blocs de ${first.count} ${name(req.machine)} en ${first.template}, les uns sous les autres${blocks.at(-1)!.count !== first.count ? ` (le dernier n'en a que ${blocks.at(-1)!.count})` : ""}.`,
+      ...nets.map((n) => `Tuyau principal ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, tier ${n.pipe!.tier === 1 ? "I" : "III"} (${num(n.perSec)} par seconde), par le haut, avec un embranchement vers chaque bloc.`),
+      ...first.order.slice(1).map((o) => `Dans chaque bloc : ${o.charAt(0).toLowerCase()}${o.slice(1)}`),
+      ...(crossings ? [`En tout, ${crossings} croisement(s).`] : []),
+    ],
+    other: null,
+  };
+}
+
+/** Liste des pièces et coût : machines, tuyaux, croisements, poteaux. */
+function countParts(req: ModuleRequest, pieces: PlacedPiece[], poles: PlacedPole[], cat: Catalog, name: Namer, problems: Problem[]) {
+  const parts = new Map<string, { id: string; name: string; count: number; unitPrice: number | null }>();
+  const addPart = (id: string, label: string, price: number | null, n = 1) => {
+    const p = parts.get(id) ?? { id, name: label, count: 0, unitPrice: price };
+    p.count += n;
+    parts.set(id, p);
+  };
+  addPart(req.machine, name(req.machine), req.machineCost, req.count);
+  const allPieces = [...cat.pipes.flatMap((s) => Object.values(s.pieces)), ...Object.values(cat.crossings).filter((x): x is NonNullable<typeof x> => !!x)];
+  for (const pc of pieces) {
+    const def = allPieces.find((x) => x.id === pc.pieceId);
+    if (def) addPart(def.id, def.name, def.price);
+    else problems.push({ level: "erreur", message: `Pièce inconnue pour un ${pc.role} de ${name(pc.net.replace(/#\d+$/, ""))}.` });
+  }
+  for (const q of poles) {
+    const def = cat.poles.find((x) => x.id === q.pole);
+    addPart(q.pole, def?.name ?? q.pole, def?.price ?? null);
+  }
+  const list = [...parts.values()];
+  return { parts: list, cost: list.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0), costUnknown: list.filter((p) => p.unitPrice === null).length };
 }
 
 /** Ordre complet des critères : ceux demandés (sans doublon), puis les autres dans l'ordre par défaut. */
@@ -514,15 +722,11 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   }
   const power = placePoles(l, req, cat, name);
   // Dimensions : tout ce qui est posé, poteaux compris.
-  const cells: Cell[] = [...l.grid.cells.keys()].map((k) => {
-    const [x, y] = k.split(",").map(Number) as [number, number];
-    return { x, y };
-  });
-  for (const p of power.poles) for (let i = 0; i < p.w; i++) for (let j = 0; j < p.h; j++) cells.push({ x: p.x + i, y: p.y + j });
-  const minX = Math.min(...cells.map((c) => c.x));
-  const minY = Math.min(...cells.map((c) => c.y));
-  const maxX = Math.max(...cells.map((c) => c.x));
-  const maxY = Math.max(...cells.map((c) => c.y));
+  const ext = extentOf(l);
+  const minX = Math.min(ext.minX, ...power.poles.map((p) => p.x));
+  const minY = Math.min(ext.minY, ...power.poles.map((p) => p.y));
+  const maxX = Math.max(ext.maxX, ...power.poles.map((p) => p.x + p.w - 1));
+  const maxY = Math.max(ext.maxY, ...power.poles.map((p) => p.y + p.h - 1));
   // Coordonnées ramenées à (0, 0).
   const shift = <T extends { x: number; y: number }>(o: T): T => ({ ...o, x: o.x - minX, y: o.y - minY });
   const machines = l.machines.map((m) => ({
@@ -534,23 +738,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   const nets = l.nets.map((n) => ({ ...n, lane: n.lane ? { y: n.lane.y - minY, x0: n.lane.x0 - minX, x1: n.lane.x1 - minX } : null, end: n.end ? shift(n.end) : null }));
 
   // Liste des pièces et coût.
-  const parts = new Map<string, { id: string; name: string; count: number; unitPrice: number | null }>();
-  const addPart = (id: string, name: string, price: number | null, n = 1) => {
-    const p = parts.get(id) ?? { id, name, count: 0, unitPrice: price };
-    p.count += n;
-    parts.set(id, p);
-  };
-  addPart(req.machine, name(req.machine), req.machineCost, req.count);
-  const allPieces = [...cat.pipes.flatMap((s) => Object.values(s.pieces)), ...Object.values(cat.crossings).filter((x): x is NonNullable<typeof x> => !!x)];
-  for (const pc of pieces) {
-    const def = allPieces.find((x) => x.id === pc.pieceId);
-    if (def) addPart(def.id, def.name, def.price);
-    else problems.push({ level: "erreur", message: `Pièce inconnue pour un ${pc.role} de ${name(pc.net.replace(/#\d+$/, ""))}.` });
-  }
-  if (power.pole) addPart(power.pole.id, power.pole.name, power.pole.price, power.poles.length);
-  const list = [...parts.values()];
-  const cost = list.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
-  const costUnknown = list.filter((p) => p.unitPrice === null).length;
+  const { parts: list, cost, costUnknown } = countParts(req, pieces, power.poles, cat, name, problems);
   const crossings = pieces.filter((p) => p.role === "croisement").length;
   const portCells = new Set(l.machines.flatMap((m) => m.ports.map((p) => `${p.cell.x},${p.cell.y}`)));
   const atPorts = pieces.filter((p) => p.role === "croisement" && portCells.has(`${p.x},${p.y}`)).length;
@@ -569,6 +757,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
     machine: req.machine,
     count: req.count,
     template: l.template,
+    folds: 1,
     rot: l.rot,
     portsKnown,
     width: maxX - minX + 1,

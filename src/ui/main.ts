@@ -615,6 +615,7 @@ const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id
 /** Critères des plans de pose, en mots de joueur. */
 const CRIT_TEXT: Record<PoseCriterion, { label: string; why: string }> = {
   place: { label: "Place au sol", why: "la plus petite surface, poteaux compris" },
+  forme: { label: "Forme ramassée", why: "le plus grand côté le plus court : rangées repliées plutôt qu'une longue bande" },
   prix: { label: "Prix", why: "le moins de dépenses : croisements, tuyaux, poteaux" },
   pieces: { label: "Pièces à poser", why: "le moins de tuyaux et de poteaux à placer" },
 };

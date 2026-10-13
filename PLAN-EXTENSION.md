@@ -425,6 +425,15 @@ l'utilisateur) : la première décide quand un objet se fabrique de plusieurs fa
 départagent les égalités (simplexe par niveaux et choix heuristique, `then` dans la requête). Repliée,
 la liste montre ses trois premières priorités sur une ligne.
 
+Rangées repliées (2026-10-13) : nouveau critère « Forme ramassée » (le plus grand côté le plus
+court), 2e par défaut. Le module peut être fait de 2 à 4 blocs empilés ; chaque ressource arrive
+(ou part) par un tuyau principal vertical sur le côté, avec un embranchement vers chaque bloc, et
+l'ordre des tuyaux principaux limite les croisements. Exemples : 15 Craft Assemblers en 2 blocs de
+39 × 30 cases (au lieu de 66 × 15), 323 Oil Rigs en 4 blocs de 86 × 84 (au lieu de 325 × 21).
+Calcul : l'essai rapide des dispositions est partagé entre les tailles de bloc ; l'emprise d'une
+disposition est calculée une fois (les poteaux l'interrogeaient des dizaines de fois) : environ
+1,5 s au pire pour 50 machines. Limite : chaque bloc garde sa propre file de poteaux, à relier.
+
 Pas encore fait : arbres et centrales composées, sous-produits vers un silo ou un brûleur,
 logique, liaisons directes entre ports, usine assemblée (E4b).
 

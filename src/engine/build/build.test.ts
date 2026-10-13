@@ -87,8 +87,8 @@ const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recip
 const all = { unlocked: new Set(data.nodes.keys()) };
 const fluid = (id: string) => !!data.items.get(id)?.isFluid;
 
-const PLACE: PoseCriterion[] = ["place", "prix", "pieces"];
-const PRIX: PoseCriterion[] = ["prix", "place", "pieces"];
+const PLACE: PoseCriterion[] = ["place", "forme", "prix", "pieces"];
+const PRIX: PoseCriterion[] = ["prix", "place", "forme", "pieces"];
 
 function moduleFor(stepItem: string, priority: PoseCriterion[] = PLACE): { mod: ModulePlan; req: ModuleRequest } {
   const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy", tiers: false });
@@ -106,50 +106,55 @@ function moduleFor(stepItem: string, priority: PoseCriterion[] = PLACE): { mod: 
   return { mod: designModule(req, PORTS[s.machine] ?? null, m.size, cat), req };
 }
 
+/** Contrôles d'un module : aucun chevauchement, chaque liaison réciproque, chaque port raccordé, pièces comptées. */
+function checkModule(mod: ModulePlan, req: ModuleRequest, item: string): void {
+    expect(mod.problems.filter((p) => p.level === "erreur"), item).toEqual([]);
+    expect(mod.portsKnown).toBe(true);
+    expect(mod.machines).toHaveLength(req.count);
+    // Cases : un seul occupant (bâtiment, plot ou tuyau), poteaux compris.
+    const seen = new Map<string, string>();
+    const take = (k: string, who: string) => {
+      expect(seen.get(k), `${item} : ${k} pris par ${seen.get(k)} et ${who}`).toBeUndefined();
+      seen.set(k, who);
+    };
+    for (const m of mod.machines) for (const c of m.cells) take(key(c), m.id);
+    for (const pc of mod.pieces) take(key(pc), `tuyau ${pc.net}`);
+    expect(mod.machines.every((m) => m.cells.every((c) => c.x >= 0 && c.y >= 0 && c.x < mod.width && c.y < mod.height))).toBe(true);
+    // Liaisons : chaque liaison d'un tuyau mène à un tuyau du même réseau, à un port, ou au bord.
+    const at = new Map(mod.pieces.map((p) => [key(p), p]));
+    const linksOf = (x: number, y: number, net: string): Dir[] | null => {
+      const p = at.get(`${x},${y}`);
+      if (!p) return null;
+      return p.net === net ? p.links : p.crossNet === net ? (p.crossLinks ?? []) : null;
+    };
+    const portCells = new Map(mod.machines.flatMap((m) => m.ports.map((p) => [key(p.cell), p] as const)));
+    for (const pc of mod.pieces) {
+      for (const [net, links] of [[pc.net, pc.links], ...(pc.crossNet ? [[pc.crossNet, pc.crossLinks ?? []]] : [])] as [string, Dir[]][]) {
+        for (const d of links) {
+          const n = add(pc, d);
+          const back = linksOf(n.x, n.y, net);
+          const toPort = portCells.get(key(pc))?.facing === OPPOSITE[d];
+          const end = mod.nets.some((x) => x.id === net && x.end?.x === pc.x && x.end.y === pc.y && x.end.dir === d);
+          expect(back?.includes(OPPOSITE[d]) || toPort || end, `${item} : ${key(pc)} → ${d} (${net})`).toBe(true);
+        }
+      }
+    }
+    // Chaque port utilisé touche un tuyau de sa ressource, ouvert vers lui.
+    const used = mod.pieces.filter((p) => portCells.has(key(p)));
+    expect(used.length).toBe(req.count * (req.inputs.length + req.outputs.length));
+    // Croisement collé à un port : l'un de ses deux tuyaux s'ouvre vers lui.
+    for (const p of used) expect([...p.links, ...(p.crossLinks ?? [])]).toContain(OPPOSITE[portCells.get(key(p))!.facing]);
+    // Liste des pièces : machines, chaque tuyau, chaque poteau.
+    const count = (id: string) => mod.parts.find((p) => p.id === id)?.count ?? 0;
+    expect(count(req.machine)).toBe(req.count);
+    expect(mod.parts.reduce((s, p) => s + p.count, 0)).toBe(req.count + mod.pieces.length + mod.poles.length);
+}
+
 describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
   for (const [item, prio] of ["crankshaft", "steel-rod", "steel-ingot", "raw-iron", "coal"].flatMap((i) => [[i, PLACE], [i, PRIX]] as const)) {
     it(`${item} (${prio[0]} d'abord) : rien ne se chevauche, chaque port est raccordé, chaque réseau est continu`, () => {
       const { mod, req } = moduleFor(item, prio);
-      expect(mod.problems.filter((p) => p.level === "erreur"), item).toEqual([]);
-      expect(mod.portsKnown).toBe(true);
-      expect(mod.machines).toHaveLength(req.count);
-      // Cases : un seul occupant (bâtiment, plot ou tuyau), poteaux compris.
-      const seen = new Map<string, string>();
-      const take = (k: string, who: string) => {
-        expect(seen.get(k), `${item} : ${k} pris par ${seen.get(k)} et ${who}`).toBeUndefined();
-        seen.set(k, who);
-      };
-      for (const m of mod.machines) for (const c of m.cells) take(key(c), m.id);
-      for (const pc of mod.pieces) take(key(pc), `tuyau ${pc.net}`);
-      expect(mod.machines.every((m) => m.cells.every((c) => c.x >= 0 && c.y >= 0 && c.x < mod.width && c.y < mod.height))).toBe(true);
-      // Liaisons : chaque liaison d'un tuyau mène à un tuyau du même réseau, à un port, ou au bord.
-      const at = new Map(mod.pieces.map((p) => [key(p), p]));
-      const linksOf = (x: number, y: number, net: string): Dir[] | null => {
-        const p = at.get(`${x},${y}`);
-        if (!p) return null;
-        return p.net === net ? p.links : p.crossNet === net ? (p.crossLinks ?? []) : null;
-      };
-      const portCells = new Map(mod.machines.flatMap((m) => m.ports.map((p) => [key(p.cell), p] as const)));
-      for (const pc of mod.pieces) {
-        for (const [net, links] of [[pc.net, pc.links], ...(pc.crossNet ? [[pc.crossNet, pc.crossLinks ?? []]] : [])] as [string, Dir[]][]) {
-          for (const d of links) {
-            const n = add(pc, d);
-            const back = linksOf(n.x, n.y, net);
-            const toPort = portCells.get(key(pc))?.facing === OPPOSITE[d];
-            const end = mod.nets.some((x) => x.id === net && x.end?.x === pc.x && x.end.y === pc.y && x.end.dir === d);
-            expect(back?.includes(OPPOSITE[d]) || toPort || end, `${item} : ${key(pc)} → ${d} (${net})`).toBe(true);
-          }
-        }
-      }
-      // Chaque port utilisé touche un tuyau de sa ressource, ouvert vers lui.
-      const used = mod.pieces.filter((p) => portCells.has(key(p)));
-      expect(used.length).toBe(req.count * (req.inputs.length + req.outputs.length));
-      // Croisement collé à un port : l'un de ses deux tuyaux s'ouvre vers lui.
-      for (const p of used) expect([...p.links, ...(p.crossLinks ?? [])]).toContain(OPPOSITE[portCells.get(key(p))!.facing]);
-      // Liste des pièces : machines, chaque tuyau, chaque poteau.
-      const count = (id: string) => mod.parts.find((p) => p.id === id)?.count ?? 0;
-      expect(count(req.machine)).toBe(req.count);
-      expect(mod.parts.reduce((s, p) => s + p.count, 0)).toBe(req.count + mod.pieces.length + mod.poles.length);
+      checkModule(mod, req, item);
     });
   }
 
@@ -169,7 +174,7 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
   });
 
   it("le prix d'abord : les raccords contournent les machines au lieu de croiser les collecteurs", () => {
-    const compact = moduleFor("crankshaft", PLACE).mod;
+    const compact = moduleFor("crankshaft", ["place", "prix", "forme", "pieces"]).mod;
     const cheap = moduleFor("crankshaft", PRIX).mod;
     const crossings = (m: ModulePlan) => m.pieces.filter((p) => p.role === "croisement").length;
     expect(cheap.cost).toBeLessThan(compact.cost * 0.7);
@@ -188,10 +193,22 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(new Set(mod.poles.map((p) => p.y)).size).toBe(1); // une seule file atteint toutes les prises
   });
 
+  it("rangées repliées : la forme ramassée d'abord, des blocs empilés et des tuyaux principaux", () => {
+    const { req, mod: flat } = moduleFor("raw-iron", PLACE);
+    const { mod } = moduleFor("raw-iron", ["forme", "place", "prix", "pieces"]);
+    expect(mod.folds).toBeGreaterThan(1);
+    expect(Math.max(mod.width, mod.height)).toBeLessThan(Math.max(flat.width, flat.height));
+    checkModule(mod, req, "raw-iron replié");
+    // Une arrivée ou un départ par ressource, par le haut.
+    expect(mod.nets.every((n) => n.end?.dir === "N" && n.end.y === 0)).toBe(true);
+    // Le plan le plus compact annonce la version repliée (2e critère : la forme).
+    expect(flat.other).toMatchObject({ first: "forme" });
+  });
+
   it("ordre des critères : complété et sans doublon", () => {
-    expect(normalPriority(undefined)).toEqual(["place", "prix", "pieces"]);
-    expect(normalPriority(["pieces"])).toEqual(["pieces", "place", "prix"]);
-    expect(normalPriority(["prix", "prix", "x" as PoseCriterion])).toEqual(["prix", "place", "pieces"]);
+    expect(normalPriority(undefined)).toEqual(["place", "forme", "prix", "pieces"]);
+    expect(normalPriority(["pieces"])).toEqual(["pieces", "place", "forme", "prix"]);
+    expect(normalPriority(["prix", "prix", "x" as PoseCriterion])).toEqual(["prix", "place", "forme", "pieces"]);
   });
 
   it("option « tier III seulement » : aucun tuyau de tier I", () => {
