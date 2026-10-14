@@ -563,4 +563,7 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
 - **2026-10-14, portée des câbles** : la même entre deux poteaux et d'un poteau vers une machine ; mais
   quand le câble part d'une machine qui produit de l'électricité (générateur…), la portée est celle de
   cette machine. **À relever** : la portée de câble de chaque générateur (aucune donnée pour l'instant).
+- **2026-10-14, redirection des ports : en entrée seulement** : une ressource peut entrer par n'importe
+  quel port de la machine du même type (même un port de sortie) ; une sortie doit partir de son port
+  de sortie. **Fait** : les plans de pose ne redirigent plus que les entrées.
 <!-- notes-manuelles:fin -->

@@ -102,31 +102,41 @@ type Assign = { port: number; item: string; role: "entrée" | "sortie"; kind: Pi
 export type Namer = (id: string) => string;
 
 /**
- * Toutes les façons d'associer les ressources aux ports : en jeu, l'onglet 3 du mode construction
- * redirige un port vers n'importe quelle entrée (ou sortie) de la machine, du moment que le type
- * (objet ou fluide) et le sens correspondent. La première est celle de `assignPorts`. Plafonné à `max`.
+ * Les façons d'associer les ressources aux ports : en jeu (onglet 3), une entrée peut arriver par
+ * n'importe quel port du même type (objet ou fluide), même un port de sortie ; une sortie, elle, doit
+ * partir de son port de sortie. Plafonné à `max`.
  */
 export function portAssignments(entry: Pick<PortsEntry, "ports">, req: Pick<ModuleRequest, "inputs" | "outputs">, max = 24): Assign[][] {
-  const wants = [...req.inputs.map((f) => ({ f, role: "entrée" as const })), ...req.outputs.map((f) => ({ f, role: "sortie" as const }))];
+  // Sorties : chacune part de son port de sortie (relevé du 2026-10-14 : une sortie ne se redirige pas).
+  const used = new Set<number>();
+  const outs: Assign[] = [];
+  for (const f of req.outputs) {
+    const kind: PipeKind = f.fluid ? "fluide" : "objet";
+    const j = entry.ports.findIndex((p, k) => !used.has(k) && p.type === kind && (p.direction === "sortie" || p.direction === "les deux"));
+    if (j < 0) return [];
+    used.add(j);
+    outs.push({ port: j, item: f.item, role: "sortie", kind });
+  }
+  // Entrées : n'importe quel port libre du même type, même un port de sortie (le jeu redirige l'entrée).
   const out: Assign[][] = [];
-  const walk = (i: number, used: Set<number>, acc: Assign[]) => {
+  const walk = (i: number, acc: Assign[]) => {
     if (out.length >= max) return;
-    if (i === wants.length) {
-      out.push([...acc]);
+    if (i === req.inputs.length) {
+      out.push([...acc, ...outs]);
       return;
     }
-    const { f, role } = wants[i]!;
+    const f = req.inputs[i]!;
     const kind: PipeKind = f.fluid ? "fluide" : "objet";
     entry.ports.forEach((p, j) => {
-      if (used.has(j) || p.type !== kind || !(p.direction === role || p.direction === "les deux")) return;
+      if (used.has(j) || p.type !== kind) return;
       used.add(j);
-      acc.push({ port: j, item: f.item, role, kind });
-      walk(i + 1, used, acc);
+      acc.push({ port: j, item: f.item, role: "entrée", kind });
+      walk(i + 1, acc);
       acc.pop();
       used.delete(j);
     });
   };
-  walk(0, new Set(), []);
+  walk(0, []);
   return out;
 }
 
