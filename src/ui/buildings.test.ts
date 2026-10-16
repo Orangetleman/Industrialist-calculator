@@ -40,9 +40,9 @@ describe("éditeur de bâtiments", () => {
 
   it("poser, remplacer, effacer un port ; tous les sens, y compris pour l'énergie", () => {
     let ports = applyTool([], "objet", { side: "bas", cell: 1 }, "entrée");
-    expect(ports).toEqual([{ type: "objet", direction: "entrée", side: "bas", cell: 1, stub: 1 }]);
+    expect(ports).toEqual([{ type: "objet", direction: "entrée", side: "bas", cell: 1 }]);
     ports = applyTool(ports, "fluide", { side: "bas", cell: 1 }, "sortie");
-    expect(ports).toEqual([{ type: "fluide", direction: "sortie", side: "bas", cell: 1, stub: 1 }]);
+    expect(ports).toEqual([{ type: "fluide", direction: "sortie", side: "bas", cell: 1 }]);
     ports = applyTool(ports, "objet", { side: "haut", cell: 2 }, "les deux"); // stockages
     expect(ports.at(-1)?.direction).toBe("les deux");
     ports = applyTool(ports, "énergie", { side: "dessus", cell: [1, 2] }, "sortie"); // générateur
@@ -84,6 +84,9 @@ describe("éditeur de bâtiments", () => {
     expect(parseSurveys([])).toBeNull();
     const old = { machines: { roller: { footprint: { w: 4, h: 2 }, rotations: null, ports: [], source: src } } };
     expect(parseSurveys(old)).toEqual({ roller: { footprint: { w: 4, h: 2 }, ports: [], source: src } });
+    // Ancien plot (`stub`, supprimé le 2026-10-16) : le relevé est accepté, la clé est ignorée.
+    const withStub = { machines: { press: { footprint: { w: 4, h: 2 }, ports: [{ type: "objet", direction: "entrée", side: "bas", cell: 1, stub: 1, tip: "x" }], source: src } } };
+    expect(parseSurveys(withStub)).toEqual({ press: { footprint: { w: 4, h: 2 }, ports: [{ type: "objet", direction: "entrée", side: "bas", cell: 1, tip: "x" }], source: src } });
   });
 
   it("un relevé local déjà intégré aux données (même date) est retiré du navigateur", () => {

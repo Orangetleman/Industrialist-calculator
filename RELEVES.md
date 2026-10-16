@@ -40,8 +40,9 @@ Page **Données**, onglet « Éditeur de bâtiments » de https://industrialist.
    - **Prise ⚡** : clique sur le corps, à peu près au-dessus du boîtier jaune (la demi-case
      suffit). Sens **sortie** pour un générateur, **les deux** pour un poteau ;
    - **Logique** : dans la marge ou sur le corps selon le bâtiment ;
-   - clique ensuite sur un port pour ajouter **l'info-bulle du jeu** et, si besoin, la longueur
-     du plot. Avec la gomme, un clic sur un port le retire.
+   - clique ensuite sur un port pour ajouter **l'info-bulle du jeu**. Avec la gomme, un clic sur
+     un port le retire. Aucun port ne dépasse du bâtiment : le tuyau se branche sur la case juste
+     à côté du bord (l'ancien champ « Plot » a été retiré le 2026-10-16).
    - Pas de prise électrique (Boiler, Firebox…) : coche **Sans prise électrique**.
 7. Le relevé est **complet** dès que l'empreinte, les ports et la prise (ou « sans prise ») sont
    là. **Enregistrer le relevé**, puis **Exporter mes relevés** quand tu en as plusieurs.

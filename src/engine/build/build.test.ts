@@ -11,7 +11,7 @@ import logisticsJson from "../../../data/logistics.json";
 import powerJson from "../../../data/power.json";
 import relevesJson from "../../../data/releves.json";
 import { buildGameData, type RawFiles } from "../data.ts";
-import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts";
+import type { LogisticsFile, PortsEntry, PortsFile, PowerFile } from "../extension-types.ts";
 import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog, pipeFor } from "./catalog.ts";
@@ -37,20 +37,21 @@ describe("géométrie de la grille", () => {
     expect(c).toEqual({ x: 3, y: 1 });
   });
 
-  it("Craft Assembler : ports en bas (plot d'une case), prise sur le dessus ; ils tournent avec lui", () => {
+  it("Craft Assembler : ports en bas, collés au bâtiment (aucun plot), prise sur le dessus ; ils tournent avec lui", () => {
     const e = PORTS["craft-assembler"]!;
     const p0 = place("a", "craft-assembler", e, 0, 0, 0);
     expect(p0.w).toBe(8);
-    expect(p0.cells).toHaveLength(8 * 4 + 3); // bâtiment + 3 plots
+    expect(p0.cells).toHaveLength(8 * 4); // le bâtiment seul
+    // La case à toucher est la voisine du bord bas (y = 3) : le tuyau touche le bâtiment.
     expect(p0.ports.map((p) => [p.cell, p.facing])).toEqual([
-      [{ x: 2, y: 5 }, "S"],
-      [{ x: 6, y: 5 }, "S"],
-      [{ x: 7, y: 5 }, "S"],
+      [{ x: 2, y: 4 }, "S"],
+      [{ x: 6, y: 4 }, "S"],
+      [{ x: 7, y: 4 }, "S"],
     ]);
     expect(p0.power[0]).toMatchObject({ x: 7.5, y: 3.5 });
     const p1 = place("a", "craft-assembler", e, 0, 0, 1);
     expect([p1.w, p1.h]).toEqual([4, 8]);
-    expect(p1.ports.every((p) => p.facing === "W" && p.cell.x === -2)).toBe(true);
+    expect(p1.ports.every((p) => p.facing === "W" && p.cell.x === -1)).toBe(true);
   });
 });
 
@@ -118,7 +119,7 @@ function checkModule(mod: ModulePlan, req: ModuleRequest, item: string): void {
     expect(mod.problems.filter((p) => p.level === "erreur"), item).toEqual([]);
     expect(mod.portsKnown).toBe(true);
     expect(mod.machines).toHaveLength(req.count);
-    // Cases : un seul occupant (bâtiment, plot ou tuyau), poteaux compris.
+    // Cases : un seul occupant (bâtiment ou tuyau), poteaux compris.
     const seen = new Map<string, string>();
     const take = (k: string, who: string) => {
       expect(seen.get(k), `${item} : ${k} pris par ${seen.get(k)} et ${who}`).toBeUndefined();
@@ -178,6 +179,63 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(opts).toHaveLength(2); // deux entrées d'objets, deux ports d'entrée : deux façons
     for (const o of opts) expect(new Set(o.map((a) => a.port)).size).toBe(o.length);
     expect(opts.map((o) => o.filter((a) => a.role === "entrée").map((a) => a.port).join(","))).toEqual(["1,2", "2,1"]);
+  });
+
+  it("une sortie part toujours d'un port de sortie (ou « les deux ») ; seule une entrée peut prendre un port de sortie", () => {
+    // Règle du jeu (relevé du 2026-10-14) : en jeu, une entrée peut arriver par n'importe quel port de
+    // son type, mais une sortie ne se redirige pas. Vérifié sur ce que le plan dessine vraiment :
+    // chaque tuyau ouvert vers un port y est raccordé.
+    const fromOutputPort = (mod: ModulePlan, what: string) => {
+      const roleOf = new Map(mod.nets.map((n) => [n.id, n.role]));
+      const at = new Map(mod.pieces.map((p) => [key(p), p]));
+      let outputs = 0;
+      for (const m of mod.machines) {
+        for (const p of m.ports) {
+          const pc = at.get(key(p.cell));
+          if (!pc) continue;
+          const toPort = OPPOSITE[p.facing];
+          const nets = [...(pc.links.includes(toPort) ? [pc.net] : []), ...(pc.crossNet && pc.crossLinks?.includes(toPort) ? [pc.crossNet] : [])];
+          for (const net of nets) {
+            if (roleOf.get(net) !== "sortie") continue;
+            outputs++;
+            expect(p.direction, `${what} : ${net} part du port ${p.index} de ${m.id}`).not.toBe("entrée");
+          }
+        }
+      }
+      // Chaque machine raccorde un port par ressource sortante.
+      expect(outputs, what).toBe(mod.count * new Set(mod.nets.filter((n) => n.role === "sortie").map((n) => n.item)).size);
+    };
+    for (const item of ["crankshaft", "steel-rod", "steel-ingot", "raw-iron", "coal"]) {
+      for (const prio of [PLACE, PRIX]) {
+        const { mod, req } = moduleFor(item, prio);
+        fromOutputPort(mod, `${item} (${prio[0]} d'abord)`);
+        const machine = PORTS[req.machine]!;
+        for (const a of alternatives(mod, req, machine, null, cat)) fromOutputPort(a, `${item}, autre disposition`);
+        // Collecteurs « milieu » : seulement pour un module non replié (un module replié n'a pas de bout
+        // où brancher son tuyau principal ; limite connue, hors de ce test).
+        if (mod.folds > 1) continue;
+        const ends = Object.fromEntries(mod.nets.map((n) => [n.item, "milieu" as const]));
+        const mid = redesign(mod, { ...req, ends }, machine, null, cat);
+        if (mid) fromOutputPort(mid, `${item}, collecteurs « milieu »`);
+      }
+    }
+    // Les associations possibles, sur chaque bâtiment relevé qui a un port de sortie : une sortie ne
+    // prend jamais un port d'entrée, même quand il est libre.
+    for (const [id, e] of Object.entries(PORTS)) {
+      for (const kind of ["objet", "fluide"] as const) {
+        const ins = e.ports.filter((p) => p.type === kind).length;
+        if (!e.ports.some((p) => p.type === kind && p.direction !== "entrée")) continue;
+        const fluidFlow = kind === "fluide";
+        const req = { inputs: Array.from({ length: Math.max(0, ins - 1) }, (_, i) => ({ item: `in${i}`, perMin: 1, fluid: fluidFlow })), outputs: [{ item: "out", perMin: 1, fluid: fluidFlow }] };
+        for (const o of portAssignments(e, req)) {
+          const out = o.find((a) => a.role === "sortie")!;
+          expect(e.ports[out.port]!.direction, `${id} (${kind})`).not.toBe("entrée");
+        }
+      }
+    }
+    // Sans port de sortie libre, aucune association : la sortie n'emprunte pas un port d'entrée.
+    const onlyInputs = { ports: [{ type: "objet", direction: "entrée", side: "bas", cell: 1 }, { type: "objet", direction: "entrée", side: "bas", cell: 2 }] } as Pick<PortsEntry, "ports">;
+    expect(portAssignments(onlyInputs, { inputs: [{ item: "a", perMin: 1, fluid: false }], outputs: [{ item: "b", perMin: 1, fluid: false }] })).toEqual([]);
   });
 
   it("le prix d'abord : les raccords contournent les machines au lieu de croiser les collecteurs", () => {

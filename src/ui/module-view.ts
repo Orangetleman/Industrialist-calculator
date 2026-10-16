@@ -33,12 +33,9 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string): { 
   for (let x = 0; x <= m.width; x++) s += `<line x1="${ox + x * C}" y1="${oy}" x2="${ox + x * C}" y2="${oy + m.height * C}"/>`;
   for (let y = 0; y <= m.height; y++) s += `<line x1="${ox}" y1="${oy + y * C}" x2="${ox + m.width * C}" y2="${oy + y * C}"/>`;
   s += `</g>`;
-  // Machines et plots des ports.
+  // Machines.
   for (const mm of m.machines) {
-    const body = mm.cells.filter((c) => c.x >= mm.x && c.x < mm.x + mm.w && c.y >= mm.y && c.y < mm.y + mm.h);
-    const stubs = mm.cells.filter((c) => !body.includes(c));
     s += `<g class="mm"><title>${esc(`${name(m.machine)} n° ${mm.id.slice(1)}`)}</title><rect x="${ox + mm.x * C}" y="${oy + mm.y * C}" width="${mm.w * C}" height="${mm.h * C}" rx="3"/>`;
-    for (const c of stubs) s += `<rect class="stub" x="${ox + c.x * C + 3}" y="${oy + c.y * C + 3}" width="${C - 6}" height="${C - 6}"/>`;
     const label = mm.w * C >= 70 ? name(m.machine) : `n° ${mm.id.slice(1)}`;
     s += `<text x="${ox + (mm.x + mm.w / 2) * C}" y="${oy + (mm.y + mm.h / 2) * C + 4}" text-anchor="middle">${esc(label.length * 6.5 > mm.w * C - 6 ? `n° ${mm.id.slice(1)}` : label)}</text>`;
     for (const p of mm.power) s += `<circle class="plug" cx="${ox + p.x * C}" cy="${oy + p.y * C}" r="3.5"><title>Prise électrique</title></circle>`;

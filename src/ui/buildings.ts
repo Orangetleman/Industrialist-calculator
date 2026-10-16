@@ -115,7 +115,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
           <p class="bld-msg" id="bld-msg" aria-live="polite"></p>
           <div id="bld-portform"></div>
           <details class="bld-bg" id="bld-bg"><summary>Capture d'écran en fond (reste dans ton navigateur)</summary><div id="bld-bgbody"></div></details>
-          <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. la sortie déborde d'une case"></textarea></label>
+          <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. ce que la capture ne montre pas"></textarea></label>
           <div id="bld-status" aria-live="polite"></div>
           <div class="actions" id="bld-actions"></div>
         </div>
@@ -195,9 +195,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
         const outward = { haut: "▲", bas: "▼", gauche: "◀", droite: "▶" }[p.side];
         glyph = dir === "out" ? outward : inward;
       }
-      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}<text x="${x}" y="${y + (p.side === "dessus" ? 5 : 6)}" text-anchor="middle">${glyph}</text>${
-        p.side !== "dessus" && (p.stub ?? 1) !== 1 ? `<text x="${x + 10}" y="${y - 8}" class="bld-stub">${p.stub}</text>` : ""
-      }</g>`;
+      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}<text x="${x}" y="${y + (p.side === "dessus" ? 5 : 6)}" text-anchor="middle">${glyph}</text></g>`;
     });
     for (const [cx, cy] of corners) s += `<g class="bld-mark"><line x1="${cx - 12}" y1="${cy}" x2="${cx + 12}" y2="${cy}"/><line x1="${cx}" y1="${cy - 12}" x2="${cx}" y2="${cy + 12}"/></g>`;
     return `${s}</svg>`;
@@ -304,7 +302,6 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       <b>${esc(p.type)} · ${esc(where)}</b>
       <label>Sens <select data-pf="direction">${(["entrée", "sortie", "les deux"] as const).map((d) => `<option${p.direction === d ? " selected" : ""}>${d}</option>`).join("")}</select></label>
       <label>Info-bulle du jeu <input data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="ex. Input for Coal or coke Fuel"></label>
-      ${p.side !== "dessus" ? `<label>Plot (cases hors du bâtiment) <input data-pf="stub" type="number" min="0" max="4" step="1" value="${p.stub ?? 1}"></label>` : ""}
       <label>Ce que le jeu affiche <input data-pf="shown" value="${esc(p.shown ?? "")}" placeholder="ex. flèche violette vers le bas"></label>
       <button type="button" class="link" data-pf-del>Supprimer ce port</button>
     </div>`;
@@ -444,7 +441,6 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       const p = entry.ports[selectedPort]!;
       if (t.dataset.pf === "tip") p.tip = t.value || undefined;
       if (t.dataset.pf === "shown") p.shown = t.value || undefined;
-      if (t.dataset.pf === "stub") p.stub = Math.max(0, Math.round(Number(t.value)) || 0);
       refreshCanvas();
     }
   });

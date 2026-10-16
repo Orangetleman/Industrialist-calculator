@@ -165,8 +165,8 @@ export function assumedEntry(size: { w: number; l: number } | null, req: Pick<Mo
   const w = Math.max(2, size?.w ?? 4);
   const h = Math.max(2, size?.l ?? 4, req.inputs.length + 1, req.outputs.length + 1);
   const ports: Port[] = [];
-  req.inputs.forEach((f, i) => ports.push({ type: f.fluid ? "fluide" : "objet", direction: "entrée", side: "gauche", cell: 1 + i, stub: 1 }));
-  req.outputs.forEach((f, i) => ports.push({ type: f.fluid ? "fluide" : "objet", direction: "sortie", side: "droite", cell: 1 + i, stub: 1 }));
+  req.inputs.forEach((f, i) => ports.push({ type: f.fluid ? "fluide" : "objet", direction: "entrée", side: "gauche", cell: 1 + i }));
+  req.outputs.forEach((f, i) => ports.push({ type: f.fluid ? "fluide" : "objet", direction: "sortie", side: "droite", cell: 1 + i }));
   ports.push({ type: "énergie", direction: "entrée", side: "dessus", cell: [Math.ceil(w / 2), Math.ceil(h / 2)] });
   return { footprint: { w, h }, ports };
 }
@@ -193,8 +193,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   const used = new Map(assign.map((a) => [a.port, a]));
   const pipePorts = probe.ports.filter((p) => used.has(p.index));
   const sideCount = (f: Dir) => pipePorts.filter((p) => p.facing === f).length;
-  const stubOut = (f: Dir) => Math.max(0, ...probe.cells.map((c) => (f === "E" ? c.x - (probe.w - 1) : f === "W" ? -c.x : f === "S" ? c.y - (probe.h - 1) : -c.y)));
-  const gap = sideCount("E") + sideCount("W") ? stubOut("E") + stubOut("W") + sideCount("E") + sideCount("W") + gapExtra : gapExtra;
+  const gap = sideCount("E") + sideCount("W") + gapExtra;
   const perRow = double ? Math.ceil(req.count / 2) : req.count;
   const pitch = probe.w + gap;
 
@@ -229,8 +228,8 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   // Les cases qui touchent les ports (rangée de raccord), puis un collecteur par ressource. Collecteur
   // collé (`hug`) : le plus proche passe sur la rangée de raccord ; une autre ressource le traverse
   // par un croisement collé au port (en jeu, les deux tuyaux du croisement se relient à la machine).
-  const touchN = sideCount("N") ? stubOut("N") + 1 : 0;
-  const touchS = sideCount("S") ? stubOut("S") + 1 : 0;
+  const touchN = sideCount("N") ? 1 : 0;
+  const touchS = sideCount("S") ? 1 : 0;
   const hugN = hug && !!above.length && !!touchN;
   const hugS = hug && !!below.length && !!touchS;
   const y0 = above.length + touchN - (hugN ? 1 : 0); // haut de la (première) rangée
@@ -241,7 +240,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   // Double rangée : la seconde rangée est tournée d'un demi-tour, ports vers le collecteur central.
   const rot2 = ((rot + 2) % 4) as Rot;
   const probe2 = place("m", req.machine, entry, 0, 0, rot2);
-  const touchN2 = probe2.ports.some((p) => used.has(p.index) && p.facing === "N") ? Math.max(0, ...probe2.cells.map((c) => -c.y)) + 1 : 0;
+  const touchN2 = probe2.ports.some((p) => used.has(p.index) && p.facing === "N") ? 1 : 0;
   const row2y = touchN2 ? (hug && below.length ? lastBelow : lastBelow + 1) + touchN2 : lastBelow + 1;
 
   const grid = new Grid();

@@ -135,8 +135,6 @@ export type Port = {
   side: "haut" | "bas" | "gauche" | "droite" | "dessus";
   /** Case le long du bord (depuis 1), ou [colonne, ligne] pour un boîtier sur le dessus. */
   cell: number | [number, number];
-  /** Nombre de cases dont le plot du port dépasse du bâtiment (souvent 1). */
-  stub?: number;
   /** Ce que le jeu affiche (couleur et sens de la flèche, nœuds électriques). */
   shown?: string;
   /** Info-bulle du jeu pour ce port (ex. « Input for Coal or coke Fuel »). */

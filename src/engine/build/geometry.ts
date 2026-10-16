@@ -44,7 +44,7 @@ export type PlacedPort = {
   index: number;
   type: Port["type"];
   direction: Port["direction"];
-  /** Case extérieure à toucher (après le plot du port). */
+  /** Case extérieure à toucher, voisine du bâtiment. */
   cell: Cell;
   /** Sens qui s'éloigne du bâtiment. */
   facing: Dir;
@@ -63,7 +63,7 @@ export type Placed = {
   /** Taille après rotation, en cases. */
   w: number;
   h: number;
-  /** Cases occupées : le bâtiment et les plots de ses ports. */
+  /** Cases occupées par le bâtiment. */
   cells: Cell[];
   ports: PlacedPort[];
   power: PlacedPower[];
@@ -87,20 +87,12 @@ export function place(id: string, machine: string, entry: Pick<PortsEntry, "foot
     }
     const k = (Array.isArray(p.cell) ? p.cell[0] : p.cell) - 1;
     const side = SIDE_DIR[p.side];
-    // Case du bâtiment contre le bord, puis le plot (stub) qui dépasse, puis la case à toucher.
+    // Case du bâtiment contre le bord ; la case à toucher est sa voisine, hors du bâtiment (aucun port
+    // ne dépasse : décision Q1 du 2026-10-16).
     const inner: Cell = side === "N" ? { x: k, y: 0 } : side === "S" ? { x: k, y: fh - 1 } : side === "W" ? { x: 0, y: k } : { x: fw - 1, y: k };
-    const stub = p.stub ?? 0;
-    for (let s = 1; s <= stub; s++) cells.push(rotateStub(inner, side, s, fw, fh, rot));
     const facing = turn(side, rot);
-    const touch = rotateStub(inner, side, stub + 1, fw, fh, rot);
+    const touch = rotateCell(add(inner, side), fw, fh, rot);
     ports.push({ index, type: p.type, direction: p.direction, cell: { x: x + touch.x, y: y + touch.y }, facing, ...(p.tip ? { tip: p.tip } : {}) });
   });
   return { id, machine, x, y, rot, w: size.w, h: size.h, cells: cells.map((c) => ({ x: x + c.x, y: y + c.y })), ports, power };
-}
-
-/** Case à `n` pas de `inner` vers l'extérieur (côté `side`), exprimée après rotation. */
-function rotateStub(inner: Cell, side: Dir, n: number, w: number, h: number, rot: Rot): Cell {
-  const out = add(inner, side, n);
-  const p = rotatePoint(out.x + 0.5, out.y + 0.5, w, h, rot);
-  return { x: Math.floor(p.x), y: Math.floor(p.y) };
 }

@@ -256,7 +256,6 @@ button.link.have:hover { color: var(--steel); }
 .check-line { font-size: .88rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .mg line { stroke: #2a3038; stroke-width: 1; }
 .mm rect { fill: #33404c; stroke: #8fb8d6; stroke-width: 1.2; }
-.mm rect.stub { fill: #4a5866; stroke: none; }
 .mm text { fill: #e6ebf0; font: 600 11px var(--f-body); pointer-events: none; }
 .mm .plug { fill: #f2d21b; stroke: #1d2126; stroke-width: 1; }
 .pp { stroke-linecap: round; }
@@ -533,7 +532,6 @@ ul.corrections { margin: 0; padding-left: 18px; font-size: .85rem; display: flex
 .bld-port.énergie rect { fill: #f2d21b; } .bld-port.énergie.out rect, .bld-port.énergie .half { fill: #ff8a1a; }
 .bld-port.énergie text { fill: #222; stroke: none; }
 .bld-port.sel rect { stroke: #fff; stroke-width: 3; }
-.bld-stub { font-size: 10px !important; fill: #fff; }
 .bld-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 0; font-size: .76rem; color: var(--muted); }
 .bld-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1px solid #0004; }
 .sw-oi { background: #d9b300; } .sw-oo { background: #b03ab8; } .sw-fi { background: #2f7fd0; } .sw-fo { background: #14a3a3; }

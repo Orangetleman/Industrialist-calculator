@@ -62,7 +62,6 @@ export function applyTool(ports: Port[], tool: Tool, place: Pick<Port, "side" | 
     direction,
     side: place.side,
     cell: place.cell,
-    ...(place.side !== "dessus" ? { stub: previous?.stub ?? 1 } : {}),
   };
   return [...others, next];
 }
@@ -103,7 +102,10 @@ export function surveySource(note = "relevé dans l'éditeur de bâtiments du ca
   return { wiki: "saisie", fetchedAt: new Date().toISOString(), note };
 }
 
-/** Lecture prudente d'un fichier importé (l'ancien champ « rotations » par bâtiment est ignoré). */
+/**
+ * Lecture prudente d'un fichier importé. Les anciens champs sont ignorés : « rotations » par
+ * bâtiment, et le plot (`stub`) des ports, supprimé le 2026-10-16 (aucun port ne dépasse).
+ */
 export function parseSurveys(raw: unknown): Record<string, PortsEntry> | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const m = (raw as { machines?: unknown }).machines;
@@ -111,8 +113,12 @@ export function parseSurveys(raw: unknown): Record<string, PortsEntry> | null {
   const out: Record<string, PortsEntry> = {};
   for (const [id, e] of Object.entries(m as Record<string, PortsEntry & { rotations?: unknown }>)) {
     if (!e || !Array.isArray(e.ports) || !e.source?.fetchedAt) continue;
-    const { rotations: _old, noPower, ...rest } = e;
-    out[id] = noPower === true ? { ...rest, noPower: true } : rest;
+    const { rotations: _old, noPower, ports, ...rest } = e;
+    const clean = ports.map((p) => {
+      const { stub: _stub, ...port } = p as Port & { stub?: unknown };
+      return port;
+    });
+    out[id] = noPower === true ? { ...rest, ports: clean, noPower: true } : { ...rest, ports: clean };
   }
   return out;
 }
