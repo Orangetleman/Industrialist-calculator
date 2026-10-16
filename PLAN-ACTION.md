@@ -1,0 +1,471 @@
+# Plan d'action — retours du 2026-10-16
+
+Ce fichier pilote les prochaines sessions. **Une session = un lot**, dans l'ordre du § 2. Chaque lot
+dit ce qui existe déjà (vérifié dans le code le 2026-10-16), ce qu'il faut faire, les questions à
+poser avant de coder et comment savoir que c'est fini.
+
+Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédents : [PLAN.md](PLAN.md)
+(étapes a → e), [PLAN-EXTENSION.md](PLAN-EXTENSION.md) (E0 → E6, bilans de E4), [REFONTE.md](REFONTE.md)
+(ergonomie).
+
+## 0. Règles de chaque session (contre les hallucinations)
+
+1. **Lire d'abord** ce fichier : § 0, § 5 (décisions) et le lot du jour. Lire ensuite seulement les
+   fichiers que cite le lot. Ne pas se fier à la mémoire ni aux résumés : vérifier avec `git log -5`
+   et `npm test` que le point de départ est bien celui du dernier bilan (§ 6).
+2. **Les questions avant le code.** Poser les questions du lot qui n'ont pas encore de réponse au
+   § 5, et noter les réponses au § 5 avant de commencer. Si l'interface change beaucoup, faire
+   valider une maquette d'abord.
+3. **Aucune valeur de jeu inventée.** Chaque valeur vient du wiki (Miraheze d'abord, Fandom en
+   contrôle) ou d'un relevé en jeu de l'utilisateur, avec sa source. Les doutes vont dans
+   `data/a-verifier.md`. Une règle de jeu mal comprise se demande, elle ne se suppose pas.
+4. **Pas de nouvelle dépendance** sans accord. Sont autorisés : vite, typescript, vitest et
+   @types/node.
+5. **Ne jamais dégrader un critère déjà validé** (taille des plans, longueur des tuyaux, prix…)
+   sans le dire et le proposer en option.
+6. **Fin de session**, dans l'ordre :
+   - `npm test` ;
+   - parcours réel du site dans le navigateur, avec des captures ;
+   - résumé court en français ;
+   - commit, terminé par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ;
+   - `npm run deploy` ;
+   - `git push origin HEAD:main` ;
+   - lot coché au § 2 et bilan de 3 lignes au § 6 ;
+   - mémoire `prochaine-session` mise à jour.
+
+   Puis **attendre le feu vert**.
+7. **Contexte.** Si la session approche de sa limite, s'arrêter à un point propre (tests verts,
+   commit), puis noter au § 6 où en est le lot et ce qui reste. Ne pas enchaîner un deuxième lot.
+8. Tout plan affiché reste présenté comme une **proposition** : une base de départ, à optimiser
+   librement.
+
+## 1. Les retours et leur lot
+
+| # | Retour (2026-10-16, résumé) | Ce que j'en comprends | Lot |
+| --- | --- | --- | --- |
+| R1 | Le glitch des tuyaux ne marche pas en sortie. On peut entrer par n'importe quel port du même type (même un port de sortie), mais une sortie doit partir de la bonne sortie. | Déjà corrigé le 2026-10-14 (commit `6c1e7fd`, `portAssignments`). Il reste un test qui le garantisse et une vérification sur l'usine entière. | S1 |
+| R2 | Afficher les tuyaux, d'accord, mais mettre en évidence une option « Afficher les liaisons » qui montre comment les tuyaux sont liés. | Une case bien visible qui dessine les vecteurs de liaison entre pièces (qui est relié à qui, dans quel sens), comme l'onglet 3 en jeu. Dans l'usine et dans un module. | S4 |
+| R3 | Au survol, le module s'éclaire avec quelques infos. Il faut pouvoir cliquer pour faire un focus, c'est-à-dire ouvrir l'interface du module, mise à jour dans le plan. | Un clic sur un module de l'usine ouvre sa vue de module, dans la version que l'usine utilise (recalculée, tournée), avec un retour vers l'usine. | S4 |
+| R4 | Régler dans le schéma le nombre de machines voulu et voir la production qui en résulte. | On saisit un nombre de machines sur un bloc du schéma. Le calcul donne la production possible, l'étape qui limite et l'utilisation des autres. | S8 |
+| R5 | Régler le calcul pour exclure certaines machines, ou pour n'utiliser que celles qu'on sélectionne. | Un filtre de machines dans le calcul, en mode « exclure » ou « seulement ». | S9 |
+| R6 | Des ports prennent une case en sortie au lieu de 0, alors qu'ils font partie de la machine. | Les 66 ports de bord relevés ont un plot d'une case qui dépasse du bâtiment (valeur par défaut de l'éditeur), donc le tuyau commence une case trop loin. Il faut passer ce plot à 0. | S1 |
+| R7 | Certaines machines ont des interfaces : il faut pouvoir les noter dans l'édition **et les prendre en compte dans les calculs**. | Sens à préciser (Q5). Sans doute une face à garder libre et accessible. | S10 |
+| R8 | Machines modulaires, à voir sur le wiki : il faut indiquer les blocs qui entourent chaque bloc. Exemples : Diesel Engine (Tier II), assemblage par contact ; ferme d'arbres (Tier I), assemblage par portées. | Deux familles. Par contact : moteur diesel, turbine modulaire (Tier IV). Par portée : ferme d'arbres. Il faut une recherche sur le wiki, des données, un éditeur, le calcul et le plan de pose. | S11 – S14 |
+| R9 | Détailler le calcul dans la présentation du graphe, pour qu'on sache d'où sortent les valeurs. | Pour un bloc ou une flèche du schéma : la recette, les formules et la source de chaque valeur. | S7 |
+| R10 | Naviguer dans les crafts comme dans l'onglet « Recipes » du jeu, et corriger ce qui existe ou non. Depuis le graphe : la référence du craft, cliquable. | Une page « Recettes » : liste avec recherche, fiche objet, fiche machine, crafts cliquables. Des corrections : valeurs, craft inexistant, craft manquant. Un lien depuis le schéma. | S5, S6, S7 |
+| — | En attente depuis le 2026-10-14 : (1) la sortie du collecteur central d'une double rangée entre deux machines ; (2) « Toute l'usine » dans le site. | Inchangé. | S2, S3, S4 |
+
+## 2. Ordre proposé (à valider : Q10)
+
+| Session | Lot | Taille | Dépend de | État |
+| --- | --- | --- | --- | --- |
+| S1 | Plots des ports à 0 ; test de la règle des sorties | petite | Q1 | à faire |
+| S2 | Double rangée : sortie du collecteur central entre deux machines | moyenne | — | à faire |
+| S3 | Toute l'usine (1/2) : moteur dans `src/engine/build/`, calcul en arrière-plan, première vue | grosse | S2 | à faire |
+| S4 | Toute l'usine (2/2) : options, « Afficher les liaisons », survol + clic → module | moyenne | S3, Q2, Q3 | à faire |
+| S5 | Recettes (1/2) : navigation comme en jeu, en lecture | grosse | Q4, Q6 | à faire |
+| S6 | Recettes (2/2) : corrections (valeurs, craft inexistant, craft manquant), export | moyenne | S5 | à faire |
+| S7 | Schéma : détail du calcul et référence du craft cliquable | moyenne | S5 | à faire |
+| S8 | Schéma : nombre de machines réglable → production obtenue | moyenne | Q7 | à faire |
+| S9 | Calcul : exclure des machines, ou seulement certaines | petite à moyenne | Q8 | à faire |
+| S10 | Interfaces des machines : relevé et prise en compte | moyenne | Q5 + relevés | à faire |
+| S11 | Modulaires (1/4) : recherche sur le wiki, données, méthode de relevé | moyenne, sans interface | Q9 | à faire |
+| S12 | Modulaires (2/4) : éditeur des blocs (voisins par face, portées) | grosse | S11 | à faire |
+| S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | à faire |
+| S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | à faire |
+
+Pourquoi cet ordre :
+- **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
+  retoucher les plans (S2 à S4), pour ne pas tout mesurer deux fois. Sans réponse à Q1,
+  commencer par S2.
+- **S2 à S4** : c'est le travail en cours (« 1. puis 2. »), et la maquette v8 de l'usine est déjà
+  validée en principe.
+- **S5 avant S7** : le lien « référence du craft » du schéma a besoin de la page Recettes.
+- **S10** attend une réponse (Q5) et des relevés. Si la réponse arrive tôt, placer S10 juste après
+  S2 : elle change la disposition des modules, donc celle de l'usine.
+- **Modulaires en dernier** : c'est le lot le plus gros et le moins documenté. La recherche sur le
+  wiki (S11) peut être avancée si tu le souhaites.
+
+## 3. Lots en détail
+
+### S1 — Plots des ports à 0, règle des sorties garantie
+
+Retours : R6, R1.
+
+Ce qui existe (vérifié le 2026-10-16) :
+- `data/ports.json` : 29 bâtiments et 99 ports. 66 sont sur les bords (les autres sont des prises
+  sur le dessus), et ces 66 ont tous `"stub": 1`, c'est-à-dire « nombre de cases dont le plot du
+  port dépasse du bâtiment ».
+- Éditeur de bâtiments : le champ « Plot (cases hors du bâtiment) » vaut 1 par défaut
+  (`src/ui/buildings.ts` ; `src/ui/buildings-model.ts` : `stub: previous?.stub ?? 1`).
+- `src/engine/build/geometry.ts`, `place()` : les cases du plot sont ajoutées au bâtiment, et la
+  case à toucher se trouve après le plot.
+- `src/engine/build/module.ts` : `assumedEntry` crée des ports supposés avec `stub: 1`, et l'écart
+  entre machines tient compte des plots (`stubOut`).
+- Règle des sorties : `portAssignments` (module.ts) ne redirige plus que les entrées (commit `6c1e7fd`).
+
+À faire :
+1. Une fois Q1 confirmée :
+   - défaut à 0 dans l'éditeur et dans `assumedEntry` ;
+   - les 66 ports de `ports.json` à 0 (le champ reste pour une exception) ;
+   - mise à jour du `_lisezMoi` de `ports.json` et de RELEVES.md.
+2. Tests :
+   - mettre à jour `buildings.test.ts` (il attend `stub: 1`) et `build.test.ts` ;
+   - ajouter un test : une sortie part toujours d'un port de sortie (ou « les deux »).
+3. Mesures :
+   - nouvelles mesures (15 Craft Assemblers, chaîne du Crankshaft), notées dans le bilan ;
+   - maquette régénérée (`npm run maquette`) et comparée à la v8, d'après
+     `maquette/usine-resume.txt` : 87 × 96 cases, 1 246 cases de tuyau, 76 croisements.
+
+Fini quand : dans un plan de pose, le tuyau touche le bâtiment et aucune case de plot n'est
+dessinée ; tous les tests passent ; les mesures sont notées.
+
+### S2 — Double rangée : le collecteur central sort entre deux machines
+
+Retour : en attente depuis le 2026-10-14. Dans la maquette, la liaison Steel Ingot → Steel Plate
+faisait 40 cases de tuyau pour 2 cases d'écart, parce que le collecteur central ne sort que par
+ses bouts.
+
+Ce qui existe :
+- module.ts : `designModule` (double rangée dos à dos autour d'un collecteur central).
+- Bouts au choix : `ends` (« début », « fin » ou « milieu ») et `trunkExit`.
+- `redesign` et `alternatives`.
+- La maquette `maquette/usine.gen.test.ts`, avec une prise unique par collecteur.
+
+À faire :
+1. Laisser le collecteur central sortir à angle droit par un passage entre deux machines voisines
+   d'une rangée. Le passage existe déjà, ou s'ouvre en écartant les machines d'une case.
+2. Prendre le passage le plus proche des voisins.
+3. Respecter la liste de priorités, la place d'abord : si le passage élargit le module, le
+   proposer en option, ne pas l'imposer.
+
+Tests : un module en double rangée qui sort par un passage (aucun chevauchement, chaque port
+raccordé) ; dans la maquette, la liaison Steel Ingot → Steel Plate raccourcit sans dégrader les
+autres chiffres.
+
+Fini quand : le plan de pose et la maquette montrent le passage ; les chiffres sont comparés à la
+v8 dans le bilan.
+
+### S3 — Toute l'usine (1/2) : dans le site, calculée en arrière-plan
+
+Retour : en attente depuis le 2026-10-14 (« intégrer Toute l'usine au site »).
+
+Ce qui existe : le prototype complet `maquette/usine.gen.test.ts` (environ 1 100 lignes, à lire
+par morceaux en cherchant les fonctions ; `npm run maquette` dure environ 30 s). Il contient :
+- placement : plusieurs essais, passe d'amélioration (surface + 10 × distance), tassement, puis
+  rotations des modules (`turnModule`) ;
+- mode « recalculé pour l'usine entière » : `redesign` avec des collecteurs « milieu », et choix
+  parmi les `alternatives` ;
+- routage à prise unique (`routeTaps` et `connect`) ;
+- électricité en arbre au moindre coût (`relaysFor`, `typeFor`, `upstream`) et couverture des
+  prises orphelines (`cover`).
+
+Les chiffres de référence sont dans `maquette/usine-resume.txt`.
+
+À faire :
+1. Extraire l'algorithme en fonctions pures, sans DOM, dans `src/engine/build/factory.ts`. La
+   maquette l'appelle ensuite, pour n'avoir qu'une seule source.
+2. Calcul en arrière-plan : un Web Worker de Vite (`new Worker(new URL(…), { type: "module" })`,
+   sans dépendance), avec progression et annulation. Le résultat est gardé tant que le plan ne
+   change pas.
+3. Onglet « Plans de pose » :
+   - une entrée « Toute l'usine » dans la liste des étapes ;
+   - une vue de dessus navigable (glisser, molette), comme pour les modules ;
+   - la parcelle du joueur (« tient / ne tient pas ») ;
+   - la mention « proposition ».
+
+Tests : non-régression sur la chaîne du Crankshaft (aucun chevauchement, chaque liaison tracée,
+chiffres au plus égaux à ceux de la v8) ; temps de calcul mesuré.
+
+Fini quand : sur le site, « Toute l'usine » s'affiche sans bloquer la page, avec les mêmes chiffres
+que la maquette.
+
+### S4 — Toute l'usine (2/2) : options, liaisons, focus sur un module
+
+Retours : R2 et R3, plus les options de la maquette.
+
+Ce qui existe :
+- Les options de la maquette :
+  - calcul « module par module » ou « recalculé pour l'usine entière » ;
+  - liaisons « des tuyaux » ou « coller quand c'est possible » ;
+  - « Tout afficher » et « Réseau électrique » ;
+  - câbles « entre poteaux » ou « et vers chaque machine ».
+- Le survol d'un module (surbrillance et infos).
+- La vue d'un module : `renderModuleSvg` et `renderModuleInfo` (`src/ui/module-view.ts`).
+
+À faire :
+1. Une barre d'options comme dans la maquette, avec **« Afficher les liaisons »** bien en vue. Elle
+   dessine, pour chaque tuyau, le vecteur de liaison entre pièces voisines et vers les ports (sens
+   du flux), comme l'onglet 3 en jeu. Elle marche aussi dans la vue d'un module.
+2. Un clic sur un module fait le focus :
+   - il ouvre la vue du module (la même interface que les plans de pose), dans la version de
+     l'usine : recalculée, tournée, avec la prise unique ;
+   - la vue a sa propre adresse (par exemple `#objet/pose/usine/<étape>`) et un bouton « ← Retour »
+     vers l'usine ;
+   - la vue normale d'une étape signale qu'une version « dans l'usine » existe, et inversement.
+
+Questions : Q2, Q3.
+
+Fini quand : le parcours réel (survol, clic, retour, liaisons visibles) est fait, avec des captures.
+
+### S5 — Recettes (1/2) : naviguer dans les crafts comme en jeu
+
+Retour : R10.
+
+Ce qui existe (données) :
+- `data/items.json` : 213 objets avec nom, fluide ou non, `sellValue` (prix de vente),
+  `researchValue` (facteur RP) et sources. **Pas de description ni d'image.**
+- `data/machines.json` : 264 bâtiments avec nom, description, catégorie, tier, `cost` (prix
+  d'achat), taille et recherche qui le débloque. Pas d'image.
+- `data/recipes.json` : 447 recettes avec machine, `durationS`, entrées, sorties, `energyMFps` et
+  recherche.
+- Les corrections se font déjà champ par champ : `data/overrides.json`, `applyOverrides` dans
+  `src/engine/data.ts`, onglet « Valeurs à vérifier ». Un objet inconnu y est refusé.
+
+À faire :
+1. Une maquette à valider (Q4, Q6), d'après ta description :
+
+   ```
+   Fiche objet
+   ┌────────────────────────────────────────┐
+   │ [image]  Nom                           │
+   │          Prix de vente                 │
+   │          Facteur RP                    │
+   │ Description                            │
+   ├────────────────────────────────────────┤
+   │ Sources : les crafts qui donnent l'objet│
+   ├────────────────────────────────────────┤
+   │ Uses : les crafts qui l'utilisent      │
+   └────────────────────────────────────────┘
+
+   Un craft, sur une ligne (chaque objet et la machine sont cliquables) :
+   [img] ×q Objet A  [img] ×q Objet B  ──(durée)──▶  [img] ×q Objet C   (Machine)
+                                         (MF/s)
+   ```
+
+   La fiche machine a la même disposition, avec le prix d'achat au lieu du prix de vente et
+   seulement « Uses » : tous les crafts faits dans cette machine.
+2. Une page « Recettes » (emplacement selon Q4) :
+   - la liste de tous les objets et machines, avec une recherche, et leurs fiches ;
+   - chaque objet, chaque quantité et chaque machine sont cliquables ;
+   - des adresses `#recettes/objet/<id>` et `#recettes/machine/<id>`, avec le bouton Retour ;
+   - les valeurs « à vérifier » et « corrigée » sont signalées.
+3. Descriptions des objets : depuis le wiki, avec leur source (scripts `scripts/fetch-wiki.ts` et
+   `scripts/build-data.ts`), sinon saisies par le joueur comme les descriptions de recherche.
+   Images : selon Q6.
+
+Fini quand : la tâche chronométrée « trouver ce qu'on fait avec du Steel Plate, puis aller à sa
+machine » se fait en quelques clics, avec des captures sur ordinateur et sur téléphone.
+
+### S6 — Recettes (2/2) : corriger ce qui existe ou non
+
+À faire :
+1. Depuis une fiche, corriger une valeur (durée, quantités, MF/s, machine, prix, facteur RP) avec
+   la mécanique existante (`setCorrection`).
+2. Nouveau :
+   - « ce craft n'existe pas en jeu » : il est retiré des calculs, et c'est réversible ;
+   - « ajouter un craft manquant » : machine, entrées, sorties, durée et MF/s ;
+   - de même pour un objet manquant.
+
+   Le format : de nouvelles sections dans `overrides.json` (par exemple `added` et `removed`),
+   validées par `buildGameData`, avec la source « jeu » et la date.
+3. Export et import : dans le même `overrides.json` que les corrections actuelles.
+
+Tests : côté données (ajout, retrait, refus d'un craft invalide) et côté interface.
+
+Fini quand : un craft retiré disparaît du calcul, un craft ajouté est proposé, et l'export contient
+les deux.
+
+### S7 — Schéma : d'où sortent les valeurs, et lien vers le craft
+
+Retours : R9 et la fin de R10.
+
+Ce qui existe : `renderFlowHud` et `renderEdgeHud` (`src/ui/plan-view.ts`). Chaque étape (`Step`,
+`src/engine/solve.ts`) porte déjà :
+- `recipeId`, la machine et `durationS` ;
+- `outputPerCycle`, `ratePerMachine` et `demandPerMin` ;
+- `machinesExact`, `machines` et `utilization` ;
+- `inputs`, `consumers` et `byproducts` ;
+- `energyMFps` et `verify`.
+
+À faire :
+1. Quand un bloc est sélectionné, un panneau « Comment c'est calculé » montre :
+   - le craft utilisé, sur sa ligne comme dans Recettes, avec sa référence et un lien
+     « Voir dans Recettes ▸ » qui ouvre la fiche sur ce craft ;
+   - débit par machine = sortie par cycle × 60 / durée ;
+   - demande = somme des consommateurs (+ l'objectif) ;
+   - machines = demande / débit par machine (valeur exacte, puis arrondie) ;
+   - l'utilisation et l'énergie ;
+   - entrées = demande × quantité / sortie ;
+   - la source de chaque valeur : wiki, relevé, correction ou à vérifier.
+2. Quand une flèche est sélectionnée : qui la produit, qui la consomme, et le calcul de son débit.
+
+Fini quand : on peut refaire à la main chaque nombre du schéma à partir du panneau (vérifié sur
+deux étapes de la chaîne du Crankshaft).
+
+### S8 — Schéma : régler le nombre de machines
+
+Retour : R4.
+
+Ce qui existe : `finalMachines` dans `SolveRequest` (nombre de machines de l'étape finale
+seulement) et `forced` (recette imposée par objet).
+
+À faire :
+1. Moteur : un champ `fixedMachines` (étape → nombre).
+   - Les recettes sont fixées à celles du plan. On cherche le débit maximal pour lequel chaque
+     étape fixée a assez de machines, par dichotomie sur le débit (méthode robuste même avec la
+     production existante).
+   - On renvoie le débit obtenu, l'étape qui limite et l'utilisation de chaque étape.
+2. Schéma, dans le panneau d'un bloc :
+   - « Machines : [−] 15 [+] », réglable à la molette et aux boutons (pas de curseur) ;
+   - un bandeau « Production obtenue : … (limitée par …) » ;
+   - un bouton « Revenir au calcul ».
+
+Questions : Q7.
+
+Tests :
+- une étape fixée → débit proportionnel ;
+- deux étapes fixées → la plus contraignante l'emporte ;
+- avec de la production existante.
+
+### S9 — Calcul : exclure des machines, ou n'utiliser que certaines
+
+Retour : R5.
+
+Ce qui existe : les recettes sont filtrées selon la progression (recherches débloquées) par
+`machineAccess` (`src/engine/unlock.ts`), appelé dans `choose.ts`, `resources.ts` et `solve.ts`.
+`forced` impose une recette.
+
+À faire :
+1. Ajouter `SolveRequest.machines = { mode: "exclure" | "seulement", ids }`, branché là où
+   `machineAccess` filtre déjà : les recettes des machines écartées ne sont plus candidates.
+2. Si un objet devient impossible à fabriquer, le dire : « aucune machine permise ne fabrique X ».
+3. Le réglage se fait selon Q8, avec une recherche. Un raccourci « ne plus utiliser cette
+   machine » est ajouté dans le panneau d'un bloc du schéma.
+
+Questions : Q8.
+
+### S10 — Interfaces des machines
+
+Retour : R7.
+
+À faire, après Q5 :
+1. Un outil « Interface » dans l'éditeur de bâtiments : face, cases et profondeur à garder libre,
+   enregistrées dans `ports.json`.
+2. Les plans de pose (module et usine) laissent ces cases libres : ni tuyau, ni poteau, ni machine.
+   Selon Q5, elles restent aussi accessibles depuis le bord.
+
+Fini quand : un module dont une machine a une interface la laisse dégagée, et les tests de
+non-chevauchement couvrent ce cas.
+
+### S11 à S14 — Machines modulaires
+
+Retour : R8.
+
+Ce qui existe : dans `data/machines.json`, catégorie « Modular », les données du wiki (tailles du
+wiki, prix, descriptions).
+
+**Moteur diesel modulaire (Tier II).**
+- Blocs : Diesel Engine Controller, Crankshaft, Crankshaft Sideways, Cylinder, Air Input, Exhaust,
+  Fuel Input, Generator, Flywheel, Info Panel, Decoration. Le Flywheel mesure 6 × 4, les autres
+  2 × 2.
+- Les descriptions donnent déjà des règles :
+  - un seul Controller par moteur ;
+  - les vilebrequins se posent devant le Controller ;
+  - cylindres, entrées d'air, échappements, entrées de carburant et panneau se posent sur les
+    côtés des vilebrequins ;
+  - le Generator se place au bout de la chaîne ;
+  - les gros moteurs peuvent demander plusieurs entrées.
+
+**Ferme d'arbres modulaire (Tier I).**
+- Blocs : Tree (4 × 4), Tree Farm Controller, Tree Farm Output, Tree Farm Sprinkler, Tree Farm
+  Water Tank (10 × 4), Farm Harvester (8 × 8).
+- Les descriptions donnent déjà des règles :
+  - un réservoir pour trois arroseurs ;
+  - un seul Controller par ferme (plusieurs à portée la cassent) ;
+  - tout doit être à portée : arroseurs → arbres → récolteurs → sortie.
+
+**Turbine modulaire (Tier IV).** La chaîne est : Turbine Input → High Pressure (plusieurs) →
+Intermediate (une) → Low Pressure (plusieurs) → Turbine Generator → Turbine Output.
+
+Aujourd'hui, le calcul traite l'arbre comme une « farm » (pousse : `treeGrowth`), sans les blocs
+qui l'entourent.
+
+Les quatre sessions :
+- **S11 — Recherche et données.**
+  - Lire les pages du wiki de chaque bloc (Miraheze, Fandom en contrôle) et les guides éventuels.
+  - Écrire `data/modular.json` : règles de contact par face, portées, nombre de blocs requis et
+    effets, chacun avec sa source.
+  - Tout manque va dans `a-verifier.md`, avec une méthode de relevé dans RELEVES.md.
+
+  Pas d'interface. Fini quand chaque règle a une source ou une question.
+- **S12 — Éditeur.** Dans l'éditeur de bâtiments, pour chaque bloc d'un ensemble : quels blocs
+  peuvent ou doivent le toucher sur chaque face. Pour la ferme : la portée de chaque bloc (en
+  cases) et ce qu'elle dessert. Maquette d'abord.
+- **S13 — Calcul.**
+  - La puissance et la consommation du moteur diesel selon sa configuration.
+  - Le bois par minute de la ferme selon le nombre d'arbres, d'arroseurs et de récolteurs.
+  - L'intégration au solveur (objectifs énergie et objets).
+
+  Seulement avec des valeurs sourcées ; sinon, « à relever ».
+- **S14 — Plans de pose.** Assemblage par contact (vilebrequins en chaîne, blocs sur les côtés).
+  Pour la ferme, placement par portées, comme la couverture des poteaux.
+
+Questions : Q9.
+
+## 4. Questions
+
+À poser au début du lot concerné ; les réponses vont au § 5.
+
+- **Q1 (S1), plots.**
+  - Je passe les 66 ports de bord relevés à 0, pour que le tuyau se colle au bâtiment ?
+  - Y a-t-il des bâtiments dont le raccord dépasse vraiment ?
+
+  Défaut proposé : tout à 0, le champ reste pour une exception.
+- **Q2 (S4), « Afficher les liaisons ».** Un vecteur entre chaque paire de pièces reliées (comme
+  l'onglet 3), sur tous les tuyaux, ou seulement sur ceux de la ressource survolée ou
+  sélectionnée ? Avec les câbles électriques aussi ?
+- **Q3 (S4), focus sur un module.** La vue du module en plein écran (comme un plan de pose, avec un
+  retour), ou un panneau à côté de l'usine ?
+- **Q4 (S5), place des Recettes.**
+  - Une page à part dans le menu (« Recettes », comme l'onglet du jeu), ou un onglet de
+    « Données » à côté de l'éditeur de bâtiments ?
+  - Les corrections : toujours visibles, ou derrière un bouton « ✎ Corriger » ?
+- **Q5 (S10), interfaces.**
+  - Qu'est-ce que c'est en jeu : un écran ou un panneau sur lequel on clique, une prise logique
+    ou de données, autre chose ?
+  - Sur quelles machines ?
+  - Que faut-il garder : la case devant libre, ou un passage pour le joueur jusqu'au bord ?
+
+  Une capture aiderait.
+- **Q6 (S5), images des objets.** Nos données n'en ont aucune. Trois choix :
+  - (a) pas d'image pour l'instant : une pastille de couleur avec les initiales ;
+  - (b) les icônes du wiki, ce qui demande de vérifier la licence et d'avoir ton accord pour les
+    récupérer ;
+  - (c) tes captures.
+
+  Défaut : (a).
+- **Q7 (S8), nombre de machines.** Quand tu fixes une étape, les autres s'adaptent (recalculées).
+  Si tu en fixes plusieurs, la plus contraignante décide et les autres montrent leur capacité
+  inutilisée. Est-ce que ça te va ? La production existante reste-t-elle utilisée en priorité ?
+- **Q8 (S9), filtre de machines.**
+  - Réglage par plan (page de l'objectif) ou pour toute ta partie (« Mon usine ») ?
+  - En mode « seulement », les machines d'extraction (mines, pompes, arbres) restent-elles
+    permises d'office ?
+- **Q9 (S11), machines modulaires.**
+  - Par quoi commencer : moteur diesel (Tier II), ferme d'arbres (Tier I) ou turbine modulaire
+    (Tier IV) ?
+  - Pour les valeurs absentes du wiki (portées, puissance par cylindre…), es-tu d'accord pour des
+    relevés en jeu ?
+- **Q10, ordre.** L'ordre du § 2 te convient-il ?
+
+## 5. Décisions
+
+| Question | Réponse | Date |
+| --- | --- | --- |
+| — | — | — |
+
+## 6. Journal des sessions
+
+- **2026-10-16** : plan écrit (ce fichier), aucune modification du code. Point de départ : commit
+  `6c1e7fd`, 242 tests.

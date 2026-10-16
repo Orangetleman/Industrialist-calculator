@@ -7,6 +7,9 @@
 > Rédigé le 2026-10-12 après une lecture du wiki Miraheze (pages Pipes, Research Station1 à 4,
 > Satellite Dish Controller, RP Making, Weather & Time, Steam, Logic, Truck Depot, et les fiches
 > des 264 bâtiments déjà en cache).
+>
+> **Suite (2026-10-16)** : la suite du travail, session par session, est dans
+> [PLAN-ACTION.md](PLAN-ACTION.md) (retours du 2026-10-16 et travail en attente de E4b).
 
 ## 0. En bref
 
