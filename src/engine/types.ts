@@ -43,6 +43,8 @@ export type Item = {
   sellValue: number | null;
   /** « Research value » (multiplicateur de RP), texte brut quand c'est une plage. */
   researchValue: number | string | null;
+  /** Description en jeu (citation du wiki), si elle existe ; sinon recopiée par le joueur (correction). */
+  description?: string;
   sources: Source[];
   verify: VerifyFlag[];
   corrections?: Correction[];

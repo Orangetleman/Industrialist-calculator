@@ -1,0 +1,2818 @@
+{
+ "meta": {
+  "source": "industrialist.miraheze.org",
+  "license": "CC BY-NC-SA 4.0",
+  "width": 96,
+  "note": "Vignettes générées par le wiki ; accord de l'utilisateur le 2026-10-17 (S5)."
+ },
+ "images": [
+  {
+   "kind": "machine",
+   "id": "advanced-assembler",
+   "file": "img/machine/advanced-assembler.png",
+   "image": "Advanced Assembler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Assembler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:11.759Z"
+  },
+  {
+   "kind": "machine",
+   "id": "advanced-coal-drill",
+   "file": "img/machine/advanced-coal-drill.png",
+   "image": "Advanced Coal Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Coal_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:13.032Z"
+  },
+  {
+   "kind": "machine",
+   "id": "advanced-copper-drill",
+   "file": "img/machine/advanced-copper-drill.png",
+   "image": "Advanced Copper Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Copper_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:14.798Z"
+  },
+  {
+   "kind": "machine",
+   "id": "advanced-diesel-refinery",
+   "file": "img/machine/advanced-diesel-refinery.png",
+   "image": "Advanced Diesel Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Diesel_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:16.316Z"
+  },
+  {
+   "kind": "machine",
+   "id": "advanced-electric-furnace",
+   "file": "img/machine/advanced-electric-furnace.png",
+   "image": "Advanced Electric Furnace.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Electric_Furnace.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:17.772Z"
+  },
+  {
+   "kind": "machine",
+   "id": "advanced-oil-separator",
+   "file": "img/machine/advanced-oil-separator.png",
+   "image": "Advanced Oil Separator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Oil_Separator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:19.272Z"
+  },
+  {
+   "kind": "machine",
+   "id": "advanced-oxidation-plant",
+   "file": "img/machine/advanced-oxidation-plant.png",
+   "image": "Advanced Oxidation Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Advanced_Oxidation_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:20.822Z"
+  },
+  {
+   "kind": "machine",
+   "id": "air-separation-unit",
+   "file": "img/machine/air-separation-unit.png",
+   "image": "Air Separation Unit.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Air_Separation_Unit.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:22.124Z"
+  },
+  {
+   "kind": "machine",
+   "id": "alloyer",
+   "file": "img/machine/alloyer.png",
+   "image": "Alloyer.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Alloyer.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:23.464Z"
+  },
+  {
+   "kind": "machine",
+   "id": "american-oil-rig",
+   "file": "img/machine/american-oil-rig.png",
+   "image": "American Oil Rig.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:American_Oil_Rig.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:25.365Z"
+  },
+  {
+   "kind": "machine",
+   "id": "atmospheric-distillation-plant",
+   "file": "img/machine/atmospheric-distillation-plant.png",
+   "image": "Atmospheric Distillation Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Atmospheric_Distillation_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:26.873Z"
+  },
+  {
+   "kind": "machine",
+   "id": "battery-charger",
+   "file": "img/machine/battery-charger.png",
+   "image": "Battery Charger.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Battery_Charger.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:27.967Z"
+  },
+  {
+   "kind": "machine",
+   "id": "blast-furnace",
+   "file": "img/machine/blast-furnace.png",
+   "image": "Blast Furnace.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Blast_Furnace.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:29.499Z"
+  },
+  {
+   "kind": "machine",
+   "id": "blast-furnace-mk2",
+   "file": "img/machine/blast-furnace-mk2.png",
+   "image": "Blast Furnace MK2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Blast_Furnace_MK2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:31.334Z"
+  },
+  {
+   "kind": "machine",
+   "id": "boiler",
+   "file": "img/machine/boiler.png",
+   "image": "Boiler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Boiler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:32.841Z"
+  },
+  {
+   "kind": "machine",
+   "id": "bottling-plant",
+   "file": "img/machine/bottling-plant.png",
+   "image": "Bottling Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Bottling_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:34.403Z"
+  },
+  {
+   "kind": "machine",
+   "id": "cat-assembler",
+   "file": "img/machine/cat-assembler.png",
+   "image": "Cat Assembler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Cat_Assembler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:35.910Z"
+  },
+  {
+   "kind": "machine",
+   "id": "chemical-plant",
+   "file": "img/machine/chemical-plant.png",
+   "image": "Chemical Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Chemical_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:37.426Z"
+  },
+  {
+   "kind": "machine",
+   "id": "chemical-reactor",
+   "file": "img/machine/chemical-reactor.png",
+   "image": "Chemical Reactor.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Chemical_Reactor.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:38.642Z"
+  },
+  {
+   "kind": "machine",
+   "id": "coal-drill",
+   "file": "img/machine/coal-drill.png",
+   "image": "Coal Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Coal_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:40.427Z"
+  },
+  {
+   "kind": "machine",
+   "id": "coal-generator",
+   "file": "img/machine/coal-generator.png",
+   "image": "Coal Generator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Coal_Generator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:41.923Z"
+  },
+  {
+   "kind": "machine",
+   "id": "coal-liquefaction-plant",
+   "file": "img/machine/coal-liquefaction-plant.png",
+   "image": "Coal Liquefaction Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Coal_Liquefaction_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:43.445Z"
+  },
+  {
+   "kind": "machine",
+   "id": "compact-coal-power-plant",
+   "file": "img/machine/compact-coal-power-plant.png",
+   "image": "Compact Coal Power Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Compact_Coal_Power_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:44.925Z"
+  },
+  {
+   "kind": "machine",
+   "id": "concrete-plant",
+   "file": "img/machine/concrete-plant.png",
+   "image": "Concrete Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Concrete_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:46.065Z"
+  },
+  {
+   "kind": "machine",
+   "id": "condenser",
+   "file": "img/machine/condenser.png",
+   "image": "Condenser.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Condenser.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:47.574Z"
+  },
+  {
+   "kind": "machine",
+   "id": "copper-drill",
+   "file": "img/machine/copper-drill.png",
+   "image": "Copper Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Copper_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:49.213Z"
+  },
+  {
+   "kind": "machine",
+   "id": "craft-assembler",
+   "file": "img/machine/craft-assembler.png",
+   "image": "Craft Assembler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Craft_Assembler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:50.934Z"
+  },
+  {
+   "kind": "machine",
+   "id": "crude-oil-separator",
+   "file": "img/machine/crude-oil-separator.png",
+   "image": "Crude Oil Separator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Crude_Oil_Separator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:52.478Z"
+  },
+  {
+   "kind": "machine",
+   "id": "diesel-generator",
+   "file": "img/machine/diesel-generator.png",
+   "image": "Diesel Generator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Diesel_Generator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:53.998Z"
+  },
+  {
+   "kind": "machine",
+   "id": "diesel-refinery",
+   "file": "img/machine/diesel-refinery.png",
+   "image": "Diesel Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Diesel_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:55.583Z"
+  },
+  {
+   "kind": "machine",
+   "id": "electric-furnace",
+   "file": "img/machine/electric-furnace.png",
+   "image": "Electric Furnace.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Electric_Furnace.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:57.013Z"
+  },
+  {
+   "kind": "machine",
+   "id": "electrolysis-plant",
+   "file": "img/machine/electrolysis-plant.png",
+   "image": "Electrolysis Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Electrolysis_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:58.528Z"
+  },
+  {
+   "kind": "machine",
+   "id": "fancy-coal-drill",
+   "file": "img/machine/fancy-coal-drill.png",
+   "image": "Fancy Coal Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Fancy_Coal_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:00.262Z"
+  },
+  {
+   "kind": "machine",
+   "id": "filtration-plant",
+   "file": "img/machine/filtration-plant.png",
+   "image": "Filtration Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Filtration_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:01.513Z"
+  },
+  {
+   "kind": "machine",
+   "id": "firebox",
+   "file": "img/machine/firebox.png",
+   "image": "Firebox.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Firebox.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:03.041Z"
+  },
+  {
+   "kind": "machine",
+   "id": "foundry",
+   "file": "img/machine/foundry.png",
+   "image": "Foundry.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Foundry.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:04.541Z"
+  },
+  {
+   "kind": "machine",
+   "id": "gas-burner",
+   "file": "img/machine/gas-burner.png",
+   "image": "Gas Burner.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Gas_Burner.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:05.788Z"
+  },
+  {
+   "kind": "machine",
+   "id": "gas-centrifuge",
+   "file": "img/machine/gas-centrifuge.png",
+   "image": "Gas Centrifuge.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Gas_Centrifuge.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:07.992Z"
+  },
+  {
+   "kind": "machine",
+   "id": "gas-refinery",
+   "file": "img/machine/gas-refinery.png",
+   "image": "Gas Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Gas_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:08.847Z"
+  },
+  {
+   "kind": "machine",
+   "id": "gasoline-generator",
+   "file": "img/machine/gasoline-generator.png",
+   "image": "Gasoline Generator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Gasoline_Generator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:10.192Z"
+  },
+  {
+   "kind": "machine",
+   "id": "geothermal-well",
+   "file": "img/machine/geothermal-well.png",
+   "image": "Geothermal Well.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Geothermal_Well.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:12.083Z"
+  },
+  {
+   "kind": "machine",
+   "id": "gold-acid-refinery",
+   "file": "img/machine/gold-acid-refinery.png",
+   "image": "Gold Acid Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Gold_Acid_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:13.573Z"
+  },
+  {
+   "kind": "machine",
+   "id": "grinder",
+   "file": "img/machine/grinder.png",
+   "image": "Grinder.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Grinder.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:15.072Z"
+  },
+  {
+   "kind": "machine",
+   "id": "grinder-mk2",
+   "file": "img/machine/grinder-mk2.png",
+   "image": "Grinder MK2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Grinder_MK2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:16.593Z"
+  },
+  {
+   "kind": "machine",
+   "id": "heat-exchanger",
+   "file": "img/machine/heat-exchanger.png",
+   "image": "Heat Exchanger.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Heat_Exchanger.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:18.064Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-diesel-refinery",
+   "file": "img/machine/industrial-diesel-refinery.png",
+   "image": "Industrial Diesel Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Diesel_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:19.605Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-drill",
+   "file": "img/machine/industrial-drill.png",
+   "image": "Industrial Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:21.098Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-electric-furnace",
+   "file": "img/machine/industrial-electric-furnace.png",
+   "image": "Industrial Electric Furnace.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Electric_Furnace.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:23.626Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-firebox",
+   "file": "img/machine/industrial-firebox.png",
+   "image": "Industrial Firebox.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Firebox.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:24.310Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-kiln",
+   "file": "img/machine/industrial-kiln.png",
+   "image": "Industrial Kiln.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Kiln.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:25.438Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-oil-separator",
+   "file": "img/machine/industrial-oil-separator.png",
+   "image": "Industrial Oil Separator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Oil_Separator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:27.165Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-plastic-molder",
+   "file": "img/machine/industrial-plastic-molder.png",
+   "image": "Industrial Plastic Molder.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Plastic_Molder.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:29.253Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-press",
+   "file": "img/machine/industrial-press.png",
+   "image": "Industrial Press.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Press.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:29.938Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-roller",
+   "file": "img/machine/industrial-roller.png",
+   "image": "Industrial Roller.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Roller.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:31.693Z"
+  },
+  {
+   "kind": "machine",
+   "id": "industrial-sawmill",
+   "file": "img/machine/industrial-sawmill.png",
+   "image": "Industrial Sawmill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Industrial_Sawmill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:33.204Z"
+  },
+  {
+   "kind": "machine",
+   "id": "ingot-molder",
+   "file": "img/machine/ingot-molder.png",
+   "image": "Ingot Molder.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Ingot_Molder.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:36.273Z"
+  },
+  {
+   "kind": "machine",
+   "id": "iron-drill",
+   "file": "img/machine/iron-drill.png",
+   "image": "Iron Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Iron_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:37.933Z"
+  },
+  {
+   "kind": "machine",
+   "id": "kiln",
+   "file": "img/machine/kiln.png",
+   "image": "Kiln.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Kiln.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:38.453Z"
+  },
+  {
+   "kind": "machine",
+   "id": "large-diesel-engine",
+   "file": "img/machine/large-diesel-engine.png",
+   "image": "Large Diesel Engine.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Large_Diesel_Engine.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:39.593Z"
+  },
+  {
+   "kind": "machine",
+   "id": "large-pumpjack",
+   "file": "img/machine/large-pumpjack.png",
+   "image": "Large Pumpjack.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Large_Pumpjack.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:41.243Z"
+  },
+  {
+   "kind": "machine",
+   "id": "lathe",
+   "file": "img/machine/lathe.png",
+   "image": "Lathe.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Lathe.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:42.958Z"
+  },
+  {
+   "kind": "machine",
+   "id": "liquid-boiler",
+   "file": "img/machine/liquid-boiler.png",
+   "image": "Liquid Boiler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Liquid_Boiler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:44.489Z"
+  },
+  {
+   "kind": "machine",
+   "id": "lithium-brine-extractor",
+   "file": "img/machine/lithium-brine-extractor.png",
+   "image": "Lithium Brine Extractor.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Lithium_Brine_Extractor.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:45.756Z"
+  },
+  {
+   "kind": "machine",
+   "id": "lithium-ore-drill",
+   "file": "img/machine/lithium-ore-drill.png",
+   "image": "Lithium Ore Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Lithium_Ore_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:47.243Z"
+  },
+  {
+   "kind": "machine",
+   "id": "lng-plant",
+   "file": "img/machine/lng-plant.png",
+   "image": "LNG Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:LNG_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:50.197Z"
+  },
+  {
+   "kind": "machine",
+   "id": "logic-assembler",
+   "file": "img/machine/logic-assembler.png",
+   "image": "Logic Assembler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Logic_Assembler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:53.099Z"
+  },
+  {
+   "kind": "machine",
+   "id": "natural-gas-well",
+   "file": "img/machine/natural-gas-well.png",
+   "image": "Natural Gas Well.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Natural_Gas_Well.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:53.731Z"
+  },
+  {
+   "kind": "machine",
+   "id": "og-oil-rig",
+   "file": "img/machine/og-oil-rig.png",
+   "image": "OG Oil Rig.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:OG_Oil_Rig.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:54.743Z"
+  },
+  {
+   "kind": "machine",
+   "id": "oil-fracking-tower",
+   "file": "img/machine/oil-fracking-tower.png",
+   "image": "Oil Fracking Tower.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Oil_Fracking_Tower.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:10:58.684Z"
+  },
+  {
+   "kind": "machine",
+   "id": "oil-rig",
+   "file": "img/machine/oil-rig.png",
+   "image": "Oil_Rig.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Oil_Rig.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:00.905Z"
+  },
+  {
+   "kind": "machine",
+   "id": "ore-enrichment-facility",
+   "file": "img/machine/ore-enrichment-facility.png",
+   "image": "Ore Enrichment Facility.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Ore_Enrichment_Facility.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:01.456Z"
+  },
+  {
+   "kind": "machine",
+   "id": "oxidation-plant",
+   "file": "img/machine/oxidation-plant.png",
+   "image": "Oxidation Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Oxidation_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:03.929Z"
+  },
+  {
+   "kind": "machine",
+   "id": "paper-mill",
+   "file": "img/machine/paper-mill.png",
+   "image": "Paper Mill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Paper_Mill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:04.497Z"
+  },
+  {
+   "kind": "machine",
+   "id": "plastic-molding-machine",
+   "file": "img/machine/plastic-molding-machine.png",
+   "image": "Plastic Molding Machine.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Plastic_Molding_Machine.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:05.984Z"
+  },
+  {
+   "kind": "machine",
+   "id": "plastic-production-facility",
+   "file": "img/machine/plastic-production-facility.png",
+   "image": "Plastic Production Facility.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Plastic_Production_Facility.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:07.485Z"
+  },
+  {
+   "kind": "machine",
+   "id": "plastic-refinery",
+   "file": "img/machine/plastic-refinery.png",
+   "image": "Plastic Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Plastic_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:08.983Z"
+  },
+  {
+   "kind": "machine",
+   "id": "polisher",
+   "file": "img/machine/polisher.png",
+   "image": "Polisher.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Polisher.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:10.468Z"
+  },
+  {
+   "kind": "machine",
+   "id": "precision-assembler",
+   "file": "img/machine/precision-assembler.png",
+   "image": "Precision Assembler.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Precision_Assembler.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:11.748Z"
+  },
+  {
+   "kind": "machine",
+   "id": "press",
+   "file": "img/machine/press.png",
+   "image": "Press.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Press.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:13.128Z"
+  },
+  {
+   "kind": "machine",
+   "id": "press-mk2",
+   "file": "img/machine/press-mk2.png",
+   "image": "Press MK2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Press_MK2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:14.996Z"
+  },
+  {
+   "kind": "machine",
+   "id": "pressurized-water-filter",
+   "file": "img/machine/pressurized-water-filter.png",
+   "image": "Pressurized Water Filter.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Pressurized_Water_Filter.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:16.498Z"
+  },
+  {
+   "kind": "machine",
+   "id": "quarry",
+   "file": "img/machine/quarry.png",
+   "image": "Quarry.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Quarry.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:18.010Z"
+  },
+  {
+   "kind": "machine",
+   "id": "raw-mill",
+   "file": "img/machine/raw-mill.png",
+   "image": "Raw Mill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Raw_Mill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:21.046Z"
+  },
+  {
+   "kind": "machine",
+   "id": "residue-refinery",
+   "file": "img/machine/residue-refinery.png",
+   "image": "Residue Refinery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Residue_Refinery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:21.588Z"
+  },
+  {
+   "kind": "machine",
+   "id": "roller",
+   "file": "img/machine/roller.png",
+   "image": "Roller.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Roller.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:23.079Z"
+  },
+  {
+   "kind": "machine",
+   "id": "roller-mk2",
+   "file": "img/machine/roller-mk2.png",
+   "image": "Roller MK2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Roller_MK2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:24.569Z"
+  },
+  {
+   "kind": "machine",
+   "id": "sand-excavator",
+   "file": "img/machine/sand-excavator.png",
+   "image": "Sand Excavator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Sand_Excavator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:25.853Z"
+  },
+  {
+   "kind": "machine",
+   "id": "sawmill",
+   "file": "img/machine/sawmill.png",
+   "image": "Sawmill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Sawmill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:28.230Z"
+  },
+  {
+   "kind": "machine",
+   "id": "scrubber",
+   "file": "img/machine/scrubber.png",
+   "image": "Scrubber.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Scrubber.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:29.813Z"
+  },
+  {
+   "kind": "machine",
+   "id": "soil-excavator",
+   "file": "img/machine/soil-excavator.png",
+   "image": "Soil Excavator.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Soil_Excavator.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:30.720Z"
+  },
+  {
+   "kind": "machine",
+   "id": "steam-condenser",
+   "file": "img/machine/steam-condenser.png",
+   "image": "Steam Condenser.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Steam_Condenser.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:31.999Z"
+  },
+  {
+   "kind": "machine",
+   "id": "steam-cracking-plant",
+   "file": "img/machine/steam-cracking-plant.png",
+   "image": "Steam Cracking Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Steam_Cracking_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:33.684Z"
+  },
+  {
+   "kind": "machine",
+   "id": "tree",
+   "file": "img/machine/tree.png",
+   "image": "Tree.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Tree.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:34.897Z"
+  },
+  {
+   "kind": "machine",
+   "id": "trommel",
+   "file": "img/machine/trommel.png",
+   "image": "Trommel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Trommel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:36.267Z"
+  },
+  {
+   "kind": "machine",
+   "id": "uranium-drill",
+   "file": "img/machine/uranium-drill.png",
+   "image": "Uranium Drill.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Uranium_Drill.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:37.776Z"
+  },
+  {
+   "kind": "machine",
+   "id": "vaporizer",
+   "file": "img/machine/vaporizer.png",
+   "image": "Vaporizer.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Vaporizer.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:39.663Z"
+  },
+  {
+   "kind": "machine",
+   "id": "vertical-heat-exchanger",
+   "file": "img/machine/vertical-heat-exchanger.png",
+   "image": "Vertical Heat Exchanger.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Vertical_Heat_Exchanger.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:41.181Z"
+  },
+  {
+   "kind": "machine",
+   "id": "water-pump",
+   "file": "img/machine/water-pump.png",
+   "image": "Water Pump.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Water_Pump.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:42.657Z"
+  },
+  {
+   "kind": "machine",
+   "id": "water-pump2",
+   "file": "img/machine/water-pump2.png",
+   "image": "Water Pump2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Water_Pump2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:44.165Z"
+  },
+  {
+   "kind": "machine",
+   "id": "water-treatment-plant",
+   "file": "img/machine/water-treatment-plant.png",
+   "image": "Water Treatment Plant.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Water_Treatment_Plant.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:11:45.651Z"
+  },
+  {
+   "kind": "objet",
+   "id": "10-karat-gold",
+   "file": "img/objet/10-karat-gold.png",
+   "image": "icon-10-karat-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-10-karat-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:03:52.141Z"
+  },
+  {
+   "kind": "objet",
+   "id": "12-karat-gold",
+   "file": "img/objet/12-karat-gold.png",
+   "image": "Icon-12-karat-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-12-karat-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:03:53.484Z"
+  },
+  {
+   "kind": "objet",
+   "id": "18-karat-gold",
+   "file": "img/objet/18-karat-gold.png",
+   "image": "icon-18-karat-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-18-karat-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:03:54.774Z"
+  },
+  {
+   "kind": "objet",
+   "id": "24-karat-gold",
+   "file": "img/objet/24-karat-gold.png",
+   "image": "icon-24-karat-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-24-karat-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:03:56.524Z"
+  },
+  {
+   "kind": "objet",
+   "id": "2x-microchip",
+   "file": "img/objet/2x-microchip.png",
+   "image": "Icon-microchip.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-microchip.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:03:57.919Z"
+  },
+  {
+   "kind": "objet",
+   "id": "8-karat-gold",
+   "file": "img/objet/8-karat-gold.png",
+   "image": "icon-8-karat-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-8-karat-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:03:59.533Z"
+  },
+  {
+   "kind": "objet",
+   "id": "8x-microchip",
+   "file": "img/objet/8x-microchip.png",
+   "image": "Icon-microchip.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-microchip.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:00.504Z"
+  },
+  {
+   "kind": "objet",
+   "id": "acetic-acid",
+   "file": "img/objet/acetic-acid.png",
+   "image": "icon-acetic-acid.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-acetic-acid.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:02.551Z"
+  },
+  {
+   "kind": "objet",
+   "id": "aggregate",
+   "file": "img/objet/aggregate.png",
+   "image": "Icon-aggregate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-aggregate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:04.023Z"
+  },
+  {
+   "kind": "objet",
+   "id": "alumina",
+   "file": "img/objet/alumina.png",
+   "image": "Icon-alumina.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-alumina.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:05.188Z"
+  },
+  {
+   "kind": "objet",
+   "id": "alumina-dust",
+   "file": "img/objet/alumina-dust.png",
+   "image": "Icon-alumina-dust.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-alumina-dust.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:06.923Z"
+  },
+  {
+   "kind": "objet",
+   "id": "aluminium-ingot",
+   "file": "img/objet/aluminium-ingot.png",
+   "image": "icon-aluminium-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-aluminium-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:08.525Z"
+  },
+  {
+   "kind": "objet",
+   "id": "ammonia",
+   "file": "img/objet/ammonia.png",
+   "image": "Icon-ammonia.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-ammonia.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:10.041Z"
+  },
+  {
+   "kind": "objet",
+   "id": "argon",
+   "file": "img/objet/argon.png",
+   "image": "Icon-argon.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-argon.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:11.326Z"
+  },
+  {
+   "kind": "objet",
+   "id": "bauxite-residue",
+   "file": "img/objet/bauxite-residue.png",
+   "image": "Icon-bauxite-residue.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-bauxite-residue.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:12.838Z"
+  },
+  {
+   "kind": "objet",
+   "id": "black-dye",
+   "file": "img/objet/black-dye.png",
+   "image": "Icon-black-dye.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-black-dye.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:14.473Z"
+  },
+  {
+   "kind": "objet",
+   "id": "boric-acid",
+   "file": "img/objet/boric-acid.png",
+   "image": "Icon-boric-acid.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-boric-acid.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:16.114Z"
+  },
+  {
+   "kind": "objet",
+   "id": "boron",
+   "file": "img/objet/boron.png",
+   "image": "Icon-boron.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-boron.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:17.612Z"
+  },
+  {
+   "kind": "objet",
+   "id": "brass-ingot",
+   "file": "img/objet/brass-ingot.png",
+   "image": "Icon-brass-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-brass-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:19.136Z"
+  },
+  {
+   "kind": "objet",
+   "id": "brick",
+   "file": "img/objet/brick.png",
+   "image": "Icon-brick.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-brick.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:20.620Z"
+  },
+  {
+   "kind": "objet",
+   "id": "cat",
+   "file": "img/objet/cat.png",
+   "image": "Icon-cat.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-cat.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:22.147Z"
+  },
+  {
+   "kind": "objet",
+   "id": "cement",
+   "file": "img/objet/cement.png",
+   "image": "Icon-cement.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-cement.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:23.616Z"
+  },
+  {
+   "kind": "objet",
+   "id": "chair",
+   "file": "img/objet/chair.png",
+   "image": "Icon-chair.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-chair.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:25.158Z"
+  },
+  {
+   "kind": "objet",
+   "id": "charged-lithium-ion-battery",
+   "file": "img/objet/charged-lithium-ion-battery.png",
+   "image": "Icon-charged-lithium-ion-battery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-charged-lithium-ion-battery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:26.646Z"
+  },
+  {
+   "kind": "objet",
+   "id": "cheap-water-bottle",
+   "file": "img/objet/cheap-water-bottle.png",
+   "image": "Icon-cheap-water-bottle.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-cheap-water-bottle.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:28.056Z"
+  },
+  {
+   "kind": "objet",
+   "id": "chlorine",
+   "file": "img/objet/chlorine.png",
+   "image": "Icon-chlorine.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-chlorine.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:29.698Z"
+  },
+  {
+   "kind": "objet",
+   "id": "chunk-plank",
+   "file": "img/objet/chunk-plank.png",
+   "image": "Icon-chunk-plank.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-chunk-plank.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:30.956Z"
+  },
+  {
+   "kind": "objet",
+   "id": "clay",
+   "file": "img/objet/clay.png",
+   "image": "Icon-clay.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-clay.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:32.717Z"
+  },
+  {
+   "kind": "objet",
+   "id": "clay-brick",
+   "file": "img/objet/clay-brick.png",
+   "image": "Icon-clay-brick.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-clay-brick.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:34.172Z"
+  },
+  {
+   "kind": "objet",
+   "id": "coal",
+   "file": "img/objet/coal.png",
+   "image": "icon-coal.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-coal.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:35.472Z"
+  },
+  {
+   "kind": "objet",
+   "id": "coke-fuel",
+   "file": "img/objet/coke-fuel.png",
+   "image": "Icon-coke-fuel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-coke-fuel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:37.211Z"
+  },
+  {
+   "kind": "objet",
+   "id": "concentrated-salt-solution",
+   "file": "img/objet/concentrated-salt-solution.png",
+   "image": "Icon-concentrated-salt-solution.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-concentrated-salt-solution.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:38.678Z"
+  },
+  {
+   "kind": "objet",
+   "id": "concrete-block",
+   "file": "img/objet/concrete-block.png",
+   "image": "Icon-concrete-block.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-concrete-block.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:40.188Z"
+  },
+  {
+   "kind": "objet",
+   "id": "condensate",
+   "file": "img/objet/condensate.png",
+   "image": "icon-condensate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-condensate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:41.708Z"
+  },
+  {
+   "kind": "objet",
+   "id": "contaminated-water",
+   "file": "img/objet/contaminated-water.png",
+   "image": "Icon-contaminated-water.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-contaminated-water.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:43.243Z"
+  },
+  {
+   "kind": "objet",
+   "id": "control-rod",
+   "file": "img/objet/control-rod.png",
+   "image": "Icon-control-rod.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-control-rod.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:44.748Z"
+  },
+  {
+   "kind": "objet",
+   "id": "copper-drill-head",
+   "file": "img/objet/copper-drill-head.png",
+   "image": "icon-copper-drill-head.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-copper-drill-head.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:46.263Z"
+  },
+  {
+   "kind": "objet",
+   "id": "copper-ingot",
+   "file": "img/objet/copper-ingot.png",
+   "image": "Icon-copper-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-copper-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:47.878Z"
+  },
+  {
+   "kind": "objet",
+   "id": "copper-mix",
+   "file": "img/objet/copper-mix.png",
+   "image": "Icon-copper-mix.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-copper-mix.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:49.270Z"
+  },
+  {
+   "kind": "objet",
+   "id": "copper-plate",
+   "file": "img/objet/copper-plate.png",
+   "image": "Icon-copper-plate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-copper-plate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:50.401Z"
+  },
+  {
+   "kind": "objet",
+   "id": "copper-powder",
+   "file": "img/objet/copper-powder.png",
+   "image": "Icon-copper-powder.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-copper-powder.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:52.978Z"
+  },
+  {
+   "kind": "objet",
+   "id": "copper-wire",
+   "file": "img/objet/copper-wire.png",
+   "image": "icon-copper-wire.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-copper-wire.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:55.018Z"
+  },
+  {
+   "kind": "objet",
+   "id": "crankshaft",
+   "file": "img/objet/crankshaft.png",
+   "image": "icon-crankshaft.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-crankshaft.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:55.612Z"
+  },
+  {
+   "kind": "objet",
+   "id": "crude-diesel",
+   "file": "img/objet/crude-diesel.png",
+   "image": "Icon-crude-diesel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-crude-diesel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:57.320Z"
+  },
+  {
+   "kind": "objet",
+   "id": "crude-oil",
+   "file": "img/objet/crude-oil.png",
+   "image": "Icon-crude-oil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-crude-oil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:58.204Z"
+  },
+  {
+   "kind": "objet",
+   "id": "crushed-bauxite",
+   "file": "img/objet/crushed-bauxite.png",
+   "image": "icon-crushed-bauxite.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-crushed-bauxite.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:04:59.846Z"
+  },
+  {
+   "kind": "objet",
+   "id": "cut-oak-log",
+   "file": "img/objet/cut-oak-log.png",
+   "image": "Icon-cut-oak-log.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-cut-oak-log.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:01.233Z"
+  },
+  {
+   "kind": "objet",
+   "id": "deep-earth-fragment",
+   "file": "img/objet/deep-earth-fragment.png",
+   "image": "icon-deep-earth-fragment.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-deep-earth-fragment.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:03.115Z"
+  },
+  {
+   "kind": "objet",
+   "id": "depleted-uf6-waste",
+   "file": "img/objet/depleted-uf6-waste.png",
+   "image": "Icon-depleted-uf6-waste.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-depleted-uf6-waste.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:04.638Z"
+  },
+  {
+   "kind": "objet",
+   "id": "diesel",
+   "file": "img/objet/diesel.png",
+   "image": "icon-diesel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-diesel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:06.004Z"
+  },
+  {
+   "kind": "objet",
+   "id": "dirty-lithium-sulfate",
+   "file": "img/objet/dirty-lithium-sulfate.png",
+   "image": "icon-dirty-lithium-sulfate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-dirty-lithium-sulfate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:07.677Z"
+  },
+  {
+   "kind": "objet",
+   "id": "distilled-water",
+   "file": "img/objet/distilled-water.png",
+   "image": "icon-distilled-water.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-distilled-water.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:09.117Z"
+  },
+  {
+   "kind": "objet",
+   "id": "dynamite",
+   "file": "img/objet/dynamite.png",
+   "image": "icon-dynamite.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-dynamite.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:10.640Z"
+  },
+  {
+   "kind": "objet",
+   "id": "electric-motor",
+   "file": "img/objet/electric-motor.png",
+   "image": "icon-electric-motor.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-electric-motor.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:11.896Z"
+  },
+  {
+   "kind": "objet",
+   "id": "electromagnet",
+   "file": "img/objet/electromagnet.png",
+   "image": "icon-electromagnet.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-electromagnet.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:13.656Z"
+  },
+  {
+   "kind": "objet",
+   "id": "enriched-uf6-gas",
+   "file": "img/objet/enriched-uf6-gas.png",
+   "image": "Icon-enriched-uf6-gas.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-enriched-uf6-gas.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:15.173Z"
+  },
+  {
+   "kind": "objet",
+   "id": "enriched-uo2-pellets",
+   "file": "img/objet/enriched-uo2-pellets.png",
+   "image": "Icon-enriched-uo2-pellets.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-enriched-uo2-pellets.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:16.646Z"
+  },
+  {
+   "kind": "objet",
+   "id": "ethanol",
+   "file": "img/objet/ethanol.png",
+   "image": "icon-ethanol.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-ethanol.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:18.182Z"
+  },
+  {
+   "kind": "objet",
+   "id": "ethylene",
+   "file": "img/objet/ethylene.png",
+   "image": "icon-ethylene.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-ethylene.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:19.670Z"
+  },
+  {
+   "kind": "objet",
+   "id": "ferroaluminium-alloy-ingot",
+   "file": "img/objet/ferroaluminium-alloy-ingot.png",
+   "image": "icon-ferroaluminium-alloy-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-ferroaluminium-alloy-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:21.198Z"
+  },
+  {
+   "kind": "objet",
+   "id": "ferroaluminium-magnet",
+   "file": "img/objet/ferroaluminium-magnet.png",
+   "image": "Icon-ferroaluminium-magnet.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-ferroaluminium-magnet.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:22.470Z"
+  },
+  {
+   "kind": "objet",
+   "id": "filter",
+   "file": "img/objet/filter.png",
+   "image": "icon-filter.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-filter.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:23.840Z"
+  },
+  {
+   "kind": "objet",
+   "id": "filtered-water",
+   "file": "img/objet/filtered-water.png",
+   "image": "icon-filtered-water.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-filtered-water.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:25.356Z"
+  },
+  {
+   "kind": "objet",
+   "id": "fission-byproducts",
+   "file": "img/objet/fission-byproducts.png",
+   "image": "Icon-fission-byproducts.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-fission-byproducts.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:27.217Z"
+  },
+  {
+   "kind": "objet",
+   "id": "fracking-oil",
+   "file": "img/objet/fracking-oil.png",
+   "image": "icon-fracking-oil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-fracking-oil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:28.652Z"
+  },
+  {
+   "kind": "objet",
+   "id": "galvanized-steel",
+   "file": "img/objet/galvanized-steel.png",
+   "image": "Icon-galvanized-steel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-galvanized-steel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:30.290Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gasoline",
+   "file": "img/objet/gasoline.png",
+   "image": "icon-gasoline.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gasoline.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:31.388Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gasolinee10",
+   "file": "img/objet/gasolinee10.png",
+   "image": "icon-gasolinee10.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gasolinee10.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:32.902Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gear",
+   "file": "img/objet/gear.png",
+   "image": "icon-gear.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gear.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:34.773Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gearbox",
+   "file": "img/objet/gearbox.png",
+   "image": "icon-gearbox.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gearbox.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:36.288Z"
+  },
+  {
+   "kind": "objet",
+   "id": "glass",
+   "file": "img/objet/glass.png",
+   "image": "icon-glass.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-glass.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:37.786Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gold-ingot",
+   "file": "img/objet/gold-ingot.png",
+   "image": "icon-gold-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gold-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:39.323Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gold-wire",
+   "file": "img/objet/gold-wire.png",
+   "image": "icon-gold-wire.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gold-wire.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:40.799Z"
+  },
+  {
+   "kind": "objet",
+   "id": "graphite-iron-electrode",
+   "file": "img/objet/graphite-iron-electrode.png",
+   "image": "Icon-graphite-iron-electrode.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-graphite-iron-electrode.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:42.330Z"
+  },
+  {
+   "kind": "objet",
+   "id": "graphite-zinc-electrode",
+   "file": "img/objet/graphite-zinc-electrode.png",
+   "image": "icon-graphite-zinc-electrode.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-graphite-zinc-electrode.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:43.891Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gravel",
+   "file": "img/objet/gravel.png",
+   "image": "icon-gravel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gravel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:45.363Z"
+  },
+  {
+   "kind": "objet",
+   "id": "gunpowder",
+   "file": "img/objet/gunpowder.png",
+   "image": "icon-gunpowder.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-gunpowder.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:46.812Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hardened-plastic-casing",
+   "file": "img/objet/hardened-plastic-casing.png",
+   "image": "Icon-hardened-plastic-casing.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hardened-plastic-casing.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:48.349Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hardened-plastic-pellets",
+   "file": "img/objet/hardened-plastic-pellets.png",
+   "image": "Icon-hardened-plastic-pellets.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hardened-plastic-pellets.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:49.836Z"
+  },
+  {
+   "kind": "objet",
+   "id": "heavy-oil",
+   "file": "img/objet/heavy-oil.png",
+   "image": "Icon-heavy-oil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-heavy-oil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:51.012Z"
+  },
+  {
+   "kind": "objet",
+   "id": "high-pressure-steam",
+   "file": "img/objet/high-pressure-steam.png",
+   "image": "Icon-high-pressure-steam.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-high-pressure-steam.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:52.841Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hot-crude-oil",
+   "file": "img/objet/hot-crude-oil.png",
+   "image": "Icon-hot-crude-oil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hot-crude-oil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:54.269Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hydrochloric-acid",
+   "file": "img/objet/hydrochloric-acid.png",
+   "image": "Icon-hydrochloric-acid.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hydrochloric-acid.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:55.851Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hydrofluoric-acid",
+   "file": "img/objet/hydrofluoric-acid.png",
+   "image": "Icon-hydrofluoric-acid.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hydrofluoric-acid.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:57.011Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hydrogen",
+   "file": "img/objet/hydrogen.png",
+   "image": "Icon-hydrogen.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hydrogen.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:05:58.872Z"
+  },
+  {
+   "kind": "objet",
+   "id": "hydrogen-sulfide",
+   "file": "img/objet/hydrogen-sulfide.png",
+   "image": "Icon-hydrogen-sulfide.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-hydrogen-sulfide.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:00.268Z"
+  },
+  {
+   "kind": "objet",
+   "id": "impure-boron",
+   "file": "img/objet/impure-boron.png",
+   "image": "Icon-impure-boron.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-impure-boron.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:01.900Z"
+  },
+  {
+   "kind": "objet",
+   "id": "insulated-wire",
+   "file": "img/objet/insulated-wire.png",
+   "image": "Icon-insulated-wire.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-insulated-wire.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:03.411Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-coil",
+   "file": "img/objet/iron-coil.png",
+   "image": "Icon-iron-coil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-iron-coil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:04.944Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-drill-head",
+   "file": "img/objet/iron-drill-head.png",
+   "image": "icon-iron-drill-head.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-iron-drill-head.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:06.445Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-ingot",
+   "file": "img/objet/iron-ingot.png",
+   "image": "Icon-iron-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-iron-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:07.547Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-mix",
+   "file": "img/objet/iron-mix.png",
+   "image": "Icon-iron-mix.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-iron-mix.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:09.415Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-plate",
+   "file": "img/objet/iron-plate.png",
+   "image": "Icon-iron-plate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-iron-plate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:10.944Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-plate-2",
+   "file": "img/objet/iron-plate-2.png",
+   "image": "Icon-iron-plate^2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-iron-plate%5E2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:12.439Z"
+  },
+  {
+   "kind": "objet",
+   "id": "iron-powder",
+   "file": "img/objet/iron-powder.png",
+   "image": "Icon-iron-powder.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-iron-powder.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:13.935Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lead-ingot",
+   "file": "img/objet/lead-ingot.png",
+   "image": "Icon-lead-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-lead-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:15.444Z"
+  },
+  {
+   "kind": "objet",
+   "id": "leaded-gasoline",
+   "file": "img/objet/leaded-gasoline.png",
+   "image": "Icon-leaded-gasoline.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-leaded-gasoline.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:16.874Z"
+  },
+  {
+   "kind": "objet",
+   "id": "light-oil",
+   "file": "img/objet/light-oil.png",
+   "image": "Icon-light-oil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-light-oil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:18.383Z"
+  },
+  {
+   "kind": "objet",
+   "id": "limestone",
+   "file": "img/objet/limestone.png",
+   "image": "Icon-limestone.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-limestone.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:19.634Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-aluminium",
+   "file": "img/objet/liquid-aluminium.png",
+   "image": "Icon-liquid-aluminium.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-aluminium.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:21.520Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-argon",
+   "file": "img/objet/liquid-argon.png",
+   "image": "Icon-liquid-argon.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-argon.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:23.025Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-brass",
+   "file": "img/objet/liquid-brass.png",
+   "image": "Icon-liquid-brass.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-brass.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:24.540Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-copper",
+   "file": "img/objet/liquid-copper.png",
+   "image": "Icon-liquid-copper.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-copper.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:26.049Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-glass",
+   "file": "img/objet/liquid-glass.png",
+   "image": "Icon-liquid-glass.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-glass.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:27.528Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-gold",
+   "file": "img/objet/liquid-gold.png",
+   "image": "Icon-liquid-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:28.692Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-iron",
+   "file": "img/objet/liquid-iron.png",
+   "image": "Icon-liquid-iron.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-iron.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:30.188Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-lead",
+   "file": "img/objet/liquid-lead.png",
+   "image": "Icon-liquid-lead.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-lead.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:31.700Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-nitrogen",
+   "file": "img/objet/liquid-nitrogen.png",
+   "image": "Icon-liquid-nitrogen.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-nitrogen.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:33.567Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-oxygen",
+   "file": "img/objet/liquid-oxygen.png",
+   "image": "Icon-liquid-oxygen.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-oxygen.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:35.748Z"
+  },
+  {
+   "kind": "objet",
+   "id": "liquid-sulfur",
+   "file": "img/objet/liquid-sulfur.png",
+   "image": "Icon-liquid-sulfur.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-liquid-sulfur.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:36.599Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lithium-battery-pack",
+   "file": "img/objet/lithium-battery-pack.png",
+   "image": "Icon-lithium-battery-pack.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-lithium-battery-pack.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:38.083Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lithium-brine",
+   "file": "img/objet/lithium-brine.png",
+   "image": "Icon-lithium-brine.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-lithium-brine.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:39.514Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lithium-carbonate",
+   "file": "img/objet/lithium-carbonate.png",
+   "image": "Icon-lithium-carbonate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-lithium-carbonate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:41.151Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lithium-ore",
+   "file": "img/objet/lithium-ore.png",
+   "image": "Icon-lithium-ore.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-lithium-ore.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:42.676Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lithium-sulfate",
+   "file": "img/objet/lithium-sulfate.png",
+   "image": "Icon-lithium-sulfate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-lithium-sulfate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:44.182Z"
+  },
+  {
+   "kind": "objet",
+   "id": "lng",
+   "file": "img/objet/lng.png",
+   "image": "icon-lng.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-lng.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:45.646Z"
+  },
+  {
+   "kind": "objet",
+   "id": "logic-plate",
+   "file": "img/objet/logic-plate.png",
+   "image": "Icon-logic-plate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-logic-plate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:47.037Z"
+  },
+  {
+   "kind": "objet",
+   "id": "low-enrichment-fuel-rod",
+   "file": "img/objet/low-enrichment-fuel-rod.png",
+   "image": "Icon-low-enrichment-fuel-rod.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-low-enrichment-fuel-rod.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:48.635Z"
+  },
+  {
+   "kind": "objet",
+   "id": "low-pressure-steam",
+   "file": "img/objet/low-pressure-steam.png",
+   "image": "icon-low-pressure-steam.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-low-pressure-steam.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:50.057Z"
+  },
+  {
+   "kind": "objet",
+   "id": "machine-oil",
+   "file": "img/objet/machine-oil.png",
+   "image": "Icon-machine-oil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-machine-oil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:51.569Z"
+  },
+  {
+   "kind": "objet",
+   "id": "medium-earth-fragment",
+   "file": "img/objet/medium-earth-fragment.png",
+   "image": "Icon-medium-earth-fragment.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-medium-earth-fragment.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:53.201Z"
+  },
+  {
+   "kind": "objet",
+   "id": "meg",
+   "file": "img/objet/meg.png",
+   "image": "Icon-meg.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-meg.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:54.321Z"
+  },
+  {
+   "kind": "objet",
+   "id": "microchip-scrap",
+   "file": "img/objet/microchip-scrap.png",
+   "image": "Icon-microchip-scrap.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-microchip-scrap.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:55.856Z"
+  },
+  {
+   "kind": "objet",
+   "id": "mixed-fissile-nitrates",
+   "file": "img/objet/mixed-fissile-nitrates.png",
+   "image": "Icon-mixed-fissile-nitrates.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-mixed-fissile-nitrates.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:57.714Z"
+  },
+  {
+   "kind": "objet",
+   "id": "mixed-fissile-oxides",
+   "file": "img/objet/mixed-fissile-oxides.png",
+   "image": "Icon-mixed-fissile-oxides.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-mixed-fissile-oxides.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:06:59.243Z"
+  },
+  {
+   "kind": "objet",
+   "id": "mixed-uranium-oxides",
+   "file": "img/objet/mixed-uranium-oxides.png",
+   "image": "Icon-mixed-uranium-oxides.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-mixed-uranium-oxides.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:00.725Z"
+  },
+  {
+   "kind": "objet",
+   "id": "molten-ferroaluminium-alloy",
+   "file": "img/objet/molten-ferroaluminium-alloy.png",
+   "image": "Icon-molten-ferroaluminium-alloy.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-molten-ferroaluminium-alloy.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:02.220Z"
+  },
+  {
+   "kind": "objet",
+   "id": "molten-purple-gold",
+   "file": "img/objet/molten-purple-gold.png",
+   "image": "Icon-molten-purple-gold.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-molten-purple-gold.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:03.723Z"
+  },
+  {
+   "kind": "objet",
+   "id": "mox-fuel-rod",
+   "file": "img/objet/mox-fuel-rod.png",
+   "image": "Icon-mox-fuel-rod.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-mox-fuel-rod.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:05.264Z"
+  },
+  {
+   "kind": "objet",
+   "id": "nails",
+   "file": "img/objet/nails.png",
+   "image": "Icon-nails.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-nails.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:06.520Z"
+  },
+  {
+   "kind": "objet",
+   "id": "naphtha",
+   "file": "img/objet/naphtha.png",
+   "image": "Icon-naphtha.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-naphtha.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:08.173Z"
+  },
+  {
+   "kind": "objet",
+   "id": "nitrogen",
+   "file": "img/objet/nitrogen.png",
+   "image": "Icon-nitrogen.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-nitrogen.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:09.758Z"
+  },
+  {
+   "kind": "objet",
+   "id": "oak-log",
+   "file": "img/objet/oak-log.png",
+   "image": "Icon-oak-log.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-oak-log.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:11.325Z"
+  },
+  {
+   "kind": "objet",
+   "id": "oil-bottle",
+   "file": "img/objet/oil-bottle.png",
+   "image": "Icon-oil-bottle.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-oil-bottle.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:12.655Z"
+  },
+  {
+   "kind": "objet",
+   "id": "oxygen",
+   "file": "img/objet/oxygen.png",
+   "image": "Icon-oxygen.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-oxygen.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:14.266Z"
+  },
+  {
+   "kind": "objet",
+   "id": "paper",
+   "file": "img/objet/paper.png",
+   "image": "Icon-paper.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-paper.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:15.424Z"
+  },
+  {
+   "kind": "objet",
+   "id": "paraxylene",
+   "file": "img/objet/paraxylene.png",
+   "image": "Icon-paraxylene.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-paraxylene.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:17.305Z"
+  },
+  {
+   "kind": "objet",
+   "id": "phosphorus-oxychloride",
+   "file": "img/objet/phosphorus-oxychloride.png",
+   "image": "Icon-phosphorus-oxychloride.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-phosphorus-oxychloride.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:18.453Z"
+  },
+  {
+   "kind": "objet",
+   "id": "plank-2",
+   "file": "img/objet/plank-2.png",
+   "image": "Icon-plank^2.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-plank%5E2.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:20.293Z"
+  },
+  {
+   "kind": "objet",
+   "id": "planks",
+   "file": "img/objet/planks.png",
+   "image": "Icon-planks.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-planks.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:21.795Z"
+  },
+  {
+   "kind": "objet",
+   "id": "plastic-bottle",
+   "file": "img/objet/plastic-bottle.png",
+   "image": "Icon-plastic-bottle.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-plastic-bottle.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:22.946Z"
+  },
+  {
+   "kind": "objet",
+   "id": "plastic-casing",
+   "file": "img/objet/plastic-casing.png",
+   "image": "Icon-plastic-casing.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-plastic-casing.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:24.584Z"
+  },
+  {
+   "kind": "objet",
+   "id": "plastic-pellets",
+   "file": "img/objet/plastic-pellets.png",
+   "image": "Icon-plastic-pellets.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-plastic-pellets.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:26.307Z"
+  },
+  {
+   "kind": "objet",
+   "id": "plutonium-oxide-pellets",
+   "file": "img/objet/plutonium-oxide-pellets.png",
+   "image": "Icon-plutonium-oxide-pellets.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-plutonium-oxide-pellets.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:27.836Z"
+  },
+  {
+   "kind": "objet",
+   "id": "poor-quality-diesel",
+   "file": "img/objet/poor-quality-diesel.png",
+   "image": "Icon-poor-quality-diesel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-poor-quality-diesel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:29.212Z"
+  },
+  {
+   "kind": "objet",
+   "id": "powdered-tungsten",
+   "file": "img/objet/powdered-tungsten.png",
+   "image": "Icon-powdered-tungsten.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-powdered-tungsten.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:30.822Z"
+  },
+  {
+   "kind": "objet",
+   "id": "powdered-tungsten-carbide",
+   "file": "img/objet/powdered-tungsten-carbide.png",
+   "image": "Icon-powdered-tungsten-carbide.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-powdered-tungsten-carbide.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:31.970Z"
+  },
+  {
+   "kind": "objet",
+   "id": "present-box",
+   "file": "img/objet/present-box.png",
+   "image": "Icon-present-box.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-present-box.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:33.833Z"
+  },
+  {
+   "kind": "objet",
+   "id": "pta",
+   "file": "img/objet/pta.png",
+   "image": "icon-pta.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-pta.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:35.125Z"
+  },
+  {
+   "kind": "objet",
+   "id": "purple-gold-ingot",
+   "file": "img/objet/purple-gold-ingot.png",
+   "image": "Icon-purple-gold-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-purple-gold-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:36.628Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-copper",
+   "file": "img/objet/raw-copper.png",
+   "image": "Icon-raw-copper.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-copper.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:38.365Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-gas",
+   "file": "img/objet/raw-gas.png",
+   "image": "Icon-raw-gas.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-gas.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:39.883Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-iron",
+   "file": "img/objet/raw-iron.png",
+   "image": "Icon-raw-iron.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-iron.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:41.414Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-lead",
+   "file": "img/objet/raw-lead.png",
+   "image": "Icon-raw-lead.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-lead.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:42.908Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-uranium",
+   "file": "img/objet/raw-uranium.png",
+   "image": "Icon-raw-uranium.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-uranium.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:44.039Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-zinc",
+   "file": "img/objet/raw-zinc.png",
+   "image": "Icon-raw-zinc.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-zinc.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:45.553Z"
+  },
+  {
+   "kind": "objet",
+   "id": "raw-zirconium",
+   "file": "img/objet/raw-zirconium.png",
+   "image": "Icon-raw-zirconium.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-raw-zirconium.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:47.390Z"
+  },
+  {
+   "kind": "objet",
+   "id": "rawmix",
+   "file": "img/objet/rawmix.png",
+   "image": "Icon-rawmix.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-rawmix.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:48.680Z"
+  },
+  {
+   "kind": "objet",
+   "id": "refined-diesel",
+   "file": "img/objet/refined-diesel.png",
+   "image": "Icon-refined-diesel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-refined-diesel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:50.304Z"
+  },
+  {
+   "kind": "objet",
+   "id": "refined-diesel-bottle",
+   "file": "img/objet/refined-diesel-bottle.png",
+   "image": "Icon-refined-diesel-bottle.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-refined-diesel-bottle.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:51.843Z"
+  },
+  {
+   "kind": "objet",
+   "id": "refined-gas",
+   "file": "img/objet/refined-gas.png",
+   "image": "Icon-refined-gas.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-refined-gas.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:53.344Z"
+  },
+  {
+   "kind": "objet",
+   "id": "reinforced-concrete-block",
+   "file": "img/objet/reinforced-concrete-block.png",
+   "image": "Icon-reinforced-concrete-block.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-reinforced-concrete-block.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:54.929Z"
+  },
+  {
+   "kind": "objet",
+   "id": "reprocessed-uranium",
+   "file": "img/objet/reprocessed-uranium.png",
+   "image": "Icon-reprocessed-uranium.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-reprocessed-uranium.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:56.455Z"
+  },
+  {
+   "kind": "objet",
+   "id": "residue",
+   "file": "img/objet/residue.png",
+   "image": "Icon-residue.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-residue.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:57.827Z"
+  },
+  {
+   "kind": "objet",
+   "id": "residue-bottle",
+   "file": "img/objet/residue-bottle.png",
+   "image": "Icon-residue-bottle.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-residue-bottle.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:07:59.488Z"
+  },
+  {
+   "kind": "objet",
+   "id": "rich-soil",
+   "file": "img/objet/rich-soil.png",
+   "image": "Icon-rich-soil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-rich-soil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:00.943Z"
+  },
+  {
+   "kind": "objet",
+   "id": "rock",
+   "file": "img/objet/rock.png",
+   "image": "Icon-rock.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-rock.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:02.236Z"
+  },
+  {
+   "kind": "objet",
+   "id": "rubber",
+   "file": "img/objet/rubber.png",
+   "image": "Icon-rubber.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-rubber.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:03.613Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sand",
+   "file": "img/objet/sand.png",
+   "image": "Icon-sand.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sand.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:05.118Z"
+  },
+  {
+   "kind": "objet",
+   "id": "semiconductor",
+   "file": "img/objet/semiconductor.png",
+   "image": "Icon-semiconductor.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-semiconductor.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:07.033Z"
+  },
+  {
+   "kind": "objet",
+   "id": "shallow-earth-fragment",
+   "file": "img/objet/shallow-earth-fragment.png",
+   "image": "icon-shallow-earth-fragment.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-shallow-earth-fragment.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:08.509Z"
+  },
+  {
+   "kind": "objet",
+   "id": "silicon",
+   "file": "img/objet/silicon.png",
+   "image": "Icon-silicon.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-silicon.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:10.044Z"
+  },
+  {
+   "kind": "objet",
+   "id": "slightly-enriched-uf6-gas",
+   "file": "img/objet/slightly-enriched-uf6-gas.png",
+   "image": "Icon-slightly-enriched-uf6-gas.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-slightly-enriched-uf6-gas.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:11.560Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sodium-carbonate",
+   "file": "img/objet/sodium-carbonate.png",
+   "image": "Icon-sodium-carbonate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sodium-carbonate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:13.035Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sodium-hydroxide-solution",
+   "file": "img/objet/sodium-hydroxide-solution.png",
+   "image": "Icon-sodium-hydroxide-solution.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sodium-hydroxide-solution.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:14.520Z"
+  },
+  {
+   "kind": "objet",
+   "id": "soil",
+   "file": "img/objet/soil.png",
+   "image": "Icon-soil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-soil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:15.923Z"
+  },
+  {
+   "kind": "objet",
+   "id": "spent-fuel",
+   "file": "img/objet/spent-fuel.png",
+   "image": "Icon-spent-fuel.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-spent-fuel.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:17.184Z"
+  },
+  {
+   "kind": "objet",
+   "id": "standard-fuel-rod",
+   "file": "img/objet/standard-fuel-rod.png",
+   "image": "Icon-standard-fuel-rod.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-standard-fuel-rod.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:19.046Z"
+  },
+  {
+   "kind": "objet",
+   "id": "steam",
+   "file": "img/objet/steam.png",
+   "image": "Icon-steam.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-steam.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:20.202Z"
+  },
+  {
+   "kind": "objet",
+   "id": "steel-coil",
+   "file": "img/objet/steel-coil.png",
+   "image": "Icon-steel-coil.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-steel-coil.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:21.839Z"
+  },
+  {
+   "kind": "objet",
+   "id": "steel-drill-head",
+   "file": "img/objet/steel-drill-head.png",
+   "image": "icon-steel-drill-head.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:icon-steel-drill-head.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:23.354Z"
+  },
+  {
+   "kind": "objet",
+   "id": "steel-ingot",
+   "file": "img/objet/steel-ingot.png",
+   "image": "Icon-steel-ingot.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-steel-ingot.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:24.720Z"
+  },
+  {
+   "kind": "objet",
+   "id": "steel-plate",
+   "file": "img/objet/steel-plate.png",
+   "image": "Icon-steel-plate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-steel-plate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:26.237Z"
+  },
+  {
+   "kind": "objet",
+   "id": "steel-rod",
+   "file": "img/objet/steel-rod.png",
+   "image": "Icon-steel-rod.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-steel-rod.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:27.740Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sulfur",
+   "file": "img/objet/sulfur.png",
+   "image": "Icon-sulfur.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sulfur.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:29.372Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sulfur-dioxide",
+   "file": "img/objet/sulfur-dioxide.png",
+   "image": "Icon-sulfur-dioxide.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sulfur-dioxide.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:31.088Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sulfur-trioxide",
+   "file": "img/objet/sulfur-trioxide.png",
+   "image": "Icon-sulfur-trioxide.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sulfur-trioxide.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:32.254Z"
+  },
+  {
+   "kind": "objet",
+   "id": "sulfuric-acid",
+   "file": "img/objet/sulfuric-acid.png",
+   "image": "Icon-sulfuric-acid.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-sulfuric-acid.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:33.751Z"
+  },
+  {
+   "kind": "objet",
+   "id": "table-salt",
+   "file": "img/objet/table-salt.png",
+   "image": "Icon-table-salt.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-table-salt.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:35.599Z"
+  },
+  {
+   "kind": "objet",
+   "id": "tetraethyllead",
+   "file": "img/objet/tetraethyllead.png",
+   "image": "Icon-tetraethyllead.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-tetraethyllead.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:37.136Z"
+  },
+  {
+   "kind": "objet",
+   "id": "tire",
+   "file": "img/objet/tire.png",
+   "image": "Icon-tire.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-tire.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:38.390Z"
+  },
+  {
+   "kind": "objet",
+   "id": "tire-rim",
+   "file": "img/objet/tire-rim.png",
+   "image": "Icon-tire-rim.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-tire-rim.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:40.157Z"
+  },
+  {
+   "kind": "objet",
+   "id": "toy",
+   "file": "img/objet/toy.png",
+   "image": "Icon-toy.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-toy.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:41.626Z"
+  },
+  {
+   "kind": "objet",
+   "id": "treated-raw-copper",
+   "file": "img/objet/treated-raw-copper.png",
+   "image": "Icon-treated-raw-copper.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-treated-raw-copper.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:43.181Z"
+  },
+  {
+   "kind": "objet",
+   "id": "treated-raw-iron",
+   "file": "img/objet/treated-raw-iron.png",
+   "image": "Icon-treated-raw-iron.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-treated-raw-iron.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:44.679Z"
+  },
+  {
+   "kind": "objet",
+   "id": "treated-rock",
+   "file": "img/objet/treated-rock.png",
+   "image": "Icon-treated-rock.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-treated-rock.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:46.149Z"
+  },
+  {
+   "kind": "objet",
+   "id": "tributyl-phosphate",
+   "file": "img/objet/tributyl-phosphate.png",
+   "image": "Icon-tributyl-phosphate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-tributyl-phosphate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:47.659Z"
+  },
+  {
+   "kind": "objet",
+   "id": "tungsten-carbide-drill-head",
+   "file": "img/objet/tungsten-carbide-drill-head.png",
+   "image": "Icon-tungsten-carbide-drill-head.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-tungsten-carbide-drill-head.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:48.922Z"
+  },
+  {
+   "kind": "objet",
+   "id": "tungsten-carbide-plate",
+   "file": "img/objet/tungsten-carbide-plate.png",
+   "image": "Icon-tungsten-carbide-plate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-tungsten-carbide-plate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:50.649Z"
+  },
+  {
+   "kind": "objet",
+   "id": "uncharged-lithium-ion-battery",
+   "file": "img/objet/uncharged-lithium-ion-battery.png",
+   "image": "Icon-uncharged-lithium-ion-battery.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-uncharged-lithium-ion-battery.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:51.941Z"
+  },
+  {
+   "kind": "objet",
+   "id": "unenriched-uf6-gas",
+   "file": "img/objet/unenriched-uf6-gas.png",
+   "image": "Icon-unenriched-uf6-gas.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-unenriched-uf6-gas.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:53.429Z"
+  },
+  {
+   "kind": "objet",
+   "id": "uranium",
+   "file": "img/objet/uranium.png",
+   "image": "Icon-uranium.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-uranium.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:54.822Z"
+  },
+  {
+   "kind": "objet",
+   "id": "water",
+   "file": "img/objet/water.png",
+   "image": "Icon-water.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-water.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:56.583Z"
+  },
+  {
+   "kind": "objet",
+   "id": "water-bottle",
+   "file": "img/objet/water-bottle.png",
+   "image": "Icon-water-bottle.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-water-bottle.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:58.071Z"
+  },
+  {
+   "kind": "objet",
+   "id": "water-free-gas",
+   "file": "img/objet/water-free-gas.png",
+   "image": "Icon-water-free-gas.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-water-free-gas.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:08:59.721Z"
+  },
+  {
+   "kind": "objet",
+   "id": "wet-concrete",
+   "file": "img/objet/wet-concrete.png",
+   "image": "Icon-wet-concrete.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-wet-concrete.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:01.178Z"
+  },
+  {
+   "kind": "objet",
+   "id": "yellowcake",
+   "file": "img/objet/yellowcake.png",
+   "image": "Icon-yellowcake.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-yellowcake.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:02.383Z"
+  },
+  {
+   "kind": "objet",
+   "id": "zinc",
+   "file": "img/objet/zinc.png",
+   "image": "Icon-zinc.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-zinc.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:04.223Z"
+  },
+  {
+   "kind": "objet",
+   "id": "zinc-sulfate",
+   "file": "img/objet/zinc-sulfate.png",
+   "image": "Icon-zinc-sulfate.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-zinc-sulfate.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:05.357Z"
+  },
+  {
+   "kind": "objet",
+   "id": "zirconium-chloride",
+   "file": "img/objet/zirconium-chloride.png",
+   "image": "Icon-zirconium-chloride.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-zirconium-chloride.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:07.235Z"
+  },
+  {
+   "kind": "objet",
+   "id": "zirconium-dioxide",
+   "file": "img/objet/zirconium-dioxide.png",
+   "image": "Icon-zirconium-dioxide.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-zirconium-dioxide.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:08.381Z"
+  },
+  {
+   "kind": "objet",
+   "id": "zirconium-rod",
+   "file": "img/objet/zirconium-rod.png",
+   "image": "Icon-zirconium-rod.png",
+   "url": "https://industrialist.miraheze.org/wiki/File:Icon-zirconium-rod.png",
+   "license": "CC BY-NC-SA 4.0",
+   "fetchedAt": "2026-10-16T23:09:10.260Z"
+  }
+ ]
+}

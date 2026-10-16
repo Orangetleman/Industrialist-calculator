@@ -150,6 +150,11 @@ const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: stri
   items(field, v) {
     if (field === "sellValue") return isNum(v) ? { ok: true, value: v } : { ok: false, error: "nombre attendu" };
     if (field === "isFluid") return typeof v === "boolean" ? { ok: true, value: v } : { ok: false, error: "booléen attendu" };
+    // Description en jeu : absente des wikis pour la plupart des objets, recopiée par le joueur.
+    if (field === "description") {
+      const t = typeof v === "string" ? v.trim() : "";
+      return t && t.length <= 2000 ? { ok: true, value: t } : { ok: false, error: "texte de 1 à 2000 caractères attendu" };
+    }
     return { ok: false, error: "champ non corrigeable" };
   },
   research(field, v) {

@@ -65,6 +65,7 @@
    "isFluid": false,
    "sellValue": 1200,
    "researchValue": 1,
+   "description": "The final tier of gold. Melt it and mold it into an Ingot for usable product.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -162,6 +163,7 @@
    "isFluid": false,
    "sellValue": 14.59,
    "researchValue": 1,
+   "description": "Aggregate muncher",
    "sources": [
     {
      "wiki": "miraheze",
@@ -400,6 +402,7 @@
    "isFluid": false,
    "sellValue": 1029.5,
    "researchValue": 30,
+   "description": "A chair made out of wood and nails. Why does it cost so much? No one knows!",
    "sources": [
     {
      "wiki": "miraheze",
@@ -417,6 +420,7 @@
    "isFluid": false,
    "sellValue": 4000,
    "researchValue": 1,
+   "description": "Power selling??",
    "sources": [
     {
      "wiki": "miraheze",
@@ -519,6 +523,7 @@
    "isFluid": false,
    "sellValue": 5.22,
    "researchValue": 1,
+   "description": "Coal.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -825,6 +830,7 @@
    "isFluid": false,
    "sellValue": 200,
    "researchValue": 1,
+   "description": "Obtained at around 7000-8000 meters deep in the Mineshaft Drill",
    "sources": [
     {
      "wiki": "miraheze",
@@ -842,6 +848,7 @@
    "isFluid": true,
    "sellValue": -250,
    "researchValue": 0,
+   "description": "It is slightly radioactive, so should be stored underground in the Underground Waste Facility.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -1097,6 +1104,7 @@
    "isFluid": false,
    "sellValue": -5000000,
    "researchValue": 0,
+   "description": "This item is HIGHLY radioactive. Do NOT dump and do NOT store it in silos or tanks. Must be disposed of in Underground Waste Facility.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -1896,6 +1904,7 @@
    "isFluid": false,
    "sellValue": 85000,
    "researchValue": 180,
+   "description": "Even more valuable power?",
    "sources": [
     {
      "wiki": "miraheze",
@@ -1930,6 +1939,7 @@
    "isFluid": false,
    "sellValue": 200,
    "researchValue": 40,
+   "description": "You are now done with the chemistry part",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2066,6 +2076,7 @@
    "isFluid": false,
    "sellValue": 120,
    "researchValue": 1,
+   "description": "Obtained at around 2500-6000 meters deep in the Mineshaft Drill",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2219,6 +2230,7 @@
    "isFluid": false,
    "sellValue": 2.9,
    "researchValue": 1,
+   "description": "💅",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2270,6 +2282,7 @@
    "isFluid": false,
    "sellValue": 5.8,
    "researchValue": 1,
+   "description": "Fresh timber! You can convert it to Planks.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2389,6 +2402,7 @@
    "isFluid": false,
    "sellValue": 13.05,
    "researchValue": 5,
+   "description": "Essential material in Chair manufacturing",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2644,6 +2658,7 @@
    "isFluid": false,
    "sellValue": 54,
    "researchValue": 1,
+   "description": "Obtained from mineshaft drill at deep levels.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2678,6 +2693,7 @@
    "isFluid": false,
    "sellValue": 32,
    "researchValue": 1,
+   "description": "Obtained from mineshaft drill at deep levels.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2814,6 +2830,7 @@
    "isFluid": false,
    "sellValue": 0,
    "researchValue": 0,
+   "description": "Icon does not resemble reality.",
    "sources": [
     {
      "wiki": "miraheze",
@@ -2916,6 +2933,7 @@
    "isFluid": false,
    "sellValue": 30,
    "researchValue": 1,
+   "description": "Obtained at around 1000-3000 meters deep in the Mineshaft Drill",
    "sources": [
     {
      "wiki": "miraheze",
@@ -3018,6 +3036,7 @@
    "isFluid": false,
    "sellValue": -1000000,
    "researchValue": 0,
+   "description": "This item is radioactive. Do NOT dump and do NOT store it in silos or tanks. Must be disposed of in Underground Waste Facility or reprocessed into MOX Fuel Rods.",
    "sources": [
     {
      "wiki": "miraheze",

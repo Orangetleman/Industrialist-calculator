@@ -5,24 +5,40 @@
 //   #objet/pose/<étape>         plan de pose d'une étape
 //   #objet/pose/usine-entiere/<étape>  toute l'usine, avec le panneau d'un module ouvert
 //   #donnees/batiments/<id>     éditeur de bâtiments, sur un bâtiment
+//   #donnees/verifier/<recette|machine>/<id>/<champ>  valeurs à vérifier, sur une valeur (lien des ⚠)
+//   #recettes                   page Recettes (liste)
+//   #recettes/<objet|machine>/<id>  fiche d'un objet ou d'une machine
 // Fonctions pures, testées sans navigateur.
 
 import type { Goal, ResultTab } from "./state.ts";
 
-export type Page = "accueil" | "plan" | "usine" | "arbre" | "donnees";
+export type Page = "accueil" | "plan" | "usine" | "arbre" | "recettes" | "donnees";
 export type DataTab = "verifier" | "batiments";
-export type Route = { page: Page; goal?: Goal; tab?: ResultTab; step?: string; focus?: string; dataTab?: DataTab; machine?: string };
+export type RecipeKind = "objet" | "machine";
+/** Valeur à vérifier visée par un lien ⚠ (recette ou machine, et le champ). */
+export type VerifyTarget = { scope: "recette" | "machine"; id: string; field?: string };
+export type Route = {
+  page: Page;
+  goal?: Goal;
+  tab?: ResultTab;
+  step?: string;
+  focus?: string;
+  dataTab?: DataTab;
+  machine?: string;
+  verify?: VerifyTarget;
+  card?: { kind: RecipeKind; id: string };
+};
 
 /** Entrée « Toute l'usine » de la liste des étapes du plan de pose. */
 export const USINE_STEP = "usine-entiere";
 
-export const PAGES: Page[] = ["accueil", "plan", "usine", "arbre", "donnees"];
+export const PAGES: Page[] = ["accueil", "plan", "usine", "arbre", "recettes", "donnees"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
 export const GOAL_TITLE: Record<Goal, string> = { objet: "Produire un objet", énergie: "Produire de l'énergie", recherche: "Gagner des points de recherche", argent: "Gagner de l'argent" };
 const TABS: ResultTab[] = ["liste", "schema", "pose", "details"];
 const TAB_TITLE: Record<ResultTab, string> = { liste: "Liste de construction", schema: "Schéma", pose: "Plan de pose", details: "Détails" };
-const PAGE_TITLE: Record<Page, string> = { accueil: "Accueil", plan: "Planifier", usine: "Mon usine", arbre: "Arbre de recherche", donnees: "Données" };
+const PAGE_TITLE: Record<Page, string> = { accueil: "Accueil", plan: "Planifier", usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Données" };
 
 export function parseRoute(hash: string): Route {
   const parts = hash
@@ -35,7 +51,7 @@ export function parseRoute(hash: string): Route {
         return p;
       }
     });
-  const [head = "", a, b, c] = parts;
+  const [head = "", a, b, c, d] = parts;
   const goal = ROUTE_GOAL[head];
   if (goal) {
     const r: Route = { page: "plan", goal };
@@ -50,6 +66,12 @@ export function parseRoute(hash: string): Route {
     const r: Route = { page: "donnees" };
     if (a === "verifier" || a === "batiments") r.dataTab = a;
     if (a === "batiments" && b) r.machine = b;
+    if (a === "verifier" && (b === "recette" || b === "machine") && c) r.verify = { scope: b, id: c, ...(d ? { field: d } : {}) };
+    return r;
+  }
+  if (head === "recettes") {
+    const r: Route = { page: "recettes" };
+    if ((a === "objet" || a === "machine") && b) r.card = { kind: a, id: b };
     return r;
   }
   return { page: (PAGES as string[]).includes(head) && head !== "plan" ? (head as Page) : "accueil" };
@@ -69,7 +91,11 @@ export function routeHash(r: Route): string {
     if (r.dataTab) {
       parts.push(r.dataTab);
       if (r.machine && r.dataTab === "batiments") parts.push(r.machine);
+      if (r.verify && r.dataTab === "verifier") parts.push(r.verify.scope, r.verify.id, ...(r.verify.field ? [r.verify.field] : []));
     }
+  } else if (r.page === "recettes") {
+    parts.push("recettes");
+    if (r.card) parts.push(r.card.kind, r.card.id);
   } else parts.push(r.page);
   return `#${parts.map(encodeURIComponent).join("/")}`;
 }
@@ -78,6 +104,7 @@ export function routeHash(r: Route): string {
 export function routeTitle(r: Route): string {
   if (r.page === "plan" && r.tab === "pose" && r.step === USINE_STEP) return r.focus ? "Module dans l'usine" : "Toute l'usine";
   if (r.page === "plan") return r.tab ? TAB_TITLE[r.tab] : GOAL_TITLE[r.goal ?? "objet"];
+  if (r.page === "recettes") return r.card ? (r.card.kind === "objet" ? "Fiche de l'objet" : "Fiche de la machine") : "Recettes";
   if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Données";
   return PAGE_TITLE[r.page];
 }

@@ -14,6 +14,7 @@ import energyJson from "../../data/energy.json";
 import stationsJson from "../../data/research-stations.json";
 import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
+import imagesJson from "../../data/images.json";
 import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
 import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
@@ -27,7 +28,7 @@ import type { Criterion } from "../engine/choose.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import type { EnergyFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
 import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
-import { dependentsOf, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
+import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { esc, fmt, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
 import {
   currentRp,
@@ -58,6 +59,8 @@ import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
+import { defaultDir, recipeEntries, recipeHref, renderEntryList, renderEntryRows, renderItemCard, renderMachineCard, searchEntries, sortEntries, type Entry, type EntryKind, type ListFilter, type ListView, type Picture, type RecipesCtx, type SortKey } from "./recipes-view.ts";
+import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
@@ -134,6 +137,13 @@ let notes: Notes = loadNotes();
 let verifyAll = false;
 let verifyFilter = "";
 const treeView: TreeView = { category: "Production", filter: "" };
+/** Page Recettes : présentation de la liste, recherche, images choisies par le joueur. */
+let rcPrefs = loadPrefs();
+let rcQuery = "";
+let rcEntries: Entry[] | null = null;
+let myImages: MyImages = loadImages();
+/** Vignettes du wiki (scripts/fetch-images.ts), servies depuis public/img. */
+const WIKI_IMAGES = new Map((imagesJson as { images: { kind: EntryKind; id: string; file: string; url: string; license: string }[] }).images.map((x) => [`${x.kind}|${x.id}`, x]));
 
 /** Dernier calcul (recalculé seulement quand un réglage, la progression ou les données changent). */
 let plan: Plan | undefined;
@@ -169,6 +179,7 @@ function rebuildData(): void {
   data = r.data;
   dataErrors = r.errors;
   layouts.clear();
+  rcEntries = null;
 }
 
 function playerState(): PlayerState {
@@ -276,7 +287,7 @@ function showPage(): void {
     else a.removeAttribute("aria-current");
   }
   document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
-  const titles: Record<Page, string> = { accueil: "", plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", donnees: "Données" };
+  const titles: Record<Page, string> = { accueil: "", plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Données" };
   document.title = titles[page] ? `${titles[page]} — Calculateur de production` : "Calculateur de production";
   renderBack();
   document.body.classList.remove("usine-wide");
@@ -284,8 +295,15 @@ function showPage(): void {
   if (page === "donnees" && route.machine) buildings.show(route.machine);
   // Retour : la vue reprend où on l'avait laissée ; nouvelle page : en haut.
   if (wentBack && scrollOf.has(location.hash)) window.scrollTo(0, scrollOf.get(location.hash)!);
-  else if (page !== lastPage) window.scrollTo(0, 0);
+  else if (page !== lastPage || page === "recettes") window.scrollTo(0, 0);
   lastPage = page;
+  if (page === "recettes") revealRcCurrent();
+  if (page === "donnees" && route.verify?.field) {
+    const el = document.getElementById(`fix-${route.verify.id}-${route.verify.field}`) as HTMLInputElement | null;
+    el?.closest(".vrow")?.classList.add("vfocus");
+    el?.scrollIntoView({ block: "center" });
+    el?.focus({ preventScroll: true });
+  }
 }
 
 // ---------------------------------------------------------------- calcul
@@ -413,6 +431,7 @@ function render(): void {
   else if (page === "plan") renderPlanPage();
   else if (page === "usine") renderUsine();
   else if (page === "arbre") renderTreePage();
+  else if (page === "recettes") renderRecettes();
   else renderData();
 }
 
@@ -1163,12 +1182,229 @@ function renderData(): void {
     const names = [x.id, x.item && itemN(v, x.item), x.scope === "machine" ? machineN(v, x.id) : r ? machineN(v, r.machine) : "", ...(r ? Object.keys({ ...r.inputs, ...r.outputs }).map((i) => itemN(v, i)) : [])];
     return names.some((n) => n && n.toLowerCase().includes(q));
   };
-  const shown = (verifyAll ? everything : v.plan.verify).filter(match);
+  // Lien ⚠ (page Recettes, schéma) : seulement les valeurs de cette recette ou de cette machine.
+  const vt = route.page === "donnees" ? route.verify : undefined;
+  const shown = vt ? everything.filter((x) => x.scope === vt.scope && x.id === vt.id) : (verifyAll ? everything : v.plan.verify).filter(match);
+  $("verify-focus").innerHTML = vt ? verifyFocusBanner(vt, shown.length) : "";
   $("verify").innerHTML = renderVerify(v, { entries: shown, notes: { ...repoNotes, ...notes }, all: verifyAll });
   $("verify-count").textContent = String(v.plan.verify.filter((x) => x.used).length);
   $("corrections").innerHTML = renderCorrections(v);
   $("corrections-count").textContent = String(countCorrections(corrections));
   $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">Corrections ignorées :<ul>${dataErrors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : "";
+}
+
+/** Bandeau des valeurs d'une seule recette ou machine (arrivée par un lien ⚠). */
+function verifyFocusBanner(vt: NonNullable<Route["verify"]>, count: number): string {
+  const r = vt.scope === "recette" ? data.recipes.get(vt.id) : undefined;
+  const machine = vt.scope === "machine" ? vt.id : r?.machine;
+  const name = vt.scope === "machine" ? machineN(viewCtx(), vt.id) : `${machineN(viewCtx(), r?.machine ?? "")} → ${itemN(viewCtx(), Object.keys(r?.outputs ?? {})[0] ?? "")}`;
+  const back = machine ? ` · <a href="${recipeHref("machine", machine)}">fiche de la machine</a>` : "";
+  return `<div class="banner">Valeurs à vérifier de <b>${esc(name)}</b>${count ? "" : " : il n'en reste aucune (déjà corrigée ? voir « Mes corrections » plus bas)"}${back} · <a href="#donnees/verifier">voir toutes les valeurs</a></div>`;
+}
+
+// ---------------------------------------------------------------- recettes
+
+/** Image d'un objet ou d'une machine : celle du joueur, sinon la vignette du wiki. */
+function pictureOf(kind: EntryKind, id: string): Picture | null {
+  const key = `${kind}|${id}`;
+  const wiki = WIKI_IMAGES.get(key);
+  if (myImages[key]) return { src: myImages[key]!, own: true, fallback: !!wiki };
+  if (!wiki) return null;
+  return { src: `${import.meta.env.BASE_URL}${wiki.file}`, own: false, credit: { label: `wiki Miraheze, ${wiki.license}`, url: wiki.url } };
+}
+
+function recipesCtx(): RecipesCtx {
+  const p = toEngineProgress(prog);
+  // Sans progression renseignée, tout serait « à débloquer » : on n'affiche pas les cadenas.
+  const fresh = isFresh();
+  return {
+    data,
+    image: pictureOf,
+    locked: (r) => (fresh || !r.research || !data.nodes.has(r.research) || isNodeUnlocked(data, p, r.research) ? null : nodeName(r.research)),
+  };
+}
+
+function renderRecettes(ctx: RecipesCtx = recipesCtx()): void {
+  const card = route.page === "recettes" ? (route.card ?? null) : null;
+  $("rc-layout").classList.toggle("has-card", !!card);
+  $("rc-layout").classList.toggle("rows", rcPrefs.view === "lignes");
+  $("rc-card").innerHTML = card
+    ? card.kind === "objet"
+      ? renderItemCard(ctx, card.id)
+      : renderMachineCard(ctx, card.id)
+    : `<p class="rc-hello panel">Choisis un objet ou une machine dans la liste.</p>`;
+  if (input("rc-q").value !== rcQuery) input("rc-q").value = rcQuery;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-filter]")) b.setAttribute("aria-pressed", String(b.dataset.rcFilter === rcPrefs.filter));
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-view]")) b.setAttribute("aria-pressed", String(b.dataset.rcView === rcPrefs.view));
+  $<HTMLSelectElement>("rc-sort").value = rcPrefs.sort.key;
+  $("rc-dir").textContent = rcPrefs.sort.dir === "asc" ? "▲" : "▼";
+  $("rc-dir").title = rcPrefs.sort.dir === "asc" ? "Ordre croissant (cliquer pour inverser)" : "Ordre décroissant (cliquer pour inverser)";
+  const n = Object.keys(myImages).length;
+  $("rc-imgs").innerHTML = `Images : vignettes du <a href="https://industrialist.miraheze.org/" target="_blank" rel="noopener">wiki Miraheze</a> (CC BY-NC-SA 4.0), sinon une pastille. Mes images (${n}), gardées dans ce navigateur : <button type="button" class="link" id="rc-img-export"${n ? "" : " disabled"}>exporter</button> · <button type="button" class="link" id="rc-img-import-btn">importer</button>${n ? ` · <button type="button" class="link" id="rc-img-clear">tout effacer</button>` : ""}.`;
+  renderRcList(ctx);
+}
+
+function renderRcList(ctx: RecipesCtx = recipesCtx()): void {
+  rcEntries ??= recipeEntries(data);
+  const found = searchEntries(rcEntries, rcQuery, rcPrefs.filter);
+  // Avec une recherche et le tri par nom, les noms qui commencent par la saisie restent devant.
+  const list = rcQuery.trim() && rcPrefs.sort.key === "nom" && rcPrefs.sort.dir === "asc" ? found : sortEntries(data, found, rcPrefs.sort);
+  const card = route.page === "recettes" && route.card ? `${route.card.kind}/${route.card.id}` : null;
+  $("rc-count").textContent = `${list.length} résultat${list.length > 1 ? "s" : ""}`;
+  $("rc-list").innerHTML = rcPrefs.view === "lignes" ? renderEntryRows(ctx, list, card, rcPrefs.sort) : renderEntryList(ctx, list, card);
+}
+
+/** La liste défile jusqu'à l'objet ouvert (sinon, sur ordinateur, on ne le voit pas). */
+function revealRcCurrent(): void {
+  const box = $("rc-list");
+  const on = box.querySelector<HTMLElement>(".rc-tile.on, tr.on");
+  if (!on || box.scrollHeight <= box.clientHeight) return;
+  const b = box.getBoundingClientRect();
+  const r = on.getBoundingClientRect();
+  if (r.top < b.top + 30 || r.bottom > b.bottom) box.scrollTop += r.top - b.top - b.height / 3;
+}
+
+/** Image choisie : réduite à 128 px au plus (le navigateur garde peu de place). */
+function shrinkImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 128 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/png"));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image illisible"));
+    };
+    img.src = url;
+  });
+}
+
+function bindRecettes(): void {
+  const prefsChanged = () => {
+    savePrefs(rcPrefs);
+    renderRecettes();
+    revealRcCurrent();
+  };
+  input("rc-q").addEventListener("input", (e) => {
+    rcQuery = (e.target as HTMLInputElement).value;
+    renderRcList();
+  });
+  // Entrée : ouvre le premier résultat.
+  input("rc-q").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const first = $("rc-list").querySelector<HTMLAnchorElement>("a[href^='#recettes/']");
+    if (first) location.hash = first.getAttribute("href")!;
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-filter]")) {
+    b.addEventListener("click", () => {
+      rcPrefs = { ...rcPrefs, filter: b.dataset.rcFilter as ListFilter };
+      prefsChanged();
+    });
+  }
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-view]")) {
+    b.addEventListener("click", () => {
+      rcPrefs = { ...rcPrefs, view: b.dataset.rcView as ListView };
+      prefsChanged();
+    });
+  }
+  const setSort = (key: SortKey, flip: boolean) => {
+    const dir = rcPrefs.sort.key === key ? (flip ? (rcPrefs.sort.dir === "asc" ? "desc" : "asc") : rcPrefs.sort.dir) : defaultDir(key);
+    rcPrefs = { ...rcPrefs, sort: { key, dir } };
+    prefsChanged();
+  };
+  $<HTMLSelectElement>("rc-sort").addEventListener("change", (e) => setSort((e.target as HTMLSelectElement).value as SortKey, false));
+  $("rc-dir").addEventListener("click", () => setSort(rcPrefs.sort.key, true));
+  // En-têtes du tableau : un clic trie par la colonne, un second inverse l'ordre.
+  $("rc-list").addEventListener("click", (e) => {
+    const th = (e.target as Element).closest<HTMLElement>("[data-rc-sort]");
+    if (th) setSort(th.dataset.rcSort as SortKey, true);
+  });
+  // Fiche : image (choisir, retirer) et description recopiée du jeu.
+  let imgTarget: string | null = null;
+  $("rc-card").addEventListener("click", (e) => {
+    const t = e.target as Element;
+    const pick = t.closest<HTMLElement>("[data-rc-img]");
+    if (pick) {
+      imgTarget = pick.dataset.rcImg!;
+      return $("rc-file").click();
+    }
+    const del = t.closest<HTMLElement>("[data-rc-img-del]");
+    if (del) {
+      const { [del.dataset.rcImgDel!]: _, ...rest } = myImages;
+      myImages = rest;
+      saveImages(myImages);
+      return renderRecettes();
+    }
+    const descDel = t.closest<HTMLElement>("[data-rc-desc-del]");
+    if (descDel) {
+      corrections = removeCorrection(corrections, "items", descDel.dataset.rcDescDel!, "description");
+      saveCorrections(corrections);
+      rebuildData();
+      renderRecettes();
+    }
+  });
+  $("rc-card").addEventListener("submit", (e) => {
+    const form = (e.target as HTMLElement).closest<HTMLFormElement>("form[data-rc-desc]");
+    if (!form) return;
+    e.preventDefault();
+    const id = form.dataset.rcDesc!;
+    const text = (form.elements.namedItem("text") as HTMLTextAreaElement).value.trim();
+    corrections = text ? setCorrection(corrections, "items", id, "description", text, "description recopiée du jeu") : removeCorrection(corrections, "items", id, "description");
+    saveCorrections(corrections);
+    rebuildData();
+    renderRecettes();
+  });
+  $("rc-file").addEventListener("change", async () => {
+    const box = input("rc-file");
+    const file = box.files?.[0];
+    box.value = "";
+    if (!file || !imgTarget) return;
+    try {
+      const url = await shrinkImage(file);
+      const next = { ...myImages, [imgTarget]: url };
+      if (!saveImages(next)) throw new Error("plus de place dans ce navigateur (exporte puis efface des images)");
+      myImages = next;
+      renderRecettes();
+    } catch (err) {
+      await ask("Image non enregistrée", `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: "Fermer", primary: true }]);
+    }
+  });
+  $("rc-imgs").addEventListener("click", async (e) => {
+    const id = (e.target as Element).closest<HTMLElement>("button")?.id;
+    if (id === "rc-img-export") downloadJson(exportImages(myImages), "mes-images.json");
+    else if (id === "rc-img-import-btn") $("rc-img-import").click();
+    else if (id === "rc-img-clear") {
+      const choice = await ask("Effacer mes images", "<p>Effacer toutes les images que tu as choisies ? Pense à les exporter avant.</p>", [
+        { value: "yes", label: "Tout effacer", primary: true },
+        { value: "", label: "Annuler" },
+      ]);
+      if (choice !== "yes") return;
+      myImages = {};
+      saveImages(myImages);
+      renderRecettes();
+    }
+  });
+  $("rc-img-import").addEventListener("change", async () => {
+    const box = input("rc-img-import");
+    const file = box.files?.[0];
+    box.value = "";
+    if (!file) return;
+    try {
+      const next = { ...myImages, ...parseImagesExport(JSON.parse(await file.text())) };
+      if (!saveImages(next)) throw new Error("plus de place dans ce navigateur");
+      myImages = next;
+      renderRecettes();
+    } catch (err) {
+      await ask("Import impossible", `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: "Fermer", primary: true }]);
+    }
+  });
 }
 
 // ---------------------------------------------------------------- progression
@@ -1524,8 +1760,8 @@ function bindPlan(): void {
       if ((e.target as Element).closest("button[data-uopt]")) onOption(e);
     });
   }
-  // Clics dans le dessin : machine → sa fiche ; tuyau ou câble → ses liaisons ; module de l'usine → son panneau.
-  const goMachine = (id: string) => go({ page: "donnees", dataTab: "batiments", machine: id });
+  // Clics dans le dessin : machine → sa fiche (page Recettes) ; tuyau ou câble → ses liaisons ; module de l'usine → son panneau.
+  const goMachine = (id: string) => go({ page: "recettes", card: { kind: "machine", id } });
   $("pose-canvas").addEventListener("click", (e) => {
     if (posePZ?.suppressClick) return;
     const t = e.target as Element;
@@ -2069,6 +2305,7 @@ bindShared();
 bindUsine();
 bindTree();
 bindData();
+bindRecettes();
 const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }));
 $("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);

@@ -10,6 +10,7 @@ import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtRP } from "./
 import { designLine, researchAlternatives, researchExplain, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
 import type { Goal } from "./state.ts";
+import { verifyHref } from "./recipes-view.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
@@ -613,7 +614,7 @@ function recipesBlock(v: ViewCtx): string {
   const p = v.plan;
   const rows = p.steps.map((s) => {
     const r = v.data.recipes.get(s.recipeId)!;
-    const flags = r.verify.length ? ` <a class="tag warn" href="#donnees">⚠ à vérifier</a>` : "";
+    const flags = r.verify.length ? ` <a class="tag warn" href="${verifyHref("recette", r.id, r.verify[0]!.field)}" title="Aller à la valeur à corriger">⚠ à vérifier</a>` : "";
     const body = s.parts
       ? `${esc(r.setupName ?? "")}${Object.keys(r.inputs).length ? ` · consomme par seconde : ${esc(Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + "))}` : ""}${r.setupNote ? `<br><span class="muted">${esc(r.setupNote)}</span>` : ""}`
       : esc(recipeText(v, r, s.durationS));

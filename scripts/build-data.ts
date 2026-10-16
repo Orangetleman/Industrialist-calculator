@@ -410,7 +410,9 @@ for (const [id, names] of [...itemNames].sort(([a], [b]) => a.localeCompare(b)))
   const rv = ib?.resValue?.trim();
   const researchValue = rv ? (parseNumber(rv) ?? rv) : null;
   if (typeof researchValue === "string") verify.push({ field: "researchValue", reason: "approximatif", detail: `plage « ${rv} »` });
-  items.push({ id, name, isFluid, sellValue, researchValue, sources: p ? [sourceOf(p)] : [], verify });
+  // Description en jeu : la citation {{Quote}} de la page, quand le wiki la donne (S5).
+  const description = p ? wikiQuote(p.content) : null;
+  items.push({ id, name, isFluid, sellValue, researchValue, ...(description ? { description } : {}), sources: p ? [sourceOf(p)] : [], verify });
 }
 
 // ---------------------------------------------------------------- contrôle croisé Fandom

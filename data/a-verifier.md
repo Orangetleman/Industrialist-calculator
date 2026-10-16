@@ -437,7 +437,7 @@ Le moteur les signalera comme « source inconnue » s'ils apparaissent dans une 
 <!-- extension:debut -->
 ## Extension : énergie, logistique, RP, monde
 
-Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **16** bâtiment(s) (voir RELEVES.md).
+Lu dans le cache du 2026-10-12 : 76 bâtiments d'énergie, 43 pièces de tuyauterie, 6 silos, 5 dépôts, formules RP et faits du monde. Ports relevés en jeu : **46** bâtiment(s) (voir RELEVES.md).
 
 Toutes les formules et tous les faits attendus ont été reconnus.
 

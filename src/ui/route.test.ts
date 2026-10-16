@@ -13,6 +13,11 @@ describe("adresses des vues", () => {
       { page: "donnees", dataTab: "batiments", machine: "bottling-plant" },
       { page: "donnees", dataTab: "verifier" },
       { page: "plan", goal: "objet", tab: "pose", step: "usine-entiere", focus: "steel-plate" },
+      { page: "recettes" },
+      { page: "recettes", card: { kind: "objet", id: "steel-plate" } },
+      { page: "recettes", card: { kind: "machine", id: "craft-assembler" } },
+      { page: "donnees", dataTab: "verifier", verify: { scope: "recette", id: "advanced_assembler_02", field: "inputs.tire-rim" } },
+      { page: "donnees", dataTab: "verifier", verify: { scope: "machine", id: "press" } },
     ] as const;
     for (const r of routes) expect(parseRoute(routeHash(r))).toEqual(r);
     expect(routeHash({ page: "plan", goal: "objet", tab: "pose", step: "steam@boiler_01" })).toBe("#objet/pose/steam%40boiler_01");
@@ -34,6 +39,10 @@ describe("adresses des vues", () => {
     expect(routeTitle(parseRoute("#energie"))).toBe("Produire de l'énergie");
     expect(routeTitle(parseRoute("#donnees/batiments/press"))).toBe("Éditeur de bâtiments");
     expect(routeTitle(parseRoute("#usine"))).toBe("Mon usine");
+    expect(routeTitle(parseRoute("#recettes"))).toBe("Recettes");
+    expect(routeTitle(parseRoute("#recettes/machine/press"))).toBe("Fiche de la machine");
+    expect(routeTitle(parseRoute("#recettes/objet/gear"))).toBe("Fiche de l'objet");
+    expect(parseRoute("#recettes/nimporte/x")).toEqual({ page: "recettes" });
   });
 
   it("pile des vues : on empile, un retour dépile, la même adresse ne compte pas", () => {

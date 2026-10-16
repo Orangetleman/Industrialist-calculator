@@ -36,6 +36,7 @@
       <a href="#objet" data-nav="plan" id="nav-plan">Planifier</a>
       <a href="#usine" data-nav="usine">Mon usine</a>
       <a href="#arbre" data-nav="arbre">Arbre<span class="long"> de recherche</span></a>
+      <a href="#recettes" data-nav="recettes">Recettes</a>
       <a href="#donnees" data-nav="donnees">Données</a>
     </nav>
     <div class="me" id="me" aria-label="Mon usine en bref"></div>
@@ -355,6 +356,50 @@
     </div>
   </section>
 
+  <!-- ====================================================== RECETTES (comme l'onglet « Recipes » du jeu) -->
+  <section class="page" id="page-recettes" aria-labelledby="h-rc" hidden>
+    <h1 id="h-rc">Recettes</h1>
+    <p class="lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche ; un ⚠ mène à la valeur à corriger.</p>
+    <div class="rc-layout" id="rc-layout">
+      <div class="rc-listcol">
+        <div class="rc-search">
+          <label class="sr-only" for="rc-q">Rechercher un objet ou une machine</label>
+          <input id="rc-q" type="search" placeholder="Rechercher (ex. steel plate)" autocomplete="off" spellcheck="false">
+          <div class="rc-viewbar">
+            <div class="tabs" role="group" aria-label="Afficher">
+              <button type="button" data-rc-filter="tout" aria-pressed="true">Tout</button>
+              <button type="button" data-rc-filter="objets" aria-pressed="false">Objets</button>
+              <button type="button" data-rc-filter="machines" aria-pressed="false">Machines</button>
+            </div>
+            <div class="tabs" role="group" aria-label="Présentation">
+              <button type="button" data-rc-view="tuiles" aria-pressed="true" title="Tuiles, comme en jeu">▦ Tuiles</button>
+              <button type="button" data-rc-view="lignes" aria-pressed="false" title="Lignes triables : nom, valeur, RP">☰ Lignes</button>
+            </div>
+          </div>
+          <div class="rc-viewbar">
+            <label class="rc-sortpick" for="rc-sort">Trier par
+              <select id="rc-sort">
+                <option value="nom">nom</option>
+                <option value="valeur">valeur ($)</option>
+                <option value="rp">RP rapportés</option>
+              </select>
+              <button type="button" class="small" id="rc-dir" title="Inverser l'ordre">▲</button>
+            </label>
+            <span class="rc-count" id="rc-count" role="status"></span>
+          </div>
+        </div>
+        <div class="rc-scroll" id="rc-list"></div>
+      </div>
+      <div class="rc-cardcol">
+        <a class="btn small rc-backlist" href="#recettes">‹ Tous les objets</a>
+        <div id="rc-card"></div>
+      </div>
+    </div>
+    <p class="hint rc-imgs" id="rc-imgs"></p>
+    <input type="file" id="rc-file" accept="image/*" hidden>
+    <input type="file" id="rc-img-import" accept="application/json,.json" hidden>
+  </section>
+
   <!-- ====================================================== DONNÉES -->
   <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
     <h1 id="h-data">Données</h1>
@@ -374,6 +419,7 @@
         </label>
       </div>
       <p class="hint" id="verify-context"></p>
+      <div id="verify-focus"></div>
       <p>Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : les calculs en tiennent compte aussitôt et la correction est gardée dans ce navigateur. Si une valeur seule ne suffit pas, laisse plutôt une note : elle part avec l'export.</p>
       <div id="verify"></div>
       <div class="corrections-panel">
@@ -404,7 +450,7 @@
 
 <footer class="src">
   Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, source principale ;
-  <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-SA, et relevés en jeu.
+  <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-NC-SA 4.0 (Miraheze, images comprises) et CC BY-SA (Fandom), et relevés en jeu.
   Pousse des arbres : calculateur communautaire lié depuis la page Tree. Les recettes changent avec les mises à jour du jeu : en cas d'écart, le Recipe Book fait foi.
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
