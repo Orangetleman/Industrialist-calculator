@@ -59,11 +59,16 @@ describe("toute l'usine", () => {
     checkLayout(f, input.edges);
     expect(f.W).toBeLessThanOrEqual(81);
     expect(f.H).toBeLessThanOrEqual(101);
-    expect(f.stats.allPipeCells).toBeLessThanOrEqual(1115);
-    expect(f.stats.allCrossings).toBeLessThanOrEqual(74);
+    expect(f.stats.allPipeCells).toBeLessThanOrEqual(1090);
+    expect(f.stats.allCrossings).toBeLessThanOrEqual(73);
     expect(f.stats.polesCost).toBeLessThanOrEqual(3595);
     expect(f.stats.overloaded).toBe(0);
     expect(factoryFits(f, PLOT)).toBe("oui");
+    // Appendices retirés à la fin : plus aucune pièce à une seule liaison (un bout qui ne mène nulle part),
+    // dans la grille comme dans les modules (1 115 → 1 090 cases, 74 → 73 croisements le 2026-10-17).
+    expect(f.stats.pruned).toBeGreaterThan(0);
+    for (const [k, o] of f.cells) if (o.kind === "tuyau") for (const l of [o.links, ...(o.cross ? [o.cross.links] : [])]) expect(l.size, k).toBeGreaterThanOrEqual(2);
+    for (const b of f.boxes) for (const pc of b.mod?.pieces ?? []) expect(pc.links.length + (pc.crossLinks?.length ?? 0), `${b.key} ${pc.x},${pc.y}`).toBeGreaterThan(0);
     // Liaisons (S4) : chaque tuyau entre modules a ses vecteurs, et chaque client en reçoit un.
     const arrows = factoryFlows(f);
     for (const n of f.nets) {

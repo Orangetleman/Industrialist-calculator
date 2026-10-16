@@ -880,6 +880,40 @@ function countParts(req: ModuleRequest, pieces: PlacedPiece[], poles: PlacedPole
   return { parts: list, cost: list.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0), costUnknown: list.filter((p) => p.unitPrice === null).length };
 }
 
+/**
+ * Le module avec des pièces dont certaines liaisons ont été retirées (appendices de « Toute l'usine ») : rôle de
+ * chaque pièce (un té qui perd une branche devient un tuyau droit ou un coude), pièce du catalogue (même tuyau
+ * qu'avant), pièces à acheter et prix recomptés. Une pièce sans liaison disparaît ; un croisement qui perd un
+ * de ses deux tuyaux devient une pièce simple.
+ */
+export function withPieces(m: ModulePlan, pieces: { x: number; y: number; net: string; links: Dir[]; crossNet?: string; crossLinks?: Dir[] }[], req: ModuleRequest, cat: Catalog, name: Namer): ModulePlan {
+  // Tuyau (tier, objet ou fluide) de chaque réseau, d'après les pièces simples du module.
+  const setOf = new Map<string, PipeSet>();
+  for (const pc of m.pieces) {
+    if (pc.role === "croisement" || setOf.has(pc.net)) continue;
+    const s = cat.pipes.find((x) => Object.values(x.pieces).some((p) => p.id === pc.pieceId));
+    if (s) setOf.set(pc.net, s);
+  }
+  for (const n of m.nets) if (n.pipe && !setOf.has(n.id)) setOf.set(n.id, n.pipe);
+  const old = new Map(m.pieces.map((pc) => [`${pc.x},${pc.y}`, pc]));
+  const out: PlacedPiece[] = [];
+  for (const p of pieces) {
+    const layers = [[p.net, p.links], ...(p.crossNet ? [[p.crossNet, p.crossLinks ?? []]] : [])].filter(([, l]) => (l as Dir[]).length) as [string, Dir[]][];
+    if (!layers.length) continue;
+    const before = old.get(`${p.x},${p.y}`);
+    if (layers.length === 2) {
+      out.push({ x: p.x, y: p.y, net: layers[0]![0], crossNet: layers[1]![0], role: "croisement", links: layers[0]![1], crossLinks: layers[1]![1], pieceId: before?.role === "croisement" ? before.pieceId : null });
+      continue;
+    }
+    const [net, links] = layers[0]!;
+    const role = ROLE_OF(new Set(links));
+    out.push({ x: p.x, y: p.y, net, role, links, pieceId: setOf.get(net)?.pieces[role === "croisement" ? "droit" : role].id ?? before?.pieceId ?? null });
+  }
+  const problems = m.problems.filter((p) => !p.message.startsWith("Pièce inconnue"));
+  const { parts, cost, costUnknown } = countParts(req, out, m.poles, cat, name, problems);
+  return { ...m, pieces: out, parts, cost, costUnknown, problems };
+}
+
 /** « vers le haut, entre les machines n° 2 et n° 3 » (machines numérotées rangée par rangée, la première d'abord). */
 export function passageWhere(v: Passage, count: number): string {
   const first = v.row === "haut" ? 0 : Math.ceil(count / 2);

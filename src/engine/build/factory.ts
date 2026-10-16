@@ -8,7 +8,7 @@
 import type { PortsEntry } from "../extension-types.ts";
 import type { Catalog } from "./catalog.ts";
 import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
-import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
+import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
 import { Grid, route, type Occupant } from "./route.ts";
 
 /** Une étape du plan, prête à devenir un module de l'usine. */
@@ -105,6 +105,8 @@ export type FactoryPlan = {
     modulesCost: number;
     keptPoles: number;
     newPoles: number;
+    /** Cases de tuyau retirées à la fin (appendices qui ne menaient nulle part), en mode recalculé. */
+    pruned: number;
   };
   /** Traces de calcul (essais, passages, prises), pour la mise au point. */
   debug: { tries: string[]; passages: string[]; taps: string[] };
@@ -218,7 +220,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     passagesKept: new Map(),
     full,
     CLRused: 0,
-    stats: { pipeCells: 0, allPipeCells: 0, crossings: 0, allCrossings: 0, total: 0, relays: 0, upgraded: 0, overloaded: 0, polesCost: 0, modulesCost: 0, keptPoles: 0, newPoles: 0 },
+    stats: { pipeCells: 0, allPipeCells: 0, crossings: 0, allCrossings: 0, total: 0, relays: 0, upgraded: 0, overloaded: 0, polesCost: 0, modulesCost: 0, keptPoles: 0, newPoles: 0, pruned: 0 },
     debug: { tries: [], passages: [], taps: [] },
   });
   if (!boxes.length) return empty();
@@ -662,6 +664,77 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   // Les modules repliés gardent leur tuyau principal, sur lequel se fait la prise unique.
   const passagesKept = new Map<string, FactoryPassage>();
   const passLog: string[] = [];
+  /**
+   * Retire les tuyaux sans issue de la grille (mode recalculé) puis refait les pièces des modules ; rend le nombre
+   * de cases retirées. Une liaison compte si elle mène à une pièce de la même ressource, à une machine (port) ou à
+   * un emplacement réservé, ou si c'est le raccord d'un collecteur que l'usine ne relie pas (produit final,
+   * ressource venue de l'extérieur). Une pièce qui n'a plus qu'une liaison qui compte est un bout : retirée.
+   */
+  const pruneDeadEnds = (): number => {
+    const modNet = (net: string) => {
+      const i = net.indexOf("~");
+      if (i < 0) return null;
+      const b = byKey.get(net.slice(0, i));
+      const n = b?.mod?.nets.find((x) => x.id === net.slice(i + 1));
+      return b && n ? { b, n } : null;
+    };
+    const itemOf = (net: string) => nets.find((n) => n.id === net)?.item ?? modNet(net)?.n.item ?? net;
+    const layersAt = (k: string) => {
+      const o = grid.cells.get(k);
+      if (o?.kind !== "tuyau") return [];
+      return [{ net: o.net, links: o.links }, ...(o.cross ? [o.cross] : [])];
+    };
+    const legitEnd = (net: string, nk: string): boolean => {
+      if (grid.cells.get(nk)?.kind === "bloc") return true;
+      const m = modNet(net);
+      return !!m && !edgesAll.some((e) => e.item === m.n.item && (m.n.role === "sortie" ? e.from === m.b.key : e.to === m.b.key));
+    };
+    const before = [...grid.cells.values()].filter((o) => o.kind === "tuyau").length;
+    for (let changed = true; changed; ) {
+      changed = false;
+      for (const [k, o] of [...grid.cells]) {
+        if (o.kind !== "tuyau") continue;
+        const [x, y] = k.split(",").map(Number) as [number, number];
+        for (const layer of [{ net: o.net, links: o.links }, ...(o.cross ? [o.cross] : [])]) {
+          let deg = 0;
+          for (const d of [...layer.links]) {
+            const nk = `${x + STEP[d].x},${y + STEP[d].y}`;
+            const joined = layersAt(nk).some((l) => l.links.has(OPPOSITE[d]) && (l.net === layer.net || itemOf(l.net) === itemOf(layer.net)));
+            if (joined || legitEnd(layer.net, nk)) deg++;
+            else {
+              layer.links.delete(d);
+              changed = true;
+            }
+          }
+          if (deg <= 1 && layer.links.size) {
+            layer.links.clear();
+            changed = true;
+          }
+        }
+        // Couche vide : le croisement devient une pièce simple, ou la case se libère.
+        if (o.cross && !o.cross.links.size) delete o.cross;
+        if (!o.links.size) {
+          if (o.cross) {
+            [o.net, o.links] = [o.cross.net, o.cross.links];
+            delete o.cross;
+          } else grid.cells.delete(k);
+        }
+      }
+    }
+    // Pièces des modules : chaque liaison gardée l'est aussi dans la grille (même ressource, même case).
+    for (const b of boxes) {
+      if (!b.mod || !b.req) continue;
+      const item = (id: string) => b.mod!.nets.find((n) => n.id === id)?.item ?? id.replace(/#\d+$/, "");
+      const kept = (x: number, y: number, net: string, links: Dir[]) => {
+        const l = layersAt(`${b.x + x},${b.y + y}`).find((q) => q.net === `${b.key}~${net}` || itemOf(q.net) === item(net));
+        return l ? links.filter((d) => l.links.has(d)) : [];
+      };
+      const pieces = b.mod.pieces.map((pc) => ({ x: pc.x, y: pc.y, net: pc.net, links: kept(pc.x, pc.y, pc.net, pc.links), ...(pc.crossNet ? { crossNet: pc.crossNet, crossLinks: kept(pc.x, pc.y, pc.crossNet, pc.crossLinks ?? []) } : {}) }));
+      if (pieces.every((p, i) => p.links.length === b.mod!.pieces[i]!.links.length && (p.crossLinks?.length ?? 0) === (b.mod!.pieces[i]!.crossLinks?.length ?? 0))) continue;
+      b.mod = withPieces(b.mod, pieces, b.req, cat, name);
+    }
+    return before - [...grid.cells.values()].filter((o) => o.kind === "tuyau").length;
+  };
   const setVariant = (b: Box, m: ModulePlan) => {
     b.variants = fourTurns(m);
     b.mod = b.variants[b.rot]!;
@@ -882,6 +955,10 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     }
     routeBetween();
   }
+  // Appendices : une fois la disposition finale choisie, les bouts de tuyau qui ne mènent nulle part (bouts des
+  // collecteurs recalculés, raccords d'origine des modules remplacés par la prise unique) sont retirés, pièce par
+  // pièce depuis le bout ; un té qui perd une branche devient un tuyau droit ou un coude.
+  const pruned = full ? pruneDeadEnds() : 0;
   progress(0.95, "Réseau électrique");
   const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
   const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
@@ -1091,6 +1168,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0),
       keptPoles,
       newPoles,
+      pruned,
     },
     debug: { tries: tries.map((t) => `${t.area} ${t.pipes} CLR${t.CLR} w${t.wDist} ${t.bySize}${t.problems ? ` (${t.problems} non tracées)` : ""}`), passages: passLog, taps: tapLog },
   };
