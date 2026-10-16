@@ -269,6 +269,31 @@ ul.mod-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wra
 ul.mod-legend i { display: inline-block; width: 14px; height: 6px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
 ul.mod-legend i.sw-plug { width: 8px; height: 8px; border-radius: 50%; background: #f2d21b; }
 ul.mod-legend i.sw-pole { width: 10px; height: 10px; border-radius: 2px; background: #3a2614; border: 1px solid #f0913a; }
+ul.mod-legend i.sw-cable { height: 0; border-top: 2px dashed #ffd54a; border-radius: 0; }
+ul.mod-legend i.sw-plot { height: 0; border-top: 2px dashed #6cc792; border-radius: 0; }
+table.mini i.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+/* Toute l'usine (vue de dessus) */
+.usine .u-plot { fill: none; stroke: #6cc792; stroke-dasharray: 14 10; stroke-width: 3; }
+.usine .u-plot-t { fill: #6cc792; font-size: 14px; text-anchor: end; }
+.usine .u-bbox { fill: none; stroke: #e6ebf0; stroke-dasharray: 3 5; stroke-width: 1.5; opacity: .6; pointer-events: none; }
+.usine .u-bbox-t { fill: #9aa7b4; font-size: 12px; text-anchor: end; }
+.usine .u-box { fill: #22272e; stroke: #4a525c; stroke-width: 2; }
+.usine .u-farm { fill: #22282f; stroke: #9aa7b4; stroke-width: 2; stroke-dasharray: 8 6; }
+.usine .u-mod:hover .u-box, .usine .u-mod:hover .u-farm { stroke: #8fb8d6; }
+.usine .u-mach { fill: #39414b; stroke: #56606b; }
+.usine .u-lbl text { text-anchor: middle; pointer-events: none; opacity: .45; }
+.usine .u-t1 { fill: #e6ebf0; font-weight: 600; }
+.usine .u-t2 { fill: #9aa7b4; }
+.usine .u-line { fill: none; stroke-linecap: round; pointer-events: none; }
+.usine .u-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: help; }
+.usine .u-net:hover .u-line { stroke-width: 7; }
+.usine .u-xing { fill: #1d2126; stroke: #e6ebf0; stroke-width: 1.4; }
+.usine .u-cable-line { stroke: #ffd54a; stroke-width: 2; stroke-dasharray: 7 5; pointer-events: none; }
+.usine .u-cable-hit { stroke: transparent; stroke-width: 14; cursor: help; }
+.usine .u-cable:hover .u-cable-line { stroke-width: 4; }
+.usine .u-cable.over .u-cable-line { stroke: #ff8a80; }
+.usine .u-pole { fill: #5a4320; stroke: #ffd54a; stroke-width: 1.2; }
+.usine .u-feed { fill: #ffd54a; stroke: #1d2126; stroke-width: 3; }
 ol.steps-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
 
 /* Détails */

@@ -88,19 +88,31 @@ function plotLine(m: ModulePlan, plot: { w: number; h: number } | null): string 
 /**
  * Choix de la sortie du collecteur central d'une double rangée : par les bouts (proposé), ou par un passage
  * entre deux machines ; la place d'abord : ceux qui élargissent le module sont à part, en option.
+ * `advised` : les passages que « Toute l'usine » a gardés pour ce module, vers ses voisins (« ressource|rangée|n° »),
+ * en tête de liste ; null si l'usine n'est pas encore calculée.
  */
-export function renderPassagePick(base: ModulePlan, options: PassageOption[], chosen: string, name: (id: string) => string): string {
+export function renderPassagePick(base: ModulePlan, options: PassageOption[], chosen: string, name: (id: string) => string, advised: string[] | null = null): string {
   if (!options.length) return "";
   const key = (o: PassageOption) => `${o.item}|${o.passage.row}|${o.passage.after}`;
   const size = (o: PassageOption) => `${o.plan.width} × ${o.plan.height} cases`;
-  const opt = (o: PassageOption) => `<option value="${esc(key(o))}"${key(o) === chosen ? " selected" : ""}>${esc(`${name(o.item)} : ${passageWhere(o.passage, base.count)} · ${size(o)}`)}</option>`;
-  const keep = options.filter((o) => !o.widens);
-  const wide = options.filter((o) => o.widens);
+  const good = (o: PassageOption) => !!advised?.includes(key(o));
+  const opt = (o: PassageOption) =>
+    `<option value="${esc(key(o))}"${key(o) === chosen ? " selected" : ""}>${good(o) ? "★ " : ""}${esc(`${name(o.item)} : ${passageWhere(o.passage, base.count)} · ${size(o)}`)}${good(o) ? " · vers les voisins" : ""}</option>`;
+  const first = (list: PassageOption[]) => [...list.filter(good), ...list.filter((o) => !good(o))];
+  const keep = first(options.filter((o) => !o.widens));
+  const wide = first(options.filter((o) => o.widens));
+  const tips = options.filter(good).map((o) => `${name(o.item)} ${passageWhere(o.passage, base.count)}`);
+  const advice =
+    advised === null
+      ? `Pour savoir quel passage va vers les modules voisins, <button type="button" class="link small" data-usine="open">calcule « Toute l'usine »</button> (en arrière-plan).`
+      : tips.length
+        ? `★ D'après « Toute l'usine », vers les modules voisins : ${esc(tips.join(" ; "))}.`
+        : `D'après « Toute l'usine », aucun passage ne raccourcit les tuyaux vers les voisins de ce module : les bouts suffisent.`;
   return `<div class="pose-via"><label class="pose-pick" for="pose-via">Sortie d'un collecteur central
     <select id="pose-via"><option value="">Par les bouts des collecteurs · ${base.width} × ${base.height} cases</option>${
       keep.length ? `<optgroup label="Par un passage entre deux machines">${keep.map(opt).join("")}</optgroup>` : ""
     }${wide.length ? `<optgroup label="Par un passage, en élargissant le module (option)">${wide.map(opt).join("")}</optgroup>` : ""}</select></label>
-    <p class="hint">Double rangée : un collecteur peut sortir à angle droit entre deux machines voisines, pour rejoindre plus court un module voisin.</p></div>`;
+    <p class="hint">Double rangée : un collecteur peut sortir à angle droit entre deux machines voisines, pour rejoindre plus court un module voisin. ${advice}</p></div>`;
 }
 
 /** « double rangée », ou « 3 blocs empilés (double rangée) » pour des rangées repliées. */

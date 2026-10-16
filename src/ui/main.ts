@@ -14,9 +14,12 @@ import energyJson from "../../data/energy.json";
 import stationsJson from "../../data/research-stations.json";
 import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
-import { buildCatalog } from "../engine/build/catalog.ts";
+import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
+import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
+import { renderFactoryInfo, renderFactorySvg } from "./factory-view.ts";
+import { runFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
@@ -630,6 +633,15 @@ const modulePassages = new Map<string, PassageOption[]>();
 const poseVia = new Map<string, string>();
 let modulesFor = "";
 let posePZ: PanZoom | null = null;
+/** Entrée « Toute l'usine » de la liste des étapes (dans l'adresse : #…/pose/usine-entiere). */
+const USINE = "usine-entiere";
+/** La vue de départ du plan de pose montre tout (toute l'usine). */
+let poseFitAll = false;
+/**
+ * Calcul de toute l'usine, en arrière-plan (Web Worker) : gardé tant que le plan, les priorités, les relevés
+ * et la parcelle ne changent pas.
+ */
+let factory: { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: string; error: string | null; cancelled: boolean } | null = null;
 let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
@@ -721,8 +733,14 @@ function renderPose(): void {
     $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
     return;
   }
-  if (!poseStep || !choices.some((s) => s.key === poseStep)) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
-  sel.innerHTML = choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${portsLabel(s.machine)}</option>`).join("");
+  if (!poseStep || (poseStep !== USINE && !choices.some((s) => s.key === poseStep))) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
+  sel.innerHTML =
+    `<option value="${USINE}"${poseStep === USINE ? " selected" : ""}>Toute l'usine (proposition, calculée en arrière-plan)</option><optgroup label="Un module par étape">` +
+    choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${portsLabel(s.machine)}</option>`).join("") +
+    `</optgroup>`;
+  input("pose-tier3").checked = settings.tier3Only;
+  renderPriority();
+  if (poseStep === USINE) return renderFactory();
   const base = moduleOf(poseStep);
   $("pose-frame").hidden = !base;
   if (!base) {
@@ -738,30 +756,116 @@ function renderPose(): void {
   const info = renderModuleInfo(m, anyName, survey, plotOf(player));
   const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
   $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p>${renderStepLinks(viewCtx(), poseStep)}`;
-  $("pose-head").innerHTML = info.head + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName);
+  $("pose-head").innerHTML = info.head + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
-  const f = renderModuleSvg(m, anyName);
+  showPoseSvg(renderModuleSvg(m, anyName), `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePriority.join(",")}`);
+}
+
+/** Dessin du plan de pose (un module, ou toute l'usine) dans le cadre navigable ; `k` : vue gardée si inchangé. */
+function showPoseSvg(f: { svg: string; width: number; height: number }, k: string, fitAll = false): void {
   const canvas = $("pose-canvas");
   const frame = $("pose-frame");
+  frame.hidden = false;
   canvas.innerHTML = f.svg;
+  poseFitAll = fitAll;
   const fw = frame.clientWidth || 800;
   const sc = flowStartScale({ w: fw, h: window.innerHeight * 0.7 }, { w: f.width, h: f.height });
   frame.style.height = `${Math.round(Math.max(260, Math.min(window.innerHeight * 0.7, f.height * sc + 8)))}px`;
   posePZ ??= new PanZoom(frame, {
     minWidth: 120,
     initialView: (fr, c) => {
-      const k = flowStartScale(fr, c);
+      // Toute l'usine : la vue de départ la montre en entier ; un module : taille lisible, centré.
+      const k = poseFitAll ? Math.min(fr.w / c.w, fr.h / c.h) * 0.97 : flowStartScale(fr, c);
       const w = fr.w / k;
       const h = fr.h / k;
       return { x: w >= c.w ? (c.w - w) / 2 : 0, y: (c.h - h) / 2, w, h };
     },
   });
-  input("pose-tier3").checked = settings.tier3Only;
-  renderPriority();
-  const k = `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePriority.join(",")}`;
   posePZ.attach(canvas.querySelector("svg")!, f.width, f.height, k === poseKey);
   poseKey = k;
+}
+
+/** Clé du calcul de toute l'usine : il est refait quand l'un de ces réglages change. */
+function factoryKey(): string {
+  const plot = plotOf(player);
+  return `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}`;
+}
+
+/** Tier du tuyau d'une liaison entre modules, d'après son débit. */
+const tierOf = (item: string, perMin: number) => pipeFor(CATALOG, data.items.get(item)?.isFluid ? "fluide" : "objet", perMin / 60, settings.tier3Only)?.tier ?? null;
+
+/** Lance le calcul de toute l'usine dans un Web Worker (annule celui en cours). */
+function startFactory(): void {
+  factory?.job?.cancel();
+  const key = factoryKey();
+  const pts = currentPorts();
+  // Sans parcelle renseignée, le placement n'a pas de limite (seulement la place la plus petite).
+  const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
+  const input = factoryInput(
+    plan!,
+    { name: anyName, isFluid: (id) => !!data.items.get(id)?.isFluid, machine: (id) => data.machines.get(id) ?? null, ports: pts.machines },
+    CATALOG,
+    plot,
+    { priority: settings.posePriority, tier3Only: settings.tier3Only },
+    { full: true },
+  );
+  const st: NonNullable<typeof factory> = { key, plan: null, ms: 0, job: null, done: 0, label: "Démarrage", error: null, cancelled: false };
+  factory = st;
+  const showing = () => factory === st && !$("rpanel-pose").hidden && poseStep === USINE;
+  st.job = runFactory(input, {
+    progress: (done, label) => {
+      [st.done, st.label] = [done, label];
+      if (showing()) updateFactoryProgress();
+    },
+    done: (fp, ms) => {
+      [st.plan, st.ms, st.job] = [fp, ms, null];
+      if (showing()) renderPose();
+    },
+    error: (message) => {
+      [st.error, st.job] = [message, null];
+      if (showing()) renderPose();
+    },
+  });
+}
+
+function updateFactoryProgress(): void {
+  const el = document.getElementById("usine-progress");
+  if (!el || !factory) return;
+  el.querySelector<HTMLElement>(".bar i")!.style.width = `${Math.round(factory.done * 100)}%`;
+  el.querySelector(".pct")!.textContent = `${Math.round(factory.done * 100)} %`;
+  el.querySelector(".lbl")!.textContent = factory.label;
+}
+
+/** Passages du collecteur central que toute l'usine a gardés pour cette étape (null : usine pas encore calculée). */
+function advisedPassages(step: string): string[] | null {
+  if (!factory?.plan || factory.key !== factoryKey()) return null;
+  return (factory.plan.passagesKept.get(step)?.choices ?? []).map((c) => `${c.item}|${c.passage.row}|${c.passage.after}`);
+}
+
+/** « Toute l'usine » dans l'onglet Plans de pose : avancement du calcul, puis la vue de dessus. */
+function renderFactory(): void {
+  if (!factory || factory.key !== factoryKey()) startFactory();
+  const st = factory!;
+  $("pose-links").innerHTML = "";
+  if (!st.plan) {
+    $("pose-frame").hidden = true;
+    $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
+    const pct = Math.round(st.done * 100);
+    $("pose-head").innerHTML = st.error
+      ? `<p class="warn-text">Le calcul de toute l'usine a échoué : ${esc(st.error)}</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
+      : st.cancelled
+        ? `<p class="muted">Calcul de toute l'usine annulé.</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
+        : `<p class="mod-sum"><b>Toute l'usine — proposition</b> : calcul en arrière-plan, quelques secondes à une minute selon la taille du plan. Tu peux continuer à utiliser le site pendant ce temps.</p>
+          <div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(st.label)}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${pct} %</span><button type="button" data-usine="cancel">Annuler</button></div>`;
+    return;
+  }
+  const plot = plotOf(player);
+  const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms);
+  $("pose-head").innerHTML = info.head;
+  $("pose-legend").innerHTML = info.legend;
+  $("pose-details").innerHTML = info.details;
+  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf), `${st.key}|${USINE}`, true);
 }
 
 // ---------------------------------------------------------------- Mon usine
@@ -1233,6 +1337,23 @@ function bindPlan(): void {
   });
   // « Le mettre en premier » (sous le résumé du plan).
   $("pose-head").addEventListener("click", (e) => {
+    // Toute l'usine : annuler ou relancer le calcul ; l'ouvrir (depuis le choix d'un passage).
+    const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
+    if (u) {
+      if (u.dataset.usine === "cancel" && factory) {
+        factory.job?.cancel();
+        Object.assign(factory, { job: null, cancelled: true });
+        renderPose();
+      } else if (u.dataset.usine === "run") {
+        startFactory();
+        renderPose();
+      } else if (u.dataset.usine === "open") {
+        poseStep = USINE;
+        refine({ page: "plan", goal: settings.goal, tab: "pose", step: USINE });
+        renderPose();
+      }
+      return;
+    }
     const b = (e.target as Element).closest<HTMLElement>("[data-first]");
     if (!b) return;
     const k = b.dataset.first as PoseCriterion;
