@@ -176,15 +176,42 @@
       <label class="check-line"><input type="checkbox" id="pose-tier3"> Seulement des tuyaux de tier III <span class="hint">(plus rapides, plus chers)</span></label>
       <div id="pose-head"></div>
       <div id="pose-links"></div>
-      <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
-        <div id="pose-canvas"></div>
-        <p class="flow-help">Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer</p>
-        <div class="rs-zoom">
-          <button type="button" data-pzoom="in" aria-label="Zoomer">+</button>
-          <button type="button" data-pzoom="out" aria-label="Dézoomer">−</button>
-          <button type="button" data-pzoom="fit" aria-label="Tout voir">⤢</button>
-          <button type="button" data-pzoom="reset" aria-label="Vue de départ">⌂</button>
+      <div id="pose-bar"></div>
+      <div class="pose-split" id="pose-split">
+        <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
+          <div id="pose-canvas"></div>
+          <p class="flow-help">Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer</p>
+          <div class="rs-zoom">
+            <button type="button" data-pzoom="in" aria-label="Zoomer">+</button>
+            <button type="button" data-pzoom="out" aria-label="Dézoomer">−</button>
+            <button type="button" data-pzoom="fit" aria-label="Tout voir">⤢</button>
+            <button type="button" data-pzoom="reset" aria-label="Vue de départ">⌂</button>
+          </div>
+          <div class="u-pick" id="pose-pick" hidden></div>
+          <div class="u-tip" id="pose-tip" hidden></div>
         </div>
+        <aside class="pose-focus" id="pose-focus" aria-label="Module dans l'usine" hidden>
+          <div class="focus-bar">
+            <button type="button" class="link" data-focus-back>← Retour à l'usine</button>
+            <span class="focus-title" id="focus-title"></span>
+            <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)">⛶</button>
+            <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer">✕</button>
+          </div>
+          <div id="focus-bar-opts"></div>
+          <div class="flow-frame focus-frame" id="focus-frame" tabindex="0" aria-label="Module dans l'usine : glisser pour se déplacer, molette pour zoomer">
+            <div id="focus-canvas"></div>
+            <div class="rs-zoom">
+              <button type="button" data-qzoom="in" aria-label="Zoomer">+</button>
+              <button type="button" data-qzoom="out" aria-label="Dézoomer">−</button>
+              <button type="button" data-qzoom="fit" aria-label="Tout voir">⤢</button>
+            </div>
+          </div>
+          <div class="focus-info">
+            <div id="focus-head"></div>
+            <div id="focus-legend"></div>
+            <div id="focus-details"></div>
+          </div>
+        </aside>
       </div>
       <div id="pose-legend"></div>
       <div id="pose-details"></div>

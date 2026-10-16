@@ -3,6 +3,7 @@
 //   #objet                      page d'un objectif (onglet du résultat : le dernier utilisé)
 //   #objet/schema/<étape>       onglet du résultat, avec un bloc du schéma sélectionné
 //   #objet/pose/<étape>         plan de pose d'une étape
+//   #objet/pose/usine-entiere/<étape>  toute l'usine, avec le panneau d'un module ouvert
 //   #donnees/batiments/<id>     éditeur de bâtiments, sur un bâtiment
 // Fonctions pures, testées sans navigateur.
 
@@ -10,7 +11,10 @@ import type { Goal, ResultTab } from "./state.ts";
 
 export type Page = "accueil" | "plan" | "usine" | "arbre" | "donnees";
 export type DataTab = "verifier" | "batiments";
-export type Route = { page: Page; goal?: Goal; tab?: ResultTab; step?: string; dataTab?: DataTab; machine?: string };
+export type Route = { page: Page; goal?: Goal; tab?: ResultTab; step?: string; focus?: string; dataTab?: DataTab; machine?: string };
+
+/** Entrée « Toute l'usine » de la liste des étapes du plan de pose. */
+export const USINE_STEP = "usine-entiere";
 
 export const PAGES: Page[] = ["accueil", "plan", "usine", "arbre", "donnees"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
@@ -31,13 +35,14 @@ export function parseRoute(hash: string): Route {
         return p;
       }
     });
-  const [head = "", a, b] = parts;
+  const [head = "", a, b, c] = parts;
   const goal = ROUTE_GOAL[head];
   if (goal) {
     const r: Route = { page: "plan", goal };
     if (a && (TABS as string[]).includes(a)) {
       r.tab = a as ResultTab;
       if (b && (a === "schema" || a === "pose")) r.step = b;
+      if (c && a === "pose" && b === USINE_STEP) r.focus = c;
     }
     return r;
   }
@@ -57,6 +62,7 @@ export function routeHash(r: Route): string {
     if (r.tab) {
       parts.push(r.tab);
       if (r.step && (r.tab === "schema" || r.tab === "pose")) parts.push(r.step);
+      if (r.focus && r.tab === "pose" && r.step === USINE_STEP) parts.push(r.focus);
     }
   } else if (r.page === "donnees") {
     parts.push("donnees");
@@ -70,6 +76,7 @@ export function routeHash(r: Route): string {
 
 /** Nom court d'une vue, pour le bouton « Retour » (« Revenir à : Schéma »). */
 export function routeTitle(r: Route): string {
+  if (r.page === "plan" && r.tab === "pose" && r.step === USINE_STEP) return r.focus ? "Module dans l'usine" : "Toute l'usine";
   if (r.page === "plan") return r.tab ? TAB_TITLE[r.tab] : GOAL_TITLE[r.goal ?? "objet"];
   if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Données";
   return PAGE_TITLE[r.page];

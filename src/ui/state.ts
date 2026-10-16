@@ -26,6 +26,9 @@ export function criteriaList(goal: Goal, raw: unknown): Criterion[] {
 
 export type ResultTab = "liste" | "schema" | "pose" | "details";
 
+/** Réglages de la vue « Toute l'usine » : `full` recalculée (sinon module par module), `glue` liaisons collées (module par module). */
+export type UsineView = { full: boolean; glue: boolean; detail: boolean; power: boolean; plugs: boolean; links: boolean };
+
 export type Settings = {
   /** Objectif affiché : produire un objet, de l'énergie, des RP, ou de l'argent. */
   goal: Goal;
@@ -64,6 +67,8 @@ export type Settings = {
   tier3Only: boolean;
   /** Plans de pose : ordre des critères qui départagent les dispositions. */
   posePriority: PoseCriterion[];
+  /** Toute l'usine (S4) : calcul, liaisons collées, affichage (intérieur des modules, électricité, câbles vers les machines, vecteurs des liaisons). */
+  usine: UsineView;
   /** Objectif recherche : but, vitesse, recherche visée, délai, plafond (null = automatique), options. */
   rpMode: "rate" | "node" | "plan";
   rpRate: number;
@@ -98,6 +103,7 @@ export const DEFAULT_SETTINGS: Settings = {
   distanceTiles: null,
   tier3Only: false,
   posePriority: [...POSE_CRITERIA],
+  usine: { full: true, glue: false, detail: false, power: true, plugs: false, links: false },
   rpMode: "rate",
   rpRate: 50,
   rpNode: null,
@@ -155,6 +161,8 @@ export function loadSettings(): Settings {
   if (out.distanceTiles !== null && !(out.distanceTiles >= 0)) out.distanceTiles = null;
   out.tier3Only = out.tier3Only === true;
   out.posePriority = normalPriority(Array.isArray(out.posePriority) ? out.posePriority : undefined);
+  const u = out.usine && typeof out.usine === "object" ? (out.usine as Partial<UsineView>) : {};
+  out.usine = Object.fromEntries(Object.entries(DEFAULT_SETTINGS.usine).map(([k, v]) => [k, typeof u[k as keyof UsineView] === "boolean" ? u[k as keyof UsineView] : v])) as UsineView;
   if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;

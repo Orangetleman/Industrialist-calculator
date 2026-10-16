@@ -16,9 +16,10 @@ import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
 import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
+import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
-import { renderFactoryInfo, renderFactorySvg } from "./factory-view.ts";
+import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryModule, renderFactorySvg, turnText } from "./factory-view.ts";
 import { runFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
@@ -52,7 +53,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioList, focusItem, renderPrioItems } from "./prio-list.ts";
-import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeTitle, type Page, type Route } from "./route.ts";
+import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
@@ -250,6 +251,7 @@ function readRoute(): void {
     saveSettings(settings);
   }
   if (route.tab === "pose" && route.step) poseStep = route.step;
+  poseFocus = route.tab === "pose" && route.step === USINE ? (route.focus ?? null) : null;
   if (route.tab === "schema") flowSel = route.step ?? null;
   if (route.dataTab && route.dataTab !== ui.dataTab) {
     ui.dataTab = route.dataTab;
@@ -277,6 +279,7 @@ function showPage(): void {
   const titles: Record<Page, string> = { accueil: "", plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", donnees: "Données" };
   document.title = titles[page] ? `${titles[page]} — Calculateur de production` : "Calculateur de production";
   renderBack();
+  document.body.classList.remove("usine-wide");
   render();
   if (page === "donnees" && route.machine) buildings.show(route.machine);
   // Retour : la vue reprend où on l'avait laissée ; nouvelle page : en haut.
@@ -634,14 +637,22 @@ const poseVia = new Map<string, string>();
 let modulesFor = "";
 let posePZ: PanZoom | null = null;
 /** Entrée « Toute l'usine » de la liste des étapes (dans l'adresse : #…/pose/usine-entiere). */
-const USINE = "usine-entiere";
+const USINE = USINE_STEP;
 /** La vue de départ du plan de pose montre tout (toute l'usine). */
 let poseFitAll = false;
 /**
- * Calcul de toute l'usine, en arrière-plan (Web Worker) : gardé tant que le plan, les priorités, les relevés
- * et la parcelle ne changent pas.
+ * Calculs de toute l'usine, en arrière-plan (Web Worker) : un par réglage de calcul (recalculée, module par
+ * module, collée), gardé tant que le plan, les priorités, les relevés et la parcelle ne changent pas.
  */
-let factory: { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: string; error: string | null; cancelled: boolean } | null = null;
+type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: string; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null };
+const factories = new Map<string, FactoryState>();
+/** Module ouvert dans le panneau à côté de l'usine (adresse #…/pose/usine-entiere/<étape>). */
+let poseFocus: string | null = null;
+let focusPZ: PanZoom | null = null;
+let focusKey = "";
+/** Sélection : « n:<liaison> » ou « c:<poteau> » dans l'usine, « i:<ressource> » dans un module. */
+let poseSel: string | null = null;
+let focusSel: string | null = null;
 let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
@@ -741,6 +752,7 @@ function renderPose(): void {
   input("pose-tier3").checked = settings.tier3Only;
   renderPriority();
   if (poseStep === USINE) return renderFactory();
+  showFocus(null);
   const base = moduleOf(poseStep);
   $("pose-frame").hidden = !base;
   if (!base) {
@@ -755,11 +767,23 @@ function renderPose(): void {
   const survey = surveyState(m.machine, REPO_PORTS, currentPorts().local);
   const info = renderModuleInfo(m, anyName, survey, plotOf(player));
   const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
-  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p>${renderStepLinks(viewCtx(), poseStep)}`;
+  const inFactory = fullFactory()?.plan?.boxes.find((b) => b.key === poseStep);
+  const factoryLine = inFactory?.mod
+    ? `Dans « Toute l'usine », ce module est recalculé${turnText(inFactory.rot) ? ` et ${turnText(inFactory.rot)}` : ""} (${inFactory.w} × ${inFactory.h} cases) : <button type="button" class="link" data-focus="${esc(poseStep)}">voir sa version dans l'usine</button>`
+    : `<button type="button" class="link" data-focus="${esc(poseStep)}">Voir sa version dans « Toute l'usine »</button> <span class="muted">(recalculée et tournée vers ses voisins${fullFactory()?.plan ? "" : ", calcul en arrière-plan"})</span>`;
+  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
+  $("pose-bar").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${settings.usine.links ? "Une flèche blanche par liaison, dans le sens du flux, et les câbles de chaque poteau vers ses machines." : "Ou clique un tuyau pour voir les liaisons de sa ressource. Clique une machine pour ouvrir sa fiche."}</span></div>`;
   $("pose-head").innerHTML = info.head + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
   showPoseSvg(renderModuleSvg(m, anyName), `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePriority.join(",")}`);
+  setFrameClasses($("pose-frame"), { "u-links": settings.usine.links });
+}
+
+/** Classes d'affichage d'un cadre (les autres classes « u-… » sont retirées). */
+function setFrameClasses(frame: HTMLElement, on: Record<string, boolean>): void {
+  for (const c of [...frame.classList]) if (c.startsWith("u-") && !(c in on)) frame.classList.remove(c);
+  for (const [c, v] of Object.entries(on)) frame.classList.toggle(c, v);
 }
 
 /** Dessin du plan de pose (un module, ou toute l'usine) dans le cadre navigable ; `k` : vue gardée si inchangé. */
@@ -767,6 +791,7 @@ function showPoseSvg(f: { svg: string; width: number; height: number }, k: strin
   const canvas = $("pose-canvas");
   const frame = $("pose-frame");
   frame.hidden = false;
+  $("pose-tip").hidden = true;
   canvas.innerHTML = f.svg;
   poseFitAll = fitAll;
   const fw = frame.clientWidth || 800;
@@ -783,23 +808,34 @@ function showPoseSvg(f: { svg: string; width: number; height: number }, k: strin
     },
   });
   posePZ.attach(canvas.querySelector("svg")!, f.width, f.height, k === poseKey);
+  if (k !== poseKey) poseSel = null;
   poseKey = k;
+  applySel($("pose-frame"), poseSel, "pose-pick");
 }
 
 /** Clé du calcul de toute l'usine : il est refait quand l'un de ces réglages change. */
-function factoryKey(): string {
+function factoryKey(v = settings.usine): string {
   const plot = plotOf(player);
-  return `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}`;
+  return `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
 }
+
+/** Le calcul pour les réglages en cours, et celui de l'usine recalculée (passages conseillés, version d'un module). */
+const currentFactory = () => factories.get(factoryKey()) ?? null;
+const fullFactory = () => factories.get(factoryKey({ ...settings.usine, full: true })) ?? null;
 
 /** Tier du tuyau d'une liaison entre modules, d'après son débit. */
 const tierOf = (item: string, perMin: number) => pipeFor(CATALOG, data.items.get(item)?.isFluid ? "fluide" : "objet", perMin / 60, settings.tier3Only)?.tier ?? null;
 
-/** Lance le calcul de toute l'usine dans un Web Worker (annule celui en cours). */
+/** Lance le calcul de toute l'usine dans un Web Worker (annule celui en cours, garde ceux qui sont finis). */
 function startFactory(): void {
-  factory?.job?.cancel();
+  for (const [k, other] of factories)
+    if (other.job || other.key.split("|").slice(0, -1).join("|") !== factoryKey().split("|").slice(0, -1).join("|")) {
+      other.job?.cancel();
+      factories.delete(k);
+    }
   const key = factoryKey();
   const pts = currentPorts();
+  const v = settings.usine;
   // Sans parcelle renseignée, le placement n'a pas de limite (seulement la place la plus petite).
   const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
   const input = factoryInput(
@@ -808,11 +844,11 @@ function startFactory(): void {
     CATALOG,
     plot,
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
-    { full: true },
+    v.full ? { full: true } : { glue: v.glue },
   );
-  const st: NonNullable<typeof factory> = { key, plan: null, ms: 0, job: null, done: 0, label: "Démarrage", error: null, cancelled: false };
-  factory = st;
-  const showing = () => factory === st && !$("rpanel-pose").hidden && poseStep === USINE;
+  const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: "Démarrage", error: null, cancelled: false, flows: null };
+  factories.set(key, st);
+  const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
   st.job = runFactory(input, {
     progress: (done, label) => {
       [st.done, st.label] = [done, label];
@@ -820,7 +856,7 @@ function startFactory(): void {
     },
     done: (fp, ms) => {
       [st.plan, st.ms, st.job] = [fp, ms, null];
-      if (showing()) renderPose();
+      if (showing() || (!$("rpanel-pose").hidden && poseStep !== USINE)) renderPose();
     },
     error: (message) => {
       [st.error, st.job] = [message, null];
@@ -831,41 +867,127 @@ function startFactory(): void {
 
 function updateFactoryProgress(): void {
   const el = document.getElementById("usine-progress");
-  if (!el || !factory) return;
-  el.querySelector<HTMLElement>(".bar i")!.style.width = `${Math.round(factory.done * 100)}%`;
-  el.querySelector(".pct")!.textContent = `${Math.round(factory.done * 100)} %`;
-  el.querySelector(".lbl")!.textContent = factory.label;
+  const st = currentFactory();
+  if (!el || !st) return;
+  el.querySelector<HTMLElement>(".bar i")!.style.width = `${Math.round(st.done * 100)}%`;
+  el.querySelector(".pct")!.textContent = `${Math.round(st.done * 100)} %`;
+  el.querySelector(".lbl")!.textContent = st.label;
 }
 
-/** Passages du collecteur central que toute l'usine a gardés pour cette étape (null : usine pas encore calculée). */
+/** Passages du collecteur central que toute l'usine (recalculée) a gardés pour cette étape (null : pas encore calculée). */
 function advisedPassages(step: string): string[] | null {
-  if (!factory?.plan || factory.key !== factoryKey()) return null;
-  return (factory.plan.passagesKept.get(step)?.choices ?? []).map((c) => `${c.item}|${c.passage.row}|${c.passage.after}`);
+  const st = fullFactory();
+  if (!st?.plan) return null;
+  return (st.plan.passagesKept.get(step)?.choices ?? []).map((c) => `${c.item}|${c.passage.row}|${c.passage.after}`);
 }
 
-/** « Toute l'usine » dans l'onglet Plans de pose : avancement du calcul, puis la vue de dessus. */
+/** Vecteurs des liaisons de l'usine (calculés une fois par résultat). */
+function flowsOf(st: FactoryState): FactoryArrow[] {
+  return (st.flows ??= st.plan ? factoryFlows(st.plan) : []);
+}
+
+/** « Toute l'usine » dans l'onglet Plans de pose : barre d'options, avancement du calcul, puis la vue de dessus. */
 function renderFactory(): void {
-  if (!factory || factory.key !== factoryKey()) startFactory();
-  const st = factory!;
+  if (!currentFactory()) startFactory();
+  const st = currentFactory()!;
   $("pose-links").innerHTML = "";
+  $("pose-bar").innerHTML = renderFactoryBar(settings.usine);
   if (!st.plan) {
     $("pose-frame").hidden = true;
+    showFocus(null);
     $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
     const pct = Math.round(st.done * 100);
     $("pose-head").innerHTML = st.error
       ? `<p class="warn-text">Le calcul de toute l'usine a échoué : ${esc(st.error)}</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
       : st.cancelled
         ? `<p class="muted">Calcul de toute l'usine annulé.</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
-        : `<p class="mod-sum"><b>Toute l'usine — proposition</b> : calcul en arrière-plan, quelques secondes à une minute selon la taille du plan. Tu peux continuer à utiliser le site pendant ce temps.</p>
+        : `<p class="mod-sum"><b>Toute l'usine — proposition</b> : calcul en arrière-plan${settings.usine.full ? ", quelques secondes à une minute selon la taille du plan" : ""}. Tu peux continuer à utiliser le site pendant ce temps.</p>
           <div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(st.label)}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${pct} %</span><button type="button" data-usine="cancel">Annuler</button></div>`;
     return;
   }
   const plot = plotOf(player);
-  const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms);
+  const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue);
   $("pose-head").innerHTML = info.head;
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
-  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf), `${st.key}|${USINE}`, true);
+  // Le panneau d'abord : il change la largeur du cadre de l'usine.
+  showFocus(poseFocus);
+  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st)), `${st.key}|${USINE}`, true);
+  setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
+  markFocused();
+}
+
+/** Le module ouvert est encadré dans l'usine. */
+function markFocused(): void {
+  for (const g of $("pose-canvas").querySelectorAll(".u-mod")) g.classList.toggle("focus", (g as SVGGElement).dataset.mod === poseFocus);
+}
+
+/** Panneau du module à côté de l'usine (null : fermé), dans la version que l'usine utilise. */
+function showFocus(key: string | null): void {
+  const panel = $("pose-focus");
+  const split = $("pose-split");
+  const st = currentFactory();
+  const out = key && st?.plan ? renderFactoryModule(st.plan, key, anyName, tierOf, flowsOf(st)) : null;
+  panel.hidden = !out;
+  split.classList.toggle("focus", !!out);
+  document.body.classList.toggle("usine-wide", !!out);
+  if (!out) {
+    panel.classList.remove("full");
+    document.body.classList.remove("focus-full");
+    return;
+  }
+  $("focus-title").textContent = out.title;
+  $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">Clique une machine pour ouvrir sa fiche, un tuyau pour voir ses liaisons.</span></div>`;
+  $("focus-head").innerHTML = out.head + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">Plan de pose seul de cette étape</button> · <button type="button" class="link" data-flow="${esc(key!)}">Voir au schéma</button></p>`;
+  $("focus-legend").innerHTML = out.legend;
+  $("focus-details").innerHTML = out.details;
+  const frame = $("focus-frame");
+  $("focus-canvas").innerHTML = out.svg.svg;
+  focusPZ ??= new PanZoom(frame, { minWidth: 80, fitOnReset: true });
+  const k = `${st!.key}|${key}`;
+  focusPZ.attach($("focus-canvas").querySelector("svg")!, out.svg.width, out.svg.height, k === focusKey);
+  if (k !== focusKey) focusSel = null;
+  focusKey = k;
+  setFrameClasses(frame, { "u-links": settings.usine.links });
+  applySel(frame, focusSel, null);
+}
+
+/**
+ * Sélection dans un cadre : une liaison (« n:… ») et les vecteurs de sa ressource, un câble (« c:… ») et tout ce
+ * qu'il alimente, ou une ressource d'un module (« i:… ») ; le reste s'estompe.
+ */
+function applySel(frame: HTMLElement, sel: string | null, pickId: string | null): void {
+  for (const el of frame.querySelectorAll(".on")) el.classList.remove("on");
+  for (const el of document.querySelectorAll("#pose-details tr.on")) el.classList.remove("on");
+  frame.classList.toggle("hl", !!sel);
+  const pick = pickId ? document.getElementById(pickId) : null;
+  if (pick) pick.hidden = !sel;
+  if (!sel) return;
+  const [kind, id] = [sel.slice(0, 1), sel.slice(2)];
+  const mark = (q: string) => frame.querySelectorAll(q).forEach((el) => el.classList.add("on"));
+  let text = "";
+  if (kind === "n") {
+    const g = frame.querySelector<SVGGElement>(`[data-sel="${CSS.escape(sel)}"]`);
+    mark(`[data-sel="${CSS.escape(sel)}"]`);
+    if (g?.dataset.item) mark(`.u-flow[data-item="${CSS.escape(g.dataset.item)}"]`);
+    document.querySelectorAll(`#pose-details tr[data-sel="${CSS.escape(sel)}"]`).forEach((el) => el.classList.add("on"));
+    text = (g?.dataset.tip ?? "").split("\n")[0]!;
+  } else if (kind === "c") {
+    // Le câble et tout ce qui est en aval : poteaux, câbles et prises.
+    const cables = [...frame.querySelectorAll<SVGGElement>(".u-cable")];
+    const down = new Set([id]);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const c of cables) if (down.has(c.dataset.parent!) && !down.has(c.dataset.pole!)) grew = !!down.add(c.dataset.pole!);
+    }
+    for (const c of cables) if (down.has(c.dataset.pole!)) c.classList.add("on");
+    for (const l of frame.querySelectorAll<SVGLineElement>(".u-plug")) if (down.has(l.dataset.pole!)) l.classList.add("on");
+    text = (frame.querySelector<SVGGElement>(`[data-sel="${CSS.escape(sel)}"]`)?.dataset.tip ?? "").split("\n")[0]!;
+  } else {
+    mark(`.m-pipe[data-item="${CSS.escape(id)}"], .m-flow[data-item="${CSS.escape(id)}"]`);
+    text = `${anyName(id)} : liaisons dans le sens du flux`;
+  }
+  if (pick) pick.innerHTML = `<span>${esc(text)}</span> <button type="button" class="link small" data-unsel>✕</button>`;
 }
 
 // ---------------------------------------------------------------- Mon usine
@@ -1340,9 +1462,10 @@ function bindPlan(): void {
     // Toute l'usine : annuler ou relancer le calcul ; l'ouvrir (depuis le choix d'un passage).
     const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
     if (u) {
-      if (u.dataset.usine === "cancel" && factory) {
-        factory.job?.cancel();
-        Object.assign(factory, { job: null, cancelled: true });
+      const st = currentFactory();
+      if (u.dataset.usine === "cancel" && st) {
+        st.job?.cancel();
+        Object.assign(st, { job: null, cancelled: true });
         renderPose();
       } else if (u.dataset.usine === "run") {
         startFactory();
@@ -1379,6 +1502,110 @@ function bindPlan(): void {
     poseStep = (e.target as HTMLSelectElement).value;
     refine({ page: "plan", goal: settings.goal, tab: "pose", step: poseStep });
     renderPose();
+  });
+  // Toute l'usine (S4) : options de calcul et d'affichage, bouton « Afficher les liaisons » (aussi dans un module).
+  const onOption = (e: Event) => {
+    const el = (e.target as Element).closest<HTMLInputElement | HTMLButtonElement>("[data-uopt]");
+    if (!el) return;
+    const opt = el.dataset.uopt as keyof typeof settings.usine;
+    const v = { ...settings.usine };
+    if (opt === "links") v.links = !v.links;
+    else if (el instanceof HTMLInputElement && el.type === "checkbox") v[opt] = el.checked;
+    else if (el instanceof HTMLInputElement) v[opt] = el.value === "1";
+    else return;
+    settings.usine = v;
+    saveSettings(settings);
+    renderPose();
+    document.querySelector<HTMLElement>(`#${el.closest("[id]")?.id ?? "pose-bar"} [data-uopt="${opt}"]${el instanceof HTMLInputElement && el.type === "radio" ? `[value="${el.value}"]` : ""}`)?.focus();
+  };
+  for (const id of ["pose-bar", "focus-bar-opts"]) {
+    $(id).addEventListener("change", onOption);
+    $(id).addEventListener("click", (e) => {
+      if ((e.target as Element).closest("button[data-uopt]")) onOption(e);
+    });
+  }
+  // Clics dans le dessin : machine → sa fiche ; tuyau ou câble → ses liaisons ; module de l'usine → son panneau.
+  const goMachine = (id: string) => go({ page: "donnees", dataTab: "batiments", machine: id });
+  $("pose-canvas").addEventListener("click", (e) => {
+    if (posePZ?.suppressClick) return;
+    const t = e.target as Element;
+    const machine = t.closest<SVGGElement>("[data-machine]");
+    if (machine && poseStep !== USINE) return goMachine(machine.dataset.machine!);
+    const sel = t.closest<SVGElement>("[data-sel]")?.dataset.sel ?? (t.closest<SVGGElement>(".m-pipe[data-item]") ? `i:${t.closest<SVGGElement>(".m-pipe")!.dataset.item}` : null);
+    if (sel) {
+      poseSel = poseSel === sel ? null : sel;
+      return applySel($("pose-frame"), poseSel, "pose-pick");
+    }
+    const mod = t.closest<SVGGElement>("[data-mod]");
+    if (mod?.querySelector(".u-box")) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: mod.dataset.mod! });
+    if (poseSel) {
+      poseSel = null;
+      applySel($("pose-frame"), null, "pose-pick");
+    }
+  });
+  $("pose-frame").addEventListener("click", (e) => {
+    if (!(e.target as Element).closest("[data-unsel]")) return;
+    poseSel = null;
+    applySel($("pose-frame"), null, "pose-pick");
+  });
+  // Liste des liaisons : une ligne sélectionne son tuyau sur le dessin.
+  $("pose-details").addEventListener("click", (e) => {
+    const tr = (e.target as Element).closest<HTMLTableRowElement>("tr[data-sel]");
+    if (!tr) return;
+    poseSel = poseSel === tr.dataset.sel ? null : tr.dataset.sel!;
+    applySel($("pose-frame"), poseSel, "pose-pick");
+  });
+  $("focus-canvas").addEventListener("click", (e) => {
+    if (focusPZ?.suppressClick) return;
+    const t = e.target as Element;
+    const machine = t.closest<SVGGElement>("[data-machine]");
+    if (machine) return goMachine(machine.dataset.machine!);
+    const pipe = t.closest<SVGGElement>(".m-pipe[data-item]");
+    const sel = pipe ? `i:${pipe.dataset.item}` : null;
+    focusSel = sel && focusSel !== sel ? sel : null;
+    applySel($("focus-frame"), focusSel, null);
+  });
+  // Infobulle du dessin de l'usine (modules, tuyaux, câbles) : suit la souris, cachée pendant un glisser.
+  const tip = $("pose-tip");
+  $("pose-frame").addEventListener("pointerover", (e) => {
+    const t = (e.target as Element).closest<SVGElement>("[data-tip]");
+    if (!t || $("pose-frame").classList.contains("dragging")) return;
+    tip.textContent = t.dataset.tip!;
+    tip.hidden = false;
+  });
+  $("pose-frame").addEventListener("pointerout", (e) => {
+    if ((e.target as Element).closest("[data-tip]")) tip.hidden = true;
+  });
+  $("pose-frame").addEventListener("pointermove", (e) => {
+    if (tip.hidden) return;
+    if ($("pose-frame").classList.contains("dragging")) return void (tip.hidden = true);
+    const r = $("pose-frame").getBoundingClientRect();
+    const x = e.clientX - r.left + 14;
+    const y = e.clientY - r.top + 16;
+    tip.style.left = `${Math.max(4, Math.min(r.width - tip.offsetWidth - 4, x))}px`;
+    tip.style.top = `${y + tip.offsetHeight > r.height - 4 ? Math.max(4, e.clientY - r.top - tip.offsetHeight - 10) : y}px`;
+  });
+  // Panneau du module : retour à l'usine, plein écran (Échap pour revenir), zoom.
+  const setFull = (on: boolean) => {
+    $("pose-focus").classList.toggle("full", on);
+    document.body.classList.toggle("focus-full", on);
+    $("pose-focus").querySelector("[data-focus-full]")?.setAttribute("aria-pressed", String(on));
+    requestAnimationFrame(() => focusPZ?.fit());
+  };
+  $("pose-focus").addEventListener("click", (e) => {
+    const t = e.target as Element;
+    if (t.closest("[data-focus-back]")) {
+      setFull(false);
+      return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE });
+    }
+    if (t.closest("[data-focus-full]")) return setFull(!$("pose-focus").classList.contains("full"));
+    const z = t.closest<HTMLElement>("[data-qzoom]")?.dataset.qzoom;
+    if (z === "in") focusPZ?.zoom(1.25);
+    else if (z === "out") focusPZ?.zoom(1 / 1.25);
+    else if (z === "fit") focusPZ?.fit();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && $("pose-focus").classList.contains("full")) setFull(false);
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-pzoom]")) {
     b.addEventListener("click", () => {
@@ -1436,6 +1663,8 @@ function bindShared(): void {
   document.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
     // Liens entre vues : plan de pose d'une étape, bloc du schéma, bâtiment dans l'éditeur.
+    const focus = t.closest<HTMLElement>("[data-focus]");
+    if (focus) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: focus.dataset.focus! });
     const pose = t.closest<HTMLElement>("[data-pose]");
     if (pose) return go({ page: "plan", goal: settings.goal, tab: "pose", step: pose.dataset.pose! });
     const flow = t.closest<HTMLElement>("[data-flow]");

@@ -12,6 +12,7 @@ describe("adresses des vues", () => {
       { page: "plan", goal: "argent", tab: "pose", step: "steam@boiler_01" },
       { page: "donnees", dataTab: "batiments", machine: "bottling-plant" },
       { page: "donnees", dataTab: "verifier" },
+      { page: "plan", goal: "objet", tab: "pose", step: "usine-entiere", focus: "steel-plate" },
     ] as const;
     for (const r of routes) expect(parseRoute(routeHash(r))).toEqual(r);
     expect(routeHash({ page: "plan", goal: "objet", tab: "pose", step: "steam@boiler_01" })).toBe("#objet/pose/steam%40boiler_01");

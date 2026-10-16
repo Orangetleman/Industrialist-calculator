@@ -17,6 +17,7 @@ import { solve } from "../solve.ts";
 import { buildCatalog } from "./catalog.ts";
 import { designFactory, factoryFits, factoryInput, type FactoryPlan } from "./factory.ts";
 import { designModule, passageOptions } from "./module.ts";
+import { factoryFlows } from "./flow.ts";
 import { renderPassagePick } from "../../ui/module-view.ts";
 import { renderFactoryInfo, renderFactorySvg } from "../../ui/factory-view.ts";
 
@@ -63,6 +64,16 @@ describe("toute l'usine", () => {
     expect(f.stats.polesCost).toBeLessThanOrEqual(3595);
     expect(f.stats.overloaded).toBe(0);
     expect(factoryFits(f, PLOT)).toBe("oui");
+    // Liaisons (S4) : chaque tuyau entre modules a ses vecteurs, et chaque client en reçoit un.
+    const arrows = factoryFlows(f);
+    for (const n of f.nets) {
+      const mine = arrows.filter((a) => a.net === n.id);
+      expect(mine.length, n.id).toBeGreaterThan(0);
+      for (const to of n.to) {
+        const b = f.boxes.find((x) => x.key === to)!;
+        expect(arrows.some((a) => a.item === n.item && a.x2 > b.x && a.x2 < b.x + b.w && a.y2 > b.y && a.y2 < b.y + b.h), `${n.id} → ${to}`).toBe(true);
+      }
+    }
     // Passages du collecteur central gardés (bilan de S2) : vers les voisins, sans élargir le module.
     expect([...f.passagesKept.values()].map((p) => p.wider)).not.toContain(true);
     expect(f.passagesKept.size).toBeGreaterThan(0);
