@@ -59,7 +59,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 
 | Session | Lot | Taille | Dépend de | État |
 | --- | --- | --- | --- | --- |
-| S1 | Plots des ports supprimés ; 6 relevés intégrés ; test de la règle des sorties | petite | — | à faire |
+| S1 | Plots des ports supprimés ; 6 relevés intégrés ; test de la règle des sorties | petite | — | ✅ fait (`d949b25`) |
 | S2 | Double rangée : sortie du collecteur central entre deux machines | moyenne | — | à faire |
 | S3 | Toute l'usine (1/2) : moteur dans `src/engine/build/`, calcul en arrière-plan, première vue | grosse | S2 | à faire |
 | S4 | Toute l'usine (2/2) : options, « Afficher les liaisons », survol + clic → panneau du module | moyenne | S3 | à faire |
@@ -575,6 +575,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 
 - **2026-10-16** : plan écrit (ce fichier), aucune modification du code. Point de départ : commit
   `6c1e7fd`, 242 tests. Réponses Q1 à Q10 reçues et reportées dans les lots ; S1 lancée.
+- **2026-10-16, S1** (`d949b25`, 243 tests, déployé) : plot supprimé, le tuyau touche le bâtiment ; 6 relevés intégrés (35 bâtiments, 124 ports) ; test « une sortie part d'un port de sortie ».
+  Mesures : 15 Craft Assemblers 66 × 15 → 66 × 13 ; maquette recalculée v8 87 × 96 → 81 × 101, tuyaux 1 246 → 1 123, croisements 76 → 75, électricité 5 085 → 3 595 $.
+  À surveiller : « module par module » 87 × 96 → 82 × 104 (+2 %), croisements 69 → 74, surtout le vrai relevé de l'Ingot Molder (plot seul : 82 × 101, 71) ; `redesign` « milieu » plante sur un module replié (limite déjà là).
 
 ## 7. Gestion des sessions
 
