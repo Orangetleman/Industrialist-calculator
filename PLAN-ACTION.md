@@ -69,7 +69,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S8 | Schéma : nombre de machines réglable → production obtenue | moyenne | — | à faire |
 | S9 | Calcul : exclure des machines, ou seulement certaines | petite à moyenne | — | à faire |
 | S10 | Interfaces des machines : recherche, relevé, effet sur le calcul | moyenne | recherche | à faire |
-| S11 | Modulaires (1/4) : recherche (wiki, Internet), données, méthode de relevé | moyenne, sans interface | — | à faire |
+| S11 | Modulaires (1/4) : recherche (wiki, Internet), données, méthode de relevé | moyenne, sans interface | — | ✅ fait (voir § 6) |
 | S12 | Modulaires (2/4) : éditeur des blocs (voisins par face, portées) | grosse | S11 | à faire |
 | S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | à faire |
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | à faire |
@@ -578,6 +578,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-16, S1** (`d949b25`, 243 tests, déployé) : plot supprimé, le tuyau touche le bâtiment ; 6 relevés intégrés (35 bâtiments, 124 ports) ; test « une sortie part d'un port de sortie ».
   Mesures : 15 Craft Assemblers 66 × 15 → 66 × 13 ; maquette recalculée v8 87 × 96 → 81 × 101, tuyaux 1 246 → 1 123, croisements 76 → 75, électricité 5 085 → 3 595 $.
   À surveiller : « module par module » 87 × 96 → 82 × 104 (+2 %), croisements 69 → 74, surtout le vrai relevé de l'Ingot Molder (plot seul : 82 × 101, 71) ; `redesign` « milieu » plante sur un module replié (limite déjà là).
+- **2026-10-16, S11** (250 tests, non déployé : le site ne change pas) : `data/modular.json` (ferme d'arbres, moteur diesel, turbine ; chaque valeur sourcée Miraheze/Fandom, datée) et son test de forme ; 16 questions MOD-01 à MOD-16 dans `a-verifier.md` ; méthode de relevé dans RELEVES.md.
+  Trouvé : règles de portée et de contact, comptes de blocs, consommations (200 kMF par arbre, 3 arroseurs par réservoir, 44 à 46 arbres par arroseur), tableaux du moteur (6 cylindres, 32 cylindres) et des turbines (sob_ad). Hors des deux wikis, rien de chiffré sur Internet.
+  Manque pour S12-S13 : aucun rayon de portée écrit (arroseur déduit des images : 12 à 14 cases), critère de portée, rythme réel du récolteur, formule du moteur diesel, ports des blocs.
 
 ## 7. Gestion des sessions
 

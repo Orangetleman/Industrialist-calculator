@@ -566,4 +566,68 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
 - **2026-10-14, redirection des ports : en entrée seulement** : une ressource peut entrer par n'importe
   quel port de la machine du même type (même un port de sortie) ; une sortie doit partir de son port
   de sortie. **Fait** : les plans de pose ne redirigent plus que les entrées.
+
+### Machines modulaires (S11, 2026-10-16)
+
+Données dans `data/modular.json`. Chaque question ci-dessous y est citée (`"question": "MOD-xx"`).
+Cherché : Miraheze, Fandom, Internet (guides, vidéos, forums). Hors des deux wikis, rien de
+chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »).
+
+**Ferme d'arbres (Tier I)**
+
+- **MOD-01** Rayon de portée du **Tree Farm Controller** : aucune valeur sur les deux wikis.
+  Le guide Miraheze place le contrôleur sur un côté d'une ferme d'environ 14 arbres de long, ce
+  qui laisse penser à une grande portée, mais ce n'est pas mesurable sur l'image. À relever.
+- **MOD-02** Le **réservoir** a-t-il sa propre portée vers les arroseurs, ou suffit-il qu'il soit
+  à portée du contrôleur ? Les wikis ne parlent que de la portée du contrôleur.
+- **MOD-03** Rayon de portée du **Tree Farm Sprinkler** : pas de valeur écrite. Déduit des deux
+  images du wiki : entre 12 et 14 cases depuis le centre de l'arroseur si l'arbre est arrosé dès
+  que le cercle touche son emprise (le Fandom le dit) ; entre 14,4 et 16 cases si c'est le centre
+  de l'arbre qui compte. À relever pour trancher.
+- **MOD-04** **Critère de portée** : faut-il que le centre du bloc soit dans le cercle, que le
+  cercle touche le bloc, ou que le bloc soit entièrement dedans ? Le Fandom dit « toucher à
+  peine » pour l'arroseur ; rien pour les autres blocs. La portée part-elle du centre du bloc ?
+- **MOD-05** Rayon de portée du **Farm Harvester** vers les arbres : aucune valeur.
+- **MOD-06** Lien **récolteur → sortie** : « la sortie la plus proche à portée de sa base »
+  (Miraheze) ou « doit toucher la sortie » (FAQ 13) ? Une portée, ou un contact ?
+- **MOD-07** **Arrosage** : 33 L toutes les 33,33 s (Miraheze) ou 25 L toutes les 36 s (Fandom) ?
+  Cela fixe l'eau à amener au réservoir (environ 1 L/s ou 0,7 L/s par arroseur).
+- **MOD-08** Les **réservoirs en plus** ont-ils besoin d'eau ? Miraheze dit que non (ils
+  relèvent seulement la limite de 3 arroseurs) ; le Fandom n'en parle pas.
+- **MOD-09** **Rythme du récolteur** : le Fandom dit 15 arbres par récolteur au mieux (30 à
+  1 500 % de pollution), alors que le guide Miraheze en fait suivre 22 à chacun. Combien d'arbres
+  un récolteur suit-il vraiment ? Le guide donne aussi 18,8 kMF/s là où 88 arbres à 200 kMF par
+  coupe en demandent environ 48,5 kMF/s, et un total de 17 040 $ qui ne compte que 3 récolteurs
+  sur 4 (17 690 $ avec 4). Ce sont les trois chiffres dont S13 a besoin pour le bois par minute.
+
+**Ports des blocs modulaires**
+
+- **MOD-10** Position des ports, à relever comme les autres bâtiments (RELEVES.md) : sortie
+  d'Oak Logs de la Tree Farm Output, entrée d'eau du réservoir, prise électrique du contrôleur ;
+  entrée de carburant et prise du générateur du moteur diesel ; entrées de vapeur de la Turbine
+  Input (deux, sur les côtés d'après le wiki), sortie de la Turbine Output, nœuds électrique et de
+  données du Turbine Generator.
+
+**Moteur diesel (Tier II)**
+
+- **MOD-11** **Faces** : quelle face du vilebrequin est « plate » (vers le contrôleur ?) ; un bloc
+  par côté, donc deux par vilebrequin ? Où se fixe le volant (6 × 4 cases) ?
+- **MOD-12** **Formule** de la puissance et de la consommation selon le nombre de cylindres, le
+  rapport air/carburant et l'accélérateur : le wiki n'a que des tableaux (6 cylindres de 10 à 16)
+  et des exemples (6 et 32 cylindres). Le gain du volant n'est pas chiffré. La consommation
+  affichée par l'Info Panel est-elle à multiplier par le rapport (Fandom) ? Le graphique
+  « One column engine » a-t-il le couple ou l'accélérateur en abscisse ?
+- **MOD-13** **Distance entre deux moteurs** : le Fandom signale que deux contrôleurs trop
+  proches ne marchent pas (bogue) ; distance non donnée.
+- **MOD-14** **Nombre de blocs selon la taille** : à partir de quel couple faut-il une deuxième
+  entrée d'air, un deuxième échappement, une deuxième entrée de carburant, un deuxième générateur
+  (seuil de 300 MT sur Miraheze, 240 MT sur le Fandom) ? Où pose-t-on un deuxième générateur ?
+  Combien de chaque pour le moteur à 32 cylindres ?
+- **MOD-15** **Pollution** de l'échappement selon la configuration (« Depends » sur le wiki).
+
+**Turbine modulaire (Tier IV)**
+
+- **MOD-16** **Puissance** d'une turbine hors des tableaux du développeur (débits 6, 12 et
+  24 kL/s seulement) : pas de formule publiée. Le tableur cité par le Fandom est daté d'avant la
+  v0.11.3, de son propre aveu.
 <!-- notes-manuelles:fin -->
