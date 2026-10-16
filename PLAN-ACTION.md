@@ -63,7 +63,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S2 | Double rangée : sortie du collecteur central entre deux machines | moyenne | — | ✅ fait (`accb04b`) |
 | S3 | Toute l'usine (1/2) : moteur dans `src/engine/build/`, calcul en arrière-plan, première vue | grosse | S2 | ✅ fait (`1919f4e`) |
 | S4 | Toute l'usine (2/2) : options, « Afficher les liaisons », survol + clic → panneau du module | moyenne | S3 | ✅ fait (`6502c62`) |
-| S5 | Recettes (1/2) : navigation comme en jeu, en lecture | grosse | — | à faire |
+| S5 | Recettes (1/2) : navigation comme en jeu, en lecture | grosse | — | ✅ fait (`731c9e0`) |
 | S6 | Recettes (2/2) : corrections (valeurs, craft inexistant, craft manquant), export | moyenne | S5 | à faire |
 | S7 | Schéma : détail du calcul et référence du craft cliquable | moyenne | S5 | à faire |
 | S8 | Schéma : nombre de machines réglable → production obtenue | moyenne | — | à faire |
@@ -574,6 +574,8 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S4 Câbles | « Afficher les liaisons » éteint : les câbles entre poteaux gardent leur flèche (comme avant) ; le bouton ajoute les flèches de tous les tuyaux, des câbles d'un même module et des câbles vers chaque machine. | 2026-10-16 |
 | S4 Calcul | « Recalculé pour l'usine entière » reste le calcul par défaut ; « module par module » au choix, calculé à la demande. | 2026-10-16 |
 | S4 Machines | Demande en cours de lot : dans la vue complète, une liste repliable des machines incomplètes dans le plan de pose (comme « Liaisons » et « Passages »). | 2026-10-16 |
+| S5 Maquette | Tuiles comme en jeu **et** un affichage en lignes triable (nom, valeur, RP rapportés) ; l'objet ouvert doit rester visible dans la liste ; un ⚠ doit mener directement à la zone de correction, pas seulement signaler le doute. | 2026-10-17 |
+| S5 Images | Oui aux vignettes du wiki : 312 vignettes de 96 px (Miraheze, CC BY-NC-SA 4.0, source citée), 4,7 Mo ; la pastille reste quand une image manque. | 2026-10-17 |
 
 ## 6. Journal des sessions
 
@@ -597,6 +599,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-17, S4** (`6502c62`, 259 tests, déployé) : `src/engine/build/flow.ts` (sens du flux de chaque liaison, testé) ; dans « Toute l'usine », barre d'options de la maquette (recalculé par défaut / module par module, liaisons collées, Tout afficher, Réseau électrique, câbles vers chaque machine ; un calcul gardé par réglage) et bouton « Afficher les liaisons » (aussi dans le plan d'une étape et dans le panneau) ; clic sur un tuyau → ses liaisons, sur un câble → ce qu'il alimente ; survol d'un module (cadre éclairé, bulle) ; clic → panneau à droite (`#objet/pose/usine-entiere/<étape>`, ← Retour, ⛶ plein écran), dans la version de l'usine (recalculée, tournée, tuyaux qui traversent), machines → éditeur de bâtiments (S5 rebranchera vers la fiche) ; lien « voir sa version dans l'usine » depuis le plan d'une étape ; liste « Machines à compléter » (demande en cours de lot).
   Mesures inchangées : recalculée 81 × 101, 1 115 cases, 74 croisements, 3 595 $ ; module par module 82 × 104, 74 croisements ; « coller » ne colle rien dans cette chaîne (comme la maquette, le résumé le dit).
   À surveiller : l'ordre de pose d'un module tourné garde les directions d'avant la rotation (signalé dans le panneau) ; changer de calcul pendant un autre l'annule ; le panneau reprend les couleurs de l'usine, pas celles du plan seul.
+- **2026-10-17, S5** (`731c9e0`, 274 tests, déployé) : onglet « Recettes » (`recipes-view.ts`, `recipes-store.ts`) : recherche, tuiles ou lignes triables (nom, valeur, RP), fiches objet (Sources, Utilisations) et machine (crafts), tout cliquable, `#recettes/<objet|machine>/<id>` ; ⚠ → la valeur dans « Valeurs à vérifier » (`#donnees/verifier/<recette|machine>/<id>/<champ>`, champ éclairé), aussi depuis le détail du plan ; cadenas si la recherche manque ; machines du plan de pose et du panneau de module → leur fiche. 312 vignettes du wiki (`scripts/fetch-images.ts`, `data/images.json`, 4,7 Mo), image choisie par le joueur (export `mes-images.json`) ; 19 descriptions d'objets du wiki, sinon recopiées (correction `items.description`).
+  Tâche « Steel Plate → sa machine » : taper « steel pl », Entrée, un clic sur la machine (3 gestes, ~12 s avec la latence de l'outil) ; vérifiée sur ordinateur et téléphone. Valeurs des captures du jeu identiques à nos données (Crankshaft 754 $, 35× RP, 15 s / 4 kMF/s et 5 s / 200 kMF/s ; Chemical Reactor 750 000 $).
+  À surveiller : les objets n'ont pas de ⚠ cliquable (rien de corrigeable pour eux dans « Données » : le détail s'affiche à la place) ; en lignes, les prix sont arrondis (« 750 k$ », valeur exacte au survol et dans la fiche) ; pied de page corrigé (Miraheze est en CC BY-NC-SA 4.0).
 
 ## 7. Gestion des sessions
 
