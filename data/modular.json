@@ -1,0 +1,491 @@
+{
+ "meta": {
+  "description": "Machines modulaires : règles d'assemblage (contact par face, portées), nombre de blocs et effets. Chaque valeur cite ses sources ; ce qui manque est « inconnu » et renvoie à une question de data/a-verifier.md (section Notes manuelles, MOD-xx). Écrit à la main (session S11), pas généré.",
+  "writtenAt": "2026-10-16",
+  "units": {
+   "case": "1 case = 2 studs = 1 Short Pipe (RELEVES.md)",
+   "MF": "MamyFlux ; kMF = 1 000 MF, MMF = 1 000 000 MF",
+   "MT": "MamyTorque (couple des moteurs et turbines)"
+  },
+  "statuses": {
+   "sourcé": "donnée écrite sur un wiki ou relevée en jeu ; les sources disent lesquelles",
+   "contradiction": "les sources ne disent pas la même chose ; la valeur retenue est celle de Miraheze, l'autre est dans alternatives",
+   "déduit": "tiré d'une image ou d'un exemple du wiki par un calcul expliqué dans note ; à confirmer en jeu",
+   "inconnu": "aucune source trouvée ; value vaut null et question renvoie à data/a-verifier.md"
+  },
+  "searched": [
+   "Wiki Miraheze (source principale) : pages de chaque bloc, pages d'ensemble, guide de la ferme, FAQ 13, images des pages (portée des arroseurs, guide, schémas du moteur).",
+   "Wiki Fandom (contrôle) : pages de chaque bloc, Tree Farm Setups, Modular Turbine, Diesel Engine Info Panel DEBUG.",
+   "Recherche Internet générale (guides, vidéos, forums, 2026-10-16) : aucune donnée chiffrée en dehors des deux wikis. Une vidéo YouTube (shorts/poznU5nxYzA) n'a pas pu être lue (page de consentement). Le tableur des turbines cité par le Fandom (harrybluejay) se dit lui-même périmé (avant la v0.11.3) : non utilisé.",
+   "Le Discord public cité par les deux wikis n'est pas consultable sans compte."
+  ]
+ },
+ "sources": {
+  "user-q9": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponse Q9 de PLAN-ACTION.md : la portée est circulaire (un rayon, pas un carré)" },
+  "jeu-tree-01": { "wiki": "jeu", "fetchedAt": "2026-10-12T11:45:08.504Z", "note": "relevé en jeu de l'utilisateur, data/overrides.json (tree_01.durationS)" },
+
+  "mh-tree": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree", "page": "Tree", "revisionId": 43736, "fetchedAt": "2026-10-16" },
+  "mh-tree-farm": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree_Farm", "page": "Tree Farm", "revisionId": 43434, "fetchedAt": "2026-10-16" },
+  "mh-tree-guide": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree_Farm/Guide", "page": "Tree Farm/Guide", "revisionId": 40736, "fetchedAt": "2026-10-16" },
+  "mh-tree-controller": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Controller", "page": "Tree Farm Controller", "revisionId": 41915, "fetchedAt": "2026-10-16" },
+  "mh-tree-output": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Output", "page": "Tree Farm Output", "revisionId": 39240, "fetchedAt": "2026-10-16" },
+  "mh-sprinkler": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Sprinkler", "page": "Tree Farm Sprinkler", "revisionId": 43448, "fetchedAt": "2026-10-16" },
+  "mh-water-tank": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree_Farm_Water_Tank", "page": "Tree Farm Water Tank", "revisionId": 39184, "fetchedAt": "2026-10-16" },
+  "mh-harvester": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Farm_Harvester", "page": "Farm Harvester", "revisionId": 43495, "fetchedAt": "2026-10-16" },
+  "mh-igloo": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Igloo_Farm_Controller", "page": "Igloo Farm Controller", "revisionId": 41914, "fetchedAt": "2026-10-16" },
+  "mh-faq13": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Frequently_Asked_Questions/Question_13", "page": "Frequently Asked Questions/Question 13", "revisionId": 34639, "fetchedAt": "2026-10-16" },
+  "mh-img-sprinkler-range": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/File:Sprinkler_Range.png", "page": "File:Sprinkler Range.png", "fetchedAt": "2026-10-16", "note": "image de la page Tree Farm Sprinkler (envoi du 2025-03-22) : 9 × 9 arbres, l'arroseur au centre, 44 arbres poussent" },
+  "mh-img-sprinkler-range2": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/File:Sprinkler_Range2.png", "page": "File:Sprinkler Range2.png", "fetchedAt": "2026-10-16", "note": "image de la page Tree Farm Sprinkler (découverte de Milza, envoi du 2026-10-11) : 46 arbres autour d'un arroseur" },
+  "mh-img-tree-guide": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/File:Treefarmguide8.png", "page": "File:Treefarmguide1.png à Treefarmguide9.png", "fetchedAt": "2026-10-16", "note": "étapes illustrées du guide de la ferme (envoi du 2026-02-28)" },
+
+  "fd-tree-farm": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm", "page": "Tree Farm", "revisionId": 17663, "fetchedAt": "2026-10-16" },
+  "fd-tree": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Tree", "page": "Tree Farm/Tree", "revisionId": 19694, "fetchedAt": "2026-10-16" },
+  "fd-tree-controller": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Tree_Farm_Controller", "page": "Tree Farm/Tree Farm Controller", "revisionId": 15511, "fetchedAt": "2026-10-16" },
+  "fd-tree-output": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Tree_Farm_Output", "page": "Tree Farm/Tree Farm Output", "revisionId": 19144, "fetchedAt": "2026-10-16" },
+  "fd-harvester": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Farm_Harvester", "page": "Tree Farm/Farm Harvester", "revisionId": 17679, "fetchedAt": "2026-10-16" },
+  "fd-sprinkler": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Tree_Farm_Sprinkler", "page": "Tree Farm/Tree Farm Sprinkler", "revisionId": 15541, "fetchedAt": "2026-10-16" },
+  "fd-water-tank": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Tree_Farm_Water_Tank", "page": "Tree Farm/Tree Farm Water Tank", "revisionId": 18254, "fetchedAt": "2026-10-16" },
+  "fd-tree-setups": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Tree_Farm/Tree_Farm_Setups", "page": "Tree Farm/Tree Farm Setups", "revisionId": 17662, "fetchedAt": "2026-10-16", "note": "page marquée « Stub » et « Bad Guide » par le Fandom" },
+
+  "mh-mde": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Modular_Diesel_Engine", "page": "Modular Diesel Engine", "revisionId": 43199, "fetchedAt": "2026-10-16" },
+  "mh-mde-controller": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Controller", "page": "Diesel Engine Controller", "revisionId": 42737, "fetchedAt": "2026-10-16" },
+  "mh-mde-crankshaft": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Crankshaft", "page": "Diesel Engine Crankshaft", "revisionId": 42239, "fetchedAt": "2026-10-16" },
+  "mh-mde-sideways": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Crankshaft_Sideways", "page": "Diesel Engine Crankshaft Sideways", "revisionId": 43603, "fetchedAt": "2026-10-16" },
+  "mh-mde-cylinder": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Cylinder", "page": "Diesel Engine Cylinder", "revisionId": 42836, "fetchedAt": "2026-10-16" },
+  "mh-mde-air": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Air_Input", "page": "Diesel Engine Air Input", "revisionId": 42830, "fetchedAt": "2026-10-16" },
+  "mh-mde-exhaust": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Exhaust", "page": "Diesel Engine Exhaust", "revisionId": 42226, "fetchedAt": "2026-10-16" },
+  "mh-mde-fuel": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Fuel_Input", "page": "Diesel Engine Fuel Input", "revisionId": 43599, "fetchedAt": "2026-10-16" },
+  "mh-mde-generator": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Generator", "page": "Diesel Engine Generator", "revisionId": 40899, "fetchedAt": "2026-10-16" },
+  "mh-mde-flywheel": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Flywheel", "page": "Diesel Engine Flywheel", "revisionId": 40900, "fetchedAt": "2026-10-16" },
+  "mh-mde-panel": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Info_Panel", "page": "Diesel Engine Info Panel", "revisionId": 40905, "fetchedAt": "2026-10-16" },
+  "mh-mde-decoration": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Decoration", "page": "Diesel Engine Decoration", "revisionId": 43205, "fetchedAt": "2026-10-16" },
+  "mh-img-mde-setup": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/File:MDESetup.png", "page": "File:MDESetup.png", "fetchedAt": "2026-10-16", "note": "position légendée des blocs d'un moteur à 6 cylindres (envoi du 2026-02-16)" },
+  "mh-img-1c-engine": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/File:1CEngine.png", "page": "File:1CEngine.png", "fetchedAt": "2026-10-16", "note": "graphique « One column engine » par Alteria (envoi du 2025-05-14)" },
+
+  "fd-mde": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine", "page": "Modular Diesel Engine", "revisionId": 19123, "fetchedAt": "2026-10-16" },
+  "fd-mde-controller": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Controller", "page": "Modular Diesel Engine/Diesel Engine Controller", "revisionId": 14751, "fetchedAt": "2026-10-16" },
+  "fd-mde-crankshaft": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Crankshaft", "page": "Modular Diesel Engine/Diesel Engine Crankshaft", "revisionId": 14755, "fetchedAt": "2026-10-16" },
+  "fd-mde-sideways": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Crankshaft_Sideways", "page": "Modular Diesel Engine/Diesel Engine Crankshaft Sideways", "revisionId": 14784, "fetchedAt": "2026-10-16" },
+  "fd-mde-cylinder": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Cylinder", "page": "Modular Diesel Engine/Diesel Engine Cylinder", "revisionId": 18263, "fetchedAt": "2026-10-16" },
+  "fd-mde-air": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Air_Input", "page": "Modular Diesel Engine/Diesel Engine Air Input", "revisionId": 18261, "fetchedAt": "2026-10-16" },
+  "fd-mde-exhaust": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Exhaust", "page": "Modular Diesel Engine/Diesel Engine Exhaust", "revisionId": 14773, "fetchedAt": "2026-10-16" },
+  "fd-mde-fuel": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Fuel_Input", "page": "Modular Diesel Engine/Diesel Engine Fuel Input", "revisionId": 14767, "fetchedAt": "2026-10-16" },
+  "fd-mde-generator": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Generator", "page": "Modular Diesel Engine/Diesel Engine Generator", "revisionId": 19569, "fetchedAt": "2026-10-16" },
+  "fd-mde-flywheel": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Flywheel", "page": "Modular Diesel Engine/Diesel Engine Flywheel", "revisionId": 16377, "fetchedAt": "2026-10-16" },
+  "fd-mde-panel": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Info_Panel", "page": "Modular Diesel Engine/Diesel Engine Info Panel", "revisionId": 14781, "fetchedAt": "2026-10-16" },
+  "fd-mde-debug": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Diesel_Engine/Diesel_Engine_Info_Panel_DEBUG", "page": "Modular Diesel Engine/Diesel Engine Info Panel DEBUG", "revisionId": 18466, "fetchedAt": "2026-10-16" },
+
+  "mh-mt": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Modular_Turbine", "page": "Modular Turbine", "revisionId": 43037, "fetchedAt": "2026-10-16" },
+  "mh-mt-input": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Turbine_Input", "page": "Turbine Input", "revisionId": 42905, "fetchedAt": "2026-10-16" },
+  "mh-mt-hpt": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/High_Pressure_Turbine", "page": "High Pressure Turbine", "revisionId": 43076, "fetchedAt": "2026-10-16" },
+  "mh-mt-ipt": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Intermediate_Pressure_Turbine", "page": "Intermediate Pressure Turbine", "revisionId": 38151, "fetchedAt": "2026-10-16" },
+  "mh-mt-lpt": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Low_Pressure_Turbine", "page": "Low Pressure Turbine", "revisionId": 42612, "fetchedAt": "2026-10-16" },
+  "mh-mt-generator": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Turbine_Generator", "page": "Turbine Generator", "revisionId": 43598, "fetchedAt": "2026-10-16" },
+  "mh-mt-output": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Turbine_Output", "page": "Turbine Output", "revisionId": 43056, "fetchedAt": "2026-10-16" },
+  "fd-mt": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine", "page": "Modular Turbine", "revisionId": 19618, "fetchedAt": "2026-10-16" },
+  "fd-mt-input": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/Turbine_Input", "page": "Modular Turbine/Turbine Input", "revisionId": 14842, "fetchedAt": "2026-10-16" },
+  "fd-mt-hpt": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/High_Pressure_Turbine", "page": "Modular Turbine/High Pressure Turbine", "revisionId": 14845, "fetchedAt": "2026-10-16" },
+  "fd-mt-ipt": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/Intermediate_Pressure_Turbine", "page": "Modular Turbine/Intermediate Pressure Turbine", "revisionId": 14843, "fetchedAt": "2026-10-16" },
+  "fd-mt-lpt": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/Low_Pressure_Turbine", "page": "Modular Turbine/Low Pressure Turbine", "revisionId": 14837, "fetchedAt": "2026-10-16" },
+  "fd-mt-generator": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/Turbine_Generator", "page": "Modular Turbine/Turbine Generator", "revisionId": 17971, "fetchedAt": "2026-10-16" },
+  "fd-mt-output": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/Turbine_Output", "page": "Modular Turbine/Turbine Output", "revisionId": 17826, "fetchedAt": "2026-10-16" }
+ },
+ "assemblies": [
+  {
+   "id": "tree-farm",
+   "name": "Modular Tree Farm",
+   "tier": 1,
+   "research": "modular-tree-farm",
+   "assembly": "portée",
+   "summary": "Les blocs ne se touchent pas : chacun doit être à portée (un cercle) du bloc qui le dessert. Réservoir → arroseurs → arbres → récolteurs → sorties, le tout à portée d'un seul contrôleur.",
+   "rules": [
+    { "key": "rangeShape", "text": "Une portée est un cercle (un rayon), pas un carré.", "value": "cercle", "status": "sourcé", "sources": ["user-q9"] },
+    { "key": "noContact", "text": "Les blocs n'ont pas besoin de se toucher ni d'être alignés.", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-guide"] },
+    { "key": "allInControllerRange", "text": "Tous les blocs de la ferme doivent être à portée du contrôleur.", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-farm", "mh-tree-guide", "fd-tree-farm"] },
+    { "key": "oneControllerPerBlock", "text": "Un bloc à portée de deux contrôleurs s'arrête : les portées de deux contrôleurs ne doivent couvrir aucun bloc en commun.", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-farm", "mh-faq13", "fd-tree-controller", "fd-tree-farm"] },
+    { "key": "everyBlockRequired", "text": "La ferme ne marche que si chaque sorte de bloc est présente (contrôleur, réservoir, arroseur, arbre, récolteur, sortie).", "value": true, "status": "sourcé", "sources": ["mh-tree-farm"] },
+    { "key": "chain", "text": "Chaîne de service : réservoir à portée du contrôleur ; arbre à portée d'un arroseur ; arbre à portée d'un récolteur ; sortie à portée du récolteur.", "value": ["tree-farm-water-tank", "tree-farm-sprinkler", "tree", "farm-harvester", "tree-farm-output"], "status": "sourcé", "sources": ["mh-tree-guide", "mh-faq13", "mh-sprinkler", "mh-tree-output"] },
+    { "key": "rain", "text": "La pluie arrose aussi les arbres, mais à forte pollution elle les assèche. Le calcul ne compte pas sur la pluie.", "value": null, "status": "sourcé", "sources": ["mh-tree", "mh-sprinkler", "fd-sprinkler"] }
+   ],
+   "blocks": [
+    {
+     "id": "tree-farm-controller",
+     "role": "Cerveau et alimentation électrique de la ferme : il définit la zone de la ferme.",
+     "facts": [
+      { "key": "count", "text": "Un seul par ferme ; plusieurs à portée d'un même bloc cassent la ferme.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-tree-controller", "fd-tree-controller"] },
+      { "key": "rangeTiles", "text": "Rayon de portée du contrôleur.", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-01" },
+      { "key": "rangeCriterion", "text": "Ce qui doit être dans le cercle : le centre du bloc, n'importe quel bout du bloc, ou le bloc entier.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-04" },
+      { "key": "serves", "text": "Doit couvrir tous les blocs de la ferme, au moins un réservoir compris.", "value": ["tree-farm-water-tank", "tree-farm-sprinkler", "tree", "farm-harvester", "tree-farm-output"], "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-guide"] },
+      { "key": "placement", "text": "Placement libre ; conseillé au centre des arbres.", "value": "centre conseillé", "status": "sourcé", "sources": ["mh-tree-controller", "fd-tree-controller"] },
+      { "key": "powerPerTreeMF", "text": "Consommation : 200 kMF par arbre coupé, pour chaque récolteur.", "value": 200000, "unit": "MF", "status": "sourcé", "sources": ["mh-tree-controller", "mh-harvester", "fd-tree-controller", "fd-harvester"] },
+      { "key": "powerCapacityMF", "text": "Réserve d'énergie du contrôleur.", "value": 1000000, "unit": "MF", "status": "sourcé", "sources": ["mh-tree-controller", "fd-tree-controller"] },
+      { "key": "powerTransferMFps", "text": "Débit électrique maximal du contrôleur (Fandom seulement ; Miraheze laisse le champ vide).", "value": 600000, "unit": "MF/s", "status": "sourcé", "sources": ["fd-tree-controller"] },
+      { "key": "powerPort", "text": "Position de la prise électrique.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    },
+    {
+     "id": "tree-farm-water-tank",
+     "role": "Donne l'eau aux arroseurs.",
+     "facts": [
+      { "key": "sprinklersPerTank", "text": "Un réservoir alimente au plus 3 arroseurs, quel que soit son volume.", "value": 3, "status": "sourcé", "sources": ["mh-water-tank", "mh-sprinkler", "fd-water-tank", "fd-tree-farm"] },
+      { "key": "capacityL", "text": "Contenance.", "value": 2000, "unit": "L", "status": "sourcé", "sources": ["mh-water-tank", "fd-water-tank"] },
+      { "key": "mustBeInControllerRange", "text": "Doit être à portée du contrôleur (le même que celui des arroseurs).", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-faq13", "mh-tree-guide", "fd-water-tank"] },
+      { "key": "extraTanksNeedWater", "text": "Miraheze : les réservoirs en plus relèvent la limite d'arroseurs sans avoir besoin d'eau. Non repris par le Fandom.", "value": false, "status": "sourcé", "sources": ["mh-sprinkler"], "question": "MOD-08" },
+      { "key": "rangeTiles", "text": "Le réservoir a-t-il sa propre portée vers les arroseurs, ou suffit-il d'être à portée du contrôleur ?", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-02" },
+      { "key": "waterPort", "text": "Position de l'entrée d'eau (un tuyau depuis une pompe : Water Pump2 dans le guide).", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    },
+    {
+     "id": "tree-farm-sprinkler",
+     "role": "Arrose les arbres à sa portée ; sans arrosage, un arbre ne pousse pas.",
+     "facts": [
+      { "key": "rangeTiles", "text": "Rayon de portée de l'arroseur.", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-03" },
+      { "key": "rangeCriterion", "text": "Fandom : il suffit que la portée touche à peine l'arbre pour l'arroser.", "value": "toucher le bloc", "status": "sourcé", "sources": ["fd-sprinkler"], "question": "MOD-04" },
+      { "key": "rangeTilesBounds", "text": "Bornes du rayon, depuis le centre de l'arroseur, si l'arbre est arrosé dès que le cercle touche son emprise.", "value": { "min": 12, "max": 14 }, "unit": "cases", "status": "déduit", "sources": ["mh-img-sprinkler-range", "mh-img-sprinkler-range2", "fd-sprinkler"], "note": "Arbres de 4 × 4 cases posés côte à côte. Sprinkler Range : dans une grille 9 × 9 avec l'arroseur au centre, l'arbre décalé de (3, 2) arbres pousse (point le plus proche à 11,7 cases) ; ceux décalés de (4, 0) et (3, 3) ne poussent pas (14 et 14,1 cases) : rayon < 14. Sprinkler Range2 : les arbres les plus loin des 46 ont leur point le plus proche à environ 12 cases (mesure sur l'image, ± 0,3) : rayon ≥ 12. Si c'est le centre de l'arbre qui compte, les mêmes images donnent un rayon entre 14,4 et 16 cases.", "question": "MOD-03" },
+      { "key": "treesPerSprinkler", "text": "Arbres desservis par un arroseur : 44 en grille régulière (Miraheze et Fandom), jusqu'à 46 en décalant des arbres d'une demi-case (Milza, Miraheze).", "value": { "grid": 44, "max": 46 }, "status": "sourcé", "sources": ["mh-sprinkler", "fd-sprinkler", "mh-img-sprinkler-range", "mh-img-sprinkler-range2"] },
+      { "key": "waterCycle", "text": "Arrosage : Miraheze dit toutes les 1 000 ticks (33,33 s) avec 33 L ; le Fandom dit toutes les 36 s avec 25 L (environ 0,7 L/s).", "value": { "periodS": 33.33, "litersPerCycle": 33 }, "status": "contradiction", "sources": ["mh-sprinkler"], "alternatives": [ { "value": { "periodS": 36, "litersPerCycle": 25 }, "sources": ["fd-sprinkler", "fd-water-tank"] } ], "question": "MOD-07" },
+      { "key": "needsTankInControllerRange", "text": "Ne marche que si un réservoir est à portée du contrôleur.", "value": true, "status": "sourcé", "sources": ["mh-sprinkler", "mh-tree-guide"] }
+     ]
+    },
+    {
+     "id": "tree",
+     "role": "Pousse puis donne des Oak Logs quand un récolteur le coupe.",
+     "facts": [
+      { "key": "logsPerTree", "text": "Oak Logs par arbre coupé (contrôleur normal).", "value": 2, "unit": "Oak Log", "status": "sourcé", "sources": ["mh-tree", "mh-harvester", "fd-tree", "fd-harvester"], "note": "L'ancienne version de la page Miraheze (révision 43449, en cache) disait « au moins 2 » ; la version du 2026-10-16 dit 2." },
+      { "key": "growthS", "text": "Durée de pousse à pollution normale : 363 s (Miraheze et relevé en jeu), 345 s selon le Fandom. Elle dépend de la pollution : table treeGrowth de data/machines.json.", "value": 363, "unit": "s", "status": "contradiction", "sources": ["mh-tree", "jeu-tree-01"], "alternatives": [ { "value": 345, "sources": ["fd-tree"] } ] },
+      { "key": "needsSprinkler", "text": "Doit être à portée d'au moins un arroseur.", "value": true, "status": "sourcé", "sources": ["mh-tree", "mh-tree-guide", "fd-tree"] },
+      { "key": "needsHarvester", "text": "Doit être à portée d'au moins un récolteur.", "value": true, "status": "sourcé", "sources": ["mh-tree", "mh-faq13"] },
+      { "key": "iglooBonus", "text": "Avec l'Igloo Farm Controller (objet d'événement), +50 % d'Oak Logs de décembre à février.", "value": 1.5, "status": "sourcé", "sources": ["mh-igloo", "mh-harvester", "fd-harvester"] }
+     ]
+    },
+    {
+     "id": "farm-harvester",
+     "role": "Bras robotisé : coupe les arbres mûrs à sa portée et dépose les Oak Logs dans une sortie.",
+     "facts": [
+      { "key": "rangeTiles", "text": "Rayon de portée du récolteur vers les arbres.", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-05" },
+      { "key": "outputRange", "text": "Lien récolteur → sortie : Miraheze parle de la sortie la plus proche « à portée de sa base » ; la FAQ dit que le récolteur doit « toucher » la sortie.", "value": null, "status": "inconnu", "sources": ["mh-harvester", "mh-faq13", "fd-harvester"], "question": "MOD-06" },
+      { "key": "powerPerTree", "text": "200 kMF par arbre coupé, sur 11 s ; le contrôleur doit avoir au moins 200 kMF en réserve.", "value": { "MF": 200000, "seconds": 11 }, "status": "sourcé", "sources": ["mh-harvester", "fd-harvester"] },
+      { "key": "treesPerHarvester", "text": "Fandom seulement : un récolteur suit 30 arbres à 1 500 % de pollution, 15 arbres à l'efficacité maximale. Le guide Miraheze en donne 22 par récolteur (88 arbres, 4 récolteurs).", "value": { "maxGrowth": 15, "pollution1500": 30 }, "status": "sourcé", "sources": ["fd-harvester"], "question": "MOD-09" },
+      { "key": "powerCapacity", "text": "Fandom : réserve 1 MMF et débit 600 kMF/s ; Miraheze : réserve 0 MF.", "value": { "capacityMF": 0 }, "status": "contradiction", "sources": ["mh-harvester"], "alternatives": [ { "value": { "capacityMF": 1000000, "transferMFps": 600000 }, "sources": ["fd-harvester"] } ] },
+      { "key": "multipleOutputs", "text": "Avec plusieurs sorties à sa portée, le récolteur en choisit une, sans règle reproductible, et n'en change plus.", "value": null, "status": "sourcé", "sources": ["fd-tree-output"] }
+     ]
+    },
+    {
+     "id": "tree-farm-output",
+     "role": "Reçoit les Oak Logs et les sort par tuyau.",
+     "facts": [
+      { "key": "mustBeInHarvesterRange", "text": "Doit être à portée d'un récolteur ; plusieurs récolteurs peuvent partager une sortie.", "value": true, "status": "sourcé", "sources": ["mh-tree-output", "fd-tree-output"] },
+      { "key": "overflow", "text": "Pleine, elle ne bloque pas la ferme : le surplus est perdu.", "value": "perdu", "status": "sourcé", "sources": ["mh-tree-output", "fd-tree-output"] },
+      { "key": "pipeAutoConnect", "text": "Se raccorde rarement toute seule aux tuyaux : il faut la brancher à la main.", "value": false, "status": "sourcé", "sources": ["mh-tree-farm", "fd-tree-farm"] },
+      { "key": "itemPort", "text": "Position du port de sortie des Oak Logs.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    }
+   ],
+   "examples": [
+    {
+     "id": "guide-miraheze-88",
+     "text": "Guide Miraheze : 88 arbres, 2 arroseurs, 1 réservoir, 1 Water Pump2, 1 contrôleur, 4 récolteurs, 2 sorties ; pollution 0 à −60 % ; environ 0,5 Oak Log/s ; environ 18,8 kMF/s ; 17 040 $.",
+     "layout": "Les 2 arroseurs sont à 7 arbres l'un de l'autre. Chacun est au centre d'un carré de 7 × 7 arbres dont on retire les 4 coins (44 arbres). Un récolteur à chaque coin extérieur ; une sortie dans chacun des 2 coins retirés entre les carrés ; le contrôleur sur un côté ; le réservoir branché à la pompe.",
+     "status": "sourcé",
+     "sources": ["mh-tree-guide", "mh-img-tree-guide"],
+     "note": "Incohérences du guide : 4 récolteurs à 650 $ font 2 600 $, pas 1 950 $ (le total serait 17 690 $). Et 88 arbres en 363 s à 200 kMF chacun font environ 48,5 kMF/s, pas 18,8 kMF/s. Voir MOD-09."
+    },
+    {
+     "id": "setups-fandom",
+     "text": "Fermes de joueurs du Fandom : Lober707 (68 × 20 studs, 41 kMF/s, 20 260 $, 0,134 Oak Log/s à −1 500 % de pollution) ; Reapercon (0,9275 Oak Log/s) ; BlueST_2S (environ 1,3 Oak Log/s à 1 500 % de pollution, 1,5 au mieux).",
+     "status": "sourcé",
+     "sources": ["fd-tree-setups"],
+     "note": "Page notée « Bad Guide » par le Fandom ; schémas seulement en images."
+    }
+   ]
+  },
+  {
+   "id": "diesel-engine",
+   "name": "Modular Diesel Engine",
+   "tier": 2,
+   "research": "modular-diesel-engines",
+   "assembly": "contact",
+   "summary": "Assemblage par contact en ligne : contrôleur au bout, vilebrequins en ligne droite devant lui, générateur au bout de la chaîne ; les autres blocs se posent sur les côtés des vilebrequins.",
+   "faceNames": {
+    "front": "côté qui part du contrôleur vers le générateur (sens de la chaîne)",
+    "back": "côté tourné vers le contrôleur",
+    "side": "les deux côtés latéraux, perpendiculaires à la chaîne"
+   },
+   "rules": [
+    { "key": "straightChain", "text": "Les vilebrequins ne se relient qu'en ligne droite, ni de côté, ni en diagonale.", "value": true, "status": "sourcé", "sources": ["mh-mde-crankshaft"] },
+    { "key": "sideMounted", "text": "Tous les blocs sauf le contrôleur et le générateur se posent sur un côté d'un vilebrequin.", "value": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"], "status": "sourcé", "sources": ["mh-mde", "fd-mde-crankshaft"] },
+    { "key": "oneSideOnly", "text": "On peut tout poser d'un seul côté des vilebrequins : le moteur reste étroit (montage simple du wiki).", "value": true, "status": "sourcé", "sources": ["mh-mde", "fd-mde"] },
+    { "key": "fuelQuality", "text": "La qualité du diesel ne change pas la puissance, seulement la consommation (meilleure qualité : moins de carburant).", "value": null, "status": "sourcé", "sources": ["mh-mde", "mh-mde-fuel", "fd-mde-fuel"] },
+    { "key": "settings", "text": "Deux réglages sur le contrôleur : rapport air/carburant (défaut 14) et accélérateur (défaut 100 %).", "value": { "airFuelDefault": 14, "throttleDefault": 100 }, "status": "sourcé", "sources": ["mh-mde-controller", "fd-mde-controller"] },
+    { "key": "fuelFormula", "text": "Formule de la puissance et de la consommation selon cylindres, rapport air/carburant et accélérateur.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-12" },
+    { "key": "pollution", "text": "Pollution émise par l'échappement selon la configuration (« Depends » sur le wiki ; elle augmente avec le nombre de cylindres).", "value": null, "status": "inconnu", "sources": ["mh-mde-exhaust"], "question": "MOD-15" }
+   ],
+   "blocks": [
+    {
+     "id": "diesel-engine-controller",
+     "role": "Cerveau du moteur ; porte les réglages.",
+     "facts": [
+      { "key": "count", "text": "Un seul par moteur ; plusieurs cassent le moteur.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "fd-mde"] },
+      { "key": "faces", "text": "Au bout du moteur : les vilebrequins se posent devant lui ; il ne se pose pas sur un côté. Un vilebrequin de côté peut aussi partir d'un de ses côtés.", "value": { "front": ["diesel-engine-crankshaft"], "side": ["diesel-engine-crankshaft-sideways"], "back": [] }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "mh-mde-sideways"] },
+      { "key": "spacing", "text": "Fandom : deux contrôleurs (deux moteurs) doivent être à une certaine distance l'un de l'autre, sinon ils ne marchent pas (bogue connu). Distance non donnée.", "value": null, "unit": "cases", "status": "inconnu", "sources": ["fd-mde-controller"], "question": "MOD-13" }
+     ]
+    },
+    {
+     "id": "diesel-engine-crankshaft",
+     "role": "Relie les blocs ; prolonge le moteur en ligne droite.",
+     "facts": [
+      { "key": "faces", "text": "Un côté plat et trois côtés à tiges. Le côté plat se tourne vers le contrôleur (ou vers le vilebrequin précédent) ; la tige de devant reçoit le vilebrequin suivant ou le générateur ; les deux tiges latérales reçoivent les blocs de côté.", "value": { "back": ["diesel-engine-controller", "diesel-engine-crankshaft"], "front": ["diesel-engine-crankshaft", "diesel-engine-generator"], "side": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"] }, "status": "sourcé", "sources": ["mh-mde-crankshaft", "mh-mde", "fd-mde-crankshaft", "mh-img-mde-setup"], "note": "Lecture des textes et du schéma MDESetup ; l'orientation exacte (quelle face est « plate ») est à confirmer.", "question": "MOD-11" },
+      { "key": "sideCapacity", "text": "Combien de blocs de côté un vilebrequin porte-t-il (un par côté, soit deux) ?", "value": null, "status": "inconnu", "sources": [], "question": "MOD-11" }
+     ]
+    },
+    {
+     "id": "diesel-engine-crankshaft-sideways",
+     "role": "Élargit le moteur : démarre une deuxième ligne de vilebrequins parallèle à la première.",
+     "facts": [
+      { "key": "faces", "text": "Deux côtés à tiges : l'un touche le côté d'un vilebrequin, d'un contrôleur ou d'un autre vilebrequin de côté ; l'autre reçoit le côté du vilebrequin de la nouvelle ligne. Il ne se relie que de côté ; on ne peut rien poser sur ses autres faces.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller", "diesel-engine-crankshaft-sideways"], "front": [], "back": [] }, "status": "sourcé", "sources": ["mh-mde-sideways", "mh-mde-crankshaft", "fd-mde-sideways", "mh-mde"] },
+      { "key": "parallelLine", "text": "Les vilebrequins de la nouvelle ligne doivent regarder dans le même sens que ceux de la première.", "value": true, "status": "sourcé", "sources": ["mh-mde", "fd-mde"] }
+     ]
+    },
+    {
+     "id": "diesel-engine-cylinder",
+     "role": "Seul bloc qui brûle le carburant ; donne le couple.",
+     "facts": [
+      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-cylinder", "fd-mde-cylinder"] },
+      { "key": "torquePerCylinderMT", "text": "Fandom : un cylindre donne 39,87 MT (39,8666…).", "value": 39.8667, "unit": "MT", "status": "sourcé", "sources": ["fd-mde-cylinder"], "note": "Sans précision sur le rapport air/carburant ni l'accélérateur ; le tableau Miraheze donne un couple qui varie avec le rapport (199 à 319 MT pour 6 cylindres)." },
+      { "key": "exhaustPerCylinder", "text": "Fandom (panneau de débogage) : chaque cylindre ajoute 100 au maximum d'échappement.", "value": 100, "status": "sourcé", "sources": ["fd-mde-cylinder"] },
+      { "key": "minUseful", "text": "Le plus petit moteur utile : 3 cylindres, rapport 10, accélérateur 100 %, un peu moins de 1 MMF/s.", "value": { "cylinders": 3, "airFuel": 10, "throttle": 100, "powerMFps": "< 1000000" }, "status": "sourcé", "sources": ["mh-mde-cylinder"] },
+      { "key": "efficientCounts", "text": "Nombres de cylindres les plus économes : environ 32 (31,7), puis 63, 94, 127, 158, 189, 220, 251, 283, 314.", "value": [32, 63, 94, 127, 158, 189, 220, 251, 283, 314], "status": "sourcé", "sources": ["mh-mde"] }
+     ]
+    },
+    {
+     "id": "diesel-engine-air-input",
+     "role": "Admission d'air.",
+     "facts": [
+      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air"] },
+      { "key": "count", "text": "Au moins une ; les gros moteurs (plus de 400 MT) peuvent en demander plusieurs. Fandom : une entrée d'air suffit pour 6 cylindres.", "value": { "min": 1, "cylindersPerInput": 6 }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air"], "question": "MOD-14" },
+      { "key": "debugAir", "text": "Fandom (panneau de débogage) : l'air est compté sur 3 000 par entrée d'air.", "value": 3000, "status": "sourcé", "sources": ["fd-mde-debug"] },
+      { "key": "needsExhaust", "text": "Ne marche qu'avec un échappement.", "value": true, "status": "sourcé", "sources": ["mh-mde-air"] }
+     ]
+    },
+    {
+     "id": "diesel-engine-exhaust",
+     "role": "Évacue les gaz ; émet la pollution.",
+     "facts": [
+      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-exhaust", "fd-mde-exhaust"] },
+      { "key": "count", "text": "Au moins un ; « rarement plus d'un » selon la page d'ensemble, mais les gros moteurs (plus de 400 MT) peuvent en demander plusieurs.", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-exhaust", "mh-mde", "fd-mde-exhaust"], "question": "MOD-14" },
+      { "key": "debugExhaust", "text": "Fandom (panneau de débogage) : l'échappement est compté sur 600 par échappement.", "value": 600, "status": "sourcé", "sources": ["fd-mde-debug"] }
+     ]
+    },
+    {
+     "id": "diesel-engine-fuel-input",
+     "role": "Entrée de carburant (fluide).",
+     "facts": [
+      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel"] },
+      { "key": "fuels", "text": "Accepte Crude Diesel, Poor Quality Diesel, Diesel et Refined Diesel.", "value": ["crude-diesel", "poor-quality-diesel", "diesel", "refined-diesel"], "status": "sourcé", "sources": ["mh-mde-fuel"] },
+      { "key": "capacityL", "text": "Contenance.", "value": 3, "unit": "L", "status": "sourcé", "sources": ["mh-mde-fuel"] },
+      { "key": "count", "text": "Au moins une ; les gros moteurs en demandent plusieurs (seuil non donné).", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel"], "question": "MOD-14" },
+      { "key": "fluidPort", "text": "Position du port fluide.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    },
+    {
+     "id": "diesel-engine-generator",
+     "role": "Change le couple en électricité.",
+     "facts": [
+      { "key": "faces", "text": "Au bout d'une chaîne de vilebrequins.", "value": { "back": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-generator", "mh-mde", "fd-mde-generator"] },
+      { "key": "torqueLimitMT", "text": "Couple qu'un générateur prend avant de perdre en rendement : 300 MT (Miraheze), 240 MT (Fandom).", "value": 300, "unit": "MT", "status": "contradiction", "sources": ["mh-mde-generator"], "alternatives": [ { "value": 240, "sources": ["fd-mde-generator"] } ] },
+      { "key": "count", "text": "Les moteurs à fort couple peuvent demander plusieurs générateurs. Où poser le deuxième, puisqu'il se met au bout de la chaîne ?", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-generator", "fd-mde-generator"], "question": "MOD-14" },
+      { "key": "nonLinear", "text": "Puissance non proportionnelle au couple : 1 cylindre donne 25 kMF/s, 6 cylindres 1,5 MMF/s.", "value": { "1": 25000, "6": 1500000 }, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mde-generator", "fd-mde-generator"] },
+      { "key": "powerTransferMFps", "text": "Débit électrique maximal.", "value": 1800000, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mde-generator"] },
+      { "key": "powerCapacityMF", "text": "Réserve d'énergie.", "value": 1000000, "unit": "MF", "status": "sourcé", "sources": ["mh-mde-generator"] },
+      { "key": "powerPort", "text": "Position de la prise électrique.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    },
+    {
+     "id": "diesel-engine-flywheel",
+     "role": "Stocke du couple ; facultatif, surtout décoratif.",
+     "facts": [
+      { "key": "faces", "text": "Où se fixe le volant (6 × 4 cases) : sur un côté de vilebrequin, dans la chaîne ? Le wiki dit seulement que l'ordre de pose n'importe pas et qu'on peut en mettre plusieurs.", "value": null, "status": "inconnu", "sources": ["mh-mde-flywheel", "fd-mde-flywheel"], "question": "MOD-11" },
+      { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde"] },
+      { "key": "effect", "text": "Léger gain de couple et de rendement, démarrage et arrêt plus lents ; valeur du gain non donnée.", "value": null, "status": "inconnu", "sources": ["mh-mde-flywheel", "fd-mde-flywheel"], "question": "MOD-12" },
+      { "key": "research", "text": "Recherche : Modular Diesel Engines (Miraheze), Modular diesel addons (extras) (Fandom).", "value": "modular-diesel-engines", "status": "contradiction", "sources": ["mh-mde-flywheel"], "alternatives": [ { "value": "Modular diesel addons (extras)", "sources": ["fd-mde-flywheel"] } ] }
+     ]
+    },
+    {
+     "id": "diesel-engine-info-panel",
+     "role": "Affiche l'état du moteur ; facultatif.",
+     "facts": [
+      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-panel", "fd-mde-panel"] },
+      { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde"] },
+      { "key": "fuelReading", "text": "Fandom : la consommation affichée (L/s) doit être multipliée par le rapport air/carburant pour obtenir la vraie consommation.", "value": null, "status": "sourcé", "sources": ["fd-mde-panel"], "question": "MOD-12" }
+     ]
+    },
+    {
+     "id": "diesel-engine-decoration",
+     "role": "Cache les tiges libres des vilebrequins ; facultatif.",
+     "facts": [
+      { "key": "faces", "text": "Sur un côté de vilebrequin resté libre.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde"] },
+      { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde"] }
+     ]
+    }
+   ],
+   "measurements": [
+    {
+     "id": "air-fuel-6cyl",
+     "text": "Contrôleur Miraheze : 6 cylindres, Refined Diesel, rapport air/carburant de 10 à 16 (accélérateur non précisé).",
+     "columns": ["airFuel", "torqueMT", "fuelLps", "powerMFps"],
+     "rows": [
+      [10, 319, 0.18, 1360000],
+      [11, 290, 0.163, 1410000],
+      [12, 265, 0.15, 1460000],
+      [13, 245, 0.138, 1500000],
+      [14, 227, 0.129, 1490000],
+      [15, 212, 0.105, 1420000],
+      [16, 199, 0.086, 1340000]
+     ],
+     "status": "sourcé",
+     "sources": ["mh-mde-controller"]
+    },
+    {
+     "id": "easy-setup",
+     "text": "Montage simple : 1 contrôleur, 8 vilebrequins, 6 cylindres, 1 entrée d'air, 1 échappement, 1 entrée de carburant, 1 générateur, tout d'un côté ; rapport 16, accélérateur 100 % ; 0,086 L/s de Refined Diesel ; 84 500 $.",
+     "value": { "powerMFps": 1340000, "fuelLps": 0.086, "cost": 84500 },
+     "status": "contradiction",
+     "sources": ["mh-mde", "mh-img-mde-setup"],
+     "alternatives": [ { "value": { "powerMFps": 1380000, "fuelLps": 0.086 }, "sources": ["fd-mde"] } ],
+     "note": "Prix vérifié : 9 000 + 8 × 4 000 + 6 × 4 000 + 3 × 4 500 + 6 000 = 84 500 $. Sur MDESetup, la ligne de côté est : entrée de carburant, 6 cylindres, entrée d'air ; l'échappement est au bout, près du générateur."
+    },
+    {
+     "id": "32-cylinders",
+     "text": "Configuration la plus connue : 32 cylindres, rapport 14, accélérateur 59 % : 3 MMF/s pour 0,092 L/s de Refined Diesel.",
+     "value": { "cylinders": 32, "airFuel": 14, "throttle": 59, "powerMFps": 3000000, "fuelLps": 0.092 },
+     "status": "sourcé",
+     "sources": ["mh-mde"],
+     "note": "Nombre d'entrées d'air, d'échappements, de carburant et de générateurs non donné : voir MOD-14."
+    },
+    {
+     "id": "one-column-chart",
+     "text": "Graphique « One column engine » (10 cylindres près du contrôleur, générateur au plus loin) : puissance moyenne selon le couple.",
+     "columns": ["torqueMT", "powerMFps"],
+     "rows": [[100, 285000], [200, 1375000], [300, 1424000], [400, 1250000], [500, 1050000], [600, 840000], [700, 640000], [800, 430000]],
+     "status": "sourcé",
+     "sources": ["mh-img-1c-engine"],
+     "note": "La seconde série du graphique (0,001 à 0,545) n'a pas de légende ; probablement la consommation en L/s. La légende de la galerie dit « peaks at ~32 throttle » alors que l'axe dit « Torque » : à éclaircir (MOD-12)."
+    }
+   ]
+  },
+  {
+   "id": "modular-turbine",
+   "name": "Modular Turbine",
+   "tier": 4,
+   "research": "modular-turbines",
+   "assembly": "contact",
+   "summary": "Chaîne en ligne, dans cet ordre : Turbine Input → High Pressure Turbines (0 ou plus) → une Intermediate Pressure Turbine → Low Pressure Turbines (1 ou plus) → Turbine Generator → Turbine Output.",
+   "faceNames": {
+    "front": "côté qui part de l'entrée vers la sortie (sens de la chaîne)",
+    "back": "côté tourné vers l'entrée",
+    "side": "les deux côtés latéraux"
+   },
+   "rules": [
+    { "key": "order", "text": "Ordre de la chaîne.", "value": ["turbine-input", "high-pressure-turbine", "intermediate-pressure-turbine", "low-pressure-turbine", "turbine-generator", "turbine-output"], "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt"] },
+    { "key": "powerPlant", "text": "Doit être relié par câble de données à une Coal Power Plant ou une Nuclear Power Plant pour être synchronisé et produire.", "value": ["coal-power-plant", "nuclear-power-plant"], "status": "sourcé", "sources": ["mh-mt", "mh-mt-generator", "fd-mt"] },
+    { "key": "steam", "text": "Prend de la High Pressure Steam (Heat Exchanger) et rend de la Low Pressure Steam (vers un Steam Condenser).", "value": { "in": "high-pressure-steam", "out": "low-pressure-steam" }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt-output"] },
+    { "key": "flowLps", "text": "Accepte jusqu'à 24 kL/s ; en dessous de 6 kL/s, presque impossible à synchroniser.", "value": { "max": 24000, "practicalMin": 6000 }, "unit": "L/s", "status": "sourcé", "sources": ["mh-mt", "fd-mt"] },
+    { "key": "sync", "text": "Synchronisation entre 3 590 et 3 610 tr/min, variation entre −5 et +5 ; déclenchement à 4 000 tr/min.", "value": { "rpmMin": 3590, "rpmMax": 3610, "rpmChangeMax": 5, "tripRpm": 4000 }, "status": "sourcé", "sources": ["mh-mt", "fd-mt"] },
+    { "key": "gaps", "text": "La turbine marche encore avec un vide entre deux blocs (bogue signalé par les deux wikis).", "value": true, "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt"] },
+    { "key": "powerFormula", "text": "Puissance selon débit, température, nombre de HPT et de LPT : seulement les tableaux ci-dessous (développeur sob_ad), pas de formule.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-16" }
+   ],
+   "blocks": [
+    {
+     "id": "turbine-input",
+     "role": "Début de la turbine ; reçoit la vapeur haute pression.",
+     "facts": [
+      { "key": "count", "text": "Une par turbine.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt"] },
+      { "key": "faces", "text": "Début de chaîne : HPT devant (ou directement l'IPT) ; ses deux côtés portent les entrées de vapeur (steamPorts).", "value": { "front": ["high-pressure-turbine", "intermediate-pressure-turbine"], "side": [] }, "status": "sourcé", "sources": ["mh-mt-input", "fd-mt-input"] },
+      { "key": "steamPorts", "text": "Deux entrées, gauche et droite, en grands tuyaux seulement ; un grand tuyau passe 12 kL/s, d'où les deux entrées pour 24 kL/s.", "value": { "count": 2, "maxPerPortLps": 12000 }, "status": "sourcé", "sources": ["mh-mt-input", "mh-mt", "fd-mt"], "question": "MOD-10" },
+      { "key": "bypassBelowC", "text": "Laisse passer sans l'utiliser la vapeur sous 150 °C.", "value": 150, "unit": "°C", "status": "sourcé", "sources": ["mh-mt-input"] }
+     ]
+    },
+    {
+     "id": "high-pressure-turbine",
+     "role": "Fait baisser la pression avant les LPT ; moins efficace que les LPT ; facultative.",
+     "facts": [
+      { "key": "count", "text": "0 ou plus ; le seul bloc facultatif.", "value": { "min": 0 }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-hpt"] },
+      { "key": "faces", "text": "Après l'entrée (ou une autre HPT), avant l'IPT.", "value": { "back": ["turbine-input", "high-pressure-turbine"], "front": ["high-pressure-turbine", "intermediate-pressure-turbine"] }, "status": "sourcé", "sources": ["mh-mt-hpt", "mh-mt"] },
+      { "key": "minFlowLps", "text": "Il faut au moins 6 kL/s par HPT pour qu'elle tourne à pleine capacité ; un Heat Exchanger (12 kL/s) en suffit pour deux.", "value": 6000, "unit": "L/s", "status": "sourcé", "sources": ["mh-mt-hpt", "fd-mt-hpt"] }
+     ]
+    },
+    {
+     "id": "intermediate-pressure-turbine",
+     "role": "Change la vapeur haute pression en basse pression ; peu de couple.",
+     "facts": [
+      { "key": "count", "text": "Exactement une.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-ipt"] },
+      { "key": "faces", "text": "Entre les HPT (ou l'entrée) et les LPT ; sa flèche de pose doit regarder à l'opposé de l'entrée.", "value": { "back": ["high-pressure-turbine", "turbine-input"], "front": ["low-pressure-turbine"] }, "status": "sourcé", "sources": ["mh-mt-ipt", "mh-mt-input", "fd-mt-ipt"] },
+      { "key": "pressureMPa", "text": "Au-dessus de 2 MPa, elle laisse passer la vapeur sans l'utiliser jusqu'à revenir à 2 MPa.", "value": 2, "unit": "MPa", "status": "sourcé", "sources": ["mh-mt-ipt", "fd-mt-ipt"] }
+     ]
+    },
+    {
+     "id": "low-pressure-turbine",
+     "role": "Le bloc qui donne le plus de couple.",
+     "facts": [
+      { "key": "count", "text": "1 ou plus ; chaque LPT en plus apporte moins, et trop de LPT font baisser le couple.", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mt-lpt", "fd-mt-lpt", "mh-mt"] },
+      { "key": "faces", "text": "Après l'IPT ou une autre LPT ; la dernière touche le générateur.", "value": { "back": ["intermediate-pressure-turbine", "low-pressure-turbine"], "front": ["low-pressure-turbine", "turbine-generator"] }, "status": "sourcé", "sources": ["mh-mt-lpt", "fd-mt-lpt"] }
+     ]
+    },
+    {
+     "id": "turbine-generator",
+     "role": "Produit l'électricité et commande la turbine (nœud de données).",
+     "facts": [
+      { "key": "count", "text": "Un par turbine.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt"] },
+      { "key": "faces", "text": "Juste après les LPT, juste avant la sortie.", "value": { "back": ["low-pressure-turbine"], "front": ["turbine-output"] }, "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
+      { "key": "powerOutputMFps", "text": "Production de 0 à 550 MMF/s au plus.", "value": { "min": 0, "max": 550000000 }, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
+      { "key": "powerTransferMFps", "text": "Débit électrique maximal.", "value": 720000000, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
+      { "key": "powerCapacityMF", "text": "Réserve d'énergie ; pleine, la turbine se désynchronise (une HV Battery MK2 branchée directement est conseillée).", "value": 500000000, "unit": "MF", "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
+      { "key": "ports", "text": "Position du nœud électrique et du nœud de données.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    },
+    {
+     "id": "turbine-output",
+     "role": "Fin de la turbine ; sort la vapeur basse pression.",
+     "facts": [
+      { "key": "count", "text": "Une seule par turbine.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt-output", "fd-mt-output"] },
+      { "key": "faces", "text": "Juste après le générateur.", "value": { "back": ["turbine-generator"] }, "status": "sourcé", "sources": ["mh-mt-output", "fd-mt-output"] },
+      { "key": "flowLps", "text": "Fandom : sort de 0 à 24 kL/s de Low Pressure Steam.", "value": { "max": 24000 }, "unit": "L/s", "status": "sourcé", "sources": ["fd-mt-output"] },
+      { "key": "steamPort", "text": "Position du port de sortie de vapeur.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+     ]
+    }
+   ],
+   "measurements": [
+    {
+     "id": "ratios-sob-ad",
+     "text": "Meilleurs rapports HPT : LPT selon débit et température de la vapeur, d'après le développeur sob_ad ; générateur à 100 %, sans dérivation. IPT : toujours une. powerMFps : [min, max] ; max null pour « et plus ».",
+     "columns": ["flowLps", "tempMinC", "tempMaxC", "hpt", "lpt", "powerMinMFps", "powerMaxMFps"],
+     "rows": [
+      [6000, 160, 168, 0, 1, 38000000, 38000000],
+      [6000, 168, 220, 0, 3, 60000000, 73000000],
+      [6000, 220, 230, 0, 4, 81000000, 81000000],
+      [6000, 230, 285, 0, 5, 84000000, 85000000],
+      [6000, 285, 330, 1, 4, 84000000, 97000000],
+      [6000, 330, null, 1, 5, 101000000, null],
+      [12000, 160, 167, 0, 1, 38000000, 38000000],
+      [12000, 167, 185, 1, 2, 75000000, 78000000],
+      [12000, 185, 205, 1, 3, 101000000, 104000000],
+      [12000, 205, 250, 2, 3, 101000000, 139000000],
+      [12000, 250, 285, 2, 4, 139000000, 143000000],
+      [12000, 285, null, 2, 5, 148000000, null],
+      [24000, 160, 166, 2, 1, 80000000, 82000000],
+      [24000, 166, 185, 3, 1, 82000000, 133000000],
+      [24000, 185, 205, 4, 1, 133000000, 178000000],
+      [24000, 205, 252, 5, 1, 178000000, 238000000],
+      [24000, 252, 269, 4, 3, 267000000, 303000000],
+      [24000, 269, 347, 4, 4, 303000000, 371000000],
+      [24000, 347, 400, 4, 5, 371000000, 415000000],
+      [24000, 400, null, 4, 6, 418000000, null]
+     ],
+     "status": "sourcé",
+     "sources": ["mh-mt"],
+     "note": "Ligne 6 kL/s, 230 à 285 °C : le wiki écrit « 85 - 84MMF/s »."
+    }
+   ]
+  }
+ ]
+}

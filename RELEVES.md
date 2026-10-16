@@ -65,6 +65,61 @@ température de la vapeur en sortie du Boiler, une fois stabilisée :
 Indique aussi comment l'eau usée du Boiler est branchée (renvoyée ou non dans sa seconde
 entrée).
 
+## Machines modulaires (portées, réglages)
+
+Ce que les wikis ne disent pas est listé dans `data/a-verifier.md` (questions MOD-01 à MOD-16).
+Tout se fait en **mode bac à sable** si tu en as un, sinon avec quelques blocs bon marché
+(arbre 80 $, arroseur 200 $). La portée est un cercle : on mesure donc **en ligne droite** depuis
+le bloc, puis **en diagonale** pour vérifier.
+
+Pour compter les cases, pose une rangée de Short Pipes (1 case chacun) depuis le bord du bloc,
+ou prends une capture vue de dessus : je compte sur l'image.
+
+Avant tout : quand tu poses ou sélectionnes un contrôleur, un arroseur ou un récolteur, le jeu
+affiche-t-il un **cercle de portée** ? Si oui, une capture vue de dessus de ce cercle suffit pour
+chaque bloc (MOD-01, 03, 05).
+
+### Ferme d'arbres
+
+1. **Arroseur (MOD-03, MOD-04)** : un contrôleur, un réservoir rempli, un arroseur. Pose une
+   ligne d'arbres collés les uns aux autres depuis l'arroseur, vers la droite, sur 5 arbres.
+   Attends un cycle (environ 35 s) : note **le dernier arbre qui reste vert** (les autres
+   brunissent). Recommence en décalant toute la ligne **d'une case** vers l'extérieur : le dernier
+   arbre vert change-t-il ? C'est ce qui dit si l'arbre doit être touché ou avoir son centre dans
+   le cercle.
+2. **Récolteur (MOD-05, MOD-06)** : même chose avec des arbres mûrs autour d'un récolteur :
+   quel est le plus loin qu'il coupe ? Puis éloigne la sortie case par case : à partir de quand
+   le récolteur ne dépose plus ?
+3. **Contrôleur (MOD-01, MOD-02)** : éloigne l'arroseur (avec ses arbres) du contrôleur, une case
+   à la fois, jusqu'à ce que les arbres ne soient plus arrosés. Fais pareil avec le réservoir.
+4. **Arrosage (MOD-07, MOD-08)** : niveau du réservoir avant et après 5 minutes avec un seul
+   arroseur, sans pompe branchée (le réservoir affiche son niveau par paliers de 100 L). Avec un
+   deuxième réservoir **vide** et 4 arroseurs : le quatrième arrose-t-il ?
+5. **Rythme (MOD-09)** : une ferme connue (par exemple le guide du wiki : 88 arbres, 4 récolteurs),
+   un Item Rate Meter ou un compteur de stock sur la sortie pendant 10 minutes, et un Power Rate
+   Calculator sur le câble du contrôleur. Note aussi la pollution du monde.
+
+### Moteur diesel
+
+6. **Réglages (MOD-12, MOD-14)** : le montage simple du wiki (1 contrôleur, 8 vilebrequins,
+   6 cylindres, 1 air, 1 échappement, 1 carburant, 1 générateur), un Diesel Engine Info Panel et un
+   Power Rate Calculator2 en sortie. Pour quelques réglages, une ligne par essai :
+
+   ```
+   cylindres | air/carburant | accélérateur | couple (MT) | carburant (L/s) | puissance (MF/s) | diesel utilisé
+   6         | 14            | 100          |             |                 |                  | Refined Diesel
+   ```
+
+   Ajoute ensuite des cylindres par 3 jusqu'à ce que l'Info Panel signale un manque d'air ou
+   d'échappement (seuil de MOD-14).
+7. **Faces (MOD-11, MOD-13)** : une capture vue de dessus du montage, une autre avec le volant
+   posé ; et la distance la plus courte entre deux moteurs qui marchent tous les deux.
+
+### Turbine
+
+8. Seulement si tu as une turbine : pour chaque turbine, débit et température de la vapeur,
+   nombre de HPT et de LPT, puissance affichée (MOD-16).
+
 ## Sans le site : la fiche texte
 
 Si c'est plus simple sur le moment, envoie la capture vue de dessus avec, pour chaque port qui ne
