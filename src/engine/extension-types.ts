@@ -146,6 +146,8 @@ export type PortsEntry = {
   ports: Port[];
   /** Bâtiment sans prise électrique (ex. Boiler, Firebox) : le relevé est complet sans elle. */
   noPower?: boolean;
+  /** Bâtiment sans port objet, fluide ni logique (ex. Tree, Farm Harvester) : le relevé est complet sans eux. */
+  noPorts?: boolean;
   notes?: string;
   source: Source;
 };

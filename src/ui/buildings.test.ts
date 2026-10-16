@@ -65,13 +65,25 @@ describe("éditeur de bâtiments", () => {
     expect(checkEntry(contradiction)).toEqual(["« Sans prise électrique » est coché alors qu'une prise est posée"]);
   });
 
+  it("complet sans aucun port si « Sans port » est coché (arbre, récolteur)", () => {
+    const tree: PortsEntry = { footprint: { w: 4, h: 4 }, ports: [], noPower: true, source: src };
+    expect(checkEntry(tree)).toEqual([expect.stringMatching(/Sans port/)]);
+    expect(isComplete({ ...tree, noPorts: true })).toBe(true);
+    const withPort: PortsEntry = { ...tree, noPorts: true, ports: [{ type: "objet", direction: "sortie", side: "bas", cell: 2 }] };
+    expect(checkEntry(withPort)).toEqual(["« Sans port » est coché alors qu'un port est posé"]);
+    const controller: PortsEntry = { footprint: { w: 4, h: 4 }, ports: [{ type: "énergie", direction: "entrée", side: "dessus", cell: [3.5, 4] }], noPorts: true, source: src };
+    expect(isComplete(controller)).toBe(true);
+    expect(parseSurveys({ machines: { tree: { ...tree, noPorts: true } } })!.tree!.noPorts).toBe(true);
+  });
+
   it("les relevés des données passent les contrôles de l'éditeur (sauf ceux signalés incomplets)", () => {
     const repo = portsJson as unknown as PortsFile;
     for (const [id, e] of Object.entries(repo.machines)) {
       const problems = checkEntry(e);
       // Truck Depot et petit silo : ni prise relevée ni « sans prise » coché (le wiki laisse
       // « PowerInput » vide) : en attente de confirmation en jeu.
-      if (id === "truck-depot" || id === "small-item-storage-silo") expect(problems, id).toEqual([expect.stringMatching(/pas de prise électrique/)]);
+      // Tree Farm Sprinkler : relevé du 2026-10-16 sans prise ni « sans prise » : à confirmer.
+      if (id === "truck-depot" || id === "small-item-storage-silo" || id === "tree-farm-sprinkler") expect(problems, id).toEqual([expect.stringMatching(/pas de prise électrique/)]);
       else expect(problems, id).toEqual([]);
     }
   });

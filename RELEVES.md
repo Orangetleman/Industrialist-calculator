@@ -44,7 +44,8 @@ Page **Données**, onglet « Éditeur de bâtiments » de https://industrialist.
      un port le retire. Aucun port ne dépasse du bâtiment : le tuyau se branche sur la case juste
      à côté du bord (l'ancien champ « Plot » a été retiré le 2026-10-16).
    - Pas de prise électrique (Boiler, Firebox…) : coche **Sans prise électrique**.
-7. Le relevé est **complet** dès que l'empreinte, les ports et la prise (ou « sans prise ») sont
+   - Pas de port objet, fluide ni logique (Tree, Farm Harvester…) : coche **Sans port**.
+7. Le relevé est **complet** dès que l'empreinte, les ports (ou « sans port ») et la prise (ou « sans prise ») sont
    là. **Enregistrer le relevé**, puis **Exporter mes relevés** quand tu en as plusieurs.
    Envoie-moi le fichier : je l'intègre à `data/ports.json`. Une fois intégré, la copie locale
    est retirée de ton navigateur toute seule.
@@ -143,18 +144,18 @@ Je déduis le reste de la capture.
 
 ## Déjà relevés
 
-16 bâtiments (voir `data/ports.json`) :
-- toute la ligne Vilebrequin, sauf la ferme d'arbres : Press, Roller, Craft Assembler, Iron
-  Drill, Coal Drill, Grinder, Industrial Kiln, Blast Furnace ;
+46 bâtiments (liste complète : `data/ports.json`), dont :
+- toute la ligne Vilebrequin, ferme d'arbres comprise (Tree, Tree Farm Controller, Tree Farm
+  Output, Tree Farm Sprinkler, Tree Farm Water Tank ; Farm Harvester : ni port ni prise) ;
 - énergie : Boiler, Firebox, Large Turbine, Steam Turbine, LV Pole, MV Pole ;
+- chimie et pétrole (relevés du 2026-10-13 au 2026-10-16) : Steam Cracking Plant, Advanced Oil
+  Separator, Oxidation Plant, Chemical Reactor, Oil Fracking Tower, Quarry ;
 - logistique : Small Item Storage Silo, Truck Depot.
 
-À confirmer : le Truck Depot et le Small Item Storage Silo ont-ils une prise électrique ? (Le
-wiki laisse le champ vide.)
+À confirmer : le Truck Depot, le Small Item Storage Silo et le Tree Farm Sprinkler ont-ils une
+prise électrique ? (Ni prise ni « Sans prise électrique » dans leur relevé.)
 
 Prochains utiles :
-- ferme d'arbres : Tree Farm Controller, Tree Farm Output, Tree Farm Sprinkler, Tree Farm
-  Water Tank, Farm Harvester ;
 - énergie : Gas Burner, Electric Water Heater, Geothermal Well, Industrial Firebox ;
 - poteaux : Small MV Pole, Advanced MV Pole, HMVT ;
 - stockage et vente : Medium Item Storage Silo, Small Fluid Storage Silo, Van Depot.

@@ -272,6 +272,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       <label>Hauteur (cases) <input type="number" min="1" max="200" id="bld-h" value="${entry.footprint!.h}"></label>
       <button type="button" id="bld-swap" title="Échanger largeur et hauteur">⇄</button>
       <label class="bld-check"><input type="checkbox" id="bld-nopower"${entry.noPower ? " checked" : ""}> Sans prise électrique</label>
+      <label class="bld-check"><input type="checkbox" id="bld-noports"${entry.noPorts ? " checked" : ""}> Sans port</label>
       ${hint ? `<span class="hint bld-powerhint">${esc(hint)}</span>` : ""}`;
     renderTools();
     refreshCanvas(keepView);
@@ -451,6 +452,10 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     if (t.id === "bld-nopower") {
       if (t.checked) entry!.noPower = true;
       else delete entry!.noPower;
+      renderStatus();
+    } else if (t.id === "bld-noports") {
+      if (t.checked) entry!.noPorts = true;
+      else delete entry!.noPorts;
       renderStatus();
     } else if (t.dataset.pf === "direction" && selectedPort !== null) {
       entry!.ports[selectedPort]!.direction = t.value as Port["direction"];

@@ -1,5 +1,5 @@
 {
- "_lisezMoi": "Ports des bâtiments relevés en jeu (voir RELEVES.md). Clé = id du bâtiment (machines.json). Empreinte en cases (1 case = 1 Short Pipe), vue de dessus sans rotation : w = largeur à l'écran, h = hauteur à l'écran ; tous les bâtiments ont 4 rotations (quarts de tour, voir world.json). Côtés : haut/bas/gauche/droite de l'écran, ou « dessus » pour un boîtier posé sur la machine. Case : numéro le long du bord (depuis la gauche ou depuis le haut, à partir de 1), ou [colonne, ligne] pour le dessus ; les demi-valeurs (1.5) sont permises pour les boîtiers électriques. Sens : entrée, sortie ou « les deux » (poteaux, stockages). Aucun port ne dépasse du bâtiment : le tuyau touche la case voisine du bord (le plot « stub » a été supprimé le 2026-10-16 ; s'il figure dans un relevé importé, il est ignoré). noPower = bâtiment sans prise électrique.",
+ "_lisezMoi": "Ports des bâtiments relevés en jeu (voir RELEVES.md). Clé = id du bâtiment (machines.json). Empreinte en cases (1 case = 1 Short Pipe), vue de dessus sans rotation : w = largeur à l'écran, h = hauteur à l'écran ; tous les bâtiments ont 4 rotations (quarts de tour, voir world.json). Côtés : haut/bas/gauche/droite de l'écran, ou « dessus » pour un boîtier posé sur la machine. Case : numéro le long du bord (depuis la gauche ou depuis le haut, à partir de 1), ou [colonne, ligne] pour le dessus ; les demi-valeurs (1.5) sont permises pour les boîtiers électriques. Sens : entrée, sortie ou « les deux » (poteaux, stockages). Aucun port ne dépasse du bâtiment : le tuyau touche la case voisine du bord (le plot « stub » a été supprimé le 2026-10-16 ; s'il figure dans un relevé importé, il est ignoré). noPower = bâtiment sans prise électrique ; noPorts = bâtiment sans port objet, fluide ni logique.",
  "machines": {
   "press": {
    "footprint": { "w": 4, "h": 2 },
@@ -353,6 +353,112 @@
    ],
    "notes": "levier permet de passé de bouteille a caisse",
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-15T18:33:43.489Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+  },
+  "advanced-oil-separator": {
+   "footprint": { "w": 22, "h": 22 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 12, "tip": "Input for Crude Oil/heavy Oil/Fracking Oil/Light Oil" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 9, "tip": "Input for Steam" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 20, "tip": "Output for Hydrogen Sulfide" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 12, "tip": "Output for Light Oil/Heavy Oil" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 7, "tip": "Residue output" },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 16, "tip": "Output for Coke fuel" },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [13.5, 21.5], "shown": "En hauteur" }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-13T23:12:19.788Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "oxidation-plant": {
+   "footprint": { "w": 12, "h": 16 },
+   "ports": [
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [5, 15] },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Oxygen input (OPTIONAL FOR SPEED)" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Ethanol/Ethylene/Hydrogen/Sulfide/Sulfure DIoxide input" },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 3, "tip": "Acetic Acid/MEG/Liquid Sulfur/Sulfur Trioxide output" }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-13T23:55:46.126Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "chemical-reactor": {
+   "footprint": { "w": 10, "h": 10 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 2 },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 3 },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 8 },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 7 },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 6 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 4, "tip": "Output for Hydrodrochloric Acid/Zinc Sulfate/Hydroflouric Acid" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 5, "tip": "Output for Residue/Sulfuric Acid/Gasoline E10/Leaded Gasoline/Tetraethyllead" },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 6, "tip": "Output for ..." },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 7, "tip": "Output for Rubber/Dirty Lithium Sulfate/Lithium Sulfate/Lithium Carbonate/Treated Raw Iron/Treated Raw Copper/Galvanized Steel/Powdered Tungsten Carbide/Sulfur/Gunpowder/Gold Ingot/Zirconium Chloride/Zirconium Dioxide" },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [2, 2] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-14T00:41:06.601Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "quarry": {
+   "footprint": { "w": 24, "h": 24 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 14, "tip": "Optional Water input for speed boost" },
+    { "type": "objet", "direction": "sortie", "side": "bas", "cell": 15, "tip": "Output for Soil/Sand/Limestone" },
+    { "type": "objet", "direction": "sortie", "side": "bas", "cell": 16, "tip": "Output for Clay" },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [13, 24] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-14T00:57:19.855Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "oil-fracking-tower": {
+   "footprint": { "w": 12, "h": 12 },
+   "ports": [
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [1, 4] },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input for Water" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Input for Steam" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 3, "tip": "Input for Acetic Acid/Sulfuric Acid" },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 5, "tip": "Input for Sand" },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 12, "tip": "Output for Fracking Oil used in Atmospheric Distillation" }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-14T01:15:05.080Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "tree-farm-output": {
+   "footprint": { "w": 4, "h": 4 },
+   "ports": [
+    { "type": "objet", "direction": "sortie", "side": "bas", "cell": 2 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:16:54.410Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "tree-farm-sprinkler": {
+   "footprint": { "w": 4, "h": 4 },
+   "ports": [],
+   "noPorts": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:15:07.258Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "tree": {
+   "footprint": { "w": 4, "h": 4 },
+   "ports": [],
+   "noPower": true,
+   "noPorts": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:15:22.345Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "tree-farm-controller": {
+   "footprint": { "w": 4, "h": 4 },
+   "ports": [
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [3.5, 4] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:17:18.349Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" },
+   "notes": "Alimente les récolteurs à sa portée (ils n'ont pas de prise)."
+  },
+  "tree-farm-water-tank": {
+   "footprint": { "w": 10, "h": 4 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:18:42.448Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
+  },
+  "farm-harvester": {
+   "footprint": { "w": 8, "h": 8 },
+   "ports": [],
+   "noPower": true,
+   "noPorts": true,
+   "notes": "Pas de prise : le récolteur prend son électricité au Tree Farm Controller qui l'a dans sa portée. Pas de port : il dépose les Oak Logs dans une Tree Farm Output à sa portée.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T20:00:00Z", "note": "réponse de l'utilisateur du 2026-10-16 (pas de prise électrique) ; taille 8 × 8 du wiki ; « Output: None » sur Miraheze" }
   }
  }
 }

@@ -70,7 +70,9 @@ export function applyTool(ports: Port[], tool: Tool, place: Pick<Port, "side" | 
 export function checkEntry(e: PortsEntry): string[] {
   const out: string[] = [];
   if (!e.footprint || !(e.footprint.w > 0) || !(e.footprint.h > 0)) out.push("empreinte manquante");
-  if (!e.ports.length) out.push("aucun port");
+  const flowPorts = e.ports.filter((p) => p.type !== "énergie").length;
+  if (!e.ports.length && !e.noPorts) out.push("aucun port : pose-les, ou coche « Sans port » si le bâtiment n'en a pas");
+  if (flowPorts && e.noPorts) out.push("« Sans port » est coché alors qu'un port est posé");
   const hasPower = e.ports.some((p) => p.type === "énergie");
   if (!hasPower && !e.noPower) out.push("pas de prise électrique : pose-la, ou coche « Sans prise électrique » si le bâtiment n'en a pas");
   if (hasPower && e.noPower) out.push("« Sans prise électrique » est coché alors qu'une prise est posée");
@@ -113,12 +115,12 @@ export function parseSurveys(raw: unknown): Record<string, PortsEntry> | null {
   const out: Record<string, PortsEntry> = {};
   for (const [id, e] of Object.entries(m as Record<string, PortsEntry & { rotations?: unknown }>)) {
     if (!e || !Array.isArray(e.ports) || !e.source?.fetchedAt) continue;
-    const { rotations: _old, noPower, ports, ...rest } = e;
+    const { rotations: _old, noPower, noPorts, ports, ...rest } = e;
     const clean = ports.map((p) => {
       const { stub: _stub, ...port } = p as Port & { stub?: unknown };
       return port;
     });
-    out[id] = noPower === true ? { ...rest, ports: clean, noPower: true } : { ...rest, ports: clean };
+    out[id] = { ...rest, ports: clean, ...(noPower === true ? { noPower: true } : {}), ...(noPorts === true ? { noPorts: true } : {}) };
   }
   return out;
 }

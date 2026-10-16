@@ -9,7 +9,7 @@
   },
   "statuses": {
    "sourcé": "donnée écrite sur un wiki ou relevée en jeu ; les sources disent lesquelles",
-   "contradiction": "les sources ne disent pas la même chose ; la valeur retenue est celle de Miraheze, l'autre est dans alternatives",
+   "contradiction": "les sources ne disent pas la même chose ; la valeur retenue est celle du relevé en jeu, à défaut celle de Miraheze ; les autres sont dans alternatives",
    "déduit": "tiré d'une image ou d'un exemple du wiki par un calcul expliqué dans note ; à confirmer en jeu",
    "inconnu": "aucune source trouvée ; value vaut null et question renvoie à data/a-verifier.md"
   },
@@ -22,6 +22,8 @@
  },
  "sources": {
   "user-q9": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponse Q9 de PLAN-ACTION.md : la portée est circulaire (un rayon, pas un carré)" },
+  "user-mod-2026-10-16": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponses de l'utilisateur aux questions MOD-01 à MOD-16 (relevés et observations en jeu) : portées mesurées depuis le bord du bloc, en cases" },
+  "jeu-ports-2026-10-16": { "wiki": "jeu", "fetchedAt": "2026-10-16", "note": "relevés de l'utilisateur dans l'éditeur de bâtiments, intégrés à data/ports.json" },
   "jeu-tree-01": { "wiki": "jeu", "fetchedAt": "2026-10-12T11:45:08.504Z", "note": "relevé en jeu de l'utilisateur, data/overrides.json (tree_01.durationS)" },
 
   "mh-tree": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Tree", "page": "Tree", "revisionId": 43736, "fetchedAt": "2026-10-16" },
@@ -82,6 +84,8 @@
   "mh-mt-lpt": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Low_Pressure_Turbine", "page": "Low Pressure Turbine", "revisionId": 42612, "fetchedAt": "2026-10-16" },
   "mh-mt-generator": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Turbine_Generator", "page": "Turbine Generator", "revisionId": 43598, "fetchedAt": "2026-10-16" },
   "mh-mt-output": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Turbine_Output", "page": "Turbine Output", "revisionId": 43056, "fetchedAt": "2026-10-16" },
+  "mh-cpp-guide": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Coal_Power_Plant/Guide", "page": "Coal Power Plant/Guide", "revisionId": 43424, "fetchedAt": "2026-10-16", "note": "guide tiré du tutoriel du Discord : deux Coal Power Plants, deux Heat Exchangers" },
+  "mh-hps": { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/High_Pressure_Steam", "page": "High Pressure Steam", "revisionId": 42379, "fetchedAt": "2026-10-16" },
   "fd-mt": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine", "page": "Modular Turbine", "revisionId": 19618, "fetchedAt": "2026-10-16" },
   "fd-mt-input": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/Turbine_Input", "page": "Modular Turbine/Turbine Input", "revisionId": 14842, "fetchedAt": "2026-10-16" },
   "fd-mt-hpt": { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Modular_Turbine/High_Pressure_Turbine", "page": "Modular Turbine/High Pressure Turbine", "revisionId": 14845, "fetchedAt": "2026-10-16" },
@@ -100,6 +104,9 @@
    "summary": "Les blocs ne se touchent pas : chacun doit être à portée (un cercle) du bloc qui le dessert. Réservoir → arroseurs → arbres → récolteurs → sorties, le tout à portée d'un seul contrôleur.",
    "rules": [
     { "key": "rangeShape", "text": "Une portée est un cercle (un rayon), pas un carré.", "value": "cercle", "status": "sourcé", "sources": ["user-q9"] },
+    { "key": "rangeFrom", "text": "Les portées relevées (rangeTiles) se mesurent depuis le bord du bloc, pas depuis son centre : depuis le centre, ajouter la demi-largeur du bloc.", "value": "bord", "status": "sourcé", "sources": ["user-mod-2026-10-16"] },
+    { "key": "rangeCriterion", "text": "Un bloc est à portée dès que le cercle le touche ; son centre n'a pas besoin d'être dedans.", "value": "toucher le bloc", "status": "sourcé", "sources": ["user-mod-2026-10-16", "fd-sprinkler"] },
+    { "key": "powerDistribution", "text": "Le contrôleur reçoit l'électricité par sa prise et la distribue aux récolteurs à sa portée ; les récolteurs consomment sans avoir de prise.", "value": true, "status": "sourcé", "sources": ["user-mod-2026-10-16", "mh-tree-controller", "jeu-ports-2026-10-16"] },
     { "key": "noContact", "text": "Les blocs n'ont pas besoin de se toucher ni d'être alignés.", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-guide"] },
     { "key": "allInControllerRange", "text": "Tous les blocs de la ferme doivent être à portée du contrôleur.", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-farm", "mh-tree-guide", "fd-tree-farm"] },
     { "key": "oneControllerPerBlock", "text": "Un bloc à portée de deux contrôleurs s'arrête : les portées de deux contrôleurs ne doivent couvrir aucun bloc en commun.", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-farm", "mh-faq13", "fd-tree-controller", "fd-tree-farm"] },
@@ -113,14 +120,13 @@
      "role": "Cerveau et alimentation électrique de la ferme : il définit la zone de la ferme.",
      "facts": [
       { "key": "count", "text": "Un seul par ferme ; plusieurs à portée d'un même bloc cassent la ferme.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-tree-controller", "fd-tree-controller"] },
-      { "key": "rangeTiles", "text": "Rayon de portée du contrôleur.", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-01" },
-      { "key": "rangeCriterion", "text": "Ce qui doit être dans le cercle : le centre du bloc, n'importe quel bout du bloc, ou le bloc entier.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-04" },
+      { "key": "rangeTiles", "text": "Portée du contrôleur, depuis son bord : 58 cases (60 depuis son centre, le bloc faisant 4 × 4).", "value": 58, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-01" },
       { "key": "serves", "text": "Doit couvrir tous les blocs de la ferme, au moins un réservoir compris.", "value": ["tree-farm-water-tank", "tree-farm-sprinkler", "tree", "farm-harvester", "tree-farm-output"], "status": "sourcé", "sources": ["mh-tree-controller", "mh-tree-guide"] },
       { "key": "placement", "text": "Placement libre ; conseillé au centre des arbres.", "value": "centre conseillé", "status": "sourcé", "sources": ["mh-tree-controller", "fd-tree-controller"] },
       { "key": "powerPerTreeMF", "text": "Consommation : 200 kMF par arbre coupé, pour chaque récolteur.", "value": 200000, "unit": "MF", "status": "sourcé", "sources": ["mh-tree-controller", "mh-harvester", "fd-tree-controller", "fd-harvester"] },
       { "key": "powerCapacityMF", "text": "Réserve d'énergie du contrôleur.", "value": 1000000, "unit": "MF", "status": "sourcé", "sources": ["mh-tree-controller", "fd-tree-controller"] },
       { "key": "powerTransferMFps", "text": "Débit électrique maximal du contrôleur (Fandom seulement ; Miraheze laisse le champ vide).", "value": 600000, "unit": "MF/s", "status": "sourcé", "sources": ["fd-tree-controller"] },
-      { "key": "powerPort", "text": "Position de la prise électrique.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+      { "key": "powerPort", "text": "Prise électrique sur le dessus, case [3,5 ; 4] (data/ports.json) : seul bloc de la ferme relevé avec une prise.", "value": { "side": "dessus", "cell": [3.5, 4] }, "status": "sourcé", "sources": ["jeu-ports-2026-10-16"] }
      ]
     },
     {
@@ -130,21 +136,21 @@
       { "key": "sprinklersPerTank", "text": "Un réservoir alimente au plus 3 arroseurs, quel que soit son volume.", "value": 3, "status": "sourcé", "sources": ["mh-water-tank", "mh-sprinkler", "fd-water-tank", "fd-tree-farm"] },
       { "key": "capacityL", "text": "Contenance.", "value": 2000, "unit": "L", "status": "sourcé", "sources": ["mh-water-tank", "fd-water-tank"] },
       { "key": "mustBeInControllerRange", "text": "Doit être à portée du contrôleur (le même que celui des arroseurs).", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-faq13", "mh-tree-guide", "fd-water-tank"] },
-      { "key": "extraTanksNeedWater", "text": "Miraheze : les réservoirs en plus relèvent la limite d'arroseurs sans avoir besoin d'eau. Non repris par le Fandom.", "value": false, "status": "sourcé", "sources": ["mh-sprinkler"], "question": "MOD-08" },
-      { "key": "rangeTiles", "text": "Le réservoir a-t-il sa propre portée vers les arroseurs, ou suffit-il d'être à portée du contrôleur ?", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-02" },
-      { "key": "waterPort", "text": "Position de l'entrée d'eau (un tuyau depuis une pompe : Water Pump2 dans le guide).", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+      { "key": "extraTanksNeedWater", "text": "Chaque réservoir doit être alimenté en eau, y compris ceux qu'on ajoute pour dépasser 3 arroseurs (en jeu). Miraheze disait le contraire.", "value": true, "status": "contradiction", "sources": ["user-mod-2026-10-16"], "alternatives": [ { "value": false, "sources": ["mh-sprinkler"] } ], "question": "MOD-08" },
+      { "key": "rangeTiles", "text": "Portée infinie vers les arroseurs : il suffit que le réservoir soit à portée du contrôleur.", "value": "infinie", "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-02" },
+      { "key": "waterPort", "text": "Entrée d'eau en bas, case 2 (data/ports.json) ; pas de prise électrique.", "value": { "side": "bas", "cell": 2 }, "status": "sourcé", "sources": ["jeu-ports-2026-10-16"] }
      ]
     },
     {
      "id": "tree-farm-sprinkler",
      "role": "Arrose les arbres à sa portée ; sans arrosage, un arbre ne pousse pas.",
      "facts": [
-      { "key": "rangeTiles", "text": "Rayon de portée de l'arroseur.", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-03" },
-      { "key": "rangeCriterion", "text": "Fandom : il suffit que la portée touche à peine l'arbre pour l'arroser.", "value": "toucher le bloc", "status": "sourcé", "sources": ["fd-sprinkler"], "question": "MOD-04" },
-      { "key": "rangeTilesBounds", "text": "Bornes du rayon, depuis le centre de l'arroseur, si l'arbre est arrosé dès que le cercle touche son emprise.", "value": { "min": 12, "max": 14 }, "unit": "cases", "status": "déduit", "sources": ["mh-img-sprinkler-range", "mh-img-sprinkler-range2", "fd-sprinkler"], "note": "Arbres de 4 × 4 cases posés côte à côte. Sprinkler Range : dans une grille 9 × 9 avec l'arroseur au centre, l'arbre décalé de (3, 2) arbres pousse (point le plus proche à 11,7 cases) ; ceux décalés de (4, 0) et (3, 3) ne poussent pas (14 et 14,1 cases) : rayon < 14. Sprinkler Range2 : les arbres les plus loin des 46 ont leur point le plus proche à environ 12 cases (mesure sur l'image, ± 0,3) : rayon ≥ 12. Si c'est le centre de l'arbre qui compte, les mêmes images donnent un rayon entre 14,4 et 16 cases.", "question": "MOD-03" },
+      { "key": "rangeTiles", "text": "Portée de l'arroseur, depuis son bord : 10 cases (12 depuis son centre, le bloc faisant 4 × 4).", "value": 10, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-03" },
+      { "key": "rangeTilesBounds", "text": "Bornes déduites des images du wiki avant le relevé, depuis le centre de l'arroseur : 12 à 14 cases. Le relevé (10 + 2 = 12 depuis le centre) tombe dedans, ce qui confirme aussi qu'il est en cases.", "value": { "min": 12, "max": 14 }, "unit": "cases", "status": "déduit", "sources": ["mh-img-sprinkler-range", "mh-img-sprinkler-range2", "fd-sprinkler"], "note": "Arbres de 4 × 4 cases posés côte à côte. Sprinkler Range : dans une grille 9 × 9 avec l'arroseur au centre, l'arbre décalé de (3, 2) arbres pousse (point le plus proche à 11,7 cases) ; ceux décalés de (4, 0) et (3, 3) ne poussent pas (14 et 14,1 cases) : rayon < 14. Sprinkler Range2 : les arbres les plus loin des 46 ont leur point le plus proche à environ 12 cases (mesure sur l'image, ± 0,3) : rayon ≥ 12. Si c'est le centre de l'arbre qui compte, les mêmes images donnent un rayon entre 14,4 et 16 cases.", "question": "MOD-03" },
       { "key": "treesPerSprinkler", "text": "Arbres desservis par un arroseur : 44 en grille régulière (Miraheze et Fandom), jusqu'à 46 en décalant des arbres d'une demi-case (Milza, Miraheze).", "value": { "grid": 44, "max": 46 }, "status": "sourcé", "sources": ["mh-sprinkler", "fd-sprinkler", "mh-img-sprinkler-range", "mh-img-sprinkler-range2"] },
-      { "key": "waterCycle", "text": "Arrosage : Miraheze dit toutes les 1 000 ticks (33,33 s) avec 33 L ; le Fandom dit toutes les 36 s avec 25 L (environ 0,7 L/s).", "value": { "periodS": 33.33, "litersPerCycle": 33 }, "status": "contradiction", "sources": ["mh-sprinkler"], "alternatives": [ { "value": { "periodS": 36, "litersPerCycle": 25 }, "sources": ["fd-sprinkler", "fd-water-tank"] } ], "question": "MOD-07" },
-      { "key": "needsTankInControllerRange", "text": "Ne marche que si un réservoir est à portée du contrôleur.", "value": true, "status": "sourcé", "sources": ["mh-sprinkler", "mh-tree-guide"] }
+      { "key": "waterCycle", "text": "Arrosage : 33 L toutes les 1 000 ticks (33,33 s), comme le dit Miraheze (confirmé par l'utilisateur) ; le Fandom dit 25 L toutes les 36 s.", "value": { "periodS": 33.33, "litersPerCycle": 33 }, "status": "contradiction", "sources": ["mh-sprinkler", "user-mod-2026-10-16"], "alternatives": [ { "value": { "periodS": 36, "litersPerCycle": 25 }, "sources": ["fd-sprinkler", "fd-water-tank"] } ], "question": "MOD-07" },
+      { "key": "needsTankInControllerRange", "text": "Ne marche que si un réservoir est à portée du contrôleur.", "value": true, "status": "sourcé", "sources": ["mh-sprinkler", "mh-tree-guide"] },
+      { "key": "ports", "text": "Aucun port (relevé « Sans port ») ; la prise électrique n'est pas renseignée dans le relevé.", "value": { "ports": [], "power": null }, "status": "sourcé", "sources": ["jeu-ports-2026-10-16"], "question": "MOD-10" }
      ]
     },
     {
@@ -162,10 +168,11 @@
      "id": "farm-harvester",
      "role": "Bras robotisé : coupe les arbres mûrs à sa portée et dépose les Oak Logs dans une sortie.",
      "facts": [
-      { "key": "rangeTiles", "text": "Rayon de portée du récolteur vers les arbres.", "value": null, "unit": "cases", "status": "inconnu", "sources": [], "question": "MOD-05" },
-      { "key": "outputRange", "text": "Lien récolteur → sortie : Miraheze parle de la sortie la plus proche « à portée de sa base » ; la FAQ dit que le récolteur doit « toucher » la sortie.", "value": null, "status": "inconnu", "sources": ["mh-harvester", "mh-faq13", "fd-harvester"], "question": "MOD-06" },
+      { "key": "rangeTiles", "text": "Portée du récolteur vers les arbres, depuis son bord : 23 cases (27 depuis son centre, le bloc faisant 8 × 8).", "value": 23, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-05" },
+      { "key": "outputRange", "text": "Même portée vers la sortie que vers les arbres : 23 cases depuis son bord (pas besoin de la toucher, contrairement à ce que laisse entendre la FAQ).", "value": 23, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16", "mh-harvester"], "question": "MOD-06" },
+      { "key": "ports", "text": "Ni port ni prise électrique : il est alimenté par le contrôleur qui l'a à sa portée.", "value": { "ports": [], "power": false }, "status": "sourcé", "sources": ["user-mod-2026-10-16", "jeu-ports-2026-10-16"] },
       { "key": "powerPerTree", "text": "200 kMF par arbre coupé, sur 11 s ; le contrôleur doit avoir au moins 200 kMF en réserve.", "value": { "MF": 200000, "seconds": 11 }, "status": "sourcé", "sources": ["mh-harvester", "fd-harvester"] },
-      { "key": "treesPerHarvester", "text": "Fandom seulement : un récolteur suit 30 arbres à 1 500 % de pollution, 15 arbres à l'efficacité maximale. Le guide Miraheze en donne 22 par récolteur (88 arbres, 4 récolteurs).", "value": { "maxGrowth": 15, "pollution1500": 30 }, "status": "sourcé", "sources": ["fd-harvester"], "question": "MOD-09" },
+      { "key": "treesPerHarvester", "text": "L'utilisateur retient Miraheze : le guide fait suivre 22 arbres à chaque récolteur (88 arbres, 4 récolteurs). Le Fandom dit 15 arbres au mieux, 30 à 1 500 % de pollution. Le maximum réel n'est pas connu.", "value": { "guide": 22 }, "status": "contradiction", "sources": ["mh-tree-guide", "user-mod-2026-10-16"], "alternatives": [ { "value": { "maxGrowth": 15, "pollution1500": 30 }, "sources": ["fd-harvester"] } ], "question": "MOD-09" },
       { "key": "powerCapacity", "text": "Fandom : réserve 1 MMF et débit 600 kMF/s ; Miraheze : réserve 0 MF.", "value": { "capacityMF": 0 }, "status": "contradiction", "sources": ["mh-harvester"], "alternatives": [ { "value": { "capacityMF": 1000000, "transferMFps": 600000 }, "sources": ["fd-harvester"] } ] },
       { "key": "multipleOutputs", "text": "Avec plusieurs sorties à sa portée, le récolteur en choisit une, sans règle reproductible, et n'en change plus.", "value": null, "status": "sourcé", "sources": ["fd-tree-output"] }
      ]
@@ -177,7 +184,7 @@
       { "key": "mustBeInHarvesterRange", "text": "Doit être à portée d'un récolteur ; plusieurs récolteurs peuvent partager une sortie.", "value": true, "status": "sourcé", "sources": ["mh-tree-output", "fd-tree-output"] },
       { "key": "overflow", "text": "Pleine, elle ne bloque pas la ferme : le surplus est perdu.", "value": "perdu", "status": "sourcé", "sources": ["mh-tree-output", "fd-tree-output"] },
       { "key": "pipeAutoConnect", "text": "Se raccorde rarement toute seule aux tuyaux : il faut la brancher à la main.", "value": false, "status": "sourcé", "sources": ["mh-tree-farm", "fd-tree-farm"] },
-      { "key": "itemPort", "text": "Position du port de sortie des Oak Logs.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+      { "key": "itemPort", "text": "Sortie des Oak Logs en bas, case 2 (data/ports.json) ; pas de prise électrique.", "value": { "side": "bas", "cell": 2 }, "status": "sourcé", "sources": ["jeu-ports-2026-10-16"] }
      ]
     }
    ],
@@ -227,7 +234,7 @@
      "facts": [
       { "key": "count", "text": "Un seul par moteur ; plusieurs cassent le moteur.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "fd-mde"] },
       { "key": "faces", "text": "Au bout du moteur : les vilebrequins se posent devant lui ; il ne se pose pas sur un côté. Un vilebrequin de côté peut aussi partir d'un de ses côtés.", "value": { "front": ["diesel-engine-crankshaft"], "side": ["diesel-engine-crankshaft-sideways"], "back": [] }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "mh-mde-sideways"] },
-      { "key": "spacing", "text": "Fandom : deux contrôleurs (deux moteurs) doivent être à une certaine distance l'un de l'autre, sinon ils ne marchent pas (bogue connu). Distance non donnée.", "value": null, "unit": "cases", "status": "inconnu", "sources": ["fd-mde-controller"], "question": "MOD-13" }
+      { "key": "spacing", "text": "Deux moteurs complets peuvent se coller : un joueur en a posé plusieurs à la suite (observation rapportée par l'utilisateur). Le Fandom signalait un bogue quand deux contrôleurs sont trop proches, sans donner de distance.", "value": 0, "unit": "cases", "status": "contradiction", "sources": ["user-mod-2026-10-16"], "alternatives": [ { "value": "distance non nulle, non chiffrée", "sources": ["fd-mde-controller"] } ], "question": "MOD-13" }
      ]
     },
     {
@@ -392,7 +399,8 @@
     { "key": "flowLps", "text": "Accepte jusqu'à 24 kL/s ; en dessous de 6 kL/s, presque impossible à synchroniser.", "value": { "max": 24000, "practicalMin": 6000 }, "unit": "L/s", "status": "sourcé", "sources": ["mh-mt", "fd-mt"] },
     { "key": "sync", "text": "Synchronisation entre 3 590 et 3 610 tr/min, variation entre −5 et +5 ; déclenchement à 4 000 tr/min.", "value": { "rpmMin": 3590, "rpmMax": 3610, "rpmChangeMax": 5, "tripRpm": 4000 }, "status": "sourcé", "sources": ["mh-mt", "fd-mt"] },
     { "key": "gaps", "text": "La turbine marche encore avec un vide entre deux blocs (bogue signalé par les deux wikis).", "value": true, "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt"] },
-    { "key": "powerFormula", "text": "Puissance selon débit, température, nombre de HPT et de LPT : seulement les tableaux ci-dessous (développeur sob_ad), pas de formule.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-16" }
+    { "key": "powerFormula", "text": "Puissance selon débit, température, nombre de HPT et de LPT : seulement les tableaux ci-dessous (développeur sob_ad), pas de formule.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-16" },
+    { "key": "reliability", "text": "Décision de l'utilisateur : quand un plan utilise une turbine modulaire, le site dit que ses chiffres de production électrique ne sont pas fiables.", "value": "non fiable", "status": "sourcé", "sources": ["user-mod-2026-10-16"] }
    ],
    "blocks": [
     {
@@ -484,6 +492,22 @@
      "status": "sourcé",
      "sources": ["mh-mt"],
      "note": "Ligne 6 kL/s, 230 à 285 °C : le wiki écrit « 85 - 84MMF/s »."
+    },
+    {
+     "id": "cpp-guide-builds",
+     "text": "Guide de la Coal Power Plant : deux centrales, deux Heat Exchangers (12 kL/s chacun au plus). Montage simple : une turbine 4 HPT, 1 IPT, 3 LPT, 269 MMF/s. Montage efficace : 4 turbines 0 HPT, 1 IPT, 5 LPT, chacune alimentée par la moitié d'un échangeur, 85 MMF/s chacune, 340 MMF/s en tout.",
+     "columns": ["turbines", "hpt", "lpt", "powerPerTurbineMFps", "powerTotalMFps"],
+     "rows": [[1, 4, 3, 269000000, 269000000], [4, 0, 5, 85000000, 340000000]],
+     "status": "sourcé",
+     "sources": ["mh-cpp-guide"],
+     "note": "Le guide écrit aussi « single 4:4 turbine » dans sa section d'optimisation : la liste de l'étape 5 (4 HPT, 3 LPT) est retenue. Les deux montages tombent dans les tableaux de sob_ad (24 kL/s, 4 : 3, 267 à 303 MMF/s ; 6 kL/s, 0 : 5, 84 à 85 MMF/s). Débit et température de la vapeur non donnés."
+    },
+    {
+     "id": "lps-temperature",
+     "text": "La Low Pressure Steam sortie de la turbine garde environ 60 % de la température de la High Pressure Steam entrée.",
+     "value": { "lpsTempRatio": 0.6 },
+     "status": "sourcé",
+     "sources": ["mh-hps"]
     }
    ]
   }

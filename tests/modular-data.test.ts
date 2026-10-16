@@ -142,5 +142,9 @@ describe("données des machines modulaires (modular.json)", () => {
       expect(range, id).toBeDefined();
       expect(range!.status === "inconnu" ? range!.question : range!.value, id).toBeTruthy();
     }
+    // Relevés de l'utilisateur du 2026-10-16, en cases depuis le bord du bloc.
+    expect(farm.rules.find((r) => r.key === "rangeFrom")?.value).toBe("bord");
+    const r = (id: string) => farm.blocks.find((b) => b.id === id)!.facts.find((f) => f.key === "rangeTiles")!.value;
+    expect([r("tree-farm-controller"), r("tree-farm-sprinkler"), r("farm-harvester"), r("tree-farm-water-tank")]).toEqual([58, 10, 23, "infinie"]);
   });
 });
