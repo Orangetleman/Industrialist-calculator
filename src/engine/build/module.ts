@@ -33,7 +33,16 @@ export type ModuleRequest = {
   ends?: Record<string, "début" | "fin" | "milieu">;
   /** Module replié : le tuyau principal de chaque ressource arrive ou part par le haut (défaut) ou par le bas. */
   trunkExit?: Record<string, "haut" | "bas">;
+  /**
+   * Double rangée : le collecteur central de la ressource sort à angle droit par un passage entre deux
+   * machines voisines d'une rangée (« haut » : la première, « bas » : la seconde), après la machine
+   * n° `after` de cette rangée (1 = entre la 1re et la 2e). S'il n'y a pas de colonne libre entre elles,
+   * les machines suivantes de la rangée s'écartent d'une case (le module peut s'élargir). Remplace `ends`.
+   */
+  passages?: Record<string, Passage>;
 };
+
+export type Passage = { row: "haut" | "bas"; after: number };
 
 /** Disposition retenue, pour refaire le même module avec d'autres bouts (`redesign`). */
 type FlatConfig = { assign: Assign[]; double: boolean; rot: Rot; sides: Record<string, "haut" | "bas"> | null; hug: boolean; extra: number };
@@ -56,6 +65,8 @@ export type Net = {
   lane: { y: number; x0: number; x1: number } | null;
   /** Raccord vers l'extérieur du module (arrivée d'une entrée, départ d'une sortie). */
   end: { x: number; y: number; dir: Dir } | null;
+  /** Sortie par un passage entre deux machines (double rangée) ; `widened` : machines écartées d'une case pour l'ouvrir. */
+  via?: Passage & { x: number; widened: boolean };
 };
 
 /** Une pièce de tuyau par case ; un croisement porte deux réseaux (`links` pour `net`, `crossLinks` pour `crossNet`). */
@@ -187,7 +198,7 @@ type Layout = { grid: Grid; machines: Placed[]; nets: Net[]; problems: Problem[]
  * Pose N machines en une rangée (ou deux rangées dos à dos), trace un collecteur par ressource
  * le long de la rangée, puis raccorde chaque port au collecteur de sa ressource.
  */
-function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer, sides: Record<string, "haut" | "bas"> | null = null, hug = false): Layout | null {
+function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer, sides: Record<string, "haut" | "bas"> | null = null, hug = false, widen = false): Layout | null {
   const problems: Problem[] = [];
   const probe = place("m", req.machine, entry, 0, 0, rot);
   const used = new Map(assign.map((a) => [a.port, a]));
@@ -243,13 +254,19 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   const touchN2 = probe2.ports.some((p) => used.has(p.index) && p.facing === "N") ? 1 : 0;
   const row2y = touchN2 ? (hug && below.length ? lastBelow : lastBelow + 1) + touchN2 : lastBelow + 1;
 
+  // Passages du collecteur central (double rangée) ; `widen` : chaque passage écarte les machines suivantes de sa rangée d'une case.
+  const vias = double ? Object.entries(req.passages ?? {}).filter(([it]) => items.includes(it)) : [];
+  const rowSize = (row: "haut" | "bas") => (row === "haut" ? perRow : req.count - perRow);
+  if (vias.some(([, v]) => v.after < 1 || v.after > rowSize(v.row) || (v.after === rowSize(v.row) && rowSize(v.row) >= rowSize(v.row === "haut" ? "bas" : "haut")))) return null;
+  const shiftOf = (row: "haut" | "bas", k: number) => (widen ? vias.filter(([, v]) => v.row === row && v.after <= k && v.after < rowSize(row)).length : 0);
+
   const grid = new Grid();
   const machines: Placed[] = [];
   const x0 = 1; // colonne 0 : arrivée des collecteurs d'entrée
   for (let i = 0; i < req.count; i++) {
     const second = double && i >= perRow;
     const k = second ? i - perRow : i;
-    const pm = place(`m${i + 1}`, req.machine, entry, x0 + k * pitch, second ? row2y : y0, second ? rot2 : rot);
+    const pm = place(`m${i + 1}`, req.machine, entry, x0 + k * pitch + shiftOf(second ? "bas" : "haut", k), second ? row2y : y0, second ? rot2 : rot);
     machines.push(pm);
     for (const c of pm.cells) {
       if (grid.get(c)) return null;
@@ -288,14 +305,48 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   // Collecteurs droits : les entrées arrivent par la gauche (colonne 0), les sorties partent à droite.
   const laneRow = (id: string) => (sideOf.get(itemOf(id)) === "haut" ? aboveRow(above.indexOf(id)) : belowRow(below.indexOf(id)));
   const portAt = new Map(allPorts.map((q) => [`${q.p.cell.x},${q.p.cell.y}`, q.p.facing]));
+  const viaOf = new Map(vias);
+  if (vias.some(([it]) => linesOf.get(it)! > 1)) return null; // un seul collecteur par passage
+  const retry = () => (!widen && vias.length ? layout(entry, assign, req, rot, double, gapExtra, cat, name, sides, hug, true) : null);
+  // Étendue de chaque collecteur : au début (colonne 0, à gauche), à la fin (dernière colonne, à droite),
+  // ou « milieu » (au moins deux cases, pour qu'il y ait un tuyau où raccorder les ports).
+  const lanes = new Map(
+    nets.map((n) => {
+      const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
+      const y = laneRow(n.id);
+      const endKind = viaOf.has(n.item) ? "milieu" : (req.ends?.[n.item] ?? (n.role === "entrée" ? "début" : "fin"));
+      const lane = endKind === "milieu" ? { y, x0: Math.min(...xs), x1: Math.max(Math.max(...xs), Math.min(...xs) + 1) } : endKind === "fin" ? { y, x0: Math.min(...xs), x1: bounds.x1 } : { y, x0: 0, x1: Math.max(...xs) };
+      return [n.id, { lane, endKind }] as const;
+    }),
+  );
+  // Passages : une colonne libre entre les deux machines (ni bâtiment ni port jusqu'au bord du module), qui
+  // croise les autres collecteurs sur un tuyau droit (pas à leur bout) ; la plus proche du milieu de l'écart.
+  const rowMachines = (row: "haut" | "bas") => (row === "haut" ? machines.slice(0, perRow) : machines.slice(perRow));
+  const viaCol = new Map<string, number>();
   for (const n of nets) {
-    const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
-    const y = laneRow(n.id);
-    // Bout du collecteur : au début (colonne 0, à gauche) ou à la fin (dernière colonne, à droite).
-    const endKind = req.ends?.[n.item] ?? (n.role === "entrée" ? "début" : "fin");
+    const v = viaOf.get(n.item);
+    if (!v) continue;
+    const ms = rowMachines(v.row);
+    const left = ms[v.after - 1]!;
+    const right = ms[v.after];
+    const other = rowMachines(v.row === "haut" ? "bas" : "haut");
+    const lo = left.x + left.w;
+    const hi = right ? right.x - 1 : Math.max(...other.map((m) => m.x + m.w)) - 1;
+    const { lane } = lanes.get(n.id)!;
+    const span = (px: number) => (v.row === "haut" ? Array.from({ length: lane.y }, (_, k) => ({ x: px, y: k })) : Array.from({ length: bounds.y1 - lane.y }, (_, k) => ({ x: px, y: lane.y + 1 + k })));
+    const crossable = (px: number, y: number) =>
+      [...lanes].every(([id, o]) => id === n.id || o.lane.y !== y || px < o.lane.x0 || px > o.lane.x1 || (px > o.lane.x0 && px < o.lane.x1));
+    const cols = Array.from({ length: Math.max(0, hi - lo + 1) }, (_, k) => lo + k).sort((a, b) => Math.abs(a - (lo + hi) / 2) - Math.abs(b - (lo + hi) / 2));
+    const px = cols.find((x) => ![...viaCol.values()].includes(x) && span(x).every((c) => !grid.get(c) && crossable(x, c.y)));
+    if (px === undefined) return retry();
+    viaCol.set(n.id, px);
+    lane.x0 = Math.min(lane.x0, px);
+    lane.x1 = Math.max(lane.x1, px);
+  }
+  for (const n of nets) {
+    const { lane, endKind } = lanes.get(n.id)!;
+    const y = lane.y;
     const atEnd = endKind === "fin";
-    // « milieu » : au moins deux cases, pour qu'il y ait un tuyau où raccorder les ports.
-    const lane = endKind === "milieu" ? { y, x0: Math.min(...xs), x1: Math.max(Math.max(...xs), Math.min(...xs) + 1) } : atEnd ? { y, x0: Math.min(...xs), x1: bounds.x1 } : { y, x0: 0, x1: Math.max(...xs) };
     for (let x = lane.x0; x <= lane.x1; x++) {
       // Un collecteur collé passe sur les cases de raccord des ports qui lui font face, pas ailleurs.
       const o = grid.get({ x, y });
@@ -309,6 +360,25 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
       n.end = atEnd ? { x: lane.x1, y, dir: "E" } : { x: lane.x0, y, dir: "W" };
     }
   }
+  // Puis chaque passage, du collecteur jusqu'au bord du module ; vers le bas, jusqu'à la rangée de
+  // contournement (retirée ensuite si aucun raccord ne la croise).
+  for (const n of nets) {
+    const px = viaCol.get(n.id);
+    if (px === undefined) continue;
+    const v = viaOf.get(n.item)!;
+    const y = n.lane!.y;
+    const edge = v.row === "haut" ? 0 : bounds.y1;
+    for (let yy = Math.min(y, edge); yy <= Math.max(y, edge); yy++) {
+      if (yy === y) continue;
+      const o = grid.get({ x: px, y: yy });
+      if (o && !(o.kind === "tuyau" && o.net !== n.id && !o.cross && o.links.size === 2 && o.links.has("E") && o.links.has("W"))) return retry();
+    }
+    grid.straight({ x: px, y }, { x: px, y: edge }, n.id);
+    const dir: Dir = v.row === "haut" ? "N" : "S";
+    grid.link({ x: px, y: edge }, dir, n.id);
+    n.end = { x: px, y: edge, dir };
+    n.via = { ...v, x: px, widened: widen && v.after < rowSize(v.row) };
+  }
   // Raccords : du port vers le collecteur, les plus proches d'abord.
   const order = [...allPorts].sort((a, b) => Math.abs(a.p.cell.y - laneRow(a.net)) - Math.abs(b.p.cell.y - laneRow(b.net)) || a.p.cell.x - b.p.cell.x);
   for (const { m, p, a, net } of order) {
@@ -318,6 +388,14 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
       problems.push({ level: "erreur", message: `Machine ${m.id.slice(1)} : impossible de raccorder le port ${a.role === "entrée" ? "d'entrée" : "de sortie"} (${name(a.item)}) à son collecteur.` });
       return { grid, machines, nets, problems, bounds, template: double ? "double rangée" : "rangée", rot };
     }
+  }
+  // Passage vers le bas : la rangée de contournement n'est gardée que si un raccord y croise le passage.
+  for (const n of nets) {
+    if (n.via?.row !== "bas" || n.end?.y !== bounds.y1) continue;
+    const o = grid.get(n.end);
+    if (o?.kind !== "tuyau" || o.cross || o.links.size > 2) continue;
+    grid.cells.delete(`${n.end.x},${n.end.y}`);
+    n.end = { ...n.end, y: n.end.y - 1 };
   }
   return { grid, machines, nets, problems, bounds, template: double ? "double rangée" : "rangée", rot };
 }
@@ -391,6 +469,9 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
   const poles: PlacedPole[] = [];
   const files: { label: string; load: number; feeds: number }[] = [];
   let outOfRange = false;
+  // Colonnes des passages (double rangée) : aucun poteau de la file de leur côté ne s'y pose.
+  const avoid = (ri: number) => l.nets.filter((n) => n.via && (n.via.row === "haut") === (ri === 0)).map((n) => n.via!.x);
+  const hits = (x: number, cols: number[]) => cols.some((a) => a >= x && a < x + pole.size.w);
   const dist = (p: { y: number }, r: number) => Math.abs(p.y - (r + pole.size.h / 2));
   rows.forEach((py, ri) => {
     const cy = py + pole.size.h / 2;
@@ -408,9 +489,16 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
     const todo = spans.filter((s) => s.ok).sort((a, b) => a.hi - b.hi);
     const covered = new Set<number>();
     const row: PlacedPole[] = [];
+    const cols = avoid(ri);
     for (let i = 0; i < todo.length; i++) {
       if (covered.has(i)) continue;
-      const cx = Math.max(todo[i]!.lo, Math.min(todo[i]!.hi, xHi, Math.max(xLo, todo[i]!.hi)));
+      let cx = Math.max(todo[i]!.lo, Math.min(todo[i]!.hi, xHi, Math.max(xLo, todo[i]!.hi)));
+      // Sur un passage : le poteau glisse à côté, s'il atteint encore sa prise.
+      const at = (c: number) => Math.floor(c - pole.size.w / 2);
+      if (hits(at(cx), cols)) {
+        const near = Array.from({ length: 2 * (pole.size.w + 1) }, (_, k) => cx + (k % 2 ? 1 : -1) * (1 + (k >> 1)));
+        cx = near.find((c) => c >= todo[i]!.lo - 1e-9 && c <= todo[i]!.hi + 1e-9 && !hits(at(c), cols)) ?? cx;
+      }
       const covers: string[] = [];
       todo.forEach((s, j) => {
         if (!covered.has(j) && s.lo <= cx + 1e-9 && s.hi >= cx - 1e-9) {
@@ -423,7 +511,11 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
     // Les poteaux d'une file se relient entre eux : un poteau de plus si deux voisins sont trop loin.
     row.sort((a, b) => a.x - b.x);
     for (let i = 1; i < row.length; i++) {
-      while (row[i]!.x - row[i - 1]!.x > R) row.splice(i, 0, { x: row[i - 1]!.x + Math.floor(R), y: py, w: pole.size.w, h: pole.size.h, pole: pole.id, covers: [] });
+      while (row[i]!.x - row[i - 1]!.x > R) {
+        let x = row[i - 1]!.x + Math.floor(R);
+        while (hits(x, cols) && x > row[i - 1]!.x + 1) x--;
+        row.splice(i, 0, { x, y: py, w: pole.size.w, h: pole.size.h, pole: pole.id, covers: [] });
+      }
     }
     poles.push(...row);
     const load = new Set(mine.map((p) => p.m)).size * each;
@@ -788,6 +880,43 @@ function countParts(req: ModuleRequest, pieces: PlacedPiece[], poles: PlacedPole
   return { parts: list, cost: list.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0), costUnknown: list.filter((p) => p.unitPrice === null).length };
 }
 
+/** « vers le haut, entre les machines n° 2 et n° 3 » (machines numérotées rangée par rangée, la première d'abord). */
+export function passageWhere(v: Passage, count: number): string {
+  const first = v.row === "haut" ? 0 : Math.ceil(count / 2);
+  const last = v.row === "haut" ? Math.ceil(count / 2) : count - first;
+  return `vers le ${v.row}, ${v.after < last ? `entre les machines n° ${first + v.after} et n° ${first + v.after + 1}` : `après la machine n° ${first + v.after}`}`;
+}
+
+/** « Le collecteur de X sort à angle droit vers le haut, entre les machines n° 2 et n° 3 ». */
+export function passageText(v: Passage & { widened?: boolean }, count: number, item: string): string {
+  return `Le collecteur de ${item} sort à angle droit ${passageWhere(v, count)}${v.widened ? " (écartées d'une case pour ouvrir le passage)" : ""}`;
+}
+
+export type PassageOption = { item: string; passage: Passage; widens: boolean; plan: ModulePlan };
+
+/**
+ * Les passages possibles du collecteur central d'une double rangée (non repliée), pour chaque ressource :
+ * le même module refait avec ce passage. `widens` : le module est plus large ou plus haut qu'avant (à
+ * proposer en option, la place passant d'abord).
+ */
+export function passageOptions(plan: ModulePlan, req: ModuleRequest, entry: PortsEntry | null, wikiSize: { w: number; l: number } | null, cat: Catalog, name: Namer = (id) => id, items?: string[]): PassageOption[] {
+  if (plan.template !== "double rangée" || plan.folds > 1 || !plan.config) return [];
+  const perRow = Math.ceil(req.count / 2);
+  const rows: [Passage["row"], number][] = [["haut", perRow], ["bas", req.count - perRow]];
+  const out: PassageOption[] = [];
+  for (const n of plan.nets) {
+    if (n.line !== null || (items && !items.includes(n.item))) continue;
+    for (const [row, size] of rows)
+      for (let after = 1; after <= size; after++) {
+        const passage = { row, after };
+        const p = redesign(plan, { ...req, passages: { ...req.passages, [n.item]: passage } }, entry, wikiSize, cat, name);
+        if (!p || !p.nets.some((x) => x.item === n.item && x.via)) continue;
+        out.push({ item: n.item, passage, widens: p.width > plan.width || p.height > plan.height, plan: p });
+      }
+  }
+  return out;
+}
+
 /** Ordre complet des critères : ceux demandés (sans doublon), puis les autres dans l'ordre par défaut. */
 export function normalPriority(p: PoseCriterion[] | undefined): PoseCriterion[] {
   const seen = [...new Set((p ?? []).filter((k) => POSE_CRITERIA.includes(k)))];
@@ -803,6 +932,29 @@ function scaleRequest(req: ModuleRequest, n: number): ModuleRequest {
 
 function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog, problems: Problem[], name: Namer): ModulePlan {
   const netOf = new Map(l.nets.map((n) => [n.id, n]));
+  const power = placePoles(l, req, cat, name);
+  // Passages : le tuyau traverse la file de poteaux de son côté, jusqu'au bord du module.
+  {
+    const ext = extentOf(l);
+    const top = Math.min(ext.minY, ...power.poles.map((p) => p.y));
+    const bottom = Math.max(ext.maxY, ...power.poles.map((p) => p.y + p.h - 1));
+    for (const n of l.nets) {
+      if (!n.via || !n.end) continue;
+      let to = n.end.dir === "N" ? top : bottom;
+      // Bout sur un croisement : une case de plus, pour que le tuyau vers les voisins s'y raccorde simplement.
+      if (to === n.end.y && (l.grid.get(n.end) as { cross?: unknown } | undefined)?.cross) to += n.end.dir === "N" ? -1 : 1;
+      if (to === n.end.y) continue;
+      const x = n.end.x;
+      const [a, b] = [Math.min(n.end.y, to), Math.max(n.end.y, to)];
+      if (power.poles.some((p) => x >= p.x && x < p.x + p.w && p.y <= b && p.y + p.h - 1 >= a)) {
+        problems.push({ level: "erreur", message: `Le passage de ${name(n.item)} est bouché par un poteau.` });
+        continue;
+      }
+      l.grid.straight(n.end, { x, y: to }, n.id);
+      l.grid.link({ x, y: to }, n.end.dir, n.id);
+      n.end = { ...n.end, y: to };
+    }
+  }
   const pieces: PlacedPiece[] = [];
   for (const [k, o] of l.grid.cells) {
     if (o.kind !== "tuyau") continue;
@@ -817,13 +969,13 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
     const set = netOf.get(o.net)?.pipe;
     pieces.push({ x, y, net: o.net, role, links: [...o.links], pieceId: set ? set.pieces[role === "croisement" ? "droit" : role].id : null });
   }
-  const power = placePoles(l, req, cat, name);
   // Dimensions : tout ce qui est posé, poteaux compris.
   const ext = extentOf(l);
   const minX = Math.min(ext.minX, ...power.poles.map((p) => p.x));
-  const minY = Math.min(ext.minY, ...power.poles.map((p) => p.y));
+  const viaEnds = l.nets.flatMap((n) => (n.via && n.end ? [n.end.y] : []));
+  const minY = Math.min(ext.minY, ...power.poles.map((p) => p.y), ...viaEnds);
   const maxX = Math.max(ext.maxX, ...power.poles.map((p) => p.x + p.w - 1));
-  const maxY = Math.max(ext.maxY, ...power.poles.map((p) => p.y + p.h - 1));
+  const maxY = Math.max(ext.maxY, ...power.poles.map((p) => p.y + p.h - 1), ...viaEnds);
   // Coordonnées ramenées à (0, 0).
   const shift = <T extends { x: number; y: number }>(o: T): T => ({ ...o, x: o.x - minX, y: o.y - minY });
   const machines = l.machines.map((m) => ({
@@ -832,7 +984,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
     ports: m.ports.map((p) => ({ ...p, cell: shift(p.cell) })),
     power: m.power.map(shift),
   }));
-  const nets = l.nets.map((n) => ({ ...n, lane: n.lane ? { y: n.lane.y - minY, x0: n.lane.x0 - minX, x1: n.lane.x1 - minX } : null, end: n.end ? shift(n.end) : null }));
+  const nets = l.nets.map((n) => ({ ...n, lane: n.lane ? { y: n.lane.y - minY, x0: n.lane.x0 - minX, x1: n.lane.x1 - minX } : null, end: n.end ? shift(n.end) : null, ...(n.via ? { via: { ...n.via, x: n.via.x - minX } } : {}) }));
 
   // Liste des pièces et coût.
   const { parts: list, cost, costUnknown } = countParts(req, pieces, power.poles, cat, name, problems);
@@ -844,6 +996,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   const order = [
     `Poser les ${req.count} ${name(req.machine)} en ${l.template}${l.template === "double rangée" ? " (la seconde tournée d'un demi-tour, ports face à face)" : ""}.`,
     ...nets.map((n) => `Collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, ${n.pipe ? `tuyaux tier ${n.pipe.tier === 1 ? "I" : "III"}` : "tuyau à choisir"} (${num(n.perSec)} par seconde).`),
+    ...nets.filter((n) => n.via).map((n) => `${passageText(n.via!, req.count, name(n.item))}.`),
     `Raccorder chaque port à son collecteur${crossings ? `, avec ${crossings} croisement(s)` : ""}.`,
     ...(atPorts
       ? [`${atPorts} croisement(s) sont collés à un port : ses deux tuyaux se relient à la machine ; dans l'onglet 3 du mode construction, dirige chaque vecteur vers la bonne entrée ou sortie.`]

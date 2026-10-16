@@ -19,7 +19,7 @@ import type { LogisticsFile, PortsEntry, PortsFile, PowerFile } from "../src/eng
 import type { OverridesFile } from "../src/engine/types.ts";
 import { solve } from "../src/engine/solve.ts";
 import { buildCatalog, pipeFor, type Catalog } from "../src/engine/build/catalog.ts";
-import { alternatives, designModule, redesign, requestFromStep, type ModulePlan, type ModuleRequest } from "../src/engine/build/module.ts";
+import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, type ModulePlan, type ModuleRequest } from "../src/engine/build/module.ts";
 import { OPPOSITE, STEP, type Dir } from "../src/engine/build/geometry.ts";
 import { Grid, route } from "../src/engine/build/route.ts";
 
@@ -69,7 +69,8 @@ function modules() {
   return { plan, boxes, name };
 }
 
-function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
+// `widen` (usine entière) : un passage du collecteur central qui élargit son module est permis (option).
+function design(glue: boolean, globalPoles: boolean, full = false, room = 0, widen = false) {
   const { plan, boxes, name } = modules();
   const byKey = new Map(boxes.map((b) => [b.key, b]));
   const endOf = (b: Box, item: string, role: "entrée" | "sortie") => b.mod?.nets.find((n) => n.role === role && name(n.item) === name(item))?.end ?? null;
@@ -95,7 +96,11 @@ function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
     if (!base || !n) return { x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: b.x + b.w / 2, y1: b.y + b.h / 2 };
     let p1: Pt;
     let p2: Pt;
-    if (base.folds > 1 && n.end) {
+    if (n.via && n.end) {
+      // Collecteur central sorti par un passage entre deux machines : la prise est au bout du passage.
+      p1 = { x: n.end.x, y: n.end.y };
+      p2 = p1;
+    } else if (base.folds > 1 && n.end) {
       const ys = base.pieces.filter((pc) => pc.x === n.end!.x && (pc.net === n.id || pc.crossNet === n.id)).map((pc) => pc.y);
       p1 = { x: n.end.x, y: Math.min(...ys) };
       p2 = { x: n.end.x, y: Math.max(...ys) };
@@ -358,7 +363,8 @@ function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
     const n = base.nets.find((x) => x.role === role && x.item === item);
     if (!n) return out;
     let cells: Pt[] = [];
-    if (base.folds > 1 && n.end) cells = base.pieces.filter((pc) => pc.x === n.end!.x && (pc.net === n.id || pc.crossNet === n.id)).map((pc) => ({ x: pc.x, y: pc.y }));
+    if (n.via && n.end) cells = [{ x: n.end.x, y: n.end.y }];
+    else if (base.folds > 1 && n.end) cells = base.pieces.filter((pc) => pc.x === n.end!.x && (pc.net === n.id || pc.crossNet === n.id)).map((pc) => ({ x: pc.x, y: pc.y }));
     else if (n.lane) for (let x = n.lane.x0; x <= n.lane.x1; x++) cells.push({ x, y: n.lane.y });
     const own = `${b.key}~${n.id}`;
     for (const c of cells) {
@@ -448,6 +454,12 @@ function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
         const own = (net: string) => `${b.key}~${net}`;
         grid.cells.set(`${b.x + pc.x},${b.y + pc.y}`, { kind: "tuyau", net: own(pc.net), links: new Set(pc.links), ...(pc.crossNet ? { cross: { net: own(pc.crossNet), links: new Set(pc.crossLinks ?? []) } } : {}) });
       }
+      // Bout d'un passage entre deux machines : ouvert, pour que le tuyau vers les voisins s'y raccorde.
+      for (const n of b.mod.nets) {
+        if (!n.via || !n.end) continue;
+        const o = grid.cells.get(`${b.x + n.end.x},${b.y + n.end.y}`);
+        if (o?.kind === "tuyau" && o.net === `${b.key}~${n.id}`) o.links.delete(n.end.dir);
+      }
     }
     const bounds = { x0: 0, y0: 0, x1: W - 1, y1: H - 1 };
     const edges = plan.edges.filter((e) => !glued.includes(`${e.from}>${e.to}`));
@@ -512,6 +524,7 @@ function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
   // Option « recalculé pour l'usine entière » : chaque module simple est refait avec des collecteurs sans bout
   // imposé (du premier au dernier port) ; l'usine y raccorde un seul tuyau par ressource, au meilleur endroit.
   // Les modules repliés gardent leur tuyau principal, sur lequel se fait la prise unique.
+  const passagesKept = new Map<string, string>(); // module → passage gardé (texte)
   if (full) {
     for (const b of boxes) {
       if (!b.mod || !b.req) continue;
@@ -679,6 +692,65 @@ function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
     }
     through = true;
     routeBetween();
+    // Double rangée : le collecteur central peut sortir par un passage entre deux machines. À placement égal
+    // (l'usine ne grandit pas), chaque passage est essayé, seul ou avec un second passage dans le même module ;
+    // il est gardé s'il raccourcit les tuyaux sans ajouter de croisement. Un passage qui élargit son module
+    // n'est permis qu'en option (`widen`), s'il tient encore à sa place.
+    const tally = () => {
+      const cells = [...grid.cells.values()].filter((o) => o.kind === "tuyau");
+      return { ok: !problems.length, pipes: cells.length, cross: cells.filter((o) => o.kind === "tuyau" && o.cross).length };
+    };
+    let cur = tally();
+    const passLog: string[] = [];
+    type Opt = ReturnType<typeof passageOptions>[number];
+    for (const b of boxes) {
+      if (!b.mod || !b.req || b.variants[0]!.folds > 1 || b.variants[0]!.template !== "double rangée") continue;
+      const req = b.req;
+      const ends = Object.fromEntries(b.variants[0]!.nets.map((n) => [n.item, "milieu" as const]));
+      const size = { w: b.variants[0]!.width, h: b.variants[0]!.height };
+      const keep = { variants: b.variants, mod: b.mod, w: b.w, h: b.h };
+      const label = (os: Opt[], wider: boolean) => os.map((o) => passageText(o.passage, req.count, name(o.item))).join(" ; ") + (wider ? " (module élargi)" : "");
+      // Essai d'un module avec passage(s) à la place du module actuel : null s'il ne tient pas ou s'il élargit sans l'option.
+      const trial = (os: Opt[]) => {
+        const p = os.at(-1)!.plan;
+        const wider = p.width > size.w || p.height > size.h;
+        if (wider && !widen) return null;
+        setVariant(b, p);
+        [b.w, b.h] = [b.mod!.width, b.mod!.height];
+        const fits = b.x + b.w <= W - 3 && b.y + b.h <= H - 3 && boxes.every((q) => q === b || b.x + b.w + CLRused <= q.x || q.x + q.w + CLRused <= b.x || b.y + b.h + CLRused <= q.y || q.y + q.h + CLRused <= b.y);
+        if (fits) routeBetween();
+        const r = fits ? tally() : null;
+        passLog.push(`${b.key} ${label(os, wider)} ${p.width}x${p.height} rot${b.rot} ${JSON.stringify(r)} actuel ${JSON.stringify(cur)}`);
+        Object.assign(b, keep);
+        return r && r.ok ? { os, r, wider } : null;
+      };
+      // Chaque disposition interne du module (pas plus grande), avec chacun de ses passages (sans doublon).
+      const seen = new Set<string>();
+      const singles = (alts.get(b.key) ?? [b.variants[0]!])
+        .filter((m) => m.width <= size.w && m.height <= size.h)
+        .flatMap((m) => passageOptions(m, { ...req, ends }, b.entry, b.size, cat, name))
+        .filter((o) => {
+          const k = JSON.stringify([o.item, o.passage, o.plan.config, o.plan.width, o.plan.height, o.plan.pieces.length]);
+          return !seen.has(k) && !!seen.add(k);
+        });
+      const tried = singles.map((o) => trial([o])).filter((t): t is NonNullable<typeof t> => !!t);
+      // Les plus prometteurs (moins de tuyaux) avec un second passage, pour une autre ressource.
+      for (const t of tried.filter((x) => x.r.pipes < cur.pipes).sort((x, y) => x.r.pipes - y.r.pipes).slice(0, 3)) {
+        const first = t.os[0]!;
+        for (const o of passageOptions(first.plan, { ...req, ends, passages: { [first.item]: first.passage } }, b.entry, b.size, cat, name).filter((x) => x.item !== first.item)) {
+          const u = trial([first, o]);
+          if (u) tried.push(u);
+        }
+      }
+      const best = tried.filter((x) => x.r.pipes < cur.pipes && x.r.cross <= cur.cross).sort((x, y) => x.r.pipes - y.r.pipes || x.r.cross - y.r.cross)[0];
+      if (!best) continue;
+      setVariant(b, best.os.at(-1)!.plan);
+      [b.w, b.h] = [b.mod!.width, b.mod!.height];
+      cur = best.r;
+      passagesKept.set(b.key, label(best.os, best.wider));
+    }
+    routeBetween();
+    if (process.env.ESSAIS) writeFileSync(process.env.ESSAIS + `passages${widen ? "-x" : ""}.txt`, passLog.join(String.fromCharCode(10)));
   }
   const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
   const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
@@ -874,7 +946,7 @@ function design(glue: boolean, globalPoles: boolean, full = false, room = 0) {
     }
     writeFileSync(process.env.ESSAIS + "liens.txt", [...lines, "--- prises", ...tapLog].join(String.fromCharCode(10)));
   }
-  return { plan, boxes, grid, nets, W, H, color, pipeCells, crossings, modulesCost, glued, problems, name, cellsOf, links, relays, poleNodes, feed, total, overloaded, polesCost, CLRused, upgraded, plugs, full, allPipeCells, keptPoles, newPoles, allCrossings: [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length + (through ? 0 : moduleCrossings) };
+  return { plan, boxes, grid, nets, W, H, color, pipeCells, crossings, modulesCost, glued, problems, name, cellsOf, links, relays, poleNodes, feed, total, overloaded, polesCost, CLRused, upgraded, plugs, full, allPipeCells, keptPoles, newPoles, passagesKept, allCrossings: [...grid.cells.values()].filter((o) => o.kind === "tuyau" && o.cross).length + (through ? 0 : moduleCrossings) };
 }
 
 type D = ReturnType<typeof design>;
@@ -893,7 +965,7 @@ function svg(d: D, uid: string): string {
   s += `<rect class="bbox" x="0" y="0" width="${d.W * C}" height="${d.H * C}"/><text class="bbox-t" x="${d.W * C - 8}" y="${d.H * C + 16}">usine ${d.W} × ${d.H}</text>`;
   for (const b of d.boxes) {
     const farm = !b.mod;
-    const tip = `${b.sub} — ${b.label}${b.mod ? ` : module de ${b.w} × ${b.h} cases${b.mod.folds > 1 ? ` en ${b.mod.folds} blocs` : ""}, ${fr(b.mod.cost)} $, consomme ${mf(b.power)}` : " : arbres, pas encore dessinés (emplacement réservé)"}`;
+    const tip = `${b.sub} — ${b.label}${b.mod ? ` : module de ${b.w} × ${b.h} cases${b.mod.folds > 1 ? ` en ${b.mod.folds} blocs` : ""}${d.passagesKept.get(b.key) ? ` ; ${d.passagesKept.get(b.key)}` : ""}, ${fr(b.mod.cost)} $, consomme ${mf(b.power)}` : " : arbres, pas encore dessinés (emplacement réservé)"}`;
     s += `<g class="mod" data-tip="${esc(tip)}"><rect x="${b.x * C}" y="${b.y * C}" width="${b.w * C}" height="${b.h * C}" rx="6" class="${farm ? "farm" : "box"}"/>`;
     if (b.mod) {
       s += `<g class="detail">`;
@@ -964,7 +1036,7 @@ it("maquette usine", () => {
   const V = { tm: design(false, false), gm: design(true, false), f: design(false, false, true) };
   const sum = (d: D) => {
     const fit = d.W <= PLOT.w && d.H <= PLOT.h ? ["ok", "tient sur ta parcelle"] : d.H <= PLOT.w && d.W <= PLOT.h ? ["ok", "tient en tournant d'un quart de tour"] : ["warn", "ne tient pas sur ta parcelle"];
-    return `<b>${d.W} × ${d.H} cases</b> · <span class="${fit[0]}">${fit[1]}</span> <span class="hint">(${PLOT.w} × ${PLOT.h}, exemple)</span> · tuyaux : ${d.full ? `${fr(d.allPipeCells)} cases en tout` : `${d.pipeCells} cases entre modules, ${fr(d.allPipeCells)} en tout`}, ${d.allCrossings} croisements en tout${d.glued.length ? `, ${d.glued.length} contact direct` : ""} · électricité : ${mf(d.total)}, ${d.poleNodes.length} poteaux${d.full ? ` (${d.keptPoles} des modules gardés, ${d.newPoles} nouveaux)` : ""}${d.relays ? ` + ${d.relays} relais` : ""}${d.upgraded ? ` (${d.upgraded} renforcés)` : ""}, ${d.links.filter((l) => l.from.id === "feed").length} branche(s) depuis l'arrivée (la plus chargée : ${mf(Math.max(...d.links.filter((l) => l.from.id === "feed").map((l) => l.load)))}), ${fr(d.polesCost)} $${d.overloaded ? ` · <span class="warn">${d.overloaded} câble(s) à doubler</span>` : ""}${d.problems.length ? ` · <span class="warn">${d.problems.length} liaison(s) non tracée(s)</span>` : ""}`;
+    return `<b>${d.W} × ${d.H} cases</b> · <span class="${fit[0]}">${fit[1]}</span> <span class="hint">(${PLOT.w} × ${PLOT.h}, exemple)</span> · tuyaux : ${d.full ? `${fr(d.allPipeCells)} cases en tout` : `${d.pipeCells} cases entre modules, ${fr(d.allPipeCells)} en tout`}, ${d.allCrossings} croisements en tout${d.glued.length ? `, ${d.glued.length} contact direct` : ""} · électricité : ${mf(d.total)}, ${d.poleNodes.length} poteaux${d.full ? ` (${d.keptPoles} des modules gardés, ${d.newPoles} nouveaux)` : ""}${d.relays ? ` + ${d.relays} relais` : ""}${d.upgraded ? ` (${d.upgraded} renforcés)` : ""}, ${d.links.filter((l) => l.from.id === "feed").length} branche(s) depuis l'arrivée (la plus chargée : ${mf(Math.max(...d.links.filter((l) => l.from.id === "feed").map((l) => l.load)))}), ${fr(d.polesCost)} $${d.overloaded ? ` · <span class="warn">${d.overloaded} câble(s) à doubler</span>` : ""}${d.problems.length ? ` · <span class="warn">${d.problems.length} liaison(s) non tracée(s)</span>` : ""}${d.full ? ` · passages entre machines : ${d.passagesKept.size ? [...d.passagesKept.values()].map(esc).join(" ; ") : "aucun"}` : ""}`;
   };
   const rows = (d: D) =>
     d.nets
@@ -1033,7 +1105,7 @@ ol.q li { margin-bottom: 5px; }
 <p><b>C'est une proposition :</b> une base pour construire, à optimiser comme tu le souhaites.</p>
 <p class="lead">Calcul réel figé : Crankshaft 60/min, toute la recherche. Modules = vrais plans de pose (« forme ramassée » d'abord), placés au plus serré sur la grille ; tuyaux tracés par le vrai routeur ; poteaux comptés avec tous leurs nœuds. Parcelle : exemple.</p>
 <div class="bar">
-  <span class="grp"><b>Calcul</b><label><input type="radio" name="calcul" id="k-mod" checked> module par module</label><label><input type="radio" name="calcul" id="k-all"> recalculé pour l'usine entière <span class="hint">(une seule prise par collecteur, modules réorganisés vers leurs voisins, puis poteaux ; plus de calcul)</span></label></span>
+  <span class="grp"><b>Calcul</b><label><input type="radio" name="calcul" id="k-mod" checked> module par module</label><label><input type="radio" name="calcul" id="k-all"> recalculé pour l'usine entière <span class="hint">(une seule prise par collecteur, modules réorganisés vers leurs voisins, collecteur central d’une double rangée sorti entre deux machines quand ça raccourcit les tuyaux sans élargir le module, puis poteaux ; plus de calcul)</span></label></span>
   <span class="grp liaisons"><b>Liaisons</b><label><input type="radio" name="liaison" id="l-tubes" checked> des tuyaux</label><label><input type="radio" name="liaison" id="l-glue"> coller quand c'est possible</label></span>
   <span class="grp"><label><input type="checkbox" id="detail"> Tout afficher</label><label><input type="checkbox" id="power" checked> Réseau électrique</label></span>
   <span class="grp sub"><b>Câbles</b><label><input type="radio" name="cables" id="c-poles" checked> entre poteaux</label><label><input type="radio" name="cables" id="c-plugs"> et vers chaque machine</label></span>

@@ -15,8 +15,8 @@ import stationsJson from "../../data/research-stations.json";
 import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import { buildCatalog } from "../engine/build/catalog.ts";
-import { designModule, requestFromStep, type ModulePlan, type PoseCriterion } from "../engine/build/module.ts";
-import { renderModuleInfo, renderModuleSvg } from "./module-view.ts";
+import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
+import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
@@ -623,6 +623,11 @@ function selectFlow(key: string | null): void {
 /** Étape choisie et modules déjà calculés pour le plan affiché. */
 let poseStep: string | null = null;
 const modules = new Map<string, ModulePlan | null>();
+/** Demande de chaque module calculé, et ses passages du collecteur central (double rangée), calculés à la demande. */
+const moduleReqs = new Map<string, ModuleRequest>();
+const modulePassages = new Map<string, PassageOption[]>();
+/** Passage choisi pour une étape (« ressource|haut|1 ») ; aucun : les collecteurs sortent par leurs bouts. */
+const poseVia = new Map<string, string>();
 let modulesFor = "";
 let posePZ: PanZoom | null = null;
 let poseKey = "";
@@ -671,16 +676,33 @@ function moduleOf(key: string): ModulePlan | null {
   const pts = currentPorts();
   if (modulesFor !== `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${pts.sig}`) {
     modules.clear();
+    moduleReqs.clear();
+    modulePassages.clear();
+    poseVia.clear();
     modulesFor = `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${pts.sig}`;
   }
   if (!modules.has(key)) {
     const s = plan?.steps.find((x) => x.key === key);
     const m = s ? data.machines.get(s.machine) : undefined;
-    const req = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
-    modules.set(key, req && m ? designModule({ ...req, tier3Only: settings.tier3Only, priority: settings.posePriority }, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
+    const base = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
+    const req = base && { ...base, tier3Only: settings.tier3Only, priority: settings.posePriority };
+    if (req) moduleReqs.set(key, req);
+    modules.set(key, req && m ? designModule(req, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
   }
   return modules.get(key) ?? null;
 }
+
+/** Passages possibles du collecteur central d'un module en double rangée (vide sinon). */
+function passagesOf(key: string, mod: ModulePlan): PassageOption[] {
+  if (!modulePassages.has(key)) {
+    const req = moduleReqs.get(key);
+    const m = data.machines.get(mod.machine);
+    modulePassages.set(key, req && m ? passageOptions(mod, req, currentPorts().machines[m.id] ?? null, m.size, CATALOG, anyName) : []);
+  }
+  return modulePassages.get(key)!;
+}
+
+const viaKey = (o: Pick<PassageOption, "item" | "passage">) => `${o.item}|${o.passage.row}|${o.passage.after}`;
 
 /** Après le nom d'une étape : d'où viennent les ports de sa machine, quand ce n'est pas le dépôt. */
 function portsLabel(machine: string): string {
@@ -701,18 +723,22 @@ function renderPose(): void {
   }
   if (!poseStep || !choices.some((s) => s.key === poseStep)) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
   sel.innerHTML = choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${portsLabel(s.machine)}</option>`).join("");
-  const m = moduleOf(poseStep);
-  $("pose-frame").hidden = !m;
-  if (!m) {
+  const base = moduleOf(poseStep);
+  $("pose-frame").hidden = !base;
+  if (!base) {
     $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cette étape.</p>`;
     $("pose-links").innerHTML = "";
     return;
   }
+  // Double rangée : le collecteur central peut sortir par un passage entre deux machines (au choix).
+  const vias = base.template === "double rangée" && base.folds === 1 ? passagesOf(poseStep, base) : [];
+  const chosen = vias.find((o) => viaKey(o) === poseVia.get(poseStep!));
+  const m = chosen?.plan ?? base;
   const survey = surveyState(m.machine, REPO_PORTS, currentPorts().local);
   const info = renderModuleInfo(m, anyName, survey, plotOf(player));
   const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
   $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p>${renderStepLinks(viewCtx(), poseStep)}`;
-  $("pose-head").innerHTML = info.head;
+  $("pose-head").innerHTML = info.head + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName);
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
   const f = renderModuleSvg(m, anyName);
@@ -1211,6 +1237,15 @@ function bindPlan(): void {
     if (!b) return;
     const k = b.dataset.first as PoseCriterion;
     setPriority([k, ...settings.posePriority.filter((x) => x !== k)]);
+  });
+  // Sortie du collecteur central (double rangée) : par les bouts, ou par un passage entre deux machines.
+  $("pose-head").addEventListener("change", (e) => {
+    const s = (e.target as Element).closest<HTMLSelectElement>("#pose-via");
+    if (!s || !poseStep) return;
+    if (s.value) poseVia.set(poseStep, s.value);
+    else poseVia.delete(poseStep);
+    renderPose();
+    $("pose-via")?.focus();
   });
   // Liste des priorités : ↑ ↓, ou glisser une ligne.
   bindPrioList($("pose-priority"), () => settings.posePriority, setPriority);

@@ -1,7 +1,7 @@
 // Plan de pose d'une étape (E4a) : dessin vue de dessus du module, ressources, pièces à acheter,
 // ordre de pose. Fonctions pures (chaînes HTML/SVG) ; main.ts gère le choix de l'étape et le cadre.
 
-import type { ModulePlan, PoseCriterion } from "../engine/build/module.ts";
+import { passageWhere, type ModulePlan, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { SurveyState } from "./buildings-model.ts";
 import { esc, fmt, fmtMoney } from "./format.ts";
@@ -83,6 +83,24 @@ function plotLine(m: ModulePlan, plot: { w: number; h: number } | null): string 
   if (fit === "tourné") return `<p class="mod-fit ok-text">Tient sur ta parcelle (${size}) en le tournant d'un quart de tour.</p>`;
   const alt = m.other && fitsPlot(m.other.width, m.other.height, plot) !== "non" ? ` Avec « ${esc(CRIT_NAME[m.other.first])} » en premier, il tiendrait.` : "";
   return `<p class="mod-fit warn-text">Ne tient pas sur ta parcelle (${size}) : ${m.width} × ${m.height} cases.${alt}</p>`;
+}
+
+/**
+ * Choix de la sortie du collecteur central d'une double rangée : par les bouts (proposé), ou par un passage
+ * entre deux machines ; la place d'abord : ceux qui élargissent le module sont à part, en option.
+ */
+export function renderPassagePick(base: ModulePlan, options: PassageOption[], chosen: string, name: (id: string) => string): string {
+  if (!options.length) return "";
+  const key = (o: PassageOption) => `${o.item}|${o.passage.row}|${o.passage.after}`;
+  const size = (o: PassageOption) => `${o.plan.width} × ${o.plan.height} cases`;
+  const opt = (o: PassageOption) => `<option value="${esc(key(o))}"${key(o) === chosen ? " selected" : ""}>${esc(`${name(o.item)} : ${passageWhere(o.passage, base.count)} · ${size(o)}`)}</option>`;
+  const keep = options.filter((o) => !o.widens);
+  const wide = options.filter((o) => o.widens);
+  return `<div class="pose-via"><label class="pose-pick" for="pose-via">Sortie d'un collecteur central
+    <select id="pose-via"><option value="">Par les bouts des collecteurs · ${base.width} × ${base.height} cases</option>${
+      keep.length ? `<optgroup label="Par un passage entre deux machines">${keep.map(opt).join("")}</optgroup>` : ""
+    }${wide.length ? `<optgroup label="Par un passage, en élargissant le module (option)">${wide.map(opt).join("")}</optgroup>` : ""}</select></label>
+    <p class="hint">Double rangée : un collecteur peut sortir à angle droit entre deux machines voisines, pour rejoindre plus court un module voisin.</p></div>`;
 }
 
 /** « double rangée », ou « 3 blocs empilés (double rangée) » pour des rangées repliées. */

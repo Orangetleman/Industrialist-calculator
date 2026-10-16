@@ -16,7 +16,7 @@ import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog, pipeFor } from "./catalog.ts";
 import { add, key, OPPOSITE, place, rotateCell, rotatePoint, type Dir } from "./geometry.ts";
-import { alternatives, designModule, normalPriority, portAssignments, redesign, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
+import { alternatives, designModule, normalPriority, passageOptions, portAssignments, redesign, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
 import { Grid, route } from "./route.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
@@ -97,6 +97,7 @@ const fluid = (id: string) => !!data.items.get(id)?.isFluid;
 
 const PLACE: PoseCriterion[] = ["place", "forme", "prix", "pieces"];
 const PRIX: PoseCriterion[] = ["prix", "place", "forme", "pieces"];
+const FORME: PoseCriterion[] = ["forme", "place", "prix", "pieces"];
 
 function moduleFor(stepItem: string, priority: PoseCriterion[] = PLACE): { mod: ModulePlan; req: ModuleRequest } {
   const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy", tiers: false });
@@ -302,6 +303,60 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     const alts = alternatives(flat.mod, flat.req, PORTS["roller"]!, null, cat);
     expect(alts.length).toBeGreaterThan(0);
     for (const a of alts) checkModule(a, flat.req, "steel-rod, autre disposition");
+  });
+
+  /** Contrôles d'un passage : bout au bord du module, colonne entre les deux machines, tuyau continu jusqu'au collecteur. */
+  function checkPassage(o: { item: string; passage: { row: "haut" | "bas"; after: number }; plan: ModulePlan }, req: ModuleRequest): void {
+    const what = `passage ${o.item} ${o.passage.row} après ${o.passage.after}`;
+    checkModule(o.plan, req, what);
+    const n = o.plan.nets.find((x) => x.item === o.item)!;
+    expect(n.via, what).toBeDefined();
+    expect(n.end!.dir).toBe(o.passage.row === "haut" ? "N" : "S");
+    expect(n.end!.y).toBe(o.passage.row === "haut" ? 0 : o.plan.height - 1);
+    expect(n.end!.x).toBe(n.via!.x);
+    const perRow = Math.ceil(req.count / 2);
+    const row = o.passage.row === "haut" ? o.plan.machines.slice(0, perRow) : o.plan.machines.slice(perRow);
+    const left = row[o.passage.after - 1]!;
+    const right = row[o.passage.after];
+    expect(n.via!.x).toBeGreaterThanOrEqual(left.x + left.w);
+    if (right) expect(n.via!.x).toBeLessThan(right.x);
+    // Chaque case de la colonne, du collecteur au bord, porte la ressource (seule ou en croisement).
+    const [y0, y1] = [Math.min(n.lane!.y, n.end!.y), Math.max(n.lane!.y, n.end!.y)];
+    for (let y = y0; y <= y1; y++) {
+      const pc = o.plan.pieces.find((p) => p.x === n.via!.x && p.y === y);
+      expect(pc?.net === n.id || pc?.crossNet === n.id, `${what} : case ${n.via!.x},${y}`).toBe(true);
+    }
+    expect(o.plan.order.some((t) => t.includes("sort à angle droit"))).toBe(true);
+  }
+
+  it("double rangée : le collecteur central sort à angle droit par un passage entre deux machines", () => {
+    const { mod, req } = moduleFor("steel-ingot", FORME);
+    expect(mod.template).toBe("double rangée");
+    const opts = passageOptions(mod, req, PORTS["blast-furnace"]!, null, cat);
+    const out = req.outputs[0]!.item;
+    expect(opts.filter((o) => o.item === out).length).toBeGreaterThan(0);
+    for (const o of opts) checkPassage(o, req);
+    // La place d'abord : des passages qui n'élargissent pas le module (machines déjà écartées, ou sous la rangée la plus courte).
+    expect(opts.some((o) => o.item === out && !o.widens)).toBe(true);
+    // Sans passage demandé, le module ne change pas.
+    expect(redesign(mod, req, PORTS["blast-furnace"]!, null, cat)!.pieces.length).toBe(mod.pieces.length);
+  });
+
+  it("passage qui élargit : les machines suivantes de la rangée s'écartent d'une case, et c'est signalé (option)", () => {
+    const { mod, req } = moduleFor("steel-rod", PLACE);
+    expect(mod.template).toBe("double rangée");
+    const opts = passageOptions(mod, req, PORTS["roller"]!, null, cat);
+    const wide = opts.find((o) => o.widens && o.plan.nets.find((n) => n.item === o.item)!.via!.widened);
+    expect(wide).toBeDefined();
+    checkPassage(wide!, req);
+    expect(wide!.plan.width * wide!.plan.height).toBeGreaterThan(mod.width * mod.height);
+    expect(wide!.plan.order.some((t) => t.includes("écartées d'une case"))).toBe(true);
+    // Deux passages à la fois, pour deux ressources.
+    const [a, b] = req.inputs.concat(req.outputs).map((f) => f.item);
+    const two = redesign(mod, { ...req, passages: { [a!]: { row: "haut", after: 1 }, [b!]: { row: "bas", after: 2 } } }, PORTS["roller"]!, null, cat);
+    expect(two).not.toBeNull();
+    checkModule(two!, req, "deux passages");
+    expect(two!.nets.filter((n) => n.via)).toHaveLength(2);
   });
 
   it("ordre des critères : complété et sans doublon", () => {

@@ -253,6 +253,8 @@ button.link.have:hover { color: var(--steel); }
 .prio-list .mv { padding: 2px 8px; font-size: .85rem; }
 .callout-lite { border-left: 3px solid var(--accent); padding: 4px 10px; margin: 8px 0; font-size: .9rem; }
 .mod-other { font-size: .86rem; color: var(--muted); margin-top: 2px; }
+.pose-via { margin: 8px 0; }
+.pose-via .hint { margin: 3px 0 0; }
 .check-line { font-size: .88rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .mg line { stroke: #2a3038; stroke-width: 1; }
 .mm rect { fill: #33404c; stroke: #8fb8d6; stroke-width: 1.2; }
