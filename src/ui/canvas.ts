@@ -41,7 +41,8 @@ export class PanZoom {
     new ResizeObserver(() => {
       // Cadre caché (onglet inactif) puis affiché : la vue de départ est recalculée à la bonne taille.
       const w = frame.getBoundingClientRect().width;
-      if (w > 0 && this.measuredWidth === 0) this.reset();
+      // Idem si la vue de départ a été calculée dans un cadre presque sans largeur (page en arrière-plan).
+      if (w > 0 && this.measuredWidth < 50) this.reset();
       else this.apply();
       this.measuredWidth = w;
     }).observe(frame);

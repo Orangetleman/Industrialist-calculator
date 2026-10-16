@@ -210,7 +210,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
     missing.length ? `<p class="mod-other warn-text">${missing.length} module${missing.length > 1 ? "s" : ""} incomplet${missing.length > 1 ? "s" : ""} dans le plan de pose : voir « Machines à compléter » sous le dessin.</p>` : ""
   }<p class="mod-other">${
     f.full
-      ? "Recalculée pour l'usine entière : une seule prise par collecteur, modules tournés vers leurs voisins, collecteur central d'une double rangée sorti entre deux machines quand ça raccourcit les tuyaux sans élargir le module."
+      ? `Recalculée pour l'usine entière : une seule prise par collecteur, modules tournés vers leurs voisins, collecteur central d'une double rangée sorti entre deux machines quand ça raccourcit les tuyaux sans élargir le module${st.pruned ? `, puis ${st.pruned} case${st.pruned > 1 ? "s" : ""} de tuyau sans issue retirée${st.pruned > 1 ? "s" : ""} (bouts qui ne menaient nulle part)` : ""}.`
       : `Module par module : chaque module tel que son plan de pose seul, relié aux autres par des tuyaux${glue ? `, ou collé quand c'est possible${f.glued.length ? "" : " (aucune liaison n'a pu être collée dans ce plan)"}` : ""}.`
   } Calculée en ${fmt(ms / 1000, 1)} s.</p>`;
   const items = [...color.keys()];
