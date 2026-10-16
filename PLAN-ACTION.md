@@ -60,7 +60,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | Session | Lot | Taille | Dépend de | État |
 | --- | --- | --- | --- | --- |
 | S1 | Plots des ports supprimés ; 6 relevés intégrés ; test de la règle des sorties | petite | — | ✅ fait (`d949b25`) |
-| S2 | Double rangée : sortie du collecteur central entre deux machines | moyenne | — | à faire |
+| S2 | Double rangée : sortie du collecteur central entre deux machines | moyenne | — | ✅ fait (`accb04b`) |
 | S3 | Toute l'usine (1/2) : moteur dans `src/engine/build/`, calcul en arrière-plan, première vue | grosse | S2 | à faire |
 | S4 | Toute l'usine (2/2) : options, « Afficher les liaisons », survol + clic → panneau du module | moyenne | S3 | à faire |
 | S5 | Recettes (1/2) : navigation comme en jeu, en lecture | grosse | — | à faire |
@@ -581,6 +581,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-16, S11** (250 tests, non déployé : le site ne change pas) : `data/modular.json` (ferme d'arbres, moteur diesel, turbine ; chaque valeur sourcée Miraheze/Fandom, datée) et son test de forme ; 16 questions MOD-01 à MOD-16 dans `a-verifier.md` ; méthode de relevé dans RELEVES.md.
   Trouvé : règles de portée et de contact, comptes de blocs, consommations (200 kMF par arbre, 3 arroseurs par réservoir, 44 à 46 arbres par arroseur), tableaux du moteur (6 cylindres, 32 cylindres) et des turbines (sob_ad). Hors des deux wikis, rien de chiffré sur Internet.
   Manque pour S12-S13 : aucun rayon de portée écrit (arroseur déduit des images : 12 à 14 cases), critère de portée, rythme réel du récolteur, formule du moteur diesel, ports des blocs.
+- **2026-10-16, S2** (`accb04b`, fusionné avec S11 en `9be3f00`, 252 tests, déployé) : `passages` dans module.ts (colonne libre entre deux machines, sinon machines écartées d'une case ; le tuyau traverse la file de poteaux) et `passageOptions` ; dans le plan de pose, choix « Sortie d'un collecteur central » (par les bouts par défaut ; les passages qui élargissent le module à part, en option).
+  Mesures, maquette recalculée : 81 × 101 inchangé, tuyaux 1 123 → 1 115, croisements 75 → 74, électricité 3 595 $ inchangée ; Steel Ingot → Steel Plate 43 → 11 cases ajoutées (passages Steel Ingot et Iron Ingot vers le haut, entre les hauts-fourneaux 1 et 2). Les passages sont essayés à placement égal et gardés seulement s'ils raccourcissent sans ajouter de croisement (seul, le meilleur faisait −40 cases mais +1 croisement ; en le laissant entrer dans le recuit : 83 × 104, rejeté). Aucun passage élargissant ne tient à sa place dans la maquette.
+  À surveiller : pas de passage pour les modules repliés (tuyaux principaux) ni pour les collecteurs parallèles ; dans le site, le choix du passage n'est pas encore guidé par les voisins (ce sera S3) ; « module par module » inchangé (82 × 104, 74 croisements).
 
 ## 7. Gestion des sessions
 
