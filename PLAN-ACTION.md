@@ -65,7 +65,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S4 | Toute l'usine (2/2) : options, « Afficher les liaisons », survol + clic → panneau du module | moyenne | S3 | ✅ fait (`6502c62`) |
 | S5 | Recettes (1/2) : navigation comme en jeu, en lecture | grosse | — | ✅ fait (`731c9e0`) |
 | S6 | Recettes (2/2) : corrections (valeurs, craft inexistant, craft manquant), export | moyenne | S5 | ✅ fait (`17a59bd`) |
-| S7 | Schéma : détail du calcul et référence du craft cliquable | moyenne | S5 | à faire |
+| S7 | Schéma : détail du calcul et référence du craft cliquable | moyenne | S5 | ✅ fait (`1a7200b`) |
 | S8 | Schéma : nombre de machines réglable → production obtenue | moyenne | — | à faire |
 | S9 | Calcul : exclure des machines, ou seulement certaines | petite à moyenne | — | à faire |
 | S10 | Interfaces des machines : recherche, relevé, effet sur le calcul | moyenne | recherche | à faire |
@@ -580,6 +580,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S6 ⚠ | Sur la page Recettes, un ⚠ ouvre le mode Corriger sur la valeur, le doute affiché à côté ; notes et valeurs des wikis restent dans Données (lien). | 2026-10-17 |
 | S6 Retrait | Un craft « n'existe pas en jeu » reste sur la fiche, barré, avec ↺ Rétablir ; il ne compte plus dans les calculs. | 2026-10-17 |
 | S6 Remplacer | Entrée manquante ou en trop : « Remplacer par un craft corrigé » retire l'ancien et ouvre l'ajout pré-rempli. | 2026-10-17 |
+| S7 Maquette | Validée (`maquette/schema-calcul.html`) : panneau « Comment c'est calculé » sous la barre du bas du schéma ; ligne du craft et « Voir dans Recettes ▸ » ; tableau intitulé / calcul / résultat / source ; flèche : besoin de l'arrivée × part du départ ; une phrase pour chaque cas particulier. | 2026-10-17 |
 
 ## 6. Journal des sessions
 
@@ -611,6 +612,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-17, S6** (`17a59bd`, 292 tests, déployé) : maquette validée (`maquette/recettes-corriger.html`, décisions S6 au § 5). `overrides.json` : sections `added` (objets, crafts) et `removed` (crafts), validées par `buildGameData` (refus motivé : machine ou objet inconnu, pas de sortie, quantité ≤ 0, durée ≤ 0, sans source) ; nouvelles corrections : machine d'un craft (sa recherche suit) et facteur RP. Fiche en mode « ✎ Corriger » : cases pour prix, RP et prix d'achat ; par craft ✎ Modifier, ✕ N'existe pas en jeu (barré, ↺ Rétablir), remplacer par un craft corrigé ; + Ajouter un craft manquant (noms du jeu, objet inconnu créé sur place), + Objet manquant ; ⚠ → la valeur dans ce mode ; Données › Mes corrections liste ajouts et retraits ; export et import dans le même fichier.
   Parcours réel (Crankshaft 60/min, recherche complète, parcelle 200 × 200) : retirer le craft du Craft Assembler fait passer le plan de 15 Craft Assemblers à 5 Advanced Assemblers ; un craft de test ajouté (valeurs fictives, effacé ensuite) est choisi (1 Craft Assembler, 23 machines au lieu de 109) ; l'export contient `added` et `removed`, et l'import les rétablit.
   À surveiller : un craft existant ne change que ses quantités (entrée manquante ou en trop : le remplacer) ; un retrait inscrit dans `data/overrides.json` ne se rétablit pas depuis le site ; pas de machine manquante (éditeur de bâtiments) ; les dates affichées sont en UTC (comme ailleurs sur le site).
+- **2026-10-17, S7** (`1a7200b`, 302 tests, déployé) : maquette validée (`maquette/schema-calcul.html`). `calc-view.ts` : un bloc sélectionné ouvre « Comment c'est calculé » sous la barre du bas — ligne du craft (rendu de Recettes), « Voir dans Recettes ▸ » (`#recettes/<objet|machine>/<id>/<craft>`, craft mis en évidence et centré), puis débit d'une machine (sortie nette, « (17 − 2) » si le craft consomme son produit), demande (flèches + objectif ou surplus), machines exactes → arrondies, utilisation, énergie (moyenne et pointe), entrées et sous-produits ; étiquette de source par valeur (wiki, relevé en jeu, ta correction, ⚠ → la valeur en mode « ✎ Corriger »). Flèche : produit par, consommé par, besoin de l'arrivée, part du départ au prorata quand plusieurs blocs produisent l'objet. Cas particuliers : matière première, arbres (durée de pousse), production existante, installations composées (bâtiments arrondis un par un), non produit.
+  Parcours réel (Crankshaft 60/min, recherches du plan débloquées : 148 machines, ≈ 61 arbres) : refait à la main Steel Ingot (6 × 60 ÷ 5 s = 72/min ; 360 ÷ 72 = 5 Blast Furnace ; Iron Ingot 360 × 2 ÷ 6 = 120/min, comme la flèche) et Coke Fuel (60 ÷ 72 = 0,8333 → 1 ; 0,8333 × 15 kMF/s = 12,5 kMF/s ; Coal 60 × 4 ÷ 6 = 40/min, comme la flèche) ; lien vers Recettes et ⚠ des arbres vérifiés ; téléphone sans débordement. Tests : sur la chaîne « tout débloqué », chaque débit, compte, entrée et flèche se refait avec les valeurs affichées (Coke Fuel → Steel Ingot : 60 × 98,96 % = 59,37/min).
+  À surveiller : pour les arbres, la ligne du craft montre la durée des données (6 min) alors que le calcul prend la pousse selon la pollution (362,72 s), la phrase l'explique ; les étapes d'énergie et de dépollution ont un panneau plus court (machines « d'après l'optimisation ») ; captures d'écran impossibles dans cette session (fenêtre masquée), parcours fait par le DOM.
 
 ## 7. Gestion des sessions
 
