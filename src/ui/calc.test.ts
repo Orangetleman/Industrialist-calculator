@@ -10,7 +10,7 @@ import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import { renderEdgeCalc, renderStepCalc, sourceTag } from "./calc-view.ts";
-import type { ViewCtx } from "./plan-view.ts";
+import { renderFixBar, renderFlow, renderFlowHud, type ViewCtx } from "./plan-view.ts";
 import { DEFAULT_SETTINGS } from "./state.ts";
 
 // Comme le site : données des wikis, énergie, puis les corrections du dépôt (overrides.json).
@@ -129,5 +129,40 @@ describe("source d'une valeur", () => {
     expect(sourceTag(ca, "durationS")).toContain("relevé en jeu");
     expect(sourceTag(data.recipes.get("advanced_assembler_05")!, "durationS", "durée")).toMatch(/durée : wiki/);
     expect(sourceTag(data.recipes.get("foundry_05")!, "outputs.iron-ingot")).toContain("⚠ à vérifier : Miraheze : 1200 ; Fandom : 1000");
+  });
+});
+
+describe("machines fixées (S8)", () => {
+  const fixed = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "machines", tiers: false, fixedMachines: { "raw-iron": 5, "steel-plate": 1 } });
+  const one = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "machines", tiers: false, fixedMachines: { "raw-iron": 5 } });
+
+  it("le panneau du bloc refait le débit obtenu par une règle de trois", () => {
+    const t = text(renderStepCalc(ctx(one), rc, "raw-iron"));
+    expect(t).toContain("Nombre fixé");
+    expect(t).toContain("le calcul sans réglage en demandait 7");
+    expect(t).toContain("60 Crankshaft/min × 5 ÷ 6,67");
+    expect(t).toContain("45 Crankshaft/min");
+    expect(t).toContain("20 ÷ 4 = 5 (5 fixées)");
+  });
+
+  it("une étape fixée qui ne limite pas : l'autre limite, ses machines ne sont pas toutes utilisées", () => {
+    const t = text(renderStepCalc(ctx(fixed), rc, "raw-iron"));
+    expect(t).toContain("Steel Plate limite : 4,17 machines sur 5 suffisent");
+    expect(t).toContain("37,5 Crankshaft/min");
+  });
+
+  it("bandeau, schéma et barre du bas", () => {
+    const bar = text(renderFixBar(ctx(fixed)));
+    expect(bar).toContain("Production obtenue : 37,5 Crankshaft/min");
+    expect(bar).toContain("au lieu de 60 Crankshaft/min");
+    expect(bar).toContain("Limitée par Steel Plate : 1 Press MK2 fixée, utilisée à 100 %");
+    expect(bar).toContain("Raw Iron : 5 Iron Drill fixées, utilisées à 83,3 % (4,17 suffiraient)");
+    expect(renderFixBar(v)).toBe("");
+    const svg = renderFlow(ctx(fixed))!.svg;
+    expect(svg).toContain('class="fn raw fixed" data-key="raw-iron"');
+    expect(svg).toMatch(/class="fn [a-z]+ fixed limit" data-key="steel-plate"/);
+    const hud = renderFlowHud(ctx(fixed), "raw-iron", () => "depot");
+    expect(hud).toContain('data-mset-input data-key="raw-iron" value="5"');
+    expect(hud).toContain("plan : 7");
   });
 });

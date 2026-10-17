@@ -92,7 +92,7 @@ import {
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
-import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
   builtFor,
@@ -411,6 +411,40 @@ function computeResearch(): ResearchView | null {
   return { ...result, nodes, capNeeded, targetRate, timeline, timelineNow, currentRate: current || null };
 }
 
+/** L'objectif affiché, pour savoir si les machines fixées dans le schéma valent encore (S8). */
+function goalSig(): string {
+  const g = settings.goal;
+  if (g === "argent") return `argent|${settings.money}`;
+  if (g === "énergie") return `énergie|${settings.energyMFps}|${settings.energyGuaranteed}|${settings.energyNoFuel}`;
+  if (g === "objet") return `objet|${settings.item}|${settings.mode}|${settings.mode === "rate" ? settings.rate : settings.machines}`;
+  return g;
+}
+/** Machines fixées pour l'objectif affiché ; changer d'objet ou d'objectif les annule. */
+function fixedNow(): Record<string, number> | undefined {
+  if (!settings.fixed || settings.goal === "recherche") return undefined;
+  if (settings.fixed.sig === goalSig()) return settings.fixed.machines;
+  settings.fixed = null;
+  saveSettings(settings);
+  return undefined;
+}
+/**
+ * Règle le nombre de machines d'un bloc du schéma (S8). null : le libère, comme le remettre au
+ * nombre du calcul sans réglage.
+ */
+const fixFrom = new Map<string, number>();
+function setFixed(key: string, n: number | null): void {
+  const machines = { ...(fixedNow() ?? {}) };
+  const current = plan?.steps.find((s) => s.key === key)?.machines;
+  // Nombre d'avant le réglage : celui du calcul sans réglage, ou celui affiché quand on a commencé.
+  if (!(key in machines) && current !== undefined) fixFrom.set(key, current);
+  const planN = plan?.fixed?.steps.find((s) => s.key === key)?.planMachines ?? fixFrom.get(key);
+  if (n === null || !(n >= 1) || (key in machines && n === planN)) delete machines[key];
+  else if (!(key in machines) && n === current) return;
+  else machines[key] = Math.round(n);
+  settings.fixed = Object.keys(machines).length ? { sig: goalSig(), machines } : null;
+  updateSoon();
+}
+
 function ensurePlan(): void {
   if (!planDirty && plan) return;
   planDirty = false;
@@ -434,6 +468,7 @@ function ensurePlan(): void {
       budget: settings.useBudget && player.money !== null ? player.money : null,
       depots: DEPOTS,
       existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
+      fixedMachines: fixedNow(),
     });
   plan = request(
     goal === "argent"
@@ -578,6 +613,9 @@ function renderPlanPage(): void {
   $("adv-count").textContent = adv ? `(${adv} activée${adv > 1 ? "s" : ""})` : "(aucune activée)";
 
   $("answer").innerHTML = renderAnswer(v);
+  const fixBar = $("fix-bar");
+  fixBar.innerHTML = renderFixBar(v);
+  fixBar.hidden = !fixBar.innerHTML;
   rows = buildRows(v);
   signature = buildSignature(goal, rows);
   renderBuild();
@@ -2189,6 +2227,42 @@ function bindPlan(): void {
   $("flow-canvas").addEventListener("pointerleave", () => hover(null));
   $("flow-hud").addEventListener("click", (e) => {
     if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
+    const step = (e.target as Element).closest<HTMLElement>("[data-mset]");
+    if (step) stepMachines(Number(step.dataset.mset));
+  });
+  // Nombre de machines d'un bloc (S8) : −/+, molette sur le nombre, ou un nombre tapé (Entrée, ou en quittant le champ).
+  const msetInput = () => $("flow-hud").querySelector<HTMLInputElement>("[data-mset-input]");
+  const stepMachines = (d: number) => {
+    const inp = msetInput();
+    if (!inp) return;
+    const n = Math.max(1, (parseInt(inp.value, 10) || 1) + d);
+    inp.value = String(n);
+    setFixed(inp.dataset.key!, n);
+  };
+  $("flow-hud").addEventListener(
+    "wheel",
+    (e) => {
+      if (!(e.target as Element).closest(".mset")) return;
+      e.preventDefault();
+      stepMachines(e.deltaY < 0 ? 1 : -1);
+    },
+    { passive: false },
+  );
+  $("flow-hud").addEventListener("change", (e) => {
+    const inp = (e.target as Element).closest<HTMLInputElement>("[data-mset-input]");
+    if (!inp) return;
+    const raw = inp.value.trim();
+    const n = parseInt(raw, 10);
+    setFixed(inp.dataset.key!, raw ? (n >= 1 ? n : 1) : null);
+  });
+  $("flow-hud").addEventListener("keydown", (e) => {
+    const inp = (e.target as Element).closest<HTMLInputElement>("[data-mset-input]");
+    if (!inp) return;
+    if (e.key === "Enter") inp.blur();
+    else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      stepMachines(e.key === "ArrowUp" ? 1 : -1);
+    }
   });
   // Un ⚠ du panneau « Comment c'est calculé » : la valeur, dans la fiche de l'objet, en mode « ✎ Corriger ».
   $("flow-calc").addEventListener("click", (e) => {
@@ -2246,6 +2320,10 @@ function bindShared(): void {
     }
     if (t.closest("[data-forced-reset]")) {
       settings.forced = {};
+      return update();
+    }
+    if (t.closest("[data-fix-reset]")) {
+      settings.fixed = null;
       return update();
     }
     const have = t.closest<HTMLElement>("[data-have]");

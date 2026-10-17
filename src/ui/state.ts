@@ -41,6 +41,11 @@ export type Settings = {
   criteria: Record<Goal, Criterion[]>;
   useUnverified: boolean;
   forced: Record<string, string>;
+  /**
+   * Machines fixées dans le schéma (S8) : clé d'étape → nombre. `sig` : l'objectif pour lequel elles
+   * ont été réglées ; changer d'objet ou d'objectif les annule.
+   */
+  fixed: { sig: string; machines: Record<string, number> } | null;
   /** Revenu voulu ($/min) pour l'objectif argent. */
   money: number;
   /** La chaîne produit sa propre énergie. */
@@ -89,6 +94,7 @@ export const DEFAULT_SETTINGS: Settings = {
   criteria: { objet: ["energy", "machines", "cost", "pollution", "area", "raw", "steps"], argent: ["machines", "energy", "cost", "pollution", "area", "raw"], énergie: ["machines", "cost", "raw", "pollution", "area"], recherche: ["machines", "energy", "cost"] },
   useUnverified: false,
   forced: {},
+  fixed: null,
   money: 10000,
   selfPowered: false,
   maxPollution: null,
@@ -173,6 +179,9 @@ export function loadSettings(): Settings {
   if (!(out.rate > 0)) out.rate = DEFAULT_SETTINGS.rate;
   if (!(out.machines > 0)) out.machines = DEFAULT_SETTINGS.machines;
   if (!out.forced || typeof out.forced !== "object") out.forced = {};
+  const fx = out.fixed as Settings["fixed"] | undefined;
+  const fm = fx && typeof fx.sig === "string" && fx.machines && typeof fx.machines === "object" ? Object.entries(fx.machines).filter(([, n]) => Number.isInteger(n) && n >= 1) : [];
+  out.fixed = fm.length ? { sig: fx!.sig, machines: Object.fromEntries(fm) } : null;
   return out;
 }
 export function saveSettings(s: Settings): void {

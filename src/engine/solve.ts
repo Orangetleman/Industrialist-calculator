@@ -60,6 +60,14 @@ export type SolveRequest = {
   existing?: Record<string, number>;
   /** Calculer les paliers ronds (défaut : oui). */
   tiers?: boolean;
+  /**
+   * Nombre de machines imposé à des étapes (clé d'étape → nombre), réglé dans le schéma (S8) :
+   * les recettes restent celles du plan, et le débit devient le plus grand que ces machines
+   * permettent. Les autres étapes s'adaptent ; la plus contraignante décide.
+   */
+  fixedMachines?: Record<string, number>;
+  /** Seulement ces recettes pour les objets qu'elles produisent (les autres objets restent libres). */
+  onlyRecipes?: string[];
 };
 
 export type Flow = { item: string; perMin: number };
@@ -205,6 +213,25 @@ export type Plan = {
   economy: Economy;
   /** Débits « ronds » : chaque étape tombe sur un nombre entier de machines (ou presque). */
   tiers: Tier[];
+  /** Machines fixées dans le schéma (S8) : débit obtenu, étape qui limite, utilisation de chacune. */
+  fixed?: FixedResult;
+};
+
+/** Une étape au nombre de machines fixé : `exact` machines suffiraient, `planMachines` sans réglage. */
+export type FixedStep = { key: string; recipeId: string; machines: number; planMachines: number; exact: number; utilization: number };
+export type FixedResult = {
+  /** Débit obtenu, et celui du calcul sans réglage (même unité que `target.ratePerMin`). */
+  rate: number;
+  baseRate: number;
+  /** Clé de l'étape qui limite ; null si c'est une autre contrainte (budget, pollution) ou rien. */
+  limit: string | null;
+  /** « machines » : une étape fixée limite ; « contrainte » : le budget ou la pollution ; « aucune » : rien n'a pu être fixé. */
+  reason: "machines" | "contrainte" | "aucune";
+  /** La production déjà en place sert d'abord : le débit n'est plus proportionnel aux machines. */
+  existingUsed: boolean;
+  steps: FixedStep[];
+  /** Clés demandées absentes du plan ou non réglables (installation composée). */
+  ignored: string[];
 };
 
 const ceilTol = (x: number) => Math.ceil(x - 1e-9);
@@ -214,10 +241,88 @@ const fmtNum = (x: number) => (Math.round(x * 100) / 100).toString().replace("."
 const fmtPower = (w: number) => (Math.abs(w) >= 1e6 ? `${fmtNum(w / 1e6)} MMF/s` : Math.abs(w) >= 1e3 ? `${fmtNum(w / 1e3)} kMF/s` : `${fmtNum(w)} MF/s`);
 
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
+  const fixed = Object.entries(req.fixedMachines ?? {}).filter(([, n]) => Number.isFinite(n) && n >= 1);
+  if (fixed.length && req.demands === undefined) return solveFixed(data, player, req, fixed);
   return solveInner(data, player, req, false);
 }
 
-function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nested: boolean): Plan {
+/** La même demande à un autre débit, quel que soit l'objectif (objet /min, argent $/min, énergie MF/s). */
+function withRate(req: SolveRequest, rate: number): SolveRequest {
+  const { fixedMachines: _f, finalMachines: _m, ...rest } = req;
+  if (req.moneyPerMin !== undefined) return { ...rest, moneyPerMin: rate };
+  if (req.energyMFps !== undefined) return { ...rest, energyMFps: rate };
+  return { ...rest, ratePerMin: rate };
+}
+
+/**
+ * Machines fixées (S8). Le plan sans réglage donne les recettes ; on cherche ensuite le plus grand
+ * débit pour lequel chaque étape fixée a assez de machines. Sans production existante, le nombre
+ * exact de machines est proportionnel au débit : la règle de trois tombe juste du premier coup.
+ * Sinon (production existante, budget, pollution), recherche par encadrement : fausse position
+ * quand les deux bornes sont calculables, dichotomie sinon.
+ */
+function solveFixed(data: GameData, player: PlayerState, req: SolveRequest, wanted: [string, number][]): Plan {
+  const { fixedMachines: _f, ...plain } = req;
+  const base = solveInner(data, player, plain, false);
+  const baseRate = base.target.ratePerMin;
+  const fixable: { key: string; recipeId: string; n: number; planMachines: number }[] = [];
+  const ignored: string[] = [];
+  for (const [key, n] of wanted) {
+    const st = base.steps.find((s) => s.key === key);
+    if (st && !st.parts) fixable.push({ key, recipeId: st.recipeId, n: Math.round(n), planMachines: st.machines });
+    else ignored.push(key);
+  }
+  const none = (plan: Plan): Plan => ({ ...plan, fixed: { rate: plan.target.ratePerMin, baseRate, limit: null, reason: "aucune", existingUsed: false, steps: [], ignored } });
+  if (!fixable.length || base.engine !== "simplexe" || base.status === "impossible" || !(baseRate > 0)) return none(base);
+
+  const only = [...new Set(base.steps.map((s) => s.recipeId))];
+  const floor = new Map(fixable.map((f) => [f.recipeId, f.n]));
+  const at = (rate: number) => solveInner(data, player, { ...withRate(req, rate), onlyRecipes: only, tiers: false }, false, floor);
+  const exactOf = (p: Plan, rid: string) => p.steps.filter((s) => s.recipeId === rid).reduce((t, s) => t + s.machinesExact, 0);
+  /** Charge de l'étape fixée la plus chargée, moins 1 (0 : ses machines sont toutes utilisées). */
+  const excess = (p: Plan) => Math.max(...fixable.map((f) => exactOf(p, f.recipeId) / f.n)) - 1;
+  const blocked = (p: Plan) => p.engine !== "simplexe" || p.status === "impossible" || p.warnings.some((w) => w.code === "contrainte-budget" || w.code === "contrainte-pollution");
+
+  // Encadrement : `lo` est possible (meilleur plan trouvé), `hi` ne l'est pas. g = excès de charge.
+  let best: Plan | null = null;
+  let lo = 0;
+  let gLo = -1;
+  let hi = Infinity;
+  let gHi: number | null = null;
+  const g0 = excess(base);
+  let guess = g0 > -1 ? baseRate / (g0 + 1) : baseRate;
+  for (let i = 0; i < 60; i++) {
+    const p = at(guess);
+    const g = blocked(p) ? null : excess(p);
+    if (g !== null && g <= 1e-7) {
+      if (guess >= lo) [lo, gLo, best] = [guess, g, p];
+    } else if (guess < hi) [hi, gHi] = [guess, g];
+    if (best && gLo >= -1e-6) break;
+    if (hi === Infinity) {
+      // Pas encore de borne haute : règle de trois depuis la borne basse (×2 si rien n'y est chargé).
+      guess = gLo > -0.999 ? (lo / (gLo + 1)) * (1 + 1e-6) : lo * 2;
+      continue;
+    }
+    if (hi - lo <= 1e-6 * hi) break;
+    // Fausse position si les deux bornes sont calculables (une fois sur trois : dichotomie).
+    guess = gHi !== null && i % 3 !== 2 ? lo + ((hi - lo) * -gLo) / (gHi - gLo) : (lo + hi) / 2;
+    if (!(guess > lo && guess < hi)) guess = (lo + hi) / 2;
+  }
+  if (!best) return none({ ...base, warnings: [...base.warnings, { code: "machines-fixées", message: "Aucun débit possible avec ces machines fixées." }] });
+  const plan: Plan = best;
+  const steps: FixedStep[] = fixable.map((f) => {
+    const exact = exactOf(plan, f.recipeId);
+    const key = plan.steps.find((s) => s.recipeId === f.recipeId)?.key ?? f.key;
+    return { key, recipeId: f.recipeId, machines: f.n, planMachines: f.planMachines, exact, utilization: exact / f.n };
+  });
+  const top = steps.reduce((a, b) => (b.utilization > a.utilization ? b : a));
+  const byMachines = top.utilization >= 1 - 1e-4;
+  plan.target = { ...plan.target, finalMachines: null };
+  plan.fixed = { rate: plan.target.ratePerMin, baseRate, limit: byMachines ? top.key : null, reason: byMachines ? "machines" : "contrainte", existingUsed: plan.existing.some((x) => x.used > 0), steps, ignored };
+  return plan;
+}
+
+function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nested: boolean, floor?: Map<string, number>): Plan {
   const criterion = req.criterion ?? "machines";
   const moneyMode = req.moneyPerMin !== undefined;
   const energyMode = !moneyMode && req.energyMFps !== undefined;
@@ -238,13 +343,22 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
 
   // Critère « moins d'étapes » : ce n'est pas une quantité linéaire ; l'heuristique choisit une
   // recette par item, le simplexe calcule ensuite les quantités (sous-produits compris).
+  // Recettes imposées (S8) : pour un objet que l'une d'elles produit, seulement celles-là.
+  const onlySet = req.onlyRecipes ? new Set(req.onlyRecipes) : null;
+  const onlyFor = (item: string): string[] | null => {
+    if (!onlySet) return null;
+    const ids = chooser.usableFor(item).map((e) => e.recipe.id).filter((id) => onlySet.has(id));
+    return ids.length ? ids : null;
+  };
   const restrictTo =
     criterion === "steps"
       ? (item: string) => {
           const c = chooser.choose(item);
-          return c.eff ? [c.eff.recipe.id] : [];
+          return onlyFor(item) ?? (c.eff ? [c.eff.recipe.id] : []);
         }
-      : undefined;
+      : onlySet
+        ? onlyFor
+        : undefined;
   const model = buildFlowModel(data, player, chooser, {
     targets: multi ? [...demands.keys()] : noItem ? [] : [req.item],
     money: moneyMode,
@@ -410,7 +524,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     const eff = p.eff;
     const r = eff.recipe;
     const m = p.machine;
-    const machines = ceilTol(x);
+    // Machines fixées dans le schéma (S8) : ce nombre, même si moins suffiraient.
+    const machines = Math.max(ceilTol(x), floor?.get(p.id) ?? 0);
     const choice = main === ENERGY || main === POLLUTION ? null : chooser.choose(main);
     const access = machineAccess(data, player, r.machine);
     // Pollution par machine : celle de la recette (Scrubber), sinon de la machine ; installation : par unité.

@@ -195,6 +195,11 @@ button.link.have:hover { color: var(--steel); }
 .fn-sub { fill: #9aa7b4; font: 400 11.5px var(--f-mono); }
 .fn-rate { fill: #f0b37a; font: 600 12px var(--f-mono); }
 .fn-warn { fill: #e3b25a; font-size: 12px; }
+/* Machines fixées (S8) : cadre en tirets ; celle qui limite en orange. */
+.fn.fixed rect { stroke: #8fb8d6; stroke-width: 2.2; stroke-dasharray: 6 3; }
+.fn.limit rect { stroke: #f0913a; stroke-width: 2.6; stroke-dasharray: none; }
+.fn-tag { fill: #8fb8d6; font: 600 10.5px var(--f-mono); }
+.fn-tag.limit { fill: #f0b37a; }
 .fn { cursor: pointer; }
 .fn:hover rect { stroke: #8fb8d6; }
 .fn.sel rect { stroke: #2ec4c9; stroke-width: 2.6; }
@@ -210,6 +215,18 @@ button.link.have:hover { color: var(--steel); }
 .flow-hud-btn { background: #2a3038; color: #e6ebf0; border-color: #4a525c; font-size: .85rem; padding: 6px 12px; }
 .flow-hud-btn.primary { background: #f0913a; border-color: #f0913a; color: #17212b; font-weight: 600; }
 .flow-hud-x { background: transparent; border: none; color: #9aa7b4; font-size: 1.2rem; padding: 2px 6px; }
+/* Schéma : nombre de machines réglable (S8), dans la barre du bas, et bandeau du résultat. */
+.mset { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: #e6ebf0; margin-right: 6px; }
+.mset button { background: #2a3038; color: #e6ebf0; border-color: #4a525c; padding: 4px 10px; font-size: 1rem; line-height: 1; }
+.mset input { width: 4.2em; text-align: center; font-family: var(--f-mono); background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 4px 2px; }
+.mset.on input { border-color: #8fb8d6; box-shadow: 0 0 0 1px #8fb8d6; }
+.mset small { color: #9aa7b4; font-family: var(--f-mono); }
+#fix-bar { margin: 10px 0; }
+#fix-bar[hidden] { display: none; }
+.fixbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 14px; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--steel); background: var(--steel-soft); }
+.fixbar p { margin: 0; }
+.fixbar .big { font-weight: 600; }
+.fixbar ul { margin: 4px 0 0; padding-left: 18px; font-size: .86rem; }
 /* Schéma : « Comment c'est calculé » (S7), sous la barre du bas. */
 #flow-calc[hidden] { display: none; }
 .calc { margin-top: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; }

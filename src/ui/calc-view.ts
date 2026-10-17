@@ -114,7 +114,8 @@ function machinesLabel(v: ViewCtx, s: Step, n: number): string {
 /** Machines exactes → arrondies, puis utilisation et énergie (communes à toutes les étapes). */
 function countRows(v: ViewCtx, s: Step, r: Recipe, formula: string): Row[] {
   const rows: Row[] = [];
-  const round = isWhole(s.machinesExact) ? "" : " → arrondi au-dessus";
+  const fx = v.plan.fixed?.steps.find((x) => x.key === s.key);
+  const round = fx ? ` (${fx.machines} fixée${fx.machines > 1 ? "s" : ""})` : isWhole(s.machinesExact) ? "" : " → arrondi au-dessus";
   rows.push({ label: s.parts ? "Installations" : "Machines", formula: `${formula} = ${num(s.machinesExact)}${round}`, result: s.parts ? num(s.machinesExact) : machinesLabel(v, s, s.machines) });
   if (s.parts) {
     for (const q of s.parts) {
@@ -180,6 +181,34 @@ function rateRow(s: Step, r: Recipe, name: string): Row {
 }
 
 /** Panneau d'un bloc du schéma : étape, production existante ou objet non produit. */
+/**
+ * Bloc au nombre de machines fixé (S8) : ce nombre, puis le débit obtenu. Sans production
+ * existante, le nombre exact de machines est proportionnel au débit : la règle de trois se refait
+ * à la main avec le nombre de machines exact du calcul sans réglage.
+ */
+function fixedRows(v: ViewCtx, s: Step): Row[] {
+  const f = v.plan.fixed;
+  const fx = f?.steps.find((x) => x.key === s.key);
+  if (!f || !fx) return [];
+  const rate = (r: number) => (v.goal === "énergie" ? mf(r) : `${num(r)} ${v.goal === "argent" ? "$/min" : `${itemN(v, v.plan.target.item)}/min`}`);
+  const n = fx.machines;
+  const rows: Row[] = [
+    { label: "Nombre fixé", formula: `fixé par toi (le calcul sans réglage en demandait ${fmt(fx.planMachines, 0)})`, result: machinesLabel(v, s, n) },
+  ];
+  const limit = f.limit === s.key;
+  const other = f.limit ? v.plan.steps.find((x) => x.key === f.limit) : null;
+  if (limit && !f.existingUsed) {
+    const baseExact = (f.baseRate * n) / f.rate;
+    rows.push({ label: "Production obtenue", formula: `${rate(f.baseRate)} × ${n} ÷ ${num(baseExact)} : le plus grand débit pour lequel ${n} suffisent`, result: rate(f.rate), src: "cette étape limite" });
+  } else if (limit) {
+    rows.push({ label: "Production obtenue", formula: `le plus grand débit pour lequel ${n} suffisent, ta production déjà en place servant d'abord`, result: rate(f.rate), src: "cette étape limite" });
+  } else {
+    const by = other ? `${esc(itemN(v, other.item))} limite` : "le budget ou la pollution maximale limitent";
+    rows.push({ label: "Production obtenue", formula: `${by} : ${num(fx.exact)} machines sur ${n} suffisent`, result: rate(f.rate) });
+  }
+  return rows;
+}
+
 export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string {
   const p = v.plan;
   const s = p.steps.find((x) => x.key === key);
@@ -202,7 +231,7 @@ export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string 
   const link = `<a href="${card}" class="calc-link">Voir dans Recettes ▸</a>`;
   const craft = `<ul class="rc-crafts calc-craft">${renderCraft({ ...rc, edit: null, highlight: null }, r)}</ul>`;
   const name = itemN(v, s.item);
-  const rows: Row[] = [];
+  const rows: Row[] = fixedRows(v, s);
   if (s.item === ENERGY) {
     const made = -(s.energyAvg ?? 0);
     rows.push({ label: s.parts ? "Production d'une installation" : "Production d'une machine", formula: "énergie du craft", result: mf(s.ratePerMachine), src: sourceTag(r, "energyMFps") });

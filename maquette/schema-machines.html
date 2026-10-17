@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S8 — Régler le nombre de machines</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-phone { width: 375px; border: 8px solid #333; border-radius: 22px; padding: 10px; background: var(--bg); align-self: center; }
+.mq-flow { background: #1b1f24; border-radius: 10px; padding: 8px; overflow-x: auto; }
+
+/* Le réglage dans la barre du bas. */
+.mset { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: #e6ebf0; margin-right: 6px; }
+.mset button { background: #2a3038; color: #e6ebf0; border-color: #4a525c; padding: 4px 10px; font-size: 1rem; line-height: 1; }
+.mset input { width: 4.2em; text-align: center; font-family: var(--f-mono); background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 4px 2px; }
+.mset.on input { border-color: #8fb8d6; box-shadow: 0 0 0 1px #8fb8d6; }
+.mset small { color: #9aa7b4; font-family: var(--f-mono); }
+
+/* Le bandeau, au-dessus du schéma, tant qu'une étape est fixée. */
+.fixbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 14px; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--steel); background: var(--steel-soft); }
+.fixbar p { margin: 0; }
+.fixbar .big { font-weight: 600; }
+.fixbar ul { margin: 4px 0 0; padding-left: 18px; font-size: .86rem; }
+
+/* Un bloc fixé, et celui qui limite, dans le schéma. */
+.fn.fixed rect { stroke: #8fb8d6; stroke-width: 2.2; stroke-dasharray: 6 3; }
+.fn.limit rect { stroke: #f0913a; stroke-width: 2.6; stroke-dasharray: none; }
+.fn-tag { font: 600 10.5px var(--f-mono); }
+.fn-tag.fixed { fill: #8fb8d6; }
+.fn-tag.limit { fill: #f0b37a; }
+
+.calc { margin-top: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; }
+.calc-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.calc-head h3 { margin: 0; font-size: 1rem; }
+.calc-head h3 span { font-weight: 400; color: var(--muted); }
+.calc-t { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.calc-t th { text-align: left; font-weight: 600; white-space: nowrap; padding: 6px 10px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.calc-t td { padding: 6px 10px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.calc-t tr:first-child td, .calc-t tr:first-child th { border-top: none; }
+.calc-t .f { font-family: var(--f-mono); font-size: .82rem; }
+.calc-t .r { font-family: var(--f-mono); font-weight: 600; white-space: nowrap; text-align: right; }
+.calc-t .s { font-size: .78rem; color: var(--muted); }
+.calc-t tr.new th, .calc-t tr.new td { background: var(--steel-soft); }
+.src-tag { display: inline-block; font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; margin: 1px 2px 1px 0; }
+.src-tag.wiki { color: var(--steel); }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S8 — régler le nombre de machines dans le schéma</h1>
+  <p class="mq-note">Maquette à valider : rien n'est encore branché. Les nombres sont ceux que le moteur calcule aujourd'hui pour <b>Crankshaft 60/min</b> (priorité « le moins de machines », tout débloqué), à 60, 45 et 37,5 par minute. Le réglage se fait dans la <b>barre du bas</b> du bloc sélectionné (celle de « Plan de pose ▸ »). Le résultat s'affiche dans un <b>bandeau au-dessus du schéma</b>, et dans « Comment c'est calculé » (S7).</p>
+
+  <!-- ============================================================ 1. avant -->
+  <h2 class="mq-t">1. Un bloc sélectionné, rien n'est fixé : Raw Iron, 7 × Iron Drill</h2>
+  <div class="flow-hud">
+    <div class="flow-hud-info"><b>Raw Iron</b><span>7 × Iron Drill · reçoit 0 flux · en envoie 1</span></div>
+    <div class="flow-hud-acts">
+      <span class="mset" title="Molette sur le nombre : ±1. Entrée ou sortie du champ : appliqué.">Machines : <button type="button" aria-label="Une de moins">−</button><input type="text" inputmode="numeric" value="7" aria-label="Nombre de machines"><button type="button" aria-label="Une de plus">+</button></span>
+      <button type="button" class="flow-hud-btn primary">Plan de pose ▸</button>
+      <button type="button" class="flow-hud-btn">Bâtiment : ports relevés ✎</button>
+      <button type="button" class="flow-hud-x">×</button>
+    </div>
+  </div>
+  <p class="mq-note">Le champ montre le nombre du plan (7). Il change avec <b>−</b> / <b>+</b>, à la <b>molette</b> au-dessus du nombre (±1), ou au clavier. Pas de curseur. Rien ne change tant qu'on ne touche pas au nombre.</p>
+
+  <!-- ============================================================ 2. une étape fixée -->
+  <h2 class="mq-t">2. Raw Iron fixé à 5 Iron Drill : la chaîne s'adapte</h2>
+  <div class="fixbar">
+    <div>
+      <p class="big">Production obtenue : 45 Crankshaft/min <span class="muted">(au lieu de 60/min)</span></p>
+      <p>Limitée par <b>Raw Iron</b> : 5 Iron Drill fixées, utilisées à 100 %. Les autres étapes sont recalculées pour 45/min.</p>
+    </div>
+    <button type="button">Revenir au calcul</button>
+  </div>
+  <div class="mq-flow">
+    <svg viewBox="0 0 900 70" width="900" height="70" role="img" aria-label="Extrait du schéma">
+      <g class="fn raw fixed limit"><rect x="4" y="6" width="190" height="56" rx="9"/><text class="fn-name" x="16" y="29">Raw Iron</text><text class="fn-tag limit" x="182" y="22" text-anchor="end">limite</text><text class="fn-sub" x="16" y="48">5 × Iron Drill · fixé</text></g>
+      <g class="fn"><rect x="240" y="6" width="190" height="56" rx="9"/><text class="fn-name" x="252" y="29">Steel Plate</text><text class="fn-sub" x="252" y="48">2 × Press MK2</text></g>
+      <g class="fn"><rect x="476" y="6" width="190" height="56" rx="9"/><text class="fn-name" x="488" y="29">Gear</text><text class="fn-sub" x="488" y="48">1 × Press MK2</text></g>
+      <g class="fn final"><rect x="712" y="6" width="184" height="56" rx="9"/><text class="fn-name" x="724" y="29">Crankshaft</text><text class="fn-rate" x="886" y="29" text-anchor="end">45/min</text><text class="fn-sub" x="724" y="48">4 × Advanced Assembler</text></g>
+    </svg>
+  </div>
+  <div class="flow-hud">
+    <div class="flow-hud-info"><b>Raw Iron</b><span>5 × Iron Drill (fixé) · reçoit 0 flux · en envoie 1</span></div>
+    <div class="flow-hud-acts">
+      <span class="mset on">Machines : <button type="button">−</button><input type="text" value="5"><button type="button">+</button> <small>plan : 7</small></span>
+      <button type="button" class="flow-hud-btn primary">Plan de pose ▸</button>
+      <button type="button" class="flow-hud-x">×</button>
+    </div>
+  </div>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Raw Iron</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+    <table class="calc-t">
+      <tr class="new"><th>Nombre fixé</th><td class="f">fixé par toi (le calcul en demandait 6,67 → 7 pour 60/min)</td><td class="r">5 Iron Drill</td><td class="s"></td></tr>
+      <tr class="new"><th>Production obtenue</th><td class="f">60 × 5 ÷ 6,667 : le plus grand débit pour lequel 5 suffisent</td><td class="r">45 Crankshaft/min</td><td class="s">cette étape limite</td></tr>
+      <tr><th>Débit d'une machine</th><td class="f">1 Raw Iron × 60 ÷ 15 s</td><td class="r">4 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Demande</th><td class="f">pour 45 Crankshaft/min</td><td class="r">20 /min</td><td class="s">somme des flèches qui partent du bloc</td></tr>
+      <tr><th>Machines nécessaires</th><td class="f">20 ÷ 4 = 5 (5 fixées)</td><td class="r">5 Iron Drill</td><td class="s"></td></tr>
+      <tr><th>Utilisation</th><td class="f">5 ÷ 5</td><td class="r">100 %</td><td class="s"></td></tr>
+    </table>
+  </section>
+  <p class="mq-note">Les autres blocs gardent leur panneau S7, recalculé pour 45/min (ex. Crankshaft : 45 ÷ 12 = 3,75 → 4 Advanced Assembler, 93,8 % ; Steel Plate : 1,2 → 2 Press MK2, 60 % ; en tout 36 machines au lieu de 39). Les crafts restent ceux du plan à 60/min : seul le nombre de machines change.</p>
+
+  <!-- ============================================================ 3. deux étapes fixées -->
+  <h2 class="mq-t">3. On fixe aussi Steel Plate à 1 Press MK2 : la plus contraignante décide</h2>
+  <div class="fixbar">
+    <div>
+      <p class="big">Production obtenue : 37,5 Crankshaft/min <span class="muted">(au lieu de 60/min)</span></p>
+      <p>Limitée par <b>Steel Plate</b> : 1 Press MK2 fixée, utilisée à 100 %.</p>
+      <ul>
+        <li>Raw Iron : 5 Iron Drill fixées, utilisées à 83,3 % (4,17 suffiraient).</li>
+      </ul>
+    </div>
+    <button type="button">Revenir au calcul</button>
+  </div>
+  <div class="mq-flow">
+    <svg viewBox="0 0 900 70" width="900" height="70" role="img" aria-label="Extrait du schéma">
+      <g class="fn raw fixed"><rect x="4" y="6" width="190" height="56" rx="9"/><text class="fn-name" x="16" y="29">Raw Iron</text><text class="fn-tag fixed" x="182" y="22" text-anchor="end">83 %</text><text class="fn-sub" x="16" y="48">5 × Iron Drill · fixé</text></g>
+      <g class="fn fixed limit"><rect x="240" y="6" width="190" height="56" rx="9"/><text class="fn-name" x="252" y="29">Steel Plate</text><text class="fn-tag limit" x="418" y="22" text-anchor="end">limite</text><text class="fn-sub" x="252" y="48">1 × Press MK2 · fixé</text></g>
+      <g class="fn"><rect x="476" y="6" width="190" height="56" rx="9"/><text class="fn-name" x="488" y="29">Gear</text><text class="fn-sub" x="488" y="48">1 × Press MK2</text></g>
+      <g class="fn final"><rect x="712" y="6" width="184" height="56" rx="9"/><text class="fn-name" x="724" y="29">Crankshaft</text><text class="fn-rate" x="886" y="29" text-anchor="end">37,5/min</text><text class="fn-sub" x="724" y="48">4 × Advanced Assembler</text></g>
+    </svg>
+  </div>
+  <p class="mq-note">Un bloc fixé a un cadre bleu en tirets ; celui qui limite, un cadre orange et « limite » ; les autres fixés montrent leur utilisation. Chaque ligne du bandeau mène au bloc. Remettre un bloc à son nombre du plan, ou vider le champ, le libère ; « Revenir au calcul » les libère tous.</p>
+
+  <!-- ============================================================ 4. cas où ça ne marche pas -->
+  <h2 class="mq-t">4. Les cas particuliers (une phrase, dans le bandeau ou à la place du réglage)</h2>
+  <section class="calc">
+    <table class="calc-t">
+      <tr><th>Une autre limite</th><td colspan="3">Budget ou pollution maximale atteints avant les machines : « Limitée par ton budget (réglage avancé) : les machines fixées ne sont pas toutes utilisées. »</td></tr>
+      <tr><th>Production existante</th><td colspan="3">Si son option est activée, elle sert d'abord (Q7) : le débit obtenu n'est plus proportionnel, il est cherché pas à pas ; le panneau dit « le plus grand débit pour lequel 5 suffisent, ta production déjà en place servant d'abord ».</td></tr>
+      <tr><th>Bloc sans réglage</th><td colspan="3">Production déjà en place, non produit, installation composée (centrale) : pas de champ, mais « Nombre non réglable pour ce bloc » au survol.</td></tr>
+      <tr><th>Objectif recherche</th><td colspan="3">Pas de réglage (le plan vient de la conception des stations de recherche).</td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ 5. téléphone -->
+  <h2 class="mq-t">5. Sur téléphone</h2>
+  <div class="mq-phone">
+    <div class="fixbar" style="margin-bottom:8px">
+      <div><p class="big">Production obtenue : 45 Crankshaft/min</p><p>Limitée par <b>Raw Iron</b> (5 Iron Drill, 100 %).</p></div>
+      <button type="button">Revenir au calcul</button>
+    </div>
+    <div class="flow-hud">
+      <div class="flow-hud-info"><b>Raw Iron</b><span>5 × Iron Drill (fixé)</span></div>
+      <div class="flow-hud-acts">
+        <span class="mset on">Machines : <button type="button">−</button><input type="text" value="5"><button type="button">+</button></span>
+        <button type="button" class="flow-hud-btn primary">Plan de pose ▸</button>
+        <button type="button" class="flow-hud-x">×</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

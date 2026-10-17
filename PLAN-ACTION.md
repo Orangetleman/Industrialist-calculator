@@ -66,7 +66,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S5 | Recettes (1/2) : navigation comme en jeu, en lecture | grosse | — | ✅ fait (`731c9e0`) |
 | S6 | Recettes (2/2) : corrections (valeurs, craft inexistant, craft manquant), export | moyenne | S5 | ✅ fait (`17a59bd`) |
 | S7 | Schéma : détail du calcul et référence du craft cliquable | moyenne | S5 | ✅ fait (`1a7200b`) |
-| S8 | Schéma : nombre de machines réglable → production obtenue | moyenne | — | à faire |
+| S8 | Schéma : nombre de machines réglable → production obtenue | moyenne | — | ✅ fait (voir § 6) |
 | S9 | Calcul : exclure des machines, ou seulement certaines | petite à moyenne | — | à faire |
 | S10 | Interfaces des machines : recherche, relevé, effet sur le calcul | moyenne | recherche | à faire |
 | S11 | Modulaires (1/4) : recherche (wiki, Internet), données, méthode de relevé | moyenne, sans interface | — | ✅ fait (voir § 6) |
@@ -581,6 +581,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S6 Retrait | Un craft « n'existe pas en jeu » reste sur la fiche, barré, avec ↺ Rétablir ; il ne compte plus dans les calculs. | 2026-10-17 |
 | S6 Remplacer | Entrée manquante ou en trop : « Remplacer par un craft corrigé » retire l'ancien et ouvre l'ajout pré-rempli. | 2026-10-17 |
 | S7 Maquette | Validée (`maquette/schema-calcul.html`) : panneau « Comment c'est calculé » sous la barre du bas du schéma ; ligne du craft et « Voir dans Recettes ▸ » ; tableau intitulé / calcul / résultat / source ; flèche : besoin de l'arrivée × part du départ ; une phrase pour chaque cas particulier. | 2026-10-17 |
+| S8 Portée | Des machines fixées dans le schéma changent tout le plan (liste de construction, plans de pose, détails, usine entière), pas seulement le schéma. | 2026-10-17 |
+| S8 Mémoire | Le réglage est gardé au rechargement ; changer d'objet ou d'objectif l'annule. | 2026-10-17 |
+| S8 Blocs | Réglables : machines et arbres. Non réglables : installations composées, production déjà en place, objectif recherche. | 2026-10-17 |
 
 ## 6. Journal des sessions
 
@@ -615,6 +618,10 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-17, S7** (`1a7200b`, 302 tests, déployé) : maquette validée (`maquette/schema-calcul.html`). `calc-view.ts` : un bloc sélectionné ouvre « Comment c'est calculé » sous la barre du bas — ligne du craft (rendu de Recettes), « Voir dans Recettes ▸ » (`#recettes/<objet|machine>/<id>/<craft>`, craft mis en évidence et centré), puis débit d'une machine (sortie nette, « (17 − 2) » si le craft consomme son produit), demande (flèches + objectif ou surplus), machines exactes → arrondies, utilisation, énergie (moyenne et pointe), entrées et sous-produits ; étiquette de source par valeur (wiki, relevé en jeu, ta correction, ⚠ → la valeur en mode « ✎ Corriger »). Flèche : produit par, consommé par, besoin de l'arrivée, part du départ au prorata quand plusieurs blocs produisent l'objet. Cas particuliers : matière première, arbres (durée de pousse), production existante, installations composées (bâtiments arrondis un par un), non produit.
   Parcours réel (Crankshaft 60/min, recherches du plan débloquées : 148 machines, ≈ 61 arbres) : refait à la main Steel Ingot (6 × 60 ÷ 5 s = 72/min ; 360 ÷ 72 = 5 Blast Furnace ; Iron Ingot 360 × 2 ÷ 6 = 120/min, comme la flèche) et Coke Fuel (60 ÷ 72 = 0,8333 → 1 ; 0,8333 × 15 kMF/s = 12,5 kMF/s ; Coal 60 × 4 ÷ 6 = 40/min, comme la flèche) ; lien vers Recettes et ⚠ des arbres vérifiés ; téléphone sans débordement. Tests : sur la chaîne « tout débloqué », chaque débit, compte, entrée et flèche se refait avec les valeurs affichées (Coke Fuel → Steel Ingot : 60 × 98,96 % = 59,37/min).
   À surveiller : pour les arbres, la ligne du craft montre la durée des données (6 min) alors que le calcul prend la pousse selon la pollution (362,72 s), la phrase l'explique ; les étapes d'énergie et de dépollution ont un panneau plus court (machines « d'après l'optimisation ») ; captures d'écran impossibles dans cette session (fenêtre masquée), parcours fait par le DOM.
+
+- **2026-10-17, S8** (311 tests, déployé) : maquette validée (`maquette/schema-machines.html`, décisions S8 au § 5). Moteur : `SolveRequest.fixedMachines` (étape → nombre) et `onlyRecipes` ; `solveFixed` garde les recettes du plan, tente d'abord une règle de trois (juste sans production existante), puis encadre le débit (fausse position, ou dichotomie si une borne bute sur le budget ou la pollution) ; `Plan.fixed` donne le débit obtenu, l'étape qui limite et l'utilisation de chaque étape fixée, et les étapes fixées gardent leur nombre de machines. Dans le site, la barre du bas a « Machines : [−] N [+] » (molette, flèches, nombre tapé), avec un bandeau « Production obtenue … limitée par … » et « Revenir au calcul » au-dessus des onglets. Dans le schéma, un bloc fixé a un cadre en tirets, celui qui limite est en orange. « Comment c'est calculé » ajoute « Nombre fixé » et « Production obtenue ». Le réglage est gardé au rechargement, et tout le plan le suit.
+  Parcours réel (Crankshaft 60/min, recherches du plan) : 4 Blast Furnace au lieu de 5 → 48/min (60 × 4 ÷ 5) ; en plus, 10 Craft Assembler au lieu de 15 → 40/min, Steel Ingot utilisé à 83,3 % ; molette → 12 → 48/min ; réglage gardé au rechargement ; liste de construction à 12 Craft Assembler ; « Revenir au calcul » remet 60/min. Tests : étape seule (45/min), deux étapes (37,5/min, 83,3 %), production existante (67,5/min), clé absente, objectif argent.
+  À surveiller : chaque réglage refait un ou deux calculs (≈ 50 ms chacun), et jusqu'à une vingtaine quand le budget ou la pollution limitent ; libérer un bloc suppose de revenir au nombre du calcul sans réglage (ou de vider le champ) ; pour une étape à plusieurs recettes, le réglage suit la recette (clé `objet@recette`).
 
 ## 7. Gestion des sessions
 

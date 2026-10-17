@@ -535,8 +535,15 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   const ins = v.plan.edges.filter((e) => e.to === key).length;
   const outs = v.plan.edges.filter((e) => e.from === key).length + (v.plan.finals.includes(key) ? 1 : 0);
   const name = st ? itemN(v, st.item) : itemN(v, v.plan.existing.find((x) => x.key === key)?.item ?? key);
-  const info = `<b>${esc(name)}</b><span>${esc(st ? n.text.replace(/ \([^)]*\)$/, "") : n.text)}${st ? ` · reçoit ${ins} flux · en envoie ${outs}` : ""}</span>`;
+  const fx = v.plan.fixed?.steps.find((s) => s.key === key);
+  const info = `<b>${esc(name)}</b><span>${esc(st ? n.text.replace(/ \([^)]*\)$/, "") : n.text)}${fx ? " (fixé)" : ""}${st ? ` · reçoit ${ins} flux · en envoie ${outs}` : ""}</span>`;
   const acts: string[] = [];
+  // Nombre de machines réglable (S8) : boutons, molette ou clavier ; pas pour une installation composée.
+  if (st && !st.parts && v.goal !== "recherche") {
+    acts.push(
+      `<span class="mset${fx ? " on" : ""}" title="Molette sur le nombre : une de plus ou de moins. Entrée pour appliquer un nombre tapé.">Machines : <button type="button" data-mset="-1" aria-label="Une machine de moins">−</button><input type="text" inputmode="numeric" data-mset-input data-key="${esc(key)}" value="${st.machines}" aria-label="Nombre de machines (${esc(name)})"><button type="button" data-mset="1" aria-label="Une machine de plus">+</button>${fx && fx.planMachines !== fx.machines ? ` <small>plan : ${fx.planMachines}</small>` : ""}</span>`,
+    );
+  }
   if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
   if (st && !st.parts) {
     const state = survey(st.machine);
@@ -544,6 +551,46 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
     acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="Ouvrir ${esc(machineN(v, st.machine))} dans l'éditeur de bâtiments">Bâtiment : ${esc(label)} ✎</button>`);
   }
   return `<div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div>`;
+}
+
+/**
+ * Bandeau des machines fixées dans le schéma (S8), au-dessus des onglets du résultat : production
+ * obtenue, ce qui la limite, l'utilisation des autres étapes fixées, et « Revenir au calcul ».
+ */
+export function renderFixBar(v: ViewCtx): string {
+  const f = v.plan.fixed;
+  if (!f || v.goal === "recherche") return "";
+  const rateText = (r: number) => (v.goal === "argent" ? `${fmtMoney(r)}/min` : v.goal === "énergie" ? fmtMF(r) : `${fmtRate(r)} ${itemN(v, v.plan.target.item)}/min`);
+  const stepName = (key: string) => {
+    const st = v.plan.steps.find((s) => s.key === key);
+    return st ? (st.item === ENERGY ? "Énergie" : itemN(v, st.item)) : itemN(v, key.split("@")[0]!);
+  };
+  const machinesText = (key: string, n: number) => {
+    const st = v.plan.steps.find((s) => s.key === key);
+    return `${n} ${st ? machineN(v, st.machine) : "machines"} fixée${n > 1 ? "s" : ""}`;
+  };
+  const pct = (x: number) => `${fmt(x * 100, x >= 0.9995 ? 0 : 1)} %`;
+  const goTo = (key: string) => `<button type="button" class="link" data-flow="${esc(key)}">${esc(stepName(key))}</button>`;
+  const lines: string[] = [];
+  const top = f.steps.find((s) => s.key === f.limit);
+  if (f.reason === "machines" && top) lines.push(`<p>Limitée par <b>${goTo(top.key)}</b> : ${esc(machinesText(top.key, top.machines))}, utilisée${top.machines > 1 ? "s" : ""} à ${pct(top.utilization)}. Les autres étapes sont recalculées pour ce débit.</p>`);
+  if (f.reason === "contrainte") {
+    const what = [v.plan.constraints.budget !== null ? "ton budget" : "", v.plan.constraints.maxPollution !== null ? "la pollution maximale" : ""].filter(Boolean).join(" ou ") || "une autre contrainte";
+    lines.push(`<p>Limitée par ${esc(what)} (options avancées) : les machines fixées ne sont pas toutes utilisées.</p>`);
+  }
+  const others = f.steps.filter((s) => s !== top || f.reason !== "machines");
+  if (others.length) {
+    lines.push(
+      `<ul>${others.map((s) => `<li>${goTo(s.key)} : ${esc(machinesText(s.key, s.machines))}, utilisée${s.machines > 1 ? "s" : ""} à ${pct(s.utilization)} (${esc(fmt(s.exact, 2))} suffiraient).</li>`).join("")}</ul>`,
+    );
+  }
+  if (f.existingUsed) lines.push(`<p class="muted">Ta production déjà en place sert d'abord : le débit n'est pas proportionnel au nombre de machines.</p>`);
+  if (f.ignored.length) lines.push(`<p class="muted">Réglage sans effet pour ${esc(f.ignored.map(stepName).join(", "))} : bloc absent de ce plan ou non réglable.</p>`);
+  const head =
+    f.reason === "aucune"
+      ? `<p class="big">Machines fixées sans effet : calcul normal.</p>`
+      : `<p class="big">Production obtenue : ${esc(rateText(f.rate))}${Math.abs(f.rate - f.baseRate) > 1e-9 * f.baseRate ? ` <span class="muted">(au lieu de ${esc(rateText(f.baseRate))})</span>` : ""}</p>`;
+  return `<div class="fixbar" role="status"><div>${head}${lines.join("")}</div><button type="button" data-fix-reset>Revenir au calcul</button></div>`;
 }
 
 /** Schéma des flux (SVG), à placer dans un cadre navigable. */
@@ -583,8 +630,14 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
       : ex
         ? `${name} — ta production existante : ${fmtRate(ex.used)} sur ${fmtRate(ex.available)} par min`
         : `${name} — ${u ? (LEAF_TEXT[u.reason] ?? u.reason) : ""}`;
-    s += `<g class="fn ${n.kind}" data-key="${esc(n.id)}"><title>${esc(tip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
-<text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : ""}
+    // Machines fixées (S8) : cadre en tirets ; celle qui limite en orange, les autres avec leur utilisation.
+    const fx = p.fixed?.steps.find((x) => x.key === n.id);
+    const limit = !!fx && p.fixed!.limit === n.id;
+    if (fx) sub += " · fixé";
+    const tag = fx ? (limit ? "limite" : `${fmt(fx.utilization * 100, 0)} %`) : "";
+    const fixTip = fx ? ` — ${fx.machines} fixée${fx.machines > 1 ? "s" : ""}${limit ? ", c'est l'étape qui limite" : `, utilisée${fx.machines > 1 ? "s" : ""} à ${fmt(fx.utilization * 100, 1)} %`}` : "";
+    s += `<g class="fn ${n.kind}${fx ? " fixed" : ""}${limit ? " limit" : ""}" data-key="${esc(n.id)}"><title>${esc(tip + fixTip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
+<text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate || tag ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : tag ? `<text class="fn-tag${limit ? " limit" : ""}" x="${n.x + FW - 10}" y="${n.y + 21}" text-anchor="end">${esc(tag)}</text>` : ""}
 <text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, 26))}</text>${st && warned.has(st.item) ? `<text class="fn-warn" x="${n.x + FW - 12}" y="${n.y + 44}" text-anchor="end">⚠</text>` : ""}</g>`;
   }
   for (const [i, e] of L.edges.entries()) {
