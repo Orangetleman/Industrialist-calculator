@@ -8,6 +8,7 @@
 //   #donnees/verifier/<recette|machine>/<id>/<champ>  valeurs à vérifier, sur une valeur (lien des ⚠)
 //   #recettes                   page Recettes (liste)
 //   #recettes/<objet|machine>/<id>  fiche d'un objet ou d'une machine
+//   #recettes/<objet|machine>/<id>/<craft>  la même fiche, un craft mis en évidence (lien du schéma)
 // Fonctions pures, testées sans navigateur.
 
 import type { Goal, ResultTab } from "./state.ts";
@@ -26,7 +27,7 @@ export type Route = {
   dataTab?: DataTab;
   machine?: string;
   verify?: VerifyTarget;
-  card?: { kind: RecipeKind; id: string };
+  card?: { kind: RecipeKind; id: string; craft?: string };
 };
 
 /** Entrée « Toute l'usine » de la liste des étapes du plan de pose. */
@@ -71,7 +72,7 @@ export function parseRoute(hash: string): Route {
   }
   if (head === "recettes") {
     const r: Route = { page: "recettes" };
-    if ((a === "objet" || a === "machine") && b) r.card = { kind: a, id: b };
+    if ((a === "objet" || a === "machine") && b) r.card = { kind: a, id: b, ...(c ? { craft: c } : {}) };
     return r;
   }
   return { page: (PAGES as string[]).includes(head) && head !== "plan" ? (head as Page) : "accueil" };
@@ -95,7 +96,7 @@ export function routeHash(r: Route): string {
     }
   } else if (r.page === "recettes") {
     parts.push("recettes");
-    if (r.card) parts.push(r.card.kind, r.card.id);
+    if (r.card) parts.push(r.card.kind, r.card.id, ...(r.card.craft ? [r.card.craft] : []));
   } else parts.push(r.page);
   return `#${parts.map(encodeURIComponent).join("/")}`;
 }

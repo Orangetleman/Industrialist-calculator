@@ -35,6 +35,8 @@ export type RecipesCtx = {
   edit?: EditState | null;
   /** Corrections locales du joueur (pour « annuler ma correction », « rétablir », « effacer »). */
   mine?: OverridesFile;
+  /** Craft mis en évidence sur la fiche (arrivée depuis le schéma, S7). */
+  highlight?: string | null;
 };
 
 /** Ligne d'un formulaire de craft : nom de l'objet (comme en jeu) et quantité, tels que saisis. */
@@ -71,6 +73,8 @@ export type EditState = {
 export const EDIT_ON: EditState = { craft: null, draft: null, newItem: null, focus: null };
 
 export const recipeHref = (kind: EntryKind, id: string) => `#recettes/${kind}/${encodeURIComponent(id)}`;
+/** Fiche d'un objet ou d'une machine, un craft mis en évidence (lien « Voir dans Recettes » du schéma). */
+export const craftHref = (kind: EntryKind, id: string, craft: string) => `${recipeHref(kind, id)}/${encodeURIComponent(craft)}`;
 
 /** Objets, puis machines qui ont au moins un craft, triés par nom. */
 export function recipeEntries(data: GameData): Entry[] {
@@ -235,7 +239,7 @@ export function renderCraft(ctx: RecipesCtx, r: Recipe, showMachine = true): str
     : ctx.mine?.added?.recipes?.[r.id]
       ? `<div class="rc-acts"><button type="button" class="small" data-rc-edit-added="${esc(r.id)}">✎ Modifier</button><button type="button" class="small" data-rc-del-added="${esc(r.id)}">Effacer ce craft ajouté</button></div>`
       : `<div class="rc-acts">${setup ? "" : `<button type="button" class="small" data-rc-edit="${esc(r.id)}">✎ Modifier</button>`}<button type="button" class="small" data-rc-remove="${esc(r.id)}">✕ N'existe pas en jeu</button></div>`;
-  return `<li class="rc-craft${lock ? " locked" : ""}" data-rc-craft="${esc(r.id)}">
+  return `<li class="rc-craft${lock ? " locked" : ""}${ctx.highlight === r.id ? " on" : ""}" data-rc-craft="${esc(r.id)}">
   <div class="rc-side">${side(ctx, r, "inputs")}</div>
   <div class="rc-arrow"><span>${esc(top)}${setup ? "" : flagMark(r, "recipes", r.id, "durationS")}</span><svg viewBox="0 0 60 10" aria-hidden="true"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span class="${e !== null && e < 0 ? "ok" : ""}">${esc(bottom)}${flagMark(r, "recipes", r.id, "energyMFps")}</span></div>
   <div class="rc-side">${side(ctx, r, "outputs")}</div>

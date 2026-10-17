@@ -470,7 +470,7 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
 export const isPosable = (s: Step) => s.machineKind !== "farm" && !s.parts && s.machines >= 1;
 
 /** Nom court d'un bloc du schéma (étape, manque ou production existante), pour les raccordements. */
-function nodeText(v: ViewCtx, key: string): { text: string; step: Step | null } {
+export function nodeText(v: ViewCtx, key: string): { text: string; step: Step | null } {
   const st = v.plan.steps.find((s) => s.key === key) ?? null;
   if (st) {
     const what = st.parts ? st.parts.map((q) => `${q.count} ${machineN(v, q.machine)}`).join(" + ") : `${st.machineKind === "farm" ? "≈ " : ""}${st.machines} × ${machineN(v, st.machine)}`;

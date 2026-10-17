@@ -93,6 +93,7 @@ import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, sav
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
   builtFor,
   cleanNotes,
@@ -181,6 +182,8 @@ let myImages: MyImages = loadImages();
 let rcEdit: EditState | null = null;
 let rcEditCard = "";
 let rcFocusPending = false;
+/** Arrivée sur une fiche depuis le schéma : montrer le craft mis en évidence (ou la valeur à corriger). */
+let rcRevealPending = false;
 /** Vignettes du wiki (scripts/fetch-images.ts), servies depuis public/img. */
 const WIKI_IMAGES = new Map((imagesJson as { images: { kind: EntryKind; id: string; file: string; url: string; license: string }[] }).images.map((x) => [`${x.kind}|${x.id}`, x]));
 
@@ -336,7 +339,10 @@ function showPage(): void {
   if (wentBack && scrollOf.has(location.hash)) window.scrollTo(0, scrollOf.get(location.hash)!);
   else if (page !== lastPage || page === "recettes") window.scrollTo(0, 0);
   lastPage = page;
-  if (page === "recettes") revealRcCurrent();
+  if (page === "recettes") {
+    revealRcCurrent();
+    if (route.card?.craft && !wentBack) revealRcCraft();
+  }
   if (page === "donnees" && route.verify?.field) {
     const el = document.getElementById(`fix-${route.verify.id}-${route.verify.field}`) as HTMLInputElement | null;
     el?.closest(".vrow")?.classList.add("vfocus");
@@ -668,11 +674,12 @@ function applyFlowSel(): void {
     for (const k of [hit.dataset.from!, hit.dataset.to!]) svg.querySelector(`.fn[data-key="${CSS.escape(k)}"]`)?.classList.add("hl");
   }
   hud.hidden = !flowSel && !hit;
-  hud.innerHTML = flowSel
-    ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local))
-    : hit
-      ? renderEdgeHud(viewCtx(), { from: hit.dataset.from!, to: hit.dataset.to!, item: hit.dataset.item!, perMin: Number(hit.dataset.rate), loop: !!hit.dataset.loop })
-      : "";
+  const edge = hit ? { from: hit.dataset.from!, to: hit.dataset.to!, item: hit.dataset.item!, perMin: Number(hit.dataset.rate), loop: !!hit.dataset.loop } : null;
+  hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : edge ? renderEdgeHud(viewCtx(), edge) : "";
+  // « Comment c'est calculé » (S7) : sous la barre du bas, pour le bloc ou la flèche sélectionnés.
+  const calc = $("flow-calc");
+  calc.innerHTML = flowSel ? renderStepCalc(viewCtx(), recipesCtx(), flowSel) : edge ? renderEdgeCalc(viewCtx(), edge) : "";
+  calc.hidden = !calc.innerHTML;
 }
 
 function selectFlow(key: string | null): void {
@@ -1262,6 +1269,7 @@ function recipesCtx(): RecipesCtx {
     locked: (r) => (fresh || !r.research || !data.nodes.has(r.research) || isNodeUnlocked(data, p, r.research) ? null : nodeName(r.research)),
     edit: rcEdit,
     mine: corrections,
+    highlight: route.page === "recettes" ? (route.card?.craft ?? null) : null,
   };
 }
 
@@ -1325,6 +1333,19 @@ function revealRcCurrent(): void {
   const b = box.getBoundingClientRect();
   const r = on.getBoundingClientRect();
   if (r.top < b.top + 30 || r.bottom > b.bottom) box.scrollTop += r.top - b.top - b.height / 3;
+}
+
+/** Fiche ouverte depuis le schéma : le craft mis en évidence (ou la valeur à corriger) au milieu de l'écran. */
+function revealRcCraft(): void {
+  const box = $("rc-card");
+  const fix = rcRevealPending ? box.querySelector<HTMLInputElement>("input.focus") : null;
+  rcRevealPending = false;
+  const el = fix ?? box.querySelector<HTMLElement>(".rc-craft.on");
+  el?.scrollIntoView({ block: "center" });
+  if (fix) {
+    fix.focus({ preventScroll: true });
+    fix.select();
+  }
 }
 
 /** Image choisie : réduite à 128 px au plus (le navigateur garde peu de place). */
@@ -2168,6 +2189,19 @@ function bindPlan(): void {
   $("flow-canvas").addEventListener("pointerleave", () => hover(null));
   $("flow-hud").addEventListener("click", (e) => {
     if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
+  });
+  // Un ⚠ du panneau « Comment c'est calculé » : la valeur, dans la fiche de l'objet, en mode « ✎ Corriger ».
+  $("flow-calc").addEventListener("click", (e) => {
+    const warn = (e.target as Element).closest<HTMLElement>("[data-rc-focus]");
+    const box = warn?.closest<HTMLElement>("[data-calc-craft]");
+    if (!warn || !box) return;
+    const key = warn.dataset.rcFocus!;
+    const item = box.dataset.calcItem;
+    const card = item ? { kind: "objet" as const, id: item } : { kind: "machine" as const, id: box.dataset.calcMachine! };
+    rcEdit = { ...EDIT_ON, craft: key.startsWith("recipes|") ? key.split("|")[1]! : null, focus: key };
+    rcEditCard = `${card.kind}/${card.id}`;
+    rcRevealPending = true;
+    go({ page: "recettes", card: { ...card, craft: box.dataset.calcCraft! } });
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-fzoom]")) {
     b.addEventListener("click", () => {

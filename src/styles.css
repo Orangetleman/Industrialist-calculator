@@ -210,6 +210,39 @@ button.link.have:hover { color: var(--steel); }
 .flow-hud-btn { background: #2a3038; color: #e6ebf0; border-color: #4a525c; font-size: .85rem; padding: 6px 12px; }
 .flow-hud-btn.primary { background: #f0913a; border-color: #f0913a; color: #17212b; font-weight: 600; }
 .flow-hud-x { background: transparent; border: none; color: #9aa7b4; font-size: 1.2rem; padding: 2px 6px; }
+/* Schéma : « Comment c'est calculé » (S7), sous la barre du bas. */
+#flow-calc[hidden] { display: none; }
+.calc { margin-top: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; }
+.calc-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.calc-head h3 { margin: 0; font-size: 1rem; }
+.calc-head h3 span { font-weight: 400; color: var(--muted); }
+.calc-craft .rc-craft { border-top: none; padding: 6px 0; }
+.calc-note { margin: 6px 0; font-size: .88rem; }
+.calc-t { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.calc-t th, .calc-t td { padding: 6px 10px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.calc-t tr:first-child th, .calc-t tr:first-child td { border-top: none; }
+.calc-t th { text-align: left; font-weight: 600; white-space: nowrap; }
+.calc-t .f { font-family: var(--f-mono); font-size: .82rem; }
+.calc-t .r { font-family: var(--f-mono); font-weight: 600; white-space: nowrap; text-align: right; }
+.calc-t .s { font-size: .78rem; color: var(--muted); }
+.src-tag { display: inline-block; font: inherit; font-size: .72rem; line-height: 1.5; border-radius: 999px; padding: 0 7px; border: 1px solid currentColor; background: none; white-space: nowrap; text-decoration: none; margin: 1px 2px 1px 0; cursor: default; }
+a.src-tag, button.src-tag { cursor: pointer; }
+a.src-tag:hover, button.src-tag:hover { text-decoration: underline; }
+.src-tag.wiki { color: var(--steel); }
+.src-tag.jeu { color: var(--ok); }
+.src-tag.fix { color: var(--accent); }
+.src-tag.warn { color: var(--warn); background: var(--warn-soft); white-space: normal; text-align: left; }
+.calc-foot { margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
+.calc-who { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 18px; margin: 6px 0; font-size: .88rem; }
+.calc-who h4 { margin: 0 0 2px; font-size: .85rem; color: var(--muted); font-weight: 600; }
+@media (max-width: 600px) {
+  .calc-t, .calc-t tbody, .calc-t tr, .calc-t th, .calc-t td { display: block; }
+  .calc-t tr { border-top: 1px solid var(--line); padding: 6px 0; }
+  .calc-t tr:first-child { border-top: none; }
+  .calc-t th, .calc-t td { border: none; padding: 1px 0; }
+  .calc-t th { white-space: normal; }
+  .calc-t .r { text-align: left; }
+}
 .step-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4px 20px; margin: 4px 0 10px; }
 .step-links h4 { margin: 4px 0; font-size: .92rem; }
 .links-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: .9rem; }
@@ -718,6 +751,7 @@ a.rc-flag:hover { text-decoration: underline; }
 .rc-sec h3 { margin-bottom: 8px; }
 .rc-crafts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .rc-craft { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.rc-craft.on { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; padding-right: 8px; border-radius: 6px; }
 .rc-craft.locked .rc-side, .rc-craft.locked .rc-arrow { opacity: .55; }
 .rc-side { display: flex; align-items: flex-start; gap: 4px; flex-wrap: wrap; }
 .rc-q { position: relative; width: 74px; }

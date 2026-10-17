@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S7 — Comment c'est calculé</title>
+<link rel="stylesheet" href="/src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-phone { width: 375px; border: 8px solid #333; border-radius: 22px; padding: 10px; background: var(--bg); align-self: center; }
+
+.calc { margin-top: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; }
+.calc-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.calc-head h3 { margin: 0; font-size: 1rem; }
+.calc-head h3 span { font-weight: 400; color: var(--muted); }
+.calc .rc-crafts .rc-craft { border-top: none; padding: 6px 0; }
+.calc-t { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.calc-t th { text-align: left; font-weight: 600; white-space: nowrap; padding: 6px 10px 6px 0; vertical-align: top; }
+.calc-t td { padding: 6px 10px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.calc-t tr:first-child td, .calc-t tr:first-child th { border-top: none; }
+.calc-t th { border-top: 1px solid var(--line); }
+.calc-t .f { font-family: var(--f-mono); font-size: .82rem; }
+.calc-t .r { font-family: var(--f-mono); font-weight: 600; white-space: nowrap; text-align: right; }
+.calc-t .s { font-size: .78rem; color: var(--muted); }
+.src-tag { display: inline-block; font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; text-decoration: none; margin: 1px 2px 1px 0; }
+.src-tag.wiki { color: var(--steel); }
+.src-tag.jeu { color: var(--ok); }
+.src-tag.fix { color: var(--accent); }
+.src-tag.warn { color: var(--warn); background: var(--warn-soft); }
+.calc-foot { margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
+.calc-who { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 18px; margin: 6px 0; font-size: .88rem; }
+.calc-who h4 { margin: 0 0 2px; font-size: .85rem; color: var(--muted); font-weight: 600; }
+@media (max-width: 600px) {
+  .calc-t, .calc-t tbody, .calc-t tr, .calc-t th, .calc-t td { display: block; }
+  .calc-t tr { border-top: 1px solid var(--line); padding: 6px 0; }
+  .calc-t th, .calc-t td { border: none; padding: 1px 0; }
+  .calc-t .r { text-align: left; }
+}
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S7 — « Comment c'est calculé » dans le schéma</h1>
+  <p class="mq-note">Maquette à valider : rien n'est encore branché. Toutes les valeurs sont celles que le site calcule aujourd'hui pour <b>Crankshaft 60/min</b> (priorité « le moins de machines », tout débloqué). Le panneau se place <b>sous la barre du bas du schéma</b> (celle qui existe déjà, avec « Plan de pose ▸ »), et disparaît quand on désélectionne.</p>
+
+  <!-- ============================================================ 1. bloc Gear -->
+  <h2 class="mq-t">1. Un bloc sélectionné : Gear (une seule flèche en sortie, deux valeurs à vérifier)</h2>
+  <div class="flow-hud"><div class="flow-hud-info"><b>Gear</b><span>1 × Press MK2 · reçoit 1 flux · en envoie 1</span></div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn primary">Plan de pose ▸</button><button type="button" class="flow-hud-btn">Bâtiment : ports relevés ✎</button><button type="button" class="flow-hud-x">×</button></div></div>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Gear</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+    <ul class="rc-crafts">
+      <li class="rc-craft">
+        <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:40">SP</span><span class="rc-qn">Steel Plate</span></a><b class="rc-n">20×</b></span></div>
+        <div class="rc-arrow"><span>4 s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>75 kMF/s <button type="button" class="rc-flag warn">⚠</button></span></div>
+        <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:120">Ge</span><span class="rc-qn">Gear</span></a><b class="rc-n">20× <button type="button" class="rc-flag warn">⚠</button></b></span></div>
+        <a class="rc-mach" href="#">(Press MK2)</a>
+      </li>
+    </ul>
+    <table class="calc-t">
+      <tr><th>Débit d'une machine</th><td class="f">20 Gear × 60 ÷ 4 s</td><td class="r">300 /min</td><td class="s"><a class="src-tag warn" href="#">⚠ sortie à vérifier : Miraheze 20 ; Fandom 10</a> <span class="src-tag wiki">durée : wiki</span></td></tr>
+      <tr><th>Demande</th><td class="f">240 (Crankshaft)</td><td class="r">240 /min</td><td class="s">somme des flèches qui partent du bloc</td></tr>
+      <tr><th>Machines</th><td class="f">240 ÷ 300 = 0,8 → arrondi au-dessus</td><td class="r">1 Press MK2</td><td class="s"></td></tr>
+      <tr><th>Utilisation</th><td class="f">0,8 ÷ 1</td><td class="r">80 %</td><td class="s"></td></tr>
+      <tr><th>Énergie</th><td class="f">0,8 × 75 kMF/s (en pointe : 1 × 75 kMF/s)</td><td class="r">60 kMF/s</td><td class="s"><a class="src-tag warn" href="#">⚠ à vérifier : Miraheze 75 000 ; Fandom 500 000</a></td></tr>
+      <tr><th>Entrée Steel Plate</th><td class="f">240 × 20 ÷ 20</td><td class="r">240 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+    </table>
+    <p class="calc-foot">Craft <code>press_mk2_05</code> · source : <a href="#">Miraheze</a> 2026-10-11 · ⚠ mène à la valeur, dans la fiche, en mode « ✎ Corriger ».</p>
+  </section>
+  <p class="mq-note">« Voir dans Recettes ▸ » ouvre la fiche de Gear, le craft utilisé mis en évidence (adresse <code>#recettes/objet/gear/press_mk2_05</code>). Les étiquettes de source : <span class="src-tag wiki">wiki</span> <span class="src-tag jeu">relevé en jeu</span> <span class="src-tag fix">ta correction</span> <span class="src-tag warn">⚠ à vérifier</span> ; leur bulle donne la date et la note.</p>
+
+  <!-- ============================================================ 2. bloc Steel Ingot -->
+  <h2 class="mq-t">2. Plusieurs consommateurs : Steel Ingot</h2>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Steel Ingot</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+    <ul class="rc-crafts">
+      <li class="rc-craft">
+        <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:300">CF</span><span class="rc-qn">Coke Fuel</span></a><b class="rc-n">50×</b></span><span class="rc-plus">+</span><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:10">II</span><span class="rc-qn">Iron Ingot</span></a><b class="rc-n">100×</b></span></div>
+        <div class="rc-arrow"><span>20 s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>1,25 MMF/s</span></div>
+        <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:210">SI</span><span class="rc-qn">Steel Ingot</span></a><b class="rc-n">300×</b></span></div>
+        <a class="rc-mach" href="#">(Blast Furnace MK2)</a>
+      </li>
+    </ul>
+    <table class="calc-t">
+      <tr><th>Débit d'une machine</th><td class="f">300 Steel Ingot × 60 ÷ 20 s</td><td class="r">900 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Demande</th><td class="f">240 (Steel Plate) + 120 (Steel Coil)</td><td class="r">360 /min</td><td class="s"></td></tr>
+      <tr><th>Machines</th><td class="f">360 ÷ 900 = 0,4 → arrondi au-dessus</td><td class="r">1 Blast Furnace MK2</td><td class="s"></td></tr>
+      <tr><th>Utilisation</th><td class="f">0,4 ÷ 1</td><td class="r">40 %</td><td class="s"></td></tr>
+      <tr><th>Énergie</th><td class="f">0,4 × 1,25 MMF/s (en pointe : 1 × 1,25 MMF/s)</td><td class="r">500 kMF/s</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Entrée Coke Fuel</th><td class="f">360 × 50 ÷ 300</td><td class="r">60 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Entrée Iron Ingot</th><td class="f">360 × 100 ÷ 300</td><td class="r">120 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ 3. bloc final -->
+  <h2 class="mq-t">3. Le produit final : Crankshaft (la demande, c'est l'objectif)</h2>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Crankshaft</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+    <p class="mq-note">(ligne du craft : 2 Steel Rod + 4 Gear → 5 s, 200 kMF/s → 1 Crankshaft, Advanced Assembler)</p>
+    <table class="calc-t">
+      <tr><th>Débit d'une machine</th><td class="f">1 Crankshaft × 60 ÷ 5 s</td><td class="r">12 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Demande</th><td class="f">60 (objectif du plan)</td><td class="r">60 /min</td><td class="s"></td></tr>
+      <tr><th>Machines</th><td class="f">60 ÷ 12 = 5</td><td class="r">5 Advanced Assembler</td><td class="s"></td></tr>
+      <tr><th>Utilisation</th><td class="f">5 ÷ 5</td><td class="r">100 %</td><td class="s"></td></tr>
+      <tr><th>Énergie</th><td class="f">5 × 200 kMF/s</td><td class="r">1 MMF/s</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Entrée Steel Rod</th><td class="f">60 × 2 ÷ 1</td><td class="r">120 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Entrée Gear</th><td class="f">60 × 4 ÷ 1</td><td class="r">240 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ 4. flèche -->
+  <h2 class="mq-t">4. Une flèche sélectionnée : Coke Fuel → Steel Ingot (deux producteurs)</h2>
+  <div class="flow-hud"><div class="flow-hud-info"><b>Coke Fuel · 59,4/min</b><span>de 1 × Advanced Oil Separator (Coke Fuel) vers 1 × Blast Furnace MK2 (Steel Ingot)</span></div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn">◂ Départ</button><button type="button" class="flow-hud-btn">Arrivée ▸</button><button type="button" class="flow-hud-x">×</button></div></div>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Coke Fuel, 59,37 /min</span></h3></div>
+    <div class="calc-who">
+      <div><h4>Produit par</h4>1 × Advanced Oil Separator (Coke Fuel) : 81,53 /min <button type="button" class="link small">au schéma</button></div>
+      <div><h4>Consommé par</h4>1 × Blast Furnace MK2 (Steel Ingot) : 60 /min <button type="button" class="link small">au schéma</button></div>
+    </div>
+    <table class="calc-t">
+      <tr><th>Besoin de l'arrivée</th><td class="f">360 × 50 ÷ 300 (entrée Coke Fuel de Steel Ingot)</td><td class="r">60 /min</td><td class="s"></td></tr>
+      <tr><th>Coke Fuel produit en tout</th><td class="f">81,53 (Advanced Oil Separator, Coke Fuel) + 0,86 (sous-produit : Advanced Oil Separator, Light Oil)</td><td class="r">82,39 /min</td><td class="s"></td></tr>
+      <tr><th>Part du départ</th><td class="f">81,53 ÷ 82,39</td><td class="r">98,96 %</td><td class="s">chaque consommateur est servi au prorata des producteurs</td></tr>
+      <tr><th>Débit de la flèche</th><td class="f">60 × 98,96 %</td><td class="r">59,37 /min</td><td class="s"></td></tr>
+    </table>
+  </section>
+  <p class="mq-note">Avec un seul producteur (cas le plus courant, ex. Gear → Crankshaft), il n'y a que deux lignes : « Besoin de l'arrivée : 60 × 4 ÷ 1 = 240 /min » et « Débit de la flèche : tout vient de Gear = 240 /min ».</p>
+
+  <!-- ============================================================ 5. cas particuliers -->
+  <h2 class="mq-t">5. Les cas particuliers (une ligne d'explication en tête du tableau)</h2>
+  <section class="calc">
+    <table class="calc-t">
+      <tr><th>Matière première<br><span class="s">Raw Iron, 7 × Iron Drill</span></th><td colspan="3">« Extraite sur place : aucune entrée. » Puis les mêmes lignes : 1 × 60 ÷ 15 s = 4 /min par machine ; 26,67 ÷ 4 = 6,67 → 7 ; 95 %.</td></tr>
+      <tr><th>Arbres<br><span class="s">Oak Log, ≈ 182 arbres</span></th><td colspan="3">« La durée est celle de la pousse : 362,7 s à 0 % de pollution (formule du calculateur des arbres, <a href="#">Desmos</a>) ; nombre indicatif. » La durée porte l'étiquette <span class="src-tag warn">approximatif</span>.</td></tr>
+      <tr><th>Production existante<br><span class="s">bloc « déjà en place »</span></th><td colspan="3">« Ta production déjà en place (Mon usine) : X /min déclarés, Y /min utilisés par ce plan. Rien à construire : le calcul s'en sert avant de construire. » Pas de craft ni de formule de machines.</td></tr>
+      <tr><th>Installation composée<br><span class="s">centrale (<code>parts</code>)</span></th><td colspan="3">Ligne du craft « par seconde » comme dans Recettes, puis : production d'une installation ; installations = énergie demandée ÷ production d'une installation (exact) ; chaque bâtiment = installations exactes × nombre par installation, arrondi au-dessus (ex. 0,6 × 2 Boilers = 1,2 → 2).</td></tr>
+      <tr><th>Non produit<br><span class="s">bloc rouge</span></th><td colspan="3">« Non produit dans ce plan : X /min à apporter », et la raison (recherche manquante, aucune recette…).</td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ 6. téléphone -->
+  <h2 class="mq-t">6. Sur téléphone</h2>
+  <div class="mq-phone">
+    <section class="calc" style="margin:0">
+      <div class="calc-head"><h3>Comment c'est calculé <span>· Gear</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+      <table class="calc-t" style="display:block">
+        <tr style="display:block;padding:6px 0"><th style="display:block;border:none;padding:0">Débit d'une machine</th><td class="f" style="display:block;border:none;padding:0">20 Gear × 60 ÷ 4 s = <b>300 /min</b></td><td class="s" style="display:block;border:none;padding:0"><a class="src-tag warn" href="#">⚠ sortie à vérifier</a> <span class="src-tag wiki">durée : wiki</span></td></tr>
+        <tr style="display:block;padding:6px 0;border-top:1px solid var(--line)"><th style="display:block;border:none;padding:0">Machines</th><td class="f" style="display:block;border:none;padding:0">240 ÷ 300 = 0,8 → <b>1 Press MK2</b></td></tr>
+      </table>
+      <p class="calc-foot">… les autres lignes de la même façon : intitulé, calcul et résultat, puis la source.</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>

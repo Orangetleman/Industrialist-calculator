@@ -16,6 +16,7 @@ describe("adresses des vues", () => {
       { page: "recettes" },
       { page: "recettes", card: { kind: "objet", id: "steel-plate" } },
       { page: "recettes", card: { kind: "machine", id: "craft-assembler" } },
+      { page: "recettes", card: { kind: "objet", id: "gear", craft: "press_mk2_05" } },
       { page: "donnees", dataTab: "verifier", verify: { scope: "recette", id: "advanced_assembler_02", field: "inputs.tire-rim" } },
       { page: "donnees", dataTab: "verifier", verify: { scope: "machine", id: "press" } },
     ] as const;
