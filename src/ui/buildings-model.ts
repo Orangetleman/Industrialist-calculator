@@ -1,7 +1,7 @@
 // Éditeur de bâtiments : modèle pur (sans DOM). Un relevé = empreinte en cases + ports.
 // Grille affichée : l'empreinte entourée d'une marge d'une case, où se posent les plots des ports.
 
-import type { Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
+import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
 import type { Source } from "../engine/types.ts";
 
 export const CELL = 30; // pixels par case dans le SVG (la vue est ensuite mise à l'échelle)
@@ -92,12 +92,58 @@ export function checkEntry(e: PortsEntry): string[] {
 
 export const isComplete = (e: PortsEntry) => checkEntry(e).length === 0;
 
-/** Fichier d'export (même format que data/ports.json). */
-export function exportSurveys(local: Record<string, PortsEntry>): PortsFile {
+/** Fichier d'export (même format que data/ports.json) ; les interfaces notées (S10) vont à data/interfaces.json. */
+export function exportSurveys(local: Record<string, PortsEntry>, interfaces: Record<string, MachineInterface> = {}): PortsFile {
   return {
-    _lisezMoi: "Relevés de bâtiments faits dans l'éditeur du calculateur. À intégrer à data/ports.json (même format).",
+    _lisezMoi: "Relevés de bâtiments faits dans l'éditeur du calculateur. « machines » : à intégrer à data/ports.json (même format) ; « interfaces » : à data/interfaces.json.",
     machines: local,
+    ...(Object.keys(interfaces).length ? { interfaces } : {}),
   };
+}
+
+// ---------------------------------------------------------------- interfaces (S10)
+
+export const INTERFACE_KINDS: InterfaceKind[] = ["fenêtre", "levier", "choix direct", "bouton"];
+export const KIND_LABEL: Record<InterfaceKind, string> = { fenêtre: "fenêtre de réglages", levier: "levier", "choix direct": "choix direct sur la machine", bouton: "bouton" };
+const SCALES = ["entrées", "sorties", "énergie"] as const;
+
+/** Identifiant d'un nouveau réglage, unique dans l'interface. */
+export function newSettingId(i: MachineInterface): string {
+  let n = i.settings.length + 1;
+  while (i.settings.some((s) => s.id === `reglage-${n}`)) n++;
+  return `reglage-${n}`;
+}
+
+/** Lecture prudente des interfaces d'un fichier (export de l'éditeur ou data/interfaces.json). */
+export function parseInterfaces(raw: unknown): Record<string, MachineInterface> | null {
+  const obj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+  if (!obj(raw)) return null;
+  const m = raw.interfaces ?? (raw as { machines?: unknown }).machines;
+  if (!obj(m)) return null;
+  const str = (x: unknown) => (typeof x === "string" ? x : "");
+  const out: Record<string, MachineInterface> = {};
+  for (const [id, e] of Object.entries(m)) {
+    if (!obj(e) || !INTERFACE_KINDS.includes(e.kind as InterfaceKind) || !Array.isArray(e.settings) || !Array.isArray(e.sources)) continue;
+    const sources = e.sources.filter((x): x is MachineInterface["sources"][number] => obj(x) && typeof x.wiki === "string" && typeof x.fetchedAt === "string");
+    if (!sources.length) continue;
+    const settings: InterfaceSetting[] = e.settings.filter(obj).map((x, k) => {
+      const s: InterfaceSetting = { id: str(x.id) || `reglage-${k + 1}`, name: str(x.name) };
+      if (Array.isArray(x.choices)) s.choices = x.choices.filter(obj).map((c) => ({ label: str(c.label), recipes: Array.isArray(c.recipes) ? c.recipes.filter((r): r is string => typeof r === "string") : [], ...(str(c.doubt) ? { doubt: str(c.doubt) } : {}) }));
+      if (obj(x.number) && typeof x.number.default === "number" && x.number.default > 0) s.number = { default: x.number.default, scales: SCALES.includes(x.number.scales as (typeof SCALES)[number]) ? (x.number.scales as (typeof SCALES)[number]) : null };
+      if (str(x.note)) s.note = str(x.note);
+      return s;
+    });
+    out[id] = {
+      kind: e.kind as InterfaceKind,
+      ...(str(e.where) ? { where: str(e.where) } : {}),
+      ...(e.once === true ? { once: true } : {}),
+      settings,
+      ...(str(e.effect) ? { effect: str(e.effect) } : {}),
+      ...(str(e.notes) ? { notes: str(e.notes) } : {}),
+      sources,
+    };
+  }
+  return out;
 }
 
 export function surveySource(note = "relevé dans l'éditeur de bâtiments du calculateur"): Source {

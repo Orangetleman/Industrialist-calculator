@@ -12,7 +12,10 @@
 
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Step } from "../engine/solve.ts";
-import type { Recipe } from "../engine/types.ts";
+import type { Recipe, Source } from "../engine/types.ts";
+import type { MachineInterface } from "../engine/extension-types.ts";
+import { choicesFor, factorsFor, numberSettings } from "../engine/interfaces.ts";
+import { factorText, screenText } from "./iface-view.ts";
 import { esc, fmt } from "./format.ts";
 import { nodeText, type ViewCtx } from "./plan-view.ts";
 import { craftHref, fixableHere, fixKey, renderCraft, verifyHref, type RecipesCtx } from "./recipes-view.ts";
@@ -91,6 +94,53 @@ function blockName(v: ViewCtx, key: string): string {
 
 /** Quantité nette d'un objet par cycle dans un craft (> 0 produit, < 0 consommé), comme le moteur. */
 const netQty = (r: Recipe, item: string) => (r.outputs[item] ?? 0) - (r.inputs[item] ?? 0);
+
+/** Étiquettes de source d'une interface (S10) : chaque sorte de source une fois, avec ses notes au survol. */
+function ifaceSources(i: MachineInterface): string {
+  // Par étiquette : Miraheze et Fandom font un seul « wiki ».
+  const kinds = new Map<string, Source[]>();
+  for (const src of i.sources) {
+    const label = SRC_LABEL[src.wiki] ?? src.wiki;
+    kinds.set(label, [...(kinds.get(label) ?? []), src]);
+  }
+  return [...kinds]
+    .map(([label, list]) => {
+      const k = list[0]!.wiki;
+      const cls = k === "jeu" ? "jeu" : k === "saisie" ? "fix" : "wiki";
+      const t = list.map((x) => `${x.page ?? label}, ${x.fetchedAt.slice(0, 10)}${x.note ? ` — ${x.note}` : ""}`).join("\n");
+      const url = list.find((x) => x.url)?.url;
+      const text = esc(label);
+      return url ? `<a class="src-tag ${cls}" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(t)}">${text}</a>` : `<span class="src-tag ${cls}" title="${esc(t)}">${text}</span>`;
+    })
+    .join(" ");
+}
+
+/** Lignes « réglage » (S10) : la position à mettre pour ce craft, et l'écran chiffré de la machine. */
+function settingRows(v: ViewCtx, s: Step, r: Recipe): Row[] {
+  const i = v.ifaces?.[s.machine];
+  if (!i || s.parts) return [];
+  const rows: Row[] = [];
+  const kind = { fenêtre: "fenêtre de réglages", levier: "levier", "choix direct": "choix direct sur la machine", bouton: "bouton" }[i.kind];
+  for (const { setting, choice } of choicesFor(i, r.id)) {
+    const where = i.where ? ` (${esc(i.where)})` : "";
+    const once = i.once ? " ; choix définitif, à faire au moment de poser la machine" : "";
+    rows.push({ label: "Réglage de la machine", formula: `${esc(kind)}${where} : « ${esc(setting.name)} » sur la position « ${esc(choice.label)} », celle de ce craft${once}${choice.doubt ? ` (⚠ ${esc(choice.doubt)})` : ""}`, result: choice.label, src: ifaceSources(i) });
+  }
+  const nums = numberSettings(i);
+  if (nums.length) {
+    const f = factorsFor(i, v.msettings?.[s.machine]);
+    const text = screenText(i, v.msettings?.[s.machine]);
+    const b = r.screen?.base;
+    const out = b && Object.entries(b.outputs).find(([, q]) => q !== null);
+    const ex = out ? ` ; ex. ${esc(itemN(v, out[0]))} : ${num(out[1]!)} × ${factorText(f.outputs)} = ${num(out[1]! * f.outputs)} par cycle` : "";
+    rows.push(
+      text
+        ? { label: "Réglage de l'écran", formula: `${esc(text)} (toutes les ${esc(machineN(v, s.machine))} de ce plan) : valeurs du craft multipliées${ex}`, result: "réglé par toi", src: `${ifaceSources(i)} valeurs du craft à 1×` }
+        : { label: "Réglage de l'écran", formula: `${nums.map((x) => esc(x.name)).join(", ")} à 1× (réglage d'usine) : à changer dans la barre du bas, au-dessus`, result: "1×", src: ifaceSources(i) },
+    );
+  }
+  return rows;
+}
 
 /** Lignes « demande » : les flèches qui partent du bloc, plus l'objectif ou le surplus. */
 function demandRow(v: ViewCtx, s: Step, unit = "/min"): Row {
@@ -231,7 +281,7 @@ export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string 
   const link = `<a href="${card}" class="calc-link">Voir dans Recettes ▸</a>`;
   const craft = `<ul class="rc-crafts calc-craft">${renderCraft({ ...rc, edit: null, highlight: null }, r)}</ul>`;
   const name = itemN(v, s.item);
-  const rows: Row[] = fixedRows(v, s);
+  const rows: Row[] = [...settingRows(v, s, r), ...fixedRows(v, s)];
   if (s.item === ENERGY) {
     const made = -(s.energyAvg ?? 0);
     rows.push({ label: s.parts ? "Production d'une installation" : "Production d'une machine", formula: "énergie du craft", result: mf(s.ratePerMachine), src: sourceTag(r, "energyMFps") });

@@ -12,10 +12,13 @@ import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, r
 import { filterNote } from "./mfilter-view.ts";
 import { planKey, planMachines, type Goal } from "./state.ts";
 import { verifyHref } from "./recipes-view.ts";
+import type { Interfaces, MachineSettings } from "../engine/interfaces.ts";
+import { renderScreenInputs, settingChips, settingLines } from "./iface-view.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
-export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null };
+/** `ifaces`, `msettings` : interfaces des machines et réglages chiffrés du plan (S10). */
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings };
 
 // ---------------------------------------------------------------- priorité
 
@@ -304,6 +307,8 @@ export type BuildRow = {
   have?: { item: string; perMin: number };
   /** Étape qui a un plan de pose (clé d'étape). */
   pose?: string;
+  /** Réglage à faire sur les machines (S10) : pastilles « ⚙ … » (HTML). */
+  setting?: string;
 };
 
 const STAGES = ["Extraction", "Transformation", "Produit final", "Vente", "Centrales électriques", "Énergie", "Dépollution", "Stations de recherche", "Réseau électrique", "Déjà en place", "Non produit"] as const;
@@ -333,6 +338,7 @@ function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
     buildable: true,
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
     pose: isPosable(s) ? s.key : undefined,
+    setting: s.parts ? undefined : settingChips(settingLines(v.ifaces, v.msettings, s.machine, s.recipeId)) || undefined,
   };
 }
 
@@ -458,7 +464,7 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
         ? ` <button type="button" class="link small have" data-have="${esc(r.have.item)}" data-amount="${Math.round(r.have.perMin * 100) / 100}" title="Tu produis déjà cet objet ailleurs : le calcul s'en servira au lieu de construire.">je l'ai déjà</button>`
         : "";
       body += `<tr class="${[on ? "done" : "", r.buildable ? "" : "info"].filter(Boolean).join(" ")}"><td class="chk">${box}</td>
-        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="Comment poser ces machines : disposition, tuyaux, poteaux">plan de pose</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
+        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="Comment poser ces machines : disposition, tuyaux, poteaux">plan de pose</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.setting ? `<div class="sub">${r.setting}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
         <td class="prod">${esc(r.product)}${r.rate ? ` <span class="sub num">${esc(r.rate)}</span>` : ""}${have}</td>
         <td class="feeds">${r.feeds ? `<span class="sub-k">alimente</span> ${esc(r.feeds)}` : ""}</td>
         <td class="num energy">${esc(r.energy)}</td></tr>`;
@@ -551,6 +557,12 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
     acts.push(
       `<span class="mset${fx ? " on" : ""}" title="Molette sur le nombre : une de plus ou de moins. Entrée pour appliquer un nombre tapé.">Machines : <button type="button" data-mset="-1" aria-label="Une machine de moins">−</button><input type="text" inputmode="numeric" data-mset-input data-key="${esc(key)}" value="${st.machines}" aria-label="Nombre de machines (${esc(name)})"><button type="button" data-mset="1" aria-label="Une machine de plus">+</button>${fx && fx.planMachines !== fx.machines ? ` <small>plan : ${fx.planMachines}</small>` : ""}</span>`,
     );
+  }
+  // Interface de la machine (S10) : la position à mettre pour ce craft, et l'écran chiffré, réglable pour le plan.
+  if (st && !st.parts) {
+    const chips = settingChips(settingLines(v.ifaces, undefined, st.machine, st.recipeId));
+    if (chips) acts.push(chips);
+    if (v.goal !== "recherche") acts.push(renderScreenInputs(v.ifaces?.[st.machine], st.machine, machineN(v, st.machine), v.msettings?.[st.machine]));
   }
   if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
   if (st && !st.parts) {

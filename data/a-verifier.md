@@ -646,4 +646,33 @@ chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »)
   24 kL/s seulement) : pas de formule publiée. Le tableur cité par le Fandom est daté d'avant la
   v0.11.3, de son propre aveu.
   → **Réponse du 2026-10-16** : pas de formule trouvée ailleurs ; ajout de deux montages du guide de la Coal Power Plant (Miraheze). Décision : le site dira que la production électrique n'est pas fiable quand un plan utilise une turbine modulaire.
+
+### Interfaces des machines (S10, 2026-10-17)
+
+Données dans `data/interfaces.json` (chaque interface avec ses sources). Cherché : Miraheze (pages
+des machines, recherche « lever », « interact », « menu », « toggle », « monitor »…), Fandom en
+contrôle. Réponses de l'utilisateur : le levier des mouleurs passe de « bottle » à « container » ;
+en « container », l'Industrial Plastic Molder fait la Plastic Casing ou, avec des Hardened Plastic
+Pellets, la Hardened Plastic Casing ; le « carry » est la Quarry.
+
+- **IF-01** **Quarry** : le wiki n'écrit que le choix « Soil & Clay ». Le texte exact des deux
+  autres choix de l'écran (« Sand », « Limestone » supposés, d'après les crafts) est à relever.
+- **IF-02** **Chemical Plant, crafts « variables »** : le tableau « Valeurs variables » ci-dessus
+  liste encore leurs quantités et leur énergie (modes « plant_speed… »). Depuis S10, le calcul ne
+  les compte plus « à vérifier » : ce sont les valeurs de l'écran à 1× (« Speed and Efficiency at
+  100% »), multipliées par le réglage saisi pour le plan.
+- **IF-03** **Chemical Plant, énergie de `chemical_plant_01`** (Ammonia) : le module du wiki ne
+  marque pas son énergie comme variable, contrairement aux 14 autres crafts. Le calcul la
+  multiplie quand même par « Power Input » (la page dit que l'écran change la consommation). À
+  vérifier en jeu.
+- **IF-04** **Chemical Plant, crans** : le wiki donne les pas de la vitesse (+5 % / +10 %
+  d'énergie, −5 % / −7 %) mais pas ceux de l'efficacité. Le site ne calcule pas les crans : on
+  saisit les trois multiplicateurs que l'écran affiche.
+- **IF-05** **Drapeaux** (Flag) : l'utilisateur dit qu'ils ont une interface ; le wiki n'en dit
+  rien. Ce qu'elle règle est à relever (aucun effet attendu sur le calcul).
+- **IF-06** Interfaces notées **sans effet sur le calcul** : Electric Water Heater (pas
+  d'installation calculée), Mineshaft Drill (aucun craft), Diesel Engine Controller (S13), Coal et
+  Nuclear Power Plant (non calculées), HV Power Control, Underground Waste Facility, Hand Crank,
+  portes et capteurs logiques, Metal Sign. Le Sign, la Statue, le Large Flag, le Logic Buzzer ne
+  sont pas dans `machines.json` (variantes ou objets d'événement).
 <!-- notes-manuelles:fin -->

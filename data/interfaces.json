@@ -1,0 +1,253 @@
+{
+ "_lisezMoi": "Interfaces des machines (S10) : l'étiquette « [E] Interact », un levier ou un écran qui règle la machine. Rien pour le placement, seulement la configuration (décision Q5). kind : « fenêtre » (fenêtre de réglages), « levier », « choix direct » (sur la machine, sans fenêtre), « bouton ». Un réglage a des positions (choices : texte du jeu et crafts de cette position) ou est un nombre (number : valeur par défaut et ce qu'il multiplie dans tous les crafts de la machine : entrées, sorties ou énergie). Sans choices ni number : aucun effet sur le calcul (effect le dit). once : choix définitif. Les doutes sont dans a-verifier.md (« Interfaces des machines »).",
+ "machines": {
+  "plastic-molding-machine": {
+   "kind": "levier",
+   "where": "sur le côté de la machine",
+   "settings": [
+    {
+     "id": "levier",
+     "name": "Levier",
+     "choices": [
+      { "label": "bottle", "recipes": ["plastic_molding_machine_01"] },
+      { "label": "container", "recipes": ["plastic_molding_machine_02"] }
+     ]
+    }
+   ],
+   "notes": "Le levier fait passer de 2 Plastic Bottle à 1 Plastic Casing toutes les 7 s. Fandom (2025) montrait « Gearbox » pour la caisse, une erreur du jeu corrigée depuis.",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Plastic_Molding_Machine", "page": "Plastic Molding Machine", "revisionId": 40259, "fetchedAt": "2026-10-11T01:03:32.710Z", "note": "« by triggering the lever at the machine's side, it will switch between producing two Plastic Bottles or one Plastic Casing »" },
+    { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Plastic_Molding_Machine", "page": "Plastic Molding Machine", "revisionId": 15123, "fetchedAt": "2026-10-17T16:45:00.000Z", "note": "levier : « Bottle option », « Casing option (mislabeled as Gearbox) »" },
+    { "wiki": "jeu", "fetchedAt": "2026-10-17T16:50:00.000Z", "note": "texte du levier « container » / « bottle » : réponse de l'utilisateur (S10) ; relevé du 2026-10-15 : « levier permet de passer de bouteille a caisse »" }
+   ]
+  },
+  "industrial-plastic-molder": {
+   "kind": "levier",
+   "where": "sur le côté de la machine",
+   "settings": [
+    {
+     "id": "levier",
+     "name": "Levier",
+     "choices": [
+      { "label": "bottle", "recipes": ["industrial_plastic_molder_01"] },
+      { "label": "container", "recipes": ["industrial_plastic_molder_02", "industrial_plastic_molder_03"] }
+     ]
+    }
+   ],
+   "notes": "Deux positions pour trois crafts : en position « container », des Plastic Pellets donnent des Plastic Casing et des Hardened Plastic Pellets des Hardened Plastic Casing.",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Industrial_Plastic_Molder", "page": "Industrial Plastic Molder", "revisionId": 43428, "fetchedAt": "2026-10-11T01:03:31.178Z", "note": "« has 2 different modes that can be switched using the interactable lever on the side of the machine, which switches the output of the machine »" },
+    { "wiki": "jeu", "fetchedAt": "2026-10-17T16:50:00.000Z", "note": "positions « bottle » et « container », Hardened Plastic Casing en position « container » : réponses de l'utilisateur (S10) ; relevé du 2026-10-15 : « levier permet de passé de bouteille a caisse »" }
+   ]
+  },
+  "quarry": {
+   "kind": "choix direct",
+   "where": "écran à l'avant de la machine",
+   "once": true,
+   "settings": [
+    {
+     "id": "materiau",
+     "name": "Écran à l'avant",
+     "choices": [
+      { "label": "Soil & Clay", "recipes": ["quarry_01", "quarry_04"] },
+      { "label": "Sand", "recipes": ["quarry_02", "quarry_05"], "doubt": "texte exact du choix à relever (le wiki n'écrit que « Soil & Clay »)" },
+      { "label": "Limestone", "recipes": ["quarry_03", "quarry_06"], "doubt": "texte exact du choix à relever (le wiki n'écrit que « Soil & Clay »)" }
+     ]
+    }
+   ],
+   "notes": "Le matériau se choisit à la pose et ne se change plus ensuite. L'eau en entrée, facultative, double la production (ce n'est pas un réglage : ce sont les crafts « avec eau »).",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Quarry", "page": "Quarry", "revisionId": 43392, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« The type of material can be chosen on placement through a screen that is at the front of the machine. After the selection is made, it cannot be reversed »" },
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Clay", "page": "Clay", "revisionId": 42892, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« selecting the \"Soil & Clay\" option in the Quarry setup menu »" },
+    { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Quarry", "page": "Quarry", "revisionId": 19673, "fetchedAt": "2026-10-17T16:45:00.000Z", "note": "même phrase que Miraheze" },
+    { "wiki": "jeu", "fetchedAt": "2026-10-17T16:50:00.000Z", "note": "le « carry » de l'utilisateur est la Quarry, comme le wiki l'explique (S10)" }
+   ]
+  },
+  "chemical-plant": {
+   "kind": "fenêtre",
+   "where": "écran sur la plate-forme, en haut de l'échelle à l'avant",
+   "settings": [
+    { "id": "input", "name": "Resource Input", "number": { "default": 1, "scales": "entrées" }, "note": "1× par défaut ; 0,83× avec l'efficacité au plus ; les effets de la vitesse et de l'efficacité se multiplient (au mieux 1,67× pour 2× de sorties)" },
+    { "id": "output", "name": "Resource Output", "number": { "default": 1, "scales": "sorties" }, "note": "1× par défaut ; de 0,5× à 2× selon la vitesse" },
+    { "id": "power", "name": "Power Input", "number": { "default": 1, "scales": "énergie" }, "note": "1× par défaut ; les hausses de la vitesse et de l'efficacité s'additionnent (au mieux 4×)" }
+   ],
+   "notes": "L'écran règle la vitesse (en hausse : +5 % d'entrées et de sorties et +10 % d'énergie, jusqu'à 2× et 3× ; en baisse : −5 % et −7 %, jusqu'à 0,5× et 0,33×) et l'efficacité (jusqu'à 0,83× d'entrées pour 2× d'énergie, ou 1,25× d'entrées pour 0,8× d'énergie). La durée d'un craft ne change pas. Les valeurs des crafts du wiki sont celles de l'écran à 1× ; le calcul les multiplie par les trois nombres affichés par l'écran.",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Chemical_Plant", "page": "Chemical Plant", "revisionId": 42600, "fetchedAt": "2026-10-11T01:03:28.147Z", "note": "section « Modifying Settings » : « The monitor displays the current Power Input, Resource Input, and Resource Output multipliers. By default they should all be set to 1x » ; « * Speed and Efficiency at 100% » sous les crafts" },
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Module:Recipes/Chemical_Plant", "page": "Module:Recipes/Chemical Plant", "revisionId": 33782, "fetchedAt": "2026-10-11T01:03:14.472Z", "note": "entrées « plant_speed_efficency », sorties « plant_speed », énergie « plant_speed_efficency »" },
+    { "wiki": "fandom", "url": "https://industrialist.fandom.com/wiki/Chemical_Plant", "page": "Chemical Plant", "revisionId": 18916, "fetchedAt": "2026-10-17T16:45:00.000Z", "note": "« It has a screen to increase efficiency or decrease, to increase Speed or decrease »" }
+   ]
+  },
+  "electric-water-heater": {
+   "kind": "bouton",
+   "where": "commande de température sur la machine",
+   "settings": [
+    { "id": "temperature", "name": "Température", "note": "120, 220 ou 320 °C ; plus chaud consomme plus (eau : 300 kMF/s, 800 kMF/s, 1,5 MMF/s en HV)" }
+   ],
+   "effect": "pas calculé aujourd'hui : le chauffe-eau électrique n'a pas d'installation calculée (energy.json)",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Electric_Water_Heater", "page": "Electric Water Heater", "revisionId": 42503, "fetchedAt": "2026-10-11T02:15:46.146Z", "note": "« Click the number for the respective temperature to set it » ; tableau de consommation" }
+   ]
+  },
+  "mineshaft-drill": {
+   "kind": "fenêtre",
+   "where": "écran de la machine",
+   "settings": [
+    { "id": "profondeur", "name": "Profondeur visée", "note": "les ressources dépendent de la profondeur" },
+    { "id": "sortie", "name": "OUTPUT IS ON / OFF", "note": "rien ne sort tant que « OUTPUT IS ON » n'est pas affiché" }
+   ],
+   "effect": "pas calculé aujourd'hui : la foreuse n'a aucun craft dans les données",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill", "page": "Mineshaft Drill", "revisionId": 42462, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« Drills out different materials based on depth »" },
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Frequently_Asked_Questions/Question_6", "page": "Frequently Asked Questions/Question 6", "revisionId": 40367, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« does not output Items automatically until the \"OUTPUT IS OFF\" button is pressed and it displays \"OUTPUT IS ON\" »" }
+   ]
+  },
+  "diesel-engine-controller": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "air-fuel", "name": "Air to Fuel Ratio" },
+    { "id": "throttle", "name": "Throttle" }
+   ],
+   "effect": "moteur diesel modulaire : calcul prévu en S13",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Diesel_Engine_Controller", "page": "Diesel Engine Controller", "revisionId": 42737, "fetchedAt": "2026-10-11T02:15:44.590Z", "note": "« features two adjustable values labeled Air to Fuel Ratio and Throttle »" }
+   ]
+  },
+  "coal-power-plant": {
+   "kind": "fenêtre",
+   "where": "salle de contrôle",
+   "settings": [
+    { "id": "commandes", "name": "Coal Feeder, Air Pump, Exhaust Pump, vannes…" }
+   ],
+   "effect": "pas calculée : grande centrale (energy.json)",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Coal_Power_Plant", "page": "Coal Power Plant", "revisionId": 43417, "fetchedAt": "2026-10-11T02:15:44.586Z", "note": "procédure de démarrage et réglages du panneau de contrôle" }
+   ]
+  },
+  "nuclear-power-plant": {
+   "kind": "fenêtre",
+   "where": "salle de contrôle",
+   "settings": [
+    { "id": "commandes", "name": "barres de contrôle, acide borique, pompes, mode maintenance…" }
+   ],
+   "effect": "pas calculée : grande centrale (energy.json)",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Nuclear_Power_Plant", "page": "Nuclear Power Plant", "revisionId": 43451, "fetchedAt": "2026-10-12T07:24:12.834Z", "note": "commandes de la salle de contrôle" }
+   ]
+  },
+  "hv-power-control": {
+   "kind": "fenêtre",
+   "where": "écran de la machine",
+   "settings": [
+    { "id": "limite", "name": "Débit maximal par sortie, débordement" }
+   ],
+   "effect": "aucun : réglage du réseau électrique",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/HV_Power_Control", "page": "HV Power Control", "revisionId": 43371, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« players can optionally choose to disable the overflow feature of the machine, and set a limit lower than 240MMF/s »" }
+   ]
+  },
+  "underground-waste-facility": {
+   "kind": "fenêtre",
+   "where": "écran à l'arrière",
+   "settings": [
+    { "id": "vider", "name": "Vider maintenant" }
+   ],
+   "effect": "aucun : la machine fonctionne seule quand tout est fourni",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Underground_Waste_Facility", "page": "Underground Waste Facility", "revisionId": 40429, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« The monitor also features an option to manually dispose of the current contents of the facility, though this is not necessary »" }
+   ]
+  },
+  "hand-crank": {
+   "kind": "bouton",
+   "settings": [
+    { "id": "tourner", "name": "Tourner (le joueur actionne la manivelle)" }
+   ],
+   "effect": "aucun : énergie produite seulement pendant que le joueur tourne",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Hand_Crank", "page": "Hand Crank", "revisionId": 42907, "fetchedAt": "2026-10-11T02:15:46.162Z", "note": "« generates 1.5kMF/s when a player uses its proximity prompt »" }
+   ]
+  },
+  "pollution-gate": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "min", "name": "Minimum Value, Minimum Value enable" },
+    { "id": "max", "name": "Maximum Value, Maximum Value enable" }
+   ],
+   "effect": "aucun : laisse passer un signal logique selon la pollution",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Pollution_Gate", "page": "Pollution Gate", "revisionId": 39751, "fetchedAt": "2026-10-11T02:15:53.703Z", "note": "« There will be 4 fields, which are Minimum Value, Minimum Value enable, Maximum Value and Maximum Value enable »" },
+    { "wiki": "jeu", "fetchedAt": "2026-10-16T12:00:00.000Z", "note": "fenêtre « Modify Machine » (Cancel, Confirm) : capture de l'utilisateur (Q5)" }
+   ]
+  },
+  "time-gate": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "plage", "name": "Active from time, Active to time (1 à 24)" }
+   ],
+   "effect": "aucun : signal logique selon l'heure du jeu",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Time_Gate", "page": "Time Gate", "revisionId": 43067, "fetchedAt": "2026-10-11T02:15:54.899Z", "note": "« The Time Gate has two configurable fields »" }
+   ]
+  },
+  "logic-clock": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "ticks", "name": "Amount of ticks between signals, Output signal length in ticks" }
+   ],
+   "effect": "aucun : signal logique",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Logic_Clock", "page": "Logic Clock", "revisionId": 42290, "fetchedAt": "2026-10-11T02:15:47.496Z", "note": "« When the menu is opened by interacting with it, it shows two fields »" }
+   ]
+  },
+  "fluid-meter": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "mesure", "name": "type de mesure, nombre à comparer, vrai / faux" }
+   ],
+   "effect": "aucun : signal logique",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Fluid_Meter", "page": "Fluid Meter", "revisionId": 42856, "fetchedAt": "2026-10-11T02:15:46.153Z", "note": "« upon interaction, it allows for 3 adjustments »" }
+   ]
+  },
+  "logic-switch": {
+   "kind": "bouton",
+   "settings": [
+    { "id": "etat", "name": "marche / arrêt" }
+   ],
+   "effect": "aucun : signal logique",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Logic_Switch", "page": "Logic Switch", "revisionId": 42346, "fetchedAt": "2026-10-11T02:15:49.197Z", "note": "« Can be toggled on or off manually »" }
+   ]
+  },
+  "logic-button": {
+   "kind": "bouton",
+   "settings": [
+    { "id": "appui", "name": "appui (un tick de signal)" }
+   ],
+   "effect": "aucun : signal logique",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Logic_Button", "page": "Logic Button", "revisionId": 42451, "fetchedAt": "2026-10-11T02:15:47.495Z", "note": "« the player interacts with the proximity prompt »" }
+   ]
+  },
+  "metal-sign": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "texte", "name": "texte affiché" }
+   ],
+   "effect": "aucun : décoration",
+   "sources": [
+    { "wiki": "miraheze", "url": "https://industrialist.miraheze.org/wiki/Metal_Sign", "page": "Metal Sign", "revisionId": 39174, "fetchedAt": "2026-10-17T16:40:00.000Z", "note": "« Text can be added to the Metal Sign »" }
+   ]
+  },
+  "flag": {
+   "kind": "fenêtre",
+   "settings": [
+    { "id": "drapeau", "name": "réglage du drapeau (à relever)" }
+   ],
+   "effect": "aucun : décoration",
+   "sources": [
+    { "wiki": "jeu", "fetchedAt": "2026-10-16T12:00:00.000Z", "note": "« les drapeaux » ont une interface : réponse de l'utilisateur (Q5) ; le wiki n'en dit rien" }
+   ]
+  }
+ }
+}

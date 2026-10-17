@@ -3,6 +3,7 @@
 import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { MachineFilter } from "../engine/machine-filter.ts";
+import type { MachineSettings } from "../engine/interfaces.ts";
 import type { AddedItem, AddedRecipe, OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Goal = "objet" | "argent" | "énergie" | "recherche";
@@ -39,6 +40,22 @@ export function planKey(goal: Goal, item: string): string | null {
   return goal === "objet" ? `objet|${item}` : goal === "recherche" ? null : goal;
 }
 
+/** Réglages chiffrés lus prudemment : plan → machine → réglage → nombre > 0. */
+function cleanMachineSettings(raw: unknown): Settings["machineSettings"] {
+  const obj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+  if (!obj(raw)) return {};
+  const out: Settings["machineSettings"] = {};
+  for (const [plan, ms] of Object.entries(raw)) {
+    if (!obj(ms)) continue;
+    for (const [machine, vs] of Object.entries(ms)) {
+      if (!obj(vs)) continue;
+      const ok = Object.entries(vs).filter(([, v]) => typeof v === "number" && v > 0 && Number.isFinite(v)) as [string, number][];
+      if (ok.length) (out[plan] ??= {})[machine] = Object.fromEntries(ok);
+    }
+  }
+  return out;
+}
+
 /** Le filtre réglé pour ce plan (« toutes » si aucun). */
 export function planMachines(s: Pick<Settings, "machineFilters">, key: string | null): PlanMachines {
   return (key && s.machineFilters[key]) || NO_FILTER;
@@ -73,6 +90,8 @@ export type Settings = {
   fixed: { sig: string; machines: Record<string, number> } | null;
   /** Filtre de machines de chaque plan (S9), par clé de plan (`planKey`). */
   machineFilters: Record<string, PlanMachines>;
+  /** Réglages chiffrés des machines de chaque plan (S10, écran de la Chemical Plant), par clé de plan. */
+  machineSettings: Record<string, MachineSettings>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
   money: number;
   /** La chaîne produit sa propre énergie. */
@@ -123,6 +142,7 @@ export const DEFAULT_SETTINGS: Settings = {
   forced: {},
   fixed: null,
   machineFilters: {},
+  machineSettings: {},
   money: 10000,
   selfPowered: false,
   maxPollution: null,
@@ -217,6 +237,7 @@ export function loadSettings(): Settings {
       .filter(([, f]) => f && typeof f === "object")
       .map(([k, f]) => [k, { mode: f.mode === "exclure" || f.mode === "seulement" ? f.mode : "toutes", exclure: ids(f.exclure), seulement: ids(f.seulement), noExtraction: ids(f.noExtraction) }]),
   );
+  out.machineSettings = cleanMachineSettings(out.machineSettings);
   return out;
 }
 export function saveSettings(s: Settings): void {

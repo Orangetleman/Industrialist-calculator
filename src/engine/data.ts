@@ -18,7 +18,8 @@ import type {
   TreeGrowth,
   VerifyFlag,
 } from "./types.ts";
-import type { EnergyFile } from "./extension-types.ts";
+import type { EnergyFile, InterfacesFile } from "./extension-types.ts";
+import { resolveScreenFlags } from "./interfaces.ts";
 
 export type GameData = {
   items: Map<string, Item>;
@@ -32,8 +33,12 @@ export type GameData = {
   removed: Map<string, { recipe: Recipe; source: Source }>;
 };
 
-/** `energy` (facultatif) : installations énergétiques composées et pollution des Scrubbers (E2). */
-export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile };
+/**
+ * `energy` (facultatif) : installations énergétiques composées et pollution des Scrubbers (E2).
+ * `interfaces` (facultatif) : interfaces des machines (S10) ; un écran chiffré rend connues les
+ * valeurs « variables » du wiki (données à 1×, le plan applique le réglage).
+ */
+export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile };
 
 export type OverrideResult = { data: GameData; errors: string[]; applied: number };
 
@@ -85,6 +90,12 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     m.pollutionPerHour = Math.max(p[0], p[1]);
     for (const f of m.verify) if (f.field === "pollutionPerHour") f.detail = `${f.detail} : la plus forte (${String(m.pollutionPerHour).replace(".", ",")} %/h) est retenue, par prudence`;
   }
+  if (files.interfaces) resolveScreenFlags(recipes, files.interfaces.machines);
+  return { data: { items, machines, recipes, nodes, producers: indexProducers(recipes), treeGrowth: structuredClone(files.machines.treeGrowth), removed }, errors, applied };
+}
+
+/** item → recettes qui le produisent (sortie nette > 0 ou quantité inconnue), triées par id. */
+export function indexProducers(recipes: Map<string, Recipe>): Map<string, Recipe[]> {
   const producers = new Map<string, Recipe[]>();
   for (const r of recipes.values()) {
     for (const [item, amount] of Object.entries(r.outputs)) {
@@ -95,7 +106,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     }
   }
   for (const list of producers.values()) list.sort((a, b) => a.id.localeCompare(b.id));
-  return { data: { items, machines, recipes, nodes, producers, treeGrowth: structuredClone(files.machines.treeGrowth), removed }, errors, applied };
+  return producers;
 }
 
 /**

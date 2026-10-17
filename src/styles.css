@@ -221,6 +221,12 @@ button.link.have:hover { color: var(--steel); }
 .mset input { width: 4.2em; text-align: center; font-family: var(--f-mono); background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 4px 2px; }
 .mset.on input { border-color: #8fb8d6; box-shadow: 0 0 0 1px #8fb8d6; }
 .mset small { color: #9aa7b4; font-family: var(--f-mono); }
+/* Interfaces des machines (S10) : le réglage à faire (« ⚙ levier sur « container » »). */
+.iset { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; border: 1px solid var(--steel); color: var(--steel); background: var(--steel-soft); border-radius: 999px; padding: 0 8px; white-space: nowrap; margin: 1px 4px 1px 0; }
+.iset.once::after { content: "définitif"; font-size: .7rem; border-left: 1px solid currentColor; padding-left: 5px; margin-left: 2px; }
+.flow-hud .iset { background: #22313f; color: #bcd6ea; border-color: #5a7d99; padding: 3px 10px; }
+.flow-hud .mset input[data-iset-input] { width: 3.6em; }
+.pose-setting { margin: 4px 0 8px; }
 #fix-bar { margin: 10px 0; }
 #fix-bar[hidden] { display: none; }
 .fixbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 14px; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--steel); background: var(--steel-soft); }
@@ -691,6 +697,21 @@ ul.corrections { margin: 0; padding-left: 18px; font-size: .85rem; display: flex
 .bld-portform label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
 .bld-portform input, .bld-portform select { font: inherit; font-size: .88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-width: 180px; }
 .bld-portform input[type="number"] { min-width: 70px; width: 70px; }
+/* Section « Interface » de l'éditeur (S10). */
+.bld-badge.iface { color: var(--steel); border: 1px solid var(--steel); }
+.bld-iface { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.bld-iface h4 { margin: 0; font-size: .95rem; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.bld-iface h4 .hint { font-weight: 400; }
+.bld-iface .row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: flex-end; }
+.bld-iface label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.bld-iface input[type="text"], .bld-iface select { font: inherit; font-size: .88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-width: 0; max-width: 100%; }
+.bld-iface input.num { width: 6em; }
+.bld-iface .set { border-top: 1px dashed var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.bld-iface table { border-collapse: collapse; font-size: .84rem; max-width: 100%; }
+.bld-iface th, .bld-iface td { padding: 3px 10px 3px 0; text-align: left; vertical-align: top; }
+.bld-iface th { font-weight: 600; font-size: .78rem; color: var(--muted); }
+.bld-iface .bld-check { padding-bottom: 2px; }
+.bld-iface .actions { margin: 0; }
 .bld-bg summary { cursor: pointer; color: var(--steel); font-size: .86rem; }
 .bld-bg .bld-row { margin-top: 8px; }
 .bld-notes { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }

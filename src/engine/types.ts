@@ -111,6 +111,11 @@ export type Recipe = {
   corrections?: Correction[];
   /** Craft ajouté par le joueur (absent des wikis, relevé en jeu) : sa source. */
   added?: Source;
+  /**
+   * Réglage chiffré de la machine appliqué (S10, écran de la Chemical Plant) : les quantités et
+   * l'énergie ci-dessus sont déjà multipliées ; `base` garde les valeurs du craft à 1×.
+   */
+  screen?: { inputs: number; outputs: number; energy: number; base: Pick<Recipe, "inputs" | "outputs" | "energyMFps"> };
 };
 
 export type ResearchCategory = "Production" | "Energy" | "Utility";

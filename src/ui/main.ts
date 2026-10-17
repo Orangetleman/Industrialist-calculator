@@ -26,7 +26,10 @@ import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { OverridesFile } from "../engine/types.ts";
-import type { EnergyFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
+import type { EnergyFile, InterfacesFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
+import { applyMachineSettings, type Interfaces, type MachineSettings, mergeInterfaces } from "../engine/interfaces.ts";
+import interfacesJson from "../../data/interfaces.json";
+import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
 import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { esc, fmt, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
@@ -56,7 +59,7 @@ import { initBuildings } from "./buildings.ts";
 import { bindPrioList, focusItem, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
-import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
+import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import {
@@ -130,7 +133,8 @@ import {
   type Settings,
 } from "./state.ts";
 
-const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
+const REPO_IFACES = interfacesJson as unknown as InterfacesFile;
+const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES } as unknown as RawFiles;
 /** Poteaux de transport d'énergie (réseau de l'objectif énergie). */
 const POLES = (powerJson as unknown as PowerFile).entries
   .filter((e) => e.subcategory === "Transfer Poles" && e.transfer)
@@ -155,6 +159,17 @@ function currentPorts(): typeof ports {
     ports = { sig, machines: mergeSurveys(REPO_PORTS, local), local };
   }
   return ports;
+}
+
+/** Interfaces des machines (S10) : celles du dépôt, remplacées par celles notées dans ce navigateur. */
+let ifaces = { sig: null as string | null, all: REPO_IFACES.machines as Interfaces, local: {} as Interfaces };
+function currentInterfaces(): typeof ifaces {
+  const sig = rawLocalInterfaces();
+  if (sig !== ifaces.sig) {
+    const local = loadLocalInterfaces();
+    ifaces = { sig, all: mergeInterfaces(REPO_IFACES.machines, local), local };
+  }
+  return ifaces;
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -464,17 +479,52 @@ function setFixed(key: string, n: number | null): void {
   updateSoon();
 }
 
+/** Réglages chiffrés des machines du plan affiché (S10, écran de la Chemical Plant). */
+function msettingsNow(): MachineSettings {
+  const key = planKey(settings.goal, settings.item);
+  return (key && settings.machineSettings[key]) || {};
+}
+/**
+ * Règle un réglage chiffré d'une machine pour ce plan ; null ou sa valeur par défaut : le retire.
+ * `id` null : remet tous les réglages de la machine à leur valeur par défaut (« ↺ 1× »).
+ */
+function setMachineSetting(machine: string, id: string | null, value: number | null): void {
+  const key = planKey(settings.goal, settings.item);
+  if (!key) return;
+  const def = currentInterfaces().all[machine]?.settings.find((s) => s.id === id)?.number?.default ?? 1;
+  const perPlan = { ...(settings.machineSettings[key] ?? {}) };
+  const { [id ?? ""]: _, ...rest } = perPlan[machine] ?? {};
+  const next = id === null ? {} : value === null || value === def ? rest : { ...rest, [id]: value };
+  if (Object.keys(next).length) perPlan[machine] = next;
+  else delete perPlan[machine];
+  const { [key]: __, ...others } = settings.machineSettings;
+  settings.machineSettings = Object.keys(perPlan).length ? { ...others, [key]: perPlan } : others;
+  update();
+}
+/** Données du plan : celles du jeu, réglages chiffrés appliqués (gardées tant que rien ne change). */
+let planDataCache: { base: GameData; sig: string; data: GameData } | null = null;
+function planData(): GameData {
+  const ms = msettingsNow();
+  const all = currentInterfaces();
+  const sig = `${JSON.stringify(ms)}|${all.sig}`;
+  if (!planDataCache || planDataCache.base !== data || planDataCache.sig !== sig) planDataCache = { base: data, sig, data: applyMachineSettings(data, all.all, ms) };
+  return planDataCache.data;
+}
+let planBuiltFrom: GameData | null = null;
+
 function ensurePlan(): void {
-  if (!planDirty && plan) return;
+  const pd = planData();
+  if (!planDirty && plan && planBuiltFrom === pd) return;
   planDirty = false;
+  planBuiltFrom = pd;
   const goal = settings.goal;
   rpView = goal === "recherche" ? computeResearch() : null;
   if (goal === "recherche") {
-    plan = rpView?.best?.plan ?? solve(data, playerState(), { item: "", demands: {}, tiers: false });
+    plan = rpView?.best?.plan ?? solve(pd, playerState(), { item: "", demands: {}, tiers: false });
     return;
   }
   const request = (target: Partial<Parameters<typeof solve>[2]>) =>
-    solve(data, playerState(), {
+    solve(pd, playerState(), {
       item: settings.item,
       ...target,
       poles: POLES,
@@ -506,7 +556,7 @@ function ensurePlan(): void {
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data, plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player) };
+  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow() };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
@@ -910,11 +960,18 @@ function renderPose(): void {
     : `<button type="button" class="link" data-focus="${esc(poseStep)}">Voir sa version dans « Toute l'usine »</button> <span class="muted">(recalculée et tournée vers ses voisins${fullFactory()?.plan ? "" : ", calcul en arrière-plan"})</span>`;
   $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
   $("pose-bar").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${settings.usine.links ? "Une flèche blanche par liaison, dans le sens du flux, et les câbles de chaque poteau vers ses machines." : "Ou clique un tuyau pour voir les liaisons de sa ressource. Clique une machine pour ouvrir sa fiche."}</span></div>`;
-  $("pose-head").innerHTML = info.head + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
+  $("pose-head").innerHTML = info.head + stepSettingLine(poseStep) + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
   showPoseSvg(renderModuleSvg(m, anyName), `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePriority.join(",")}`);
   setFrameClasses($("pose-frame"), { "u-links": settings.usine.links });
+}
+
+/** Réglage à faire sur chaque machine d'une étape (S10), pour le plan de pose et le panneau d'un module. */
+function stepSettingLine(key: string): string {
+  const st = plan?.steps.find((s) => s.key === key);
+  const chips = st && !st.parts ? settingChips(settingLines(currentInterfaces().all, msettingsNow(), st.machine, st.recipeId), "à régler sur chaque machine : ") : "";
+  return chips ? `<p class="pose-setting">${chips}</p>` : "";
 }
 
 /** Classes d'affichage d'un cadre (les autres classes « u-… » sont retirées). */
@@ -1075,7 +1132,7 @@ function showFocus(key: string | null): void {
   }
   $("focus-title").textContent = out.title;
   $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">Clique une machine pour ouvrir sa fiche, un tuyau pour voir ses liaisons.</span></div>`;
-  $("focus-head").innerHTML = out.head + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">Plan de pose seul de cette étape</button> · <button type="button" class="link" data-flow="${esc(key!)}">Voir au schéma</button></p>`;
+  $("focus-head").innerHTML = out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">Plan de pose seul de cette étape</button> · <button type="button" class="link" data-flow="${esc(key!)}">Voir au schéma</button></p>`;
   $("focus-legend").innerHTML = out.legend;
   $("focus-details").innerHTML = out.details;
   const frame = $("focus-frame");
@@ -2293,6 +2350,9 @@ function bindPlan(): void {
   $("flow-canvas").addEventListener("pointerleave", () => hover(null));
   $("flow-hud").addEventListener("click", (e) => {
     if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
+    // Écran chiffré (S10) : « ↺ 1× » remet tous ses réglages à leur valeur par défaut.
+    const reset = (e.target as Element).closest<HTMLElement>("[data-iset-reset]");
+    if (reset) setMachineSetting(reset.dataset.isetReset!, null, null);
     const step = (e.target as Element).closest<HTMLElement>("[data-mset]");
     if (step) stepMachines(Number(step.dataset.mset));
   });
@@ -2320,6 +2380,15 @@ function bindPlan(): void {
     const raw = inp.value.trim();
     const n = parseInt(raw, 10);
     setFixed(inp.dataset.key!, raw ? (n >= 1 ? n : 1) : null);
+  });
+  // Écran chiffré d'une machine (S10) : un nombre tapé (« 1,67 »), appliqué en quittant le champ ou avec Entrée.
+  $("flow-hud").addEventListener("change", (e) => {
+    const inp = (e.target as Element).closest<HTMLInputElement>("[data-iset-input]");
+    if (inp) setMachineSetting(inp.dataset.machine!, inp.dataset.setting!, parseFactor(inp.value));
+  });
+  $("flow-hud").addEventListener("keydown", (e) => {
+    const inp = (e.target as Element).closest<HTMLInputElement>("[data-iset-input]");
+    if (inp && e.key === "Enter") inp.blur();
   });
   $("flow-hud").addEventListener("keydown", (e) => {
     const inp = (e.target as Element).closest<HTMLInputElement>("[data-mset-input]");
@@ -2782,7 +2851,7 @@ bindUsine();
 bindTree();
 bindData();
 bindRecettes();
-const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }));
+const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines);
 $("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);
 showPage();

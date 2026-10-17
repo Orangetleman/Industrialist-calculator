@@ -52,6 +52,25 @@ Page **Données**, onglet « Éditeur de bâtiments » de https://industrialist.
 
 N'importe qui peut s'en servir pour ajouter un bâtiment, et l'export fonctionne de la même façon.
 
+### L'interface d'une machine (S10)
+
+Sous les ports, la section **Interface** note ce que la machine propose quand on s'en approche
+(« [E] Interact », un levier, un écran). Rien pour le placement : seulement le réglage.
+
+1. **Type** : fenêtre de réglages, levier, choix direct sur la machine, ou bouton ; **Où** (sur
+   le côté, écran à l'avant…) ; **Choix définitif** si le choix ne se change plus après la pose.
+2. Pour chaque **réglage**, son nom et sa sorte :
+   - **un choix parmi des positions** : le texte du jeu de chaque position, et les crafts que la
+     machine fait dans cette position (cases à cocher) ;
+   - **un nombre** : sa valeur par défaut et ce qu'il multiplie dans tous les crafts (entrées,
+     sorties ou énergie), comme l'écran de la Chemical Plant ;
+   - **sans effet sur le calcul** (porte logique, panneau…) : dire pourquoi.
+3. **Enregistrer l'interface**. Elle sert tout de suite aux plans (« ⚙ levier sur … ») et part
+   avec **Exporter mes relevés** (clé `interfaces`, à intégrer à `data/interfaces.json`).
+
+Les interfaces déjà connues (wiki et tes réponses) sont dans `data/interfaces.json` ; un ⚙ les
+marque dans la liste des bâtiments.
+
 ## Températures de vapeur (énergie)
 
 La puissance d'une Large Turbine dépend de la température de la vapeur. Le wiki ne la donne que

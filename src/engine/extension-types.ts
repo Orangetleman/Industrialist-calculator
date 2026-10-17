@@ -151,4 +151,29 @@ export type PortsEntry = {
   notes?: string;
   source: Source;
 };
-export type PortsFile = { _lisezMoi?: string; machines: Record<string, PortsEntry> };
+export type PortsFile = { _lisezMoi?: string; machines: Record<string, PortsEntry>; interfaces?: Record<string, MachineInterface> };
+
+/**
+ * Interface d'une machine (S10, décision Q5) : l'étiquette « [E] Interact », un levier ou un écran
+ * qui règle la machine. Rien pour le placement, seulement la configuration et son effet sur le calcul.
+ */
+export type InterfaceKind = "fenêtre" | "levier" | "choix direct" | "bouton";
+/** Position d'un réglage : le texte du jeu et les crafts que la machine fait dans cette position. */
+export type InterfaceChoice = { label: string; recipes: string[]; doubt?: string };
+/** Réglage chiffré : sa valeur par défaut et ce qu'il multiplie dans tous les crafts de la machine. */
+export type InterfaceNumber = { default: number; scales: "entrées" | "sorties" | "énergie" | null };
+/** Un réglage : des positions, ou un nombre ; ni l'un ni l'autre : sans effet sur le calcul. */
+export type InterfaceSetting = { id: string; name: string; choices?: InterfaceChoice[]; number?: InterfaceNumber; note?: string };
+export type MachineInterface = {
+  kind: InterfaceKind;
+  /** Où se trouve l'interface sur la machine (« sur le côté », « écran à l'avant »…). */
+  where?: string;
+  /** Choix définitif (fait à la pose, ne se change plus : Quarry). */
+  once?: boolean;
+  settings: InterfaceSetting[];
+  /** Pourquoi le réglage ne change pas le calcul (porte logique, centrale non calculée…). */
+  effect?: string;
+  notes?: string;
+  sources: Source[];
+};
+export type InterfacesFile = { _lisezMoi?: string; machines: Record<string, MachineInterface> };

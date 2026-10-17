@@ -6,7 +6,8 @@
 // et s'exportent au format de data/ports.json.
 
 import type { GameData } from "../engine/data.ts";
-import type { Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
+import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
+import { checkInterface, type Interfaces } from "../engine/interfaces.ts";
 import {
   applyTool,
   type BgPlacement,
@@ -15,8 +16,12 @@ import {
   checkEntry,
   exportSurveys,
   fitTwoCorners,
+  INTERFACE_KINDS,
   isComplete,
+  KIND_LABEL,
   marginToPort,
+  newSettingId,
+  parseInterfaces,
   parseSurveys,
   portCenter,
   pruneIntegrated,
@@ -27,8 +32,8 @@ import {
   type Tool,
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
-import { loadLocalSurveys, saveLocalSurveys } from "./surveys.ts";
-import { esc, fmtMF } from "./format.ts";
+import { loadLocalInterfaces, loadLocalSurveys, saveLocalInterfaces, saveLocalSurveys } from "./surveys.ts";
+import { esc, fmt, fmtMF } from "./format.ts";
 
 type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: number; natH: number };
 /** Ce que fait la souris sur la grille. */
@@ -50,12 +55,19 @@ const HELP: Record<Mode, string> = {
 
 /**
  * `onSelect` : appelé quand un bâtiment est choisi (pour l'adresse de la page).
+ * `repoIfaces` : interfaces des machines du dépôt (data/interfaces.json, S10).
  * Renvoie `show(id)` : ouvrir un bâtiment depuis une autre page (schéma, plan de pose).
  */
-export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile, onSelect: (id: string) => void = () => {}): { show(id: string): void } {
+export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile, onSelect: (id: string) => void = () => {}, repoIfaces: Interfaces = {}): { show(id: string): void } {
   const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
   if (pruned.dropped.length) save();
+  // Interfaces notées dans ce navigateur ; une copie identique à celle du dépôt n'a plus lieu d'être.
+  let localIfaces: Interfaces = Object.fromEntries(Object.entries(loadLocalInterfaces()).filter(([id, i]) => JSON.stringify(i) !== JSON.stringify(repoIfaces[id])));
+  saveLocalInterfaces(localIfaces);
+  /** Interface du bâtiment choisi, en cours de saisie (null : aucune). */
+  let iface: MachineInterface | null = null;
+  let ifaceMsg = "";
   let selectedId: string | null = null;
   let entry: PortsEntry | null = null;
   let tool: Tool = "objet";
@@ -114,6 +126,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
           </p>
           <p class="bld-msg" id="bld-msg" aria-live="polite"></p>
           <div id="bld-portform"></div>
+          <div id="bld-iface"></div>
           <details class="bld-bg" id="bld-bg"><summary>Capture d'écran en fond (reste dans ton navigateur)</summary><div id="bld-bgbody"></div></details>
           <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. ce que la capture ne montre pas"></textarea></label>
           <div id="bld-status" aria-live="polite"></div>
@@ -140,7 +153,8 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       .map((m) => {
         const e = local[m.id] ?? repo.machines[m.id];
         const st = surveyState(m.id, repo, local);
-        const badges = `<span class="bld-badges">${STATE_BADGE[st]}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>` : ""}</span>`;
+        const hasIface = !!(localIfaces[m.id] ?? repoIfaces[m.id]);
+        const badges = `<span class="bld-badges">${hasIface ? `<span class="bld-badge iface" title="a une interface ([E] Interact, levier ou écran)">⚙</span>` : ""}${STATE_BADGE[st]}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>` : ""}</span>`;
         return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");
@@ -152,6 +166,9 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     const m = data.machines.get(id)!;
     const base = local[id] ?? repo.machines[id];
     entry = base ? structuredClone(base) : { footprint: m.size ? { w: m.size.w, h: m.size.l } : { w: 2, h: 2 }, ports: [], source: surveySource() };
+    const known = localIfaces[id] ?? repoIfaces[id];
+    iface = known ? structuredClone(known) : null;
+    ifaceMsg = "";
     selectedPort = null;
     mode = "ports";
     corners = [];
@@ -277,6 +294,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     renderTools();
     refreshCanvas(keepView);
     renderPortForm();
+    renderIface();
     renderBgPanel();
     ($("#bld-notes") as HTMLTextAreaElement).value = entry.notes ?? "";
     renderActions();
@@ -306,6 +324,97 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       <label>Ce que le jeu affiche <input data-pf="shown" value="${esc(p.shown ?? "")}" placeholder="ex. flèche violette vers le bas"></label>
       <button type="button" class="link" data-pf-del>Supprimer ce port</button>
     </div>`;
+  }
+
+  // ---------------------------------------------------------------- interface (S10)
+  const machineRecipes = (id: string) => [...data.recipes.values()].filter((r) => r.machine === id && !r.parts);
+  const qtyText = (o: Record<string, number | null>) =>
+    Object.entries(o)
+      .map(([k, q]) => `${q === null ? "?" : fmt(q, 3)} ${data.items.get(k)?.name ?? k}`)
+      .join(" + ");
+
+  /** Détail d'un réglage : ses positions (texte du jeu et crafts), ou son nombre. */
+  function settingDetail(st: InterfaceSetting, k: number, recs: ReturnType<typeof machineRecipes>): string {
+    if (st.number) {
+      const scales = (["entrées", "sorties", "énergie"] as const).map((x) => `<option${st.number!.scales === x ? " selected" : ""}>${x}</option>`).join("");
+      return `<div class="row"><label>Valeur par défaut <input type="text" inputmode="decimal" class="num" data-if="default" data-s="${k}" value="${esc(fmt(st.number.default, 3))}"></label>
+        <label>Multiplie, dans tous les crafts <select data-if="scales" data-s="${k}">${scales}<option value=""${st.number.scales ? "" : " selected"}>rien</option></select></label></div>`;
+    }
+    if (!st.choices) return "";
+    const crafts = (j: number, c: NonNullable<InterfaceSetting["choices"]>[number]) =>
+      recs.length
+        ? recs
+            .map((r) => `<label class="bld-check"><input type="checkbox" data-if="recipe" data-s="${k}" data-c="${j}" data-r="${esc(r.id)}"${c.recipes.includes(r.id) ? " checked" : ""}> ${esc(qtyText(r.inputs) || "rien")} → ${esc(qtyText(r.outputs))}</label>`)
+            .join("")
+        : `<span class="hint">aucun craft pour cette machine</span>`;
+    const rows = st.choices
+      .map(
+        (c, j) =>
+          `<tr><td><input type="text" data-if="label" data-s="${k}" data-c="${j}" value="${esc(c.label)}" placeholder="ex. container">${c.doubt ? `<div class="hint">⚠ ${esc(c.doubt)}</div>` : ""}</td><td>${crafts(j, c)}</td><td><button type="button" class="link small" data-if-del-choice data-s="${k}" data-c="${j}">retirer</button></td></tr>`,
+      )
+      .join("");
+    return `<table><thead><tr><th>Position (texte du jeu)</th><th>Crafts de cette position</th><th></th></tr></thead><tbody>${rows}</tbody></table><button type="button" class="link small" data-if-add-choice data-s="${k}">+ une position</button>`;
+  }
+
+  function renderIface(): void {
+    const box = $("#bld-iface");
+    if (!selectedId) return;
+    const i = iface;
+    const state = localIfaces[selectedId] ? `<span class="bld-badge local">local · à envoyer</span>` : repoIfaces[selectedId] ? `<span class="bld-badge ok">dépôt</span>` : "";
+    const kinds = `<select data-if="kind"><option value=""${i ? "" : " selected"}>aucune</option>${INTERFACE_KINDS.map((k) => `<option value="${esc(k)}"${i?.kind === k ? " selected" : ""}>${esc(KIND_LABEL[k])}</option>`).join("")}</select>`;
+    let body = "";
+    if (i) {
+      const recs = machineRecipes(selectedId);
+      body += `<div class="row"><label>Où <input type="text" data-if="where" value="${esc(i.where ?? "")}" placeholder="ex. sur le côté de la machine"></label>
+        <label class="bld-check"><input type="checkbox" data-if="once"${i.once ? " checked" : ""}> Choix définitif (fait à la pose)</label></div>`;
+      i.settings.forEach((st, k) => {
+        const sort = st.choices ? "positions" : st.number ? "nombre" : "aucun";
+        const opt = (v: string, label: string) => `<option value="${v}"${sort === v ? " selected" : ""}>${label}</option>`;
+        body += `<div class="set"><div class="row"><label>Réglage <input type="text" data-if="name" data-s="${k}" value="${esc(st.name)}" placeholder="ex. Levier"></label>
+          <label>Sorte <select data-if="sort" data-s="${k}">${opt("positions", "un choix parmi des positions")}${opt("nombre", "un nombre")}${opt("aucun", "sans effet sur le calcul")}</select></label>
+          <button type="button" class="link small" data-if-del-setting data-s="${k}">retirer ce réglage</button></div>${st.note ? `<p class="hint">${esc(st.note)}</p>` : ""}${settingDetail(st, k, recs)}</div>`;
+      });
+      body += `<div class="row"><button type="button" class="link small" data-if-add-setting>+ un réglage</button></div>
+        <label class="bld-notes">Sans effet sur le calcul : pourquoi <input type="text" data-if="effect" value="${esc(i.effect ?? "")}" placeholder="ex. signal logique seulement"></label>`;
+      if (i.notes) body += `<p class="hint">${esc(i.notes)}</p>`;
+      const src = i.sources.map((x) => (x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.page ?? x.wiki)}</a>` : esc(x.note ?? x.wiki))).join(" · ");
+      if (src) body += `<p class="hint">Sources : ${src}</p>`;
+      const problems = checkInterface(i, recs.map((r) => r.id));
+      if (problems.length) body += `<ul class="bld-problems">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
+    }
+    const save = i || localIfaces[selectedId] ? `<button type="button" id="bld-if-save">Enregistrer l'interface</button>` : "";
+    const forget = localIfaces[selectedId] ? `<button type="button" class="link" id="bld-if-forget">Oublier mon interface locale</button>` : "";
+    box.innerHTML = `<div class="bld-iface"><h4>Interface ${state} <span class="hint">· l'étiquette « [E] Interact », un levier ou un écran : seulement le réglage de la machine, rien pour le placement</span></h4>
+      <div class="row"><label>Type ${kinds}</label></div>${body}<div class="actions">${save}${forget}</div><p class="bld-msg" aria-live="polite">${esc(ifaceMsg)}</p></div>`;
+  }
+
+  /** Une saisie dans la section « Interface » (champ, case ou liste). `redraw` : redessiner la section. */
+  function ifaceInput(t: HTMLInputElement, redraw: boolean): void {
+    const f = t.dataset.if!;
+    if (f === "kind") {
+      iface = t.value ? { ...(iface ?? { settings: [], sources: [] }), kind: t.value as InterfaceKind } : null;
+      return renderIface();
+    }
+    if (!iface) return;
+    const st = t.dataset.s !== undefined ? iface.settings[Number(t.dataset.s)] : undefined;
+    const choice = st?.choices?.[Number(t.dataset.c)];
+    if (f === "where") iface.where = t.value || undefined;
+    else if (f === "once") iface.once = t.checked || undefined;
+    else if (f === "effect") iface.effect = t.value || undefined;
+    else if (f === "name" && st) st.name = t.value;
+    else if (f === "label" && choice) choice.label = t.value;
+    else if (f === "recipe" && choice) choice.recipes = t.checked ? [...choice.recipes, t.dataset.r!] : choice.recipes.filter((r) => r !== t.dataset.r);
+    else if (f === "default" && st?.number) {
+      const v = Number(t.value.replace(",", "."));
+      if (v > 0) st.number.default = v;
+    } else if (f === "scales" && st?.number) st.number.scales = (t.value || null) as NonNullable<InterfaceSetting["number"]>["scales"];
+    else if (f === "sort" && st) {
+      delete st.choices;
+      delete st.number;
+      if (t.value === "positions") st.choices = [{ label: "", recipes: [] }];
+      if (t.value === "nombre") st.number = { default: 1, scales: null };
+    }
+    if (redraw) renderIface();
   }
 
   function renderBgPanel(): void {
@@ -434,7 +543,8 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       const v = Math.max(1, Math.min(200, Math.round(Number(t.value)) || 1));
       entry.footprint = { w: t.id === "bld-w" ? v : entry.footprint!.w, h: t.id === "bld-h" ? v : entry.footprint!.h };
       refreshCanvas();
-    } else if (t.id === "bld-notes") entry.notes = t.value || undefined;
+    } else if (t.dataset.if && t.type === "text") ifaceInput(t, false);
+    else if (t.id === "bld-notes") entry.notes = t.value || undefined;
     else if (t.id === "bld-bgo" && bg) {
       bg.opacity = Number(t.value);
       root.querySelector("#bld-bgimg")?.setAttribute("opacity", String(bg.opacity));
@@ -449,6 +559,11 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
   root.addEventListener("change", async (ev) => {
     const t = ev.target as HTMLInputElement & HTMLSelectElement;
     if (!entry && t.id !== "bld-import") return;
+    if (t.dataset.if) {
+      // Les champs texte sont pris en compte à la frappe (pas de redessin : un clic qui suit doit garder son bouton).
+      if ((t as HTMLInputElement).type !== "text") ifaceInput(t as HTMLInputElement, true);
+      return;
+    }
     if (t.id === "bld-nopower") {
       if (t.checked) entry!.noPower = true;
       else delete entry!.noPower;
@@ -495,11 +610,16 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       frame.focus({ preventScroll: true });
     } else if (t.id === "bld-import" && t.files?.[0]) {
       try {
-        const parsed = parseSurveys(JSON.parse(await t.files[0].text()));
+        const raw = JSON.parse(await t.files[0].text());
+        const parsed = parseSurveys(raw);
         if (!parsed) throw new Error("format inattendu");
         local = { ...local, ...parsed };
         save();
-        $("#bld-io").textContent = `${Object.keys(parsed).length} relevé(s) importé(s).`;
+        const ifs = raw && typeof raw === "object" && "interfaces" in raw ? (parseInterfaces(raw) ?? {}) : {};
+        localIfaces = { ...localIfaces, ...ifs };
+        saveLocalInterfaces(localIfaces);
+        const nIf = Object.keys(ifs).length;
+        $("#bld-io").textContent = `${Object.keys(parsed).length} relevé(s)${nIf ? ` et ${nIf} interface(s)` : ""} importé(s).`;
         renderList();
         if (selectedId) select(selectedId);
       } catch (err) {
@@ -574,6 +694,48 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       renderList();
       return renderEditor();
     }
+    if (target.closest("[data-if-add-setting]") && iface) {
+      iface.settings.push({ id: newSettingId(iface), name: "", choices: [{ label: "", recipes: [] }] });
+      return renderIface();
+    }
+    const sIdx = Number(target.closest<HTMLElement>("[data-s]")?.dataset.s);
+    if (target.closest("[data-if-del-setting]") && iface) {
+      iface.settings.splice(sIdx, 1);
+      return renderIface();
+    }
+    if (target.closest("[data-if-add-choice]") && iface?.settings[sIdx]?.choices) {
+      iface.settings[sIdx]!.choices!.push({ label: "", recipes: [] });
+      return renderIface();
+    }
+    if (target.closest("[data-if-del-choice]") && iface?.settings[sIdx]?.choices) {
+      iface.settings[sIdx]!.choices!.splice(Number(target.closest<HTMLElement>("[data-c]")!.dataset.c), 1);
+      return renderIface();
+    }
+    if (target.closest("#bld-if-save")) {
+      if (iface) {
+        // Sources : celles du dépôt, plus cette saisie (une seule, la dernière).
+        iface.sources = [...iface.sources.filter((x) => x.wiki !== "saisie"), surveySource("interface notée dans l'éditeur de bâtiments du calculateur")];
+        localIfaces[selectedId] = structuredClone(iface);
+        ifaceMsg = checkInterface(iface, machineRecipes(selectedId).map((r) => r.id)).length
+          ? "Interface enregistrée, mais incomplète (voir la liste)."
+          : "Interface enregistrée dans ce navigateur : les plans l'utilisent déjà. Pense à l'exporter.";
+      } else {
+        delete localIfaces[selectedId];
+        ifaceMsg = "Interface retirée de ce navigateur.";
+      }
+      saveLocalInterfaces(localIfaces);
+      renderList();
+      return renderIface();
+    }
+    if (target.closest("#bld-if-forget")) {
+      delete localIfaces[selectedId];
+      saveLocalInterfaces(localIfaces);
+      const known = repoIfaces[selectedId];
+      iface = known ? structuredClone(known) : null;
+      ifaceMsg = "Interface locale oubliée.";
+      renderList();
+      return renderIface();
+    }
     if (target.closest("#bld-forget")) {
       delete local[selectedId];
       save();
@@ -641,17 +803,18 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
 
   function exportFile(): void {
     const n = Object.keys(local).length;
-    if (!n) {
+    const nIf = Object.keys(localIfaces).length;
+    if (!n && !nIf) {
       $("#bld-io").textContent = "Aucun relevé local à exporter : enregistre d'abord un relevé.";
       return;
     }
-    const blob = new Blob([JSON.stringify(exportSurveys(local), null, 1) + "\n"], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(exportSurveys(local, localIfaces), null, 1) + "\n"], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `releves-batiments-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    $("#bld-io").textContent = `${n} relevé(s) exporté(s). Envoie ce fichier pour l'intégrer aux données.`;
+    $("#bld-io").textContent = `${n} relevé(s)${nIf ? ` et ${nIf} interface(s)` : ""} exporté(s). Envoie ce fichier pour l'intégrer aux données.`;
   }
 
   renderList();

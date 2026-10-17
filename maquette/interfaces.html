@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S10 — Interfaces des machines</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-t2 { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.mq-t2 th, .mq-t2 td { text-align: left; padding: 5px 8px 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.mq-t2 th { font-weight: 600; white-space: nowrap; }
+.mq-t2 .calc-yes { color: var(--steel); font-weight: 600; }
+
+/* Le réglage à faire, partout où une machine est nommée. */
+.iset { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; border: 1px solid var(--steel); color: var(--steel); background: var(--steel-soft); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+.iset.once::after { content: "définitif"; font-size: .7rem; border-left: 1px solid currentColor; padding-left: 5px; margin-left: 2px; }
+.flow-hud .iset { background: #22313f; color: #bcd6ea; border-color: #5a7d99; }
+
+/* Les réglages d'un écran (Chemical Plant), dans la barre du bas. */
+.mset { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: #e6ebf0; margin-right: 6px; }
+.mset input { width: 3.6em; text-align: center; font-family: var(--f-mono); background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 4px 2px; }
+.mset.on input { border-color: #8fb8d6; box-shadow: 0 0 0 1px #8fb8d6; }
+
+/* Éditeur de bâtiments : la section « Interface ». */
+.bld-iface { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.bld-iface h4 { margin: 0; font-size: .95rem; }
+.bld-iface .row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: .88rem; }
+.bld-iface .set { border-top: 1px dashed var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.bld-iface table { border-collapse: collapse; font-size: .86rem; }
+.bld-iface td, .bld-iface th { padding: 3px 10px 3px 0; text-align: left; vertical-align: top; }
+.bld-iface input[type="text"] { width: 12em; }
+.bld-iface input.num { width: 5em; }
+
+.calc { margin-top: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; }
+.calc-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.calc-head h3 { margin: 0; font-size: 1rem; }
+.calc-head h3 span { font-weight: 400; color: var(--muted); }
+.calc-t { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.calc-t th { text-align: left; font-weight: 600; white-space: nowrap; padding: 6px 10px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.calc-t td { padding: 6px 10px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.calc-t tr:first-child td, .calc-t tr:first-child th { border-top: none; }
+.calc-t .f { font-family: var(--f-mono); font-size: .82rem; }
+.calc-t .r { font-family: var(--f-mono); font-weight: 600; white-space: nowrap; text-align: right; }
+.calc-t .s { font-size: .78rem; color: var(--muted); }
+.calc-t tr.new th, .calc-t tr.new td { background: var(--steel-soft); }
+.src-tag { display: inline-block; font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; margin: 1px 2px 1px 0; }
+.src-tag.wiki { color: var(--steel); }
+.src-tag.jeu { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S10 — les interfaces des machines</h1>
+  <p class="mq-note">Maquette à valider : rien n'est encore branché. Une interface, c'est l'étiquette « [E] Interact » (ou le levier, ou l'écran) d'une machine : elle ne compte pas dans le placement, seulement dans le réglage de la machine (Q5). Les nombres viennent du moteur actuel, tout débloqué, priorités du site (énergie d'abord) : <b>Gearbox 60/min</b> (4 Industrial Plastic Molder pour la Plastic Casing) et <b>Clay Brick 60/min</b> (1 Quarry).</p>
+
+  <!-- ============================================================ 0. recherche -->
+  <h2 class="mq-t">0. Ce que dit la recherche (wiki Miraheze, Fandom en contrôle)</h2>
+  <table class="mq-t2">
+    <tr><th>Machine</th><th>Interface</th><th>Ce qu'elle règle</th><th>Effet sur le calcul</th></tr>
+    <tr><td>Plastic Molding Machine</td><td>levier sur le côté</td><td>« bottle » : 2 Plastic Bottle ; « container » : 1 Plastic Casing (en 7 s)</td><td class="calc-yes">choisit le craft</td></tr>
+    <tr><td>Industrial Plastic Molder</td><td>levier sur le côté (2 positions)</td><td>« bottle » : Plastic Bottle ; « container » : Plastic Casing, ou Hardened Plastic Casing avec des Hardened Plastic Pellets</td><td class="calc-yes">choisit le craft</td></tr>
+    <tr><td>Quarry (le « carry »)</td><td>écran à l'avant, choix direct à la pose, <b>définitif</b></td><td>Soil &amp; Clay, Sand ou Limestone (l'eau en plus double la production)</td><td class="calc-yes">choisit le craft</td></tr>
+    <tr><td>Chemical Plant</td><td>écran (en haut de l'échelle, à l'avant)</td><td>vitesse et efficacité ; l'écran affiche les multiplicateurs Power Input, Resource Input et Resource Output (1× par défaut ; au mieux 1,67× d'entrées, 2× de sorties, 4× d'énergie)</td><td class="calc-yes">multiplie entrées, sorties et énergie</td></tr>
+    <tr><td>Electric Water Heater</td><td>boutons de température</td><td>120, 220 ou 320 °C (320 °C : courant HV)</td><td>pas calculé aujourd'hui (installation non calculée)</td></tr>
+    <tr><td>Mineshaft Drill</td><td>écran</td><td>profondeur visée, « OUTPUT IS ON/OFF »</td><td>pas calculé aujourd'hui (aucun craft)</td></tr>
+    <tr><td>Diesel Engine Controller</td><td>fenêtre</td><td>Air to Fuel Ratio, Throttle</td><td>moteur modulaire : S13</td></tr>
+    <tr><td>Coal / Nuclear Power Plant, Modular Turbine</td><td>salle de contrôle</td><td>nombreux réglages</td><td>pas calculées (grandes centrales)</td></tr>
+    <tr><td>Pollution Gate, Time Gate, Logic Clock, Fluid Meter, Item Meter, Logic Switch, Logic Button…</td><td>fenêtre « Modify Machine » ou bouton</td><td>seuils, heures, délais, marche / arrêt d'un signal logique</td><td>aucun : le calcul suppose des machines qui tournent tout le temps</td></tr>
+    <tr><td>Sign, Flag, Statue…</td><td>fenêtre</td><td>texte, image, apparence</td><td>aucun (décoration)</td></tr>
+  </table>
+  <p class="mq-note">Toutes ces interfaces sont notées dans les données (<code>data/interfaces.json</code>, chaque ligne avec sa source). Les noms exacts des choix de la Quarry autres que « Soil &amp; Clay » ne sont écrits nulle part : ils vont dans <code>a-verifier.md</code>.</p>
+
+  <!-- ============================================================ 1. éditeur -->
+  <h2 class="mq-t">1. Éditeur de bâtiments : une section « Interface », sous les ports</h2>
+  <div class="bld-iface">
+    <h4>Interface <span class="hint">· l'étiquette « [E] Interact », un levier ou un écran ; rien pour le placement</span></h4>
+    <div class="row">
+      <label>Type <select><option>aucune</option><option>fenêtre de réglages</option><option selected>levier</option><option>choix direct sur la machine</option><option>bouton</option></select></label>
+      <label>Où <input type="text" value="sur le côté de la machine"></label>
+      <span class="iset">source : wiki</span>
+    </div>
+    <div class="set">
+      <div class="row"><label>Réglage <input type="text" value="Levier"></label> <label>Sorte <select><option selected>un choix parmi des positions</option><option>un nombre</option></select></label></div>
+      <table>
+        <tr><th>Position (texte du jeu)</th><th>Crafts de cette position</th></tr>
+        <tr><td><input type="text" value="bottle"></td><td><label><input type="checkbox" checked> 60 Plastic Pellets → 6 Plastic Bottle</label></td></tr>
+        <tr><td><input type="text" value="container"></td><td><label><input type="checkbox" checked> 120 Plastic Pellets → 6 Plastic Casing</label><br><label><input type="checkbox" checked> 60 Hardened Plastic Pellets → 6 Hardened Plastic Casing</label></td></tr>
+      </table>
+      <div class="row"><button type="button" class="link small">+ une position</button> <button type="button" class="link small">+ un autre réglage</button></div>
+    </div>
+    <p class="hint">Un réglage « un nombre » demande sa valeur par défaut et ce qu'il multiplie (entrées, sorties ou énergie de tous les crafts de la machine), comme l'écran de la Chemical Plant. Sans effet (porte logique, panneau) : laisser les crafts vides, la ligne dit « aucun effet sur le calcul ».</p>
+  </div>
+  <p class="mq-note">L'interface s'enregistre avec « Enregistrer le relevé » (gardée dans ce navigateur, exportée dans le même fichier que les relevés). Dans la liste des bâtiments, un petit ⚙ marque ceux qui ont une interface. Un bâtiment sans relevé de ports peut quand même recevoir son interface : ça ne change pas ses ports supposés.</p>
+
+  <!-- ============================================================ 2. liste de construction -->
+  <h2 class="mq-t">2. Le plan dit le réglage à faire : liste de construction (Gearbox 60/min)</h2>
+  <table class="build"><thead><tr><th><span class="sr-only">Construit</span></th><th>Construire</th><th>Pour produire</th><th>Alimente</th><th>Énergie</th></tr></thead><tbody>
+    <tr class="stage"><td colspan="5">Transformation</td></tr>
+    <tr><td class="chk"><input type="checkbox"></td><td class="what"><span class="count">4 ×</span> Industrial Plastic Molder <button type="button" class="link small">plan de pose</button><div class="sub"><span class="iset">⚙ levier sur « container »</span></div></td><td class="prod">Plastic Casing <span class="sub num">120/min</span></td><td class="feeds"><span class="sub-k">alimente</span> Gearbox</td><td class="num energy">80 kMF/s</td></tr>
+    <tr><td class="chk"><input type="checkbox"></td><td class="what"><span class="count">3 ×</span> Plastic Production Facility <button type="button" class="link small">plan de pose</button></td><td class="prod">Plastic Pellets</td><td class="feeds"><span class="sub-k">alimente</span> Plastic Casing</td><td class="num energy">…</td></tr>
+  </tbody></table>
+  <p class="mq-note">Le réglage se déduit du craft choisi par le calcul : la Plastic Casing vient du craft « container », donc « levier sur container ». Rien d'autre à saisir. Une machine ne fait qu'un réglage à la fois : deux crafts de la même machine font deux lignes (c'est déjà le cas).</p>
+
+  <!-- ============================================================ 3. schéma -->
+  <h2 class="mq-t">3. Dans le schéma : la barre du bas et « Comment c'est calculé »</h2>
+  <div class="flow-hud">
+    <div class="flow-hud-info"><b>Plastic Casing</b><span>4 × Industrial Plastic Molder · reçoit 1 flux · en envoie 1</span></div>
+    <div class="flow-hud-acts">
+      <span class="iset" title="Réglage de la machine pour ce craft (wiki)">⚙ levier sur « container »</span>
+      <button type="button" class="flow-hud-btn primary">Plan de pose ▸</button>
+      <button type="button" class="flow-hud-btn">Bâtiment : ports relevés ✎</button>
+      <button type="button" class="flow-hud-x">×</button>
+    </div>
+  </div>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Plastic Casing</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+    <table class="calc-t">
+      <tr class="new"><th>Réglage de la machine</th><td class="f">levier (sur le côté) : position « container », celle de ce craft</td><td class="r">container</td><td class="s"><span class="src-tag wiki">wiki</span> <span class="src-tag jeu">relevé en jeu</span></td></tr>
+      <tr><th>Débit d'une machine</th><td class="f">6 Plastic Casing × 60 ÷ 12 s</td><td class="r">30 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>…</th><td colspan="3" class="s">(le reste du panneau S7, inchangé)</td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ 4. plan de pose -->
+  <h2 class="mq-t">4. Dans le plan de pose d'une étape (et le panneau d'un module de l'usine)</h2>
+  <div class="panel">
+    <h3>4 × Industrial Plastic Molder · Plastic Casing</h3>
+    <p><span class="iset">⚙ à régler sur chaque machine : levier sur « container »</span></p>
+    <p class="hint">(la vue du module, inchangée)</p>
+  </div>
+
+  <!-- ============================================================ 5. quarry -->
+  <h2 class="mq-t">5. La Quarry : un choix définitif (Clay Brick 60/min)</h2>
+  <table class="build"><tbody>
+    <tr class="stage"><td colspan="5">Extraction</td></tr>
+    <tr><td class="chk"><input type="checkbox"></td><td class="what"><span class="count">1 ×</span> Quarry <button type="button" class="link small">plan de pose</button><div class="sub"><span class="iset once">⚙ écran à l'avant : « Soil &amp; Clay »</span></div></td><td class="prod">Clay <span class="sub num">…/min</span></td><td class="feeds"><span class="sub-k">alimente</span> Clay Brick</td><td class="num energy">50 kMF/s</td></tr>
+  </tbody></table>
+  <p class="mq-note">« définitif » : d'après le wiki, le choix se fait à la pose et ne se défait plus. Au survol : « Choisis-le au moment de poser la Quarry : il ne se change plus ensuite. »</p>
+
+  <!-- ============================================================ 6. chemical plant -->
+  <h2 class="mq-t">6. La Chemical Plant : l'écran se règle dans le plan</h2>
+  <div class="flow-hud">
+    <div class="flow-hud-info"><b>Hardened Plastic Pellets</b><span>1 × Chemical Plant · reçoit 2 flux · en envoie 1</span></div>
+    <div class="flow-hud-acts">
+      <span class="mset on" title="Les trois multiplicateurs que l'écran de la machine affiche. Valent pour toutes les Chemical Plant de ce plan.">⚙ Écran : Resource Input × <input type="text" value="1,67"> Resource Output × <input type="text" value="2"> Power Input × <input type="text" value="4"></span>
+      <button type="button" class="flow-hud-btn">↺ 1×</button>
+      <button type="button" class="flow-hud-btn primary">Plan de pose ▸</button>
+      <button type="button" class="flow-hud-x">×</button>
+    </div>
+  </div>
+  <section class="calc">
+    <div class="calc-head"><h3>Comment c'est calculé <span>· Hardened Plastic Pellets</span></h3><a href="#">Voir dans Recettes ▸</a></div>
+    <table class="calc-t">
+      <tr class="new"><th>Réglage de l'écran</th><td class="f">entrées × 1,67 · sorties × 2 · énergie × 4 (toutes les Chemical Plant de ce plan)</td><td class="r">réglé par toi</td><td class="s"><span class="src-tag wiki">wiki</span> : valeurs du craft données à 1×</td></tr>
+      <tr><th>Débit d'une machine</th><td class="f">50 × 2 = 100 Hardened Plastic Pellets × 60 ÷ 5 s</td><td class="r">1 200 /min</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+      <tr><th>Entrées</th><td class="f">Ammonia 25 × 1,67 = 41,75 ; Naphtha 5 × 1,67 = 8,35 (par cycle)</td><td class="r">…</td><td class="s"></td></tr>
+      <tr><th>Énergie</th><td class="f">1 MMF/s × 4</td><td class="r">4 MMF/s</td><td class="s"><span class="src-tag wiki">wiki</span></td></tr>
+    </table>
+  </section>
+  <p class="mq-note"><b>Un changement à valider :</b> aujourd'hui, les 15 crafts de la Chemical Plant sont « à vérifier » (valeurs « variables » d'après le wiki), donc écartés du calcul sauf si tu coches « utiliser les valeurs à vérifier ». Or le wiki précise que ces valeurs sont celles de l'écran à 1× (« Speed and Efficiency at 100% ») : la seule chose qui varie, c'est le réglage de l'écran. Je propose de ne plus les compter « à vérifier » : avec ton réglage (1× par défaut), leurs valeurs sont connues. Conséquence : la Chemical Plant devient proposée par le calcul (par exemple pour la Hardened Plastic Casing, qu'aucun plan ne savait faire sans cette case).</p>
+  <p class="mq-note">Les trois cases reprennent ce que l'écran du jeu affiche : je n'invente pas de formule pour les crans de vitesse et d'efficacité. Le réglage est gardé par plan, comme le filtre de machines (S9), et « ↺ 1× » le remet à zéro. Il s'affiche aussi dans la liste de construction : « ⚙ écran : entrées × 1,67, sorties × 2, énergie × 4 ».</p>
+</div>
+</body>
+</html>
