@@ -96,6 +96,9 @@ export function fieldLabel(field: string, name: (id: string) => string): string 
       page: "page du wiki",
       requires: "règle des prérequis",
       description: "description (jeu)",
+      machine: "machine",
+      sellValue: "prix de vente ($)",
+      researchValue: "facteur RP",
     } as Record<string, string>
   )[field] ?? field;
 }

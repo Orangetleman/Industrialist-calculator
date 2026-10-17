@@ -2,6 +2,8 @@
 // (data/overrides.json puis corrections locales saisies dans l'appli).
 
 import type {
+  AddedItem,
+  AddedRecipe,
   Correction,
   Item,
   ItemsFile,
@@ -26,6 +28,8 @@ export type GameData = {
   /** item → recettes qui le produisent (sortie nette > 0 ou quantité inconnue). */
   producers: Map<string, Recipe[]>;
   treeGrowth: TreeGrowth;
+  /** Crafts « n'existe pas en jeu » (S6) : hors des calculs, gardés pour les montrer et les rétablir. */
+  removed: Map<string, { recipe: Recipe; source: Source }>;
 };
 
 /** `energy` (facultatif) : installations énergétiques composées et pollution des Scrubbers (E2). */
@@ -46,6 +50,20 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     const r = applyOverrides({ items, machines, recipes, nodes }, o);
     errors.push(...r.errors);
     applied += r.applied;
+  }
+  // Retraits en dernier : une correction ou un ajout d'un autre fichier peut viser le craft retiré.
+  const removed: GameData["removed"] = new Map();
+  for (const o of overrides) {
+    for (const [id, entry] of Object.entries(o.removed?.recipes ?? {})) {
+      const r = recipes.get(id) ?? removed.get(id)?.recipe;
+      if (!r) errors.push(`removed/recipes/${id} : craft inconnu`);
+      else if (!entry?.source?.fetchedAt) errors.push(`removed/recipes/${id} : il faut { source: { wiki, fetchedAt } }`);
+      else {
+        recipes.delete(id);
+        removed.set(id, { recipe: r, source: entry.source });
+        applied++;
+      }
+    }
   }
   // « Contradiction » de recherche qui n'en est pas une : les deux sources nomment la même recherche
   // (son nom d'un côté, son identifiant de l'autre).
@@ -77,7 +95,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     }
   }
   for (const list of producers.values()) list.sort((a, b) => a.id.localeCompare(b.id));
-  return { data: { items, machines, recipes, nodes, producers, treeGrowth: structuredClone(files.machines.treeGrowth) }, errors, applied };
+  return { data: { items, machines, recipes, nodes, producers, treeGrowth: structuredClone(files.machines.treeGrowth), removed }, errors, applied };
 }
 
 /**
@@ -122,8 +140,9 @@ type Entity = { verify: VerifyFlag[]; sources: Source[]; corrections?: Correctio
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 /** Champs corrigeables et leur validation. Renvoie la valeur normalisée ou une erreur. */
-const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: string, v: unknown, e: any) => { ok: true; value: unknown } | { ok: false; error: string }> = {
-  recipes(field, v, r: Recipe) {
+const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: string, v: unknown, e: any, maps: Maps) => { ok: true; value: unknown } | { ok: false; error: string }> = {
+  recipes(field, v, r: Recipe, maps) {
+    if (field === "machine") return typeof v === "string" && maps.machines.has(v) ? { ok: true, value: v } : { ok: false, error: "machine inconnue" };
     if (field === "durationS") return isNum(v) && v > 0 ? { ok: true, value: v } : { ok: false, error: "durée > 0 attendue" };
     if (field === "energyMFps") return isNum(v) ? { ok: true, value: v } : { ok: false, error: "nombre attendu" };
     const m = /^(inputs|outputs)\.(.+)$/.exec(field);
@@ -149,6 +168,7 @@ const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: stri
   },
   items(field, v) {
     if (field === "sellValue") return isNum(v) ? { ok: true, value: v } : { ok: false, error: "nombre attendu" };
+    if (field === "researchValue") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: "nombre ≥ 0 attendu" };
     if (field === "isFluid") return typeof v === "boolean" ? { ok: true, value: v } : { ok: false, error: "booléen attendu" };
     // Description en jeu : absente des wikis pour la plupart des objets, recopiée par le joueur.
     if (field === "description") {
@@ -183,6 +203,36 @@ function setPath(e: any, field: string, v: unknown): void {
 export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]; applied: number } {
   const errors: string[] = [];
   let applied = 0;
+  // Ajouts d'abord (objets, puis crafts qui peuvent les utiliser) : les corrections peuvent les viser.
+  for (const [id, a] of Object.entries(o.added?.items ?? {})) {
+    const err = checkAddedItem(maps, id, a);
+    if (err) {
+      errors.push(`added/items/${id} : ${err}`);
+      continue;
+    }
+    maps.items.set(id, { id, name: a.name.trim(), isFluid: a.isFluid ?? null, sellValue: a.sellValue ?? null, researchValue: a.researchValue ?? null, sources: [a.source], verify: [], added: a.source });
+    applied++;
+  }
+  for (const [id, a] of Object.entries(o.added?.recipes ?? {})) {
+    const err = checkAddedRecipe(maps, id, a);
+    if (err) {
+      errors.push(`added/recipes/${id} : ${err}`);
+      continue;
+    }
+    maps.recipes.set(id, {
+      id,
+      machine: a.machine,
+      durationS: a.durationS,
+      inputs: { ...a.inputs },
+      outputs: { ...a.outputs },
+      energyMFps: a.energyMFps,
+      research: maps.machines.get(a.machine)!.unlockedBy,
+      sources: [a.source],
+      verify: [],
+      added: a.source,
+    });
+    applied++;
+  }
   const groups: [keyof typeof FIELDS, Map<string, Entity>][] = [
     ["recipes", maps.recipes],
     ["machines", maps.machines],
@@ -201,7 +251,7 @@ export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]
           errors.push(`${kind}/${id}.${field} : il faut { value, source: { wiki, fetchedAt } }`);
           continue;
         }
-        const check = FIELDS[kind](field, entry.value, entity);
+        const check = FIELDS[kind](field, entry.value, entity, maps);
         if (!check.ok) {
           errors.push(`${kind}/${id}.${field} : ${check.error}`);
           continue;
@@ -210,6 +260,8 @@ export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]
         entity.verify = entity.verify.filter((f) => f.field !== field);
         const correction: Correction = { field, previous: getPath(entity, field), value: check.value, source: entry.source, resolvedFlags };
         setPath(entity, field, check.value);
+        // Autre machine : la recherche nécessaire du craft est la sienne.
+        if (kind === "recipes" && field === "machine") (entity as Recipe).research = maps.machines.get(check.value as string)!.unlockedBy;
         entity.corrections = [...(entity.corrections ?? []).filter((c) => c.field !== field), correction];
         entity.sources = [...entity.sources, entry.source];
         applied++;
@@ -217,6 +269,39 @@ export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]
     }
   }
   return { errors, applied };
+}
+
+const ID = /^[a-z0-9][\w.-]{0,79}$/i;
+
+/** Objet manquant : identifiant libre, nom, valeurs connues ou null. Renvoie l'erreur, ou null. */
+function checkAddedItem(maps: Maps, id: string, a: AddedItem): string | null {
+  if (!ID.test(id)) return "identifiant invalide";
+  if (maps.items.has(id)) return "cet objet existe déjà";
+  if (!a || typeof a !== "object" || !a.source?.fetchedAt) return "il faut { name, …, source: { wiki, fetchedAt } }";
+  if (typeof a.name !== "string" || !a.name.trim() || a.name.length > 100) return "nom de 1 à 100 caractères attendu";
+  if (a.isFluid !== null && a.isFluid !== undefined && typeof a.isFluid !== "boolean") return "fluide : oui, non ou inconnu";
+  for (const k of ["sellValue", "researchValue"] as const) if (a[k] !== null && a[k] !== undefined && !(isNum(a[k]) && a[k] >= 0)) return `${k} : nombre ≥ 0 ou inconnu attendu`;
+  return null;
+}
+
+/** Craft manquant : machine connue, au moins une sortie, objets connus, quantités > 0, durée > 0. */
+function checkAddedRecipe(maps: Maps, id: string, a: AddedRecipe): string | null {
+  if (!ID.test(id)) return "identifiant invalide";
+  if (maps.recipes.has(id)) return "ce craft existe déjà";
+  if (!a || typeof a !== "object" || !a.source?.fetchedAt) return "il faut { machine, …, source: { wiki, fetchedAt } }";
+  if (typeof a.machine !== "string" || !maps.machines.has(a.machine)) return `machine inconnue (${String(a.machine)})`;
+  if (!(isNum(a.durationS) && a.durationS > 0)) return "durée > 0 attendue";
+  if (!isNum(a.energyMFps)) return "énergie (MF/s) attendue";
+  for (const k of ["inputs", "outputs"] as const) {
+    const side = a[k];
+    if (!side || typeof side !== "object" || Array.isArray(side)) return `${k} : { objet: quantité } attendu`;
+    for (const [item, q] of Object.entries(side)) {
+      if (!maps.items.has(item)) return `objet inconnu dans ${k} (${item})`;
+      if (!(isNum(q) && q > 0)) return `quantité > 0 attendue (${item})`;
+    }
+  }
+  if (!Object.keys(a.outputs).length) return "au moins une sortie attendue";
+  return null;
 }
 
 export function itemName(data: GameData, id: string): string {

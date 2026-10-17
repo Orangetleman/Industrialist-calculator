@@ -359,7 +359,7 @@
   <!-- ====================================================== RECETTES (comme l'onglet « Recipes » du jeu) -->
   <section class="page" id="page-recettes" aria-labelledby="h-rc" hidden>
     <h1 id="h-rc">Recettes</h1>
-    <p class="lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche ; un ⚠ mène à la valeur à corriger.</p>
+    <p class="lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche. Une valeur fausse, un craft qui n'existe pas ou qui manque : « ✎ Corriger » sur la fiche (un ⚠ y mène directement).</p>
     <div class="rc-layout" id="rc-layout">
       <div class="rc-listcol">
         <div class="rc-search">
@@ -387,6 +387,7 @@
             </label>
             <span class="rc-count" id="rc-count" role="status"></span>
           </div>
+          <div class="rc-viewbar"><button type="button" class="small" id="rc-new-item" title="Un objet du jeu absent de cette liste (relevé en jeu)">+ Objet manquant</button></div>
         </div>
         <div class="rc-scroll" id="rc-list"></div>
       </div>

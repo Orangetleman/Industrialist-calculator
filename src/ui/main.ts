@@ -59,7 +59,36 @@ import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalSurveys, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { defaultDir, recipeEntries, recipeHref, renderEntryList, renderEntryRows, renderItemCard, renderMachineCard, searchEntries, sortEntries, type Entry, type EntryKind, type ListFilter, type ListView, type Picture, type RecipesCtx, type SortKey } from "./recipes-view.ts";
+import {
+  defaultDir,
+  draftFrom,
+  EDIT_ON,
+  newDraft,
+  parseDraft,
+  parseItemForm,
+  readNum,
+  recipeEntries,
+  recipeHref,
+  renderEntryList,
+  renderEntryRows,
+  renderItemCard,
+  renderItemForm,
+  renderMachineCard,
+  searchEntries,
+  sortEntries,
+  type CraftDraft,
+  type DraftAt,
+  type DraftLine,
+  type EditState,
+  type Entry,
+  type EntryKind,
+  type FixScope,
+  type ListFilter,
+  type ListView,
+  type Picture,
+  type RecipesCtx,
+  type SortKey,
+} from "./recipes-view.ts";
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
@@ -76,8 +105,14 @@ import {
   loadCorrections,
   loadSettings,
   mergeCorrections,
+  newItemId,
+  newRecipeId,
   pruneIntegratedCorrections,
+  removeAdded,
   removeCorrection,
+  setAddedItem,
+  setAddedRecipe,
+  setRemoved,
   saveBuilt,
   saveCorrections,
   saveSettings,
@@ -142,6 +177,10 @@ let rcPrefs = loadPrefs();
 let rcQuery = "";
 let rcEntries: Entry[] | null = null;
 let myImages: MyImages = loadImages();
+/** Mode « ✎ Corriger » de la fiche ouverte (null = lecture), la fiche qu'il concerne, et une case à rendre active. */
+let rcEdit: EditState | null = null;
+let rcEditCard = "";
+let rcFocusPending = false;
 /** Vignettes du wiki (scripts/fetch-images.ts), servies depuis public/img. */
 const WIKI_IMAGES = new Map((imagesJson as { images: { kind: EntryKind; id: string; file: string; url: string; license: string }[] }).images.map((x) => [`${x.kind}|${x.id}`, x]));
 
@@ -1221,18 +1260,42 @@ function recipesCtx(): RecipesCtx {
     data,
     image: pictureOf,
     locked: (r) => (fresh || !r.research || !data.nodes.has(r.research) || isNodeUnlocked(data, p, r.research) ? null : nodeName(r.research)),
+    edit: rcEdit,
+    mine: corrections,
   };
 }
 
-function renderRecettes(ctx: RecipesCtx = recipesCtx()): void {
+function renderRecettes(ctx?: RecipesCtx): void {
   const card = route.page === "recettes" ? (route.card ?? null) : null;
-  $("rc-layout").classList.toggle("has-card", !!card);
+  // Autre fiche : le mode correction reste, ses formulaires ouverts se ferment.
+  const key = card ? `${card.kind}/${card.id}` : "";
+  if (key !== rcEditCard) {
+    rcEditCard = key;
+    if (rcEdit && !(rcEdit.newItem && !rcEdit.newItem.inDraft)) rcEdit = { ...EDIT_ON };
+  }
+  ctx ??= recipesCtx();
+  const standalone = rcEdit?.newItem && !rcEdit.newItem.inDraft ? rcEdit.newItem : null;
+  $("rc-layout").classList.toggle("has-card", !!card || !!standalone);
   $("rc-layout").classList.toggle("rows", rcPrefs.view === "lignes");
-  $("rc-card").innerHTML = card
-    ? card.kind === "objet"
-      ? renderItemCard(ctx, card.id)
-      : renderMachineCard(ctx, card.id)
-    : `<p class="rc-hello panel">Choisis un objet ou une machine dans la liste.</p>`;
+  const rejected = dataErrors.filter((e) => /^(added|removed)\//.test(e));
+  const banner = rejected.length ? `<div class="banner bad">Ajouts ou retraits ignorés :<ul>${rejected.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : "";
+  $("rc-card").innerHTML =
+    banner +
+    (standalone
+      ? `<article class="rc-card">${renderItemForm(standalone)}<p class="hint">L'objet s'ajoute à la liste ; sa fiche permet ensuite d'ajouter les crafts qui le donnent ou l'utilisent.</p></article>`
+      : card
+        ? card.kind === "objet"
+          ? renderItemCard(ctx, card.id)
+          : renderMachineCard(ctx, card.id)
+        : `<p class="rc-hello panel">Choisis un objet ou une machine dans la liste.</p>`);
+  if (rcFocusPending) {
+    rcFocusPending = false;
+    const box = $("rc-card");
+    const el = box.querySelector<HTMLInputElement>(".focus") ?? box.querySelector<HTMLInputElement>("[data-rc-itemform] input") ?? box.querySelector<HTMLInputElement>("[data-rc-draft] input");
+    el?.focus();
+    el?.scrollIntoView({ block: "center" });
+    if (el instanceof HTMLInputElement) el.select();
+  }
   if (input("rc-q").value !== rcQuery) input("rc-q").value = rcQuery;
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-filter]")) b.setAttribute("aria-pressed", String(b.dataset.rcFilter === rcPrefs.filter));
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-view]")) b.setAttribute("aria-pressed", String(b.dataset.rcView === rcPrefs.view));
@@ -1403,6 +1466,229 @@ function bindRecettes(): void {
       renderRecettes();
     } catch (err) {
       await ask("Import impossible", `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: "Fermer", primary: true }]);
+    }
+  });
+  bindRecettesEdit();
+}
+
+// ---------------------------------------------------------------- recettes : « ✎ Corriger » (S6)
+
+/** Enregistre de nouvelles corrections : données et calcul refaits, fiche redessinée. */
+function commitCorrections(next: typeof corrections): void {
+  corrections = next;
+  saveCorrections(corrections);
+  rebuildData();
+  planDirty = true;
+  renderRecettes();
+}
+
+/** Section où s'ouvre le formulaire d'un craft, d'après la fiche ouverte. */
+function draftAtFor(r: { outputs: Record<string, number | null> }): DraftAt {
+  const card = route.page === "recettes" ? route.card : undefined;
+  if (!card || card.kind === "machine") return "crafts";
+  return Object.hasOwn(r.outputs, card.id) ? "sources" : "uses";
+}
+
+/** Le formulaire de craft tel que saisi (relu avant chaque nouveau dessin). */
+function readDraft(): CraftDraft | null {
+  const d = rcEdit?.draft;
+  const box = $("rc-card").querySelector<HTMLElement>("[data-rc-draft]");
+  if (!d || !box) return d ?? null;
+  const val = (name: string) => box.querySelector<HTMLInputElement>(`:scope > label > input[name="${name}"]`)?.value ?? "";
+  const lines = (side: "inputs" | "outputs"): DraftLine[] =>
+    [...box.querySelectorAll<HTMLElement>(`.rc-line[data-side="${side}"]`)].map((l) => ({ item: l.querySelector<HTMLInputElement>("input[name=item]")!.value, qty: l.querySelector<HTMLInputElement>("input[name=qty]")!.value }));
+  return { ...d, machine: val("machine"), durationS: val("durationS"), energyMFps: val("energyMFps"), inputs: lines("inputs"), outputs: lines("outputs") };
+}
+
+function setEdit(next: EditState | null, focus = false): void {
+  rcEdit = next;
+  rcFocusPending = focus;
+  renderRecettes();
+}
+
+/** Une case de l'en-tête (prix, facteur RP, prix d'achat) : correction, ou valeur d'un objet que j'ai ajouté. */
+function saveFix(input: HTMLInputElement): void {
+  const [scope, id, field] = input.dataset.rcFix!.split("|") as [FixScope, string, string];
+  const raw = input.value;
+  const n = readNum(raw);
+  const added = scope === "items" ? corrections.added?.items?.[id] : undefined;
+  if (added) {
+    if (raw.trim() && (n === null || n < 0)) return void (input.setCustomValidity("nombre ≥ 0, ou vide si inconnu"), input.reportValidity());
+    const { source: _, ...rest } = added;
+    return commitCorrections(setAddedItem(corrections, id, { ...rest, [field]: raw.trim() ? n : null }));
+  }
+  const entity = scope === "items" ? data.items.get(id) : data.machines.get(id);
+  const current = (entity as Record<string, unknown> | undefined)?.[field];
+  if (!raw.trim() || n === null || n < 0) {
+    input.value = typeof current === "number" ? String(current) : "";
+    if (raw.trim()) {
+      input.setCustomValidity("nombre ≥ 0 attendu");
+      input.reportValidity();
+    }
+    return;
+  }
+  if (n === current) return;
+  commitCorrections(setCorrection(corrections, scope, id, field, n, "relevé en jeu (page Recettes)"));
+}
+
+/** « Enregistrer » d'un craft modifié : une correction par valeur changée. */
+function saveCraftEdit(li: HTMLElement, id: string): void {
+  const r = data.recipes.get(id);
+  if (!r) return;
+  const err = li.querySelector<HTMLElement>("[data-rc-err]")!;
+  let next = corrections;
+  for (const el of li.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-f]")) {
+    const field = el.dataset.f!;
+    if (field === "machine") {
+      if (el.value !== r.machine) next = setCorrection(next, "recipes", id, "machine", el.value, "relevé en jeu (page Recettes)");
+      continue;
+    }
+    const n = readNum(el.value);
+    const m = /^(inputs|outputs)\.(.+)$/.exec(field);
+    const current = m ? r[m[1] as "inputs" | "outputs"][m[2]!] : r[field as "durationS" | "energyMFps"];
+    if (n === null && !el.value.trim() && current === null) continue;
+    const bad = n === null ? "un nombre" : field === "durationS" && n <= 0 ? "une durée > 0" : m && n < 0 ? "une quantité ≥ 0" : null;
+    if (bad) {
+      err.textContent = `${bad} est attendu pour chaque case (${el.getAttribute("aria-label") ?? field}).`;
+      el.focus();
+      return;
+    }
+    if (n !== current) next = setCorrection(next, "recipes", id, field, n, "relevé en jeu (page Recettes)");
+  }
+  rcEdit = { ...EDIT_ON };
+  if (next === corrections) return renderRecettes();
+  commitCorrections(next);
+}
+
+function saveDraft(): void {
+  const d = readDraft();
+  if (!d) return;
+  const p = parseDraft(data, d);
+  if (!p.ok) return setEdit({ ...rcEdit!, draft: { ...d, errors: p.errors, unknown: p.unknown } });
+  const taken = (x: string) => data.recipes.has(x) || data.removed.has(x) || !!corrections.added?.recipes?.[x];
+  const id = d.id ?? newRecipeId(p.recipe.machine, Object.keys(p.recipe.outputs)[0]!, taken);
+  let next = setAddedRecipe(corrections, id, p.recipe);
+  if (d.replace) next = setRemoved(next, d.replace, true);
+  rcEdit = { ...EDIT_ON };
+  commitCorrections(next);
+}
+
+function saveItemForm(box: HTMLElement): void {
+  const ni = rcEdit?.newItem;
+  if (!ni) return;
+  const val = (name: string) => box.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`)?.value ?? "";
+  const draft = ni.inDraft ? readDraft() : null;
+  const p = parseItemForm(data, { name: val("name"), fluid: val("fluid"), sellValue: val("sellValue"), researchValue: val("researchValue") });
+  if (!p.ok) return setEdit({ ...rcEdit!, draft, newItem: { ...ni, name: val("name"), error: p.error } }, true);
+  const id = newItemId(p.item.name, (x) => data.items.has(x) || !!corrections.added?.items?.[x]);
+  const next = setAddedItem(corrections, id, p.item);
+  if (ni.inDraft && draft) {
+    // Retour au craft : le nom saisi est maintenant connu.
+    rcEdit = { ...rcEdit!, newItem: null, draft: { ...draft, errors: [], unknown: draft.unknown.filter((u) => u.toLowerCase() !== p.item.name.toLowerCase()) } };
+    commitCorrections(next);
+    return;
+  }
+  corrections = next;
+  saveCorrections(corrections);
+  rebuildData();
+  planDirty = true;
+  rcEdit = { ...EDIT_ON };
+  rcEditCard = `objet/${id}`;
+  go({ page: "recettes", card: { kind: "objet", id } });
+}
+
+function bindRecettesEdit(): void {
+  $("rc-new-item").addEventListener("click", () => setEdit({ ...(rcEdit ?? EDIT_ON), craft: null, draft: null, newItem: { name: rcQuery.trim(), inDraft: false } }, true));
+  $("rc-card").addEventListener("click", async (e) => {
+    const t = e.target as Element;
+    const on = (attr: string) => t.closest<HTMLElement>(`[${attr}]`);
+    let el: HTMLElement | null;
+    if (on("data-rc-edit-on")) return setEdit({ ...EDIT_ON });
+    if (on("data-rc-edit-off")) return setEdit(null);
+    if ((el = on("data-rc-focus"))) {
+      const key = el.dataset.rcFocus!;
+      const [scope, id] = key.split("|") as [FixScope, string];
+      return setEdit({ ...EDIT_ON, craft: scope === "recipes" ? id : null, focus: key }, true);
+    }
+    if ((el = on("data-rc-edit"))) return setEdit({ ...(rcEdit ?? EDIT_ON), craft: el.dataset.rcEdit!, draft: null, newItem: null, focus: null });
+    if (on("data-rc-cancel")) return setEdit({ ...(rcEdit ?? EDIT_ON), craft: null, focus: null });
+    if ((el = on("data-rc-save"))) return saveCraftEdit(el.closest<HTMLElement>("[data-rc-craftedit]")!, el.dataset.rcSave!);
+    if ((el = on("data-rc-replace"))) {
+      const r = data.recipes.get(el.dataset.rcReplace!);
+      if (r) setEdit({ ...(rcEdit ?? EDIT_ON), craft: null, newItem: null, draft: draftFrom(data, r, draftAtFor(r), "replace") }, true);
+      return;
+    }
+    if ((el = on("data-rc-remove"))) return commitCorrections(setRemoved(corrections, el.dataset.rcRemove!, true));
+    if ((el = on("data-rc-restore"))) return commitCorrections(setRemoved(corrections, el.dataset.rcRestore!, false));
+    if ((el = on("data-rc-add"))) {
+      const [at, id] = el.dataset.rcAdd!.split("|") as [DraftAt, string];
+      return setEdit({ ...(rcEdit ?? EDIT_ON), craft: null, newItem: null, draft: newDraft(data, { at, id }) }, true);
+    }
+    if ((el = on("data-rc-edit-added"))) {
+      const r = data.recipes.get(el.dataset.rcEditAdded!);
+      if (r) setEdit({ ...(rcEdit ?? EDIT_ON), craft: null, newItem: null, draft: draftFrom(data, r, draftAtFor(r), "id") }, true);
+      return;
+    }
+    if ((el = on("data-rc-del-added"))) return commitCorrections(removeAdded(corrections, "recipes", el.dataset.rcDelAdded!).next);
+    if ((el = on("data-rc-del-item"))) {
+      const id = el.dataset.rcDelItem!;
+      const { next, alsoRemoved } = removeAdded(corrections, "items", id);
+      const name = data.items.get(id)?.name ?? id;
+      const more = alsoRemoved.length ? ` Les ${alsoRemoved.length} craft${alsoRemoved.length > 1 ? "s" : ""} ajouté${alsoRemoved.length > 1 ? "s" : ""} qui l'utilisent seront effacés aussi.` : "";
+      const choice = await ask("Effacer l'objet ajouté", `<p>Effacer « ${esc(name)} » ?${esc(more)}</p>`, [
+        { value: "yes", label: "Effacer", primary: true },
+        { value: "", label: "Annuler" },
+      ]);
+      if (choice !== "yes") return;
+      corrections = next;
+      saveCorrections(corrections);
+      rebuildData();
+      planDirty = true;
+      go({ page: "recettes" });
+      return;
+    }
+    if ((el = on("data-rc-line-add"))) {
+      const d = readDraft()!;
+      const side = el.dataset.rcLineAdd as "inputs" | "outputs";
+      setEdit({ ...rcEdit!, draft: { ...d, [side]: [...d[side], { item: "", qty: "1" }] } });
+      const lines = $("rc-card").querySelectorAll<HTMLInputElement>(`.rc-line[data-side="${side}"] input[name=item]`);
+      lines[lines.length - 1]?.focus();
+      return;
+    }
+    if ((el = on("data-rc-line-del"))) {
+      const d = readDraft()!;
+      const [side, i] = el.dataset.rcLineDel!.split("|") as ["inputs" | "outputs", string];
+      return setEdit({ ...rcEdit!, draft: { ...d, [side]: d[side].filter((_, k) => k !== Number(i)) } });
+    }
+    if (on("data-rc-draft-cancel")) return setEdit({ ...(rcEdit ?? EDIT_ON), draft: null, newItem: null });
+    if (on("data-rc-draft-save")) return saveDraft();
+    if ((el = on("data-rc-newitem"))) return setEdit({ ...rcEdit!, draft: readDraft(), newItem: { name: el.dataset.rcNewitem!, inDraft: true } }, true);
+    if (on("data-rc-item-cancel")) return setEdit({ ...(rcEdit ?? EDIT_ON), draft: readDraft(), newItem: null });
+    if ((el = on("data-rc-item-save"))) return saveItemForm(el.closest<HTMLElement>("[data-rc-itemform]")!);
+    if ((el = on("data-rc-unfix"))) {
+      const [scope, id, field] = el.dataset.rcUnfix!.split("|") as [FixScope, string, string];
+      return commitCorrections(removeCorrection(corrections, scope, id, field));
+    }
+  });
+  // Cases de l'en-tête : enregistrées quand on les quitte ; Entrée les quitte.
+  $("rc-card").addEventListener("change", (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.dataset?.rcFix) saveFix(t);
+  });
+  $("rc-card").addEventListener("input", (e) => (e.target as HTMLInputElement).setCustomValidity?.(""));
+  $("rc-card").addEventListener("keydown", (e) => {
+    const t = e.target as HTMLElement;
+    if (e.key !== "Enter" || !(t instanceof HTMLInputElement)) return;
+    if (t.dataset.rcFix) return t.blur();
+    if (t.closest("[data-rc-craftedit]")) {
+      e.preventDefault();
+      t.closest<HTMLElement>("[data-rc-craftedit]")!.querySelector<HTMLButtonElement>("[data-rc-save]")!.click();
+    } else if (t.closest("[data-rc-itemform]")) {
+      e.preventDefault();
+      t.closest<HTMLElement>("[data-rc-itemform]")!.querySelector<HTMLButtonElement>("[data-rc-item-save]")!.click();
+    } else if (t.closest("[data-rc-draft]")) {
+      e.preventDefault();
+      $("rc-card").querySelector<HTMLButtonElement>("[data-rc-draft-save]")!.click();
     }
   });
 }
@@ -2198,8 +2484,11 @@ function bindData(): void {
   $("corrections").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-remove]");
     if (!btn) return;
-    const [scope, id, field] = btn.dataset.remove!.split("|") as [Scope, string, string];
-    corrections = removeCorrection(corrections, scope, id, field);
+    const [scope, id, field] = btn.dataset.remove!.split("|") as [Scope | "added" | "removed", string, string];
+    // Ajouts et retraits (S6) : « added|items|id », « added|recipes|id », « removed|recipes|id ».
+    if (scope === "added") corrections = removeAdded(corrections, id as "items" | "recipes", field).next;
+    else if (scope === "removed") corrections = setRemoved(corrections, field, false);
+    else corrections = removeCorrection(corrections, scope, id, field);
     saveCorrections(corrections);
     rebuildData();
     update();

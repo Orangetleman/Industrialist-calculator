@@ -176,5 +176,23 @@ export function renderCorrections(ctx: Ctx): string {
       }
     }
   }
+  // Crafts et objets ajoutés, crafts retirés (page Recettes, S6).
+  const craft = (r: { machine: string; inputs: Record<string, number | null>; outputs: Record<string, number | null> }) => {
+    const side = (s: Record<string, number | null>) => Object.entries(s).map(([i, q]) => `${q === null ? "?" : fmt(q, 3)} ${itemN(ctx, i)}`).join(" + ") || "rien";
+    return `${machineN(ctx, r.machine)} : ${side(r.inputs)} → ${side(r.outputs)}`;
+  };
+  const day = (s: Source) => esc(s.fetchedAt.slice(0, 10));
+  const card = (kind: "objet" | "machine", id: string) => `<a href="#recettes/${kind}/${encodeURIComponent(id)}">fiche</a>`;
+  for (const [id, it] of Object.entries(ctx.corrections.added?.items ?? {})) {
+    rows.push(`<li><span class="rc-tag add">objet ajouté</span> ${esc(it.name)} <span class="muted">(${day(it.source)})</span> ${card("objet", id)} · <button type="button" class="link" data-remove="added|items|${esc(id)}">effacer</button></li>`);
+  }
+  for (const [id, r] of Object.entries(ctx.corrections.added?.recipes ?? {})) {
+    const first = Object.keys(r.outputs)[0];
+    rows.push(`<li><span class="rc-tag add">craft ajouté</span> ${esc(craft(r))} <span class="muted">(${day(r.source)})</span>${first ? ` ${card("objet", first)}` : ""} · <button type="button" class="link" data-remove="added|recipes|${esc(id)}">effacer</button></li>`);
+  }
+  for (const [id, x] of Object.entries(ctx.corrections.removed?.recipes ?? {})) {
+    const r = ctx.data.removed.get(id)?.recipe;
+    rows.push(`<li><span class="rc-tag del">craft retiré</span> ${esc(r ? craft(r) : id)} <span class="muted">(${day(x.source)})</span>${r ? ` ${card("machine", r.machine)}` : ""} · <button type="button" class="link" data-remove="removed|recipes|${esc(id)}">rétablir</button></li>`);
+  }
   return rows.length ? `<ul class="corrections">${rows.join("")}</ul>` : `<p class="muted">Aucune correction locale pour l'instant.</p>`;
 }

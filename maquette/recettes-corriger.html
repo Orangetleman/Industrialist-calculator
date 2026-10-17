@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S6 — Corriger</title>
+<link rel="stylesheet" href="/src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.rc-editbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; background: var(--steel-soft); border: 1px solid var(--steel); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.rc-edit-in { width: 7.5em; padding: 3px 6px; border: 1px solid var(--steel); border-radius: 6px; background: var(--bg); font: inherit; font-family: var(--f-mono); }
+.rc-edit-in.qty { width: 4em; }
+.rc-craft.editing { background: var(--steel-soft); border-radius: 8px; padding: 10px; }
+.rc-craft.removed .rc-side, .rc-craft.removed .rc-arrow, .rc-craft.removed .rc-mach { opacity: .45; text-decoration: line-through; }
+.rc-craft .rc-acts { display: flex; gap: 6px; margin-left: auto; align-self: center; flex-wrap: wrap; }
+.rc-tag { font-size: .72rem; border-radius: 999px; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap; }
+.rc-tag.add { color: var(--ok); } .rc-tag.del { color: var(--warn); }
+.rc-form { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 14px; margin-top: 6px; }
+.rc-form label { display: flex; flex-direction: column; gap: 3px; font-size: .82rem; color: var(--muted); }
+.rc-form select, .rc-form input:not([type=checkbox]) { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font: inherit; color: var(--ink); }
+.rc-form .full { grid-column: 1 / -1; }
+.rc-lines { display: flex; flex-direction: column; gap: 6px; }
+.rc-line { display: flex; gap: 6px; align-items: center; }
+.rc-line input.qty { width: 5em; }
+.rc-line input.it { flex: 1; min-width: 0; }
+.rc-doubt { flex-basis: 100%; font-size: .8rem; color: var(--warn); }
+.rc-err { flex-basis: 100%; font-size: .82rem; color: #b3261e; }
+.mq-phone { width: 375px; border: 8px solid #333; border-radius: 22px; padding: 10px; background: var(--bg); align-self: center; }
+.mq-phone .rc-card { padding: 10px; }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S6 — « ✎ Corriger » dans la page Recettes</h1>
+  <p class="mq-note">Maquette à valider : rien n'est encore branché. Les valeurs sont celles de nos données (Crankshaft : 754 $, 35× RP ; deux sources). Les exemples de saisie (« 12 s », « Milling Machine ») sont fictifs, juste pour montrer les formulaires.</p>
+
+  <!-- ============================================================ 1. fiche normale -->
+  <h2 class="mq-t">1. La fiche, comme aujourd'hui, avec un bouton « ✎ Corriger »</h2>
+  <article class="rc-card">
+    <header class="rc-head">
+      <span class="rc-pic lg" style="--h:200">Cr</span>
+      <div class="rc-id">
+        <p class="eyebrow">Objet</p>
+        <h2>Crankshaft</h2>
+        <p class="rc-price num">754 $</p>
+        <p class="rc-rp num">35× RP</p>
+      </div>
+      <div class="rc-tools"><button type="button" class="small">🖼 Changer l'image</button><button type="button" class="small primary">✎ Corriger</button></div>
+    </header>
+    <p class="rc-desc muted">Pas de description.</p>
+    <section class="rc-sec"><h3>Sources <span class="pill">2</span></h3>
+      <ul class="rc-crafts">
+        <li class="rc-craft">
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:30">SR</span><span class="rc-qn">Steel Rod</span></a><b class="rc-n">2×</b></span><span class="rc-plus">+</span><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:120">Ge</span><span class="rc-qn">Gear</span></a><b class="rc-n">4×</b></span></div>
+          <div class="rc-arrow"><span>5 s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>200 kMF/s</span></div>
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:200">Cr</span><span class="rc-qn">Crankshaft</span></a><b class="rc-n">1×</b></span></div>
+          <a class="rc-mach" href="#">(Advanced Assembler)</a>
+        </li>
+        <li class="rc-craft">
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:30">SR</span><span class="rc-qn">Steel Rod</span></a><b class="rc-n">2×</b></span><span class="rc-plus">+</span><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:120">Ge</span><span class="rc-qn">Gear</span></a><b class="rc-n">4×</b></span></div>
+          <div class="rc-arrow"><span>15 s <span class="rc-flag rc-fixed">✎</span></span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>4 kMF/s <span class="rc-flag rc-fixed">✎</span></span></div>
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:200">Cr</span><span class="rc-qn">Crankshaft</span></a><b class="rc-n">1×</b></span></div>
+          <a class="rc-mach" href="#">(Craft Assembler)</a>
+        </li>
+      </ul>
+    </section>
+    <p class="hint">Un ⚠ sur une valeur ouvre directement ce mode « Corriger », la valeur en question sélectionnée (au lieu d'envoyer vers « Données »).</p>
+  </article>
+
+  <!-- ============================================================ 2. mode correction -->
+  <h2 class="mq-t">2. Après « ✎ Corriger » : la même fiche, les valeurs deviennent modifiables</h2>
+  <p class="mq-note">En-tête : prix et facteur RP dans des cases. Chaque craft a « ✎ Modifier » et « ✕ N'existe pas en jeu ». Un craft retiré reste visible, barré, avec « Rétablir » : il ne compte plus dans les calculs. En bas : « + Ajouter un craft manquant ».</p>
+  <article class="rc-card">
+    <div class="rc-editbar"><span><b>Mode correction</b> · chaque valeur enregistrée compte comme un relevé en jeu, daté du jour ; elle s'exporte dans <code>overrides.json</code> (Données › Mes corrections).</span><button type="button" class="small">✓ Terminer</button></div>
+    <header class="rc-head">
+      <span class="rc-pic lg" style="--h:200">Cr</span>
+      <div class="rc-id">
+        <p class="eyebrow">Objet</p>
+        <h2>Crankshaft</h2>
+        <p class="rc-price num"><label>Prix de vente <input class="rc-edit-in" value="754"> $</label></p>
+        <p class="rc-rp num"><label>Facteur RP <input class="rc-edit-in qty" value="35"> ×</label></p>
+        <p class="hint">Une case modifiée s'enregistre quand on la quitte (Entrée). « annuler ma correction » apparaît à côté d'une valeur corrigée.</p>
+      </div>
+    </header>
+    <section class="rc-sec"><h3>Sources <span class="pill">2</span> <span class="rc-tag del">1 retiré</span></h3>
+      <ul class="rc-crafts">
+        <!-- craft en cours de modification -->
+        <li class="rc-craft editing">
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:30">SR</span><span class="rc-qn">Steel Rod</span></a></span><input class="rc-edit-in qty" value="2" aria-label="quantité"><span class="rc-plus">+</span><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:120">Ge</span><span class="rc-qn">Gear</span></a></span><input class="rc-edit-in qty" value="4" aria-label="quantité"></div>
+          <div class="rc-arrow"><span><input class="rc-edit-in qty" value="15"> s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span><input class="rc-edit-in" value="4000"> MF/s</span></div>
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:200">Cr</span><span class="rc-qn">Crankshaft</span></a></span><input class="rc-edit-in qty" value="1" aria-label="quantité"></div>
+          <label class="rc-mach">Machine <select><option>Craft Assembler</option><option>Advanced Assembler</option><option>…</option></select></label>
+          <p class="rc-doubt">⚠ Durée à vérifier (exemple de doute du wiki) — affiché ici, à côté de la case.</p>
+          <div class="rc-acts"><button type="button" class="small primary">Enregistrer</button><button type="button" class="small">Annuler</button><button type="button" class="small link">Une entrée manque ou est en trop ? Remplacer par un craft corrigé</button></div>
+        </li>
+        <!-- craft normal en mode correction -->
+        <li class="rc-craft">
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:30">SR</span><span class="rc-qn">Steel Rod</span></a><b class="rc-n">2×</b></span><span class="rc-plus">+</span><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:120">Ge</span><span class="rc-qn">Gear</span></a><b class="rc-n">4×</b></span></div>
+          <div class="rc-arrow"><span>5 s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>200 kMF/s</span></div>
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:200">Cr</span><span class="rc-qn">Crankshaft</span></a><b class="rc-n">1×</b></span></div>
+          <a class="rc-mach" href="#">(Advanced Assembler)</a>
+          <div class="rc-acts"><button type="button" class="small">✎ Modifier</button><button type="button" class="small">✕ N'existe pas en jeu</button></div>
+        </li>
+        <!-- craft retiré -->
+        <li class="rc-craft removed">
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:60">SI</span><span class="rc-qn">Steel Ingot</span></a><b class="rc-n">3×</b></span></div>
+          <div class="rc-arrow"><span>12 s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>8 kMF/s</span></div>
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:200">Cr</span><span class="rc-qn">Crankshaft</span></a><b class="rc-n">1×</b></span></div>
+          <a class="rc-mach" href="#">(Milling Machine)</a>
+          <div class="rc-acts"><span class="rc-tag del">retiré le 17/10 : n'existe pas en jeu</span><button type="button" class="small">↺ Rétablir</button></div>
+        </li>
+      </ul>
+      <p><button type="button" class="small">+ Ajouter un craft manquant</button> <span class="hint">(Crankshaft déjà mis en sortie)</span></p>
+    </section>
+    <section class="rc-sec"><h3>Utilisations <span class="pill">2</span></h3><p class="muted">… même chose : ✎ Modifier, ✕ N'existe pas en jeu, et « + Ajouter un craft manquant » (Crankshaft mis en entrée).</p></section>
+  </article>
+
+  <!-- ============================================================ 3. ajouter un craft -->
+  <h2 class="mq-t">3. « + Ajouter un craft manquant »</h2>
+  <p class="mq-note">Le formulaire s'ouvre dans la liste des crafts, pré-rempli avec l'objet de la fiche (ou la machine, depuis une fiche machine). Les objets se cherchent par leur nom en jeu. Refusé tant qu'il manque la machine, une sortie, la durée ou une quantité. La recherche nécessaire est celle de la machine. Un craft ajouté porte l'étiquette « ajouté » et se modifie ou s'efface comme une correction.</p>
+  <article class="rc-card">
+    <ul class="rc-crafts">
+      <li class="rc-craft editing">
+        <b>Nouveau craft</b>
+        <form class="rc-form">
+          <label>Machine <input list="mq-m" value="Milling Machine" placeholder="Rechercher une machine"></label>
+          <label>Durée (s) <input value="12" inputmode="decimal"></label>
+          <label>Énergie (MF/s, négatif = produit) <input value="8000" inputmode="decimal"></label>
+          <div class="full"><span class="hint">Entrées</span>
+            <div class="rc-lines">
+              <div class="rc-line"><input class="it" value="Steel Ingot" aria-label="objet"><input class="qty" value="3" aria-label="quantité"><button type="button" class="small link">✕</button></div>
+              <div class="rc-line"><button type="button" class="small">+ entrée</button></div>
+            </div>
+          </div>
+          <div class="full"><span class="hint">Sorties</span>
+            <div class="rc-lines">
+              <div class="rc-line"><input class="it" value="Crankshaft" aria-label="objet"><input class="qty" value="1" aria-label="quantité"><button type="button" class="small link">✕</button></div>
+              <div class="rc-line"><button type="button" class="small">+ sortie</button></div>
+            </div>
+          </div>
+          <p class="rc-err full">Exemple d'erreur : « Steel Ingt » n'est pas un objet connu. <button type="button" class="small link">+ Créer l'objet « Steel Ingt »</button></p>
+          <div class="full row"><button type="button" class="primary">Ajouter ce craft</button> <button type="button">Annuler</button> <span class="hint">Source : relevé en jeu, 2026-10-17.</span></div>
+        </form>
+      </li>
+    </ul>
+  </article>
+
+  <!-- ============================================================ 4. objet manquant -->
+  <h2 class="mq-t">4. Un objet manquant</h2>
+  <p class="mq-note">Depuis la liste (bouton « + Objet manquant » sous la recherche) ou depuis le formulaire de craft quand un nom n'est pas reconnu. Il apparaît ensuite dans la liste avec l'étiquette « ajouté », et sa fiche permet d'ajouter les crafts qui le donnent ou l'utilisent.</p>
+  <article class="rc-card">
+    <form class="rc-form">
+      <label>Nom (comme en jeu, en anglais) <input value="" placeholder="ex. Titanium Bolt"></label>
+      <label>Fluide ? <select><option>non (objet solide)</option><option>oui (fluide)</option></select></label>
+      <label>Prix de vente ($) <input placeholder="vide = inconnu" inputmode="decimal"></label>
+      <label>Facteur RP (×) <input placeholder="vide = inconnu" inputmode="decimal"></label>
+      <div class="full row"><button type="button" class="primary">Ajouter l'objet</button> <button type="button">Annuler</button></div>
+    </form>
+  </article>
+
+  <!-- ============================================================ 5. données -->
+  <h2 class="mq-t">5. Dans Données › Mes corrections, et dans l'export</h2>
+  <article class="rc-card">
+    <ul class="corrections">
+      <li><code>recipes/craft_assembler_05</code> · durée = <b>15</b> <span class="muted">(2026-10-17)</span> <button type="button" class="link">retirer</button></li>
+      <li><span class="rc-tag del">retiré</span> Milling Machine → Crankshaft <span class="muted">(2026-10-17)</span> <button type="button" class="link">rétablir</button></li>
+      <li><span class="rc-tag add">ajouté</span> Milling Machine : 3 Steel Ingot → 1 Crankshaft <span class="muted">(2026-10-17)</span> <a href="#">fiche</a> · <button type="button" class="link">effacer</button></li>
+    </ul>
+    <pre class="hint" style="white-space:pre-wrap">overrides.json (même fichier qu'aujourd'hui, deux sections en plus) :
+{ "recipes": { … }, "items": { … },
+  "added":   { "items": { "titanium-bolt": { "name": "Titanium Bolt", "isFluid": false, "sellValue": null, "researchValue": null, "source": { "wiki": "jeu", "fetchedAt": "2026-10-17…" } } },
+               "recipes": { "ajout-milling-machine-crankshaft": { "machine": "milling-machine", "durationS": 12, "energyMFps": 8000, "inputs": { "steel-ingot": 3 }, "outputs": { "crankshaft": 1 }, "source": { … } } } },
+  "removed": { "recipes": { "milling_machine_04": { "source": { "wiki": "jeu", "fetchedAt": "2026-10-17…", "note": "n'existe pas en jeu" } } } } }</pre>
+  </article>
+
+  <!-- ============================================================ 6. téléphone -->
+  <h2 class="mq-t">6. Sur téléphone</h2>
+  <div class="mq-phone">
+    <article class="rc-card">
+      <div class="rc-editbar"><b>Mode correction</b><button type="button" class="small">✓ Terminer</button></div>
+      <header class="rc-head">
+        <span class="rc-pic lg" style="--h:200">Cr</span>
+        <div class="rc-id"><h2>Crankshaft</h2>
+          <p class="rc-price num"><label>Prix <input class="rc-edit-in" value="754"> $</label></p>
+          <p class="rc-rp num"><label>RP <input class="rc-edit-in qty" value="35"> ×</label></p></div>
+      </header>
+      <ul class="rc-crafts">
+        <li class="rc-craft">
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:30">SR</span><span class="rc-qn">Steel Rod</span></a><b class="rc-n">2×</b></span><span class="rc-plus">+</span><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:120">Ge</span><span class="rc-qn">Gear</span></a><b class="rc-n">4×</b></span></div>
+          <div class="rc-arrow"><span>5 s</span><svg viewBox="0 0 60 10"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span>200 kMF/s</span></div>
+          <div class="rc-side"><span class="rc-q"><a href="#"><span class="rc-pic sm" style="--h:200">Cr</span><span class="rc-qn">Crankshaft</span></a><b class="rc-n">1×</b></span></div>
+          <a class="rc-mach" href="#">(Advanced Assembler)</a>
+          <div class="rc-acts"><button type="button" class="small">✎ Modifier</button><button type="button" class="small">✕ N'existe pas</button></div>
+        </li>
+      </ul>
+      <p><button type="button" class="small">+ Ajouter un craft manquant</button></p>
+    </article>
+  </div>
+</div>
+</body>
+</html>

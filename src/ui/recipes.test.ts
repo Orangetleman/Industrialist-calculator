@@ -8,7 +8,7 @@ import researchJson from "../../data/research.json";
 import energyJson from "../../data/energy.json";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
 import type { OverridesFile } from "../engine/types.ts";
-import { entryRp, entryValue, initials, itemCrafts, machineCrafts, recipeEntries, renderEntryList, renderEntryRows, renderItemCard, renderMachineCard, searchEntries, sortEntries, type Entry } from "./recipes-view.ts";
+import { draftFrom, EDIT_ON, entryRp, entryValue, initials, itemCrafts, machineCrafts, newDraft, parseDraft, parseItemForm, recipeEntries, renderEntryList, renderEntryRows, renderItemCard, renderMachineCard, searchEntries, sortEntries, type Entry } from "./recipes-view.ts";
 import { cleanImages, cleanPrefs, parseImagesExport } from "./recipes-store.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
@@ -95,11 +95,16 @@ describe("fiches", () => {
     expect((html.match(/<li class="rc-craft/g) ?? []).length).toBe(machineCrafts(data, "chemical-reactor").length);
   });
 
-  it("un ⚠ de recette mène à sa valeur dans « Valeurs à vérifier »", () => {
+  it("un ⚠ de recette ouvre « ✎ Corriger » sur sa valeur (S6) ; celui d'une valeur qui ne se corrige pas ici mène à « Données »", () => {
     const r = [...data.recipes.values()].find((x) => x.verify.some((f) => f.field === "durationS"))!;
     const out = Object.keys(r.outputs)[0]!;
     const html = renderItemCard(ctx, out);
-    expect(html).toContain(`href="#donnees/verifier/recette/${encodeURIComponent(r.id)}/durationS"`);
+    expect(html).toContain(`data-rc-focus="recipes|${r.id}|durationS"`);
+    // Une valeur de la machine listée sous « Aussi à vérifier » (ni prix, ni tier, ni taille, ni pollution).
+    const shown = ["cost", "tier", "size", "pollutionPerHour", "page"];
+    const m = [...data.machines.values()].find((x) => x.verify.some((f) => !shown.includes(f.field)) && machineCrafts(data, x.id).length)!;
+    const field = m.verify.find((f) => !shown.includes(f.field))!.field;
+    expect(renderMachineCard(ctx, m.id)).toContain(`href="#donnees/verifier/machine/${encodeURIComponent(m.id)}/${field}"`);
   });
 
   it("une valeur corrigée porte ✎ (Crankshaft au Craft Assembler : 15 s relevées en jeu)", () => {
@@ -137,5 +142,92 @@ describe("préférences et images du joueur", () => {
     expect(cleanImages({ "objet|gear": ok, "x|gear": ok, "machine|press": "http://x.png" })).toEqual({ "objet|gear": ok });
     expect(parseImagesExport({ images: { "machine|press": ok } })).toEqual({ "machine|press": ok });
     expect(() => parseImagesExport({ images: {} })).toThrow();
+  });
+});
+
+describe("« ✎ Corriger » (S6)", () => {
+  const edit = { ...EDIT_ON };
+  const JEU = { wiki: "jeu" as const, fetchedAt: "2026-10-17T10:00:00Z", note: "test" };
+
+  it("le bouton « ✎ Corriger » est sur la fiche ; en mode correction, prix et facteur RP sont des cases", () => {
+    expect(renderItemCard(ctx, "crankshaft")).toContain("data-rc-edit-on");
+    const html = renderItemCard({ data, edit }, "crankshaft");
+    expect(html).toContain("Mode correction");
+    expect(html).not.toContain("data-rc-edit-on");
+    expect(html).toMatch(/data-rc-fix="items\|crankshaft\|sellValue" value="754"/);
+    expect(html).toMatch(/data-rc-fix="items\|crankshaft\|researchValue" value="35"/);
+    // Chaque craft : modifier ou « n'existe pas en jeu » ; chaque section : ajouter un craft.
+    expect(html).toContain(`data-rc-edit="craft_assembler_05"`);
+    expect(html).toContain(`data-rc-remove="advanced_assembler_05"`);
+    expect(html).toContain(`data-rc-add="sources|crankshaft"`);
+    expect(html).toContain(`data-rc-add="uses|crankshaft"`);
+    expect(renderMachineCard({ data, edit }, "craft-assembler")).toMatch(/data-rc-fix="machines\|craft-assembler\|cost"/);
+  });
+
+  it("un craft en cours de modification montre ses valeurs dans des cases, et la machine au choix", () => {
+    const html = renderItemCard({ data, edit: { ...edit, craft: "craft_assembler_05", focus: "recipes|craft_assembler_05|durationS" } }, "crankshaft");
+    expect(html).toContain(`data-rc-craftedit="craft_assembler_05"`);
+    expect(html).toMatch(/class="rc-edit-in qty focus" data-f="durationS" value="15"/);
+    expect(html).toMatch(/data-f="inputs.gear" value="4"/);
+    expect(html).toMatch(/<option value="craft-assembler" selected>Craft Assembler<\/option>/);
+    expect(html).toContain(`data-rc-replace="craft_assembler_05"`);
+  });
+
+  it("un craft retiré reste sur la fiche, barré, avec « Rétablir » ; il n'est plus dans les sources", () => {
+    const mine: OverridesFile = { removed: { recipes: { advanced_assembler_05: { source: JEU } } } };
+    const d = buildGameData(files, [overridesJson as unknown as OverridesFile, mine]).data;
+    expect(itemCrafts(d, "crankshaft").sources.map((r) => r.id)).toEqual(["craft_assembler_05"]);
+    const html = renderItemCard({ data: d, mine }, "crankshaft");
+    expect(html).toContain("1 retiré");
+    expect(text(html)).toContain("2 Steel Rod + 4 Gear → 1 Crankshaft, 5 s (Advanced Assembler)");
+    expect(html).toContain(`data-rc-restore="advanced_assembler_05"`);
+    // Sur la fiche de la machine aussi.
+    expect(renderMachineCard({ data: d, mine }, "advanced-assembler")).toContain(`data-rc-restore="advanced_assembler_05"`);
+  });
+
+  it("formulaire d'ajout : pré-rempli depuis la fiche, lu avec les noms du jeu, refusé s'il est incomplet", () => {
+    const d0 = newDraft(data, { at: "sources", id: "crankshaft" });
+    expect(d0.outputs).toEqual([{ item: "Crankshaft", qty: "1" }]);
+    expect(newDraft(data, { at: "crafts", id: "craft-assembler" }).machine).toBe("Craft Assembler");
+    const empty = parseDraft(data, d0);
+    expect(empty.ok).toBe(false);
+    if (!empty.ok) expect(empty.errors.join(" ")).toMatch(/Choisis la machine[\s\S]*Durée[\s\S]*Énergie/);
+    const ok = parseDraft(data, { ...d0, machine: "craft assembler", durationS: "12,5", energyMFps: "4 000", inputs: [{ item: "Steel Rod", qty: "3" }, { item: "", qty: "1" }] });
+    expect(ok).toEqual({ ok: true, recipe: { machine: "craft-assembler", durationS: 12.5, energyMFps: 4000, inputs: { "steel-rod": 3 }, outputs: { crankshaft: 1 } } });
+    const unknown = parseDraft(data, { ...d0, machine: "Craft Assembler", durationS: "1", energyMFps: "0", inputs: [{ item: "Steel Ingt", qty: "1" }] });
+    expect(unknown).toMatchObject({ ok: false, unknown: ["Steel Ingt"] });
+    const html = renderItemCard({ data, edit: { ...edit, draft: { ...d0, errors: ["x"], unknown: ["Steel Ingt"] } } }, "crankshaft");
+    expect(html).toContain(`data-rc-newitem="Steel Ingt"`);
+    expect(html).not.toContain(`data-rc-add="sources|crankshaft"`);
+  });
+
+  it("remplacer un craft : formulaire pré-rempli avec ses valeurs", () => {
+    const d = draftFrom(data, data.recipes.get("craft_assembler_05")!, "sources", "replace");
+    expect(d).toMatchObject({ replace: "craft_assembler_05", id: null, machine: "Craft Assembler", durationS: "15", energyMFps: "4000" });
+    expect(d.inputs).toEqual([{ item: "Steel Rod", qty: "2" }, { item: "Gear", qty: "4" }]);
+  });
+
+  it("objet manquant : nom obligatoire et nouveau ; valeurs vides = inconnues", () => {
+    expect(parseItemForm(data, { name: " ", fluid: "non", sellValue: "", researchValue: "" })).toMatchObject({ ok: false });
+    expect(parseItemForm(data, { name: "gear", fluid: "non", sellValue: "", researchValue: "" })).toMatchObject({ ok: false, error: expect.stringMatching(/existe déjà/) });
+    expect(parseItemForm(data, { name: "Titanium Bolt", fluid: "", sellValue: "12", researchValue: "" })).toEqual({ ok: true, item: { name: "Titanium Bolt", isFluid: null, sellValue: 12, researchValue: null } });
+    expect(parseItemForm(data, { name: "Titanium Bolt", fluid: "non", sellValue: "-1", researchValue: "" })).toMatchObject({ ok: false });
+  });
+
+  it("un objet et un craft ajoutés : dans la liste, sur la fiche (« ajouté »), effaçables par le joueur", () => {
+    const mine: OverridesFile = {
+      added: {
+        items: { "titanium-bolt": { name: "Titanium Bolt", isFluid: false, sellValue: null, researchValue: null, source: JEU } },
+        recipes: { "ajout-craft-assembler-titanium-bolt": { machine: "craft-assembler", durationS: 3, energyMFps: 1000, inputs: { "steel-rod": 1 }, outputs: { "titanium-bolt": 2 }, source: JEU } },
+      },
+    };
+    const d = buildGameData(files, [overridesJson as unknown as OverridesFile, mine]).data;
+    expect(searchEntries(recipeEntries(d), "titanium").map((e) => e.id)).toEqual(["titanium-bolt"]);
+    const html = renderItemCard({ data: d, mine, edit }, "titanium-bolt");
+    expect(html).toContain("rc-tag add");
+    expect(html).toContain(`data-rc-del-item="titanium-bolt"`);
+    expect(html).toContain(`data-rc-edit-added="ajout-craft-assembler-titanium-bolt"`);
+    expect(html).toContain(`data-rc-del-added="ajout-craft-assembler-titanium-bolt"`);
+    expect(renderItemCard({ data: d, mine, edit }, "steel-rod")).toContain(`data-rc-edit-added="ajout-craft-assembler-titanium-bolt"`);
   });
 });

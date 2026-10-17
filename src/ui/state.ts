@@ -2,7 +2,7 @@
 
 import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
-import type { OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
+import type { AddedItem, AddedRecipe, OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Goal = "objet" | "argent" | "énergie" | "recherche";
 export const GOALS: Goal[] = ["objet", "énergie", "recherche", "argent"];
@@ -236,8 +236,85 @@ export function removeCorrection(c: OverridesFile, scope: Scope, id: string, fie
 export function countCorrections(c: OverridesFile): number {
   let n = 0;
   for (const scope of ["recipes", "machines", "items", "research"] as Scope[]) for (const fields of Object.values(c[scope] ?? {})) n += Object.keys(fields).length;
+  n += Object.keys(c.added?.items ?? {}).length + Object.keys(c.added?.recipes ?? {}).length + Object.keys(c.removed?.recipes ?? {}).length;
   return n;
 }
+
+// ---------------------------------------------------------------- crafts et objets ajoutés ou retirés (S6)
+
+const fromGame = (note: string): Source => ({ wiki: "jeu", fetchedAt: new Date().toISOString(), note });
+
+/** Marque un craft « n'existe pas en jeu » (retiré des calculs), ou le rétablit. */
+export function setRemoved(c: OverridesFile, id: string, removed: boolean): OverridesFile {
+  const next: OverridesFile = structuredClone(c);
+  if (removed) ((next.removed ??= {}).recipes ??= {})[id] = { source: fromGame("n'existe pas en jeu (relevé du joueur)") };
+  else if (next.removed?.recipes) {
+    delete next.removed.recipes[id];
+    tidy(next);
+  }
+  return next;
+}
+
+export function setAddedRecipe(c: OverridesFile, id: string, r: Omit<AddedRecipe, "source">): OverridesFile {
+  const next: OverridesFile = structuredClone(c);
+  ((next.added ??= {}).recipes ??= {})[id] = { ...structuredClone(r), source: fromGame("craft manquant, relevé en jeu par le joueur") };
+  return next;
+}
+
+export function setAddedItem(c: OverridesFile, id: string, it: Omit<AddedItem, "source">): OverridesFile {
+  const next: OverridesFile = structuredClone(c);
+  ((next.added ??= {}).items ??= {})[id] = { ...it, source: fromGame("objet manquant, relevé en jeu par le joueur") };
+  return next;
+}
+
+/**
+ * Efface un ajout. Un objet emporte les crafts ajoutés qui l'utilisent (sinon ils seraient
+ * refusés) ; renvoie aussi leurs identifiants.
+ */
+export function removeAdded(c: OverridesFile, kind: "items" | "recipes", id: string): { next: OverridesFile; alsoRemoved: string[] } {
+  const next: OverridesFile = structuredClone(c);
+  const alsoRemoved: string[] = [];
+  delete next.added?.[kind]?.[id];
+  if (kind === "items") {
+    for (const [rid, r] of Object.entries(next.added?.recipes ?? {})) {
+      if (Object.hasOwn(r.inputs, id) || Object.hasOwn(r.outputs, id)) {
+        delete next.added!.recipes![rid];
+        alsoRemoved.push(rid);
+      }
+    }
+  }
+  tidy(next);
+  return { next, alsoRemoved };
+}
+
+/** Retire les sections vides (export lisible). */
+function tidy(c: OverridesFile): void {
+  for (const k of ["items", "recipes"] as const) if (c.added?.[k] && !Object.keys(c.added[k]!).length) delete c.added[k];
+  if (c.added && !Object.keys(c.added).length) delete c.added;
+  if (c.removed?.recipes && !Object.keys(c.removed.recipes).length) delete c.removed.recipes;
+  if (c.removed && !Object.keys(c.removed).length) delete c.removed;
+}
+
+const slug = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+
+/** Identifiant libre : « base », sinon « base-2 », « base-3 »… */
+function freeId(base: string, taken: (id: string) => boolean): string {
+  const b = base || "ajout";
+  if (!taken(b)) return b;
+  for (let n = 2; ; n++) if (!taken(`${b}-${n}`)) return `${b}-${n}`;
+}
+
+/** Identifiant d'un objet ajouté, tiré de son nom (« Titanium Bolt » → « titanium-bolt »). */
+export const newItemId = (name: string, taken: (id: string) => boolean) => freeId(slug(name), taken);
+/** Identifiant d'un craft ajouté : « ajout-<machine>-<première sortie> ». */
+export const newRecipeId = (machine: string, output: string, taken: (id: string) => boolean) => freeId(`ajout-${machine}-${output}`.slice(0, 70), taken);
 
 /** Fusionne deux fichiers de corrections (b l'emporte). */
 export function mergeCorrections(a: OverridesFile, b: OverridesFile): OverridesFile {
@@ -248,6 +325,11 @@ export function mergeCorrections(a: OverridesFile, b: OverridesFile): OverridesF
       group[id] = { ...(group[id] ?? {}), ...fields };
     }
   }
+  for (const k of ["items", "recipes"] as const) {
+    const add = b.added?.[k];
+    if (add && Object.keys(add).length) ((out.added ??= {})[k] as Record<string, unknown>) = { ...(out.added?.[k] ?? {}), ...structuredClone(add) };
+  }
+  if (b.removed?.recipes && Object.keys(b.removed.recipes).length) (out.removed ??= {}).recipes = { ...(out.removed?.recipes ?? {}), ...structuredClone(b.removed.recipes) };
   return out;
 }
 
@@ -269,6 +351,22 @@ export function pruneIntegratedCorrections(local: OverridesFile, repo: Overrides
       if (!Object.keys(fields).length) delete kept[scope]![id];
     }
   }
+  const same = (a: { source?: Source } | undefined, b: { source?: Source } | undefined) => !!a?.source?.fetchedAt && a.source.fetchedAt === b?.source?.fetchedAt;
+  for (const k of ["items", "recipes"] as const) {
+    for (const [id, a] of Object.entries(kept.added?.[k] ?? {})) {
+      if (same(a, repo.added?.[k]?.[id])) {
+        delete kept.added![k]![id];
+        dropped++;
+      }
+    }
+  }
+  for (const [id, r] of Object.entries(kept.removed?.recipes ?? {})) {
+    if (same(r, repo.removed?.recipes?.[id])) {
+      delete kept.removed!.recipes![id];
+      dropped++;
+    }
+  }
+  tidy(kept);
   return { kept, dropped };
 }
 
@@ -309,5 +407,8 @@ export function isOverridesFile(x: unknown): x is OverridesFile {
     const g = (x as Record<string, unknown>)[scope];
     if (g !== undefined && (typeof g !== "object" || g === null || Array.isArray(g))) return false;
   }
+  const isMap = (g: unknown) => g === undefined || (typeof g === "object" && g !== null && !Array.isArray(g));
+  const o = x as OverridesFile;
+  if (!isMap(o.added) || !isMap(o.removed) || !isMap(o.added?.items) || !isMap(o.added?.recipes) || !isMap(o.removed?.recipes)) return false;
   return true;
 }

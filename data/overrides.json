@@ -1,5 +1,5 @@
 {
- "_lisezMoi": "Corrections prioritaires sur les données du wiki. Format : { recipes|machines|items|research : { <id> : { <champ> : { value, source: { wiki: 'jeu'|'saisie', fetchedAt, note } } } } }. Ex. champ « durationS » ou « inputs.steel-ingot ». Le plus simple : corriger dans l'appli puis « Exporter mes corrections ».",
+ "_lisezMoi": "Corrections prioritaires sur les données du wiki. Format : { recipes|machines|items|research : { <id> : { <champ> : { value, source: { wiki: 'jeu'|'saisie', fetchedAt, note } } } } }. Ex. champ « durationS » ou « inputs.steel-ingot ». Crafts et objets absents des wikis : « added »: { items: { <id>: { name, isFluid, sellValue, researchValue, source } }, recipes: { <id>: { machine, durationS, energyMFps, inputs, outputs, source } } } ; crafts qui n'existent pas en jeu : « removed »: { recipes: { <id>: { source } } }. Le plus simple : corriger dans l'appli (page Recettes, « ✎ Corriger ») puis « Exporter mes corrections ».",
  "recipes": {
   "craft_assembler_05": {
    "durationS": {

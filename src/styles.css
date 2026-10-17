@@ -759,3 +759,34 @@ a.rc-flag:hover { text-decoration: underline; }
 .rc-rname { display: flex; align-items: center; gap: 4px; }
 .rc-descbox { display: flex; flex-direction: column; gap: 6px; }
 @media (min-width: 900px) { .rc-layout.rows { grid-template-columns: 430px minmax(0, 1fr); } }
+/* Page Recettes : mode « ✎ Corriger » (S6, maquette validée le 2026-10-17). */
+.rc-editbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; background: var(--steel-soft); border: 1px solid var(--steel); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.rc-card.editing { border-color: var(--steel); }
+.rc-fixl { font-size: .9rem; white-space: nowrap; }
+.rc-edit-in { width: 7.5em; padding: 3px 6px; border: 1px solid var(--steel); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; font-family: var(--f-mono); }
+.rc-edit-in.qty { width: 4.2em; }
+.rc-edit-in.focus, .rc-edit-sel.focus { outline: 2px solid var(--warn); outline-offset: 1px; }
+.rc-edit-sel { padding: 3px 6px; border: 1px solid var(--steel); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; max-width: 100%; }
+.rc-craft.editing { background: var(--steel-soft); border-radius: 8px; padding: 10px; }
+.rc-craft.removed { color: var(--muted); }
+.rc-strike { text-decoration: line-through; opacity: .7; font-size: .85rem; align-self: center; }
+.rc-craft .rc-acts { display: flex; gap: 6px; margin-left: auto; align-self: center; flex-wrap: wrap; align-items: center; }
+.rc-tag { font-size: .72rem; border-radius: 999px; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap; font-weight: 500; }
+.rc-tag.add { color: var(--ok); }
+.rc-tag.del { color: var(--warn); }
+.rc-tile-tag { position: absolute; top: 3px; left: 4px; font-size: .62rem; padding: 0 4px; background: var(--surface); }
+button.rc-flag { background: none; border: 0; padding: 0 2px; font: inherit; font-size: .75rem; font-weight: 600; cursor: pointer; min-height: 0; }
+button.rc-flag:hover { text-decoration: underline; }
+.rc-doubt { display: block; flex-basis: 100%; font-size: .8rem; color: var(--warn); font-weight: 400; }
+.rc-err { flex-basis: 100%; font-size: .84rem; color: var(--bad, #b3261e); margin: 0; }
+.rc-err:empty { display: none; }
+ul.rc-err { padding-left: 18px; }
+.rc-form { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin-top: 6px; }
+.rc-form label { display: flex; flex-direction: column; gap: 3px; font-size: .82rem; color: var(--muted); }
+.rc-form select, .rc-form input { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font: inherit; color: var(--ink); min-width: 0; }
+.rc-form .full { grid-column: 1 / -1; }
+.rc-subform { border: 1px dashed var(--steel); border-radius: 8px; padding: 10px; }
+.rc-lines { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.rc-line { display: flex; gap: 6px; align-items: center; }
+.rc-line input.qty { width: 5em; flex: none; }
+.rc-line input.it { flex: 1; min-width: 0; }

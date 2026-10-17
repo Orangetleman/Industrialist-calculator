@@ -576,6 +576,10 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S4 Machines | Demande en cours de lot : dans la vue complète, une liste repliable des machines incomplètes dans le plan de pose (comme « Liaisons » et « Passages »). | 2026-10-16 |
 | S5 Maquette | Tuiles comme en jeu **et** un affichage en lignes triable (nom, valeur, RP rapportés) ; l'objet ouvert doit rester visible dans la liste ; un ⚠ doit mener directement à la zone de correction, pas seulement signaler le doute. | 2026-10-17 |
 | S5 Images | Oui aux vignettes du wiki : 312 vignettes de 96 px (Miraheze, CC BY-NC-SA 4.0, source citée), 4,7 Mo ; la pastille reste quand une image manque. | 2026-10-17 |
+| S6 Maquette | Validée (`maquette/recettes-corriger.html`) : « ✎ Corriger » met la fiche en mode correction (valeurs modifiables sur place, ✎ Modifier et ✕ N'existe pas en jeu sur chaque craft, + Ajouter un craft manquant, objet manquant). | 2026-10-17 |
+| S6 ⚠ | Sur la page Recettes, un ⚠ ouvre le mode Corriger sur la valeur, le doute affiché à côté ; notes et valeurs des wikis restent dans Données (lien). | 2026-10-17 |
+| S6 Retrait | Un craft « n'existe pas en jeu » reste sur la fiche, barré, avec ↺ Rétablir ; il ne compte plus dans les calculs. | 2026-10-17 |
+| S6 Remplacer | Entrée manquante ou en trop : « Remplacer par un craft corrigé » retire l'ancien et ouvre l'ajout pré-rempli. | 2026-10-17 |
 
 ## 6. Journal des sessions
 

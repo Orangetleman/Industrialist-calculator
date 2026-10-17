@@ -48,6 +48,8 @@ export type Item = {
   sources: Source[];
   verify: VerifyFlag[];
   corrections?: Correction[];
+  /** Objet ajouté par le joueur (absent des wikis, relevé en jeu) : sa source. */
+  added?: Source;
 };
 
 export type Size = { w: number; l: number };
@@ -107,6 +109,8 @@ export type Recipe = {
   sources: Source[];
   verify: VerifyFlag[];
   corrections?: Correction[];
+  /** Craft ajouté par le joueur (absent des wikis, relevé en jeu) : sa source. */
+  added?: Source;
 };
 
 export type ResearchCategory = "Production" | "Energy" | "Utility";
@@ -188,4 +192,14 @@ export type OverridesFile = {
   machines?: Record<string, Record<string, OverrideEntry>>;
   items?: Record<string, Record<string, OverrideEntry>>;
   research?: Record<string, Record<string, OverrideEntry>>;
+  /** Objets et crafts absents des wikis, relevés en jeu (S6). */
+  added?: { items?: Record<string, AddedItem>; recipes?: Record<string, AddedRecipe> };
+  /** Crafts qui n'existent pas en jeu : retirés des calculs (S6), réversibles. */
+  removed?: { recipes?: Record<string, RemovedEntry> };
 };
+
+/** Objet manquant : valeurs inconnues à null. */
+export type AddedItem = { name: string; isFluid: boolean | null; sellValue: number | null; researchValue: number | null; source: Source };
+/** Craft manquant : la recherche nécessaire est celle de la machine. */
+export type AddedRecipe = { machine: string; durationS: number; energyMFps: number; inputs: Record<string, number>; outputs: Record<string, number>; source: Source };
+export type RemovedEntry = { source: Source };
