@@ -5,6 +5,7 @@ import { Chooser, machineArea, ratePerMachine, type Candidate, type Choice, type
 import { itemName, type GameData } from "./data.ts";
 import type { TreeGrowthResult } from "./pollution.ts";
 import type { VerifyFlag } from "./types.ts";
+import { excludedMachines, excludedMessage } from "./machine-filter.ts";
 import type { PlayerState, SolveRequest } from "./solve.ts";
 import { machineAccess, orderByDepth, rpCost, type MachineAccess, type ReqItem } from "./unlock.ts";
 
@@ -56,6 +57,8 @@ type Unresolved = {
   loopShortfall: boolean;
   /** Option de déblocage la moins chère, si l'item est verrouillé. */
   unlock?: Extract<MachineAccess, { available: false }> & { recipeId: string };
+  /** Machines écartées par le filtre (S9) qui le fabriqueraient. */
+  excluded?: string[];
   candidates: Candidate[];
 };
 
@@ -128,6 +131,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     forced: req.forced ?? {},
     useUnverified: !!req.useUnverified,
     pollutionPct: player.pollutionPct ?? null,
+    machines: req.machines,
   });
   const name = (id: string) => itemName(data, id);
   const warnings: Warning[] = [];
@@ -303,7 +307,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       const better = !unlock || (unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost);
       if (better) unlock = { ...a, recipeId: cand.recipeId };
     }
-    unresolved.push({ item, perMin, reason, loopShortfall: !!c.eff, ...(unlock ? { unlock } : {}), candidates: c.candidates });
+    const excluded = excludedMachines(c.candidates);
+    unresolved.push({ item, perMin, reason, loopShortfall: !!c.eff, ...(unlock ? { unlock } : {}), ...(excluded.length ? { excluded } : {}), candidates: c.candidates });
     for (const cand of c.candidates) {
       if (cand.status === "à vérifier" || cand.status === "incalculable") {
         for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
@@ -326,7 +331,9 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     warnings.push(
       u.loopShortfall
         ? { code: "boucle", message: `${name(u.item)} : ${fmtNum(u.perMin)}/min supplémentaires seraient nécessaires pour alimenter une boucle de la chaîne ; cette quantité n'est pas comptée.`, items: [u.item] }
-        : { code: `non-résolu:${u.reason}`, message: `${name(u.item)} (${fmtNum(u.perMin)}/min) n'est pas produit : ${label}.`, items: [u.item] },
+        : u.reason === "machine écartée"
+          ? { code: "non-résolu:machine écartée", message: excludedMessage(data, u.item, u.perMin, u.excluded ?? []), items: [u.item] }
+          : { code: `non-résolu:${u.reason}`, message: `${name(u.item)} (${fmtNum(u.perMin)}/min) n'est pas produit : ${label}.`, items: [u.item] },
     );
   }
 

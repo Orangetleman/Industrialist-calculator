@@ -2,6 +2,7 @@
 // Coût estimé pour 1 unité/min de l'item, par point fixe (type Bellman-Ford) : les boucles ne font pas exploser le calcul.
 
 import type { GameData } from "./data.ts";
+import { machineAllowed, recipeAllowed, type MachineFilter } from "./machine-filter.ts";
 import { treeGrowthSeconds, type TreeGrowthResult } from "./pollution.ts";
 import type { Machine, Recipe, VerifyFlag } from "./types.ts";
 import { machineAccess, type MachineAccess, type Progress } from "./unlock.ts";
@@ -18,6 +19,8 @@ export type ChoiceOptions = {
   /** Accepter les recettes « à vérifier » (valeurs variables ou manquantes) dans le choix automatique. */
   useUnverified: boolean;
   pollutionPct: number | null;
+  /** Filtre de machines du plan (S9) : les recettes des machines écartées ne sont plus candidates. */
+  machines?: MachineFilter | null;
 };
 
 /** Recette évaluée dans le contexte du joueur (durée des arbres selon la pollution…). */
@@ -43,7 +46,7 @@ export type Cost = {
   steps: number;
 };
 
-export type CandidateStatus = "ok" | "forcée" | "verrouillée" | "à vérifier" | "incalculable" | "boucle";
+export type CandidateStatus = "ok" | "forcée" | "verrouillée" | "à vérifier" | "incalculable" | "boucle" | "écartée";
 export type Candidate = {
   recipeId: string;
   machine: string;
@@ -54,7 +57,7 @@ export type Candidate = {
   cost?: Cost;
 };
 
-export type LeafReason = "verrouillé" | "aucune recette" | "seulement à vérifier" | "incalculable" | "boucle";
+export type LeafReason = "verrouillé" | "aucune recette" | "seulement à vérifier" | "incalculable" | "boucle" | "machine écartée";
 
 export type Choice = {
   item: string;
@@ -185,11 +188,18 @@ export class Chooser {
   private readonly data: GameData;
   private readonly progress: Progress;
   private readonly opts: ChoiceOptions;
+  private readonly allowed: ((machineId: string) => boolean) | null;
 
   constructor(data: GameData, progress: Progress, opts: ChoiceOptions) {
     this.data = data;
     this.progress = progress;
     this.opts = opts;
+    this.allowed = machineAllowed(data, opts.machines);
+  }
+
+  /** Recette permise par le filtre de machines du plan (S9). */
+  allowedRecipe(recipe: Recipe): boolean {
+    return recipeAllowed(this.allowed, recipe);
   }
 
   eff(recipe: Recipe): EffRecipe {
@@ -215,6 +225,7 @@ export class Chooser {
   isUsable(recipe: Recipe): boolean {
     const eff = this.eff(recipe);
     if (!(eff.durationS !== null && eff.durationS > 0) || Object.values(eff.net).some((v) => v === null)) return false;
+    if (!this.allowedRecipe(recipe)) return false;
     if (!machineAccess(this.data, this.progress, recipe.machine).available) return false;
     // Installation composée : toutes ses machines doivent être débloquées.
     if (recipe.parts?.some((p) => !machineAccess(this.data, this.progress, p.machine).available)) return false;
@@ -230,8 +241,10 @@ export class Chooser {
     const forcedRecipe = forcedId ? this.data.recipes.get(forcedId) : undefined;
     if (forcedId && (!forcedRecipe || !recipes.includes(forcedRecipe))) {
       this.invalidForced.push({ item, recipeId: forcedId, reason: forcedRecipe ? "cette recette ne produit pas l'item" : "recette inconnue" });
+    } else if (forcedRecipe && !this.allowedRecipe(forcedRecipe)) {
+      this.invalidForced.push({ item, recipeId: forcedId!, reason: "sa machine est écartée par le filtre de machines" });
     }
-    const forcedValid = !!forcedRecipe && recipes.includes(forcedRecipe);
+    const forcedValid = !!forcedRecipe && recipes.includes(forcedRecipe) && this.allowedRecipe(forcedRecipe);
     const usable: Usable[] = [];
     const rejected: Candidate[] = [];
     for (const r of recipes) {
@@ -241,6 +254,10 @@ export class Chooser {
       const isForced = forcedRecipe === r;
       if (!isCalculable(eff, item)) {
         rejected.push({ ...base, status: "incalculable", flags: r.verify });
+        continue;
+      }
+      if (!this.allowedRecipe(r)) {
+        rejected.push({ ...base, status: "écartée" });
         continue;
       }
       if (forcedValid && !isForced) {
@@ -455,13 +472,15 @@ export class Chooser {
       }
       const reason: LeafReason = !pre.recipes.length
         ? "aucune recette"
-        : pre.rejected.some((c) => c.status === "à vérifier")
-          ? "seulement à vérifier"
-          : pre.rejected.some((c) => c.status === "verrouillée")
-            ? "verrouillé"
-            : pre.usable.length
-              ? "boucle"
-              : "incalculable";
+        : !pre.usable.length && pre.rejected.some((c) => c.status === "écartée")
+          ? "machine écartée"
+          : pre.rejected.some((c) => c.status === "à vérifier")
+            ? "seulement à vérifier"
+            : pre.rejected.some((c) => c.status === "verrouillée")
+              ? "verrouillé"
+              : pre.usable.length
+                ? "boucle"
+                : "incalculable";
       this.choices.set(it, { item: it, eff: null, forced: pre.forced, cost: LEAF, leafReason: reason, candidates });
     }
   }

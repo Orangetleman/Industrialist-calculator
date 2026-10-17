@@ -2,6 +2,7 @@
 
 import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
+import type { MachineFilter } from "../engine/machine-filter.ts";
 import type { AddedItem, AddedRecipe, OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Goal = "objet" | "argent" | "énergie" | "recherche";
@@ -26,6 +27,30 @@ export function criteriaList(goal: Goal, raw: unknown): Criterion[] {
 
 export type ResultTab = "liste" | "schema" | "pose" | "details";
 
+/**
+ * Filtre de machines d'un plan (S9), tel que réglé : les listes de chaque mode sont gardées quand on
+ * passe de l'un à l'autre. `noExtraction` : machines d'extraction écartées en mode « seulement ».
+ */
+export type PlanMachines = { mode: "toutes" | "exclure" | "seulement"; exclure: string[]; seulement: string[]; noExtraction: string[] };
+export const NO_FILTER: PlanMachines = { mode: "toutes", exclure: [], seulement: [], noExtraction: [] };
+
+/** Clé du plan dont on règle les machines : un filtre par objet, un pour l'énergie, un pour l'argent ; aucun pour les RP. */
+export function planKey(goal: Goal, item: string): string | null {
+  return goal === "objet" ? `objet|${item}` : goal === "recherche" ? null : goal;
+}
+
+/** Le filtre réglé pour ce plan (« toutes » si aucun). */
+export function planMachines(s: Pick<Settings, "machineFilters">, key: string | null): PlanMachines {
+  return (key && s.machineFilters[key]) || NO_FILTER;
+}
+
+/** Le filtre pour le moteur ; null : toutes les machines. */
+export function engineFilter(pm: PlanMachines): MachineFilter | null {
+  if (pm.mode === "exclure") return pm.exclure.length ? { mode: "exclure", ids: pm.exclure } : null;
+  if (pm.mode === "seulement") return { mode: "seulement", ids: pm.seulement, noExtraction: pm.noExtraction };
+  return null;
+}
+
 /** Réglages de la vue « Toute l'usine » : `full` recalculée (sinon module par module), `glue` liaisons collées (module par module). */
 export type UsineView = { full: boolean; glue: boolean; detail: boolean; power: boolean; plugs: boolean; links: boolean };
 
@@ -46,6 +71,8 @@ export type Settings = {
    * ont été réglées ; changer d'objet ou d'objectif les annule.
    */
   fixed: { sig: string; machines: Record<string, number> } | null;
+  /** Filtre de machines de chaque plan (S9), par clé de plan (`planKey`). */
+  machineFilters: Record<string, PlanMachines>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
   money: number;
   /** La chaîne produit sa propre énergie. */
@@ -95,6 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   useUnverified: false,
   forced: {},
   fixed: null,
+  machineFilters: {},
   money: 10000,
   selfPowered: false,
   maxPollution: null,
@@ -182,6 +210,13 @@ export function loadSettings(): Settings {
   const fx = out.fixed as Settings["fixed"] | undefined;
   const fm = fx && typeof fx.sig === "string" && fx.machines && typeof fx.machines === "object" ? Object.entries(fx.machines).filter(([, n]) => Number.isInteger(n) && n >= 1) : [];
   out.fixed = fm.length ? { sig: fx!.sig, machines: Object.fromEntries(fm) } : null;
+  const mf = out.machineFilters && typeof out.machineFilters === "object" ? (out.machineFilters as Record<string, Partial<PlanMachines>>) : {};
+  const ids = (x: unknown) => (Array.isArray(x) ? [...new Set(x.filter((i): i is string => typeof i === "string"))] : []);
+  out.machineFilters = Object.fromEntries(
+    Object.entries(mf)
+      .filter(([, f]) => f && typeof f === "object")
+      .map(([k, f]) => [k, { mode: f.mode === "exclure" || f.mode === "seulement" ? f.mode : "toutes", exclure: ids(f.exclure), seulement: ids(f.seulement), noExtraction: ids(f.noExtraction) }]),
+  );
   return out;
 }
 export function saveSettings(s: Settings): void {

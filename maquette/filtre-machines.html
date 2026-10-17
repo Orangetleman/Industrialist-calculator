@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S9 — Filtre de machines</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+
+/* Le réglage, sous « Priorités », replié comme elles. */
+.mfilter { flex-basis: 100%; }
+.mf-mode { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 6px; font-size: .9rem; }
+.mf-mode label { display: inline-flex; align-items: center; gap: 6px; }
+.mf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: .9rem; }
+.mf-row > .k { font-weight: 600; margin-right: 2px; }
+.mf-row input[type="search"] { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 6px 10px; font-size: .92rem; width: 260px; max-width: 100%; }
+.chip.mf { padding-right: 4px; }
+.chip.mf button { border: none; background: none; padding: 0 4px; color: var(--muted); cursor: pointer; font-size: .95rem; line-height: 1; }
+.chip.mf.off { text-decoration: line-through; color: var(--muted); }
+.chip.add { cursor: pointer; border-style: dashed; color: var(--steel); }
+.criteria-order .mf-sum { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S9 — exclure des machines, ou n'utiliser que certaines</h1>
+  <p class="mq-note">Maquette à valider : l'interface n'est pas encore branchée (le moteur, lui, l'est déjà). Les nombres viennent du moteur pour <b>Crankshaft 60/min</b>, tout débloqué, priorités du site (énergie d'abord). Sans filtre : 119 machines et 61 arbres (15 Craft Assembler, 5 + 1 Blast Furnace, 60 Iron Drill…).</p>
+
+  <!-- ============================================================ 1. replié -->
+  <h2 class="mq-t">1. Sur la page de l'objectif, sous « Priorités » : une ligne « Machines », repliée</h2>
+  <form class="query">
+    <details class="criteria"><summary><span class="criteria-title">Priorités</span> <span class="criteria-order"><span class="ord"><b>1</b>Le moins d'énergie</span><span class="sep">›</span><span class="ord"><b>2</b>Le moins de machines</span></span> <span class="criteria-edit">changer l'ordre</span></summary></details>
+    <details class="criteria mfilter"><summary><span class="criteria-title">Machines</span> <span class="criteria-order"><span class="mf-sum">toutes celles que tu as débloquées</span></span> <span class="criteria-edit">en exclure ou choisir</span></summary></details>
+  </form>
+  <p class="mq-note">Fermé, le résumé dit ce qui est actif : « toutes celles que tu as débloquées », « toutes sauf Blast Furnace », « seulement 6 machines (+ l'extraction) ». Le réglage vaut pour les objectifs <b>objet</b>, <b>énergie</b> et <b>argent</b> (pas pour « Des RP », qui calcule des stations de recherche).</p>
+
+  <!-- ============================================================ 2. exclure -->
+  <h2 class="mq-t">2. Ouvert, mode « Exclure » : on écarte Blast Furnace</h2>
+  <form class="query">
+    <details class="criteria mfilter" open><summary><span class="criteria-title">Machines</span> <span class="criteria-order"><span class="mf-sum">toutes sauf Blast Furnace</span></span> <span class="criteria-edit">en exclure ou choisir</span></summary>
+      <div class="mf-mode">
+        <label><input type="radio" name="m2"> Toutes</label>
+        <label><input type="radio" name="m2" checked> Toutes sauf…</label>
+        <label><input type="radio" name="m2"> Seulement…</label>
+      </div>
+      <div class="mf-row"><span class="k">Écartées :</span> <span class="chip mf">Blast Furnace <button type="button" aria-label="Ne plus écarter Blast Furnace">×</button></span> <input type="search" placeholder="Chercher une machine à écarter…" aria-label="Chercher une machine"></div>
+      <div class="mf-row"><span class="hint">Machines de ce plan :</span> <span class="chip add">+ Craft Assembler</span><span class="chip add">+ Press MK2</span><span class="chip add">+ Roller</span><span class="chip add">+ Blast Furnace MK2</span><span class="chip add">+ Ingot Molder</span><span class="chip add">+ Electric Furnace</span><span class="chip add">+ Coal Drill</span><span class="chip add">+ Iron Drill</span><span class="chip add">+ Tree</span></div>
+      <p class="hint">Les crafts de ces machines ne sont plus proposés au calcul. La recherche porte sur toutes les machines qui ont un craft (104), y compris celles qui ne sont pas encore débloquées.</p>
+    </details>
+  </form>
+  <div class="answer">
+    <h2>60 Crankshaft/min : 115 machines et 31 arbres</h2>
+    <ul class="notices"><li>Filtre de machines : Blast Furnace écartée. <button type="button" class="link">Retirer le filtre</button></li></ul>
+  </div>
+  <p class="mq-note">Résultat réel : Steel Ingot et Coke Fuel passent sur <b>1 Blast Furnace MK2</b> chacun ; il faut 31 arbres au lieu de 61. Le reste ne change pas.</p>
+
+  <!-- ============================================================ 3. impossible -->
+  <h2 class="mq-t">3. Un objet devient impossible : on écarte aussi Blast Furnace MK2</h2>
+  <div class="answer bad">
+    <h2>Plan incomplet</h2>
+    <ul class="notices">
+      <li class="bad">Aucune machine permise ne fabrique <b>Steel Ingot</b> (360/min manquent) : Blast Furnace, Blast Furnace MK2 sont écartées par le filtre de machines. <button type="button" class="link">Permettre Blast Furnace</button> · <button type="button" class="link">Permettre Blast Furnace MK2</button></li>
+      <li>Filtre de machines : Blast Furnace, Blast Furnace MK2 écartées. <button type="button" class="link">Retirer le filtre</button></li>
+    </ul>
+  </div>
+  <p class="mq-note">Le plan s'arrête à ce qui reste possible (Crankshaft, Gear, Steel Rod, Steel Plate : 26 machines), comme aujourd'hui pour un objet verrouillé. Dans l'onglet Détails, les crafts écartés apparaissent avec la mention « machine écartée ».</p>
+
+  <!-- ============================================================ 4. seulement -->
+  <h2 class="mq-t">4. Mode « Seulement… » : les 6 machines de fabrication du plan, et l'extraction</h2>
+  <form class="query">
+    <details class="criteria mfilter" open><summary><span class="criteria-title">Machines</span> <span class="criteria-order"><span class="mf-sum">seulement 6 machines (+ l'extraction, sauf Tree)</span></span> <span class="criteria-edit">en exclure ou choisir</span></summary>
+      <div class="mf-mode">
+        <label><input type="radio" name="m4"> Toutes</label>
+        <label><input type="radio" name="m4"> Toutes sauf…</label>
+        <label><input type="radio" name="m4" checked> Seulement…</label>
+      </div>
+      <div class="mf-row"><span class="k">Permises :</span>
+        <span class="chip mf">Craft Assembler <button type="button">×</button></span><span class="chip mf">Press MK2 <button type="button">×</button></span><span class="chip mf">Roller <button type="button">×</button></span><span class="chip mf">Blast Furnace <button type="button">×</button></span><span class="chip mf">Ingot Molder <button type="button">×</button></span><span class="chip mf">Electric Furnace <button type="button">×</button></span>
+        <input type="search" placeholder="Chercher une machine à permettre…" aria-label="Chercher une machine">
+      </div>
+      <div class="mf-row"><span class="k">Extraction, permise d'office :</span>
+        <span class="chip mf">Coal Drill <button type="button" aria-label="Écarter Coal Drill">×</button></span><span class="chip mf">Iron Drill <button type="button">×</button></span><span class="chip mf off">Tree <button type="button" aria-label="Permettre Tree">↺</button></span>
+        <span class="hint">et les 20 autres (foreuses, pompes, puits : catégorie « Extractors » du wiki, et les arbres)</span>
+      </div>
+      <p class="hint">Passer en « Seulement… » part des machines du plan affiché ; tu retires ou ajoutes ensuite.</p>
+    </details>
+  </form>
+  <div class="answer">
+    <h2>60 Crankshaft/min : 215 machines</h2>
+    <ul class="notices"><li>Filtre de machines : seulement 6 machines et l'extraction (sauf Tree). <button type="button" class="link">Retirer le filtre</button></li></ul>
+  </div>
+  <p class="mq-note">Résultat réel : sans arbres (donc sans Coke Fuel), Steel Ingot se fait au charbon : <b>15 Blast Furnace</b>, <b>48 Coal Drill</b>, 90 Iron Drill, 30 Electric Furnace. Avec Tree permis, on retrouve le plan sans filtre (119 machines, 61 arbres).</p>
+
+  <!-- ============================================================ 5. schéma -->
+  <h2 class="mq-t">5. Le raccourci dans le schéma : « Ne plus utiliser »</h2>
+  <div class="flow-hud">
+    <div class="flow-hud-info"><b>Steel Ingot</b><span>5 × Blast Furnace · reçoit 3 flux · en envoie 2</span></div>
+    <div class="flow-hud-acts">
+      <span class="mset">Machines : <button type="button">−</button><input type="text" inputmode="numeric" value="5" aria-label="Nombre de machines" style="width:4.2em;text-align:center"><button type="button">+</button></span>
+      <button type="button" class="flow-hud-btn primary">Plan de pose ▸</button>
+      <button type="button" class="flow-hud-btn">Bâtiment : ports relevés ✎</button>
+      <button type="button" class="flow-hud-btn" title="Écarter Blast Furnace de ce plan (réglage « Machines »)">Ne plus utiliser Blast Furnace ⊘</button>
+      <button type="button" class="flow-hud-x">×</button>
+    </div>
+  </div>
+  <p class="mq-note">Un clic écarte la machine (en mode « Seulement… », la retire de la liste) et recalcule. Le bloc disparaît du schéma, remplacé par ce que le calcul choisit à la place. Pas de bouton pour une installation composée (centrale) ni pour la production déjà en place.</p>
+</div>
+</body>
+</html>

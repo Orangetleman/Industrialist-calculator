@@ -75,6 +75,7 @@ export const LEAF_TEXT: Record<string, string> = {
   "seulement à vérifier": "Seules des recettes « à vérifier » existent : active l'option « utiliser aussi les valeurs à vérifier », ou corrige-les dans Données.",
   incalculable: "Les recettes connues ont des valeurs manquantes : complète-les dans Données.",
   boucle: "Boucle de dépendance : cet item dépend de lui-même.",
+  "machine écartée": "Aucune machine permise ne le fabrique : ses machines sont écartées par le filtre « Machines ».",
 };
 
 // ---------------------------------------------------------------- à vérifier

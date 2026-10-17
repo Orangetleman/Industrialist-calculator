@@ -92,6 +92,7 @@ import {
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
+import { allowMachine, banMachine, filterableMachines, filterSummary, findMachine, renderFilterBody, withMode } from "./mfilter-view.ts";
 import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
@@ -119,7 +120,11 @@ import {
   saveSettings,
   setBuilt,
   setCorrection,
+  engineFilter,
+  planKey,
+  planMachines,
   type Goal,
+  type PlanMachines,
   type ResultTab,
   type Scope,
   type Settings,
@@ -369,6 +374,7 @@ function computeResearch(): ResearchView | null {
       criterion: settings.criteria.objet[0], then: settings.criteria.objet.slice(1),
       forced: settings.forced,
       useUnverified: settings.useUnverified,
+      machines: engineFilter(planMachines(settings, planKey("objet", settings.item))),
       tiers: false,
     });
     nodes = itemPlan.economy.nodesToUnlock;
@@ -427,6 +433,19 @@ function fixedNow(): Record<string, number> | undefined {
   saveSettings(settings);
   return undefined;
 }
+/** Filtre de machines du plan affiché (S9) : un par objet, un pour l'énergie, un pour l'argent. */
+function filterNow(): PlanMachines {
+  return planMachines(settings, planKey(settings.goal, settings.item));
+}
+function setFilter(pm: PlanMachines): void {
+  const key = planKey(settings.goal, settings.item);
+  if (!key) return;
+  const { [key]: _, ...rest } = settings.machineFilters;
+  const empty = pm.mode === "toutes" && !pm.exclure.length && !pm.seulement.length && !pm.noExtraction.length;
+  settings.machineFilters = empty ? rest : { ...rest, [key]: pm };
+  update();
+}
+
 /**
  * Règle le nombre de machines d'un bloc du schéma (S8). null : le libère, comme le remettre au
  * nombre du calcul sans réglage.
@@ -469,6 +488,7 @@ function ensurePlan(): void {
       depots: DEPOTS,
       existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
       fixedMachines: fixedNow(),
+      machines: engineFilter(filterNow()),
     });
   plan = request(
     goal === "argent"
@@ -586,6 +606,7 @@ function renderPlanPage(): void {
 
   // Priorités : seulement celles qui ont un sens pour cet objectif, dans l'ordre du joueur.
   renderCriteria();
+  if (goal !== "recherche") renderMachineFilter(v.plan);
 
   // Textes d'aide propres à l'objectif.
   const existingN = Object.keys(settings.existing).length;
@@ -768,6 +789,19 @@ const CRIT_TEXT: Record<PoseCriterion, { label: string; why: string }> = {
 };
 
 /** Priorités du plan (objectif en cours) : l'ordre en une ligne, la liste à réordonner dépliée. */
+/** Réglage « Machines » du plan (S9) : mode, machines choisies, raccourcis ; la recherche reste en place. */
+function renderMachineFilter(p: Plan): void {
+  const pm = filterNow();
+  for (const r of document.querySelectorAll<HTMLInputElement>('input[name="mf-mode"]')) r.checked = r.value === pm.mode;
+  $("mf-sum").textContent = filterSummary({ data }, pm) ?? "toutes celles que tu as débloquées";
+  const body = renderFilterBody({ data }, pm, p);
+  $("mf-pick").hidden = pm.mode === "toutes";
+  $("mf-label").textContent = body.label;
+  $("mf-chips").innerHTML = body.chips;
+  input("mf-search").placeholder = body.placeholder;
+  $("mf-more").innerHTML = body.more;
+}
+
 function renderCriteria(): void {
   const goal = settings.goal;
   const list = settings.criteria[goal];
@@ -1869,6 +1903,7 @@ function fillLists(): void {
   byName.clear();
   for (const it of items) byName.set(it.name.toLowerCase(), it.id);
   $("item-list").innerHTML = items.map((it) => `<option value="${esc(it.name)}"></option>`).join("");
+  $("mf-list").innerHTML = filterableMachines({ data }).map((id) => `<option value="${esc(data.machines.get(id)!.name)}"></option>`).join("");
   $("node-list").innerHTML = [...data.nodes.values()]
     .filter((n) => !n.isRoot)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -1994,6 +2029,37 @@ function bindPlan(): void {
   }
   bindPrioList($("criteria-list"), () => settings.criteria[settings.goal], setCriteria);
   $("query").addEventListener("submit", (e) => e.preventDefault());
+  // Filtre de machines (S9) : le mode, puis une machine cherchée par son nom (Entrée ou choix dans la liste).
+  for (const r of document.querySelectorAll<HTMLInputElement>('input[name="mf-mode"]')) {
+    r.addEventListener("change", () => {
+      if (r.checked) setFilter(withMode({ data }, filterNow(), r.value as PlanMachines["mode"], viewCtx().plan));
+    });
+  }
+  const pickMachine = () => {
+    const inp = input("mf-search");
+    const id = findMachine({ data }, inp.value);
+    inp.setCustomValidity(id || !inp.value.trim() ? "" : "Machine inconnue : choisis-la dans la liste.");
+    if (!id) return void (inp.value.trim() && inp.reportValidity());
+    inp.value = "";
+    const pm = filterNow();
+    setFilter(pm.mode === "seulement" ? allowMachine({ data }, pm, id) : banMachine({ data }, pm, id));
+    input("mf-search").focus();
+  };
+  $("mf-search").addEventListener("change", pickMachine);
+  // Choisie dans la liste proposée : le nom est complet, on l'applique sans attendre Entrée.
+  // (Une frappe au clavier attend Entrée : « Press » est le début de « Press MK2 ».)
+  $("mf-search").addEventListener("input", (e) => {
+    const t = input("mf-search").value.trim().toLowerCase();
+    input("mf-search").setCustomValidity("");
+    const typed = e instanceof InputEvent && e.inputType !== "insertReplacementText";
+    if (t && !typed && filterableMachines({ data }).some((id) => data.machines.get(id)!.name.toLowerCase() === t)) pickMachine();
+  });
+  $("mf-search").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      pickMachine();
+    }
+  });
 
   // Onglets du résultat (flèches gauche/droite comme des onglets).
   const tabs = [...document.querySelectorAll<HTMLButtonElement>("[data-rtab]")];
@@ -2317,6 +2383,15 @@ function bindShared(): void {
         settings.rate = v;
       }
       return update();
+    }
+    // Filtre de machines (S9) : retirer, permettre, ne plus utiliser (réglage, réponse, barre du schéma).
+    if (t.closest("[data-mf-clear]")) return setFilter({ ...filterNow(), mode: "toutes" });
+    const mfAllow = t.closest<HTMLElement>("[data-mf-allow]");
+    if (mfAllow) return setFilter(allowMachine({ data }, filterNow(), mfAllow.dataset.mfAllow!));
+    const mfBan = t.closest<HTMLElement>("[data-mf-ban]");
+    if (mfBan) {
+      if (mfBan.closest("#flow-hud")) selectFlow(null);
+      return setFilter(banMachine({ data }, filterNow(), mfBan.dataset.mfBan!));
     }
     if (t.closest("[data-forced-reset]")) {
       settings.forced = {};

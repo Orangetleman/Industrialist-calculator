@@ -9,7 +9,8 @@ import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
 import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtRP } from "./format.ts";
 import { designLine, researchAlternatives, researchExplain, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
-import type { Goal } from "./state.ts";
+import { filterNote } from "./mfilter-view.ts";
+import { planKey, planMachines, type Goal } from "./state.ts";
 import { verifyHref } from "./recipes-view.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
@@ -214,7 +215,13 @@ function missingNotes(v: ViewCtx): string[] {
   const p = v.plan;
   const e = p.economy;
   const out: string[] = [];
-  const unres = p.unresolved.filter((u) => !u.loopShortfall);
+  // Filtre de machines (S9) : chaque objet que plus aucune machine permise ne fabrique, avec de quoi la permettre.
+  for (const u of p.unresolved.filter((x) => !x.loopShortfall && x.reason === "machine écartée")) {
+    const allow = (u.excluded ?? []).map((m) => `<button type="button" class="link" data-mf-allow="${esc(m)}">Permettre ${esc(machineN(v, m))}</button>`).join(" · ");
+    const list = (u.excluded ?? []).map((m) => esc(machineN(v, m))).join(", ");
+    out.push(`<li class="bad">Aucune machine permise ne fabrique <b>${esc(itemN(v, u.item))}</b> (${esc(fmtRate(u.perMin))}/min manquent) : ${list} ${(u.excluded ?? []).length > 1 ? "sont écartées" : "est écartée"} par le filtre de machines. ${allow}</li>`);
+  }
+  const unres = p.unresolved.filter((u) => !u.loopShortfall && u.reason !== "machine écartée");
   if (unres.length) {
     const why = unres.map((u) => `<b>${esc(itemN(v, u.item))}</b> (${esc(u.unlock ? lockText(v, u.unlock) : (LEAF_TEXT[u.reason] ?? u.reason))})`);
     out.push(`<li class="bad">Non produit : ${why.join(" ; ")}</li>`);
@@ -270,6 +277,7 @@ export function renderAnswer(v: ViewCtx): string {
     ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${esc(x)}</li>`),
     tierSuggestion(v),
     forcedUsed ? `<li>${plural(forcedUsed, "recette est choisie à la main", "recettes sont choisies à la main")} (onglet Détails). <button type="button" class="link" data-forced-reset>Revenir aux choix automatiques</button></li>` : "",
+    filterNote(v, planMachines(v.settings, planKey(v.goal, v.settings.item))),
   ].filter(Boolean);
   return `<div class="answer ${h.tone}" role="status"><h2>${h.text}</h2>${stats}${lines}${notes.length ? `<ul class="notices">${notes.join("")}</ul>` : ""}</div>`;
 }
@@ -413,7 +421,7 @@ function unresolvedRow(v: ViewCtx, u: Unresolved): BuildRow {
     energy: "—",
     note: u.loopShortfall
       ? "la chaîne en consomme aussi pour s'alimenter elle-même (boucle) : prévois de la marge"
-      : `${u.unlock ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(LEAF_TEXT[u.reason] ?? u.reason)}`,
+      : `${u.unlock && u.reason !== "machine écartée" ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(LEAF_TEXT[u.reason] ?? u.reason)}`,
     buildable: false,
     have: { item: u.item, perMin: u.perMin },
   };
@@ -549,6 +557,10 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
     const state = survey(st.machine);
     const label = state === "depot" ? "ports relevés" : state === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
     acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="Ouvrir ${esc(machineN(v, st.machine))} dans l'éditeur de bâtiments">Bâtiment : ${esc(label)} ✎</button>`);
+  }
+  // Filtre de machines (S9) : écarter la machine de ce plan, d'un clic.
+  if (st && !st.parts && v.goal !== "recherche") {
+    acts.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="Écarter ${esc(machineN(v, st.machine))} de ce plan (réglage « Machines »)">Ne plus utiliser ${esc(machineN(v, st.machine))} ⊘</button>`);
   }
   return `<div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div>`;
 }

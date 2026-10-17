@@ -290,6 +290,20 @@ a.src-tag:hover, button.src-tag:hover { text-decoration: underline; }
 .criteria-edit { margin-left: auto; color: var(--steel); text-decoration: underline; font-size: .85rem; }
 .criteria[open] .criteria-edit { visibility: hidden; }
 .criteria .prio-list { margin: 6px 0 4px; }
+/* Filtre de machines du plan (S9), sous « Priorités ». */
+.mfilter { flex-basis: 100%; }
+.mf-sum { color: var(--ink); }
+.mf-mode { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 6px; font-size: .9rem; }
+.mf-mode label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.mf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: .9rem; }
+.mf-row > .k { font-weight: 600; margin-right: 2px; }
+.mf-row:has(> .k:empty) > .k { display: none; }
+.query .mf-row input[type="search"] { padding: 6px 10px; font-size: .92rem; width: 260px; max-width: 100%; }
+.chip.mf { padding-right: 4px; }
+.chip.mf button { border: none; background: none; padding: 0 4px; color: var(--muted); cursor: pointer; font-size: .95rem; line-height: 1; }
+.chip.mf.off { text-decoration: line-through; color: var(--muted); }
+button.chip.add { cursor: pointer; border-style: dashed; color: var(--steel); font: inherit; font-size: .84rem; }
+#mfilter > p.hint, #mf-more p.hint { margin: 4px 0; }
 .pose-prio { margin: 8px 0; }
 .pose-prio-title { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 4px; }
 .pose-prio-title .hint { font-weight: 400; }

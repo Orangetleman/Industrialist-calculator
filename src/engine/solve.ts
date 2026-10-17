@@ -9,6 +9,7 @@ import { Chooser, ratePerMachine, type Candidate, type Criterion, type LeafReaso
 import { itemName, type GameData } from "./data.ts";
 import { optimize } from "./optimize.ts";
 import type { TreeGrowthResult } from "./pollution.ts";
+import { excludedMachines, excludedMessage, type MachineFilter } from "./machine-filter.ts";
 import { buildFlowModel, ENERGY, POLLUTION, type DepotSpec, type FlowModel, type RecipeProc } from "./resources.ts";
 import { solveV1, type PlanV1 } from "./solve-v1.ts";
 import { roundTiers, type Tier } from "./tiers.ts";
@@ -68,6 +69,8 @@ export type SolveRequest = {
   fixedMachines?: Record<string, number>;
   /** Seulement ces recettes pour les objets qu'elles produisent (les autres objets restent libres). */
   onlyRecipes?: string[];
+  /** Filtre de machines du plan (S9) : écarter des machines, ou n'utiliser que certaines. */
+  machines?: MachineFilter | null;
 };
 
 export type Flow = { item: string; perMin: number };
@@ -123,6 +126,8 @@ export type Unresolved = {
   loopShortfall: boolean;
   /** Option de déblocage la moins chère, si l'item est verrouillé. */
   unlock?: Extract<MachineAccess, { available: false }> & { recipeId: string };
+  /** Machines écartées par le filtre (S9) qui le fabriqueraient. */
+  excluded?: string[];
   candidates: Candidate[];
 };
 
@@ -336,6 +341,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     forced: req.forced ?? {},
     useUnverified: !!req.useUnverified,
     pollutionPct: player.pollutionPct ?? null,
+    machines: req.machines,
   });
   const name = (id: string) => (id === ENERGY ? "Énergie" : itemName(data, id));
   const warnings: Warning[] = [];
@@ -619,7 +625,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       if (better) unlock = { ...a, recipeId: cand.recipeId };
     }
     const loopShortfall = prodOf.has(item);
-    unresolved.push({ item, perMin, reason, loopShortfall, ...(unlock ? { unlock } : {}), candidates: c.candidates });
+    const excluded = excludedMachines(c.candidates);
+    unresolved.push({ item, perMin, reason, loopShortfall, ...(unlock ? { unlock } : {}), ...(excluded.length ? { excluded } : {}), candidates: c.candidates });
     for (const cand of c.candidates) {
       if (cand.status === "à vérifier" || cand.status === "incalculable") {
         for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
@@ -637,7 +644,9 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
             : reason === "incalculable"
               ? "les recettes connues ont des valeurs manquantes"
               : "boucle de dépendance";
-    if (reason === "boucle") {
+    if (reason === "machine écartée") {
+      warnings.push({ code: "non-résolu:machine écartée", message: excludedMessage(data, item, perMin, excluded), items: [item] });
+    } else if (reason === "boucle") {
       const cyc = findCycle(model, item);
       warnings.push({
         code: "boucle",

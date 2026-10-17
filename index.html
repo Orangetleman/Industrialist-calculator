@@ -121,6 +121,18 @@
         <p class="hint">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise ↑ ↓.</p>
         <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre"></ol>
       </details>
+      <details class="criteria mfilter" id="mfilter" data-goals="objet énergie argent">
+        <summary><span class="criteria-title">Machines</span> <span class="criteria-order"><span class="mf-sum" id="mf-sum"></span></span> <span class="criteria-edit">en exclure ou choisir</span></summary>
+        <div class="mf-mode" role="radiogroup" aria-label="Machines que le calcul peut utiliser">
+          <label><input type="radio" name="mf-mode" value="toutes"> Toutes</label>
+          <label><input type="radio" name="mf-mode" value="exclure"> Toutes sauf…</label>
+          <label><input type="radio" name="mf-mode" value="seulement"> Seulement…</label>
+        </div>
+        <div class="mf-row" id="mf-pick"><span class="k" id="mf-label"></span> <span id="mf-chips"></span>
+          <input type="search" id="mf-search" list="mf-list" autocomplete="off" spellcheck="false" aria-label="Chercher une machine"></div>
+        <datalist id="mf-list"></datalist>
+        <div id="mf-more"></div>
+      </details>
       <p class="hint crit-hint" id="criterion-hint"></p>
       <p class="hint" id="goal-hint"></p>
 

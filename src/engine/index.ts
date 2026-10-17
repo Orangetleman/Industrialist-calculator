@@ -2,6 +2,7 @@
 export * from "./types.ts";
 export { buildGameData, applyOverrides, itemName, type GameData, type RawFiles } from "./data.ts";
 export { isNodeUnlocked, missingNodes, machineAccess, unlockUpTo, inconsistentNodes, nodeDepths, dependentsOf, rpCost, orderByDepth, type Progress, type MachineAccess, type ReqItem } from "./unlock.ts";
+export { isExtractor, machineAllowed, activeFilter, type MachineFilter } from "./machine-filter.ts";
 export { treeGrowthSeconds, formulaSeconds, type TreeGrowthResult } from "./pollution.ts";
 export { evalRecipe, ratePerMachine, machineArea, type Criterion, type Candidate, type CandidateStatus, type LeafReason } from "./choose.ts";
 export { solveLP, solveLexicographic, type LP, type LPResult } from "./lp.ts";

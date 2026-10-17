@@ -222,7 +222,7 @@ export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string 
     }
     const u = p.unresolved.find((x) => x.item === key);
     if (!u) return "";
-    const why = u.loopShortfall ? "la chaîne en consomme aussi pour s'alimenter elle-même (boucle) : prévois de la marge" : u.unlock ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(LEAF_TEXT[u.reason] ?? u.reason);
+    const why = u.loopShortfall ? "la chaîne en consomme aussi pour s'alimenter elle-même (boucle) : prévois de la marge" : u.unlock && u.reason !== "machine écartée" ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(LEAF_TEXT[u.reason] ?? u.reason);
     return panel(itemN(v, u.item), `<p class="calc-note">Non produit dans ce plan : <b>${num(u.perMin)} /min</b> à apporter. ${why}</p>`);
   }
   const r = v.data.recipes.get(s.recipeId);
