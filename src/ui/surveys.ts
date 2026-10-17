@@ -2,7 +2,8 @@
 // de pose : un relevé local sert tout de suite, sans attendre son intégration aux données.
 
 import type { MachineInterface, PortsEntry } from "../engine/extension-types.ts";
-import { parseInterfaces, parseSurveys } from "./buildings-model.ts";
+import type { ModularEdits } from "../engine/modular.ts";
+import { parseInterfaces, parseModular, parseSurveys } from "./buildings-model.ts";
 
 const KEY = "ind-calc:v1:batiments";
 
@@ -56,5 +57,24 @@ export function saveLocalInterfaces(local: Record<string, MachineInterface>): vo
     localStorage.setItem(KEY_IFACES, JSON.stringify({ interfaces: local }));
   } catch {
     // stockage indisponible : l'interface vaut pour la session
+  }
+}
+
+// Corrections des blocs modulaires notées dans l'éditeur (S12) : faces, portées, bord « devant ».
+const KEY_MODULAR = "ind-calc:v1:modulaires";
+
+export function loadLocalModular(): ModularEdits {
+  try {
+    return parseModular(JSON.parse(localStorage.getItem(KEY_MODULAR) || "null")) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveLocalModular(local: ModularEdits): void {
+  try {
+    localStorage.setItem(KEY_MODULAR, JSON.stringify({ modular: local }));
+  } catch {
+    // stockage indisponible : la correction vaut pour la session
   }
 }

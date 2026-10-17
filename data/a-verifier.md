@@ -623,6 +623,14 @@ chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »)
 - **MOD-11** **Faces** : quelle face du vilebrequin est « plate » (vers le contrôleur ?) ; un bloc
   par côté, donc deux par vilebrequin ? Où se fixe le volant (6 × 4 cases) ?
   → **Réponse du 2026-10-16** : pas de réponse pour l'instant (à relever avec la méthode de RELEVES.md).
+  → **Réponse du 2026-10-18 (S12)** : le volant se place comme un vilebrequin (dans la chaîne,
+  devant le contrôleur, entre vilebrequins ou avant le générateur), sans face obligatoire. Restent :
+  ses côtés portent-ils des blocs ? Le premier vilebrequin d'une 2ᵉ ligne (parti d'un Crankshaft
+  Sideways) n'a rien derrière lui : « derrière obligatoire » ne vaut-il que pour la 1ʳᵉ ligne ?
+- **MOD-17** **Orientation des blocs par contact** (S12) : sur la capture vue de dessus d'un bloc
+  posé sans rotation (celle de son relevé), quel bord regarde « devant », dans le sens de la chaîne
+  (vers le générateur, ou vers la Turbine Output) ? Un champ « Devant, sur la grille du relevé »
+  l'attend dans l'éditeur de bâtiments ; il servira aux plans de pose (S14).
 - **MOD-12** **Formule** de la puissance et de la consommation selon le nombre de cylindres, le
   rapport air/carburant et l'accélérateur : le wiki n'a que des tableaux (6 cylindres de 10 à 16)
   et des exemples (6 et 32 cylindres). Le gain du volant n'est pas chiffré. La consommation

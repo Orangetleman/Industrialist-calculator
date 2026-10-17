@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S12 — Blocs modulaires</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 6px 10px; font-size: .86rem; }
+
+/* Éditeur de bâtiments : la section « Ensemble modulaire ». */
+.bld-mod { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.bld-mod h4 { margin: 0; font-size: .95rem; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.bld-mod h4 .hint { font-weight: 400; }
+.bld-mod .row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: .88rem; }
+.bld-mod table { border-collapse: collapse; font-size: .86rem; width: 100%; }
+.bld-mod td, .bld-mod th { padding: 5px 10px 5px 0; text-align: left; vertical-align: top; border-top: 1px solid var(--line); }
+.bld-mod th { font-weight: 600; white-space: nowrap; }
+.bld-mod input.num { width: 4.5em; }
+.mchip { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin: 1px 2px; background: var(--surface); white-space: nowrap; }
+.mchip input { margin: 0; }
+.mchip.off { color: var(--muted); border-style: dashed; }
+.mchip button.link { font-size: .8rem; }
+.must { font-size: .74rem; font-weight: 600; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.must.yes { background: var(--accent-soft); color: var(--accent); }
+.must.no { color: var(--muted); border: 1px solid var(--line); }
+.must.unk { background: var(--warn-soft); color: var(--warn); }
+.src-tag { display: inline-block; font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; margin: 1px 2px 1px 0; color: var(--steel); }
+.src-tag.jeu { color: var(--accent); }
+
+/* Chaîne de l'ensemble (par contact) : le bloc ouvert est mis en évidence. */
+.mchain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .82rem; }
+.mchain .b { border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; background: var(--surface); }
+.mchain .b.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.mchain .arrow { color: var(--muted); }
+.mchain-side { font-size: .82rem; color: var(--muted); }
+
+/* Dessin de la portée. */
+.mrange { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.mrange svg { width: 300px; max-width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.mrange .t-in { fill: color-mix(in srgb, var(--ok) 35%, transparent); stroke: var(--ok); stroke-width: .15; }
+.mrange .t-out { fill: none; stroke: var(--line); stroke-width: .15; }
+.mrange .blk { fill: var(--accent); }
+.mrange .circ { fill: none; stroke: var(--accent); stroke-width: .3; stroke-dasharray: 1 .6; }
+.mrange .edge { fill: none; stroke: var(--steel); stroke-width: .2; stroke-dasharray: .5 .5; }
+.mrange dl { margin: 0; font-size: .86rem; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
+.mrange dt { font-weight: 600; }
+.mrange dd { margin: 0; }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S12 — les blocs des machines modulaires</h1>
+  <p class="mq-note">Maquette à valider : rien n'est encore branché. Elle ajoute une section « Ensemble modulaire » dans l'éditeur de bâtiments, sous « Interface », pour les 23 blocs des trois ensembles (ferme d'arbres, moteur diesel, turbine). Les valeurs viennent de <code>data/modular.json</code> (S11 et tes réponses MOD), chacune avec sa source. Rien n'est calculé ni placé ici : le calcul vient en S13, les plans de pose en S14.</p>
+
+  <!-- ============================================================ 1. liste -->
+  <h2 class="mq-t">1. Dans la liste des bâtiments : un repère</h2>
+  <ul class="bld-list" style="list-style:none;padding:0;margin:0;max-width:360px">
+    <li><button type="button" style="width:100%;display:flex;justify-content:space-between"><span>Diesel Engine Crankshaft</span><span class="bld-badges"><span class="bld-badge iface" title="bloc d'un ensemble modulaire">⬡ moteur diesel</span><span class="bld-badge none">manquant</span></span></button></li>
+    <li><button type="button" style="width:100%;display:flex;justify-content:space-between"><span>Tree Farm Sprinkler</span><span class="bld-badges"><span class="bld-badge iface">⬡ ferme</span><span class="bld-badge ok">dépôt</span></span></button></li>
+  </ul>
+  <p class="mq-note">Le repère dit à quel ensemble le bloc appartient. La recherche « ferme », « moteur » ou « turbine » trouve tous les blocs de l'ensemble.</p>
+
+  <!-- ============================================================ 2. contact -->
+  <h2 class="mq-t">2. Un bloc assemblé par contact : Diesel Engine Crankshaft</h2>
+  <div class="bld-mod">
+    <h4>Ensemble modulaire · Moteur diesel modulaire (Tier II) <span class="hint">· par contact : les blocs se touchent, face contre face</span></h4>
+    <div class="mchain">
+      <span class="b">Controller</span><span class="arrow">→</span><span class="b on">Crankshaft × n</span><span class="arrow">→</span><span class="b">Generator</span>
+    </div>
+    <p class="mchain-side">Sur les côtés des vilebrequins : Cylinder, Air Input, Exhaust, Fuel Input, Info Panel, Decoration, Crankshaft Sideways (2ᵉ ligne).</p>
+    <p class="hint">Les faces se lisent dans le sens de la chaîne : <b>devant</b> = vers le générateur, <b>derrière</b> = vers le contrôleur, <b>côtés</b> = les deux faces latérales.</p>
+    <table>
+      <thead><tr><th>Face</th><th>Doit être touchée ?</th><th>Blocs qui peuvent la toucher (clic : ouvrir le bloc)</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><th>Derrière</th><td><span class="must yes">obligatoire</span></td>
+          <td><span class="mchip"><button class="link">Controller</button></span><span class="mchip"><button class="link">Crankshaft</button></span></td>
+          <td><span class="src-tag">Miraheze</span><span class="src-tag">Fandom</span></td></tr>
+        <tr><th>Devant</th><td><span class="must yes">obligatoire</span></td>
+          <td><span class="mchip"><button class="link">Crankshaft</button></span><span class="mchip"><button class="link">Generator</button></span></td>
+          <td><span class="src-tag">Miraheze</span><span class="src-tag">Fandom</span></td></tr>
+        <tr><th>Côtés</th><td><span class="must no">facultatif</span></td>
+          <td><span class="mchip"><button class="link">Cylinder</button></span><span class="mchip"><button class="link">Air Input</button></span><span class="mchip"><button class="link">Exhaust</button></span><span class="mchip"><button class="link">Fuel Input</button></span><span class="mchip"><button class="link">Info Panel</button></span><span class="mchip"><button class="link">Decoration</button></span><span class="mchip"><button class="link">Crankshaft Sideways</button></span></td>
+          <td><span class="src-tag">Miraheze</span><span class="src-tag">Fandom</span></td></tr>
+      </tbody>
+    </table>
+    <p class="hint">⚠ MOD-11 : quelle face est « plate » (vers le contrôleur), et combien de blocs par côté — <button class="link">corriger</button></p>
+    <div class="row"><label>Devant, sur la grille du relevé <select><option>inconnu</option><option>bord haut</option><option>bord bas</option><option>bord gauche</option><option>bord droit</option></select></label><span class="hint">sert aux plans de pose (S14) ; à relever</span></div>
+    <div class="row"><button type="button">✎ Corriger</button></div>
+  </div>
+
+  <p class="mq-note">En mode « ✎ Corriger », chaque face devient modifiable : la case « obligatoire », une case par bloc de l'ensemble (cochée = il peut toucher cette face), et une note. « Enregistrer » garde la correction dans ce navigateur ; elle part avec « Exporter mes relevés » (clé <code>modular</code>), comme l'interface en S10.</p>
+  <div class="bld-mod">
+    <h4>Ensemble modulaire · Moteur diesel modulaire (Tier II) <span class="bld-badge local">local · à envoyer</span></h4>
+    <table>
+      <thead><tr><th>Face</th><th>Doit être touchée ?</th><th>Blocs qui peuvent la toucher</th></tr></thead>
+      <tbody>
+        <tr><th>Devant</th><td><label class="bld-check"><input type="checkbox" checked> obligatoire</label></td>
+          <td><label class="mchip"><input type="checkbox" checked> Crankshaft</label><label class="mchip"><input type="checkbox" checked> Generator</label><label class="mchip off"><input type="checkbox"> Controller</label><label class="mchip off"><input type="checkbox"> Cylinder</label><label class="mchip off"><input type="checkbox"> Flywheel</label><span class="hint">… les 11 blocs</span></td></tr>
+      </tbody>
+    </table>
+    <label class="bld-notes">Note <input type="text" placeholder="ex. vu en jeu : le côté plat regarde le contrôleur" style="width:24em"></label>
+    <div class="actions"><button type="button" class="primary">Enregistrer</button><button type="button" class="link">Annuler</button></div>
+  </div>
+
+  <h2 class="mq-t">2 bis. Ce que je propose pour « obligatoire » (à valider)</h2>
+  <p class="mq-note">Les wikis disent où se pose chaque bloc, mais jamais en ces mots-là. Voici ma lecture, une face à la fois. Tu valides ou tu corriges ; ce qui reste douteux va dans <code>a-verifier.md</code>.</p>
+  <table class="mq-t2" style="width:100%;font-size:.86rem;border-collapse:collapse">
+    <tr><th style="text-align:left">Bloc</th><th style="text-align:left">Face obligatoire</th><th style="text-align:left">Facultative</th><th style="text-align:left">D'après</th></tr>
+    <tr><td>Diesel Engine Controller</td><td>devant (vilebrequin)</td><td>côtés (Crankshaft Sideways)</td><td>« les vilebrequins se posent devant lui »</td></tr>
+    <tr><td>Crankshaft</td><td>derrière, devant</td><td>côtés</td><td>chaîne contrôleur → vilebrequins → générateur</td></tr>
+    <tr><td>Crankshaft Sideways</td><td>les deux côtés</td><td>—</td><td>« l'un touche le vilebrequin, l'autre reçoit la nouvelle ligne »</td></tr>
+    <tr><td>Cylinder, Air Input, Exhaust, Fuel Input, Info Panel, Decoration</td><td>la face posée contre le côté d'un vilebrequin</td><td>—</td><td>« sur un côté de vilebrequin »</td></tr>
+    <tr><td>Generator</td><td>derrière (vilebrequin)</td><td>—</td><td>« au bout d'une chaîne de vilebrequins »</td></tr>
+    <tr><td>Flywheel</td><td colspan="2"><span class="must unk">inconnu (MOD-11)</span></td><td>le wiki ne dit pas où il se fixe</td></tr>
+    <tr><td>Turbine Input</td><td>devant (HPT ou IPT)</td><td>—</td><td>ordre de la chaîne</td></tr>
+    <tr><td>HPT, IPT, LPT, Turbine Generator</td><td>derrière et devant</td><td>—</td><td>ordre de la chaîne</td></tr>
+    <tr><td>Turbine Output</td><td>derrière (générateur)</td><td>—</td><td>« juste après le générateur »</td></tr>
+  </table>
+  <p class="mq-q"><b>Doute</b> : dans un moteur à deux lignes, le premier vilebrequin de la 2ᵉ ligne n'a rien derrière lui (il part du Crankshaft Sideways, sur son côté). « Derrière obligatoire » ne vaudrait alors que pour la 1ʳᵉ ligne. Je l'écris ainsi, avec la question en MOD-11 ?</p>
+
+  <!-- ============================================================ 3. portée -->
+  <h2 class="mq-t">3. Un bloc assemblé par portée : Tree Farm Sprinkler</h2>
+  <div class="bld-mod">
+    <h4>Ensemble modulaire · Ferme d'arbres modulaire (Tier I) <span class="hint">· par portée : les blocs ne se touchent pas, chacun doit être dans le cercle du bloc qui le dessert</span></h4>
+    <div class="mrange">
+      <svg id="sprinkler" viewBox="-19 -19 38 38" role="img" aria-label="Portée de l'arroseur sur une grille d'arbres"></svg>
+      <dl>
+        <dt>Portée</dt><dd><b>10 cases</b> depuis le bord (12 depuis le centre, le bloc faisant 4 × 4) <span class="src-tag jeu">ton relevé</span></dd>
+        <dt>Forme</dt><dd>cercle ; un bloc est à portée dès que le cercle le touche <span class="src-tag jeu">ton relevé</span><span class="src-tag">Fandom</span></dd>
+        <dt>Dessert</dt><dd><span class="mchip"><button class="link">Tree</button></span> chaque arbre doit être à portée d'au moins un arroseur <span class="src-tag">Miraheze</span></dd>
+        <dt>Dépend de</dt><dd><span class="mchip"><button class="link">Tree Farm Water Tank</button></span> un réservoir à portée du contrôleur, 3 arroseurs par réservoir</dd>
+        <dt>Doit être à portée de</dt><dd><span class="mchip"><button class="link">Tree Farm Controller</button></span> (58 cases depuis son bord)</dd>
+        <dt>Contrôle</dt><dd>Sur une grille régulière d'arbres, le cercle en touche <b>44</b> (en vert) : c'est le nombre que donnent les deux wikis. <span class="ok-text">✓ cohérent</span></dd>
+      </dl>
+    </div>
+    <div class="row"><button type="button">✎ Corriger</button></div>
+  </div>
+
+  <h2 class="mq-t">3 bis. Les autres blocs de la ferme</h2>
+  <div class="bld-mod">
+    <h4>Farm Harvester</h4>
+    <div class="mrange">
+      <svg id="harvester" viewBox="-36 -36 72 72" role="img" aria-label="Portée du récolteur sur une grille d'arbres"></svg>
+      <dl>
+        <dt>Portée</dt><dd><b>23 cases</b> depuis le bord (27 depuis le centre, 8 × 8) <span class="src-tag jeu">ton relevé</span></dd>
+        <dt>Dessert</dt><dd><span class="mchip"><button class="link">Tree</button></span> coupe les arbres mûrs ; <span class="mchip"><button class="link">Tree Farm Output</button></span> dépose dans une sortie à la même portée</dd>
+        <dt>Contrôle</dt><dd>Sur une grille régulière, le cercle touche <b>168</b> emplacements d'arbre. Ce n'est pas le nombre qu'il récolte vraiment (22 dans le guide Miraheze ; maximum inconnu, MOD-09).</dd>
+      </dl>
+    </div>
+  </div>
+  <table class="mq-t2" style="width:100%;font-size:.86rem;border-collapse:collapse;margin-top:6px">
+    <tr><th style="text-align:left">Bloc</th><th style="text-align:left">Portée (depuis le bord)</th><th style="text-align:left">Dessert</th></tr>
+    <tr><td>Tree Farm Controller</td><td>58 cases</td><td>tous les blocs de la ferme ; un bloc à portée de deux contrôleurs s'arrête</td></tr>
+    <tr><td>Tree Farm Water Tank</td><td>infinie (il suffit qu'il soit à portée du contrôleur)</td><td>3 arroseurs au plus</td></tr>
+    <tr><td>Tree Farm Sprinkler</td><td>10 cases</td><td>les arbres</td></tr>
+    <tr><td>Farm Harvester</td><td>23 cases</td><td>les arbres, et une sortie</td></tr>
+    <tr><td>Tree, Tree Farm Output</td><td>— (pas de portée)</td><td>doivent être à portée d'un arroseur et d'un récolteur (arbre), d'un récolteur (sortie)</td></tr>
+  </table>
+  <p class="mq-note">Pour le contrôleur, le dessin montre le cercle de 60 cases (depuis le centre) avec, en repère, la ferme du guide Miraheze. En mode « ✎ Corriger » : la portée (nombre), « infinie » pour le réservoir, et les blocs desservis (cases à cocher).</p>
+</div>
+<script>
+// Maquette : le même calcul que celui du site (cercle centré sur le bloc, rayon = portée depuis le
+// bord + demi-largeur ; un arbre est à portée si le cercle touche son carré de 4 × 4 cases).
+function draw(id, blockHalf, rEdge, offset, span) {
+  const R = rEdge + blockHalf;
+  const svg = document.getElementById(id);
+  let s = "", n = 0;
+  for (let i = -span; i < span; i++) for (let j = -span; j < span; j++) {
+    const x0 = 4 * i + offset, y0 = 4 * j + offset;
+    if (x0 >= -blockHalf && x0 < blockHalf && y0 >= -blockHalf && y0 < blockHalf) continue;
+    const dx = Math.max(x0, 0, -(x0 + 4)), dy = Math.max(y0, 0, -(y0 + 4));
+    const inR = Math.hypot(dx, dy) < R;
+    if (inR) n++;
+    s += `<rect x="${x0 + .2}" y="${y0 + .2}" width="3.6" height="3.6" rx=".6" class="${inR ? "t-in" : "t-out"}"/>`;
+  }
+  s += `<rect x="${-blockHalf}" y="${-blockHalf}" width="${2 * blockHalf}" height="${2 * blockHalf}" class="blk"/>`;
+  s += `<circle r="${R}" class="circ"/>`;
+  svg.innerHTML = s;
+  return n;
+}
+draw("sprinkler", 2, 10, -2, 5);
+draw("harvester", 4, 23, 0, 9);
+</script>
+</body>
+</html>

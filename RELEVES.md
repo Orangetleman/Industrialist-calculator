@@ -134,10 +134,15 @@ chaque bloc (MOD-01, 03, 05).
    d'échappement (seuil de MOD-14).
 7. **Faces (MOD-11, MOD-13)** : une capture vue de dessus du montage, une autre avec le volant
    posé ; et la distance la plus courte entre deux moteurs qui marchent tous les deux.
+8. **Devant (MOD-17)** : pour chaque bloc du moteur (et de la turbine si tu en as une), pose-le
+   sans le faire pivoter, comme pour son relevé de ports, à côté d'un bloc déjà posé dans la
+   chaîne. Le bord tourné vers le générateur (ou vers la Turbine Output) est « devant ». Note-le
+   dans l'éditeur de bâtiments, section « Ensemble modulaire », champ « Devant, sur la grille du
+   relevé » : il s'enregistre tout de suite et part avec « Exporter mes relevés ».
 
 ### Turbine
 
-8. Seulement si tu as une turbine : pour chaque turbine, débit et température de la vapeur,
+9. Seulement si tu as une turbine : pour chaque turbine, débit et température de la vapeur,
    nombre de HPT et de LPT, puissance affichée (MOD-16).
 
 ## Sans le site : la fiche texte

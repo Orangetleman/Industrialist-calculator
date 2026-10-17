@@ -2,6 +2,7 @@
 // Même règle que le reste : chaque valeur a une source ; une valeur absente vaut null et est signalée.
 
 import type { DataMeta, Size, Source, VerifyFlag } from "./types.ts";
+import type { ModularEdits } from "./modular.ts";
 
 /** Valeur tirée d'une phrase ou d'une formule du wiki, avec la citation exacte. */
 export type Fact<T> = { value: T | null; source: Source; quote?: string; problem?: string };
@@ -151,7 +152,7 @@ export type PortsEntry = {
   notes?: string;
   source: Source;
 };
-export type PortsFile = { _lisezMoi?: string; machines: Record<string, PortsEntry>; interfaces?: Record<string, MachineInterface> };
+export type PortsFile = { _lisezMoi?: string; machines: Record<string, PortsEntry>; interfaces?: Record<string, MachineInterface>; modular?: ModularEdits };
 
 /**
  * Interface d'une machine (S10, décision Q5) : l'étiquette « [E] Interact », un levier ou un écran

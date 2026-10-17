@@ -2,6 +2,7 @@
 // Grille affichée : l'empreinte entourée d'une marge d'une case, où se posent les plots des ports.
 
 import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
+import { EDGES, type Edge, FACES, type FaceKey, type ModularEdit, type ModularEdits } from "../engine/modular.ts";
 import type { Source } from "../engine/types.ts";
 
 export const CELL = 30; // pixels par case dans le SVG (la vue est ensuite mise à l'échelle)
@@ -92,13 +93,51 @@ export function checkEntry(e: PortsEntry): string[] {
 
 export const isComplete = (e: PortsEntry) => checkEntry(e).length === 0;
 
-/** Fichier d'export (même format que data/ports.json) ; les interfaces notées (S10) vont à data/interfaces.json. */
-export function exportSurveys(local: Record<string, PortsEntry>, interfaces: Record<string, MachineInterface> = {}): PortsFile {
+/**
+ * Fichier d'export (même format que data/ports.json) ; les interfaces notées (S10) vont à
+ * data/interfaces.json, les corrections des blocs modulaires (S12) à data/modular.json.
+ */
+export function exportSurveys(local: Record<string, PortsEntry>, interfaces: Record<string, MachineInterface> = {}, modular: ModularEdits = {}): PortsFile {
   return {
-    _lisezMoi: "Relevés de bâtiments faits dans l'éditeur du calculateur. « machines » : à intégrer à data/ports.json (même format) ; « interfaces » : à data/interfaces.json.",
+    _lisezMoi: "Relevés de bâtiments faits dans l'éditeur du calculateur. « machines » : à intégrer à data/ports.json (même format) ; « interfaces » : à data/interfaces.json ; « modular » : à data/modular.json.",
     machines: local,
     ...(Object.keys(interfaces).length ? { interfaces } : {}),
+    ...(Object.keys(modular).length ? { modular } : {}),
   };
+}
+
+// ---------------------------------------------------------------- blocs modulaires (S12)
+
+/** Lecture prudente des corrections de blocs modulaires d'un fichier (clé « modular »). */
+export function parseModular(raw: unknown): ModularEdits | null {
+  const obj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+  if (!obj(raw) || !obj(raw.modular)) return null;
+  const strings = (x: unknown) => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : null);
+  const out: ModularEdits = {};
+  for (const [id, e] of Object.entries(raw.modular)) {
+    if (!obj(e) || !obj(e.source) || typeof e.source.fetchedAt !== "string" || typeof e.source.wiki !== "string") continue;
+    const edit: ModularEdit = { source: e.source as unknown as Source };
+    if (obj(e.faces)) {
+      const faces: Partial<Record<FaceKey, string[]>> = {};
+      for (const f of FACES) {
+        const list = strings(e.faces[f]);
+        if (list) faces[f] = list;
+      }
+      edit.faces = faces;
+    }
+    if (obj(e.facesRequired)) {
+      const req: Partial<Record<FaceKey, boolean>> = {};
+      for (const f of FACES) if (typeof e.facesRequired[f] === "boolean") req[f] = e.facesRequired[f] as boolean;
+      edit.facesRequired = req;
+    }
+    if ((typeof e.rangeTiles === "number" && e.rangeTiles > 0) || e.rangeTiles === "infinie") edit.rangeTiles = e.rangeTiles;
+    const serves = strings(e.serves);
+    if (serves) edit.serves = serves;
+    if (EDGES.includes(e.frontEdge as Edge)) edit.frontEdge = e.frontEdge as Edge;
+    if (typeof e.note === "string" && e.note) edit.note = e.note;
+    out[id] = edit;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- interfaces (S10)

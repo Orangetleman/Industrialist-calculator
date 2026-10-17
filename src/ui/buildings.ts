@@ -9,6 +9,28 @@ import type { GameData } from "../engine/data.ts";
 import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
 import { checkInterface, type Interfaces } from "../engine/interfaces.ts";
 import {
+  ASSEMBLY_SHORT,
+  blockFaces,
+  blockRange,
+  EDGES,
+  type Edge,
+  editDiff,
+  FACES,
+  type FaceKey,
+  fact,
+  findBlock,
+  frontEdge,
+  isOpen,
+  type ModAssembly,
+  type ModBlock,
+  type ModFact,
+  type ModularEdit,
+  type ModularFile,
+  repeats,
+  rule,
+  treeGrid,
+} from "../engine/modular.ts";
+import {
   applyTool,
   type BgPlacement,
   bodyPoint,
@@ -22,6 +44,7 @@ import {
   marginToPort,
   newSettingId,
   parseInterfaces,
+  parseModular,
   parseSurveys,
   portCenter,
   pruneIntegrated,
@@ -32,7 +55,7 @@ import {
   type Tool,
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
-import { loadLocalInterfaces, loadLocalSurveys, saveLocalInterfaces, saveLocalSurveys } from "./surveys.ts";
+import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
 import { esc, fmt, fmtMF } from "./format.ts";
 
 type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: number; natH: number };
@@ -47,6 +70,12 @@ const STATE_BADGE: Record<SurveyState, string> = {
 };
 
 const TOOL_LABEL: Record<Tool, string> = { objet: "Port objet", fluide: "Port fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" };
+const TIER = ["", "I", "II", "III", "IV", "V"];
+const FACE_LABEL: Record<FaceKey, string> = { back: "Derrière", front: "Devant", side: "Côtés" };
+const EDGE_LABEL: Record<Edge, string> = { haut: "bord haut", bas: "bord bas", gauche: "bord gauche", droite: "bord droit" };
+/** Ce qu'on rappelle d'un bloc de la ferme sous « À savoir » (règles de pose, pas de calcul). */
+const RANGE_NOTES = ["count", "sprinklersPerTank", "needsTankInControllerRange", "mustBeInControllerRange", "extraTanksNeedWater", "multipleOutputs", "placement"];
+
 const HELP: Record<Mode, string> = {
   ports: "Glisse pour te déplacer · molette pour zoomer · clique dans la marge (ports) ou sur le corps (prise ⚡)",
   capture: "Glisse pour déplacer la capture · molette pour l'agrandir ou la réduire (Maj : plus fin) · flèches : réglage fin",
@@ -56,9 +85,17 @@ const HELP: Record<Mode, string> = {
 /**
  * `onSelect` : appelé quand un bâtiment est choisi (pour l'adresse de la page).
  * `repoIfaces` : interfaces des machines du dépôt (data/interfaces.json, S10).
+ * `repoModular` : règles des machines modulaires (data/modular.json, S11-S12).
  * Renvoie `show(id)` : ouvrir un bâtiment depuis une autre page (schéma, plan de pose).
  */
-export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile, onSelect: (id: string) => void = () => {}, repoIfaces: Interfaces = {}): { show(id: string): void } {
+export function initBuildings(
+  root: HTMLElement,
+  data: GameData,
+  repo: PortsFile,
+  onSelect: (id: string) => void = () => {},
+  repoIfaces: Interfaces = {},
+  repoModular: ModularFile = { sources: {}, assemblies: [] },
+): { show(id: string): void } {
   const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
   if (pruned.dropped.length) save();
@@ -68,6 +105,11 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
   /** Interface du bâtiment choisi, en cours de saisie (null : aucune). */
   let iface: MachineInterface | null = null;
   let ifaceMsg = "";
+  // Corrections des blocs modulaires notées dans ce navigateur (S12) ; brouillon pendant « ✎ Corriger ».
+  let localMod = loadLocalModular();
+  let modDraft: ModularEdit | null = null;
+  let modMsg = "";
+  const assemblyOf = new Map(repoModular.assemblies.flatMap((a) => a.blocks.map((b) => [b.id, a] as const)));
   let selectedId: string | null = null;
   let entry: PortsEntry | null = null;
   let tool: Tool = "objet";
@@ -127,6 +169,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
           <p class="bld-msg" id="bld-msg" aria-live="polite"></p>
           <div id="bld-portform"></div>
           <div id="bld-iface"></div>
+          <div id="bld-mod"></div>
           <details class="bld-bg" id="bld-bg"><summary>Capture d'écran en fond (reste dans ton navigateur)</summary><div id="bld-bgbody"></div></details>
           <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. ce que la capture ne montre pas"></textarea></label>
           <div id="bld-status" aria-live="polite"></div>
@@ -149,12 +192,16 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     for (const m of machines) n[surveyState(m.id, repo, local)]++;
     $("#bld-states").innerHTML = `<b>${n.depot}</b> dans le dépôt (intégrés au site) · <b>${n.local}</b> local (dans ce navigateur, déjà utilisés par tes plans de pose ; « Exporter » pour les envoyer) · <b>${n.manquant}</b> manquants (ports supposés)`;
     $("#bld-items").innerHTML = machines
-      .filter((m) => !q || m.name.toLowerCase().includes(q))
+      .filter((m) => !q || m.name.toLowerCase().includes(q) || !!ASSEMBLY_SHORT[assemblyOf.get(m.id)?.id ?? ""]?.includes(q))
       .map((m) => {
+        const asm = assemblyOf.get(m.id);
+        const modBadge = asm
+          ? `<span class="bld-badge mod" title="bloc de l'ensemble ${esc(asm.name)}${localMod[m.id] ? " · correction locale à envoyer" : ""}">⬡ ${esc(ASSEMBLY_SHORT[asm.id] ?? asm.name)}${localMod[m.id] ? " ✎" : ""}</span>`
+          : "";
         const e = local[m.id] ?? repo.machines[m.id];
         const st = surveyState(m.id, repo, local);
         const hasIface = !!(localIfaces[m.id] ?? repoIfaces[m.id]);
-        const badges = `<span class="bld-badges">${hasIface ? `<span class="bld-badge iface" title="a une interface ([E] Interact, levier ou écran)">⚙</span>` : ""}${STATE_BADGE[st]}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>` : ""}</span>`;
+        const badges = `<span class="bld-badges">${modBadge}${hasIface ? `<span class="bld-badge iface" title="a une interface ([E] Interact, levier ou écran)">⚙</span>` : ""}${STATE_BADGE[st]}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">incomplet</span>` : ""}</span>`;
         return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");
@@ -169,6 +216,8 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     const known = localIfaces[id] ?? repoIfaces[id];
     iface = known ? structuredClone(known) : null;
     ifaceMsg = "";
+    modDraft = null;
+    modMsg = "";
     selectedPort = null;
     mode = "ports";
     corners = [];
@@ -295,6 +344,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     refreshCanvas(keepView);
     renderPortForm();
     renderIface();
+    renderModular();
     renderBgPanel();
     ($("#bld-notes") as HTMLTextAreaElement).value = entry.notes ?? "";
     renderActions();
@@ -415,6 +465,226 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       if (t.value === "nombre") st.number = { default: 1, scales: null };
     }
     if (redraw) renderIface();
+  }
+
+  // ---------------------------------------------------------------- ensemble modulaire (S12)
+  const modName = (id: string) => data.machines.get(id)?.name ?? id;
+  /** Nom sans le début commun à tous les blocs de l'ensemble (« Diesel Engine Crankshaft » → « Crankshaft »). */
+  function shortName(a: ModAssembly, id: string): string {
+    const names = a.blocks.map((b) => modName(b.id).split(" "));
+    let k = 0;
+    while (names.every((n) => n.length > k + 1 && n[k] === names[0]![k])) k++;
+    return modName(id).split(" ").slice(k).join(" ");
+  }
+  const modChip = (a: ModAssembly) => (id: string) => `<span class="mchip"><button type="button" class="link" data-bld="${esc(id)}" title="Ouvrir ${esc(modName(id))}">${esc(shortName(a, id))}</button></span>`;
+
+  /** Étiquettes de source, une par wiki (les pages au survol), plus « ta correction » si besoin. */
+  function srcTags(ids: string[], local = false): string {
+    const groups = new Map<string, { cls: string; url?: string; titles: string[] }>();
+    for (const id of new Set(ids)) {
+      const s = repoModular.sources[id];
+      if (!s) continue;
+      const label = s.wiki === "miraheze" ? "Miraheze" : s.wiki === "fandom" ? "Fandom" : s.wiki === "jeu" ? "relevé en jeu" : "ta réponse";
+      const g = groups.get(label) ?? { cls: s.wiki === "miraheze" || s.wiki === "fandom" ? "wiki" : "jeu", url: s.url, titles: [] };
+      g.titles.push(s.page ?? s.note ?? id);
+      groups.set(label, g);
+    }
+    let out = [...groups]
+      .map(([label, g]) =>
+        g.url
+          ? `<a class="src-tag ${g.cls}" href="${esc(g.url)}" target="_blank" rel="noopener" title="${esc(g.titles.join(" · "))}">${label}</a>`
+          : `<span class="src-tag ${g.cls}" title="${esc(g.titles.join(" · "))}">${label}</span>`,
+      )
+      .join("");
+    if (local) out += `<span class="src-tag fix" title="notée dans ce navigateur">ta correction</span>`;
+    return out;
+  }
+  /** ⚠ sur une question encore ouverte : un clic ouvre « ✎ Corriger ». */
+  const openTag = (f: ModFact | undefined) =>
+    isOpen(repoModular, f) ? `<button type="button" class="must unk" data-mod-edit title="${esc(f!.text)} — voir data/a-verifier.md ; clic : corriger">⚠ ${esc(f!.question!)}</button>` : "";
+
+  function chainHtml(a: ModAssembly, b: ModBlock): string {
+    const order = (rule(a, "order")?.value as string[] | undefined) ?? [];
+    if (!order.length) return "";
+    const box = (id: string) => {
+      const blk = a.blocks.find((x) => x.id === id);
+      return `<span class="b${id === b.id ? " on" : ""}">${esc(shortName(a, id))}${blk && repeats(blk) ? " × n" : ""}</span>`;
+    };
+    const list = (key: string, label: string) => {
+      const ids = rule(a, key)?.value as string[] | undefined;
+      return ids?.length ? `<p class="mchain-side">${label} : ${ids.map((id) => (id === b.id ? `<b>${esc(shortName(a, id))}</b>` : esc(shortName(a, id)))).join(", ")}.</p>` : "";
+    };
+    return `<div class="mchain">${order.map(box).join('<span class="arrow">→</span>')}</div>${list("optionalInLine", "Dans la ligne, facultatif")}${list("sideMounted", "Sur les côtés de la ligne")}`;
+  }
+
+  function contactHtml(a: ModAssembly, b: ModBlock): string {
+    const edit = localMod[b.id];
+    const info = blockFaces(b, modDraft ?? edit);
+    let h = chainHtml(a, b);
+    const names = a.faceNames ?? {};
+    h += `<p class="hint">Les faces se lisent dans le sens de la chaîne : <b>devant</b> = ${esc(names.front ?? "")}, <b>derrière</b> = ${esc(names.back ?? "")}, <b>côtés</b> = ${esc(names.side ?? "")}.</p>`;
+    if (modDraft) {
+      const faces = modDraft.faces ?? {};
+      const rows = FACES.map((f) => {
+        const list = faces[f] ?? [];
+        const chips = a.blocks
+          .map((x) => `<label class="mchip${list.includes(x.id) ? "" : " off"}"><input type="checkbox" data-mod="face" data-face="${f}" data-id="${esc(x.id)}"${list.includes(x.id) ? " checked" : ""}> ${esc(shortName(a, x.id))}</label>`)
+          .join("");
+        return `<tr><th>${FACE_LABEL[f]}</th><td><label class="bld-check"><input type="checkbox" data-mod="req" data-face="${f}"${modDraft!.facesRequired?.[f] ? " checked" : ""}> obligatoire</label></td><td>${chips}</td></tr>`;
+      }).join("");
+      h += `<table><thead><tr><th>Face</th><th>Doit être touchée ?</th><th>Blocs qui peuvent la toucher</th></tr></thead><tbody>${rows}</tbody></table>`;
+    } else if (!info.faces) {
+      h += `<p>On ne sait pas encore comment ce bloc se pose. ${openTag(info.facesFact)}</p>`;
+    } else {
+      const rows = info.faces
+        .map((r) => {
+          const must = r.required === null ? `<span class="must unk">inconnu</span>` : r.required ? `<span class="must yes">obligatoire</span>` : `<span class="must no">facultatif</span>`;
+          return `<tr><th>${FACE_LABEL[r.face]}</th><td>${must}</td><td>${r.blocks.length ? r.blocks.map(modChip(a)).join("") : `<span class="hint">rien</span>`}</td></tr>`;
+        })
+        .join("");
+      h += `<table><thead><tr><th>Face</th><th>Doit être touchée ?</th><th>Blocs qui peuvent la toucher (clic : ouvrir le bloc)</th></tr></thead><tbody>${rows}</tbody></table>`;
+      const texts = [info.facesFact, info.requiredFact].filter((f): f is ModFact => !!f);
+      h += texts.map((f) => `<p class="hint">${esc(f.text)} ${openTag(f)}</p>`).join("");
+      h += `<p class="hint">Sources : ${srcTags(texts.flatMap((f) => f.sources), info.local)}</p>`;
+    }
+    const fe = frontEdge(b, edit);
+    const edges = EDGES.map((e) => `<option value="${e}"${fe === e ? " selected" : ""}>${EDGE_LABEL[e]}</option>`).join("");
+    h += `<div class="row"><label>Devant, sur la grille du relevé <select data-mod="front"><option value="">inconnu</option>${edges}</select></label><span class="hint">le bord qui regarde dans le sens de la chaîne, le bloc posé sans rotation ; sert aux plans de pose (S14)</span>${fe ? "" : openTag(rule(a, "frontEdge"))}</div>`;
+    return h;
+  }
+
+  function rangeSvg(side: number, radius: number): { svg: string; count: number } {
+    const g = treeGrid(side, radius);
+    const v = radius + 2;
+    let s = `<svg viewBox="${-v} ${-v} ${2 * v} ${2 * v}" role="img" aria-label="Portée sur une grille d'arbres : ${g.count} emplacements touchés">`;
+    for (const t of g.trees) s += `<rect x="${t.x0 + 0.2}" y="${t.y0 + 0.2}" width="${t.x1 - t.x0 - 0.4}" height="${t.y1 - t.y0 - 0.4}" rx=".6" class="${t.inRange ? "t-in" : "t-out"}"/>`;
+    s += `<rect x="${-side / 2}" y="${-side / 2}" width="${side}" height="${side}" class="blk"/><circle r="${radius}" class="circ"/></svg>`;
+    return { svg: s, count: g.count };
+  }
+
+  function rangeHtml(a: ModAssembly, b: ModBlock): string {
+    const size = data.machines.get(b.id)?.size ?? null;
+    const edits = modDraft ? { ...localMod, [b.id]: modDraft } : localMod;
+    const r = blockRange(a, b, size, edits);
+    const rows: string[] = [];
+    const item = (dt: string, dd: string) => rows.push(`<dt>${dt}</dt><dd>${dd}</dd>`);
+    if (modDraft) {
+      const v = typeof r.tiles === "number" ? fmt(r.tiles, 2) : "";
+      item(
+        "Portée",
+        `<input type="text" inputmode="decimal" class="num" data-mod="range" value="${v}"${r.tiles === "infinie" ? " disabled" : ""} aria-label="Portée en cases depuis le bord"> cases depuis le bord <label class="bld-check"><input type="checkbox" data-mod="infinite"${r.tiles === "infinie" ? " checked" : ""}> infinie</label>`,
+      );
+      const others = a.blocks.filter((x) => x.id !== b.id);
+      item("Dessert", others.map((x) => `<label class="mchip${r.serves.includes(x.id) ? "" : " off"}"><input type="checkbox" data-mod="serve" data-id="${esc(x.id)}"${r.serves.includes(x.id) ? " checked" : ""}> ${esc(modName(x.id))}</label>`).join(""));
+    } else {
+      const tilesText =
+        r.tiles === null
+          ? `<span class="hint">pas de portée : ce bloc est desservi par d'autres</span>`
+          : r.tiles === "infinie"
+            ? `<b>infinie</b> ${esc(r.rangeFact?.text ?? "")}`
+            : `<b>${fmt(r.tiles, 2)} cases</b> depuis le bord${r.fromCenter !== null ? ` (${fmt(r.fromCenter, 2)} depuis le centre, le bloc faisant ${size!.w} × ${size!.l})` : ""}`;
+      item("Portée", `${tilesText} ${r.rangeFact ? srcTags(r.rangeFact.sources, edits[b.id]?.rangeTiles !== undefined) : ""}`);
+      if (typeof r.tiles === "number") {
+        const crit = rule(a, "rangeCriterion");
+        const shape = rule(a, "rangeShape");
+        item("Forme", `cercle ; ${esc(crit?.text ?? "")} ${srcTags([...(shape?.sources ?? []), ...(crit?.sources ?? [])])}`);
+      }
+      if (r.serves.length) item("Dessert", `${r.serves.map(modChip(a)).join("")} ${esc(r.servesFact?.text ?? "")} ${srcTags(r.servesFact?.sources ?? [], !!edits[b.id]?.serves)}`);
+      else if (r.tiles !== null) item("Dessert", `<span class="hint">rien</span>`);
+    }
+    if (r.servedBy.length) {
+      const reach = (t: number | "infinie" | null) => (t === "infinie" ? "portée infinie" : typeof t === "number" ? `${fmt(t, 2)} cases depuis son bord` : "portée inconnue");
+      item("Doit être à portée de", r.servedBy.map((x) => `${modChip(a)(x.id)} <span class="hint">(${reach(x.tiles)})</span>`).join(" "));
+    }
+    const notes = RANGE_NOTES.map((k) => fact(b, k)).filter((f): f is ModFact => !!f);
+    if (notes.length && !modDraft) item("À savoir", `<ul>${notes.map((f) => `<li>${esc(f.text)} ${srcTags(f.sources)} ${openTag(f)}</li>`).join("")}</ul>`);
+    let drawing = "";
+    if (r.fromCenter !== null && size && r.serves.includes("tree")) {
+      const d = rangeSvg(size.w, r.fromCenter);
+      drawing = d.svg;
+      const grid = (fact(b, "treesPerSprinkler")?.value as { grid?: number } | undefined)?.grid;
+      let check = `Sur une grille régulière d'arbres (4 × 4 cases), le cercle touche <b>${d.count}</b> emplacements d'arbre (en vert).`;
+      if (grid !== undefined) check += d.count === grid ? ` C'est le nombre que donnent les deux wikis (${grid}). <span class="ok-text">✓ cohérent</span>` : ` <span class="must unk">⚠ les wikis disent ${grid} : vérifie la portée</span>`;
+      const perHarvester = fact(b, "treesPerHarvester");
+      if (perHarvester) check += ` Ce n'est pas le nombre qu'il récolte : ${esc(perHarvester.text)} ${openTag(perHarvester)}`;
+      item("Contrôle", check);
+    }
+    return `<div class="mrange">${drawing}<dl>${rows.join("")}</dl></div>`;
+  }
+
+  function renderModular(): void {
+    const box = $("#bld-mod");
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    if (!found) {
+      box.innerHTML = "";
+      return;
+    }
+    const { assembly: a, block: b } = found;
+    const edit = localMod[b.id];
+    const state = edit ? `<span class="bld-badge local">local · à envoyer</span>` : "";
+    const how = a.assembly === "contact" ? "par contact : les blocs se touchent, face contre face" : "par portée : les blocs ne se touchent pas, chacun doit être dans le cercle du bloc qui le dessert";
+    let body = `<p class="hint">${esc(b.role)}</p>${a.assembly === "contact" ? contactHtml(a, b) : rangeHtml(a, b)}`;
+    if (modDraft) body += `<label class="bld-notes">Note <input type="text" data-mod="note" value="${esc(modDraft.note ?? "")}" placeholder="ex. vu en jeu : le côté plat regarde le contrôleur"></label>`;
+    else if (edit?.note) body += `<p class="hint">Ta note : ${esc(edit.note)}</p>`;
+    const actions = modDraft
+      ? `<button type="button" class="primary" data-mod-save>Enregistrer</button><button type="button" class="link" data-mod-cancel>Annuler</button>`
+      : `<button type="button" data-mod-edit>✎ Corriger</button>${edit ? `<button type="button" class="link" data-mod-forget>Oublier ma correction locale</button>` : ""}`;
+    box.innerHTML = `<div class="bld-mod${modDraft ? " editing" : ""}"><h4>Ensemble modulaire · ${esc(a.name)} (Tier ${TIER[a.tier] ?? a.tier}) ${state}<span class="hint">· ${how}</span></h4>${body}<div class="actions">${actions}</div><p class="bld-msg" aria-live="polite">${esc(modMsg)}</p></div>`;
+  }
+
+  /** Brouillon de correction : les valeurs en vigueur (dépôt, ou correction locale). */
+  function modDraftFrom(a: ModAssembly, b: ModBlock): ModularEdit {
+    const edit = localMod[b.id];
+    const draft: ModularEdit = { source: surveySource("correction notée dans l'éditeur de bâtiments du calculateur") };
+    if (a.assembly === "contact") {
+      const faces = blockFaces(b, edit).faces ?? [];
+      draft.faces = Object.fromEntries(faces.map((r) => [r.face, [...r.blocks]]));
+      draft.facesRequired = Object.fromEntries(faces.map((r) => [r.face, r.required === true]));
+    } else {
+      const r = blockRange(a, b, data.machines.get(b.id)?.size ?? null, localMod);
+      if (r.tiles !== null) draft.rangeTiles = r.tiles;
+      draft.serves = [...r.serves];
+    }
+    if (edit?.note) draft.note = edit.note;
+    return draft;
+  }
+
+  function modInput(t: HTMLInputElement & HTMLSelectElement): void {
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    if (!found) return;
+    const b = found.block;
+    const f = t.dataset.mod!;
+    if (f === "front") {
+      // Le bord « devant » s'enregistre tout de suite (pas besoin de « ✎ Corriger »).
+      const next: ModularEdit = { ...(localMod[b.id] ?? {}), source: surveySource("correction notée dans l'éditeur de bâtiments du calculateur") };
+      if (t.value) next.frontEdge = t.value as Edge;
+      else delete next.frontEdge;
+      if (Object.keys(next).length > 1) localMod[b.id] = next;
+      else delete localMod[b.id];
+      saveLocalModular(localMod);
+      modMsg = t.value ? `Devant = ${EDGE_LABEL[t.value as Edge]}, enregistré dans ce navigateur. Pense à l'exporter.` : "Bord « devant » remis à inconnu.";
+      renderList();
+      return renderModular();
+    }
+    if (!modDraft) return;
+    const face = t.dataset.face as FaceKey | undefined;
+    const id = t.dataset.id;
+    const toggle = (list: string[] | undefined) => (t.checked ? [...(list ?? []).filter((x) => x !== id), id!] : (list ?? []).filter((x) => x !== id));
+    if (f === "note") return void (modDraft.note = t.value || undefined);
+    if (f === "req" && face) modDraft.facesRequired = { ...modDraft.facesRequired, [face]: t.checked };
+    else if (f === "face" && face && id) modDraft.faces = { ...modDraft.faces, [face]: toggle(modDraft.faces?.[face]) };
+    else if (f === "serve" && id) modDraft.serves = toggle(modDraft.serves);
+    else if (f === "infinite") {
+      const repoTiles = fact(b, "rangeTiles")?.value;
+      modDraft.rangeTiles = t.checked ? "infinie" : typeof repoTiles === "number" ? repoTiles : undefined;
+    } else if (f === "range") {
+      const v = Number(t.value.replace(",", "."));
+      if (v > 0) {
+        modDraft.rangeTiles = v;
+        modMsg = "";
+      } else modMsg = "Portée : un nombre de cases plus grand que 0.";
+    }
+    renderModular();
   }
 
   function renderBgPanel(): void {
@@ -544,6 +814,7 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       entry.footprint = { w: t.id === "bld-w" ? v : entry.footprint!.w, h: t.id === "bld-h" ? v : entry.footprint!.h };
       refreshCanvas();
     } else if (t.dataset.if && t.type === "text") ifaceInput(t, false);
+    else if (t.dataset.mod === "note") modInput(t as HTMLInputElement & HTMLSelectElement);
     else if (t.id === "bld-notes") entry.notes = t.value || undefined;
     else if (t.id === "bld-bgo" && bg) {
       bg.opacity = Number(t.value);
@@ -562,6 +833,11 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
     if (t.dataset.if) {
       // Les champs texte sont pris en compte à la frappe (pas de redessin : un clic qui suit doit garder son bouton).
       if ((t as HTMLInputElement).type !== "text") ifaceInput(t as HTMLInputElement, true);
+      return;
+    }
+    if (t.dataset.mod) {
+      // La note est prise à la frappe ; le reste redessine la section.
+      if (t.dataset.mod !== "note") modInput(t);
       return;
     }
     if (t.id === "bld-nopower") {
@@ -618,8 +894,12 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
         const ifs = raw && typeof raw === "object" && "interfaces" in raw ? (parseInterfaces(raw) ?? {}) : {};
         localIfaces = { ...localIfaces, ...ifs };
         saveLocalInterfaces(localIfaces);
+        const mods = parseModular(raw) ?? {};
+        localMod = { ...localMod, ...mods };
+        saveLocalModular(localMod);
         const nIf = Object.keys(ifs).length;
-        $("#bld-io").textContent = `${Object.keys(parsed).length} relevé(s)${nIf ? ` et ${nIf} interface(s)` : ""} importé(s).`;
+        const nMod = Object.keys(mods).length;
+        $("#bld-io").textContent = `${Object.keys(parsed).length} relevé(s)${nIf ? `, ${nIf} interface(s)` : ""}${nMod ? `, ${nMod} correction(s) de blocs modulaires` : ""} importé(s).`;
         renderList();
         if (selectedId) select(selectedId);
       } catch (err) {
@@ -736,6 +1016,38 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
       renderList();
       return renderIface();
     }
+    if (target.closest("[data-mod-edit]")) {
+      const found = findBlock(repoModular, selectedId);
+      if (!found || modDraft) return;
+      modDraft = modDraftFrom(found.assembly, found.block);
+      modMsg = "";
+      renderModular();
+      return root.querySelector("#bld-mod .bld-mod")?.scrollIntoView({ block: "nearest" });
+    }
+    if (target.closest("[data-mod-cancel]")) {
+      modDraft = null;
+      modMsg = "";
+      return renderModular();
+    }
+    if (target.closest("[data-mod-save]") && modDraft) {
+      const found = findBlock(repoModular, selectedId)!;
+      const next = editDiff(found.assembly, found.block, { ...modDraft, frontEdge: localMod[selectedId]?.frontEdge });
+      if (next) localMod[selectedId] = next;
+      else delete localMod[selectedId];
+      saveLocalModular(localMod);
+      modDraft = null;
+      modMsg = next ? "Correction enregistrée dans ce navigateur. Pense à l'exporter (« Exporter mes relevés »)." : "Aucune différence avec les données du site : rien d'enregistré.";
+      renderList();
+      return renderModular();
+    }
+    if (target.closest("[data-mod-forget]")) {
+      delete localMod[selectedId];
+      saveLocalModular(localMod);
+      modDraft = null;
+      modMsg = "Correction locale oubliée : retour aux données du site.";
+      renderList();
+      return renderModular();
+    }
     if (target.closest("#bld-forget")) {
       delete local[selectedId];
       save();
@@ -804,17 +1116,18 @@ export function initBuildings(root: HTMLElement, data: GameData, repo: PortsFile
   function exportFile(): void {
     const n = Object.keys(local).length;
     const nIf = Object.keys(localIfaces).length;
-    if (!n && !nIf) {
+    const nMod = Object.keys(localMod).length;
+    if (!n && !nIf && !nMod) {
       $("#bld-io").textContent = "Aucun relevé local à exporter : enregistre d'abord un relevé.";
       return;
     }
-    const blob = new Blob([JSON.stringify(exportSurveys(local, localIfaces), null, 1) + "\n"], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(exportSurveys(local, localIfaces, localMod), null, 1) + "\n"], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `releves-batiments-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    $("#bld-io").textContent = `${n} relevé(s)${nIf ? ` et ${nIf} interface(s)` : ""} exporté(s). Envoie ce fichier pour l'intégrer aux données.`;
+    $("#bld-io").textContent = `${n} relevé(s)${nIf ? `, ${nIf} interface(s)` : ""}${nMod ? `, ${nMod} correction(s) de blocs modulaires` : ""} exporté(s). Envoie ce fichier pour l'intégrer aux données.`;
   }
 
   renderList();

@@ -2,6 +2,9 @@
  "meta": {
   "description": "Machines modulaires : règles d'assemblage (contact par face, portées), nombre de blocs et effets. Chaque valeur cite ses sources ; ce qui manque est « inconnu » et renvoie à une question de data/a-verifier.md (section Notes manuelles, MOD-xx). Écrit à la main (session S11), pas généré.",
   "writtenAt": "2026-10-16",
+  "updatedAt": "2026-10-18",
+  "openQuestions": ["MOD-09", "MOD-10", "MOD-11", "MOD-12", "MOD-13", "MOD-14", "MOD-15", "MOD-16", "MOD-17"],
+  "openQuestionsNote": "Questions de data/a-verifier.md encore ouvertes, en tout ou en partie : l'éditeur de bâtiments les signale (⚠). Les autres (MOD-01 à MOD-08) ont leur réponse dans les valeurs.",
   "units": {
    "case": "1 case = 2 studs = 1 Short Pipe (RELEVES.md)",
    "MF": "MamyFlux ; kMF = 1 000 MF, MMF = 1 000 000 MF",
@@ -23,6 +26,7 @@
  "sources": {
   "user-q9": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponse Q9 de PLAN-ACTION.md : la portée est circulaire (un rayon, pas un carré)" },
   "user-mod-2026-10-16": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponses de l'utilisateur aux questions MOD-01 à MOD-16 (relevés et observations en jeu) : portées mesurées depuis le bord du bloc, en cases" },
+  "user-s12-2026-10-18": { "wiki": "utilisateur", "fetchedAt": "2026-10-18", "note": "réponses de l'utilisateur à Q11 (PLAN-ACTION.md, session S12) : faces obligatoires d'après la lecture des wikis (maquette/modulaires.html, tableau 2 bis) ; « les flywheel se placent comme les crankshaft mais sans caractère obligatoire »" },
   "jeu-ports-2026-10-16": { "wiki": "jeu", "fetchedAt": "2026-10-16", "note": "relevés de l'utilisateur dans l'éditeur de bâtiments, intégrés à data/ports.json" },
   "jeu-tree-01": { "wiki": "jeu", "fetchedAt": "2026-10-12T11:45:08.504Z", "note": "relevé en jeu de l'utilisateur, data/overrides.json (tree_01.durationS)" },
 
@@ -138,6 +142,7 @@
       { "key": "mustBeInControllerRange", "text": "Doit être à portée du contrôleur (le même que celui des arroseurs).", "value": true, "status": "sourcé", "sources": ["mh-tree-controller", "mh-faq13", "mh-tree-guide", "fd-water-tank"] },
       { "key": "extraTanksNeedWater", "text": "Chaque réservoir doit être alimenté en eau, y compris ceux qu'on ajoute pour dépasser 3 arroseurs (en jeu). Miraheze disait le contraire.", "value": true, "status": "contradiction", "sources": ["user-mod-2026-10-16"], "alternatives": [ { "value": false, "sources": ["mh-sprinkler"] } ], "question": "MOD-08" },
       { "key": "rangeTiles", "text": "Portée infinie vers les arroseurs : il suffit que le réservoir soit à portée du contrôleur.", "value": "infinie", "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-02" },
+      { "key": "serves", "text": "Dessert les arroseurs (3 au plus par réservoir).", "value": ["tree-farm-sprinkler"], "status": "sourcé", "sources": ["mh-water-tank", "mh-sprinkler", "fd-water-tank"] },
       { "key": "waterPort", "text": "Entrée d'eau en bas, case 2 (data/ports.json) ; pas de prise électrique.", "value": { "side": "bas", "cell": 2 }, "status": "sourcé", "sources": ["jeu-ports-2026-10-16"] }
      ]
     },
@@ -147,6 +152,7 @@
      "facts": [
       { "key": "rangeTiles", "text": "Portée de l'arroseur, depuis son bord : 10 cases (12 depuis son centre, le bloc faisant 4 × 4).", "value": 10, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-03" },
       { "key": "rangeTilesBounds", "text": "Bornes déduites des images du wiki avant le relevé, depuis le centre de l'arroseur : 12 à 14 cases. Le relevé (10 + 2 = 12 depuis le centre) tombe dedans, ce qui confirme aussi qu'il est en cases.", "value": { "min": 12, "max": 14 }, "unit": "cases", "status": "déduit", "sources": ["mh-img-sprinkler-range", "mh-img-sprinkler-range2", "fd-sprinkler"], "note": "Arbres de 4 × 4 cases posés côte à côte. Sprinkler Range : dans une grille 9 × 9 avec l'arroseur au centre, l'arbre décalé de (3, 2) arbres pousse (point le plus proche à 11,7 cases) ; ceux décalés de (4, 0) et (3, 3) ne poussent pas (14 et 14,1 cases) : rayon < 14. Sprinkler Range2 : les arbres les plus loin des 46 ont leur point le plus proche à environ 12 cases (mesure sur l'image, ± 0,3) : rayon ≥ 12. Si c'est le centre de l'arbre qui compte, les mêmes images donnent un rayon entre 14,4 et 16 cases.", "question": "MOD-03" },
+      { "key": "serves", "text": "Dessert les arbres à sa portée.", "value": ["tree"], "status": "sourcé", "sources": ["mh-sprinkler", "mh-tree", "mh-tree-guide", "fd-sprinkler"] },
       { "key": "treesPerSprinkler", "text": "Arbres desservis par un arroseur : 44 en grille régulière (Miraheze et Fandom), jusqu'à 46 en décalant des arbres d'une demi-case (Milza, Miraheze).", "value": { "grid": 44, "max": 46 }, "status": "sourcé", "sources": ["mh-sprinkler", "fd-sprinkler", "mh-img-sprinkler-range", "mh-img-sprinkler-range2"] },
       { "key": "waterCycle", "text": "Arrosage : 33 L toutes les 1 000 ticks (33,33 s), comme le dit Miraheze (confirmé par l'utilisateur) ; le Fandom dit 25 L toutes les 36 s.", "value": { "periodS": 33.33, "litersPerCycle": 33 }, "status": "contradiction", "sources": ["mh-sprinkler", "user-mod-2026-10-16"], "alternatives": [ { "value": { "periodS": 36, "litersPerCycle": 25 }, "sources": ["fd-sprinkler", "fd-water-tank"] } ], "question": "MOD-07" },
       { "key": "needsTankInControllerRange", "text": "Ne marche que si un réservoir est à portée du contrôleur.", "value": true, "status": "sourcé", "sources": ["mh-sprinkler", "mh-tree-guide"] },
@@ -169,6 +175,7 @@
      "role": "Bras robotisé : coupe les arbres mûrs à sa portée et dépose les Oak Logs dans une sortie.",
      "facts": [
       { "key": "rangeTiles", "text": "Portée du récolteur vers les arbres, depuis son bord : 23 cases (27 depuis son centre, le bloc faisant 8 × 8).", "value": 23, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16"], "question": "MOD-05" },
+      { "key": "serves", "text": "Dessert les arbres (il les coupe) et une sortie (il y dépose les Oak Logs), à la même portée.", "value": ["tree", "tree-farm-output"], "status": "sourcé", "sources": ["mh-harvester", "mh-tree-output", "user-mod-2026-10-16"] },
       { "key": "outputRange", "text": "Même portée vers la sortie que vers les arbres : 23 cases depuis son bord (pas besoin de la toucher, contrairement à ce que laisse entendre la FAQ).", "value": 23, "unit": "cases", "status": "sourcé", "sources": ["user-mod-2026-10-16", "mh-harvester"], "question": "MOD-06" },
       { "key": "ports", "text": "Ni port ni prise électrique : il est alimenté par le contrôleur qui l'a à sa portée.", "value": { "ports": [], "power": false }, "status": "sourcé", "sources": ["user-mod-2026-10-16", "jeu-ports-2026-10-16"] },
       { "key": "powerPerTree", "text": "200 kMF par arbre coupé, sur 11 s ; le contrôleur doit avoir au moins 200 kMF en réserve.", "value": { "MF": 200000, "seconds": 11 }, "status": "sourcé", "sources": ["mh-harvester", "fd-harvester"] },
@@ -219,6 +226,9 @@
     "side": "les deux côtés latéraux, perpendiculaires à la chaîne"
    },
    "rules": [
+    { "key": "order", "text": "Ligne principale : le contrôleur au bout, les vilebrequins en ligne devant lui, le générateur au bout de la chaîne.", "value": ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-generator"], "status": "sourcé", "sources": ["mh-mde", "mh-mde-controller", "mh-mde-generator", "fd-mde"] },
+    { "key": "optionalInLine", "text": "Le volant (Flywheel) se place comme un vilebrequin, dans la ligne, sans être obligatoire.", "value": ["diesel-engine-flywheel"], "status": "sourcé", "sources": ["user-s12-2026-10-18"] },
+    { "key": "frontEdge", "text": "Sur le relevé d'un bloc (posé sans rotation), quel bord regarde devant, dans le sens de la chaîne ? Un champ de l'éditeur de bâtiments l'attend, bloc par bloc.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-17" },
     { "key": "straightChain", "text": "Les vilebrequins ne se relient qu'en ligne droite, ni de côté, ni en diagonale.", "value": true, "status": "sourcé", "sources": ["mh-mde-crankshaft"] },
     { "key": "sideMounted", "text": "Tous les blocs sauf le contrôleur et le générateur se posent sur un côté d'un vilebrequin.", "value": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"], "status": "sourcé", "sources": ["mh-mde", "fd-mde-crankshaft"] },
     { "key": "oneSideOnly", "text": "On peut tout poser d'un seul côté des vilebrequins : le moteur reste étroit (montage simple du wiki).", "value": true, "status": "sourcé", "sources": ["mh-mde", "fd-mde"] },
@@ -233,7 +243,8 @@
      "role": "Cerveau du moteur ; porte les réglages.",
      "facts": [
       { "key": "count", "text": "Un seul par moteur ; plusieurs cassent le moteur.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "fd-mde"] },
-      { "key": "faces", "text": "Au bout du moteur : les vilebrequins se posent devant lui ; il ne se pose pas sur un côté. Un vilebrequin de côté peut aussi partir d'un de ses côtés.", "value": { "front": ["diesel-engine-crankshaft"], "side": ["diesel-engine-crankshaft-sideways"], "back": [] }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "mh-mde-sideways"] },
+      { "key": "faces", "text": "Au bout du moteur : les vilebrequins se posent devant lui ; il ne se pose pas sur un côté. Un vilebrequin de côté peut aussi partir d'un de ses côtés.", "value": { "front": ["diesel-engine-crankshaft", "diesel-engine-flywheel"], "side": ["diesel-engine-crankshaft-sideways"], "back": [] }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "mh-mde-sideways", "user-s12-2026-10-18"] },
+      { "key": "facesRequired", "text": "Devant obligatoire : la ligne de vilebrequins part de lui. Ses côtés sont facultatifs (un Crankshaft Sideways peut y démarrer une 2ᵉ ligne).", "value": {"front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-controller", "mh-mde"] },
       { "key": "spacing", "text": "Deux moteurs complets peuvent se coller : un joueur en a posé plusieurs à la suite (observation rapportée par l'utilisateur). Le Fandom signalait un bogue quand deux contrôleurs sont trop proches, sans donner de distance.", "value": 0, "unit": "cases", "status": "contradiction", "sources": ["user-mod-2026-10-16"], "alternatives": [ { "value": "distance non nulle, non chiffrée", "sources": ["fd-mde-controller"] } ], "question": "MOD-13" }
      ]
     },
@@ -241,7 +252,8 @@
      "id": "diesel-engine-crankshaft",
      "role": "Relie les blocs ; prolonge le moteur en ligne droite.",
      "facts": [
-      { "key": "faces", "text": "Un côté plat et trois côtés à tiges. Le côté plat se tourne vers le contrôleur (ou vers le vilebrequin précédent) ; la tige de devant reçoit le vilebrequin suivant ou le générateur ; les deux tiges latérales reçoivent les blocs de côté.", "value": { "back": ["diesel-engine-controller", "diesel-engine-crankshaft"], "front": ["diesel-engine-crankshaft", "diesel-engine-generator"], "side": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"] }, "status": "sourcé", "sources": ["mh-mde-crankshaft", "mh-mde", "fd-mde-crankshaft", "mh-img-mde-setup"], "note": "Lecture des textes et du schéma MDESetup ; l'orientation exacte (quelle face est « plate ») est à confirmer.", "question": "MOD-11" },
+      { "key": "faces", "text": "Un côté plat et trois côtés à tiges. Le côté plat se tourne vers le contrôleur (ou vers le vilebrequin précédent) ; la tige de devant reçoit le vilebrequin suivant ou le générateur ; les deux tiges latérales reçoivent les blocs de côté.", "value": { "back": ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-flywheel"], "front": ["diesel-engine-crankshaft", "diesel-engine-generator", "diesel-engine-flywheel"], "side": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"] }, "status": "sourcé", "sources": ["mh-mde-crankshaft", "mh-mde", "fd-mde-crankshaft", "mh-img-mde-setup", "user-s12-2026-10-18"], "note": "Lecture des textes et du schéma MDESetup ; l'orientation exacte (quelle face est « plate ») est à confirmer. Le volant se place comme un vilebrequin (réponse du 2026-10-18).", "question": "MOD-11" },
+      { "key": "facesRequired", "text": "Derrière et devant obligatoires (chaîne contrôleur → vilebrequins → générateur) ; côtés facultatifs. Le premier vilebrequin d'une 2ᵉ ligne, parti d'un Crankshaft Sideways, n'a rien derrière lui : à confirmer.", "value": {"back": true, "front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-crankshaft", "mh-mde"], "question": "MOD-11" },
       { "key": "sideCapacity", "text": "Combien de blocs de côté un vilebrequin porte-t-il (un par côté, soit deux) ?", "value": null, "status": "inconnu", "sources": [], "question": "MOD-11" }
      ]
     },
@@ -250,6 +262,7 @@
      "role": "Élargit le moteur : démarre une deuxième ligne de vilebrequins parallèle à la première.",
      "facts": [
       { "key": "faces", "text": "Deux côtés à tiges : l'un touche le côté d'un vilebrequin, d'un contrôleur ou d'un autre vilebrequin de côté ; l'autre reçoit le côté du vilebrequin de la nouvelle ligne. Il ne se relie que de côté ; on ne peut rien poser sur ses autres faces.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller", "diesel-engine-crankshaft-sideways"], "front": [], "back": [] }, "status": "sourcé", "sources": ["mh-mde-sideways", "mh-mde-crankshaft", "fd-mde-sideways", "mh-mde"] },
+      { "key": "facesRequired", "text": "Les deux côtés obligatoires : l'un touche la première ligne, l'autre reçoit la nouvelle.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-sideways"] },
       { "key": "parallelLine", "text": "Les vilebrequins de la nouvelle ligne doivent regarder dans le même sens que ceux de la première.", "value": true, "status": "sourcé", "sources": ["mh-mde", "fd-mde"] }
      ]
     },
@@ -258,6 +271,7 @@
      "role": "Seul bloc qui brûle le carburant ; donne le couple.",
      "facts": [
       { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-cylinder", "fd-mde-cylinder"] },
+      { "key": "facesRequired", "text": "Posé contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-cylinder"] },
       { "key": "torquePerCylinderMT", "text": "Fandom : un cylindre donne 39,87 MT (39,8666…).", "value": 39.8667, "unit": "MT", "status": "sourcé", "sources": ["fd-mde-cylinder"], "note": "Sans précision sur le rapport air/carburant ni l'accélérateur ; le tableau Miraheze donne un couple qui varie avec le rapport (199 à 319 MT pour 6 cylindres)." },
       { "key": "exhaustPerCylinder", "text": "Fandom (panneau de débogage) : chaque cylindre ajoute 100 au maximum d'échappement.", "value": 100, "status": "sourcé", "sources": ["fd-mde-cylinder"] },
       { "key": "minUseful", "text": "Le plus petit moteur utile : 3 cylindres, rapport 10, accélérateur 100 %, un peu moins de 1 MMF/s.", "value": { "cylinders": 3, "airFuel": 10, "throttle": 100, "powerMFps": "< 1000000" }, "status": "sourcé", "sources": ["mh-mde-cylinder"] },
@@ -269,6 +283,7 @@
      "role": "Admission d'air.",
      "facts": [
       { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air"] },
+      { "key": "facesRequired", "text": "Posée contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-air"] },
       { "key": "count", "text": "Au moins une ; les gros moteurs (plus de 400 MT) peuvent en demander plusieurs. Fandom : une entrée d'air suffit pour 6 cylindres.", "value": { "min": 1, "cylindersPerInput": 6 }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air"], "question": "MOD-14" },
       { "key": "debugAir", "text": "Fandom (panneau de débogage) : l'air est compté sur 3 000 par entrée d'air.", "value": 3000, "status": "sourcé", "sources": ["fd-mde-debug"] },
       { "key": "needsExhaust", "text": "Ne marche qu'avec un échappement.", "value": true, "status": "sourcé", "sources": ["mh-mde-air"] }
@@ -279,6 +294,7 @@
      "role": "Évacue les gaz ; émet la pollution.",
      "facts": [
       { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-exhaust", "fd-mde-exhaust"] },
+      { "key": "facesRequired", "text": "Posé contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-exhaust"] },
       { "key": "count", "text": "Au moins un ; « rarement plus d'un » selon la page d'ensemble, mais les gros moteurs (plus de 400 MT) peuvent en demander plusieurs.", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-exhaust", "mh-mde", "fd-mde-exhaust"], "question": "MOD-14" },
       { "key": "debugExhaust", "text": "Fandom (panneau de débogage) : l'échappement est compté sur 600 par échappement.", "value": 600, "status": "sourcé", "sources": ["fd-mde-debug"] }
      ]
@@ -288,6 +304,7 @@
      "role": "Entrée de carburant (fluide).",
      "facts": [
       { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel"] },
+      { "key": "facesRequired", "text": "Posée contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-fuel"] },
       { "key": "fuels", "text": "Accepte Crude Diesel, Poor Quality Diesel, Diesel et Refined Diesel.", "value": ["crude-diesel", "poor-quality-diesel", "diesel", "refined-diesel"], "status": "sourcé", "sources": ["mh-mde-fuel"] },
       { "key": "capacityL", "text": "Contenance.", "value": 3, "unit": "L", "status": "sourcé", "sources": ["mh-mde-fuel"] },
       { "key": "count", "text": "Au moins une ; les gros moteurs en demandent plusieurs (seuil non donné).", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel"], "question": "MOD-14" },
@@ -298,7 +315,8 @@
      "id": "diesel-engine-generator",
      "role": "Change le couple en électricité.",
      "facts": [
-      { "key": "faces", "text": "Au bout d'une chaîne de vilebrequins.", "value": { "back": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-generator", "mh-mde", "fd-mde-generator"] },
+      { "key": "faces", "text": "Au bout d'une chaîne de vilebrequins (ou d'un volant, qui se place comme un vilebrequin).", "value": { "back": ["diesel-engine-crankshaft", "diesel-engine-flywheel"] }, "status": "sourcé", "sources": ["mh-mde-generator", "mh-mde", "fd-mde-generator", "user-s12-2026-10-18"] },
+      { "key": "facesRequired", "text": "Derrière obligatoire : au bout d'une chaîne de vilebrequins.", "value": {"back": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-generator", "mh-mde"] },
       { "key": "torqueLimitMT", "text": "Couple qu'un générateur prend avant de perdre en rendement : 300 MT (Miraheze), 240 MT (Fandom).", "value": 300, "unit": "MT", "status": "contradiction", "sources": ["mh-mde-generator"], "alternatives": [ { "value": 240, "sources": ["fd-mde-generator"] } ] },
       { "key": "count", "text": "Les moteurs à fort couple peuvent demander plusieurs générateurs. Où poser le deuxième, puisqu'il se met au bout de la chaîne ?", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-generator", "fd-mde-generator"], "question": "MOD-14" },
       { "key": "nonLinear", "text": "Puissance non proportionnelle au couple : 1 cylindre donne 25 kMF/s, 6 cylindres 1,5 MMF/s.", "value": { "1": 25000, "6": 1500000 }, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mde-generator", "fd-mde-generator"] },
@@ -311,7 +329,8 @@
      "id": "diesel-engine-flywheel",
      "role": "Stocke du couple ; facultatif, surtout décoratif.",
      "facts": [
-      { "key": "faces", "text": "Où se fixe le volant (6 × 4 cases) : sur un côté de vilebrequin, dans la chaîne ? Le wiki dit seulement que l'ordre de pose n'importe pas et qu'on peut en mettre plusieurs.", "value": null, "status": "inconnu", "sources": ["mh-mde-flywheel", "fd-mde-flywheel"], "question": "MOD-11" },
+      { "key": "faces", "text": "Se place comme un vilebrequin, dans la ligne : derrière, le contrôleur, un vilebrequin ou un autre volant ; devant, un vilebrequin, le générateur ou un autre volant. On peut en mettre plusieurs, l'ordre n'importe pas (wiki). Ses côtés portent-ils des blocs ? À relever.", "value": { "back": ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-flywheel"], "front": ["diesel-engine-crankshaft", "diesel-engine-generator", "diesel-engine-flywheel"] }, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-flywheel", "fd-mde-flywheel"], "question": "MOD-11" },
+      { "key": "facesRequired", "text": "Aucune face obligatoire : le volant se place comme un vilebrequin, sans être obligatoire.", "value": {}, "status": "sourcé", "sources": ["user-s12-2026-10-18"] },
       { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde"] },
       { "key": "effect", "text": "Léger gain de couple et de rendement, démarrage et arrêt plus lents ; valeur du gain non donnée.", "value": null, "status": "inconnu", "sources": ["mh-mde-flywheel", "fd-mde-flywheel"], "question": "MOD-12" },
       { "key": "research", "text": "Recherche : Modular Diesel Engines (Miraheze), Modular diesel addons (extras) (Fandom).", "value": "modular-diesel-engines", "status": "contradiction", "sources": ["mh-mde-flywheel"], "alternatives": [ { "value": "Modular diesel addons (extras)", "sources": ["fd-mde-flywheel"] } ] }
@@ -322,6 +341,7 @@
      "role": "Affiche l'état du moteur ; facultatif.",
      "facts": [
       { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-panel", "fd-mde-panel"] },
+      { "key": "facesRequired", "text": "Posé contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-panel"] },
       { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde"] },
       { "key": "fuelReading", "text": "Fandom : la consommation affichée (L/s) doit être multipliée par le rapport air/carburant pour obtenir la vraie consommation.", "value": null, "status": "sourcé", "sources": ["fd-mde-panel"], "question": "MOD-12" }
      ]
@@ -331,6 +351,7 @@
      "role": "Cache les tiges libres des vilebrequins ; facultatif.",
      "facts": [
       { "key": "faces", "text": "Sur un côté de vilebrequin resté libre.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde"] },
+      { "key": "facesRequired", "text": "Posée contre le côté d'un vilebrequin resté libre : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-decoration"] },
       { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde"] }
      ]
     }
@@ -394,6 +415,7 @@
    },
    "rules": [
     { "key": "order", "text": "Ordre de la chaîne.", "value": ["turbine-input", "high-pressure-turbine", "intermediate-pressure-turbine", "low-pressure-turbine", "turbine-generator", "turbine-output"], "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt"] },
+    { "key": "frontEdge", "text": "Sur le relevé d'un bloc (posé sans rotation), quel bord regarde devant, vers la Turbine Output ? Un champ de l'éditeur de bâtiments l'attend, bloc par bloc.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-17" },
     { "key": "powerPlant", "text": "Doit être relié par câble de données à une Coal Power Plant ou une Nuclear Power Plant pour être synchronisé et produire.", "value": ["coal-power-plant", "nuclear-power-plant"], "status": "sourcé", "sources": ["mh-mt", "mh-mt-generator", "fd-mt"] },
     { "key": "steam", "text": "Prend de la High Pressure Steam (Heat Exchanger) et rend de la Low Pressure Steam (vers un Steam Condenser).", "value": { "in": "high-pressure-steam", "out": "low-pressure-steam" }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt-output"] },
     { "key": "flowLps", "text": "Accepte jusqu'à 24 kL/s ; en dessous de 6 kL/s, presque impossible à synchroniser.", "value": { "max": 24000, "practicalMin": 6000 }, "unit": "L/s", "status": "sourcé", "sources": ["mh-mt", "fd-mt"] },
@@ -409,6 +431,7 @@
      "facts": [
       { "key": "count", "text": "Une par turbine.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt"] },
       { "key": "faces", "text": "Début de chaîne : HPT devant (ou directement l'IPT) ; ses deux côtés portent les entrées de vapeur (steamPorts).", "value": { "front": ["high-pressure-turbine", "intermediate-pressure-turbine"], "side": [] }, "status": "sourcé", "sources": ["mh-mt-input", "fd-mt-input"] },
+      { "key": "facesRequired", "text": "Devant obligatoire : début de la chaîne.", "value": {"front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mt", "mh-mt-input"] },
       { "key": "steamPorts", "text": "Deux entrées, gauche et droite, en grands tuyaux seulement ; un grand tuyau passe 12 kL/s, d'où les deux entrées pour 24 kL/s.", "value": { "count": 2, "maxPerPortLps": 12000 }, "status": "sourcé", "sources": ["mh-mt-input", "mh-mt", "fd-mt"], "question": "MOD-10" },
       { "key": "bypassBelowC", "text": "Laisse passer sans l'utiliser la vapeur sous 150 °C.", "value": 150, "unit": "°C", "status": "sourcé", "sources": ["mh-mt-input"] }
      ]
@@ -419,6 +442,7 @@
      "facts": [
       { "key": "count", "text": "0 ou plus ; le seul bloc facultatif.", "value": { "min": 0 }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-hpt"] },
       { "key": "faces", "text": "Après l'entrée (ou une autre HPT), avant l'IPT.", "value": { "back": ["turbine-input", "high-pressure-turbine"], "front": ["high-pressure-turbine", "intermediate-pressure-turbine"] }, "status": "sourcé", "sources": ["mh-mt-hpt", "mh-mt"] },
+      { "key": "facesRequired", "text": "Derrière et devant obligatoires (ordre de la chaîne), quand on en pose.", "value": {"back": true, "front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mt", "mh-mt-hpt"] },
       { "key": "minFlowLps", "text": "Il faut au moins 6 kL/s par HPT pour qu'elle tourne à pleine capacité ; un Heat Exchanger (12 kL/s) en suffit pour deux.", "value": 6000, "unit": "L/s", "status": "sourcé", "sources": ["mh-mt-hpt", "fd-mt-hpt"] }
      ]
     },
@@ -428,6 +452,7 @@
      "facts": [
       { "key": "count", "text": "Exactement une.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-ipt"] },
       { "key": "faces", "text": "Entre les HPT (ou l'entrée) et les LPT ; sa flèche de pose doit regarder à l'opposé de l'entrée.", "value": { "back": ["high-pressure-turbine", "turbine-input"], "front": ["low-pressure-turbine"] }, "status": "sourcé", "sources": ["mh-mt-ipt", "mh-mt-input", "fd-mt-ipt"] },
+      { "key": "facesRequired", "text": "Derrière et devant obligatoires (ordre de la chaîne).", "value": {"back": true, "front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mt", "mh-mt-ipt"] },
       { "key": "pressureMPa", "text": "Au-dessus de 2 MPa, elle laisse passer la vapeur sans l'utiliser jusqu'à revenir à 2 MPa.", "value": 2, "unit": "MPa", "status": "sourcé", "sources": ["mh-mt-ipt", "fd-mt-ipt"] }
      ]
     },
@@ -436,7 +461,8 @@
      "role": "Le bloc qui donne le plus de couple.",
      "facts": [
       { "key": "count", "text": "1 ou plus ; chaque LPT en plus apporte moins, et trop de LPT font baisser le couple.", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mt-lpt", "fd-mt-lpt", "mh-mt"] },
-      { "key": "faces", "text": "Après l'IPT ou une autre LPT ; la dernière touche le générateur.", "value": { "back": ["intermediate-pressure-turbine", "low-pressure-turbine"], "front": ["low-pressure-turbine", "turbine-generator"] }, "status": "sourcé", "sources": ["mh-mt-lpt", "fd-mt-lpt"] }
+      { "key": "faces", "text": "Après l'IPT ou une autre LPT ; la dernière touche le générateur.", "value": { "back": ["intermediate-pressure-turbine", "low-pressure-turbine"], "front": ["low-pressure-turbine", "turbine-generator"] }, "status": "sourcé", "sources": ["mh-mt-lpt", "fd-mt-lpt"] },
+      { "key": "facesRequired", "text": "Derrière et devant obligatoires (ordre de la chaîne).", "value": {"back": true, "front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mt", "mh-mt-lpt"] }
      ]
     },
     {
@@ -445,6 +471,7 @@
      "facts": [
       { "key": "count", "text": "Un par turbine.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt"] },
       { "key": "faces", "text": "Juste après les LPT, juste avant la sortie.", "value": { "back": ["low-pressure-turbine"], "front": ["turbine-output"] }, "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
+      { "key": "facesRequired", "text": "Derrière et devant obligatoires : entre les LPT et la sortie.", "value": {"back": true, "front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mt", "mh-mt-generator"] },
       { "key": "powerOutputMFps", "text": "Production de 0 à 550 MMF/s au plus.", "value": { "min": 0, "max": 550000000 }, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
       { "key": "powerTransferMFps", "text": "Débit électrique maximal.", "value": 720000000, "unit": "MF/s", "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
       { "key": "powerCapacityMF", "text": "Réserve d'énergie ; pleine, la turbine se désynchronise (une HV Battery MK2 branchée directement est conseillée).", "value": 500000000, "unit": "MF", "status": "sourcé", "sources": ["mh-mt-generator", "fd-mt-generator"] },
@@ -457,6 +484,7 @@
      "facts": [
       { "key": "count", "text": "Une seule par turbine.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mt-output", "fd-mt-output"] },
       { "key": "faces", "text": "Juste après le générateur.", "value": { "back": ["turbine-generator"] }, "status": "sourcé", "sources": ["mh-mt-output", "fd-mt-output"] },
+      { "key": "facesRequired", "text": "Derrière obligatoire : juste après le générateur.", "value": {"back": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mt-output"] },
       { "key": "flowLps", "text": "Fandom : sort de 0 à 24 kL/s de Low Pressure Steam.", "value": { "max": 24000 }, "unit": "L/s", "status": "sourcé", "sources": ["fd-mt-output"] },
       { "key": "steamPort", "text": "Position du port de sortie de vapeur.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
      ]

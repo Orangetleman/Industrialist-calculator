@@ -70,7 +70,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S9 | Calcul : exclure des machines, ou seulement certaines | petite à moyenne | — | ✅ fait (voir § 6) |
 | S10 | Interfaces des machines : recherche, relevé, effet sur le calcul | moyenne | recherche | ✅ fait (voir § 6) |
 | S11 | Modulaires (1/4) : recherche (wiki, Internet), données, méthode de relevé | moyenne, sans interface | — | ✅ fait (voir § 6) |
-| S12 | Modulaires (2/4) : éditeur des blocs (voisins par face, portées) | grosse | S11 | à faire |
+| S12 | Modulaires (2/4) : éditeur des blocs (voisins par face, portées) | grosse | S11 | ✅ fait (voir § 6) |
 | S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | à faire |
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | à faire |
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14 | à faire |
@@ -551,6 +551,17 @@ Questions : Q9.
   - Pour les valeurs absentes du wiki (portées, puissance par cylindre…), es-tu d'accord pour des
     relevés en jeu ?
     C'est compliqué, d'ailleurs la portée est circulaire. Essaie de te renseigner où tu peux sur internet pour avoir des infos
+- **Q11 (S12), éditeur des blocs modulaires.** Maquette `maquette/modulaires.html`.
+  - La section « Ensemble modulaire » (chaîne, faces, portée dessinée) convient-elle ?
+  - « Obligatoire » par face : ma lecture des wikis (tableau 2 bis de la maquette) est-elle juste ?
+    Le premier vilebrequin d'une 2ᵉ ligne n'a rien derrière lui : « derrière obligatoire » pour la
+    1ʳᵉ ligne seulement ?
+  - Corrections derrière « ✎ Corriger », enregistrées dans le navigateur et exportées avec les
+    relevés (clé `modular`), comme l'interface en S10 ?
+  - Un champ « Devant, sur la grille du relevé » (inconnu par défaut), pour les plans de pose (S14) ?
+
+  Réponses : maquette validée ; « les flywheel se placent comme les crankshaft mais sans caractère
+  obligatoire » ; corrections comme S10 ; champ « Devant » dès S12.
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -592,6 +603,10 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S10 Carry | Le « carry » est la Quarry : matériau choisi sur l'écran à l'avant, à la pose, définitif (comme le wiki). | 2026-10-17 |
 | S10 Levier | Le levier des mouleurs passe de « bottle » à « container » (texte du jeu, relevé de l'utilisateur). | 2026-10-17 |
 | S10 Mouleur ind. | Industrial Plastic Molder : position « container » = Plastic Casing, ou Hardened Plastic Casing avec des Hardened Plastic Pellets. | 2026-10-17 |
+| S12 Maquette | Validée (`maquette/modulaires.html`) : section « Ensemble modulaire » dans l'éditeur de bâtiments (chaîne, faces avec « obligatoire » et blocs qui peuvent toucher, portée dessinée sur une grille d'arbres) ; repère ⬡ dans la liste. | 2026-10-18 |
+| S12 Obligatoire | Lecture des wikis retenue (tableau 2 bis) ; le volant (Flywheel) se place comme un vilebrequin, dans la chaîne, sans face obligatoire ; « derrière obligatoire » du vilebrequin reste à confirmer pour une 2ᵉ ligne (MOD-11). | 2026-10-18 |
+| S12 Corrections | Derrière « ✎ Corriger », gardées dans le navigateur, exportées avec les relevés (clé `modular`), comme l'interface en S10. | 2026-10-18 |
+| S12 Devant | Champ « Devant, sur la grille du relevé » dès S12, inconnu par défaut (MOD-17), pour les plans de pose (S14). | 2026-10-18 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions
@@ -637,6 +652,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-17, S10** (350 tests, déployé) : recherche Miraheze (pages et moteur de recherche du wiki) et Fandom ; maquette validée (`maquette/interfaces.html`, décisions S10 au § 5). `data/interfaces.json` : 20 machines, chacune sourcée — levier « bottle » / « container » des deux mouleurs, écran définitif de la Quarry, écran chiffré de la Chemical Plant (Resource Input, Resource Output, Power Input), et les interfaces sans effet (logique, centrales, Mineshaft Drill…) avec leur raison ; doutes IF-01 à IF-06 dans `a-verifier.md`, méthode dans RELEVES.md. Moteur (`interfaces.ts`) : position à mettre pour un craft ; réglages chiffrés appliqués aux crafts (`applyMachineSettings`, original gardé dans `screen.base`) ; les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs à 1×). Site : ⚙ dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose (et le panneau d'un module de l'usine) ; cases de l'écran dans la barre du bas, par plan (`machineSettings`), « ↺ 1× » ; éditeur de bâtiments : section « Interface » (type, où, définitif, réglages à positions avec leurs crafts ou chiffrés), ⚙ dans la liste, enregistrée à part des ports, exportée avec les relevés (clé `interfaces`).
   Parcours réel (navigateur intégré) : Crankshaft inchangé (115 machines, ≈ 31 arbres, filtre de S9 laissé dans ce navigateur, aucune pastille) ; Gearbox 60/min → 4 Industrial Plastic Molder « ⚙ levier sur « container » » (liste, schéma, panneau, plan de pose) ; Hardened Plastic Casing calculée sans « valeurs à vérifier » (1 Chemical Plant) ; écran 1,67 / 2 / 4 → 1 200 /min par machine au lieu de 600, gardé au rechargement, « ↺ 1× » le retire ; Clay Brick → Quarry « Soil & Clay » « définitif » ; éditeur : position renommée → le plan la suit, « Oublier » revient au dépôt ; téléphone sans débordement.
   À surveiller : l'interface a son propre bouton « Enregistrer l'interface » (la maquette disait « avec le relevé » : séparé pour ne pas créer un relevé de ports vide) ; l'écran vaut pour toutes les Chemical Plant d'un plan (pas étape par étape) ; la ligne du craft dans « Comment c'est calculé » montre les quantités multipliées.
+- **2026-10-18, S12** (365 tests, déployé) : maquette validée (`maquette/modulaires.html`, décisions S12 au § 5). Données (`modular.json`) : faces obligatoires de chaque bloc par contact (`facesRequired`), ligne du moteur (`order`), volant placé comme un vilebrequin sans face obligatoire (réponse du 2026-10-18), blocs desservis par le réservoir, l'arroseur et le récolteur (`serves`), questions encore ouvertes (`meta.openQuestions`) ; MOD-17 (bord « devant » d'un bloc) dans `a-verifier.md`, méthode dans RELEVES.md. Moteur pur `src/engine/modular.ts` (faces, portées, grille d'arbres, correction à garder). Éditeur de bâtiments : repère ⬡ ferme / moteur / turbine dans la liste (la recherche « ferme » trouve les 6 blocs) ; section « Ensemble modulaire » : chaîne avec le bloc éclairé, tableau des faces (obligatoire ou facultatif, puces cliquables vers chaque bloc, sources, ⚠ sur les questions ouvertes), champ « Devant, sur la grille du relevé » ; pour la ferme, portée (depuis le bord et depuis le centre), forme, ce que le bloc dessert, de qui il doit être à portée, et la portée dessinée sur une grille d'arbres ; « ✎ Corriger » gardé dans le navigateur, exporté avec les relevés (clé `modular`).
+  Parcours réel (navigateur intégré, ordinateur et téléphone) : arroseur 44 arbres en grille, comme les deux wikis (« ✓ cohérent ») ; portée passée à 12 → 48 et « ⚠ les wikis disent 44 » ; récolteur 168 emplacements, contrôleur 776 ; vilebrequin « derrière » décoché → gardé au rechargement, repère ✎, « Oublier » revient au dépôt ; puce « Controller » → sa fiche ; turbine et volant affichés ; pas de débordement à 375 px (en-tête du tableau et repère « moteur » raccourcis pour ça).
+  À surveiller : la maquette annonçait la ferme du guide en repère dans le cercle du contrôleur, remplacée par la grille (placement exact du guide non écrit) ; pour les blocs posés sur un côté (cylindre…), la ligne « Côtés » veut dire « contre le côté d'un vilebrequin » ; l'export n'a pas été cliqué (téléchargement), il est couvert par un test aller-retour.
 
 ## 7. Gestion des sessions
 
