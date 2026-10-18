@@ -34,16 +34,16 @@ export function cleanDieselChoice(x: unknown): DieselChoice | null {
   const o = x as Record<string, unknown>;
   return {
     fuel: typeof o.fuel === "string" && (DIESEL_FUELS as readonly string[]).includes(o.fuel) ? o.fuel : DEFAULT_DIESEL.fuel,
-    mode: o.mode === "prix" || o.mode === "place" ? o.mode : "carburant",
+    mode: o.mode === "place" || o.mode === "puissance" ? o.mode : "carburant",
     config: typeof o.config === "string" ? o.config : null,
   };
 }
 
-export type DieselMeasures = { cost: (c: DieselConfig) => number | null; area: (c: DieselConfig) => number | null };
+export type DieselMeasures = { area: (c: DieselConfig) => number | null };
 
 /** Id de la recette du moteur à garder pour ce plan ; « aucun » si aucun moteur relevé avec ce carburant. */
 export function dieselRecipeFor(configs: DieselConfig[], choice: DieselChoice, m: DieselMeasures): string {
-  return dieselPick(configs, choice.fuel, choice.mode, choice.config, m.cost, m.area)?.id ?? "aucun";
+  return dieselPick(configs, choice.fuel, choice.mode, choice.config, m.area)?.id ?? "aucun";
 }
 
 /** Contrôles de la barre du bas pour un bloc de moteurs diesel : carburant, critère, configuration, réglages. */
@@ -52,7 +52,7 @@ export function renderDieselHud(configs: DieselConfig[], choice: DieselChoice, c
     const n = configs.filter((c) => c.fuel === f).length;
     return `<option value="${f}"${f === choice.fuel ? " selected" : ""}${n ? "" : " disabled"}>${esc(dieselFuelName(f))}${n ? (f === "refined-diesel" ? "" : ` (relevé : ${n})`) : " — à relever"}</option>`;
   }).join("");
-  const modes: [DieselPickMode, string][] = [["carburant", "le moins de carburant"], ["prix", "le moins cher"], ["place", "le moins de place"]];
+  const modes: [DieselPickMode, string][] = [["carburant", "meilleur rapport production/consommation"], ["place", "moins de place"], ["puissance", "meilleure production énergétique"]];
   const radios = modes.map(([m, t]) => `<label><input type="radio" name="dsl-mode" data-dsl-mode="${m}"${!choice.config && choice.mode === m ? " checked" : ""}> ${t}</label>`).join(" ");
   const opts = configs
     .filter((c) => c.fuel === choice.fuel)

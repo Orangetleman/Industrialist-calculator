@@ -505,7 +505,6 @@ function dieselRecipeNow(): string {
     return sz ? { w: sz.w, h: sz.l } : { w: 2, h: 2 };
   };
   return dieselRecipeFor(configs, choice, {
-    cost: (c) => (c.parts.every((p) => data.machines.get(p.machine)?.cost != null) ? c.parts.reduce((t, p) => t + p.count * data.machines.get(p.machine)!.cost!, 0) : null),
     area: (c) => {
       const d = designDiesel(c.parts, 1, size, {});
       return d.width * d.height;

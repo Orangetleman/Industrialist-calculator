@@ -361,19 +361,22 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
 /** Litres de carburant par MMF : sert à comparer les configurations. */
 export const dieselLitersPerMMF = (c: DieselConfig) => (c.fuelLps * 1e6) / c.powerMFps;
 
-export type DieselPickMode = "carburant" | "prix" | "place";
+/** Critères du choix (réponse Q16) : meilleur rapport production/consommation, moins de place, meilleure production. */
+export type DieselPickMode = "carburant" | "place" | "puissance";
 
 /**
  * Configuration du moteur pour un plan (S18) : celle imposée si elle existe avec ce carburant, sinon
- * la meilleure selon le critère, par MF/s (carburant, prix des blocs, place du moteur posé). Seules
- * les configurations relevées avec ce carburant comptent (pas de rapport déduit, réponse Q16).
+ * la meilleure selon le critère : le moins de carburant par MF/s, le moins de place (moteur posé) par
+ * MF/s, ou la plus grande puissance par moteur. Seules les configurations relevées avec ce carburant
+ * comptent (pas de rapport déduit, réponse Q16).
  */
-export function dieselPick(configs: DieselConfig[], fuel: string, mode: DieselPickMode, forced: string | null, cost: (c: DieselConfig) => number | null, area: (c: DieselConfig) => number | null): DieselConfig | null {
+export function dieselPick(configs: DieselConfig[], fuel: string, mode: DieselPickMode, forced: string | null, area: (c: DieselConfig) => number | null): DieselConfig | null {
   const ok = configs.filter((c) => c.fuel === fuel);
   const f = forced ? ok.find((c) => c.id === forced) : undefined;
   if (f) return f;
   const score = (c: DieselConfig) => {
-    const v = mode === "carburant" ? c.fuelLps : mode === "prix" ? cost(c) : area(c);
+    if (mode === "puissance") return -c.powerMFps;
+    const v = mode === "carburant" ? c.fuelLps : area(c);
     return v === null ? Infinity : v / c.powerMFps;
   };
   return [...ok].sort((x, y) => score(x) - score(y) || dieselLitersPerMMF(x) - dieselLitersPerMMF(y) || x.id.localeCompare(y.id))[0] ?? null;

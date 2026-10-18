@@ -162,10 +162,14 @@ describe("moteur diesel : relevés de configuration et choix (S18)", () => {
     const configs = dieselConfigs(file, [reading]);
     const none = () => null;
     // 0,092 ÷ 3 MMF/s = 0,031 L par MMF, contre 0,086 ÷ 1,34 = 0,064 au mieux pour 6 cylindres.
-    expect(dieselPick(configs, "refined-diesel", "carburant", null, none, none)?.id).toBe("moteur:32cyl-af14-t59");
-    expect(dieselPick(configs, "refined-diesel", "carburant", "moteur:6cyl-af13", none, none)?.id).toBe("moteur:6cyl-af13");
-    expect(dieselPick(configs, "diesel", "carburant", "moteur:6cyl-af13", none, none)?.id).toBe("moteur:releve:t1");
-    expect(dieselPick(configs, "crude-diesel", "carburant", null, none, none)).toBeNull();
+    expect(dieselPick(configs, "refined-diesel", "carburant", null, none)?.id).toBe("moteur:32cyl-af14-t59");
+    expect(dieselPick(configs, "refined-diesel", "carburant", "moteur:6cyl-af13", none)?.id).toBe("moteur:6cyl-af13");
+    expect(dieselPick(configs, "diesel", "carburant", "moteur:6cyl-af13", none)?.id).toBe("moteur:releve:t1");
+    expect(dieselPick(configs, "crude-diesel", "carburant", null, none)).toBeNull();
+    // Meilleure production énergétique : la plus grande puissance par moteur (32 cylindres, 3 MMF/s ;
+    // 6 cylindres au mieux 1,5 MMF/s au rapport 13).
+    expect(dieselPick(configs, "refined-diesel", "puissance", null, none)?.id).toBe("moteur:32cyl-af14-t59");
+    expect(dieselPick(configs.filter((c) => c.cylinders === 6), "refined-diesel", "puissance", null, none)?.id).toBe("moteur:6cyl-af13");
     expect(dieselLitersPerMMF(configs.find((c) => c.id === "moteur:32cyl-af14-t59")!)).toBeCloseTo(0.092 / 3, 9);
   });
 

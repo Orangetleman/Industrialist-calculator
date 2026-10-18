@@ -645,6 +645,8 @@ chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »)
   → **S13 (2026-10-18)** : sans formule, le calcul n'utilise que les configurations relevées. Le
   tableau à 6 cylindres (rapport 10 à 16) est supposé à l'accélérateur 100 % (sa ligne 16 est celle
   du montage simple à 100 %) : à confirmer en jeu. Toute autre configuration s'affiche « à relever ».
+  → **Réponse du 2026-10-18 (S18)** : l'Info Panel affiche la vraie consommation (pas à multiplier
+  par le rapport). Les configurations se notent dans l'éditeur (« Relevé de configuration »).
 - **MOD-13** **Distance entre deux moteurs** : le Fandom signale que deux contrôleurs trop
   proches ne marchent pas (bogue) ; distance non donnée.
   → **Réponse du 2026-10-16** : probablement aucune : un joueur a collé plusieurs moteurs complets à la suite.
