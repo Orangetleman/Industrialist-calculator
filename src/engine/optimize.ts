@@ -221,7 +221,7 @@ export function optimize(model: FlowModel, req: OptimizeRequest): OptimizeResult
   //    variantes élaguées (sans les recettes à moins d'une machine) et le choix de l'heuristique.
   // Machines entières : une installation composée s'arrondit pièce par pièce.
   const rounded = (p: (typeof model.recipes)[number], x: number, value: (q: { cost: number | null; pollution: number | null; area: number | null }) => number) =>
-    p.parts ? p.parts.reduce((s, q) => s + Math.ceil(x * q.count - 1e-9) * value(q), 0) : Math.ceil(x - 1e-9) * value(p);
+    p.parts ? p.parts.reduce((s, q) => s + (q.perFarm ? q.count : Math.ceil((p.eff.recipe.wholeUnits ? Math.ceil(x - 1e-9) : x) * q.count - 1e-9)) * value(q), 0) : Math.ceil(x - 1e-9) * value(p);
   const real = (x: number[]): [number, number] => {
     let v = 0;
     let used = 0;

@@ -86,8 +86,10 @@ function countsText(p: Plan): string {
 const finalSteps = (p: Plan) => p.steps.filter((s) => p.finals.includes(s.key));
 /** Nom court d'une installation composée : « Centrale Firebox (coal) » (le détail des bâtiments est à part). */
 function plantName(v: Pick<ViewCtx, "data">, s: Step, prefix = "Centrale "): string {
-  const name = v.data.recipes.get(s.recipeId)?.setupName ?? machineN(v, s.machine);
-  return `${prefix}${name.split(" + ")[0]}`;
+  const r = v.data.recipes.get(s.recipeId);
+  const name = r?.setupName ?? machineN(v, s.machine);
+  // Ferme d'arbres et moteur diesel modulaire (S13) : leur nom se suffit.
+  return `${r?.farm || r?.wholeUnits ? "" : prefix}${name.split(" + ")[0]}`;
 }
 /** Pollution retirée par une étape de Scrubbers (%/h, positive). */
 function removedPollution(s: Step): string {
@@ -333,7 +335,8 @@ function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
     product: gen ? "Énergie" : itemN(v, s.item),
     rate: gen ? fmtMF(-(s.energyAvg ?? 0)) : s.item === POLLUTION ? removedPollution(s) : `${fmtRate(s.demandPerMin)}/min`,
     feeds: p.finals.includes(s.key) && !feeds.length ? "" : feeds.join(", "),
-    energy: farm || gen ? "—" : fmtMF(s.energyAvg),
+    // Ferme d'arbres (S13) : l'électricité des récolteurs, par la prise du contrôleur.
+    energy: gen || (farm && !s.parts) ? "—" : fmtMF(s.energyAvg),
     note: [occupied, farm && s.growth ? "nombre indicatif (pousse)" : "", locked].filter(Boolean).join(" · "),
     buildable: true,
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },

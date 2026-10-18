@@ -2,7 +2,7 @@
 // Coût estimé pour 1 unité/min de l'item, par point fixe (type Bellman-Ford) : les boucles ne font pas exploser le calcul.
 
 import type { GameData } from "./data.ts";
-import { machineAllowed, recipeAllowed, type MachineFilter } from "./machine-filter.ts";
+import { machineAllowed, recipeAllowed, type AllowedFn, type MachineFilter } from "./machine-filter.ts";
 import { treeGrowthSeconds, type TreeGrowthResult } from "./pollution.ts";
 import type { Machine, Recipe, VerifyFlag } from "./types.ts";
 import { machineAccess, type MachineAccess, type Progress } from "./unlock.ts";
@@ -79,6 +79,15 @@ export function evalRecipe(data: GameData, recipe: Recipe, pollutionPct: number 
   if (recipe.durationByPollution) {
     growth = treeGrowthSeconds(data.treeGrowth, pollutionPct);
     if (Number.isFinite(growth.seconds)) durationS = growth.seconds;
+  }
+  // Ferme d'arbres (S13) : eau des arroseurs pendant la pousse, électricité d'une coupe par cycle.
+  if (recipe.farm && durationS !== null && durationS > 0) {
+    const f = recipe.farm;
+    recipe = {
+      ...recipe,
+      inputs: { ...recipe.inputs, [f.waterItem]: (recipe.inputs[f.waterItem] ?? 0) + f.waterLpsPerTree * durationS },
+      energyMFps: (recipe.energyMFps ?? 0) + f.energyPerCutMF / durationS,
+    };
   }
   const net: Record<string, number | null> = {};
   for (const k of new Set([...Object.keys(recipe.inputs), ...Object.keys(recipe.outputs)])) {
@@ -188,7 +197,7 @@ export class Chooser {
   private readonly data: GameData;
   private readonly progress: Progress;
   private readonly opts: ChoiceOptions;
-  private readonly allowed: ((machineId: string) => boolean) | null;
+  private readonly allowed: AllowedFn | null;
 
   constructor(data: GameData, progress: Progress, opts: ChoiceOptions) {
     this.data = data;

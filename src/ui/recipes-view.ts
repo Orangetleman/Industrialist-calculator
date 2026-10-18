@@ -227,10 +227,11 @@ function duration(s: number | null): string {
 export function renderCraft(ctx: RecipesCtx, r: Recipe, showMachine = true): string {
   if (ctx.edit?.craft === r.id) return renderCraftEdit(ctx, r);
   const m = ctx.data.machines.get(r.machine);
-  const setup = r.parts?.length ? (r.setupName ?? null) : null;
+  // La ferme d'arbres (S13) garde le craft de l'arbre : sa durée de pousse, et l'électricité d'une coupe.
+  const setup = r.parts?.length && !r.farm ? (r.setupName ?? null) : null;
   const top = setup ? "par seconde" : duration(r.durationS);
   const e = r.energyMFps;
-  const bottom = e === null ? "? MF/s" : e < 0 ? `produit ${fmtMF(-e)}` : e === 0 ? "sans énergie" : fmtMF(e);
+  const bottom = r.farm ? `${fmt(r.farm.energyPerCutMF / 1000, 0)} kMF par coupe` : e === null ? "? MF/s" : e < 0 ? `produit ${fmtMF(-e)}` : e === 0 ? "sans énergie" : fmtMF(e);
   const lock = ctx.locked?.(r) ?? null;
   const mname = setup ?? m?.name ?? r.machine;
   const tag = r.added ? ` <span class="rc-tag add" title="${esc(`Ajouté (relevé en jeu, ${r.added.fetchedAt.slice(0, 10)})`)}">ajouté</span>` : "";

@@ -30,6 +30,8 @@ import {
   rule,
   treeGrid,
 } from "../engine/modular.ts";
+import { dieselConfigs, farmBlocks, farmRates } from "../engine/modular-calc.ts";
+import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, type ModCalcState } from "./modcalc-view.ts";
 import {
   applyTool,
   type BgPlacement,
@@ -109,6 +111,8 @@ export function initBuildings(
   let localMod = loadLocalModular();
   let modDraft: ModularEdit | null = null;
   let modMsg = "";
+  /** Bloc « Calcul » des ensembles (S13) : blocs saisis, gardés le temps de la page. */
+  const mcState: ModCalcState = structuredClone(MODCALC_DEFAULT);
   const assemblyOf = new Map(repoModular.assemblies.flatMap((a) => a.blocks.map((b) => [b.id, a] as const)));
   let selectedId: string | null = null;
   let entry: PortsEntry | null = null;
@@ -626,6 +630,7 @@ export function initBuildings(
     let body = `<p class="hint">${esc(b.role)}</p>${a.assembly === "contact" ? contactHtml(a, b) : rangeHtml(a, b)}`;
     if (modDraft) body += `<label class="bld-notes">Note <input type="text" data-mod="note" value="${esc(modDraft.note ?? "")}" placeholder="ex. vu en jeu : le côté plat regarde le contrôleur"></label>`;
     else if (edit?.note) body += `<p class="hint">Ta note : ${esc(edit.note)}</p>`;
+    if (!modDraft) body += modCalcHtml(repoModular, data, a, mcState);
     const actions = modDraft
       ? `<button type="button" class="primary" data-mod-save>Enregistrer</button><button type="button" class="link" data-mod-cancel>Annuler</button>`
       : `<button type="button" data-mod-edit>✎ Corriger</button>${edit ? `<button type="button" class="link" data-mod-forget>Oublier ma correction locale</button>` : ""}`;
@@ -685,6 +690,19 @@ export function initBuildings(
       } else modMsg = "Portée : un nombre de cases plus grand que 0.";
     }
     renderModular();
+  }
+
+  /** Saisie du bloc « Calcul » : seul le résultat est redessiné (la case garde le curseur). */
+  function mcInput(t: HTMLInputElement): void {
+    const a = selectedId ? assemblyOf.get(selectedId) : undefined;
+    if (!a) return;
+    const v = Number(t.value.replace(",", "."));
+    if (!Number.isFinite(v) || t.value === "") return;
+    const k = t.dataset.mc!;
+    if (a.id === "tree-farm" && k in mcState.farm) (mcState.farm as Record<string, number>)[k] = k === "pollution" ? v : Math.max(0, Math.round(v));
+    else if (a.id === "diesel-engine" && k in mcState.diesel) (mcState.diesel as Record<string, number>)[k] = Math.max(0, v);
+    const out = root.querySelector("#mc-out");
+    if (out) out.innerHTML = modCalcOut(repoModular, data, a, mcState);
   }
 
   function renderBgPanel(): void {
@@ -815,6 +833,7 @@ export function initBuildings(
       refreshCanvas();
     } else if (t.dataset.if && t.type === "text") ifaceInput(t, false);
     else if (t.dataset.mod === "note") modInput(t as HTMLInputElement & HTMLSelectElement);
+    else if (t.dataset.mc) mcInput(t);
     else if (t.id === "bld-notes") entry.notes = t.value || undefined;
     else if (t.id === "bld-bgo" && bg) {
       bg.opacity = Number(t.value);
@@ -915,6 +934,18 @@ export function initBuildings(
     if (item) return select(item.dataset.bld!);
     if (target.closest("#bld-export")) return exportFile();
     if (!entry || !selectedId) return;
+    // Bloc « Calcul » (S13) : blocs au plus juste pour les arbres, ou une configuration relevée du moteur.
+    if (target.closest("[data-mc-fit]")) {
+      const rates = farmRates(repoModular);
+      if (rates) Object.assign(mcState.farm, farmBlocks(rates, mcState.farm.trees));
+      return renderModular();
+    }
+    const cfgBtn = target.closest<HTMLElement>("[data-mc-cfg]");
+    if (cfgBtn) {
+      const c = dieselConfigs(repoModular).find((x) => x.id === cfgBtn.dataset.mcCfg);
+      if (c) mcState.diesel = { cylinders: c.cylinders, airFuel: c.airFuel, throttle: c.throttle };
+      return renderModular();
+    }
     const toolBtn = target.closest<HTMLElement>("[data-tool]");
     if (toolBtn) {
       tool = toolBtn.dataset.tool as Tool;

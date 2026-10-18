@@ -377,6 +377,7 @@
      "id": "easy-setup",
      "text": "Montage simple : 1 contrôleur, 8 vilebrequins, 6 cylindres, 1 entrée d'air, 1 échappement, 1 entrée de carburant, 1 générateur, tout d'un côté ; rapport 16, accélérateur 100 % ; 0,086 L/s de Refined Diesel ; 84 500 $.",
      "value": { "powerMFps": 1340000, "fuelLps": 0.086, "cost": 84500 },
+     "parts": { "diesel-engine-controller": 1, "diesel-engine-crankshaft": 8, "diesel-engine-cylinder": 6, "diesel-engine-air-input": 1, "diesel-engine-exhaust": 1, "diesel-engine-fuel-input": 1, "diesel-engine-generator": 1 },
      "status": "contradiction",
      "sources": ["mh-mde", "mh-img-mde-setup"],
      "alternatives": [ { "value": { "powerMFps": 1380000, "fuelLps": 0.086 }, "sources": ["fd-mde"] } ],
@@ -386,6 +387,8 @@
      "id": "32-cylinders",
      "text": "Configuration la plus connue : 32 cylindres, rapport 14, accélérateur 59 % : 3 MMF/s pour 0,092 L/s de Refined Diesel.",
      "value": { "cylinders": 32, "airFuel": 14, "throttle": 59, "powerMFps": 3000000, "fuelLps": 0.092 },
+     "parts": { "diesel-engine-controller": 1, "diesel-engine-cylinder": 32, "diesel-engine-generator": 1 },
+     "partsComplete": false,
      "status": "sourcé",
      "sources": ["mh-mde"],
      "note": "Nombre d'entrées d'air, d'échappements, de carburant et de générateurs non donné : voir MOD-14."

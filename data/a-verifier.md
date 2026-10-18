@@ -637,6 +637,9 @@ chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »)
   affichée par l'Info Panel est-elle à multiplier par le rapport (Fandom) ? Le graphique
   « One column engine » a-t-il le couple ou l'accélérateur en abscisse ?
   → **Réponse du 2026-10-16** : pas de réponse.
+  → **S13 (2026-10-18)** : sans formule, le calcul n'utilise que les configurations relevées. Le
+  tableau à 6 cylindres (rapport 10 à 16) est supposé à l'accélérateur 100 % (sa ligne 16 est celle
+  du montage simple à 100 %) : à confirmer en jeu. Toute autre configuration s'affiche « à relever ».
 - **MOD-13** **Distance entre deux moteurs** : le Fandom signale que deux contrôleurs trop
   proches ne marchent pas (bogue) ; distance non donnée.
   → **Réponse du 2026-10-16** : probablement aucune : un joueur a collé plusieurs moteurs complets à la suite.

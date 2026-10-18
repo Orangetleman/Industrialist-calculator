@@ -171,7 +171,8 @@ export type Distribution = {
   options: { id: string; name: string; perNodeMFps: number; lines: number; polesPerLine: number | null; poles: number | null; cost: number | null }[];
 };
 /** Machine d'une installation composée, dans une étape : nombre exact et arrondi. */
-export type StepPart = { machine: string; exact: number; count: number };
+/** `perFarm` : une fois par installation (contrôleur et sortie d'une ferme d'arbres). */
+export type StepPart = { machine: string; exact: number; count: number; perFarm?: boolean };
 export type Sale = { item: string; perMin: number; price: number; revenuePerMin: number };
 export type DepotUse = { id: string; name: string; machinesExact: number; machines: number; itemsPerMin: number; unitCost: number | null };
 
@@ -274,7 +275,8 @@ function solveFixed(data: GameData, player: PlayerState, req: SolveRequest, want
   const ignored: string[] = [];
   for (const [key, n] of wanted) {
     const st = base.steps.find((s) => s.key === key);
-    if (st && !st.parts) fixable.push({ key, recipeId: st.recipeId, n: Math.round(n), planMachines: st.machines });
+    // Arbres réglables (décision S8) même devenus ferme (S13) : on fixe le nombre d'arbres.
+    if (st && (!st.parts || st.machineKind === "farm")) fixable.push({ key, recipeId: st.recipeId, n: Math.round(n), planMachines: st.machines });
     else ignored.push(key);
   }
   const none = (plan: Plan): Plan => ({ ...plan, fixed: { rate: plan.target.ratePerMin, baseRate, limit: null, reason: "aucune", existingUsed: false, steps: [], ignored } });
@@ -536,7 +538,11 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     const access = machineAccess(data, player, r.machine);
     // Pollution par machine : celle de la recette (Scrubber), sinon de la machine ; installation : par unité.
     const pollution = r.pollutionPerHour ?? (p.parts ? p.pollution : (m?.pollutionPerHour ?? null));
-    const parts: StepPart[] | undefined = p.parts?.map((q) => ({ machine: q.machine, exact: x * q.count, count: ceilTol(x * q.count) }));
+    // Pièce « une fois par ferme » (contrôleur, sortie) : son nombre ne suit pas celui des arbres.
+    // Ferme : ses blocs se comptent pour les arbres posés (nombre entier, ou fixé dans le schéma) ;
+    // moteur diesel : pour des moteurs entiers.
+    const basis = m?.kind === "farm" || r.wholeUnits ? machines : x;
+    const parts: StepPart[] | undefined = p.parts?.map((q) => (q.perFarm ? { machine: q.machine, exact: q.count, count: q.count, perFarm: true } : { machine: q.machine, exact: x * q.count, count: ceilTol(basis * q.count) }));
     const partSum = (k: "cost" | "area" | "pollution") => (p.parts!.some((q) => q[k] === null) ? null : p.parts!.reduce((s2, q, i) => s2 + parts![i]!.count * q[k]!, 0));
     const isForced = req.forced?.[main] === r.id;
     const ratePerMachineMain = main === ENERGY ? -(p.energy ?? 0) : (ratePerMachine(eff, main) ?? 0);
@@ -706,8 +712,11 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     revenuePerMin: sales.reduce((s, x) => s + x.revenuePerMin, 0),
   };
   for (const s of steps) {
-    if (s.machineKind === "farm") totals.farms += s.machines;
-    else totals.machines += s.parts ? s.parts.reduce((n, q) => n + q.count, 0) : s.machines;
+    if (s.machineKind === "farm") {
+      totals.farms += s.machines;
+      // Blocs de la ferme (arroseurs, réservoirs, récolteurs, contrôleur, sortie) : des bâtiments.
+      if (s.parts) totals.machines += s.parts.filter((q) => q.machine !== s.machine).reduce((n, q) => n + q.count, 0);
+    } else totals.machines += s.parts ? s.parts.reduce((n, q) => n + q.count, 0) : s.machines;
     if (s.energyAvg === null) totals.energyUnknownSteps++;
     else if (s.energyAvg >= 0) {
       totals.energyAvg += s.energyAvg;

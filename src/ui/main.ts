@@ -136,7 +136,9 @@ import {
 } from "./state.ts";
 
 const REPO_IFACES = interfacesJson as unknown as InterfacesFile;
-const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES } as unknown as RawFiles;
+// Machines modulaires (S13) : la ferme d'arbres et les moteurs diesel relevés entrent dans le calcul.
+const REPO_MODULAR = modularJson as unknown as ModularFile;
+const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES, modular: REPO_MODULAR } as unknown as RawFiles;
 /** Poteaux de transport d'énergie (réseau de l'objectif énergie). */
 const POLES = (powerJson as unknown as PowerFile).entries
   .filter((e) => e.subcategory === "Transfer Poles" && e.transfer)
@@ -672,7 +674,10 @@ function renderPlanPage(): void {
   $("goal-hint").innerHTML = goalHint;
   $("adv-note").textContent =
     goal === "énergie"
-      ? `Centrales comparées : thermiques (Firebox, Gas Burner), générateurs à combustible, solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed.map((n) => data.machines.get(n.machine)?.name ?? n.machine).join(", ")}.`
+      ? `Centrales comparées : thermiques (Firebox, Gas Burner), générateurs à combustible, moteur diesel modulaire (configurations relevées sur le wiki), solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed
+          .filter((n) => n.machine !== "diesel-engine-generator")
+          .map((n) => (n.machine === "turbine-generator" ? "Modular Turbine (chiffres non fiables)" : (data.machines.get(n.machine)?.name ?? n.machine)))
+          .join(", ")}.`
       : goal === "recherche" && rpView
         ? `Plafond : ${settings.rpCap === null ? `automatique, ${settings.rpMode === "rate" ? "la recherche la plus chère qu'il te reste" : "la recherche visée la plus chère"} (${fmtRP(rpView.capNeeded)})` : fmtRP(settings.rpCap)}.`
         : "";
@@ -2853,7 +2858,7 @@ bindUsine();
 bindTree();
 bindData();
 bindRecettes();
-const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, modularJson as unknown as ModularFile);
+const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR);
 $("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);
 showPage();

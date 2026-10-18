@@ -737,6 +737,17 @@ ul.corrections { margin: 0; padding-left: 18px; font-size: .85rem; display: flex
 .must.no { color: var(--muted); border-color: var(--line); }
 .must.unk { background: var(--warn-soft); color: var(--warn); }
 button.must { cursor: pointer; }
+/* Bloc « Calcul » de l'ensemble modulaire (S13). */
+.mcalc { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+.mcalc h5 { margin: 0; font-size: .9rem; }
+.mc-in { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: end; font-size: .84rem; }
+.mc-f { display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
+.mc-f input { font: inherit; font-size: .9rem; width: 6.5em; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
+.mc-out { margin: 0; padding-left: 18px; font-size: .88rem; display: flex; flex-direction: column; gap: 3px; }
+.mcalc .must { white-space: normal; display: inline; }
+.mcalc p.must, .mcalc li.must { display: block; border-radius: 6px; padding: 3px 8px; }
+.mcalc .chip { cursor: pointer; font: inherit; font-size: .8rem; color: var(--ink); }
+.mcalc .chip.on { border-color: var(--accent); background: var(--accent-soft); }
 .mchain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .82rem; }
 .mchain .b { border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; background: var(--surface); }
 .mchain .b.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }

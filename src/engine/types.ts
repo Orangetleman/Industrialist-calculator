@@ -96,7 +96,15 @@ export type Recipe = {
    * Installation composée (énergie, phase E2) : machines par installation, la recette décrivant
    * l'installation entière (ex. 1 Firebox + 2 Boilers + 2 Large Turbines).
    */
-  parts?: { machine: string; count: number }[];
+  parts?: { machine: string; count: number; perFarm?: boolean }[];
+  /**
+   * Ferme d'arbres (S13) : l'arbre est compté avec les blocs de sa ferme (parts, `perFarm` : une
+   * fois par ferme) ; l'eau des arroseurs (par seconde) et l'électricité des coupes (par arbre
+   * coupé) dépendent de la durée de pousse, calculées avec elle (evalRecipe).
+   */
+  farm?: { waterItem: string; waterLpsPerTree: number; energyPerCutMF: number };
+  /** Installation qui ne se pose qu'entière (moteur diesel modulaire) : ses pièces suivent le nombre d'installations arrondi. */
+  wholeUnits?: boolean;
   /** Nom lisible d'une installation composée, et sa note (hypothèses, conseils). */
   setupName?: string;
   setupNote?: string;

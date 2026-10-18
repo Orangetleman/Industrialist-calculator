@@ -71,7 +71,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S10 | Interfaces des machines : recherche, relevé, effet sur le calcul | moyenne | recherche | ✅ fait (voir § 6) |
 | S11 | Modulaires (1/4) : recherche (wiki, Internet), données, méthode de relevé | moyenne, sans interface | — | ✅ fait (voir § 6) |
 | S12 | Modulaires (2/4) : éditeur des blocs (voisins par face, portées) | grosse | S11 | ✅ fait (voir § 6) |
-| S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | à faire |
+| S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | ✅ fait (voir § 6) |
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | à faire |
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14 | à faire |
 
@@ -562,6 +562,28 @@ Questions : Q9.
 
   Réponses : maquette validée ; « les flywheel se placent comme les crankshaft mais sans caractère
   obligatoire » ; corrections comme S10 ; champ « Devant » dès S12.
+- **Q12 (S13), calcul des modulaires.**
+  - Ferme : l'étape Oak Log devient une ferme : arbres ; 1 arroseur pour 44 arbres ; 1 réservoir
+    pour 3 arroseurs ; 1 récolteur pour 22 arbres (guide Miraheze, en attendant MOD-09) ; 1
+    contrôleur ; 1 sortie. Elle consomme de l'eau (33 L toutes les 33,33 s par arroseur) et de
+    l'électricité (200 kMF par arbre coupé). Tout plan avec du bois change (pompes et énergie en
+    plus). D'accord ?
+  - Taille d'une ferme : 1 contrôleur et 1 sortie par ferme, une seule ferme quel que soit le
+    nombre d'arbres, jusqu'au plan de pose (S14) ? (La portée du contrôleur touche au plus 776
+    emplacements d'arbres, sans compter la place des autres blocs.)
+  - Moteur diesel, sans formule (MOD-12) : seules les configurations relevées entrent dans le
+    calcul. 6 cylindres, rapport 10 à 16 (tableau du contrôleur), avec les blocs du montage simple,
+    accélérateur supposé à 100 % (la ligne 16 = montage simple à 100 %). 32 cylindres, rapport 14,
+    accélérateur 59 % : 3 MMF/s, mais blocs autres que cylindres « à relever » (MOD-14). Refined
+    Diesel seulement ; pollution inconnue (MOD-15). Le 32 cylindres dans le calcul avec sa liste
+    incomplète, ou seulement affiché ?
+  - Turbine : hors du calcul (chaleur de la centrale non modélisée), marquée « non fiable » dans
+    l'éditeur et dans la liste des centrales non calculées ?
+  - Maquette (texte) : une section « Calcul » sous « Ensemble modulaire » dans l'éditeur de
+    bâtiments, et un bloc « Ferme d'arbres » dans le schéma.
+
+  Réponse : « Oui à tout » (22 arbres par récolteur, une seule ferme jusqu'à S14, 32 cylindres
+  dans le calcul avec sa liste incomplète, turbine hors du calcul et non fiable, maquette validée).
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -607,6 +629,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S12 Obligatoire | Lecture des wikis retenue (tableau 2 bis) ; le volant (Flywheel) se place comme un vilebrequin, dans la chaîne, sans face obligatoire ; « derrière obligatoire » du vilebrequin reste à confirmer pour une 2ᵉ ligne (MOD-11). | 2026-10-18 |
 | S12 Corrections | Derrière « ✎ Corriger », gardées dans le navigateur, exportées avec les relevés (clé `modular`), comme l'interface en S10. | 2026-10-18 |
 | S12 Devant | Champ « Devant, sur la grille du relevé » dès S12, inconnu par défaut (MOD-17), pour les plans de pose (S14). | 2026-10-18 |
+| S13 Ferme | L'étape Oak Log est une ferme : arbres, 1 arroseur / 44 arbres, 1 réservoir / 3 arroseurs, 1 récolteur / 22 arbres (guide, en attendant MOD-09), 1 contrôleur, 1 sortie ; eau (33 L / 33,33 s par arroseur) et électricité (200 kMF par arbre coupé) comptées. Une seule ferme jusqu'à S14. | 2026-10-18 |
+| S13 Moteur | Seules les configurations relevées entrent dans le calcul : 6 cylindres rapport 10 à 16 (blocs du montage simple, accélérateur supposé 100 %) et 32 cylindres rapport 14 à 59 %, avec sa liste de blocs incomplète (« à relever », MOD-14). Refined Diesel seulement. | 2026-10-18 |
+| S13 Turbine | Hors du calcul, marquée « non fiable » (éditeur, centrales non calculées). Maquette texte validée : section « Calcul » sous « Ensemble modulaire », bloc « Ferme d'arbres » dans le schéma. | 2026-10-18 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions
@@ -655,6 +680,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-18, S12** (365 tests, déployé) : maquette validée (`maquette/modulaires.html`, décisions S12 au § 5). Données (`modular.json`) : faces obligatoires de chaque bloc par contact (`facesRequired`), ligne du moteur (`order`), volant placé comme un vilebrequin sans face obligatoire (réponse du 2026-10-18), blocs desservis par le réservoir, l'arroseur et le récolteur (`serves`), questions encore ouvertes (`meta.openQuestions`) ; MOD-17 (bord « devant » d'un bloc) dans `a-verifier.md`, méthode dans RELEVES.md. Moteur pur `src/engine/modular.ts` (faces, portées, grille d'arbres, correction à garder). Éditeur de bâtiments : repère ⬡ ferme / moteur / turbine dans la liste (la recherche « ferme » trouve les 6 blocs) ; section « Ensemble modulaire » : chaîne avec le bloc éclairé, tableau des faces (obligatoire ou facultatif, puces cliquables vers chaque bloc, sources, ⚠ sur les questions ouvertes), champ « Devant, sur la grille du relevé » ; pour la ferme, portée (depuis le bord et depuis le centre), forme, ce que le bloc dessert, de qui il doit être à portée, et la portée dessinée sur une grille d'arbres ; « ✎ Corriger » gardé dans le navigateur, exporté avec les relevés (clé `modular`).
   Parcours réel (navigateur intégré, ordinateur et téléphone) : arroseur 44 arbres en grille, comme les deux wikis (« ✓ cohérent ») ; portée passée à 12 → 48 et « ⚠ les wikis disent 44 » ; récolteur 168 emplacements, contrôleur 776 ; vilebrequin « derrière » décoché → gardé au rechargement, repère ✎, « Oublier » revient au dépôt ; puce « Controller » → sa fiche ; turbine et volant affichés ; pas de débordement à 375 px (en-tête du tableau et repère « moteur » raccourcis pour ça).
   À surveiller : la maquette annonçait la ferme du guide en repère dans le cercle du contrôleur, remplacée par la grille (placement exact du guide non écrit) ; pour les blocs posés sur un côté (cylindre…), la ligne « Côtés » veut dire « contre le côté d'un vilebrequin » ; l'export n'a pas été cliqué (téléchargement), il est couvert par un test aller-retour.
+- **2026-10-18, S13** (382 tests, déployé) : Q12 posée et validée (« Oui à tout », décisions S13 au § 5 ; maquette en texte). Moteur pur `src/engine/modular-calc.ts`, qui ne lit que `modular.json`. Ferme : `farmRates`, `farmBlocks`, `farmOutput` (bois, eau, électricité, ce qui limite, blocs manquants). Moteur diesel : `dieselConfigs` et `dieselLookup` (8 configurations relevées ; les autres « à relever »). Turbine : `turbineReliability` (« non fiable », hors du calcul). `applyModular`, appelé dans `buildGameData` (`RawFiles.modular`) : l'arbre devient une ferme. Pièces par arbre : 1/44 d'arroseur, 1/132 de réservoir, 1/22 de récolteur ; contrôleur et sortie une fois par ferme (`perFarm`). L'eau et l'électricité suivent la pousse (`evalRecipe`). Les moteurs deviennent des installations énergétiques, comptées en moteurs entiers (`wholeUnits`). Ajouté aussi : arbres toujours réglables dans le schéma (S8), blocs de la ferme comptés comme bâtiments. Filtre S9 : en « Seulement… », les blocs suivent l'arbre ; écarter un récolteur écarte la ferme. Site : ligne « Ferme d'arbres » dans la liste de construction, « Comment c'est calculé » (arroseurs, réservoirs, récolteurs ⚠ MOD-09, contrôleur et sortie, électricité, eau), craft de l'arbre « 200 kMF par coupe » dans Recettes. Objectif énergie : moteur diesel parmi les centrales, turbine « non fiable » dans la liste des non calculées. Éditeur de bâtiments : bloc « Calcul » sous « Ensemble modulaire » (ferme : blocs saisis → Oak Log/min, limite, eau, électricité, « Au plus juste » ; moteur : réglages → configuration relevée ou « à relever », puces des 8 configurations ; turbine : non fiable).
+  Parcours réel (navigateur intégré, ordinateur et téléphone 375 px) : Oak Log 30/min → 91 arbres + 3 arroseurs + 1 réservoir + 5 récolteurs + 1 contrôleur + 1 sortie, 50,2 kMF/s, Water 122/min, 1 Water Pump2 ; panneau refait à la main (30 ÷ 0,3308 = 90,68 ; 90,68 × 200 kMF ÷ 362,72 s = 50 kMF/s). Énergie 2 MMF/s, filtre réduit au diesel (essai, retiré ensuite) : 1 moteur 32 cylindres, Refined Diesel 3,69/min (0,6693 × 0,092 × 60). Éditeur : guide 88 arbres → 29,11/min, 118,8 L/min, 48,52 kMF/s ; 120 arbres → limite « arroseurs », « Au plus juste » → 3 / 1 / 6 ; 7 cylindres → « À relever » ; turbine « non fiable ». Tests : ferme du guide (2 arroseurs, 1 réservoir, 4 récolteurs), limites, solveur, arbres fixés, filtre, moteurs, 84 500 $ du montage simple.
+  À surveiller : l'eau se compte au prorata des arbres (3 arroseurs posés pour 91 arbres en boivent 178 L/min, le plan en compte 122) ; tous les plans avec du bois changent (eau, électricité, blocs, prix) ; le 32 cylindres a une liste de blocs incomplète (MOD-14), son prix est donc trop bas ; le tableau à 6 cylindres est supposé à l'accélérateur 100 % ; la taille maximale d'une ferme n'est pas connue (une seule ferme jusqu'à S14) ; le bloc « Calcul » de l'éditeur n'est pas gardé au rechargement.
 
 ## 7. Gestion des sessions
 

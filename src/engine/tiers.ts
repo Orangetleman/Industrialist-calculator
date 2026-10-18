@@ -23,7 +23,7 @@ export type Tier = {
 
 type PlanLike = {
   target: { ratePerMin: number };
-  steps: { key: string; machinesExact: number; parts?: { exact: number }[] }[];
+  steps: { key: string; machinesExact: number; parts?: { exact: number; perFarm?: boolean }[] }[];
   finals: string[];
   depots: { machinesExact: number }[];
 };
@@ -51,7 +51,7 @@ export function roundTiers(plan: PlanLike, opts: { minFactor?: number; maxFactor
   const R0 = plan.target.ratePerMin;
   if (!(R0 > 0)) return [];
   // Une installation composée compte chacune de ses machines (1 Firebox, 2 Boilers…).
-  const units = [...plan.steps.flatMap((s) => (s.parts ? s.parts.map((q) => q.exact / R0) : [s.machinesExact / R0])), ...plan.depots.map((d) => d.machinesExact / R0)].filter((a) => a > 1e-12);
+  const units = [...plan.steps.flatMap((s) => (s.parts ? s.parts.filter((q) => !q.perFarm).map((q) => q.exact / R0) : [s.machinesExact / R0])), ...plan.depots.map((d) => d.machinesExact / R0)].filter((a) => a > 1e-12);
   if (!units.length) return [];
   const finalUnit = plan.steps.filter((s) => plan.finals.includes(s.key)).reduce((s, x) => s + x.machinesExact, 0) / R0;
   const lo = R0 * (opts.minFactor ?? 0.25);

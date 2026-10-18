@@ -20,6 +20,8 @@ import type {
 } from "./types.ts";
 import type { EnergyFile, InterfacesFile } from "./extension-types.ts";
 import { resolveScreenFlags } from "./interfaces.ts";
+import { applyModular } from "./modular-calc.ts";
+import type { ModularFile } from "./modular.ts";
 
 export type GameData = {
   items: Map<string, Item>;
@@ -37,8 +39,10 @@ export type GameData = {
  * `energy` (facultatif) : installations énergétiques composées et pollution des Scrubbers (E2).
  * `interfaces` (facultatif) : interfaces des machines (S10) ; un écran chiffré rend connues les
  * valeurs « variables » du wiki (données à 1×, le plan applique le réglage).
+ * `modular` (facultatif) : machines modulaires (S13) : l'arbre devient une ferme, les moteurs
+ * diesel relevés deviennent des installations énergétiques.
  */
-export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile };
+export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile; modular?: ModularFile };
 
 export type OverrideResult = { data: GameData; errors: string[]; applied: number };
 
@@ -51,6 +55,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   const errors: string[] = [];
   let applied = 0;
   addEnergy(recipes, machines, files.energy);
+  if (files.modular) applyModular(recipes, machines, files.modular);
   for (const o of overrides) {
     const r = applyOverrides({ items, machines, recipes, nodes }, o);
     errors.push(...r.errors);

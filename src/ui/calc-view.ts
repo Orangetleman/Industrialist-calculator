@@ -166,11 +166,16 @@ function countRows(v: ViewCtx, s: Step, r: Recipe, formula: string): Row[] {
   const rows: Row[] = [];
   const fx = v.plan.fixed?.steps.find((x) => x.key === s.key);
   const round = fx ? ` (${fx.machines} fixée${fx.machines > 1 ? "s" : ""})` : isWhole(s.machinesExact) ? "" : " → arrondi au-dessus";
+  if (r.farm && s.parts) {
+    rows.push({ label: "Arbres", formula: `${formula} = ${num(s.machinesExact)}${round}`, result: machinesLabel(v, s, s.machines) });
+    return [...rows, ...farmRows(v, s, r)];
+  }
   rows.push({ label: s.parts ? "Installations" : "Machines", formula: `${formula} = ${num(s.machinesExact)}${round}`, result: s.parts ? num(s.machinesExact) : machinesLabel(v, s, s.machines) });
   if (s.parts) {
     for (const q of s.parts) {
       const per = r.parts?.find((p) => p.machine === q.machine)?.count ?? 0;
-      rows.push({ label: machineN(v, q.machine), formula: `${num(s.machinesExact)} × ${qty(per)} = ${num(q.exact)}${isWhole(q.exact) ? "" : " → arrondi au-dessus"}`, result: `${fmt(q.count, 0)} ${machineN(v, q.machine)}` });
+      const formula = r.wholeUnits ? `${fmt(s.machines, 0)} moteur${s.machines > 1 ? "s" : ""} entier${s.machines > 1 ? "s" : ""} × ${qty(per)}` : `${num(s.machinesExact)} × ${qty(per)} = ${num(q.exact)}${isWhole(q.exact) ? "" : " → arrondi au-dessus"}`;
+      rows.push({ label: machineN(v, q.machine), formula, result: `${fmt(q.count, 0)} ${machineN(v, q.machine)}` });
     }
     return rows;
   }
@@ -193,12 +198,67 @@ function countRows(v: ViewCtx, s: Step, r: Recipe, formula: string): Row[] {
   return rows;
 }
 
+/** Étiquette vers la page du wiki d'une valeur de la ferme (sources de la recette dont la page contient `page`). */
+function farmSrc(r: Recipe, page: string): string {
+  const s = r.sources.find((x) => x.page?.includes(page));
+  if (!s) return "";
+  const t = `${s.page}, ${s.fetchedAt.slice(0, 10)}`;
+  return s.url ? `<a class="src-tag wiki" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(t)}">wiki</a>` : `<span class="src-tag wiki" title="${esc(t)}">wiki</span>`;
+}
+
+/** Proportions de la ferme lues sur ses pièces : arbres par arroseur, arroseurs par réservoir, arbres par récolteur. */
+function farmRatios(r: Recipe): { perSpr: number; perTank: number; perHarv: number } {
+  const c = (id: string) => r.parts?.find((p) => p.machine === id)?.count ?? 0;
+  const spr = c("tree-farm-sprinkler");
+  return { perSpr: Math.round(1 / spr), perTank: Math.round(spr / c("tree-farm-water-tank")), perHarv: Math.round(1 / c("farm-harvester")) };
+}
+
+/** Ferme d'arbres (S13) : blocs pour les arbres posés, puis l'électricité des coupes. */
+function farmRows(v: ViewCtx, s: Step, r: Recipe): Row[] {
+  const { perSpr, perTank, perHarv } = farmRatios(r);
+  const n = (id: string) => s.parts!.find((q) => q.machine === id)?.count ?? 0;
+  const spr = n("tree-farm-sprinkler");
+  const rows: Row[] = [
+    { label: "Arroseurs", formula: `${fmt(s.machines, 0)} arbres ÷ ${perSpr} par arroseur → arrondi au-dessus`, result: `${fmt(spr, 0)} ${machineN(v, "tree-farm-sprinkler")}`, src: farmSrc(r, "Sprinkler") },
+    { label: "Réservoirs", formula: `${fmt(spr, 0)} arroseurs ÷ ${perTank} par réservoir → arrondi au-dessus`, result: `${fmt(n("tree-farm-water-tank"), 0)} ${machineN(v, "tree-farm-water-tank")}`, src: farmSrc(r, "Water Tank") },
+    {
+      label: "Récolteurs",
+      formula: `${fmt(s.machines, 0)} arbres ÷ ${perHarv} par récolteur (guide) → arrondi au-dessus`,
+      result: `${fmt(n("farm-harvester"), 0)} ${machineN(v, "farm-harvester")}`,
+      src: r.verify.some((f) => f.field === "parts") ? sourceTag(r, "parts") : farmSrc(r, "Guide"),
+    },
+    { label: "Contrôleur et sortie", formula: "1 de chaque par ferme (une seule ferme jusqu'au plan de pose)", result: `${fmt(n("tree-farm-controller"), 0)} + ${fmt(n("tree-farm-output"), 0)}`, src: farmSrc(r, "Controller") },
+  ];
+  if (r.farm) {
+    rows.push({
+      label: "Électricité",
+      formula: `${num(s.machinesExact)} arbres × ${esc(fmt(r.farm.energyPerCutMF / 1000, 0))} kMF par coupe ÷ ${num(s.durationS)} s`,
+      result: mf(s.energyAvg),
+      src: farmSrc(r, "Controller"),
+    });
+  }
+  return rows;
+}
+
 /** Entrées (et sous-produits) : demande × quantité ÷ sortie, ou machines × quantité × 60 ÷ durée. */
 function flowRows(v: ViewCtx, s: Step, r: Recipe, byDemand: boolean): Row[] {
   const out = s.outputPerCycle;
   const formula = (q: number) => (byDemand ? `${num(s.demandPerMin)} × ${qty(q)} ÷ ${qty(out)}` : `${num(s.machinesExact)} × ${qty(q)} × 60 ÷ ${num(s.durationS)} s`);
   const rows: Row[] = [];
-  for (const f of s.inputs) rows.push({ label: `Entrée ${itemN(v, f.item)}`, formula: formula(-netQty(r, f.item)), result: `${num(f.perMin)} /min`, src: sourceTag(r, `inputs.${f.item}`) });
+  for (const f of s.inputs) {
+    // Eau de la ferme (S13) : les arroseurs arrosent en continu, au prorata des arbres.
+    if (r.farm && f.item === r.farm.waterItem) {
+      const per = r.farm.waterLpsPerTree * farmRatios(r).perSpr;
+      rows.push({
+        label: `Entrée ${itemN(v, f.item)}`,
+        formula: `${num(s.machinesExact)} arbres ÷ ${farmRatios(r).perSpr} × ${num(per)} L/s par arroseur × 60`,
+        result: `${num(f.perMin)} /min`,
+        src: farmSrc(r, "Sprinkler"),
+      });
+      continue;
+    }
+    rows.push({ label: `Entrée ${itemN(v, f.item)}`, formula: formula(-netQty(r, f.item)), result: `${num(f.perMin)} /min`, src: sourceTag(r, `inputs.${f.item}`) });
+  }
   for (const f of s.byproducts) rows.push({ label: `Sous-produit ${itemN(v, f.item)}`, formula: formula(netQty(r, f.item)), result: `${num(f.perMin)} /min`, src: sourceTag(r, `outputs.${f.item}`) });
   return rows;
 }
@@ -206,7 +266,13 @@ function flowRows(v: ViewCtx, s: Step, r: Recipe, byDemand: boolean): Row[] {
 /** Phrase d'explication en tête du tableau, pour les cas particuliers. */
 function stepNote(v: ViewCtx, s: Step): string {
   const notes: string[] = [];
-  if (s.parts) notes.push("Installation composée : le craft décrit l'installation entière, « par seconde ». Chaque bâtiment est compté à part et arrondi au-dessus.");
+  const r = v.data.recipes.get(s.recipeId);
+  if (r?.farm && s.parts)
+    notes.push(
+      `Ferme d'arbres : les arbres sont comptés avec les blocs de leur ferme. L'eau se compte au prorata des arbres (${esc(fmt(r.farm.waterLpsPerTree * farmRatios(r).perSpr * 60, 1))} L/min par arroseur plein), l'électricité par arbre coupé.`,
+    );
+  else if (s.parts) notes.push("Installation composée : le craft décrit l'installation entière, « par seconde ». Chaque bâtiment est compté à part et arrondi au-dessus.");
+  if (r?.wholeUnits) notes.push("Moteur diesel modulaire : configuration relevée sur le wiki (pas de formule connue) ; les blocs se comptent pour des moteurs entiers.");
   if (s.growth)
     notes.push(
       `La durée est celle de la pousse des arbres : ${esc(s.growth.detail)}${s.growth.sourceUrl ? ` (<a href="${esc(s.growth.sourceUrl)}" target="_blank" rel="noopener">source</a>)` : ""}. Le nombre d'arbres est indicatif.`,

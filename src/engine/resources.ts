@@ -37,7 +37,8 @@ export type RecipeProc = {
   /** Machines par unité (installation composée : la somme de ses pièces ; sinon 1). */
   units: number;
   /** Pièces d'une installation composée, avec leurs valeurs unitaires. */
-  parts: { machine: string; count: number; cost: number | null; pollution: number | null; area: number | null }[] | null;
+  /** `perFarm` : une fois par installation posée (contrôleur d'une ferme), quel que soit le nombre d'unités. */
+  parts: { machine: string; count: number; perFarm?: boolean; cost: number | null; pollution: number | null; area: number | null }[] | null;
 };
 
 export type DepotProc = { kind: "dépôt"; id: string; name: string; itemsPerMin: number; machine: Machine | undefined; cost: number | null; area: number | null };
@@ -91,10 +92,12 @@ export function recipeProc(eff: EffRecipe, machines?: Map<string, Machine>): Rec
   const parts = r.parts
     ? r.parts.map((p) => {
         const pm = machines?.get(p.machine);
-        return { machine: p.machine, count: p.count, cost: pm?.cost ?? null, pollution: pollutionOf(pm), area: area(pm) };
+        return { machine: p.machine, count: p.count, ...(p.perFarm ? { perFarm: true } : {}), cost: pm?.cost ?? null, pollution: pollutionOf(pm), area: area(pm) };
       })
     : null;
-  const sum = (k: "cost" | "pollution" | "area") => (parts!.some((p) => p[k] === null) ? null : parts!.reduce((s, p) => s + p.count * p[k]!, 0));
+  // Valeurs par unité : les pièces « une fois par ferme » n'y entrent pas (le simplexe reste linéaire).
+  const perUnit = parts?.filter((p) => !p.perFarm);
+  const sum = (k: "cost" | "pollution" | "area") => (perUnit!.some((p) => p[k] === null) ? null : perUnit!.reduce((s, p) => s + p.count * p[k]!, 0));
   return {
     kind: "recette",
     id: r.id,
@@ -106,7 +109,7 @@ export function recipeProc(eff: EffRecipe, machines?: Map<string, Machine>): Rec
     cost: parts ? sum("cost") : (m?.cost ?? null),
     area: parts ? sum("area") : area(m),
     isRaw: !Object.values(perMin).some((v) => v < 0),
-    units: parts ? parts.reduce((s, p) => s + p.count, 0) : 1,
+    units: perUnit ? perUnit.reduce((s, p) => s + p.count, 0) : 1,
     parts,
   };
 }

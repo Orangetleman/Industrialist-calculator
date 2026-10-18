@@ -28,20 +28,28 @@ export function activeFilter(f: MachineFilter | null | undefined): MachineFilter
   return f;
 }
 
+/** Test « cette machine est-elle permise ? » ; `only` : mode « seulement ». */
+export type AllowedFn = ((machineId: string) => boolean) & { only?: boolean };
+
 /** Fabrique le test « cette machine est-elle permise ? » ; null : toutes le sont. */
-export function machineAllowed(data: GameData, filter: MachineFilter | null | undefined): ((machineId: string) => boolean) | null {
+export function machineAllowed(data: GameData, filter: MachineFilter | null | undefined): AllowedFn | null {
   const f = activeFilter(filter);
   if (!f) return null;
   const ids = new Set(f.ids);
   if (f.mode === "exclure") return (id) => !ids.has(id);
   const off = new Set(f.noExtraction ?? []);
-  return (id) => ids.has(id) || (isExtractor(data.machines.get(id)) && !off.has(id));
+  return Object.assign((id: string) => ids.has(id) || (isExtractor(data.machines.get(id)) && !off.has(id)), { only: true });
 }
 
-/** Recette permise : sa machine, et chaque machine d'une installation composée. */
-export function recipeAllowed(allowed: ((machineId: string) => boolean) | null, r: Recipe): boolean {
+/**
+ * Recette permise : sa machine, et chaque machine d'une installation composée. En mode
+ * « seulement », les blocs d'une ferme d'arbres (S13) suivent l'arbre, qui est de l'extraction.
+ */
+export function recipeAllowed(allowed: AllowedFn | null, r: Recipe): boolean {
   if (!allowed) return true;
-  return allowed(r.machine) && !(r.parts ?? []).some((p) => !allowed(p.machine));
+  if (!allowed(r.machine)) return false;
+  if (r.farm && allowed.only) return true;
+  return !(r.parts ?? []).some((p) => !allowed(p.machine));
 }
 
 /** Machines écartées par le filtre parmi les recettes candidates d'un objet. */
