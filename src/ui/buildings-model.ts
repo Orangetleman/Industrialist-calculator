@@ -97,13 +97,14 @@ export const isComplete = (e: PortsEntry) => checkEntry(e).length === 0;
  * Fichier d'export (même format que data/ports.json) ; les interfaces notées (S10) vont à
  * data/interfaces.json, les corrections des blocs modulaires (S12) à data/modular.json.
  */
-export function exportSurveys(local: Record<string, PortsEntry>, interfaces: Record<string, MachineInterface> = {}, modular: ModularEdits = {}): PortsFile {
+export function exportSurveys(local: Record<string, PortsEntry>, interfaces: Record<string, MachineInterface> = {}, modular: ModularEdits = {}, diesel: unknown[] = []): PortsFile {
   return {
-    _lisezMoi: "Relevés de bâtiments faits dans l'éditeur du calculateur. « machines » : à intégrer à data/ports.json (même format) ; « interfaces » : à data/interfaces.json ; « modular » : à data/modular.json.",
+    _lisezMoi: "Relevés de bâtiments faits dans l'éditeur du calculateur. « machines » : à intégrer à data/ports.json (même format) ; « interfaces » : à data/interfaces.json ; « modular » : à data/modular.json ; « diesel » : relevés de configuration du moteur, à data/modular.json (moteur diesel, « readings »).",
     machines: local,
     ...(Object.keys(interfaces).length ? { interfaces } : {}),
     ...(Object.keys(modular).length ? { modular } : {}),
-  };
+    ...(diesel.length ? { diesel } : {}),
+  } as PortsFile;
 }
 
 // ---------------------------------------------------------------- blocs modulaires (S12)

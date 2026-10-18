@@ -9,7 +9,7 @@ import overridesJson from "../../data/overrides.json";
 import recipesJson from "../../data/recipes.json";
 import researchJson from "../../data/research.json";
 import { buildGameData, type RawFiles } from "./data.ts";
-import { dieselConfigs, dieselLookup, farmBlocks, farmOutput, farmRates, turbineReliability } from "./modular-calc.ts";
+import { dieselConfigs, dieselLitersPerMMF, dieselLookup, dieselPick, farmBlocks, farmOutput, farmRates, turbineReliability } from "./modular-calc.ts";
 import type { ModularFile } from "./modular.ts";
 import { solve } from "./solve.ts";
 import type { OverridesFile } from "./types.ts";
@@ -131,6 +131,51 @@ describe("moteur diesel", () => {
       expect(s.parts!.find((q) => q.machine === "diesel-engine-cylinder")!.count).toBe(32 * s.machines);
       expect(s.inputs.find((i) => i.item === "refined-diesel")!.perMin).toBeCloseTo(s.machinesExact * 0.092 * 60, 6);
     }
+  });
+});
+
+describe("moteur diesel : relevés de configuration et choix (S18)", () => {
+  // Valeurs de test (pas des valeurs du jeu) : servent seulement à vérifier le traitement.
+  const reading = { id: "t1", date: "2026-10-18", cylinders: 6, airFuel: 16, throttle: 100, fuel: "diesel", powerMFps: 1000, fuelLps: 2, torqueMT: null, blocks: { air: 1, exhaust: 1, fuel: 1, generator: 1, flywheel: 1 } };
+
+  it("un relevé devient une configuration, avec son carburant et ses blocs", () => {
+    const configs = dieselConfigs(file, [reading]);
+    const c = configs.find((x) => x.reading === "t1")!;
+    expect(c).toMatchObject({ id: "moteur:releve:t1", fuel: "diesel", powerMFps: 1000, fuelLps: 2, throttleAssumed: false });
+    expect(c.parts.find((p) => p.machine === "diesel-engine-flywheel")?.count).toBe(1);
+    // 6 cylindres + air + échappement + carburant = 9 blocs de côté → 4 vilebrequins (le volant n'est pas de côté).
+    expect(c.parts.find((p) => p.machine === "diesel-engine-crankshaft")?.count).toBe(4);
+    expect(dieselLookup(configs, 6, 16, 100, "diesel")).toBe(c);
+    expect(dieselLookup(configs, 6, 16, 100)?.id).toBe("moteur:6cyl-af16");
+  });
+
+  it("un relevé aux mêmes réglages et carburant remplace la configuration du wiki", () => {
+    const configs = dieselConfigs(file, [{ ...reading, fuel: "refined-diesel" }]);
+    expect(configs.filter((c) => c.cylinders === 6 && c.airFuel === 16 && c.fuel === "refined-diesel").map((c) => c.id)).toEqual(["moteur:releve:t1"]);
+  });
+
+  it("relevé incomplet refusé", () => {
+    expect(dieselConfigs(file, [{ ...reading, powerMFps: 0 }]).some((c) => c.reading)).toBe(false);
+  });
+
+  it("choix : le moins de carburant par MF/s, seulement avec le carburant voulu, ou la configuration imposée", () => {
+    const configs = dieselConfigs(file, [reading]);
+    const none = () => null;
+    // 0,092 ÷ 3 MMF/s = 0,031 L par MMF, contre 0,086 ÷ 1,34 = 0,064 au mieux pour 6 cylindres.
+    expect(dieselPick(configs, "refined-diesel", "carburant", null, none, none)?.id).toBe("moteur:32cyl-af14-t59");
+    expect(dieselPick(configs, "refined-diesel", "carburant", "moteur:6cyl-af13", none, none)?.id).toBe("moteur:6cyl-af13");
+    expect(dieselPick(configs, "diesel", "carburant", "moteur:6cyl-af13", none, none)?.id).toBe("moteur:releve:t1");
+    expect(dieselPick(configs, "crude-diesel", "carburant", null, none, none)).toBeNull();
+    expect(dieselLitersPerMMF(configs.find((c) => c.id === "moteur:32cyl-af14-t59")!)).toBeCloseTo(0.092 / 3, 9);
+  });
+
+  it("le solveur ne garde que le moteur choisi", () => {
+    const { data: d } = buildGameData({ ...base, modular: file, dieselReadings: [reading] }, [overridesJson as unknown as OverridesFile]);
+    expect(d.recipes.get("moteur:releve:t1")?.inputs).toEqual({ diesel: 2 });
+    const ex = { mode: "exclure" as const, ids: ["large-diesel-engine", "wind-turbine1", "wind-turbine2", "wind-turbine3", "solar-panel", "firebox", "gas-burner"] };
+    const p = solve(d, all, { item: "", energyMFps: 2000000, criterion: "energy", tiers: false, machines: ex, diesel: "moteur:6cyl-af13" });
+    const diesel = p.steps.filter((s) => s.machine === "diesel-engine-controller");
+    expect(diesel.map((s) => s.recipeId)).toEqual(["moteur:6cyl-af13"]);
   });
 });
 

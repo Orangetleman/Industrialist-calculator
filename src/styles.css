@@ -226,6 +226,11 @@ button.link.have:hover { color: var(--steel); }
 .iset.once::after { content: "définitif"; font-size: .7rem; border-left: 1px solid currentColor; padding-left: 5px; margin-left: 2px; }
 .flow-hud .iset { background: #22313f; color: #bcd6ea; border-color: #5a7d99; padding: 3px 10px; }
 .flow-hud .mset input[data-iset-input] { width: 3.6em; }
+/* Moteur diesel (S18) : carburant, critère, configuration ; passe à la ligne sur un écran étroit. */
+.mset.dsl { flex-wrap: wrap; max-width: 100%; }
+.mset.dsl label { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.mset.dsl select { max-width: 100%; background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 3px 4px; }
+table.dsl-cfg tr.on td { background: var(--accent-soft); font-weight: 600; }
 .pose-setting { margin: 4px 0 8px; }
 #fix-bar { margin: 10px 0; }
 #fix-bar[hidden] { display: none; }

@@ -3,20 +3,20 @@
 // correspond aux réglages, sinon « à relever » ; turbine : « non fiable ». Fonctions pures (HTML).
 
 import type { GameData } from "../engine/data.ts";
-import { dieselConfigs, dieselLookup, farmBlocks, farmOutput, farmRates, turbineReliability, type FarmBlocks } from "../engine/modular-calc.ts";
+import { DIESEL_FUELS, dieselConfigs, dieselFuelName, dieselLitersPerMMF, dieselLookup, parseDieselReading, type DieselConfig, type DieselReading, farmBlocks, farmOutput, farmRates, turbineReliability, type FarmBlocks } from "../engine/modular-calc.ts";
 import type { ModAssembly, ModularFile } from "../engine/modular.ts";
 import { treeGrowthSeconds } from "../engine/pollution.ts";
 import { esc, fmt } from "./format.ts";
 
 export type ModCalcState = {
   farm: FarmBlocks & { pollution: number };
-  diesel: { cylinders: number; airFuel: number; throttle: number };
+  diesel: { cylinders: number; airFuel: number; throttle: number; fuel: string };
 };
 
 /** Départ : la ferme du guide Miraheze (88 arbres) et le montage simple du moteur (6 cylindres, rapport 16). */
 export const MODCALC_DEFAULT: ModCalcState = {
   farm: { trees: 88, sprinklers: 2, tanks: 1, harvesters: 4, controllers: 1, outputs: 1, pollution: 0 },
-  diesel: { cylinders: 6, airFuel: 16, throttle: 100 },
+  diesel: { cylinders: 6, airFuel: 16, throttle: 100, fuel: "refined-diesel" },
 };
 
 const mfps = (w: number) => (w >= 1e6 ? `${fmt(w / 1e6, 3)} MMF/s` : w >= 1e3 ? `${fmt(w / 1e3, 2)} kMF/s` : `${fmt(w, 1)} MF/s`);
@@ -55,27 +55,74 @@ export function farmResultHtml(file: ModularFile, data: GameData, st: ModCalcSta
   return `<ul class="mc-out">${lines.join("")}</ul>${hint}<p class="hint">Pousse : ${esc(g.detail)}. ${rates.treesPerHarvester.value} arbres par récolteur d'après le guide Miraheze${rates.treesPerHarvester.question ? ` <span class="must unk" title="maximum réel à relever">⚠ ${esc(rates.treesPerHarvester.question)}</span>` : ""} ; ${rates.treesPerSprinkler.value} arbres par arroseur, ${rates.sprinklersPerTank.value} arroseurs par réservoir (wikis).${rates.controllerSlots ? ` La portée du contrôleur touche au plus ${rates.controllerSlots} emplacements d'arbres, sans compter la place des autres blocs.` : ""}</p>`;
 }
 
-/** Résultat du moteur diesel : la configuration relevée qui correspond, sinon « à relever ». */
-export function dieselResultHtml(file: ModularFile, data: GameData, st: ModCalcState): string {
-  const configs = dieselConfigs(file);
-  const c = dieselLookup(configs, st.diesel.cylinders, st.diesel.airFuel, st.diesel.throttle);
-  const list = `<p class="hint">Configurations relevées : ${configs
-    .map((x) => `<button type="button" class="chip${x === c ? " on" : ""}" data-mc-cfg="${esc(x.id)}">${esc(x.label)}</button>`)
-    .join(" ")}</p>`;
-  if (!c) return `<p class="must unk">À relever : pas de formule connue pour ${fmt(st.diesel.cylinders, 0)} cylindres, rapport ${fmt(st.diesel.airFuel, 0)}, accélérateur ${fmt(st.diesel.throttle, 0)} % (MOD-12). Le calcul n'utilise que les configurations relevées.</p>${list}`;
+/** Résultat du moteur diesel : la configuration relevée qui correspond, sinon « à relever » ; puis le tableau des configurations connues. */
+export function dieselResultHtml(file: ModularFile, data: GameData, st: ModCalcState, readings: DieselReading[] = []): string {
+  const configs = dieselConfigs(file, readings);
+  const d = st.diesel;
+  const c = dieselLookup(configs, d.cylinders, d.airFuel, d.throttle, d.fuel);
+  const list = dieselTable(configs, c);
+  if (!c) return `<p class="must unk">À relever : pas de configuration connue pour ${fmt(d.cylinders, 0)} cylindres, rapport ${fmt(d.airFuel, 0)}, accélérateur ${fmt(d.throttle, 0)} %, ${esc(dieselFuelName(d.fuel))} (pas de formule, MOD-12). Le calcul n'utilise que les configurations relevées : note-la ci-dessous.</p>${list}`;
   const cost = c.parts.reduce<number | null>((s, p) => (s === null || data.machines.get(p.machine)?.cost == null ? null : s + p.count * data.machines.get(p.machine)!.cost!), 0);
   const blocks = c.parts.map((p) => `${p.count} ${name(data, p.machine)}`).join(", ");
   const lines = [
-    `<li><b>${mfps(c.powerMFps)}</b> pour <b>${fmt(c.fuelLps, 3)} L/s</b> de Refined Diesel (${fmt(c.fuelLps * 60, 2)} L/min)${c.torqueMT !== null ? ` · couple ${fmt(c.torqueMT, 0)} MT` : ""}</li>`,
+    `<li><b>${mfps(c.powerMFps)}</b> pour <b>${fmt(c.fuelLps, 3)} L/s</b> de ${esc(dieselFuelName(c.fuel))} (${fmt(c.fuelLps * 60, 2)} L/min, ${fmt(dieselLitersPerMMF(c), 3)} L par MMF)${c.torqueMT !== null ? ` · couple ${fmt(c.torqueMT, 0)} MT` : ""}</li>`,
     `<li>Blocs : ${blocks}${c.partsComplete ? (cost !== null ? ` · ${fmt(cost, 0)} $` : "") : ` <span class="must unk">⚠ liste incomplète : vilebrequins, entrées d'air, échappements et entrées de carburant à relever (MOD-14)</span>`}</li>`,
     ...(c.throttleAssumed ? [`<li class="hint">Accélérateur non écrit par le tableau du contrôleur : supposé à 100 %.</li>`] : []),
-    `<li class="hint">Autres diesels : consommation inconnue. Pollution de l'échappement : inconnue (MOD-15).</li>`,
+    `<li class="hint">Un autre carburant change la consommation, pas la puissance : chaque carburant a ses relevés. Pollution de l'échappement : inconnue (MOD-15).</li>`,
   ];
   return `<ul class="mc-out">${lines.join("")}</ul>${list}`;
 }
 
+/** Tableau des configurations connues (wiki et relevés en jeu), la configuration choisie éclairée. */
+function dieselTable(configs: DieselConfig[], on: DieselConfig | null): string {
+  const rows = configs
+    .map((x) => {
+      const src = x.reading
+        ? `<span class="src-tag jeu">relevé en jeu</span> <button type="button" class="link" data-dr-del="${esc(x.reading)}" title="Retirer ce relevé de ce navigateur">✕</button>`
+        : `<span class="src-tag">wiki</span>${x.partsComplete ? "" : ` <span class="must unk" title="nombre de blocs à relever">blocs ⚠ MOD-14</span>`}`;
+      return `<tr${x === on ? ' class="on"' : ""}><td><button type="button" class="link" data-mc-cfg="${esc(x.id)}" title="Voir cette configuration">${fmt(x.cylinders, 0)}</button></td><td>${fmt(x.airFuel, 0)}</td><td>${fmt(x.throttle, 0)} %${x.throttleAssumed ? "*" : ""}</td><td>${esc(dieselFuelName(x.fuel))}</td><td class="num">${mfps(x.powerMFps)}</td><td class="num">${fmt(x.fuelLps, 3)}</td><td class="num">${fmt(dieselLitersPerMMF(x), 3)}</td><td>${src}</td></tr>`;
+    })
+    .join("");
+  return `<div class="tablewrap"><table class="mini dsl-cfg"><thead><tr><th>Cyl.</th><th>Rapport</th><th>Accél.</th><th>Carburant</th><th>Puissance</th><th>L/s</th><th>L par MMF</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table></div><p class="hint">* accélérateur supposé (non écrit sur le wiki). Clique le nombre de cylindres pour voir une configuration.</p>`;
+}
+
+/** Formulaire « Relevé de configuration » : ce qu'affiche l'Info Panel, avec les réglages et les blocs posés. */
+function dieselReadingForm(st: ModCalcState, msg: string): string {
+  const d = st.diesel;
+  const f = (k: string, label: string, v: number | string, extra = "") => `<label class="mc-f">${label} <input type="text" inputmode="decimal" data-dr="${k}" value="${esc(String(v))}"${extra}></label>`;
+  const ph = ' placeholder="lue sur l&#39;Info Panel"';
+  const fuels = DIESEL_FUELS.map((x) => `<option value="${x}"${x === d.fuel ? " selected" : ""}>${esc(dieselFuelName(x))}</option>`).join("");
+  return `<section class="mcalc" aria-label="Relevé de configuration du moteur"><h5>Relevé de configuration · lu sur l'Info Panel</h5>
+    <div class="mc-in">${f("cylinders", "Cylindres", d.cylinders)}${f("airFuel", "Rapport air/carburant", d.airFuel)}${f("throttle", "Accélérateur (%)", d.throttle)}<label class="mc-f">Carburant <select data-dr="fuel">${fuels}</select></label></div>
+    <div class="mc-in">${f("air", "Entrées d'air", 1)}${f("exhaust", "Échappements", 1)}${f("fuelIn", "Entrées de carburant", 1)}${f("generator", "Générateurs", 1)}${f("flywheel", "Volants", 0)}</div>
+    <div class="mc-in">${f("power", "Puissance (MF/s)", "", ph)}${f("fuelLps", "Consommation (L/s)", "", ph)}${f("torque", "Couple (MT, facultatif)", "")}<button type="button" data-dr-save>Enregistrer le relevé</button></div>
+    ${msg ? `<p class="hint" role="status">${esc(msg)}</p>` : ""}<p class="hint">Gardé dans ce navigateur, exporté avec les autres relevés (clé « diesel »). Il entre tout de suite dans le calcul ; les blocs comptés servent au plan de pose et au prix. Note la consommation telle que l'écran l'affiche.</p></section>`;
+}
+
+/** Lit le formulaire du relevé ; un texte d'erreur si une valeur manque. */
+export function readDieselForm(root: ParentNode, now = new Date()): DieselReading | string {
+  const val = (k: string) => (root.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-dr="${k}"]`)?.value ?? "").trim();
+  const num = (k: string) => {
+    const v = val(k).replace(/\s/g, "").replace(",", ".");
+    return v === "" ? null : Number(v);
+  };
+  const r = parseDieselReading({
+    id: `r${now.getTime().toString(36)}`,
+    date: now.toISOString().slice(0, 10),
+    cylinders: num("cylinders"),
+    airFuel: num("airFuel"),
+    throttle: num("throttle"),
+    fuel: val("fuel"),
+    powerMFps: num("power"),
+    fuelLps: num("fuelLps"),
+    torqueMT: num("torque"),
+    blocks: { air: num("air"), exhaust: num("exhaust"), fuel: num("fuelIn"), generator: num("generator"), flywheel: num("flywheel") },
+  });
+  return r ?? "Relevé incomplet : cylindres, rapport, accélérateur (1 à 100 %), puissance et consommation (plus grandes que 0) sont nécessaires.";
+}
+
 /** Bloc « Calcul » d'un ensemble ; `out` est l'élément mis à jour à chaque saisie. */
-export function modCalcHtml(file: ModularFile, data: GameData, a: ModAssembly, st: ModCalcState): string {
+export function modCalcHtml(file: ModularFile, data: GameData, a: ModAssembly, st: ModCalcState, readings: DieselReading[] = [], msg = ""): string {
   if (a.id === "tree-farm") {
     const f = st.farm;
     const fields = [
@@ -91,8 +138,8 @@ export function modCalcHtml(file: ModularFile, data: GameData, a: ModAssembly, s
   }
   if (a.id === "diesel-engine") {
     const d = st.diesel;
-    const fields = [num("cylinders", "Cylindres", d.cylinders), num("airFuel", "Rapport air/carburant", d.airFuel), num("throttle", "Accélérateur (%)", d.throttle, ' max="100"')].join("");
-    return `<section class="mcalc" aria-label="Calcul du moteur"><h5>Calcul · puissance du moteur</h5><div class="mc-in">${fields}</div><div id="mc-out">${dieselResultHtml(file, data, st)}</div></section>`;
+    const fields = [num("cylinders", "Cylindres", d.cylinders), num("airFuel", "Rapport air/carburant", d.airFuel), num("throttle", "Accélérateur (%)", d.throttle, ' max="100"'), `<label class="mc-f">Carburant <select data-mc="fuel">${DIESEL_FUELS.map((x) => `<option value="${x}"${x === d.fuel ? " selected" : ""}>${esc(dieselFuelName(x))}</option>`).join("")}</select></label>`].join("");
+    return `<section class="mcalc" aria-label="Calcul du moteur"><h5>Calcul · puissance du moteur</h5><div class="mc-in">${fields}</div><div id="mc-out">${dieselResultHtml(file, data, st, readings)}</div></section>${dieselReadingForm(st, msg)}`;
   }
   if (a.id === "modular-turbine") {
     const t = turbineReliability(file);
@@ -102,6 +149,6 @@ export function modCalcHtml(file: ModularFile, data: GameData, a: ModAssembly, s
 }
 
 /** Résultat seul, après une saisie. */
-export function modCalcOut(file: ModularFile, data: GameData, a: ModAssembly, st: ModCalcState): string {
-  return a.id === "tree-farm" ? farmResultHtml(file, data, st) : a.id === "diesel-engine" ? dieselResultHtml(file, data, st) : "";
+export function modCalcOut(file: ModularFile, data: GameData, a: ModAssembly, st: ModCalcState, readings: DieselReading[] = []): string {
+  return a.id === "tree-farm" ? farmResultHtml(file, data, st) : a.id === "diesel-engine" ? dieselResultHtml(file, data, st, readings) : "";
 }

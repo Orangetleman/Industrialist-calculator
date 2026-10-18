@@ -213,13 +213,60 @@ export type DieselConfig = {
   partsComplete: boolean;
   sources: string[];
   note: string;
+  /** Relevé de configuration (éditeur, S18) : id du relevé. */
+  reading?: string;
 };
+
+/**
+ * Relevé de configuration du moteur (éditeur de bâtiments, S18) : réglages du contrôleur, carburant,
+ * blocs posés et ce que l'Info Panel affiche. Gardé dans le navigateur, exporté avec les relevés.
+ */
+export type DieselReading = {
+  id: string;
+  date: string;
+  cylinders: number;
+  airFuel: number;
+  throttle: number;
+  fuel: string;
+  powerMFps: number;
+  fuelLps: number;
+  torqueMT: number | null;
+  blocks: { air: number; exhaust: number; fuel: number; generator: number; flywheel: number };
+};
+
+/** Carburants du moteur (Diesel Engine Fuel Input, wiki). */
+export const DIESEL_FUELS = ["refined-diesel", "diesel", "poor-quality-diesel", "crude-diesel"] as const;
+export const dieselFuelName = (id: string) => id.split("-").map((w) => w[0]!.toUpperCase() + w.slice(1)).join(" ");
+
+/** Relevé lu depuis un fichier ou le navigateur ; null s'il est incomplet. */
+export function parseDieselReading(x: unknown): DieselReading | null {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const b = (o.blocks ?? {}) as Record<string, unknown>;
+  const cyl = n(o.cylinders), af = n(o.airFuel), th = n(o.throttle), pw = n(o.powerMFps), fl = n(o.fuelLps);
+  if (typeof o.id !== "string" || typeof o.fuel !== "string" || cyl === null || af === null || th === null || pw === null || fl === null) return null;
+  if (cyl < 1 || pw <= 0 || fl <= 0 || th <= 0 || th > 100) return null;
+  const k = (v: unknown, d: number) => Math.max(0, Math.round(n(v) ?? d));
+  return {
+    id: o.id,
+    date: typeof o.date === "string" ? o.date : "",
+    cylinders: Math.round(cyl),
+    airFuel: af,
+    throttle: th,
+    fuel: o.fuel,
+    powerMFps: pw,
+    fuelLps: fl,
+    torqueMT: n(o.torqueMT),
+    blocks: { air: k(b.air, 1), exhaust: k(b.exhaust, 1), fuel: k(b.fuel, 1), generator: Math.max(1, k(b.generator, 1)), flywheel: k(b.flywheel, 0) },
+  };
+}
 
 type Measure = { id: string; columns?: string[]; rows?: number[][]; value?: Record<string, number>; parts?: Record<string, number>; partsComplete?: boolean; sources: string[]; alternatives?: { value: unknown; sources: string[] }[] };
 
 /** Configurations relevées du moteur diesel (Refined Diesel) : tableau du contrôleur (6 cylindres) et 32 cylindres. */
-export function dieselConfigs(file: ModularFile): DieselConfig[] {
-  const a = assembly(file, "diesel-engine") as (ModAssembly & { measurements?: Measure[] }) | undefined;
+export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): DieselConfig[] {
+  const a = assembly(file, "diesel-engine") as (ModAssembly & { measurements?: Measure[]; readings?: unknown[] }) | undefined;
   const ms = a?.measurements ?? [];
   const easy = ms.find((m) => m.id === "easy-setup");
   const table = ms.find((m) => m.id === "air-fuel-6cyl");
@@ -233,9 +280,9 @@ export function dieselConfigs(file: ModularFile): DieselConfig[] {
       const min = asNum((blockFact(a, id, "count")?.value as { min?: unknown } | undefined)?.min);
       if (min !== null && (parts[id] ?? 0) < min) parts[id] = min;
     }
-    const side = Object.entries(parts).filter(([id]) => ![DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.generator].includes(id as never)).reduce((s, [, n]) => s + n, 0);
+    const side = Object.entries(parts).filter(([id]) => ![DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.generator, DIESEL_IDS.flywheel].includes(id as never)).reduce((s, [, n]) => s + n, 0);
     parts[DIESEL_IDS.crankshaft] = crankshaftsFor(side);
-    const order = [DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.cylinder, DIESEL_IDS.air, DIESEL_IDS.exhaust, DIESEL_IDS.fuel, DIESEL_IDS.generator] as string[];
+    const order = [DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.flywheel, DIESEL_IDS.cylinder, DIESEL_IDS.air, DIESEL_IDS.exhaust, DIESEL_IDS.fuel, DIESEL_IDS.generator] as string[];
     return Object.entries(parts)
       .sort(([x], [y]) => (order.indexOf(x) + 99) % 99 - (order.indexOf(y) + 99) % 99)
       .map(([machine, count]) => ({ machine, count }));
@@ -282,12 +329,59 @@ export function dieselConfigs(file: ModularFile): DieselConfig[] {
       note: "Configuration la plus connue (Miraheze), Refined Diesel. Une entrée d'air, un échappement et une entrée de carburant (le minimum du wiki) : leur nombre réel est à relever (MOD-14). Vilebrequins d'après le plan de pose (un bloc de côté par côté).",
     });
   }
+  // Relevés de configuration (S18) : ceux du dépôt, puis ceux du navigateur ; un relevé remplace la
+  // configuration aux mêmes réglages et au même carburant (relevé en jeu d'abord).
+  const readings = [...(a?.readings ?? []), ...local].map(parseDieselReading).filter((r): r is DieselReading => !!r);
+  for (const r of readings) {
+    const same = out.findIndex((c) => c.cylinders === r.cylinders && c.airFuel === r.airFuel && c.throttle === r.throttle && c.fuel === r.fuel);
+    if (same >= 0) out.splice(same, 1);
+    const p: Record<string, number> = { [DIESEL_IDS.controller]: 1, [DIESEL_IDS.cylinder]: r.cylinders, [DIESEL_IDS.air]: r.blocks.air, [DIESEL_IDS.exhaust]: r.blocks.exhaust, [DIESEL_IDS.fuel]: r.blocks.fuel, [DIESEL_IDS.generator]: r.blocks.generator, [DIESEL_IDS.flywheel]: r.blocks.flywheel };
+    for (const k of Object.keys(p)) if (!p[k]) delete p[k];
+    out.push({
+      id: `moteur:releve:${r.id}`,
+      label: `${r.cylinders} cylindres, rapport ${r.airFuel}, accélérateur ${r.throttle} %, ${dieselFuelName(r.fuel)}`,
+      cylinders: r.cylinders,
+      airFuel: r.airFuel,
+      throttle: r.throttle,
+      throttleAssumed: false,
+      powerMFps: r.powerMFps,
+      fuel: r.fuel,
+      fuelLps: r.fuelLps,
+      torqueMT: r.torqueMT,
+      parts: toParts(p),
+      partsComplete: true,
+      sources: [],
+      note: `Relevé en jeu${r.date ? ` du ${r.date}` : ""} (Info Panel) : puissance et consommation affichées, blocs posés comptés. Vilebrequins d'après le plan de pose (un bloc de côté par côté).`,
+      reading: r.id,
+    });
+  }
   return out;
 }
 
+/** Litres de carburant par MMF : sert à comparer les configurations. */
+export const dieselLitersPerMMF = (c: DieselConfig) => (c.fuelLps * 1e6) / c.powerMFps;
+
+export type DieselPickMode = "carburant" | "prix" | "place";
+
+/**
+ * Configuration du moteur pour un plan (S18) : celle imposée si elle existe avec ce carburant, sinon
+ * la meilleure selon le critère, par MF/s (carburant, prix des blocs, place du moteur posé). Seules
+ * les configurations relevées avec ce carburant comptent (pas de rapport déduit, réponse Q16).
+ */
+export function dieselPick(configs: DieselConfig[], fuel: string, mode: DieselPickMode, forced: string | null, cost: (c: DieselConfig) => number | null, area: (c: DieselConfig) => number | null): DieselConfig | null {
+  const ok = configs.filter((c) => c.fuel === fuel);
+  const f = forced ? ok.find((c) => c.id === forced) : undefined;
+  if (f) return f;
+  const score = (c: DieselConfig) => {
+    const v = mode === "carburant" ? c.fuelLps : mode === "prix" ? cost(c) : area(c);
+    return v === null ? Infinity : v / c.powerMFps;
+  };
+  return [...ok].sort((x, y) => score(x) - score(y) || dieselLitersPerMMF(x) - dieselLitersPerMMF(y) || x.id.localeCompare(y.id))[0] ?? null;
+}
+
 /** Configuration relevée correspondant aux réglages ; null : « à relever » (pas de formule, MOD-12). */
-export function dieselLookup(configs: DieselConfig[], cylinders: number, airFuel: number, throttle: number): DieselConfig | null {
-  return configs.find((c) => c.cylinders === cylinders && c.airFuel === airFuel && c.throttle === throttle) ?? null;
+export function dieselLookup(configs: DieselConfig[], cylinders: number, airFuel: number, throttle: number, fuel = "refined-diesel"): DieselConfig | null {
+  return configs.find((c) => c.cylinders === cylinders && c.airFuel === airFuel && c.throttle === throttle && c.fuel === fuel) ?? null;
 }
 
 // ---------------------------------------------------------------- turbine
@@ -310,7 +404,7 @@ export type FarmRecipe = { waterItem: string; waterLpsPerTree: number; energyPer
  *     arroseurs et l'électricité des coupes ;
  *   - chaque configuration relevée du moteur diesel devient une installation énergétique.
  */
-export function applyModular(recipes: Map<string, Recipe>, machines: Map<string, Machine>, file: ModularFile, poles: FarmPole[] = []): void {
+export function applyModular(recipes: Map<string, Recipe>, machines: Map<string, Machine>, file: ModularFile, poles: FarmPole[] = [], readings: DieselReading[] = []): void {
   const rates = farmRates(file);
   const geometry = farmGeometry(file, machines, poles);
   if (rates) {
@@ -349,7 +443,7 @@ export function applyModular(recipes: Map<string, Recipe>, machines: Map<string,
       }
     }
   }
-  for (const c of dieselConfigs(file)) {
+  for (const c of dieselConfigs(file, readings)) {
     if (!c.parts.every((p) => machines.has(p.machine))) continue;
     const verify: VerifyFlag[] = [{ field: "pollutionPerHour", reason: "manquant", detail: "pollution de l'échappement selon la configuration inconnue (MOD-15)" }];
     if (c.throttleAssumed) verify.push({ field: "energyMFps", reason: "approximatif", detail: "accélérateur non écrit par le tableau du contrôleur : supposé à 100 %" });

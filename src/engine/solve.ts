@@ -42,6 +42,8 @@ export type SolveRequest = {
   guaranteedEnergy?: boolean;
   /** Énergie : sans combustible (solaire, éolien… ; l'eau n'est pas un combustible). */
   noFuel?: boolean;
+  /** Moteur diesel du plan (S18) : id de la configuration choisie ; les autres moteurs diesel sont écartés. */
+  diesel?: string | null;
   /** Poteaux de transport (power.json) et distance à couvrir, en cases, pour le réseau. */
   poles?: PoleSpec[];
   distanceTiles?: number | null;
@@ -374,6 +376,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     selfPowered: energyMode || !!req.selfPowered,
     guaranteedOnly: energyMode && !!req.guaranteedEnergy,
     noFuel: energyMode && !!req.noFuel,
+    diesel: req.diesel ?? null,
     scrubbers: criterion === "pollution" || req.maxPollution != null,
     restrictTo,
     depots: req.depots,

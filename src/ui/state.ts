@@ -1,5 +1,6 @@
 // État de l'interface et persistance locale (localStorage, toujours dans un try/catch).
 
+import { cleanDieselChoice, type DieselChoice } from "./diesel.ts";
 import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { MachineFilter } from "../engine/machine-filter.ts";
@@ -92,6 +93,8 @@ export type Settings = {
   machineFilters: Record<string, PlanMachines>;
   /** Réglages chiffrés des machines de chaque plan (S10, écran de la Chemical Plant), par clé de plan. */
   machineSettings: Record<string, MachineSettings>;
+  /** Moteur diesel de chaque plan (S18) : carburant, critère, configuration imposée, par clé de plan. */
+  dieselChoice: Record<string, DieselChoice>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
   money: number;
   /** La chaîne produit sa propre énergie. */
@@ -143,6 +146,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fixed: null,
   machineFilters: {},
   machineSettings: {},
+  dieselChoice: {},
   money: 10000,
   selfPowered: false,
   maxPollution: null,
@@ -238,6 +242,8 @@ export function loadSettings(): Settings {
       .map(([k, f]) => [k, { mode: f.mode === "exclure" || f.mode === "seulement" ? f.mode : "toutes", exclure: ids(f.exclure), seulement: ids(f.seulement), noExtraction: ids(f.noExtraction) }]),
   );
   out.machineSettings = cleanMachineSettings(out.machineSettings);
+  const dc = out.dieselChoice && typeof out.dieselChoice === "object" ? (out.dieselChoice as Record<string, unknown>) : {};
+  out.dieselChoice = Object.fromEntries(Object.entries(dc).map(([k, c]) => [k, cleanDieselChoice(c)]).filter((e): e is [string, DieselChoice] => !!e[1]));
   return out;
 }
 export function saveSettings(s: Settings): void {

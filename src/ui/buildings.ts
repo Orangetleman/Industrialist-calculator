@@ -27,8 +27,8 @@ import {
   rule,
   treeGrid,
 } from "../engine/modular.ts";
-import { dieselConfigs, farmBlocks, farmRates } from "../engine/modular-calc.ts";
-import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, type ModCalcState } from "./modcalc-view.ts";
+import { dieselConfigs, farmBlocks, farmRates, parseDieselReading, type DieselReading } from "../engine/modular-calc.ts";
+import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, readDieselForm, type ModCalcState } from "./modcalc-view.ts";
 import {
   applyTool,
   type BgPlacement,
@@ -93,6 +93,7 @@ export function initBuildings(
   onSelect: (id: string) => void = () => {},
   repoIfaces: Interfaces = {},
   repoModular: ModularFile = { sources: {}, assemblies: [] },
+  diesel: { get(): DieselReading[]; set(list: DieselReading[]): void } = { get: () => [], set: () => {} },
 ): { show(id: string): void } {
   const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
@@ -109,6 +110,8 @@ export function initBuildings(
   let modMsg = "";
   /** Bloc « Calcul » des ensembles (S13) : blocs saisis, gardés le temps de la page. */
   const mcState: ModCalcState = structuredClone(MODCALC_DEFAULT);
+  /** Message du relevé de configuration du moteur (S18). */
+  let mcMsg = "";
   const assemblyOf = new Map(repoModular.assemblies.flatMap((a) => a.blocks.map((b) => [b.id, a] as const)));
   let selectedId: string | null = null;
   let entry: PortsEntry | null = null;
@@ -624,7 +627,7 @@ export function initBuildings(
     let body = `<p class="hint">${esc(b.role)}</p>${a.assembly === "contact" ? contactHtml(a, b) : rangeHtml(a, b)}`;
     if (modDraft) body += `<label class="bld-notes">Note <input type="text" data-mod="note" value="${esc(modDraft.note ?? "")}" placeholder="ex. vu en jeu : le côté plat regarde le contrôleur"></label>`;
     else if (edit?.note) body += `<p class="hint">Ta note : ${esc(edit.note)}</p>`;
-    if (!modDraft) body += modCalcHtml(repoModular, data, a, mcState);
+    if (!modDraft) body += modCalcHtml(repoModular, data, a, mcState, diesel.get(), mcMsg);
     const actions = modDraft
       ? `<button type="button" class="primary" data-mod-save>Enregistrer</button><button type="button" class="link" data-mod-cancel>Annuler</button>`
       : `<button type="button" data-mod-edit>✎ Corriger</button>${edit ? `<button type="button" class="link" data-mod-forget>Oublier ma correction locale</button>` : ""}`;
@@ -678,13 +681,19 @@ export function initBuildings(
   function mcInput(t: HTMLInputElement): void {
     const a = selectedId ? assemblyOf.get(selectedId) : undefined;
     if (!a) return;
+    const k = t.dataset.mc!;
+    if (k === "fuel") {
+      mcState.diesel.fuel = t.value;
+      const out = root.querySelector("#mc-out");
+      if (out) out.innerHTML = modCalcOut(repoModular, data, a, mcState, diesel.get());
+      return;
+    }
     const v = Number(t.value.replace(",", "."));
     if (!Number.isFinite(v) || t.value === "") return;
-    const k = t.dataset.mc!;
     if (a.id === "tree-farm" && k in mcState.farm) (mcState.farm as Record<string, number>)[k] = k === "pollution" ? v : Math.max(0, Math.round(v));
-    else if (a.id === "diesel-engine" && k in mcState.diesel) (mcState.diesel as Record<string, number>)[k] = Math.max(0, v);
+    else if (a.id === "diesel-engine" && k in mcState.diesel) (mcState.diesel as unknown as Record<string, number>)[k] = Math.max(0, v);
     const out = root.querySelector("#mc-out");
-    if (out) out.innerHTML = modCalcOut(repoModular, data, a, mcState);
+    if (out) out.innerHTML = modCalcOut(repoModular, data, a, mcState, diesel.get());
   }
 
   function renderBgPanel(): void {
@@ -900,7 +909,10 @@ export function initBuildings(
         saveLocalModular(localMod);
         const nIf = Object.keys(ifs).length;
         const nMod = Object.keys(mods).length;
-        $("#bld-io").textContent = `${Object.keys(parsed).length} relevé(s)${nIf ? `, ${nIf} interface(s)` : ""}${nMod ? `, ${nMod} correction(s) de blocs modulaires` : ""} importé(s).`;
+        // Relevés de configuration du moteur diesel (S18) : un relevé de même id remplace l'ancien.
+        const dsl = Array.isArray(raw?.diesel) ? (raw.diesel as unknown[]).map(parseDieselReading).filter((r): r is DieselReading => !!r) : [];
+        if (dsl.length) diesel.set([...diesel.get().filter((r) => !dsl.some((d) => d.id === r.id)), ...dsl]);
+        $("#bld-io").textContent = `${Object.keys(parsed).length} relevé(s)${nIf ? `, ${nIf} interface(s)` : ""}${nMod ? `, ${nMod} correction(s) de blocs modulaires` : ""}${dsl.length ? `, ${dsl.length} relevé(s) de moteur` : ""} importé(s).`;
         renderList();
         if (selectedId) select(selectedId);
       } catch (err) {
@@ -924,8 +936,25 @@ export function initBuildings(
     }
     const cfgBtn = target.closest<HTMLElement>("[data-mc-cfg]");
     if (cfgBtn) {
-      const c = dieselConfigs(repoModular).find((x) => x.id === cfgBtn.dataset.mcCfg);
-      if (c) mcState.diesel = { cylinders: c.cylinders, airFuel: c.airFuel, throttle: c.throttle };
+      const c = dieselConfigs(repoModular, diesel.get()).find((x) => x.id === cfgBtn.dataset.mcCfg);
+      if (c) mcState.diesel = { cylinders: c.cylinders, airFuel: c.airFuel, throttle: c.throttle, fuel: c.fuel };
+      return renderModular();
+    }
+    // Relevé de configuration du moteur (S18) : enregistrer, ou retirer un relevé de ce navigateur.
+    if (target.closest("[data-dr-save]")) {
+      const r = readDieselForm(root);
+      if (typeof r === "string") mcMsg = r;
+      else {
+        diesel.set([...diesel.get(), r]);
+        mcMsg = "Relevé enregistré : il entre dans le calcul et l'export.";
+        mcState.diesel = { cylinders: r.cylinders, airFuel: r.airFuel, throttle: r.throttle, fuel: r.fuel };
+      }
+      return renderModular();
+    }
+    const del = target.closest<HTMLElement>("[data-dr-del]");
+    if (del) {
+      diesel.set(diesel.get().filter((r) => r.id !== del.dataset.drDel));
+      mcMsg = "Relevé retiré.";
       return renderModular();
     }
     const toolBtn = target.closest<HTMLElement>("[data-tool]");
@@ -1130,17 +1159,18 @@ export function initBuildings(
     const n = Object.keys(local).length;
     const nIf = Object.keys(localIfaces).length;
     const nMod = Object.keys(localMod).length;
-    if (!n && !nIf && !nMod) {
+    const nDsl = diesel.get().length;
+    if (!n && !nIf && !nMod && !nDsl) {
       $("#bld-io").textContent = "Aucun relevé local à exporter : enregistre d'abord un relevé.";
       return;
     }
-    const blob = new Blob([JSON.stringify(exportSurveys(local, localIfaces, localMod), null, 1) + "\n"], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(exportSurveys(local, localIfaces, localMod, diesel.get()), null, 1) + "\n"], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `releves-batiments-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    $("#bld-io").textContent = `${n} relevé(s)${nIf ? `, ${nIf} interface(s)` : ""}${nMod ? `, ${nMod} correction(s) de blocs modulaires` : ""} exporté(s). Envoie ce fichier pour l'intégrer aux données.`;
+    $("#bld-io").textContent = `${n} relevé(s)${nIf ? `, ${nIf} interface(s)` : ""}${nMod ? `, ${nMod} correction(s) de blocs modulaires` : ""}${nDsl ? `, ${nDsl} relevé(s) de moteur` : ""} exporté(s). Envoie ce fichier pour l'intégrer aux données.`;
   }
 
   renderList();

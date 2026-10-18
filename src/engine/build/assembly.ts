@@ -738,6 +738,7 @@ export const DIESEL_IDS = {
   exhaust: "diesel-engine-exhaust",
   panel: "diesel-engine-info-panel",
   decoration: "diesel-engine-decoration",
+  flywheel: "diesel-engine-flywheel",
 } as const;
 /** Ordre des blocs de côté, du contrôleur vers le générateur (image MDESetup du wiki). */
 export const SIDE_ORDER = [DIESEL_IDS.fuel, DIESEL_IDS.cylinder, DIESEL_IDS.air, DIESEL_IDS.exhaust, DIESEL_IDS.panel, DIESEL_IDS.decoration];
@@ -766,8 +767,10 @@ export function designDiesel(parts: { machine: string; count: number }[], units:
   const count = (id: string) => parts.find((p) => p.machine === id)?.count ?? 0;
   const side: string[] = [];
   for (const id of SIDE_ORDER) for (let k = 0; k < count(id); k++) side.push(id);
-  for (const p of parts) if (!SIDE_ORDER.includes(p.machine as (typeof SIDE_ORDER)[number]) && ![DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.generator].includes(p.machine as never)) for (let k = 0; k < p.count; k++) side.push(p.machine);
+  for (const p of parts) if (!SIDE_ORDER.includes(p.machine as (typeof SIDE_ORDER)[number]) && ![DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.generator, DIESEL_IDS.flywheel].includes(p.machine as never)) for (let k = 0; k < p.count; k++) side.push(p.machine);
   const cranks = crankshaftsFor(side.length);
+  const flywheels = count(DIESEL_IDS.flywheel);
+  const flyW = flywheels * sizes(DIESEL_IDS.flywheel).w;
   const S = sizes(DIESEL_IDS.crankshaft);
   const cw = S.w;
   const ch = S.h;
@@ -775,9 +778,9 @@ export function designDiesel(parts: { machine: string; count: number }[], units:
   const blocks: AsmBlock[] = [];
   for (let u = 1; u <= Math.max(1, units); u++) {
     const y0 = (u - 1) * rowH;
-    const put = (machine: string, col: number, row: 0 | 1 | 2, n: number) => {
+    const put = (machine: string, col: number, row: 0 | 1 | 2, n: number, dx = 0) => {
       const sz = sizes(machine);
-      const x = col * cw;
+      const x = col * cw + dx;
       const y = y0 + row * ch;
       const e = entries[machine];
       const b: AsmBlock = { id: `m${u}:${machine.replace("diesel-engine-", "")}${n}`, kind: machine.replace("diesel-engine-", ""), machine, unit: u, x, y, w: sz.w, h: sz.h, rot: 0 };
@@ -791,11 +794,17 @@ export function designDiesel(parts: { machine: string; count: number }[], units:
     };
     put(DIESEL_IDS.controller, 0, 1, 0);
     for (let c = 1; c <= cranks; c++) put(DIESEL_IDS.crankshaft, c, 1, c);
-    put(DIESEL_IDS.generator, cranks + 1, 1, 0);
+    // Volants (relevés, S18) : dans la ligne, après les vilebrequins, avant le générateur.
+    let dx = 0;
+    for (let k = 0; k < flywheels; k++) {
+      put(DIESEL_IDS.flywheel, cranks + 1, 1, k, dx);
+      dx += sizes(DIESEL_IDS.flywheel).w;
+    }
+    put(DIESEL_IDS.generator, cranks + 1, 1, 0, dx);
     // Blocs de côté, colonne par colonne (au-dessous puis au-dessus), du contrôleur vers le générateur.
     side.forEach((id, k) => put(id, Math.floor(k / 2), k % 2 ? 0 : 2, k));
   }
   const counts: Record<string, number> = {};
   for (const b of blocks) counts[b.machine] = (counts[b.machine] ?? 0) + 1;
-  return { units: Math.max(1, units), cranks, blocks, width: (cranks + 2) * cw, height: Math.max(1, units) * rowH, freeSides: 2 * (cranks + 1) - side.length, counts };
+  return { units: Math.max(1, units), cranks, blocks, width: (cranks + 2) * cw + flyW, height: Math.max(1, units) * rowH, freeSides: 2 * (cranks + 1) - side.length, counts };
 }

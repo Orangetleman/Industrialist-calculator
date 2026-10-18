@@ -70,6 +70,8 @@ export type ModelOptions = {
   guaranteedOnly?: boolean;
   /** Seulement les sources sans combustible (l'eau n'en est pas un). */
   noFuel?: boolean;
+  /** Moteur diesel choisi pour le plan (S18) : seule cette configuration parmi les moteurs diesel. */
+  diesel?: string | null;
   /** Scrubbers candidats (critère pollution, ou pollution maximale). */
   scrubbers?: boolean;
   /** Recettes imposées par item (critère « moins d'étapes » : choix de l'heuristique). */
@@ -149,6 +151,7 @@ export function buildFlowModel(data: GameData, player: Progress, chooser: Choose
     for (const r of [...data.recipes.values()].sort((a, b) => a.id.localeCompare(b.id))) {
       if (!(r.energyMFps !== null && r.energyMFps < 0) || !chooser.isUsable(r)) continue;
       if (opts.guaranteedOnly && r.energyGuaranteed === false) continue;
+      if (opts.diesel && r.machine === "diesel-engine-controller" && r.id !== opts.diesel) continue;
       if (opts.noFuel && Object.entries(r.inputs).some(([k, v]) => v && !isWater(k) && (r.outputs[k] ?? 0) < v)) continue;
       generators.push(r.id);
       addRecipe(chooser.eff(r));

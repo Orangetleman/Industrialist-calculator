@@ -27,6 +27,7 @@ const ENGINE: Record<string, { color: string; short: string }> = {
   "fuel-input": { color: "#d77fd0", short: "Carb" },
   "info-panel": { color: "#8fb8d6", short: "Pan" },
   decoration: { color: "#55606b", short: "Déco" },
+  flywheel: { color: "#b48a6e", short: "Vol" },
 };
 
 const plural = (n: number, one: string, many: string) => `${fmt(n, 0)} ${n > 1 ? many : one}`;
@@ -203,23 +204,31 @@ export type DieselInfoCtx = {
   fuelLps: number;
   fuel: string;
   todo: string[];
+  /** Configuration relevée en jeu (S18). */
+  reading?: boolean;
 };
+
+/** Réglages à faire dans le panneau du contrôleur du moteur diesel (S18). */
+export function controllerPanel(airFuel: number, throttle: number, assumed: boolean): string {
+  return `<span class="iset" title="À régler dans le panneau du contrôleur, sur chaque moteur.">⚙ Panneau du contrôleur : rapport air/carburant ${esc(fmt(airFuel, 0))} · accélérateur ${esc(fmt(throttle, 0))} %${assumed ? " (supposé)" : ""}</span>`;
+}
 
 export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: string; legend: string; details: string } {
   const per = Object.entries(p.counts).map(([id, n]) => ({ id, count: n / p.units }));
-  const order = ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-generator"];
+  const order = ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-flywheel", "diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-generator"];
   per.sort((a, b) => ((order.indexOf(a.id) + 99) % 99) - ((order.indexOf(b.id) + 99) % 99));
   const unknown = per.filter((q) => ctx.price(q.id) === null).length;
   const cost = per.reduce((s, q) => s + (ctx.price(q.id) ?? 0) * q.count, 0) * p.units;
   const title = `${p.units > 1 ? `${p.units} moteurs diesel modulaires` : "Moteur diesel modulaire"}, ${ctx.label}`;
   let head = `<p class="mod-sum"><b>${esc(title)}</b> : ${p.units > 1 ? "par moteur " : ""}${esc(per.map((q) => `${q.count} ${ctx.name(q.id)}`).join(", "))} — ${p.width} × ${p.height} cases, ${ctx.todo.length ? "au moins " : ""}${esc(fmtMoney(cost))}${unknown ? " (prix incomplets)" : ""}.</p>`;
   head += `<p class="mod-other">${esc(fmt(ctx.powerMFps / 1e6, 2))} MMF/s et ${esc(fmt(ctx.fuelLps, 3))} L/s de ${esc(ctx.name(ctx.fuel))} par moteur. Le moins de vilebrequins possible : un bloc de côté par côté, contrôleur compris (la longueur ne change pas la puissance).${p.freeSides ? ` ${plural(p.freeSides, "place de côté reste libre", "places de côté restent libres")} par moteur : une décoration (facultative) peut la cacher.` : ""}${p.units > 1 ? " Les moteurs sont côte à côte, sans toucher la ligne du voisin : leurs deux côtés restent libres." : ""}</p>`;
+  head += `<p class="mod-other">${controllerPanel(ctx.airFuel, ctx.throttle, ctx.throttleAssumed)}</p>`;
   const notes: string[] = [];
   if (ctx.todo.length) notes.push(`${ctx.todo.map((id) => ctx.name(id)).join(", ")} : nombre à relever (MOD-14) ; le plan en pose un de chaque, le minimum du wiki (en pointillés).`);
   notes.push("Prise électrique du générateur : à relever (MOD-10) ; relie-le au réseau.");
   head += `<ul class="notices">${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`;
   const sw = (kind: string) => `<i style="background:${ENGINE[kind]!.color}"></i>`;
-  const legend = `<ul class="mod-legend"><li>${sw("controller")}Contrôleur</li><li>${sw("crankshaft")}Vilebrequin</li><li>${sw("generator")}Générateur</li><li>${sw("cylinder")}Cylindre</li><li>${sw("air-input")}Entrée d'air</li><li>${sw("exhaust")}Échappement</li><li>${sw("fuel-input")}Entrée de carburant</li>${ctx.todo.length ? `<li><i class="sw-todo"></i>À relever</li>` : ""}</ul>`;
+  const legend = `<ul class="mod-legend"><li>${sw("controller")}Contrôleur</li><li>${sw("crankshaft")}Vilebrequin</li><li>${sw("generator")}Générateur</li>${p.counts["diesel-engine-flywheel"] ? `<li>${sw("flywheel")}Volant</li>` : ""}<li>${sw("cylinder")}Cylindre</li><li>${sw("air-input")}Entrée d'air</li><li>${sw("exhaust")}Échappement</li><li>${sw("fuel-input")}Entrée de carburant</li>${ctx.todo.length ? `<li><i class="sw-todo"></i>À relever</li>` : ""}</ul>`;
   const rows = per
     .map((q) => {
       const u = ctx.price(q.id);
@@ -235,7 +244,7 @@ export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: str
     `Amène le ${ctx.name(ctx.fuel)} à l'entrée de carburant (flèche), et relie le générateur au réseau.`,
   ];
   const assumptions = [
-    "Configuration relevée sur le wiki (pas de formule connue, MOD-12) ; d'autres configurations viendront avec les relevés (lot S18).",
+    ctx.reading ? "Configuration relevée en jeu (Info Panel) ; pas de formule connue (MOD-12)." : "Configuration relevée sur le wiki (pas de formule connue, MOD-12) ; ajoute les tiennes dans l'éditeur de bâtiments (Diesel Engine Controller, « Relevé de configuration »).",
     "La longueur du moteur ne change pas la puissance (réponse du 2026-10-18).",
     "Deux moteurs voisins peuvent se coller (MOD-13) : ici, leurs rangées de côté se touchent, pas leurs lignes.",
   ];

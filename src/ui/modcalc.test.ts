@@ -48,10 +48,27 @@ describe("bloc « Calcul » de l'éditeur", () => {
     expect(t).toContain("1,34 MMF/s");
     expect(t).toContain("0,086 L/s");
     expect(t).toMatch(/68.500 \$/); // S14 : 4 vilebrequins, posé au plus court
-    st.diesel = { cylinders: 7, airFuel: 14, throttle: 100 };
+    st.diesel = { cylinders: 7, airFuel: 14, throttle: 100, fuel: "refined-diesel" };
     expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("À relever");
-    st.diesel = { cylinders: 32, airFuel: 14, throttle: 59 };
+    st.diesel = { cylinders: 32, airFuel: 14, throttle: 59, fuel: "refined-diesel" };
     expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("MOD-14");
+  });
+
+  it("moteur (S18) : carburant, tableau des configurations, relevé en jeu, formulaire du relevé", () => {
+    const st = structuredClone(MODCALC_DEFAULT);
+    const html = modCalcHtml(file, data, asm("diesel-engine"), st);
+    expect(html).toContain('data-mc="fuel"');
+    expect(html).toContain("data-dr-save");
+    // 0,086 ÷ 1,34 MMF/s = 0,064 L par MMF.
+    expect(text(html)).toContain("0,064 L par MMF");
+    st.diesel.fuel = "diesel";
+    expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("À relever");
+    // Valeurs de test (pas du jeu).
+    const r = { id: "t1", date: "2026-10-18", cylinders: 6, airFuel: 16, throttle: 100, fuel: "diesel", powerMFps: 1000, fuelLps: 2, torqueMT: null, blocks: { air: 1, exhaust: 1, fuel: 1, generator: 1, flywheel: 0 } };
+    const out = modCalcOut(file, data, asm("diesel-engine"), st, [r]);
+    expect(text(out)).not.toContain("À relever");
+    expect(out).toContain('data-dr-del="t1"');
+    expect(text(out)).toContain("relevé en jeu");
   });
 
   it("turbine : non fiable", () => {

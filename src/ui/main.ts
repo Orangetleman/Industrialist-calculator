@@ -21,7 +21,8 @@ import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
 import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
-import { dieselConfigs, type DieselConfig } from "../engine/modular-calc.ts";
+import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
+import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
 import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryModule, renderFactorySvg, turnText } from "./factory-view.ts";
 import { runFactory, type FactoryJob } from "./factory-job.ts";
@@ -191,6 +192,9 @@ let settings: Settings = loadSettings();
 const prunedCorrections = pruneIntegratedCorrections(loadCorrections(), repoOverrides);
 let corrections: OverridesFile = prunedCorrections.kept;
 if (prunedCorrections.dropped) saveCorrections(corrections);
+/** Relevés de configuration du moteur diesel notés dans ce navigateur (S18) : ils entrent dans le calcul. */
+let dieselReadings: DieselReading[] = loadDieselReadings();
+(files as RawFiles).dieselReadings = dieselReadings;
 let data: GameData = buildGameData(files, []).data;
 let dataErrors: string[] = [];
 let prog: ProgressState = loadProgress();
@@ -489,6 +493,40 @@ function setFixed(key: string, n: number | null): void {
 }
 
 /** Réglages chiffrés des machines du plan affiché (S10, écran de la Chemical Plant). */
+/** Moteur diesel du plan (S18) : configurations connues (wiki et relevés) et choix du plan. */
+function dieselNow(): { configs: DieselConfig[]; choice: DieselChoice } {
+  const key = planKey(settings.goal, settings.item);
+  return { configs: dieselConfigs(REPO_MODULAR, dieselReadings), choice: (key && settings.dieselChoice[key]) || DEFAULT_DIESEL };
+}
+function dieselRecipeNow(): string {
+  const { configs, choice } = dieselNow();
+  const size = (id: string) => {
+    const sz = data.machines.get(id)?.size;
+    return sz ? { w: sz.w, h: sz.l } : { w: 2, h: 2 };
+  };
+  return dieselRecipeFor(configs, choice, {
+    cost: (c) => (c.parts.every((p) => data.machines.get(p.machine)?.cost != null) ? c.parts.reduce((t, p) => t + p.count * data.machines.get(p.machine)!.cost!, 0) : null),
+    area: (c) => {
+      const d = designDiesel(c.parts, 1, size, {});
+      return d.width * d.height;
+    },
+  });
+}
+function setDieselChoice(patch: Partial<DieselChoice>): void {
+  const key = planKey(settings.goal, settings.item);
+  if (!key) return;
+  settings.dieselChoice = { ...settings.dieselChoice, [key]: { ...dieselNow().choice, ...patch } };
+  update();
+}
+/** Un relevé de configuration ajouté ou retiré dans l'éditeur : il entre dans le calcul tout de suite. */
+function setDieselReadings(list: DieselReading[]): void {
+  dieselReadings = list;
+  saveDieselReadings(list);
+  (files as RawFiles).dieselReadings = list;
+  rebuildData();
+  update();
+}
+
 function msettingsNow(): MachineSettings {
   const key = planKey(settings.goal, settings.item);
   return (key && settings.machineSettings[key]) || {};
@@ -548,6 +586,7 @@ function ensurePlan(): void {
       existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
       fixedMachines: fixedNow(),
       machines: engineFilter(filterNow()),
+      diesel: dieselRecipeNow(),
     });
   plan = request(
     goal === "argent"
@@ -565,7 +604,7 @@ function ensurePlan(): void {
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow() };
+  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow() };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
@@ -1024,7 +1063,7 @@ function assemblyOf(key: string): Assembly | null {
     const total = farm.trees.reduce((x, y) => x + y, 0);
     a = { kind, farm, loadMFps: st.energyAvg ?? 0, perHarvester: r.farm.geometry.perHarvester, width: farm.width, height: farm.height, label: farm.farms > 1 ? `${farm.farms} fermes d'arbres (${total} arbres)` : `Ferme d'arbres (${total} arbres)` };
   } else if (kind === "moteur" && r?.parts) {
-    const config = dieselConfigs(REPO_MODULAR).find((c) => c.id === r.id) ?? null;
+    const config = dieselConfigs(REPO_MODULAR, dieselReadings).find((c) => c.id === r.id) ?? null;
     // Moteur à 32 cylindres : nombres de blocs à relever (MOD-14), posés au minimum du wiki.
     const todo = r.verify.some((v) => v.field === "parts" && v.reason === "manquant") ? ["diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-generator"] : [];
     const size = (id: string) => {
@@ -1062,6 +1101,7 @@ function assemblyView(key: string, a: Assembly): { title: string; head: string; 
     fuelLps: c?.fuelLps ?? 0,
     fuel: c?.fuel ?? "refined-diesel",
     todo: a.todo,
+    reading: !!c?.reading,
   });
   return { title: a.label, ...info, svg: renderDieselSvg(a.diesel, anyName), bar: `<div class="u-bar"><span class="hint">Clique un bloc pour l'éclairer ; la flèche montre l'arrivée du carburant.</span></div>` };
 }
@@ -2526,6 +2566,13 @@ function bindPlan(): void {
     const step = (e.target as Element).closest<HTMLElement>("[data-mset]");
     if (step) stepMachines(Number(step.dataset.mset));
   });
+  // Moteur diesel (S18) : carburant, critère ou configuration imposée, pour ce plan.
+  $("flow-hud").addEventListener("change", (e) => {
+    const el = e.target as HTMLInputElement | HTMLSelectElement;
+    if (el.matches("[data-dsl-fuel]")) setDieselChoice({ fuel: el.value, config: null });
+    else if (el.matches("[data-dsl-mode]")) setDieselChoice({ mode: (el as HTMLInputElement).dataset.dslMode as DieselChoice["mode"], config: null });
+    else if (el.matches("[data-dsl-config]")) setDieselChoice({ config: el.value || null });
+  });
   // Nombre de machines d'un bloc (S8) : −/+, molette sur le nombre, ou un nombre tapé (Entrée, ou en quittant le champ).
   const msetInput = () => $("flow-hud").querySelector<HTMLInputElement>("[data-mset-input]");
   const stepMachines = (d: number) => {
@@ -3021,7 +3068,7 @@ bindUsine();
 bindTree();
 bindData();
 bindRecettes();
-const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR);
+const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings });
 $("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);
 showPage();

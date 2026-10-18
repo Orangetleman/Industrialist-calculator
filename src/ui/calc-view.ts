@@ -16,6 +16,7 @@ import type { Recipe, Source } from "../engine/types.ts";
 import type { MachineInterface } from "../engine/extension-types.ts";
 import { choicesFor, factorsFor, numberSettings } from "../engine/interfaces.ts";
 import { factorText, screenText } from "./iface-view.ts";
+import { controllerPanel } from "./assembly-view.ts";
 import { esc, fmt } from "./format.ts";
 import { nodeText, type ViewCtx } from "./plan-view.ts";
 import { craftHref, fixableHere, fixKey, renderCraft, verifyHref, type RecipesCtx } from "./recipes-view.ts";
@@ -272,7 +273,11 @@ function stepNote(v: ViewCtx, s: Step): string {
       `Ferme d'arbres : les arbres sont comptés avec les blocs de leur ferme. L'eau se compte au prorata des arbres (${esc(fmt(r.farm.waterLpsPerTree * farmRatios(r).perSpr * 60, 1))} L/min par arroseur plein), l'électricité par arbre coupé.`,
     );
   else if (s.parts) notes.push("Installation composée : le craft décrit l'installation entière, « par seconde ». Chaque bâtiment est compté à part et arrondi au-dessus.");
-  if (r?.wholeUnits) notes.push("Moteur diesel modulaire : configuration relevée sur le wiki (pas de formule connue) ; les blocs se comptent pour des moteurs entiers.");
+  if (r?.wholeUnits) {
+    const c = v.diesel?.configs.find((x) => x.id === s.recipeId);
+    const how = v.diesel ? (v.diesel.choice.config === s.recipeId ? "configuration imposée dans la barre du bas" : `choisie pour ${v.diesel.choice.mode === "prix" ? "le prix le plus bas" : v.diesel.choice.mode === "place" ? "la place la plus petite" : "le moins de carburant"} par MF/s, parmi les configurations relevées avec ce carburant`) : "configuration relevée";
+    notes.push(`Moteur diesel modulaire : ${c?.reading ? "relevé en jeu" : "configuration du wiki"}, ${how} (pas de formule connue) ; les blocs se comptent pour des moteurs entiers.${c ? ` ${controllerPanel(c.airFuel, c.throttle, c.throttleAssumed)}` : ""}`);
+  }
   if (s.growth)
     notes.push(
       `La durée est celle de la pousse des arbres : ${esc(s.growth.detail)}${s.growth.sourceUrl ? ` (<a href="${esc(s.growth.sourceUrl)}" target="_blank" rel="noopener">source</a>)` : ""}. Le nombre d'arbres est indicatif.`,

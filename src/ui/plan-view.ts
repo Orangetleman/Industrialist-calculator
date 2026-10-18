@@ -2,6 +2,9 @@
 // construction à cocher, puis le schéma et les détails. Fonctions pures (chaînes HTML/SVG) :
 // main.ts les insère et branche les événements.
 
+import { controllerPanel } from "./assembly-view.ts";
+import { renderDieselHud, type DieselChoice } from "./diesel.ts";
+import type { DieselConfig } from "../engine/modular-calc.ts";
 import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
@@ -18,7 +21,7 @@ import { renderScreenInputs, settingChips, settingLines } from "./iface-view.ts"
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
 /** `ifaces`, `msettings` : interfaces des machines et réglages chiffrés du plan (S10). */
-export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings };
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings; /** Moteur diesel du plan (S18) : configurations connues et choix. */ diesel?: { configs: DieselConfig[]; choice: DieselChoice } };
 
 // ---------------------------------------------------------------- priorité
 
@@ -341,8 +344,15 @@ function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
     buildable: true,
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
     pose: isPosable(s) ? s.key : undefined,
-    setting: s.parts ? undefined : settingChips(settingLines(v.ifaces, v.msettings, s.machine, s.recipeId)) || undefined,
+    setting: s.parts ? dieselSetting(v, s) : settingChips(settingLines(v.ifaces, v.msettings, s.machine, s.recipeId)) || undefined,
   };
+}
+
+/** Réglages du contrôleur d'un moteur diesel (S18), pour la liste de construction. */
+function dieselSetting(v: ViewCtx, s: Step): string | undefined {
+  if (s.machine !== "diesel-engine-controller") return undefined;
+  const c = v.diesel?.configs.find((x) => x.id === s.recipeId);
+  return c ? controllerPanel(c.airFuel, c.throttle, c.throttleAssumed) : undefined;
 }
 
 /** Lignes de la liste de construction, dans l'ordre où l'on pose les machines. */
@@ -571,6 +581,8 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
     if (chips) acts.push(chips);
     if (v.goal !== "recherche") acts.push(renderScreenInputs(v.ifaces?.[st.machine], st.machine, machineN(v, st.machine), v.msettings?.[st.machine]));
   }
+  // Moteur diesel (S18) : carburant, critère ou configuration imposée, et les réglages du contrôleur.
+  if (st && st.machine === "diesel-engine-controller" && v.diesel && v.goal !== "recherche") acts.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === st.recipeId) ?? null));
   if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
   if (st && !st.parts) {
     const state = survey(st.machine);
