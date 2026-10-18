@@ -47,7 +47,7 @@ describe("bloc « Calcul » de l'éditeur", () => {
     const t = text(modCalcHtml(file, data, asm("diesel-engine"), st));
     expect(t).toContain("1,34 MMF/s");
     expect(t).toContain("0,086 L/s");
-    expect(t).toMatch(/84.500 \$/);
+    expect(t).toMatch(/68.500 \$/); // S14 : 4 vilebrequins, posé au plus court
     st.diesel = { cylinders: 7, airFuel: 14, throttle: 100 };
     expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("À relever");
     st.diesel = { cylinders: 32, airFuel: 14, throttle: 59 };

@@ -20,6 +20,9 @@ import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
+import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
+import { dieselConfigs, type DieselConfig } from "../engine/modular-calc.ts";
+import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
 import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryModule, renderFactorySvg, turnText } from "./factory-view.ts";
 import { runFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
@@ -98,7 +101,7 @@ import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, sav
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { allowMachine, banMachine, filterableMachines, filterSummary, findMachine, renderFilterBody, withMode } from "./mfilter-view.ts";
-import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
   builtFor,
@@ -153,6 +156,8 @@ const RELEVES = relevesJson as { poleRangeTiles?: Record<string, number>; grid?:
 /** Une tuile (portée des poteaux) = 2 cases, relevé en jeu. */
 const CELLS_PER_TILE = RELEVES.grid?.tileCells ?? 2;
 const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, RELEVES.poleRangeTiles ?? {}, CELLS_PER_TILE);
+// Poteaux qui peuvent alimenter le contrôleur d'une ferme (S14) : ceux des plans de pose (le HV demande un transformateur).
+(files as RawFiles).farmPoles = CATALOG.poles.map((p) => ({ id: p.id, name: p.name, rangeCells: p.rangeCells, capacityMFps: p.capacityMFps, w: p.size.w, h: p.size.h, price: p.price }));
 const REPO_PORTS = portsJson as unknown as PortsFile;
 /** Relevés de bâtiments pour les plans de pose : ceux du dépôt, remplacés par les relevés locaux. */
 let ports = { sig: null as string | null, machines: REPO_PORTS.machines, local: {} as Record<string, PortsEntry> };
@@ -933,20 +938,40 @@ function renderPose(): void {
   const sel = $<HTMLSelectElement>("pose-step");
   if (!choices.length) {
     sel.innerHTML = "";
-    $("pose-head").innerHTML = `<p class="muted">Aucune étape à poser dans ce plan (les arbres et les centrales composées ne sont pas encore dessinés).</p>`;
+    $("pose-head").innerHTML = `<p class="muted">Aucune étape à poser dans ce plan (les centrales composées, sauf le moteur diesel, ne sont pas encore dessinées).</p>`;
     $("pose-frame").hidden = true;
     $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
     return;
   }
   if (!poseStep || (poseStep !== USINE && !choices.some((s) => s.key === poseStep))) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
+  const mods = choices.filter((s) => !assemblyKind(s));
+  const asms = choices.filter((s) => assemblyKind(s));
+  const opt = (s: (typeof choices)[number], text: string) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(text)}</option>`;
   sel.innerHTML =
-    `<option value="${USINE}"${poseStep === USINE ? " selected" : ""}>Toute l'usine (proposition, calculée en arrière-plan)</option><optgroup label="Un module par étape">` +
-    choices.map((s) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(`${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)}${portsLabel(s.machine)}</option>`).join("") +
-    `</optgroup>`;
+    `<option value="${USINE}"${poseStep === USINE ? " selected" : ""}>Toute l'usine (proposition, calculée en arrière-plan)</option>` +
+    (mods.length ? `<optgroup label="Un module par étape">${mods.map((s) => opt(s, `${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)).join("")}</optgroup>` : "") +
+    (asms.length ? `<optgroup label="Ensembles modulaires">${asms.map((s) => opt(s, assemblyKind(s) === "ferme" ? `Ferme d'arbres — ${s.machines} arbres, ${anyName(s.item)}` : `${s.machines} × Moteur diesel modulaire — énergie`)).join("")}</optgroup>` : "");
+  // Les ports locaux après le nom d'un module (relevé local, ports supposés).
+  for (const s of mods) {
+    const o = sel.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(s.key)}"]`);
+    if (o) o.textContent += portsLabel(s.machine);
+  }
   input("pose-tier3").checked = settings.tier3Only;
   renderPriority();
+  // Priorités et tuyaux de tier III : seulement pour les modules et l'usine (rien à départager dans un ensemble).
+  const curAsm = poseStep !== USINE && asms.some((s) => s.key === poseStep);
+  $("pose-priority").closest<HTMLElement>(".pose-prio")!.hidden = curAsm;
+  input("pose-tier3").closest<HTMLElement>("label")!.hidden = curAsm;
   if (poseStep === USINE) return renderFactory();
   showFocus(null);
+  if (curAsm) {
+    const a = assemblyOf(poseStep);
+    $("pose-frame").hidden = !a;
+    if (a) return renderAssembly(poseStep, a);
+    $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cet ensemble : il manque une valeur dans les données modulaires.</p>`;
+    $("pose-links").innerHTML = $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-bar").innerHTML = "";
+    return;
+  }
   const base = moduleOf(poseStep);
   $("pose-frame").hidden = !base;
   if (!base) {
@@ -972,6 +997,85 @@ function renderPose(): void {
   $("pose-details").innerHTML = info.details;
   showPoseSvg(renderModuleSvg(m, anyName), `${signature}|${poseStep}|${settings.tier3Only}|${settings.posePriority.join(",")}`);
   setFrameClasses($("pose-frame"), { "u-links": settings.usine.links });
+}
+
+// ---------------------------------------------------------------- ensembles modulaires (S14)
+
+/** Plan de pose d'un ensemble modulaire : ferme d'arbres (portées) ou moteurs diesel (contact). */
+type Assembly =
+  | { kind: "ferme"; farm: FarmSet; loadMFps: number; perHarvester: number; width: number; height: number; label: string }
+  | { kind: "moteur"; diesel: DieselPlan; config: DieselConfig | null; todo: string[]; width: number; height: number; label: string };
+/** Poteau choisi pour une ferme (par étape) ; portées affichées. */
+const asmPole = new Map<string, string>();
+let asmRanges = false;
+const asmCache = new Map<string, Assembly | null>();
+
+function assemblyOf(key: string): Assembly | null {
+  const st = plan?.steps.find((s) => s.key === key);
+  const kind = st ? assemblyKind(st) : null;
+  if (!st || !kind) return null;
+  const k = `${signature}|${currentPorts().sig}|${key}|${asmPole.get(key) ?? ""}`;
+  if (asmCache.has(k)) return asmCache.get(k)!;
+  if (asmCache.size > 40) asmCache.clear();
+  const r = data.recipes.get(st.recipeId);
+  let a: Assembly | null = null;
+  if (kind === "ferme" && r?.farm?.geometry) {
+    const farm = designFarm(r.farm.geometry, st.machines, st.energyAvg ?? 0, asmPole.get(key));
+    const total = farm.trees.reduce((x, y) => x + y, 0);
+    a = { kind, farm, loadMFps: st.energyAvg ?? 0, perHarvester: r.farm.geometry.perHarvester, width: farm.width, height: farm.height, label: farm.farms > 1 ? `${farm.farms} fermes d'arbres (${total} arbres)` : `Ferme d'arbres (${total} arbres)` };
+  } else if (kind === "moteur" && r?.parts) {
+    const config = dieselConfigs(REPO_MODULAR).find((c) => c.id === r.id) ?? null;
+    // Moteur à 32 cylindres : nombres de blocs à relever (MOD-14), posés au minimum du wiki.
+    const todo = r.verify.some((v) => v.field === "parts" && v.reason === "manquant") ? ["diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-generator"] : [];
+    const size = (id: string) => {
+      const sz = data.machines.get(id)?.size;
+      return sz ? { w: sz.w, h: sz.l } : { w: 2, h: 2 };
+    };
+    const diesel = designDiesel(r.parts, st.machines, size, currentPorts().machines, todo);
+    a = { kind, diesel, config, todo, width: diesel.width, height: diesel.height, label: `${st.machines} × moteur diesel${config ? ` (${config.cylinders} cylindres)` : ""}` };
+  }
+  asmCache.set(k, a);
+  return a;
+}
+
+/** Texte et dessin d'un ensemble (plan de pose ou panneau de l'usine). */
+function assemblyView(key: string, a: Assembly): { title: string; head: string; legend: string; details: string; svg: { svg: string; width: number; height: number }; bar: string } {
+  const price = (id: string) => data.machines.get(id)?.cost ?? null;
+  if (a.kind === "ferme") {
+    const info = renderFarmInfo(a.farm, { name: anyName, price, loadMFps: a.loadMFps, capacity: a.farm.capacity || null, perHarvester: a.perHarvester });
+    return {
+      title: a.label,
+      ...info,
+      svg: renderFarmSvg(a.farm, anyName),
+      bar: `<div class="u-bar">${rangesButton(asmRanges)}<span class="hint">${asmRanges ? "Le cercle de chaque bloc : un bloc est à portée dès que le cercle le touche." : "Ou clique un bloc : son cercle et ce qu'il dessert s'éclairent."}</span></div>`,
+    };
+  }
+  const c = a.config;
+  const info = renderDieselInfo(a.diesel, {
+    name: anyName,
+    price,
+    label: c?.label ?? "configuration relevée",
+    airFuel: c?.airFuel ?? 0,
+    throttle: c?.throttle ?? 0,
+    throttleAssumed: c?.throttleAssumed ?? false,
+    powerMFps: c?.powerMFps ?? 0,
+    fuelLps: c?.fuelLps ?? 0,
+    fuel: c?.fuel ?? "refined-diesel",
+    todo: a.todo,
+  });
+  return { title: a.label, ...info, svg: renderDieselSvg(a.diesel, anyName), bar: `<div class="u-bar"><span class="hint">Clique un bloc pour l'éclairer ; la flèche montre l'arrivée du carburant.</span></div>` };
+}
+
+/** Plan de pose d'un ensemble modulaire dans l'onglet Plans de pose. */
+function renderAssembly(key: string, a: Assembly): void {
+  const v = assemblyView(key, a);
+  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(key)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-focus="${esc(key)}">Voir sa place dans « Toute l'usine »</button></p>${renderStepLinks(viewCtx(), key)}`;
+  $("pose-bar").innerHTML = v.bar;
+  $("pose-head").innerHTML = v.head;
+  $("pose-legend").innerHTML = v.legend;
+  $("pose-details").innerHTML = v.details;
+  showPoseSvg(v.svg, `${signature}|${key}|${asmPole.get(key) ?? ""}`, true);
+  setFrameClasses($("pose-frame"), { "u-ranges": asmRanges && a.kind === "ferme" });
 }
 
 /** Réglage à faire sur chaque machine d'une étape (S10), pour le plan de pose et le panneau d'un module. */
@@ -1041,7 +1145,17 @@ function startFactory(): void {
   const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
   const input = factoryInput(
     plan!,
-    { name: anyName, isFluid: (id) => !!data.items.get(id)?.isFluid, machine: (id) => data.machines.get(id) ?? null, ports: pts.machines },
+    {
+      name: anyName,
+      isFluid: (id) => !!data.items.get(id)?.isFluid,
+      machine: (id) => data.machines.get(id) ?? null,
+      ports: pts.machines,
+      // Ensembles modulaires (S14) : leur place réservée a la taille de leur plan de pose.
+      reserve: (key) => {
+        const a = assemblyOf(key);
+        return a ? { w: a.width, h: a.height, label: a.label } : null;
+      },
+    },
     CATALOG,
     plot,
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
@@ -1128,6 +1242,8 @@ function showFocus(key: string | null): void {
   const panel = $("pose-focus");
   const split = $("pose-split");
   const st = currentFactory();
+  const asm = key && st?.plan && !st.plan.boxes.find((b) => b.key === key)?.mod ? assemblyOf(key) : null;
+  if (asm && key) return showAssemblyFocus(key, asm);
   const out = key && st?.plan ? renderFactoryModule(st.plan, key, anyName, tierOf, flowsOf(st)) : null;
   panel.hidden = !out;
   split.classList.toggle("focus", !!out);
@@ -1150,6 +1266,28 @@ function showFocus(key: string | null): void {
   if (k !== focusKey) focusSel = null;
   focusKey = k;
   setFrameClasses(frame, { "u-links": settings.usine.links });
+  applySel(frame, focusSel, null);
+}
+
+/** Panneau à côté de l'usine pour un ensemble modulaire : son plan de pose (la même disposition). */
+function showAssemblyFocus(key: string, a: Assembly): void {
+  const v = assemblyView(key, a);
+  $("pose-focus").hidden = false;
+  $("pose-split").classList.add("focus");
+  document.body.classList.add("usine-wide");
+  $("focus-title").textContent = v.title;
+  $("focus-bar-opts").innerHTML = v.bar;
+  $("focus-head").innerHTML = v.head.replace('id="asm-pole"', 'id="asm-pole-focus"').replace('for="asm-pole"', 'for="asm-pole-focus"') + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key)}">Plan de pose seul de cet ensemble</button> · <button type="button" class="link" data-flow="${esc(key)}">Voir au schéma</button></p>`;
+  $("focus-legend").innerHTML = v.legend;
+  $("focus-details").innerHTML = v.details;
+  const frame = $("focus-frame");
+  $("focus-canvas").innerHTML = v.svg.svg;
+  focusPZ ??= new PanZoom(frame, { minWidth: 80, fitOnReset: true });
+  const k = `asm|${signature}|${key}|${asmPole.get(key) ?? ""}`;
+  focusPZ.attach($("focus-canvas").querySelector("svg")!, v.svg.width, v.svg.height, k === focusKey);
+  if (k !== focusKey) focusSel = null;
+  focusKey = k;
+  setFrameClasses(frame, { "u-ranges": asmRanges && a.kind === "ferme" });
   applySel(frame, focusSel, null);
 }
 
@@ -1184,6 +1322,12 @@ function applySel(frame: HTMLElement, sel: string | null, pickId: string | null)
     for (const c of cables) if (down.has(c.dataset.pole!)) c.classList.add("on");
     for (const l of frame.querySelectorAll<SVGLineElement>(".u-plug")) if (down.has(l.dataset.pole!)) l.classList.add("on");
     text = (frame.querySelector<SVGGElement>(`[data-sel="${CSS.escape(sel)}"]`)?.dataset.tip ?? "").split("\n")[0]!;
+  } else if (kind === "b") {
+    const g = frame.querySelector<SVGGElement>(`[data-sel="${CSS.escape(sel)}"]`);
+    mark(`[data-sel="${CSS.escape(sel)}"], .a-rng[data-of="${CSS.escape(id)}"]`);
+    for (const x of (g?.dataset.serves ?? "").split(" ").filter(Boolean)) mark(`[data-sel="b:${CSS.escape(x)}"]`);
+    for (const el of frame.querySelectorAll<SVGGElement>("[data-serves]")) if (el.dataset.serves!.split(" ").includes(id)) el.classList.add("on");
+    text = (g?.dataset.tip ?? "").split(" — ")[0]!;
   } else {
     mark(`.m-pipe[data-item="${CSS.escape(id)}"], .m-flow[data-item="${CSS.escape(id)}"]`);
     text = `${anyName(id)} : liaisons dans le sens du flux`;
@@ -2235,6 +2379,23 @@ function bindPlan(): void {
       if ((e.target as Element).closest("button[data-uopt]")) onOption(e);
     });
   }
+  // Ensembles modulaires (S14) : « Afficher les portées » et le poteau qui alimente le contrôleur.
+  document.addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>('button[data-asm="ranges"]');
+    if (!b) return;
+    asmRanges = !asmRanges;
+    if (!$("pose-focus").hidden && poseStep === USINE && poseFocus) showFocus(poseFocus);
+    else renderPose();
+  });
+  document.addEventListener("change", (e) => {
+    const t = e.target as HTMLSelectElement;
+    if (t.id !== "asm-pole" && t.id !== "asm-pole-focus") return;
+    const key = t.id === "asm-pole" ? poseStep : poseFocus;
+    if (!key) return;
+    asmPole.set(key, t.value);
+    if (t.id === "asm-pole") renderPose();
+    else showFocus(key);
+  });
   // Clics dans le dessin : machine → sa fiche (page Recettes) ; tuyau ou câble → ses liaisons ; module de l'usine → son panneau.
   const goMachine = (id: string) => go({ page: "recettes", card: { kind: "machine", id } });
   $("pose-canvas").addEventListener("click", (e) => {
@@ -2248,7 +2409,8 @@ function bindPlan(): void {
       return applySel($("pose-frame"), poseSel, "pose-pick");
     }
     const mod = t.closest<SVGGElement>("[data-mod]");
-    if (mod?.querySelector(".u-box")) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: mod.dataset.mod! });
+    // Un module, ou un ensemble modulaire posé à sa place (S14) : son panneau à côté.
+    if (mod?.querySelector(".u-box") || (mod && currentFactory()?.plan?.boxes.find((b) => b.key === mod.dataset.mod)?.assembly)) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: mod.dataset.mod! });
     if (poseSel) {
       poseSel = null;
       applySel($("pose-frame"), null, "pose-pick");
@@ -2272,7 +2434,8 @@ function bindPlan(): void {
     const machine = t.closest<SVGGElement>("[data-machine]");
     if (machine) return goMachine(machine.dataset.machine!);
     const pipe = t.closest<SVGGElement>(".m-pipe[data-item]");
-    const sel = pipe ? `i:${pipe.dataset.item}` : null;
+    const blk = t.closest<SVGGElement>(".ab[data-sel]")?.dataset.sel ?? null;
+    const sel = blk ?? (pipe ? `i:${pipe.dataset.item}` : null);
     focusSel = sel && focusSel !== sel ? sel : null;
     applySel($("focus-frame"), focusSel, null);
   });

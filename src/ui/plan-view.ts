@@ -483,8 +483,12 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
 
 // ---------------------------------------------------------------- schéma
 
-/** Étape qui a un plan de pose : des machines à poser (pas d'arbres ni de centrale composée, pour l'instant). */
-export const isPosable = (s: Step) => s.machineKind !== "farm" && !s.parts && s.machines >= 1;
+/** Ensemble modulaire qui a son plan de pose (S14) : ferme d'arbres, moteur diesel (recettes « moteur:… »). */
+export const assemblyKind = (s: Pick<Step, "machineKind" | "parts" | "recipeId" | "machines">): "ferme" | "moteur" | null =>
+  s.machines < 1 ? null : s.machineKind === "farm" && s.parts?.length ? "ferme" : s.recipeId.startsWith("moteur:") ? "moteur" : null;
+
+/** Étape qui a un plan de pose : des machines à poser, ou un ensemble modulaire (pas les autres centrales composées). */
+export const isPosable = (s: Step) => (s.machineKind !== "farm" && !s.parts && s.machines >= 1) || assemblyKind(s) !== null;
 
 /** Nom court d'un bloc du schéma (étape, manque ou production existante), pour les raccordements. */
 export function nodeText(v: ViewCtx, key: string): { text: string; step: Step | null } {

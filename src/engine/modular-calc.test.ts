@@ -74,7 +74,8 @@ describe("ferme d'arbres", () => {
       "tree-farm-water-tank": 1,
       "farm-harvester": 4,
       "tree-farm-controller": 1,
-      "tree-farm-output": 1,
+      // S14 : d'après le plan de pose, deux sorties (une à portée de chaque récolteur), comme le guide.
+      "tree-farm-output": 2,
     });
     expect(s.energyAvg!).toBeCloseTo((s.machinesExact * 200000) / g, 6);
     expect(s.inputs.find((i) => i.item === "water")!.perMin).toBeCloseTo((s.machinesExact * (33 / 33.33) * 60) / 44, 6);
@@ -111,10 +112,11 @@ describe("moteur diesel", () => {
     expect(dieselLookup(configs, 7, 14, 100)).toBeNull();
   });
 
-  it("montage simple : blocs et prix du wiki (84 500 $)", () => {
+  it("montage simple posé au plus court (S14) : 4 vilebrequins au lieu de 8, 68 500 $ au lieu de 84 500 $", () => {
     const c = dieselLookup(configs, 6, 16, 100)!;
     const cost = c.parts.reduce((s, p) => s + p.count * data.machines.get(p.machine)!.cost!, 0);
-    expect(cost).toBe(84500);
+    // 9 000 + 4 × 4 000 + 6 × 4 000 + 3 × 4 500 + 6 000 (le wiki : 8 vilebrequins, 84 500 $).
+    expect(cost).toBe(68500);
   });
 
   it("installation énergétique du solveur : moteurs entiers, Refined Diesel, blocs à relever signalés", () => {

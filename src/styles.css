@@ -342,6 +342,21 @@ ul.mod-legend i.sw-pole { width: 10px; height: 10px; border-radius: 2px; backgro
 ul.mod-legend i.sw-cable { height: 0; border-top: 2px dashed #ffd54a; border-radius: 0; }
 ul.mod-legend i.sw-plot { height: 0; border-top: 2px dashed #6cc792; border-radius: 0; }
 table.mini i.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+/* Ensembles modulaires (S14) : ferme d'arbres, moteur diesel */
+.asm .ab { cursor: pointer; }
+.asm .ab text { fill: #1d2126; font: 700 11px var(--f-body); pointer-events: none; }
+.asm .ab:hover rect { stroke: #fff; stroke-width: 2; }
+.asm .a-rng { display: none; fill: none; stroke-width: 2; stroke-dasharray: 8 5; opacity: .9; pointer-events: none; }
+.u-ranges .asm .a-rng, .asm .a-rng.on { display: inline; }
+.u-ranges .asm .a-rng-tree, .u-ranges .asm .a-rng-sprinkler { opacity: .55; }
+.asm .a-lane { stroke-width: 3; stroke-dasharray: 2 6; stroke-linecap: round; opacity: .85; }
+.asm .a-cable { stroke: #ffd54a; stroke-width: 2; stroke-dasharray: 7 5; pointer-events: none; }
+.asm .a-port { stroke: #1d2126; stroke-width: 1; pointer-events: none; }
+.asm .pole.a-free rect { fill: none; stroke-dasharray: 3 3; }
+.hl .asm .ab:not(.on) { opacity: .25; }
+.asm .ab.on rect { stroke: #fff; stroke-width: 2.4; }
+ul.mod-legend i.sw-lane { height: 0; border-top: 3px dotted #d77fd0; border-radius: 0; }
+ul.mod-legend i.sw-todo { width: 12px; height: 10px; border: 2px dashed #e3b25a; background: none; border-radius: 2px; }
 /* Toute l'usine (vue de dessus) */
 .usine .u-plot { fill: none; stroke: #6cc792; stroke-dasharray: 14 10; stroke-width: 3; }
 .usine .u-plot-t { fill: #6cc792; font-size: 14px; text-anchor: end; }

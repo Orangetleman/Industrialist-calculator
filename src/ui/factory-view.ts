@@ -36,6 +36,7 @@ export function turnText(rot: number): string {
 
 /** Infobulle d'un module : taille, rotation, prix, électricité, ce qu'il reçoit et envoie. */
 function moduleTip(f: FactoryPlan, b: Box, name: Name): string {
+  if (!b.mod && b.assembly) return `${b.sub} — ${b.label}\nPlace de son plan de pose : ${b.w} × ${b.h} cases · clique pour l'ouvrir à côté.`;
   if (!b.mod) return `${b.sub} — ${b.label}\nPas encore dessiné : emplacement réservé de ${b.w} × ${b.h} cases.`;
   const sub = (key: string) => f.boxes.find((x) => x.key === key)?.sub ?? key;
   const ins = f.nets.filter((n) => n.to.includes(b.key)).map((n) => `${name(n.item)} (de ${sub(n.from)})`);

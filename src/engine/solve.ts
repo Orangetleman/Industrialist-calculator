@@ -5,6 +5,7 @@
 // sert au critère « moins d'étapes » (non linéaire) et de repli si le simplexe échoue.
 // Pur : aucune dépendance au DOM. Le résultat (Plan) est sérialisable.
 
+import { farmCounts } from "./build/assembly.ts";
 import { Chooser, ratePerMachine, type Candidate, type Criterion, type LeafReason } from "./choose.ts";
 import { itemName, type GameData } from "./data.ts";
 import { optimize } from "./optimize.ts";
@@ -543,6 +544,11 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     // moteur diesel : pour des moteurs entiers.
     const basis = m?.kind === "farm" || r.wholeUnits ? machines : x;
     const parts: StepPart[] | undefined = p.parts?.map((q) => (q.perFarm ? { machine: q.machine, exact: q.count, count: q.count, perFarm: true } : { machine: q.machine, exact: x * q.count, count: ceilTol(basis * q.count) }));
+    // Ferme d'arbres (S14) : les blocs se comptent d'après son plan de pose (nombre de fermes, récolteurs, sorties…).
+    if (parts && r.farm?.geometry && machines > 0) {
+      const counts = farmCounts(r.farm.geometry, machines, x * (r.energyMFps ?? 0));
+      for (const q of parts) if (q.machine !== r.machine && counts[q.machine] !== undefined) q.count = counts[q.machine]!;
+    }
     const partSum = (k: "cost" | "area" | "pollution") => (p.parts!.some((q) => q[k] === null) ? null : p.parts!.reduce((s2, q, i) => s2 + parts![i]!.count * q[k]!, 0));
     const isForced = req.forced?.[main] === r.id;
     const ratePerMachineMain = main === ENERGY ? -(p.energy ?? 0) : (ratePerMachine(eff, main) ?? 0);

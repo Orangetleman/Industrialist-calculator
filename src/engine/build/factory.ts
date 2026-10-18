@@ -28,6 +28,8 @@ export type FactoryStep = {
   req: ModuleRequest | null;
   entry: PortsEntry | null;
   size: { w: number; l: number } | null;
+  /** Place réservée d'une étape sans module : taille de son plan de pose (ferme, moteurs, S14) ; sinon 12 × 12. */
+  reserve?: { w: number; h: number; label: string } | null;
 };
 export type FactoryEdge = { from: string; to: string; item: string; perMin: number; loop?: boolean };
 export type FactoryOptions = {
@@ -57,7 +59,7 @@ export type FactoryProgress = (done: number, label: string) => void;
 
 type Pole = Catalog["poles"][number];
 type Pt = { x: number; y: number };
-export type FactoryBox = { key: string; machine: string; label: string; sub: string; x: number; y: number; w: number; h: number; rot: number; col: number; mod: ModulePlan | null; power: number };
+export type FactoryBox = { key: string; machine: string; label: string; sub: string; x: number; y: number; w: number; h: number; rot: number; col: number; mod: ModulePlan | null; power: number; /** Place d'un ensemble modulaire, à la taille de son plan de pose (S14). */ assembly?: boolean };
 export type FactoryPlug = Pt & { key: string; load: number };
 export type FactoryPole = Pt & { id: string; type: Pole; plugs: FactoryPlug[]; load: number; module?: string };
 export type FactoryCable = { from: Pt & { id: string }; to: FactoryPole; d: number; relays: number; relayType: Pole; load: number; lines: number; internal: boolean };
@@ -156,6 +158,8 @@ export function factoryInput(
     isFluid: (item: string) => boolean;
     machine: (id: string) => { cost: number | null; size: { w: number; l: number } | null } | null;
     ports: Record<string, PortsEntry>;
+    /** Taille réelle d'une étape sans module (ensemble modulaire posé, S14). */
+    reserve?: (key: string) => { w: number; h: number; label: string } | null;
   },
   cat: Catalog,
   plot: { w: number; h: number },
@@ -169,7 +173,8 @@ export function factoryInput(
     const base = m ? requestFromStep(s, look.isFluid, m.cost) : null;
     const req = base ? { ...base, priority: pose.priority, ...(pose.tier3Only ? { tier3Only: true } : {}) } : null;
     for (const f of [...s.inputs, ...s.byproducts]) nm(f.item);
-    return { key: s.key, machine: s.machine, label: `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${nm(s.machine)}`, sub: nm(s.item), depth: s.depth, power: Math.max(0, s.energyAvg ?? 0), req, entry: look.ports[s.machine] ?? null, size: m?.size ?? null };
+    const reserve = req ? null : (look.reserve?.(s.key) ?? null);
+    return { key: s.key, machine: s.machine, label: reserve?.label ?? `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${nm(s.machine)}`, sub: nm(s.item), depth: s.depth, power: Math.max(0, s.energyAvg ?? 0), req, entry: look.ports[s.machine] ?? null, size: m?.size ?? null, ...(reserve ? { reserve } : {}) };
   });
   const keys = new Set(steps.map((s) => s.key));
   const edges = plan.edges.filter((e) => keys.has(e.from) && keys.has(e.to));
@@ -198,7 +203,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   const maxD = Math.max(0, ...input.steps.map((s) => s.depth));
   const boxes: Box[] = input.steps.map((s) => {
     const mod = s.req ? designModule(s.req, s.entry, s.size, cat, name) : null;
-    return { key: s.key, machine: s.machine, label: s.label, sub: s.sub, w: mod?.width ?? 12, h: mod?.height ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: s.power, variants: mod ? fourTurns(mod) : [], rot: 0, req: s.req, entry: s.entry, size: s.size };
+    return { key: s.key, machine: s.machine, label: s.label, sub: s.sub, w: mod?.width ?? s.reserve?.w ?? 12, h: mod?.height ?? s.reserve?.h ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: s.power, variants: mod ? fourTurns(mod) : [], rot: 0, req: s.req, entry: s.entry, size: s.size, ...(!mod && s.reserve ? { assembly: true } : {}) };
   });
   const byKey = new Map(boxes.map((b) => [b.key, b]));
   const endOf = (b: Box, item: string, role: "entrée" | "sortie") => b.mod?.nets.find((n) => n.role === role && name(n.item) === name(item))?.end ?? null;
@@ -1143,7 +1148,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   return {
     W,
     H,
-    boxes: boxes.map((b) => ({ key: b.key, machine: b.machine, label: b.label, sub: b.sub, x: b.x, y: b.y, w: b.w, h: b.h, rot: b.rot, col: b.col, mod: b.mod, power: b.power })),
+    boxes: boxes.map((b) => ({ key: b.key, machine: b.machine, label: b.label, sub: b.sub, x: b.x, y: b.y, w: b.w, h: b.h, rot: b.rot, col: b.col, mod: b.mod, power: b.power, ...(b.assembly ? { assembly: true } : {}) })),
     cells: grid.cells,
     nets,
     netCells,

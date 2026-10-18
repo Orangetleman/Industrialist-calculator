@@ -2,6 +2,8 @@
 // Règle : aucune valeur sans source. Une valeur absente vaut `null` et porte un
 // drapeau `verify` ; une valeur contestée garde les alternatives et leurs sources.
 
+import type { FarmGeometry } from "./build/assembly.ts";
+
 export type SourceKind = "miraheze" | "fandom" | "desmos" | "jeu" | "saisie";
 
 export type Source = {
@@ -102,7 +104,13 @@ export type Recipe = {
    * fois par ferme) ; l'eau des arroseurs (par seconde) et l'électricité des coupes (par arbre
    * coupé) dépendent de la durée de pousse, calculées avec elle (evalRecipe).
    */
-  farm?: { waterItem: string; waterLpsPerTree: number; energyPerCutMF: number };
+  farm?: {
+    waterItem: string;
+    waterLpsPerTree: number;
+    energyPerCutMF: number;
+    /** Géométrie de la ferme (S14) : les blocs se comptent d'après le plan de pose (fermes, récolteurs, sorties…). */
+    geometry?: FarmGeometry;
+  };
   /** Installation qui ne se pose qu'entière (moteur diesel modulaire) : ses pièces suivent le nombre d'installations arrondi. */
   wholeUnits?: boolean;
   /** Nom lisible d'une installation composée, et sa note (hypothèses, conseils). */

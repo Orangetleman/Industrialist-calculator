@@ -20,6 +20,7 @@ import type {
 } from "./types.ts";
 import type { EnergyFile, InterfacesFile } from "./extension-types.ts";
 import { resolveScreenFlags } from "./interfaces.ts";
+import type { FarmPole } from "./build/assembly.ts";
 import { applyModular } from "./modular-calc.ts";
 import type { ModularFile } from "./modular.ts";
 
@@ -42,7 +43,7 @@ export type GameData = {
  * `modular` (facultatif) : machines modulaires (S13) : l'arbre devient une ferme, les moteurs
  * diesel relevés deviennent des installations énergétiques.
  */
-export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile; modular?: ModularFile };
+export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile; modular?: ModularFile; /** Poteaux qui peuvent alimenter une ferme d'arbres (catalogue des plans de pose, S14). */ farmPoles?: FarmPole[] };
 
 export type OverrideResult = { data: GameData; errors: string[]; applied: number };
 
@@ -55,7 +56,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   const errors: string[] = [];
   let applied = 0;
   addEnergy(recipes, machines, files.energy);
-  if (files.modular) applyModular(recipes, machines, files.modular);
+  if (files.modular) applyModular(recipes, machines, files.modular, files.farmPoles ?? []);
   for (const o of overrides) {
     const r = applyOverrides({ items, machines, recipes, nodes }, o);
     errors.push(...r.errors);

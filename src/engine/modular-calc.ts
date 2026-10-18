@@ -5,6 +5,7 @@
 // `applyModular` change les recettes du jeu pour le solveur (étape Oak Log = ferme, moteurs =
 // installations énergétiques). Pur : ni DOM ni stockage.
 
+import { crankshaftsFor, DIESEL_IDS, FARM_IDS, type FarmGeometry, type FarmPole, type PortSpec } from "./build/assembly.ts";
 import { fact, rule, treeGrid, type ModAssembly, type ModFact, type ModularFile } from "./modular.ts";
 import type { Machine, Recipe, Source, VerifyFlag } from "./types.ts";
 
@@ -84,6 +85,46 @@ export function farmRates(file: ModularFile): FarmRates | null {
     waterCycle: { periodS: v.period!, litersPerCycle: v.liters! },
     energyPerCutMF: { value: v.cut!, fact: cut! },
     controllerSlots: r === null ? null : treeGrid(4, r + 2).count,
+  };
+}
+
+/**
+ * Géométrie de la ferme pour son plan de pose (S14) : tailles du wiki, portées relevées (depuis le
+ * bord, plus la demi-largeur du bloc pour partir du centre), règles de nombre et ports relevés.
+ * null s'il manque une valeur (pas de plan inventé). `poles` : poteaux du catalogue (sans le HV).
+ */
+export function farmGeometry(file: ModularFile, machines: Map<string, Machine>, poles: FarmPole[] = []): FarmGeometry | null {
+  const rates = farmRates(file);
+  const a = assembly(file, "tree-farm");
+  if (!rates || !a) return null;
+  const size = (id: string) => {
+    const s = machines.get(id)?.size;
+    return s ? { w: s.w, h: s.l } : null;
+  };
+  const range = (id: string) => {
+    const v = asNum(blockFact(a, id, "rangeTiles")?.value);
+    const s = size(id);
+    return v !== null && s && s.w === s.h ? v + s.w / 2 : null;
+  };
+  const sizes = { sprinkler: size(FARM_IDS.sprinkler), harvester: size(FARM_IDS.harvester), controller: size(FARM_IDS.controller), output: size(FARM_IDS.output), tank: size(FARM_IDS.tank) };
+  const tree = size(FARM_IDS.tree);
+  const reach = { sprinkler: range(FARM_IDS.sprinkler), harvester: range(FARM_IDS.harvester), controller: range(FARM_IDS.controller) };
+  if (!tree || tree.w !== tree.h || Object.values(sizes).some((s) => !s) || Object.values(reach).some((r) => r === null)) return null;
+  // Arroseur, contrôleur et sortie occupent un emplacement d'arbre ; le récolteur, un nombre entier d'emplacements.
+  if ([sizes.sprinkler!, sizes.controller!, sizes.output!].some((s) => s.w !== tree.w || s.h !== tree.w) || sizes.harvester!.w % tree.w || sizes.harvester!.h % tree.w) return null;
+  const port = (block: string, key: string): PortSpec | null => {
+    const v = blockFact(a, block, key)?.value as { side?: string; cell?: unknown } | null | undefined;
+    return v && typeof v.cell === "number" && ["haut", "bas", "gauche", "droite"].includes(v.side ?? "") ? { side: v.side as PortSpec["side"], cell: v.cell } : null;
+  };
+  const plug = blockFact(a, FARM_IDS.controller, "powerPort")?.value as { cell?: unknown } | null | undefined;
+  return {
+    tree: tree.w,
+    sizes: sizes as FarmGeometry["sizes"],
+    reach: reach as FarmGeometry["reach"],
+    perHarvester: rates.treesPerHarvester.value,
+    perTank: rates.sprinklersPerTank.value,
+    ports: { output: port(FARM_IDS.output, "itemPort"), tank: port(FARM_IDS.tank, "waterPort"), plug: Array.isArray(plug?.cell) && plug.cell.length === 2 ? (plug.cell as [number, number]) : null },
+    poles: poles.filter((p) => p.rangeCells > 0),
   };
 }
 
@@ -183,7 +224,22 @@ export function dieselConfigs(file: ModularFile): DieselConfig[] {
   const easy = ms.find((m) => m.id === "easy-setup");
   const table = ms.find((m) => m.id === "air-fuel-6cyl");
   const big = ms.find((m) => m.id === "32-cylinders");
-  const toParts = (p: Record<string, number> | undefined) => Object.entries(p ?? {}).map(([machine, count]) => ({ machine, count }));
+  // Blocs posés (S14) : au moins le minimum du wiki pour chaque bloc obligatoire (entrée d'air,
+  // échappement, entrée de carburant : « au moins un »), et le moins de vilebrequins possible, un bloc
+  // de côté par côté, contrôleur compris (la longueur ne change pas la puissance, réponse du 2026-10-18).
+  const toParts = (p: Record<string, number> | undefined) => {
+    const parts = { ...(p ?? {}) };
+    for (const id of [DIESEL_IDS.air, DIESEL_IDS.exhaust, DIESEL_IDS.fuel]) {
+      const min = asNum((blockFact(a, id, "count")?.value as { min?: unknown } | undefined)?.min);
+      if (min !== null && (parts[id] ?? 0) < min) parts[id] = min;
+    }
+    const side = Object.entries(parts).filter(([id]) => ![DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.generator].includes(id as never)).reduce((s, [, n]) => s + n, 0);
+    parts[DIESEL_IDS.crankshaft] = crankshaftsFor(side);
+    const order = [DIESEL_IDS.controller, DIESEL_IDS.crankshaft, DIESEL_IDS.cylinder, DIESEL_IDS.air, DIESEL_IDS.exhaust, DIESEL_IDS.fuel, DIESEL_IDS.generator] as string[];
+    return Object.entries(parts)
+      .sort(([x], [y]) => (order.indexOf(x) + 99) % 99 - (order.indexOf(y) + 99) % 99)
+      .map(([machine, count]) => ({ machine, count }));
+  };
   const out: DieselConfig[] = [];
   if (table?.rows && table.columns && easy?.parts) {
     const col = (n: string) => table.columns!.indexOf(n);
@@ -203,7 +259,7 @@ export function dieselConfigs(file: ModularFile): DieselConfig[] {
         parts: toParts(easy.parts),
         partsComplete: true,
         sources: [...table.sources, ...easy.sources.filter((s) => !table.sources.includes(s))],
-        note: "Tableau du contrôleur (Miraheze), Refined Diesel. Blocs du montage simple du wiki. Accélérateur non écrit : supposé à 100 % (la ligne du rapport 16 est celle du montage simple à 100 %).",
+        note: "Tableau du contrôleur (Miraheze), Refined Diesel. Blocs du montage simple du wiki, posés au plus court (blocs de côté des deux côtés, contrôleur compris : moins de vilebrequins ; la longueur ne change pas la puissance). Accélérateur non écrit : supposé à 100 % (la ligne du rapport 16 est celle du montage simple à 100 %).",
       });
     }
   }
@@ -223,7 +279,7 @@ export function dieselConfigs(file: ModularFile): DieselConfig[] {
       parts: toParts(big.parts),
       partsComplete: big.partsComplete !== false,
       sources: big.sources,
-      note: "Configuration la plus connue (Miraheze), Refined Diesel. Vilebrequins, entrées d'air, échappements et entrées de carburant : nombres à relever (MOD-14).",
+      note: "Configuration la plus connue (Miraheze), Refined Diesel. Une entrée d'air, un échappement et une entrée de carburant (le minimum du wiki) : leur nombre réel est à relever (MOD-14). Vilebrequins d'après le plan de pose (un bloc de côté par côté).",
     });
   }
   return out;
@@ -254,8 +310,9 @@ export type FarmRecipe = { waterItem: string; waterLpsPerTree: number; energyPer
  *     arroseurs et l'électricité des coupes ;
  *   - chaque configuration relevée du moteur diesel devient une installation énergétique.
  */
-export function applyModular(recipes: Map<string, Recipe>, machines: Map<string, Machine>, file: ModularFile): void {
+export function applyModular(recipes: Map<string, Recipe>, machines: Map<string, Machine>, file: ModularFile, poles: FarmPole[] = []): void {
   const rates = farmRates(file);
+  const geometry = farmGeometry(file, machines, poles);
   if (rates) {
     const perSpr = rates.treesPerSprinkler.value;
     const perTank = rates.sprinklersPerTank.value;
@@ -282,8 +339,10 @@ export function applyModular(recipes: Map<string, Recipe>, machines: Map<string,
       if (parts.some((p) => !machines.has(p.machine))) continue;
       r.parts = parts;
       r.setupName = "Ferme d'arbres";
-      r.setupNote = `Par arbre : 1/${perSpr} d'arroseur, 1/${perSpr * perTank} de réservoir, 1/${perHarv} de récolteur (guide Miraheze) ; 1 contrôleur et 1 sortie par ferme (une seule ferme jusqu'au plan de pose). Eau : ${rates.waterCycle.litersPerCycle} L toutes les ${String(rates.waterCycle.periodS).replace(".", ",")} s par arroseur ; électricité : ${rates.energyPerCutMF.value / 1000} kMF par arbre coupé.`;
-      r.farm = { waterItem: "water", waterLpsPerTree: rates.waterLpsPerSprinkler.value / perSpr, energyPerCutMF: rates.energyPerCutMF.value };
+      r.setupNote = geometry
+        ? `Blocs comptés d'après le plan de pose de la ferme : ${perSpr} arbres au plus par arroseur, ${perTank} arroseurs par réservoir, ${perHarv} arbres au plus par récolteur (guide Miraheze), une sortie à portée de chaque récolteur, un contrôleur par ferme (plusieurs fermes au-delà de ce que touche sa portée). Eau : ${rates.waterCycle.litersPerCycle} L toutes les ${String(rates.waterCycle.periodS).replace(".", ",")} s par arroseur ; électricité : ${rates.energyPerCutMF.value / 1000} kMF par arbre coupé.`
+        : `Par arbre : 1/${perSpr} d'arroseur, 1/${perSpr * perTank} de réservoir, 1/${perHarv} de récolteur (guide Miraheze) ; 1 contrôleur et 1 sortie par ferme. Eau : ${rates.waterCycle.litersPerCycle} L toutes les ${String(rates.waterCycle.periodS).replace(".", ",")} s par arroseur ; électricité : ${rates.energyPerCutMF.value / 1000} kMF par arbre coupé.`;
+      r.farm = { waterItem: "water", waterLpsPerTree: rates.waterLpsPerSprinkler.value / perSpr, energyPerCutMF: rates.energyPerCutMF.value, ...(geometry ? { geometry } : {}) };
       r.sources = [...r.sources, ...src];
       if (rates.treesPerHarvester.question) {
         r.verify = [...r.verify, { field: "parts", reason: "approximatif", detail: `${perHarv} arbres par récolteur d'après le guide Miraheze ; le maximum réel est à relever (${rates.treesPerHarvester.question})` }];
