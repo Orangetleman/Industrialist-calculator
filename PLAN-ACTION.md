@@ -53,6 +53,8 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | R8 | Machines modulaires, à voir sur le wiki : il faut indiquer les blocs qui entourent chaque bloc. Exemples : Diesel Engine (Tier II), assemblage par contact ; ferme d'arbres (Tier I), assemblage par portées. | Deux familles. Par contact : moteur diesel, turbine modulaire (Tier IV). Par portée : ferme d'arbres. Il faut une recherche sur le wiki, des données, un éditeur, le calcul et le plan de pose. | S11 – S14 |
 | R9 | Détailler le calcul dans la présentation du graphe, pour qu'on sache d'où sortent les valeurs. | Pour un bloc ou une flèche du schéma : la recette, les formules et la source de chaque valeur. | S7 |
 | R10 | Naviguer dans les crafts comme dans l'onglet « Recipes » du jeu, et corriger ce qui existe ou non. Depuis le graphe : la référence du craft, cliquable. | Une page « Recettes » : liste avec recherche, fiche objet, fiche machine, crafts cliquables. Des corrections : valeurs, craft inexistant, craft manquant. Un lien depuis le schéma. | S5, S6, S7 |
+| R11 | (2026-10-18) Une option pour passer le site en anglais, et un site parfaitement accessible et ergonomique (« un peu barbare » aujourd'hui), pour le montrer au serveur Discord de la communauté sans avoir honte d'un résultat brouillon, incomplet ou plein d'erreurs. | Deux chantiers liés : la traduction (tout le texte, les nombres, les dates) et une remise à niveau de la forme (clarté, cohérence, finition, accessibilité au sens large). Le lot écrit le plan, il ne l'exécute pas. | S16 |
+| R12 | (2026-10-18, premier jet) Construire sa propre chaîne de production pour en voir les statistiques : un plan vierge, des menus « burger » pour ouvrir une liste de machines, des liaisons qu'on trace en maintenant le clic et en glissant avec l'outil tuyau (du bon type, fluide ou objet), comme les convoyeurs de Mindustry. | Un mode « bac à sable », l'inverse du calculateur : on pose, le site calcule. Très gros : le lot écrit le plan et la maquette, il ne l'exécute pas. | S17 |
 | — | En attente depuis le 2026-10-14 : (1) la sortie du collecteur central d'une double rangée entre deux machines ; (2) « Toute l'usine » dans le site. | Inchangé. | S2, S3, S4 |
 
 ## 2. Ordre proposé (à valider : Q10)
@@ -74,6 +76,8 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | ✅ fait (voir § 6) |
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | à faire |
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14 | à faire |
+| S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
+| S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
 
 Pourquoi cet ordre :
 - **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
@@ -88,6 +92,12 @@ Pourquoi cet ordre :
   logique pour des joueurs (« t'es pas joueur et t'as pas la façon de réfléchir de ceux-ci ») :
   parcours guidés par lui, puis réorganisation. D'ici là, chaque lot garde l'interface simple et
   cohérente avec l'existant.
+- **S16 après S15** : la revue de S15 donne la liste des défauts vus par un joueur ; S16 en fait un
+  plan complet (anglais + forme) pour une version présentable au Discord. Ce plan donnera ses
+  propres lots, à insérer ensuite au § 2.
+- **S17 en dernier** : c'est une nouvelle fonction, pas une correction. Elle réutilise beaucoup de
+  choses (moteur de calcul, plans de pose, tuyaux, éditeur de bâtiments). Mieux vaut la penser sur
+  un site déjà propre et traduit, pour ne pas tout traduire deux fois.
 
 ## 3. Lots en détail
 
@@ -491,6 +501,87 @@ Les quatre sessions :
 
 Questions : Q9.
 
+### S16 — Plan : le site en anglais, et une forme présentable à la communauté
+
+Retour : R11. **Ce lot écrit un plan, il ne code rien** (une maquette si elle aide à décider).
+
+Le but : pouvoir donner le lien au serveur Discord du jeu sans avoir honte. Le site doit être
+clair pour un joueur qui ne connaît pas le projet, complet, et sans erreur visible.
+
+Ce qui existe :
+- Tout le texte est en français, écrit en dur dans `src/ui/*.ts` et `index.html`, sans couche de
+  traduction.
+- Les noms des objets et des machines sont déjà en anglais (ceux du jeu).
+- La revue S15 aura listé les défauts vus par un joueur.
+- REFONTE.md contient l'ancienne refonte de l'ergonomie.
+
+Le lot doit produire un fichier `PLAN-PUBLIC.md` (nom à confirmer) avec :
+- **Un état des lieux.** Faire le tour du site page par page, avec des captures, comme un nouveau
+  venu. Noter le jargon, les doublons, les textes trop longs, les pages vides ou cassées, les
+  incohérences de vocabulaire et de mise en page, le comportement au téléphone, et les erreurs
+  visibles (valeurs « à vérifier » mises en avant, messages techniques).
+- **La traduction.**
+  - Méthode : un catalogue de textes par langue, sans nouvelle dépendance sauf accord.
+  - Choix de la langue : bouton, langue du navigateur, mémoire du choix.
+  - Nombres, dates et unités (MF/s, $, cases).
+  - Textes venus des données (notes, détails « à vérifier », descriptions).
+  - Adresses (`#objet`, `#recettes`…) : traduites ou non.
+  - Ce qui reste en français, et un test qui vérifie qu'aucun texte n'est oublié.
+- **L'accessibilité au sens large.** D'abord l'ergonomie : parcours d'un joueur, termes du jeu,
+  valeurs par défaut, aides, messages d'erreur. Ensuite : clavier, lecteurs d'écran, contrastes,
+  tailles de cible, téléphone. Chaque point a un critère de réussite vérifiable.
+- **Ce qu'on montre ou cache dans la version publique** : outils de relevé, éditeur de bâtiments,
+  « Données », valeurs incertaines (signalées sobrement).
+- **Le découpage en lots** : des sessions courtes, dans l'ordre, chacune avec ses critères de fin,
+  à ajouter au § 2 après validation.
+
+Questions : Q13.
+
+### S17 — Plan : construire sa propre chaîne de production (bac à sable)
+
+Retour : R12 (premier jet de l'utilisateur, « encore incomplet »). **Ce lot écrit un plan et une
+maquette, il ne code pas la fonction.**
+
+L'idée est l'inverse du calculateur. On part d'un plan vierge, on pose des machines et des tuyaux,
+et le site donne les statistiques de ce qu'on a construit : débits, goulots, énergie, prix, place
+au sol, pollution.
+
+Ce que l'utilisateur a décrit :
+- un plan vierge ;
+- des menus « burger » qui ouvrent la liste des machines ;
+- des liaisons tracées à la main : on garde le clic enfoncé et on glisse avec l'outil tuyau, du bon
+  type (fluide ou objet), pour étendre le chemin, comme les convoyeurs de **Mindustry**.
+
+Ce qui existe et peut servir :
+- le moteur de calcul (recettes, débits, énergie) ;
+- les plans de pose et le routage des tuyaux (`src/engine/build/`) ;
+- les ports relevés (`data/ports.json`) et l'éditeur de bâtiments ;
+- le dessin de l'usine (vue navigable) ;
+- les recettes et les interfaces des machines (S10).
+
+Le lot doit produire `PLAN-BAC-A-SABLE.md` (nom à confirmer) et une maquette cliquable
+(`maquette/bac-a-sable.html`) avec :
+- **Une étude du modèle Mindustry**, sur sources publiques (wiki, vidéos) : pose au glisser, sens
+  automatique, coudes, croisements, rotation, suppression, annulation. Ce qu'on garde, et ce qui ne
+  s'applique pas aux tuyaux d'Industrialist (types, raccords, longueur, règle des ports de sortie).
+- **Les gestes** : poser, tourner, déplacer, copier, effacer une machine ; tracer, prolonger, couper
+  un tuyau ; zoomer, se déplacer ; sur ordinateur et sur téléphone.
+- **Le calcul d'un montage libre** :
+  - la recette choisie par machine, avec son réglage d'interface ;
+  - le débit réel de chaque tuyau ;
+  - la machine qui limite, ce qui manque ou déborde ;
+  - les entrées et sorties du montage ;
+  - l'énergie, le prix, la place au sol ;
+  - le comportement face à une liaison fausse (mauvais type, port de sortie, boucle).
+- **Les ponts avec l'existant** : partir d'un plan calculé pour le modifier à la main ; enregistrer,
+  exporter, partager un montage ; le comparer au plan conseillé.
+- **Le découpage en lots**, du plus petit montage utile (deux machines et un tuyau, avec leurs
+  statistiques) jusqu'à l'ensemble, chaque lot avec ses critères de fin.
+- **Les risques** : performance, téléphone, quantité de code, ports manquants pour certaines
+  machines.
+
+Questions : Q14.
+
 ## 4. Questions
 
 À poser au début du lot concerné ; les réponses vont au § 5.
@@ -584,6 +675,21 @@ Questions : Q9.
 
   Réponse : « Oui à tout » (22 arbres par récolteur, une seule ferme jusqu'à S14, 32 cylindres
   dans le calcul avec sa liste incomplète, turbine hors du calcul et non fiable, maquette validée).
+- **Q13 (S16), version publique.** À poser au début de S16.
+  - Anglais seulement en plus du français, ou d'autres langues plus tard (le catalogue les prévoit) ?
+  - Langue par défaut : celle du navigateur ?
+  - Que cacher aux visiteurs du Discord (éditeur de bâtiments, relevés, « Données ») ?
+  - Une adresse ou une page d'accueil à part pour eux ?
+  - Qui relit l'anglais : toi, un membre du Discord ?
+  - Des sites que tu trouves bien faits (outils du jeu ou d'autres jeux) à prendre comme référence ?
+- **Q14 (S17), bac à sable.** À poser au début de S17.
+  - Ce qui compte le plus : les statistiques, ou un plan de pose fidèle au jeu (cases, raccords) ?
+  - Grille du jeu (cases et tuyaux réels) ou schéma libre ?
+  - Les machines gardent-elles leur taille et leurs ports relevés ?
+  - Faut-il pouvoir partir d'un plan calculé ?
+  - Partager un montage : par un lien, par un fichier ?
+  - « Burger » : un bouton qui ouvre un panneau latéral de machines, ou un menu au clic droit ?
+  - De Mindustry, imiter le tracé seulement, ou aussi l'aspect ?
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -683,6 +789,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-18, S13** (382 tests, déployé) : Q12 posée et validée (« Oui à tout », décisions S13 au § 5 ; maquette en texte). Moteur pur `src/engine/modular-calc.ts`, qui ne lit que `modular.json`. Ferme : `farmRates`, `farmBlocks`, `farmOutput` (bois, eau, électricité, ce qui limite, blocs manquants). Moteur diesel : `dieselConfigs` et `dieselLookup` (8 configurations relevées ; les autres « à relever »). Turbine : `turbineReliability` (« non fiable », hors du calcul). `applyModular`, appelé dans `buildGameData` (`RawFiles.modular`) : l'arbre devient une ferme. Pièces par arbre : 1/44 d'arroseur, 1/132 de réservoir, 1/22 de récolteur ; contrôleur et sortie une fois par ferme (`perFarm`). L'eau et l'électricité suivent la pousse (`evalRecipe`). Les moteurs deviennent des installations énergétiques, comptées en moteurs entiers (`wholeUnits`). Ajouté aussi : arbres toujours réglables dans le schéma (S8), blocs de la ferme comptés comme bâtiments. Filtre S9 : en « Seulement… », les blocs suivent l'arbre ; écarter un récolteur écarte la ferme. Site : ligne « Ferme d'arbres » dans la liste de construction, « Comment c'est calculé » (arroseurs, réservoirs, récolteurs ⚠ MOD-09, contrôleur et sortie, électricité, eau), craft de l'arbre « 200 kMF par coupe » dans Recettes. Objectif énergie : moteur diesel parmi les centrales, turbine « non fiable » dans la liste des non calculées. Éditeur de bâtiments : bloc « Calcul » sous « Ensemble modulaire » (ferme : blocs saisis → Oak Log/min, limite, eau, électricité, « Au plus juste » ; moteur : réglages → configuration relevée ou « à relever », puces des 8 configurations ; turbine : non fiable).
   Parcours réel (navigateur intégré, ordinateur et téléphone 375 px) : Oak Log 30/min → 91 arbres + 3 arroseurs + 1 réservoir + 5 récolteurs + 1 contrôleur + 1 sortie, 50,2 kMF/s, Water 122/min, 1 Water Pump2 ; panneau refait à la main (30 ÷ 0,3308 = 90,68 ; 90,68 × 200 kMF ÷ 362,72 s = 50 kMF/s). Énergie 2 MMF/s, filtre réduit au diesel (essai, retiré ensuite) : 1 moteur 32 cylindres, Refined Diesel 3,69/min (0,6693 × 0,092 × 60). Éditeur : guide 88 arbres → 29,11/min, 118,8 L/min, 48,52 kMF/s ; 120 arbres → limite « arroseurs », « Au plus juste » → 3 / 1 / 6 ; 7 cylindres → « À relever » ; turbine « non fiable ». Tests : ferme du guide (2 arroseurs, 1 réservoir, 4 récolteurs), limites, solveur, arbres fixés, filtre, moteurs, 84 500 $ du montage simple.
   À surveiller : l'eau se compte au prorata des arbres (3 arroseurs posés pour 91 arbres en boivent 178 L/min, le plan en compte 122) ; tous les plans avec du bois changent (eau, électricité, blocs, prix) ; le 32 cylindres a une liste de blocs incomplète (MOD-14), son prix est donc trop bas ; le tableau à 6 cylindres est supposé à l'accélérateur 100 % ; la taille maximale d'une ferme n'est pas connue (une seule ferme jusqu'à S14) ; le bloc « Calcul » de l'éditeur n'est pas gardé au rechargement.
+- **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions
 
