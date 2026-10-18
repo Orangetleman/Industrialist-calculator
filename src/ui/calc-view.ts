@@ -275,7 +275,7 @@ function stepNote(v: ViewCtx, s: Step): string {
   else if (s.parts) notes.push("Installation composée : le craft décrit l'installation entière, « par seconde ». Chaque bâtiment est compté à part et arrondi au-dessus.");
   if (r?.wholeUnits) {
     const c = v.diesel?.configs.find((x) => x.id === s.recipeId);
-    const how = v.diesel ? (v.diesel.choice.config === s.recipeId ? "configuration imposée dans la barre du bas" : `choisie pour ${v.diesel.choice.mode === "prix" ? "le prix le plus bas" : v.diesel.choice.mode === "place" ? "la place la plus petite" : "le moins de carburant"} par MF/s, parmi les configurations relevées avec ce carburant`) : "configuration relevée";
+    const how = v.diesel ? (v.diesel.choice.config === s.recipeId ? "configuration imposée dans la barre du bas" : `choisie pour ${v.diesel.choice.mode === "puissance" ? "la meilleure production énergétique (puissance par moteur)" : v.diesel.choice.mode === "place" ? "le moins de place par MF/s" : "le meilleur rapport production/consommation (L par MMF)"}, parmi les configurations relevées avec ce carburant`) : "configuration relevée";
     notes.push(`Moteur diesel modulaire : ${c?.reading ? "relevé en jeu" : "configuration du wiki"}, ${how} (pas de formule connue) ; les blocs se comptent pour des moteurs entiers.${c ? ` ${controllerPanel(c.airFuel, c.throttle, c.throttleAssumed)}` : ""}`);
   }
   if (s.growth)
