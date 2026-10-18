@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S14 — Plans de pose des modulaires</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 6px 10px; font-size: .86rem; }
+.mq-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.mq-panel select { max-width: 100%; }
+.asm-frame { background: #1b222a; border-radius: 8px; overflow: auto; max-height: 520px; }
+.asm-frame svg { display: block; }
+.asm-frame .rng { display: none; }
+.asm-frame.show-rng .rng { display: inline; }
+.asm-bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: .86rem; }
+.asm-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; padding: 0; margin: 0; font-size: .84rem; }
+.asm-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.todo { color: var(--warn); font-weight: 600; }
+.mq-panel table.mini td.num { text-align: right; }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>Maquette S14 — plans de pose de la ferme d'arbres et du moteur diesel</h1>
+  <p class="mq-note">Maquette à valider : rien n'est encore branché au site. Les dessins sont <b>calculés pour de vrai</b> dans cette page, avec les règles de <code>data/modular.json</code> : portée en cercle mesurée depuis le bord du bloc (contrôleur 58, arroseur 10, récolteur 23 cases ; réservoir sans limite), un bloc est à portée dès que le cercle le touche, 44 arbres par arroseur, 3 arroseurs par réservoir, 22 arbres par récolteur (guide, MOD-09). Tailles du wiki : arbre, arroseur, contrôleur, sortie 4 × 4 ; récolteur 8 × 8 ; réservoir 10 × 4 ; blocs du moteur 2 × 2. Aucune autre valeur.</p>
+
+  <h2 class="mq-t">1. Où ça apparaît</h2>
+  <p class="mq-note">Dans l'onglet « Plans de pose », la liste « Étape » gagne les deux ensembles, qui étaient absents (« les arbres et les centrales composées ne sont pas encore dessinés ») :</p>
+  <div class="mq-panel">
+    <label class="pose-pick">Étape
+      <select>
+        <option>Toute l'usine (proposition, calculée en arrière-plan)</option>
+        <optgroup label="Un module par étape">
+          <option>15 × Craft Assembler — Crankshaft</option>
+          <option>5 × Blast Furnace — Steel Ingot</option>
+        </optgroup>
+        <optgroup label="Ensembles modulaires">
+          <option selected>Ferme d'arbres — 91 arbres, Oak Log</option>
+          <option>2 × Moteur diesel modulaire — 6 cylindres, rapport 13</option>
+        </optgroup>
+      </select>
+    </label>
+    <p class="mq-note">Pas de priorités ni de « tier III » pour un ensemble (rien à départager pour l'instant) : ces deux réglages se cachent. La turbine reste hors du calcul (« non fiable ») : pas de plan.</p>
+  </div>
+
+  <h2 class="mq-t">2. Ferme d'arbres</h2>
+  <p class="mq-note">Disposition proposée : chaque arroseur au centre d'un carré de 7 × 7 emplacements d'arbre (les 44 qu'il touche ; les 4 coins restent vides). Les carrés se collent ; les coins vides de quatre carrés font un trou de 8 × 8 cases, exactement la place d'un récolteur. Le contrôleur prend un emplacement libre au plus près du centre ; les récolteurs, les sorties puis les réservoirs sont placés pour que chaque arbre ait son récolteur (22 au plus), chaque récolteur sa sortie, et que tout touche la portée du contrôleur. Plus d'arbres qu'une ferme n'en tient : plusieurs fermes, écartées pour que le cercle d'un contrôleur ne touche aucun bloc de l'autre ferme.</p>
+  <div class="mq-panel">
+    <div class="asm-bar">Exemple : <label><input type="radio" name="farmN" value="91" checked> Oak Log 30/min (91 arbres, parcours S13)</label><label><input type="radio" name="farmN" value="88"> guide Miraheze (88 arbres)</label><label><input type="radio" name="farmN" value="cap"> une ferme pleine</label><label><input type="radio" name="farmN" value="900"> 900 arbres</label></div>
+    <div id="farm-head"></div>
+    <div class="asm-bar"><button type="button" class="btn small" id="farm-rng">Afficher les portées</button><span class="hint">Ou clique un bloc : son cercle et ce qu'il dessert s'éclairent.</span></div>
+    <div class="asm-frame" id="farm-frame"></div>
+    <ul class="asm-legend">
+      <li><i style="background:#3f8f4f"></i>Arbre</li><li><i style="background:#4f8fd6"></i>Arroseur</li><li><i style="background:#5fd4d4"></i>Réservoir (arrivée d'eau ▼)</li>
+      <li><i style="background:#f0913a"></i>Récolteur</li><li><i style="background:#d77fd0"></i>Sortie (départ des Oak Logs ▼)</li><li><i style="background:#ff6b5f"></i>Contrôleur (prise ●)</li>
+    </ul>
+    <div id="farm-details"></div>
+  </div>
+
+  <h2 class="mq-t">3. Moteur diesel modulaire</h2>
+  <p class="mq-note">Par contact : le contrôleur au bout, les vilebrequins en ligne devant lui, le générateur au bout de la chaîne ; les autres blocs contre un côté des vilebrequins (un bloc de 2 × 2 par côté de 2 cases). Plusieurs moteurs : côte à côte, collés (MOD-13 : un joueur l'a fait). La configuration est celle que le calcul a choisie.</p>
+  <div class="mq-panel">
+    <div class="asm-bar">Configuration : <label><input type="radio" name="eng" value="6a" checked> 6 cylindres, réponse (a)</label><label><input type="radio" name="eng" value="6b"> 6 cylindres, réponse (b)</label><label><input type="radio" name="eng" value="32"> 32 cylindres</label></div>
+    <div id="eng-head"></div>
+    <div class="asm-frame" id="eng-frame"></div>
+    <ul class="asm-legend">
+      <li><i style="background:#ff6b5f"></i>Contrôleur</li><li><i style="background:#9aa7b4"></i>Vilebrequin</li><li><i style="background:#e3b25a"></i>Cylindre</li>
+      <li><i style="background:#5fd4d4"></i>Entrée d'air</li><li><i style="background:#8a8a8a"></i>Échappement</li><li><i style="background:#d77fd0"></i>Entrée de carburant</li><li><i style="background:#6cc792"></i>Générateur</li>
+      <li><i style="border:2px dashed #e3b25a"></i>À relever (nombre inconnu)</li>
+    </ul>
+    <div id="eng-details"></div>
+  </div>
+
+  <h2 class="mq-t">4. Ailleurs dans le site</h2>
+  <div class="mq-panel">
+    <ul class="notes">
+      <li><b>Liste de construction</b> et <b>« Comment c'est calculé »</b> : les blocs de la ferme suivent le plan (nombre de fermes, donc de contrôleurs ; récolteurs et sorties placés). Une ligne « 1 ferme (au plus N arbres par ferme) » ou « 3 fermes ». Question 5.</li>
+      <li><b>Toute l'usine</b> : la place réservée (12 × 12 cases aujourd'hui) prend la taille réelle de la ferme et des moteurs ; un clic ouvre leur plan dans le panneau. Question 6.</li>
+      <li><b>Éditeur de bâtiments</b> : inchangé. Le champ « Devant » (MOD-17), s'il est rempli, tourne les blocs du moteur dans le plan ; sinon le plan dit « sens des blocs à relever ».</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------- règles (data/modular.json)
+const T = 4;                    // arbre 4 × 4 cases
+const RS = 10 + 2, RH = 23 + 4, RC = 58 + 2; // portées depuis le centre (bord + demi-côté)
+const PER_H = 22, PER_T = 3;    // arbres par récolteur (guide), arroseurs par réservoir
+const PRICE = { tree: 80, ctrl: 750, out: 200, spr: 200, tank: 500, harv: 650 };
+const rdist = (cx, cy, r) => Math.hypot(Math.max(r.x0 - cx, 0, cx - r.x1), Math.max(r.y0 - cy, 0, cy - r.y1));
+const slot = (i, j, w = 1, h = 1) => ({ x0: T * i - 2, y0: T * j - 2, x1: T * (i + w) - 2, y1: T * (j + h) - 2 });
+const mid = (r) => [(r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2];
+const OFFS = [];
+for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) if ((i || j) && rdist(0, 0, slot(i, j)) <= RS) OFFS.push([i, j]);
+const PER_S = OFFS.length; // 44
+const LAT = [];
+for (let a = -4; a <= 4; a++) for (let c = -4; c <= 4; c++) LAT.push([a, c]);
+const key = (i, j) => i + "," + j;
+const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+const MAX_CELLS = 25;
+
+/** Ferme de N arbres : on ajoute des carrés d'arroseur tant que les arbres à portée du contrôleur manquent. */
+function layoutFarm(N) {
+  for (let cells = Math.max(1, Math.ceil(N / PER_S)); ; cells++) {
+    const L = tryCells(N, cells);
+    if (L.trees.length >= N || cells >= MAX_CELLS) return place(L);
+  }
+}
+
+function tryCells(N, cells) {
+  // Carrés au plus près du centre (la portée du contrôleur est un cercle) ; centre entre deux carrés s'il y en a plusieurs.
+  const off = cells > 1 ? 0.5 : 0;
+  const pick = [...LAT].sort((p, q) => Math.hypot(p[0] - off, p[1]) - Math.hypot(q[0] - off, q[1]) || p[1] - q[1] || p[0] - q[0]).slice(0, cells);
+  const xs = pick.map((p) => p[0] * 7 * T), ys = pick.map((p) => p[1] * 7 * T);
+  const fc = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+  const cellSlots = new Set();
+  for (const [a, c] of pick) { cellSlots.add(key(a * 7, c * 7)); for (const [i, j] of OFFS) cellSlots.add(key(a * 7 + i, c * 7 + j)); }
+  const I0 = Math.min(...pick.map((p) => p[0])) * 7 - 3, J0 = Math.min(...pick.map((p) => p[1])) * 7 - 3;
+  const I1 = Math.max(...pick.map((p) => p[0])) * 7 + 3, J1 = Math.max(...pick.map((p) => p[1])) * 7 + 3;
+  // Contrôleur : un coin vide (hors des 44 emplacements d'un arroseur) au plus près du centre.
+  let ctrl = null;
+  for (let i = I0 - 1; i <= I1 + 1; i++) for (let j = J0 - 1; j <= J1 + 1; j++) {
+    if (cellSlots.has(key(i, j))) continue;
+    const d = Math.hypot(...mid(slot(i, j)).map((v, n) => v - fc[n]));
+    if (!ctrl || d < ctrl.d) ctrl = { i, j, d };
+  }
+  ctrl.r = slot(ctrl.i, ctrl.j);
+  const [ccx, ccy] = mid(ctrl.r);
+  const inC = (r) => rdist(ccx, ccy, r) <= RC;
+  const dC = (r) => rdist(ccx, ccy, r);
+  const occ = new Map([[key(ctrl.i, ctrl.j), "c"]]);
+  const spr = [], trees = [];
+  let left = N;
+  const cellsByD = pick.map(([a, c]) => ({ i: a * 7, j: c * 7, r: slot(a * 7, c * 7) })).filter((s) => inC(s.r)).sort((p, q) => dC(p.r) - dC(q.r));
+  for (const s of cellsByD) {
+    if (left <= 0) break;
+    const offs = OFFS.map(([a, b]) => [s.i + a, s.j + b]).filter(([i, j]) => !occ.has(key(i, j)) && inC(slot(i, j))).sort((p, q) => dC(slot(...p)) - dC(slot(...q)));
+    const take = offs.slice(0, left);
+    if (!take.length) continue;
+    spr.push(s); occ.set(key(s.i, s.j), "s");
+    for (const [i, j] of take) { trees.push({ i, j, r: slot(i, j), h: null }); occ.set(key(i, j), "t"); }
+    left -= take.length;
+  }
+  return { N, trees, spr, ctrl, ccx, ccy, inC, dC, occ, box: [I0, J0, I1, J1] };
+}
+
+function place(L) {
+  const { trees, occ, inC, dC } = L;
+  const [I0, J0, I1, J1] = L.box;
+  // Récolteurs : 2 × 2 emplacements libres ; glouton, les arbres les plus difficiles d'abord.
+  const free2 = (i, j) => [[0, 0], [1, 0], [0, 1], [1, 1]].every(([a, b]) => !occ.has(key(i + a, j + b)));
+  const cand = [];
+  for (let i = I0 - 2; i <= I1 + 1; i++) for (let j = J0 - 2; j <= J1 + 1; j++) {
+    const r = slot(i, j, 2, 2);
+    if (!free2(i, j) || !inC(r)) continue;
+    const [hx, hy] = mid(r);
+    const cov = trees.filter((t) => rdist(hx, hy, t.r) <= RH);
+    if (cov.length) cand.push({ i, j, r, cx: hx, cy: hy, cov });
+  }
+  const nAlt = new Map(trees.map((t) => [t, cand.filter((c) => c.cov.includes(t)).length]));
+  const harv = [];
+  for (;;) {
+    let best = null, bs = 0;
+    for (const c of cand) {
+      if (!free2(c.i, c.j)) continue;
+      const o = c.cov.filter((t) => !t.h);
+      if (!o.length) continue;
+      const s = Math.min(PER_H, o.length) + o.reduce((a, t) => a + 1 / nAlt.get(t), 0) / 1000;
+      if (s > bs) { bs = s; best = c; }
+    }
+    if (!best) break;
+    const take = best.cov.filter((t) => !t.h).sort((a, b) => nAlt.get(a) - nAlt.get(b)).slice(0, PER_H);
+    const h = { ...best, trees: take, out: null };
+    harv.push(h);
+    for (const t of take) t.h = h;
+    for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) occ.set(key(best.i + a, best.j + b), "h");
+    if (trees.every((t) => t.h)) break;
+  }
+  // Sorties : emplacements libres, couverture gloutonne des récolteurs.
+  const outs = [];
+  const oc = [];
+  for (let i = I0 - 3; i <= I1 + 3; i++) for (let j = J0 - 3; j <= J1 + 3; j++) {
+    if (occ.has(key(i, j))) continue;
+    const r = slot(i, j);
+    if (inC(r)) oc.push({ i, j, r, cov: harv.filter((h) => rdist(h.cx, h.cy, r) <= RH) });
+  }
+  while (harv.some((h) => !h.out)) {
+    const free = oc.filter((c) => !occ.has(key(c.i, c.j)));
+    const gain = (c) => c.cov.filter((h) => !h.out).length;
+    const best = free.sort((a, b) => gain(b) - gain(a) || dC(a.r) - dC(b.r))[0];
+    if (!best || !gain(best)) break;
+    outs.push(best); occ.set(key(best.i, best.j), "o");
+    for (const h of best.cov) h.out ??= best;
+  }
+  // Réservoirs (10 × 4) : une place libre que touche le contrôleur, de préférence hors du bois.
+  const nt = Math.ceil(L.spr.length / PER_T);
+  const placed = [...trees.map((t) => t.r), ...L.spr.map((s) => s.r), ...harv.map((h) => h.r), ...outs.map((o) => o.r), L.ctrl.r];
+  const wood = bbox(trees.length ? trees.map((t) => t.r) : [L.ctrl.r]);
+  const tanks = [];
+  for (let k = 0; k < nt; k++) {
+    let best = null;
+    for (const [w, h] of [[10, 4], [4, 10]]) for (let x = wood.x0 - 14; x <= wood.x1 + 4; x++) for (let y = wood.y0 - 14; y <= wood.y1 + 4; y++) {
+      const r = { x0: x, y0: y, x1: x + w, y1: y + h };
+      if (!inC(r) || placed.some((p) => overlap(p, r))) continue;
+      const s = dC(r) + (overlap(r, wood) ? 1000 : 0);
+      if (!best || s < best.s) best = { r, s, turned: w === 4 };
+    }
+    if (!best) break;
+    tanks.push(best); placed.push(best.r);
+  }
+  const lost = trees.filter((t) => !t.h).length;
+  const ok = trees.length >= L.N && !lost && harv.every((h) => h.out) && tanks.length === nt;
+  return { ...L, harv, outs, tanks, lost, ok };
+}
+
+// Arbres d'une ferme pleine : le plus grand nombre qui se place sans rien perdre.
+function capacity() {
+  let n = place(tryCells(1e6, MAX_CELLS)).trees.filter((t) => t.h).length;
+  while (n > 1 && !layoutFarm(n).ok) n--;
+  return n;
+}
+const CAP = capacity();
+
+function bbox(rs) { return { x0: Math.min(...rs.map((r) => r.x0)), y0: Math.min(...rs.map((r) => r.y0)), x1: Math.max(...rs.map((r) => r.x1)), y1: Math.max(...rs.map((r) => r.y1)) }; }
+const farmRects = (L) => [...L.trees.map((t) => t.r), ...L.spr.map((s) => s.r), ...L.harv.map((h) => h.r), ...L.outs.map((o) => o.r), ...L.tanks.map((t) => t.r), L.ctrl.r];
+
+function farmSet(N) {
+  let n = Math.ceil(N / CAP), L = layoutFarm(Math.ceil(N / n));
+  while (!L.ok && n < 50) { n++; L = layoutFarm(Math.ceil(N / n)); }
+  const per = Math.ceil(N / n);
+  const rs = farmRects(L), b = bbox(rs);
+  let dx = b.x1 - b.x0;
+  const sh = (r, d) => ({ x0: r.x0 + d, y0: r.y0, x1: r.x1 + d, y1: r.y1 });
+  while (rs.some((r) => rdist(L.ccx, L.ccy, sh(r, dx)) <= RC || rdist(L.ccx + dx, L.ccy, r) <= RC)) dx++;
+  return { n, per, L, dx, b };
+}
+
+// ---------------------------------------------------------------- dessin
+const K = 6; // pixels par case
+function farmSvg(F) {
+  const { L, n, dx, b } = F;
+  const pad = RC + 4;
+  const W = (b.x1 - b.x0) + dx * (n - 1), H = b.y1 - b.y0;
+  const vx = b.x0 - 6, vy = b.y0 - 6, vw = W + 12, vh = H + 12;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vx} ${vy} ${vw} ${vh}" width="${vw * K}" height="${vh * K}">`;
+  s += `<rect x="${vx}" y="${vy}" width="${vw}" height="${vh}" fill="#1b222a"/>`;
+  const R = (r, fill, cls = "", extra = "") => `<rect class="${cls}" x="${r.x0 + .15}" y="${r.y0 + .15}" width="${r.x1 - r.x0 - .3}" height="${r.y1 - r.y0 - .3}" rx=".6" fill="${fill}" ${extra}/>`;
+  const C = (x, y, rad, col) => `<circle class="rng" cx="${x}" cy="${y}" r="${rad}" fill="none" stroke="${col}" stroke-width=".35" stroke-dasharray="1.2 .8"/>`;
+  for (let f = 0; f < n; f++) {
+    s += `<g transform="translate(${f * dx},0)">`;
+    s += C(L.ccx, L.ccy, RC, "#ff6b5f");
+    for (const sp of L.spr) { const [x, y] = mid(sp.r); s += C(x, y, RS, "#4f8fd6"); }
+    for (const h of L.harv) s += C(h.cx, h.cy, RH, "#f0913a");
+    for (const t of L.trees) s += R(t.r, t.h ? "#3f8f4f" : "#7a3b3b");
+    for (const sp of L.spr) s += R(sp.r, "#4f8fd6");
+    for (const h of L.harv) s += R(h.r, "#f0913a") + `<text x="${h.cx}" y="${h.cy + 1.2}" font-size="3.2" text-anchor="middle" fill="#1b222a">${h.trees.length}</text>`;
+    for (const o of L.outs) { const [x, y] = mid(o.r); s += R(o.r, "#d77fd0") + `<path d="M${x - 1},${o.r.y1 - .2} l1,1.2 l1,-1.2 z" fill="#fff"/>`; }
+    for (const t of L.tanks) s += R(t.r, "#5fd4d4") + `<path d="M${t.r.x0 + 2.5},${t.r.y1 + 1.4} l1,-1.2 l1,1.2 z" fill="#5fd4d4"/>`;
+    s += R(L.ctrl.r, "#ff6b5f") + `<circle cx="${L.ccx + 1.5}" cy="${L.ccy}" r=".7" fill="#fff"/>`;
+    s += `</g>`;
+  }
+  return s + "</svg>";
+}
+
+const money = (x) => x.toLocaleString("fr-FR") + " $";
+function renderFarm(v) {
+  const N = v === "cap" ? CAP : Number(v);
+  const F = farmSet(N);
+  const { L, n } = F;
+  const c = { tree: L.trees.length * n, spr: L.spr.length * n, tank: L.tanks.length * n, harv: L.harv.length * n, out: L.outs.length * n, ctrl: n };
+  const cost = Object.entries(c).reduce((a, [k, q]) => a + q * PRICE[k], 0);
+  const w = (F.b.x1 - F.b.x0) + F.dx * (n - 1), h = F.b.y1 - F.b.y0;
+  const lim = ` <span class="muted">Une ferme tient au plus <b>${CAP} arbres</b> : au-delà, tout ne touche plus la portée du contrôleur (58 cases).</span>`;
+  document.getElementById("farm-head").innerHTML = `<p class="mod-sum"><b>${n > 1 ? `${n} fermes de ${F.per} arbres` : `Ferme d'arbres de ${N} arbres`}</b> : ${c.spr} arroseurs, ${c.tank} réservoir${c.tank > 1 ? "s" : ""}, ${c.harv} récolteurs, ${c.out} sortie${c.out > 1 ? "s" : ""}, ${c.ctrl} contrôleur${n > 1 ? "s" : ""} — ${w} × ${h} cases, ${money(cost)}.${lim}</p>${n > 1 ? `<p class="mod-other">Les fermes sont écartées de ${F.dx - (F.b.x1 - F.b.x0)} cases : le cercle d'un contrôleur ne touche aucun bloc de l'autre ferme (sinon les deux s'arrêtent).</p>` : ""}${L.lost ? `<ul class="notices"><li class="bad">${L.lost} arbres sans récolteur.</li></ul>` : ""}<p class="mod-other">Le calcul (S13) comptait pour ${N} arbres : ${Math.ceil(N / 44)} arroseurs, ${Math.ceil(Math.ceil(N / 44) / 3)} réservoir(s), ${Math.ceil(N / 22)} récolteurs, 1 contrôleur, 1 sortie.</p>`;
+  document.getElementById("farm-frame").innerHTML = farmSvg(F);
+  const rows = [["Tree", c.tree, PRICE.tree], ["Tree Farm Sprinkler", c.spr, PRICE.spr], ["Tree Farm Water Tank", c.tank, PRICE.tank], ["Farm Harvester", c.harv, PRICE.harv], ["Tree Farm Output", c.out, PRICE.out], ["Tree Farm Controller", c.ctrl, PRICE.ctrl]];
+  document.getElementById("farm-details").innerHTML = `<details class="more" open><summary>Ordre de pose</summary><ol class="steps-list">
+    <li>Pose le contrôleur (rouge) : c'est lui qui définit la ferme ; tout le reste doit toucher son cercle.</li>
+    <li>Pose les ${c.tank > 1 ? "réservoirs" : "le réservoir"} et amène l'eau (arrivée en bas) ; un réservoir pour 3 arroseurs, chacun alimenté.</li>
+    <li>Pose les arroseurs, puis les arbres autour (les 44 que touche chaque arroseur).</li>
+    <li>Pose les récolteurs dans les trous des coins (le chiffre : arbres qu'il suit), puis les sorties à leur portée ; tire le tuyau des Oak Logs depuis chaque sortie.</li>
+    <li>Relie la prise du contrôleur (●) au réseau électrique : il alimente les récolteurs.</li></ol></details>
+    <details class="more"><summary>Pièces à acheter (${Object.values(c).reduce((a, b) => a + b, 0)})</summary><div class="tablewrap"><table class="mini"><thead><tr><th>Pièce</th><th>Nombre</th><th>Prix</th><th>Total</th></tr></thead><tbody>${rows.map(([nm, q, p]) => `<tr><td>${nm}</td><td class="num">${q}</td><td class="num">${money(p)}</td><td class="num">${money(p * q)}</td></tr>`).join("")}</tbody></table></div></details>
+    <details class="more"><summary>Hypothèses à vérifier en jeu (3)</summary><ul class="notes"><li>22 arbres au plus par récolteur : chiffre du guide Miraheze, le maximum réel est à relever (MOD-09).</li><li>Portées mesurées depuis le bord du bloc ; pour un bloc carré, le cercle part du centre avec la demi-largeur en plus (comme l'éditeur).</li><li>Tuyaux et câbles hors de la ferme non dessinés : arrivée d'eau des réservoirs, départ des Oak Logs des sorties, prise du contrôleur.</li></ul></details>`;
+}
+
+// ---------------------------------------------------------------- moteur
+const ECOL = { ctrl: "#ff6b5f", crank: "#9aa7b4", cyl: "#e3b25a", air: "#5fd4d4", exh: "#8a8a8a", fuel: "#d77fd0", gen: "#6cc792", deco: "#55606b" };
+const ENAME = { ctrl: "Diesel Engine Controller", crank: "Diesel Engine Crankshaft", cyl: "Diesel Engine Cylinder", air: "Diesel Engine Air Input", exh: "Diesel Engine Exhaust", fuel: "Diesel Engine Fuel Input", gen: "Diesel Engine Generator" };
+const EPRICE = { ctrl: 9000, crank: 4000, cyl: 4000, air: 4500, exh: 4500, fuel: 4500, gen: 6000 };
+function engine(v) {
+  // Blocs : x, y en cases (2 × 2) ; chaîne sur la ligne y = 2, côté « bas » y = 4, côté « haut » y = 0.
+  const b = [];
+  if (v === "32") {
+    const side = ["fuel", ...Array(32).fill("cyl"), "air", "exh"];
+    const k = Math.ceil(side.length / 2);
+    b.push({ t: "ctrl", x: 0, y: 2 });
+    for (let i = 0; i < k; i++) b.push({ t: "crank", x: 2 + 2 * i, y: 2 });
+    b.push({ t: "gen", x: 2 + 2 * k, y: 2 });
+    side.forEach((t, i) => b.push({ t, x: 2 + 2 * (i % k), y: i < k ? 4 : 0, todo: t === "air" || t === "exh" || t === "fuel" }));
+    return { b, cranks: k, todo: true };
+  }
+  b.push({ t: "ctrl", x: 0, y: 2 });
+  for (let i = 0; i < 8; i++) b.push({ t: "crank", x: 2 + 2 * i, y: 2 });
+  b.push({ t: "gen", x: 18, y: 2 });
+  const row = ["fuel", "cyl", "cyl", "cyl", "cyl", "cyl", "cyl", "air", "exh"];
+  const x0 = v === "6a" ? 0 : 2; // (a) carburant contre le contrôleur ; (b) échappement contre le générateur
+  row.forEach((t, i) => b.push({ t, x: x0 + 2 * i, y: 4 }));
+  return { b, cranks: 8, todo: false };
+}
+function renderEngine(v) {
+  const E = engine(v);
+  const units = v === "32" ? 1 : 2;
+  const ys = E.b.map((q) => q.y), y0 = Math.min(...ys), y1 = Math.max(...ys) + 2;
+  const xs = E.b.map((q) => q.x), w = Math.max(...xs) + 2, h1 = y1 - y0;
+  const H = h1 * units;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${w + 4} ${H + 4}" width="${(w + 4) * 14}" height="${(H + 4) * 14}"><rect x="-2" y="-2" width="${w + 4}" height="${H + 4}" fill="#1b222a"/>`;
+  for (let u = 0; u < units; u++) for (const q of E.b) {
+    const y = q.y - y0 + u * h1;
+    s += `<rect x="${q.x + .08}" y="${y + .08}" width="1.84" height="1.84" rx=".25" fill="${q.todo ? "none" : ECOL[q.t]}" stroke="${q.todo ? ECOL[q.t] : "none"}" stroke-width=".14" ${q.todo ? 'stroke-dasharray=".3 .2"' : ""}/>`;
+    if (q.todo) s += `<text x="${q.x + 1}" y="${y + 1.35}" font-size="1.1" text-anchor="middle" fill="${ECOL[q.t]}">?</text>`;
+  }
+  s += `<path d="M${w + .3},${(h1 / 2)} l1,0" stroke="#fff" stroke-width=".15"/><text x="${w + .2}" y="${h1 / 2 - .4}" font-size=".8" fill="#9aa7b4">devant</text>`;
+  s += "</svg>";
+  const cnt = {};
+  for (const q of E.b) cnt[q.t] = (cnt[q.t] ?? 0) + 1;
+  const cost = Object.entries(cnt).reduce((a, [k, q]) => a + q * EPRICE[k], 0) * units;
+  document.getElementById("eng-frame").innerHTML = s;
+  document.getElementById("eng-head").innerHTML = v === "32"
+    ? `<p class="mod-sum"><b>1 moteur diesel modulaire, 32 cylindres, rapport 14, accélérateur 59 %</b> : 1 contrôleur, ${E.cranks} vilebrequins (déduits : 35 blocs de côté, un par côté), 32 cylindres, 1 générateur — ${w} × ${h1} cases, au moins ${money(cost)}.</p><ul class="notices"><li>Entrées d'air, échappements, entrées de carburant et générateurs : <span class="todo">nombres à relever</span> (MOD-14). Le plan en pose un de chaque (le minimum du wiki), en pointillés.</li><li>Sens des blocs en jeu : <span class="todo">à relever</span> (MOD-17, champ « Devant » de l'éditeur de bâtiments). Le plan est dessiné contrôleur à gauche, « devant » vers la droite.</li></ul>`
+    : `<p class="mod-sum"><b>2 moteurs diesel modulaires, 6 cylindres, rapport 13</b> (montage simple du wiki) : par moteur 1 contrôleur, 8 vilebrequins, 6 cylindres, 1 entrée d'air, 1 échappement, 1 entrée de carburant, 1 générateur — ${w} × ${H} cases, ${money(cost)} (84 500 $ par moteur, comme le wiki).</p><ul class="notices"><li>${v === "6a" ? "Réponse (a) : l'entrée de carburant contre le côté du contrôleur" : "Réponse (b) : l'échappement contre le côté du générateur"} (9 blocs de côté pour 8 vilebrequins, question 1).</li><li>Sens des blocs en jeu : <span class="todo">à relever</span> (MOD-17). Ports du carburant et prise du générateur : <span class="todo">à relever</span> (MOD-10) ; pas de tuyau ni de câble dessinés.</li></ul>`;
+  document.getElementById("eng-details").innerHTML = `<details class="more" open><summary>Ordre de pose (par moteur)</summary><ol class="steps-list"><li>Pose le contrôleur.</li><li>Pose ${E.cranks} vilebrequins en ligne droite devant lui, puis le générateur au bout.</li><li>Pose les blocs de côté, dans l'ordre du dessin : entrée de carburant, cylindres, entrée d'air, échappement.</li><li>Règle le contrôleur : ${v === "32" ? "rapport 14, accélérateur 59 %" : "rapport 13, accélérateur 100 % (supposé, MOD-12)"}.</li><li>Amène le Refined Diesel à l'entrée de carburant ; relie le générateur au réseau.</li></ol></details>`;
+}
+
+// ---------------------------------------------------------------- branchements
+document.querySelectorAll("input[name=farmN]").forEach((r) => r.addEventListener("change", () => renderFarm(r.value)));
+document.querySelectorAll("input[name=eng]").forEach((r) => r.addEventListener("change", () => renderEngine(r.value)));
+document.getElementById("farm-rng").addEventListener("click", (e) => { const f = document.getElementById("farm-frame"); f.classList.toggle("show-rng"); e.target.textContent = f.classList.contains("show-rng") ? "Cacher les portées" : "Afficher les portées"; });
+renderFarm("91");
+renderEngine("6a");
+</script>
+</body>
+</html>

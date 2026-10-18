@@ -3,7 +3,7 @@
   "description": "Machines modulaires : règles d'assemblage (contact par face, portées), nombre de blocs et effets. Chaque valeur cite ses sources ; ce qui manque est « inconnu » et renvoie à une question de data/a-verifier.md (section Notes manuelles, MOD-xx). Écrit à la main (session S11), pas généré.",
   "writtenAt": "2026-10-16",
   "updatedAt": "2026-10-18",
-  "openQuestions": ["MOD-09", "MOD-10", "MOD-11", "MOD-12", "MOD-13", "MOD-14", "MOD-15", "MOD-16", "MOD-17"],
+  "openQuestions": ["MOD-09", "MOD-10", "MOD-11", "MOD-12", "MOD-13", "MOD-14", "MOD-15", "MOD-16"],
   "openQuestionsNote": "Questions de data/a-verifier.md encore ouvertes, en tout ou en partie : l'éditeur de bâtiments les signale (⚠). Les autres (MOD-01 à MOD-08) ont leur réponse dans les valeurs.",
   "units": {
    "case": "1 case = 2 studs = 1 Short Pipe (RELEVES.md)",
@@ -27,6 +27,8 @@
   "user-q9": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponse Q9 de PLAN-ACTION.md : la portée est circulaire (un rayon, pas un carré)" },
   "user-mod-2026-10-16": { "wiki": "utilisateur", "fetchedAt": "2026-10-16", "note": "réponses de l'utilisateur aux questions MOD-01 à MOD-16 (relevés et observations en jeu) : portées mesurées depuis le bord du bloc, en cases" },
   "user-s12-2026-10-18": { "wiki": "utilisateur", "fetchedAt": "2026-10-18", "note": "réponses de l'utilisateur à Q11 (PLAN-ACTION.md, session S12) : faces obligatoires d'après la lecture des wikis (maquette/modulaires.html, tableau 2 bis) ; « les flywheel se placent comme les crankshaft mais sans caractère obligatoire »" },
+  "user-s14-2026-10-18": { "wiki": "utilisateur", "fetchedAt": "2026-10-18", "note": "réponses de l'utilisateur à Q15 (PLAN-ACTION.md, session S14) : un bloc par côté de vilebrequin, des deux côtés ; l'entrée de carburant peut aller n'importe où ; la longueur du moteur ne change pas la puissance ; le sens d'un bloc ne pose jamais problème" },
+  "jeu-ports-2026-10-18": { "wiki": "jeu", "fetchedAt": "2026-10-18", "note": "export de l'éditeur de bâtiments du 2026-10-18 (corrections modulaires et ports), corrigé par l'utilisateur : le contrôleur porte des blocs de côté ; port fluide de la Fuel Input à gauche, case 2 ; l'entrée d'air n'a aucun port" },
   "jeu-ports-2026-10-16": { "wiki": "jeu", "fetchedAt": "2026-10-16", "note": "relevés de l'utilisateur dans l'éditeur de bâtiments, intégrés à data/ports.json" },
   "jeu-tree-01": { "wiki": "jeu", "fetchedAt": "2026-10-12T11:45:08.504Z", "note": "relevé en jeu de l'utilisateur, data/overrides.json (tree_01.durationS)" },
 
@@ -228,9 +230,10 @@
    "rules": [
     { "key": "order", "text": "Ligne principale : le contrôleur au bout, les vilebrequins en ligne devant lui, le générateur au bout de la chaîne.", "value": ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-generator"], "status": "sourcé", "sources": ["mh-mde", "mh-mde-controller", "mh-mde-generator", "fd-mde"] },
     { "key": "optionalInLine", "text": "Le volant (Flywheel) se place comme un vilebrequin, dans la ligne, sans être obligatoire.", "value": ["diesel-engine-flywheel"], "status": "sourcé", "sources": ["user-s12-2026-10-18"] },
-    { "key": "frontEdge", "text": "Sur le relevé d'un bloc (posé sans rotation), quel bord regarde devant, dans le sens de la chaîne ? Un champ de l'éditeur de bâtiments l'attend, bloc par bloc.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-17" },
+    { "key": "frontEdge", "text": "Le sens d'un bloc (quel bord regarde devant) ne pose jamais problème en jeu : rien à relever (l'entrée d'air, par exemple, se pose des deux côtés d'un vilebrequin).", "value": "sans importance", "status": "sourcé", "sources": ["user-s14-2026-10-18", "jeu-ports-2026-10-18"] },
+    { "key": "lengthNoEffect", "text": "La longueur du moteur (nombre de vilebrequins) ne change pas la puissance : le plan de pose prend le moins de vilebrequins possible.", "value": true, "status": "sourcé", "sources": ["user-s14-2026-10-18"] },
     { "key": "straightChain", "text": "Les vilebrequins ne se relient qu'en ligne droite, ni de côté, ni en diagonale.", "value": true, "status": "sourcé", "sources": ["mh-mde-crankshaft"] },
-    { "key": "sideMounted", "text": "Tous les blocs sauf le contrôleur et le générateur se posent sur un côté d'un vilebrequin.", "value": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"], "status": "sourcé", "sources": ["mh-mde", "fd-mde-crankshaft"] },
+    { "key": "sideMounted", "text": "Tous les blocs sauf le contrôleur et le générateur se posent sur un côté d'un vilebrequin.", "value": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"], "status": "sourcé", "sources": ["mh-mde", "fd-mde-crankshaft", "jeu-ports-2026-10-18"], "note": "Le contrôleur porte aussi ces blocs sur ses côtés (relevé du 2026-10-18)." },
     { "key": "oneSideOnly", "text": "On peut tout poser d'un seul côté des vilebrequins : le moteur reste étroit (montage simple du wiki).", "value": true, "status": "sourcé", "sources": ["mh-mde", "fd-mde"] },
     { "key": "fuelQuality", "text": "La qualité du diesel ne change pas la puissance, seulement la consommation (meilleure qualité : moins de carburant).", "value": null, "status": "sourcé", "sources": ["mh-mde", "mh-mde-fuel", "fd-mde-fuel"] },
     { "key": "settings", "text": "Deux réglages sur le contrôleur : rapport air/carburant (défaut 14) et accélérateur (défaut 100 %).", "value": { "airFuelDefault": 14, "throttleDefault": 100 }, "status": "sourcé", "sources": ["mh-mde-controller", "fd-mde-controller"] },
@@ -243,7 +246,7 @@
      "role": "Cerveau du moteur ; porte les réglages.",
      "facts": [
       { "key": "count", "text": "Un seul par moteur ; plusieurs cassent le moteur.", "value": { "min": 1, "max": 1 }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "fd-mde"] },
-      { "key": "faces", "text": "Au bout du moteur : les vilebrequins se posent devant lui ; il ne se pose pas sur un côté. Un vilebrequin de côté peut aussi partir d'un de ses côtés.", "value": { "front": ["diesel-engine-crankshaft", "diesel-engine-flywheel"], "side": ["diesel-engine-crankshaft-sideways"], "back": [] }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "mh-mde-sideways", "user-s12-2026-10-18"] },
+      { "key": "faces", "text": "Au bout du moteur : les vilebrequins se posent devant lui ; il ne se pose pas sur un côté. Ses côtés portent les mêmes blocs que ceux d'un vilebrequin (relevé du 2026-10-18), ou un vilebrequin de côté.", "value": { "front": ["diesel-engine-crankshaft", "diesel-engine-flywheel"], "side": ["diesel-engine-crankshaft-sideways", "diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration"], "back": [] }, "status": "sourcé", "sources": ["mh-mde-controller", "mh-mde", "mh-mde-sideways", "user-s12-2026-10-18", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Devant obligatoire : la ligne de vilebrequins part de lui. Ses côtés sont facultatifs (un Crankshaft Sideways peut y démarrer une 2ᵉ ligne).", "value": {"front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-controller", "mh-mde"] },
       { "key": "spacing", "text": "Deux moteurs complets peuvent se coller : un joueur en a posé plusieurs à la suite (observation rapportée par l'utilisateur). Le Fandom signalait un bogue quand deux contrôleurs sont trop proches, sans donner de distance.", "value": 0, "unit": "cases", "status": "contradiction", "sources": ["user-mod-2026-10-16"], "alternatives": [ { "value": "distance non nulle, non chiffrée", "sources": ["fd-mde-controller"] } ], "question": "MOD-13" }
      ]
@@ -254,7 +257,7 @@
      "facts": [
       { "key": "faces", "text": "Un côté plat et trois côtés à tiges. Le côté plat se tourne vers le contrôleur (ou vers le vilebrequin précédent) ; la tige de devant reçoit le vilebrequin suivant ou le générateur ; les deux tiges latérales reçoivent les blocs de côté.", "value": { "back": ["diesel-engine-controller", "diesel-engine-crankshaft", "diesel-engine-flywheel"], "front": ["diesel-engine-crankshaft", "diesel-engine-generator", "diesel-engine-flywheel"], "side": ["diesel-engine-cylinder", "diesel-engine-air-input", "diesel-engine-exhaust", "diesel-engine-fuel-input", "diesel-engine-info-panel", "diesel-engine-decoration", "diesel-engine-crankshaft-sideways"] }, "status": "sourcé", "sources": ["mh-mde-crankshaft", "mh-mde", "fd-mde-crankshaft", "mh-img-mde-setup", "user-s12-2026-10-18"], "note": "Lecture des textes et du schéma MDESetup ; l'orientation exacte (quelle face est « plate ») est à confirmer. Le volant se place comme un vilebrequin (réponse du 2026-10-18).", "question": "MOD-11" },
       { "key": "facesRequired", "text": "Derrière et devant obligatoires (chaîne contrôleur → vilebrequins → générateur) ; côtés facultatifs. Le premier vilebrequin d'une 2ᵉ ligne, parti d'un Crankshaft Sideways, n'a rien derrière lui : à confirmer.", "value": {"back": true, "front": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-crankshaft", "mh-mde"], "question": "MOD-11" },
-      { "key": "sideCapacity", "text": "Combien de blocs de côté un vilebrequin porte-t-il (un par côté, soit deux) ?", "value": null, "status": "inconnu", "sources": [], "question": "MOD-11" }
+      { "key": "sideCapacity", "text": "Un bloc de côté (2 × 2) par côté, soit deux par vilebrequin, un de chaque côté.", "value": { "perSide": 1, "perCrankshaft": 2 }, "status": "sourcé", "sources": ["user-s14-2026-10-18"] }
      ]
     },
     {
@@ -270,7 +273,7 @@
      "id": "diesel-engine-cylinder",
      "role": "Seul bloc qui brûle le carburant ; donne le couple.",
      "facts": [
-      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-cylinder", "fd-mde-cylinder"] },
+      { "key": "faces", "text": "Sur un côté de vilebrequin ou du contrôleur.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller"] }, "status": "sourcé", "sources": ["mh-mde-cylinder", "fd-mde-cylinder", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Posé contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-cylinder"] },
       { "key": "torquePerCylinderMT", "text": "Fandom : un cylindre donne 39,87 MT (39,8666…).", "value": 39.8667, "unit": "MT", "status": "sourcé", "sources": ["fd-mde-cylinder"], "note": "Sans précision sur le rapport air/carburant ni l'accélérateur ; le tableau Miraheze donne un couple qui varie avec le rapport (199 à 319 MT pour 6 cylindres)." },
       { "key": "exhaustPerCylinder", "text": "Fandom (panneau de débogage) : chaque cylindre ajoute 100 au maximum d'échappement.", "value": 100, "status": "sourcé", "sources": ["fd-mde-cylinder"] },
@@ -282,7 +285,7 @@
      "id": "diesel-engine-air-input",
      "role": "Admission d'air.",
      "facts": [
-      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air"] },
+      { "key": "faces", "text": "Sur un côté de vilebrequin ou du contrôleur.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller"] }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Posée contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-air"] },
       { "key": "count", "text": "Au moins une ; les gros moteurs (plus de 400 MT) peuvent en demander plusieurs. Fandom : une entrée d'air suffit pour 6 cylindres.", "value": { "min": 1, "cylindersPerInput": 6 }, "status": "sourcé", "sources": ["mh-mde-air", "fd-mde-air"], "question": "MOD-14" },
       { "key": "debugAir", "text": "Fandom (panneau de débogage) : l'air est compté sur 3 000 par entrée d'air.", "value": 3000, "status": "sourcé", "sources": ["fd-mde-debug"] },
@@ -293,7 +296,7 @@
      "id": "diesel-engine-exhaust",
      "role": "Évacue les gaz ; émet la pollution.",
      "facts": [
-      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-exhaust", "fd-mde-exhaust"] },
+      { "key": "faces", "text": "Sur un côté de vilebrequin ou du contrôleur.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller"] }, "status": "sourcé", "sources": ["mh-mde-exhaust", "fd-mde-exhaust", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Posé contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-exhaust"] },
       { "key": "count", "text": "Au moins un ; « rarement plus d'un » selon la page d'ensemble, mais les gros moteurs (plus de 400 MT) peuvent en demander plusieurs.", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-exhaust", "mh-mde", "fd-mde-exhaust"], "question": "MOD-14" },
       { "key": "debugExhaust", "text": "Fandom (panneau de débogage) : l'échappement est compté sur 600 par échappement.", "value": 600, "status": "sourcé", "sources": ["fd-mde-debug"] }
@@ -303,12 +306,13 @@
      "id": "diesel-engine-fuel-input",
      "role": "Entrée de carburant (fluide).",
      "facts": [
-      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel"] },
+      { "key": "faces", "text": "Sur un côté de vilebrequin ou du contrôleur.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller"] }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Posée contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-fuel"] },
       { "key": "fuels", "text": "Accepte Crude Diesel, Poor Quality Diesel, Diesel et Refined Diesel.", "value": ["crude-diesel", "poor-quality-diesel", "diesel", "refined-diesel"], "status": "sourcé", "sources": ["mh-mde-fuel"] },
       { "key": "capacityL", "text": "Contenance.", "value": 3, "unit": "L", "status": "sourcé", "sources": ["mh-mde-fuel"] },
       { "key": "count", "text": "Au moins une ; les gros moteurs en demandent plusieurs (seuil non donné).", "value": { "min": 1 }, "status": "sourcé", "sources": ["mh-mde-fuel", "fd-mde-fuel"], "question": "MOD-14" },
-      { "key": "fluidPort", "text": "Position du port fluide.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-10" }
+      { "key": "fluidPort", "text": "Port fluide à gauche, case 2 (data/ports.json).", "value": { "side": "gauche", "cell": 2 }, "status": "sourcé", "sources": ["jeu-ports-2026-10-18"] },
+      { "key": "placement", "text": "Peut aller n'importe où contre un côté de l'ensemble (vilebrequin ou contrôleur).", "value": "libre", "status": "sourcé", "sources": ["user-s14-2026-10-18"] }
      ]
     },
     {
@@ -340,7 +344,7 @@
      "id": "diesel-engine-info-panel",
      "role": "Affiche l'état du moteur ; facultatif.",
      "facts": [
-      { "key": "faces", "text": "Sur un côté de vilebrequin.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-panel", "fd-mde-panel"] },
+      { "key": "faces", "text": "Sur un côté de vilebrequin ou du contrôleur.", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller"] }, "status": "sourcé", "sources": ["mh-mde-panel", "fd-mde-panel", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Posé contre le côté d'un vilebrequin : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-panel"] },
       { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde"] },
       { "key": "fuelReading", "text": "Fandom : la consommation affichée (L/s) doit être multipliée par le rapport air/carburant pour obtenir la vraie consommation.", "value": null, "status": "sourcé", "sources": ["fd-mde-panel"], "question": "MOD-12" }
@@ -350,7 +354,7 @@
      "id": "diesel-engine-decoration",
      "role": "Cache les tiges libres des vilebrequins ; facultatif.",
      "facts": [
-      { "key": "faces", "text": "Sur un côté de vilebrequin resté libre.", "value": { "side": ["diesel-engine-crankshaft"] }, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde"] },
+      { "key": "faces", "text": "Sur un côté resté libre (vilebrequin ou contrôleur).", "value": { "side": ["diesel-engine-crankshaft", "diesel-engine-controller"] }, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde", "jeu-ports-2026-10-18"] },
       { "key": "facesRequired", "text": "Posée contre le côté d'un vilebrequin resté libre : obligatoire.", "value": {"side": true}, "status": "sourcé", "sources": ["user-s12-2026-10-18", "mh-mde-decoration"] },
       { "key": "required", "text": "Pas nécessaire au fonctionnement.", "value": false, "status": "sourcé", "sources": ["mh-mde-decoration", "mh-mde"] }
      ]
@@ -381,7 +385,7 @@
      "status": "contradiction",
      "sources": ["mh-mde", "mh-img-mde-setup"],
      "alternatives": [ { "value": { "powerMFps": 1380000, "fuelLps": 0.086 }, "sources": ["fd-mde"] } ],
-     "note": "Prix vérifié : 9 000 + 8 × 4 000 + 6 × 4 000 + 3 × 4 500 + 6 000 = 84 500 $. Sur MDESetup, la ligne de côté est : entrée de carburant, 6 cylindres, entrée d'air ; l'échappement est au bout, près du générateur."
+     "note": "Prix vérifié : 9 000 + 8 × 4 000 + 6 × 4 000 + 3 × 4 500 + 6 000 = 84 500 $. Sur MDESetup, la ligne de côté est : entrée de carburant, 6 cylindres, entrée d'air ; l'échappement est au bout, près du générateur. La ligne de côté compte 9 blocs pour 8 vilebrequins : l'entrée de carburant est contre le côté du contrôleur (réponse de l'utilisateur, 2026-10-18)."
     },
     {
      "id": "32-cylinders",
@@ -418,7 +422,7 @@
    },
    "rules": [
     { "key": "order", "text": "Ordre de la chaîne.", "value": ["turbine-input", "high-pressure-turbine", "intermediate-pressure-turbine", "low-pressure-turbine", "turbine-generator", "turbine-output"], "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt"] },
-    { "key": "frontEdge", "text": "Sur le relevé d'un bloc (posé sans rotation), quel bord regarde devant, vers la Turbine Output ? Un champ de l'éditeur de bâtiments l'attend, bloc par bloc.", "value": null, "status": "inconnu", "sources": [], "question": "MOD-17" },
+    { "key": "frontEdge", "text": "Le sens d'un bloc ne pose jamais problème en jeu : rien à relever.", "value": "sans importance", "status": "sourcé", "sources": ["user-s14-2026-10-18"] },
     { "key": "powerPlant", "text": "Doit être relié par câble de données à une Coal Power Plant ou une Nuclear Power Plant pour être synchronisé et produire.", "value": ["coal-power-plant", "nuclear-power-plant"], "status": "sourcé", "sources": ["mh-mt", "mh-mt-generator", "fd-mt"] },
     { "key": "steam", "text": "Prend de la High Pressure Steam (Heat Exchanger) et rend de la Low Pressure Steam (vers un Steam Condenser).", "value": { "in": "high-pressure-steam", "out": "low-pressure-steam" }, "status": "sourcé", "sources": ["mh-mt", "mh-mt-output", "fd-mt-output"] },
     { "key": "flowLps", "text": "Accepte jusqu'à 24 kL/s ; en dessous de 6 kL/s, presque impossible à synchroniser.", "value": { "max": 24000, "practicalMin": 6000 }, "unit": "L/s", "status": "sourcé", "sources": ["mh-mt", "fd-mt"] },

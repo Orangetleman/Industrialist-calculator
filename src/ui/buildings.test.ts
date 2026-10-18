@@ -76,15 +76,13 @@ describe("éditeur de bâtiments", () => {
     expect(parseSurveys({ machines: { tree: { ...tree, noPorts: true } } })!.tree!.noPorts).toBe(true);
   });
 
-  it("les relevés des données passent les contrôles de l'éditeur (sauf ceux signalés incomplets)", () => {
+  it("les relevés des données passent les contrôles de l'éditeur", () => {
     const repo = portsJson as unknown as PortsFile;
+    // Truck Depot, petit silo et Tree Farm Sprinkler : « sans prise » confirmé par l'export du 2026-10-18.
+    // Diesel Engine Fuel Input : port reporté depuis le relevé de l'entrée d'air, prise pas encore relevée.
     for (const [id, e] of Object.entries(repo.machines)) {
-      const problems = checkEntry(e);
-      // Truck Depot et petit silo : ni prise relevée ni « sans prise » coché (le wiki laisse
-      // « PowerInput » vide) : en attente de confirmation en jeu.
-      // Tree Farm Sprinkler : relevé du 2026-10-16 sans prise ni « sans prise » : à confirmer.
-      if (id === "truck-depot" || id === "small-item-storage-silo" || id === "tree-farm-sprinkler") expect(problems, id).toEqual([expect.stringMatching(/pas de prise électrique/)]);
-      else expect(problems, id).toEqual([]);
+      if (id === "diesel-engine-fuel-input") expect(checkEntry(e), id).toEqual([expect.stringMatching(/pas de prise électrique/)]);
+      else expect(checkEntry(e), id).toEqual([]);
     }
   });
 

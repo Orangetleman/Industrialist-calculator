@@ -617,6 +617,7 @@ chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »)
   Input (deux, sur les côtés d'après le wiki), sortie de la Turbine Output, nœuds électrique et de
   données du Turbine Generator.
   → **Réponse du 2026-10-16** : ports de la ferme relevés (data/ports.json) : sortie d'Oak Logs en bas case 2, entrée d'eau du réservoir en bas case 2, prise du contrôleur sur le dessus ; arbre, récolteur et arroseur sans port. Restent : la prise de l'arroseur (non cochée), et les ports du moteur diesel et de la turbine.
+  → **Export du 2026-10-18 (S14)**, corrigé par l'utilisateur : l'arroseur n'a pas de prise ; le contrôleur du moteur n'a ni port ni prise ; l'entrée d'air n'a aucun port ; l'entrée de carburant a son port fluide à gauche, case 2 (sa prise n'est pas relevée). Restent : la prise du générateur du moteur, celle de l'entrée de carburant, et les ports de la turbine.
 
 **Moteur diesel (Tier II)**
 
@@ -627,10 +628,14 @@ chiffré. La méthode de relevé est dans RELEVES.md (« Machines modulaires »)
   devant le contrôleur, entre vilebrequins ou avant le générateur), sans face obligatoire. Restent :
   ses côtés portent-ils des blocs ? Le premier vilebrequin d'une 2ᵉ ligne (parti d'un Crankshaft
   Sideways) n'a rien derrière lui : « derrière obligatoire » ne vaut-il que pour la 1ʳᵉ ligne ?
+  → **Réponse du 2026-10-18 (S14)** : un bloc de côté par côté de vilebrequin, des deux côtés ; le
+  contrôleur porte aussi des blocs de côté (relevé) ; l'entrée de carburant peut aller n'importe où ;
+  la longueur du moteur ne change pas la puissance. Restent : les côtés du volant, et la 2ᵉ ligne.
 - **MOD-17** **Orientation des blocs par contact** (S12) : sur la capture vue de dessus d'un bloc
   posé sans rotation (celle de son relevé), quel bord regarde « devant », dans le sens de la chaîne
   (vers le générateur, ou vers la Turbine Output) ? Un champ « Devant, sur la grille du relevé »
   l'attend dans l'éditeur de bâtiments ; il servira aux plans de pose (S14).
+  → **Réponse du 2026-10-18 (S14)** : le sens ne pose jamais problème ; le champ est retiré. Close.
 - **MOD-12** **Formule** de la puissance et de la consommation selon le nombre de cylindres, le
   rapport air/carburant et l'accélérateur : le wiki n'a que des tableaux (6 cylindres de 10 à 16)
   et des exemples (6 et 32 cylindres). Le gain du volant n'est pas chiffré. La consommation

@@ -75,7 +75,9 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S12 | Modulaires (2/4) : éditeur des blocs (voisins par face, portées) | grosse | S11 | ✅ fait (voir § 6) |
 | S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | ✅ fait (voir § 6) |
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | à faire |
-| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14 | à faire |
+| S18 | Moteur diesel : relevés de configuration, consommation selon le carburant, réglages du contrôleur | moyenne | S14 | à faire |
+| S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | à faire |
+| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18, S19 | à faire |
 | S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
 
@@ -501,6 +503,25 @@ Les quatre sessions :
 
 Questions : Q9.
 
+### S18 — Moteur diesel : configurations relevées et carburant
+
+Demandé pendant S14 (Q15). Le calcul ne connaît que les 8 configurations relevées (tableau du
+contrôleur à 6 cylindres, 32 cylindres) ; il n'existe pas de formule (MOD-12).
+- Dans l'éditeur, un relevé de configuration : cylindres, rapport air/carburant, accélérateur,
+  carburant → puissance et consommation lues sur l'Info Panel ; gardé et exporté comme les autres.
+- Le calcul choisit parmi les configurations relevées, selon le besoin et le carburant (le carburant
+  change la consommation, pas la puissance) ; les réglages du contrôleur s'affichent dans le plan.
+- Les blocs suivent ce dont l'ensemble dispose (plan de pose S14).
+- Une formule déduite seulement à la demande, quand les relevés suffisent, affichée « déduite ».
+
+Maquette d'abord.
+
+### S19 — Éditeur de bâtiments simplifié
+
+Demandé pendant S14 (Q15) : relever les ports directement dans la grille, avec une case sur chaque
+face pour ce qu'elle accueille (blocs modulaires), et retirer les informations qui ne servent pas au
+joueur. Maquette d'abord.
+
 ### S16 — Plan : le site en anglais, et une forme présentable à la communauté
 
 Retour : R11. **Ce lot écrit un plan, il ne code rien** (une maquette si elle aide à décider).
@@ -690,6 +711,49 @@ Questions : Q14.
   - Partager un montage : par un lien, par un fichier ?
   - « Burger » : un bouton qui ouvre un panneau latéral de machines, ou un menu au clic droit ?
   - De Mindustry, imiter le tracé seulement, ou aussi l'aspect ?
+- **Q15 (S14), plans de pose des modulaires.** Maquette `maquette/modulaires-pose.html` (dessins
+  calculés avec les règles de `modular.json`).
+  1. Moteur, montage simple : le wiki compte 8 vilebrequins mais 9 blocs de côté (carburant,
+     6 cylindres, air, échappement). Sur l'image MDESetup, la rangée de côté dépasse d'un bloc :
+     (a) l'entrée de carburant contre le côté du contrôleur, ou (b) l'échappement contre le côté du
+     générateur ? (MOD-11)
+  2. Un bloc de côté (2 × 2) par côté de vilebrequin, donc deux au plus par vilebrequin ?
+  3. 32 cylindres : 18 vilebrequins, cylindres des deux côtés, une entrée d'air, un échappement,
+     une entrée de carburant et un générateur en pointillés « à relever » (MOD-14) ; les
+     vilebrequins « déduits du plan » entrent dans la liste et le prix. Ou tout d'un côté
+     (35 vilebrequins) ?
+  4. Ferme : carrés de 7 × 7 emplacements autour de chaque arroseur, récolteurs dans les trous des
+     coins, contrôleur au plus près du centre, sorties et réservoirs là où les portées les touchent.
+     Une ferme tient au plus 586 arbres ; au-delà, plusieurs fermes écartées (le cercle d'un
+     contrôleur ne touche aucun bloc de l'autre). D'accord ?
+  5. Calcul : les blocs de la ferme suivent le plan (nombre de fermes donc de contrôleurs,
+     récolteurs et sorties placés) dans la liste de construction, le prix et « Comment c'est
+     calculé » ? Arroseurs et réservoirs restent au plus juste.
+  6. « Toute l'usine » : la place réservée (12 × 12 cases) prend la taille réelle de la ferme et des
+     moteurs, et un clic ouvre leur plan dans le panneau ? Les mesures de référence changent pour les
+     plans avec du bois (Crankshaft : environ 61 arbres).
+  7. As-tu relevé le bord « devant » des blocs du moteur (MOD-17) ou ses ports (MOD-10) ? Sinon le
+     plan dit « à relever ».
+
+  Réponses (2026-10-18) : 1 (a), « mais j'espérais un calculateur qui prend les stats de chaque
+  bout du module pour faire la config la plus optimisée », et les moteurs de la maquette étaient
+  trop serrés pour mettre des cylindres des deux côtés ; 2 oui ; 3 des deux côtés ; 4 oui ; 5 « pas
+  exactement » : la sortie est coincée entre plusieurs structures, il lui faut un passage pour
+  évacuer les Oak Logs par tuyau, et il faut prendre en compte la portée des poteaux électriques
+  jusqu'au contrôleur, donc la place des poteaux si ceux à grande portée ne sont pas débloqués ;
+  6 oui ; 7 pas compris, et la configuration du moteur devrait se calculer selon le besoin et le
+  carburant ; 8 l'éditeur devrait relever les ports directement dans la grille, avec une case sur
+  chaque face pour ce qu'elle accueille ; trop d'informations inutiles ; le champ « Devant » ne sert
+  à rien. Avec un export de relevés à intégrer.
+
+  Suite (2026-10-18) : l'entrée de carburant peut aller n'importe où ; la Logic Item Pipe Valve a
+  des ports objet (erreur de relevé) ; l'entrée d'air n'a aucun port (le port relevé était celui de
+  la Diesel Engine Fuel Input, en fluide). Moteur : « base-toi sur les stats du tableau » ; le
+  carburant change la consommation, pas la puissance ; tout se règle dans le panneau du contrôleur,
+  selon les blocs de l'ensemble. Oui au choix parmi les configurations relevées, oui au relevé de
+  configuration dans l'éditeur, d'accord pour une formule plus tard (à la demande). La longueur
+  (nombre de vilebrequins) ne change pas la puissance. Ferme : compris juste ; les poteaux HV ne
+  s'utilisent pas directement (il faut un transformateur).
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -738,6 +802,13 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S13 Ferme | L'étape Oak Log est une ferme : arbres, 1 arroseur / 44 arbres, 1 réservoir / 3 arroseurs, 1 récolteur / 22 arbres (guide, en attendant MOD-09), 1 contrôleur, 1 sortie ; eau (33 L / 33,33 s par arroseur) et électricité (200 kMF par arbre coupé) comptées. Une seule ferme jusqu'à S14. | 2026-10-18 |
 | S13 Moteur | Seules les configurations relevées entrent dans le calcul : 6 cylindres rapport 10 à 16 (blocs du montage simple, accélérateur supposé 100 %) et 32 cylindres rapport 14 à 59 %, avec sa liste de blocs incomplète (« à relever », MOD-14). Refined Diesel seulement. | 2026-10-18 |
 | S13 Turbine | Hors du calcul, marquée « non fiable » (éditeur, centrales non calculées). Maquette texte validée : section « Calcul » sous « Ensemble modulaire », bloc « Ferme d'arbres » dans le schéma. | 2026-10-18 |
+| S14 Moteur | Montage simple : l'entrée de carburant contre le côté du contrôleur (réponse (a)) ; le contrôleur porte aussi des blocs de côté (relevé du 2026-10-18). Un bloc par côté de vilebrequin, des deux côtés ; 32 cylindres des deux côtés. Moteurs voisins écartés pour garder leurs deux côtés libres. | 2026-10-18 |
+| S14 Devant | Le champ « Devant, sur la grille du relevé » est retiré : le sens d'un bloc ne pose jamais problème (MOD-17 close ; l'entrée d'air se pose des deux côtés d'un vilebrequin). | 2026-10-18 |
+| S14 Ferme | Disposition de la maquette validée (carrés de 7 × 7, récolteurs dans les trous, plusieurs fermes écartées au-delà de la limite). « Toute l'usine » : place réelle de la ferme et des moteurs, clic → leur plan. À ajouter : un passage pour le tuyau de chaque sortie, et la place des poteaux qui alimentent le contrôleur selon les poteaux débloqués. | 2026-10-18 |
+| S14 Longueur | La longueur du moteur ne change pas la puissance : le plan prend le moins de vilebrequins possible (blocs de côté des deux côtés, contrôleur compris), et le calcul compte les blocs du plan (6 cylindres : 4 vilebrequins au lieu de 8). | 2026-10-18 |
+| S14 Poteaux | Le contrôleur est alimenté par une chaîne de poteaux placés dans la ferme (place réservée), du bord jusqu'à sa prise ; choix du poteau dans le plan (le moins cher qui porte la ferme par défaut). Le poteau HV n'est pas proposé (il faut un transformateur). Chaque sortie et chaque réservoir garde un passage libre jusqu'au bord pour son tuyau. | 2026-10-18 |
+| S14 Lots | Le choix de configuration du moteur (relevés de configuration, consommation selon le carburant, panneau du contrôleur selon les blocs) devient le lot S18 ; l'éditeur simplifié (ports dans la grille, une case par face) le lot S19. Une formule du moteur sera cherchée à la demande, quand les relevés suffiront. | 2026-10-18 |
+| S14 Relevés | Export du 2026-10-18 intégré à `data/ports.json` : 46 bâtiments ajoutés (pièces de tuyau, vannes, Plastic Refinery, Plastic Production Facility, Large Diesel Engine, Industrial Firebox, Cold Bypass Pipe, entrée d'air et contrôleur du moteur), Steam Cracking Plant remplacée (relevé plus récent), « sans prise » confirmé pour le Truck Depot, le petit silo et l'arroseur. | 2026-10-18 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions

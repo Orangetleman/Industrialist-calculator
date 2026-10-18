@@ -154,6 +154,7 @@
     { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
    ],
    "notes": "Ports en « les deux » (stockage : entrée et sortie) ; l'éditeur ne proposait pas encore ce sens. Relevés tous « sortie » dans l'export.",
+   "noPower": true,
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:54:55.743Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
   },
   "truck-depot": {
@@ -161,6 +162,7 @@
    "ports": [
     { "type": "objet", "direction": "entrée", "side": "haut", "cell": 8 }
    ],
+   "noPower": true,
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-12T09:56:52.922Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
   },
   "bottling-plant": {
@@ -321,13 +323,13 @@
   "steam-cracking-plant": {
    "footprint": { "w": 8, "h": 8 },
    "ports": [
-    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "crude oil" },
-    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 2, "tip": "paraxylène" },
-    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 3, "tip": "éthylène" },
-    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 5, "tip": "steam" },
-    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [8, 6] }
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input for Crude Oil/Light Oil/Heavy Oil/Naphta" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 5, "tip": "Steam input. Hotter steam= faster reaction speed" },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 2 },
+    { "type": "fluide", "direction": "sortie", "side": "bas", "cell": 3 },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [8, 6.5] }
    ],
-   "source": { "wiki": "jeu", "fetchedAt": "2026-10-15T18:26:35.558Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments" }
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:46:38.423Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
   },
   "advanced-assembler": {
    "footprint": { "w": 12, "h": 6 },
@@ -427,6 +429,7 @@
    "footprint": { "w": 4, "h": 4 },
    "ports": [],
    "noPorts": true,
+   "noPower": true,
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T18:15:07.258Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-16)" }
   },
   "tree": {
@@ -459,6 +462,516 @@
    "noPorts": true,
    "notes": "Pas de prise : le récolteur prend son électricité au Tree Farm Controller qui l'a dans sa portée. Pas de port : il dépose les Oak Logs dans une Tree Farm Output à sa portée.",
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T20:00:00Z", "note": "réponse de l'utilisateur du 2026-10-16 (pas de prise électrique) ; taille 8 × 8 du wiki ; « Output: None » sur Miraheze" }
+  },
+  "plastic-refinery": {
+   "footprint": { "w": 10, "h": 14 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 9, "tip": "Water or Acetic Acid (depends on recipe)" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 8, "tip": "Crude Oil or Paraxylene (depends on recipe)" },
+    { "type": "fluide", "direction": "sortie", "side": "droite", "cell": 13, "tip": "Outputs Ethanol or PTA depending on inputs" },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [10, 14] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T19:35:34.094Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "plastic-production-facility": {
+   "footprint": { "w": 8, "h": 15 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 6, "tip": "Input for MEG" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 4, "tip": "Input for PTA" },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 2, "tip": "Output Plastic pellets. Can then be used in a PlasticMolder to turn into something more useful." },
+    { "type": "énergie", "direction": "entrée", "side": "dessus", "cell": [1, 2.5] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-16T19:39:40.852Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-diesel-engine": {
+   "footprint": { "w": 8, "h": 14 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 8, "tip": "Input for Machine Oil" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 6, "tip": "Input for Water or Filtered/Distilled Water boost power production" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 4, "tip": "Input for Diesel Variants" },
+    { "type": "énergie", "direction": "sortie", "side": "dessus", "cell": [5.5, 13] }
+   ],
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:01:52.828Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "industrial-firebox": {
+   "footprint": { "w": 4, "h": 9 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input for Solid Fuels, each has a specific Energy content" },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output for burnt items (for exemple sodium carbonate)" },
+    { "type": "fluide", "direction": "entrée", "side": "droite", "cell": 8, "tip": "Input for Water/Liquid Sulfur, each requiring a specific Energy amount to burn" },
+    { "type": "fluide", "direction": "sortie", "side": "droite", "cell": 2, "tip": "Output for Water/Burnt things" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:09:27.098Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "cold-bypass-pipe": {
+   "footprint": { "w": 1, "h": 3 },
+   "ports": [
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output if temperature is above or equal to set temperature" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "sortie", "side": "droite", "cell": 2, "tip": "Bypass if temperature is below set temperature" },
+    { "type": "fluide", "direction": "sortie", "side": "gauche", "cell": 2, "tip": "Bypass if temperature is below set temperature" }
+   ],
+   "noPower": true,
+   "notes": "Dispose d'une interface de configuration. \"Temperature below wich the fluid will be bypassed : [nombre]\".",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:17:54.628Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-and-item-intersection": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:19:27.904Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-intersection": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1 }
+   ],
+   "noPower": true,
+   "notes": "peut transporter deux flux différents",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:20:53.287Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-junction": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:21:08.497Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-junction2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:21:20.025Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-section": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "notes": "peut transporter qu'un seul flux",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:22:15.669Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-section2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1 }
+   ],
+   "noPower": true,
+   "notes": "peut transporter qu'un seul flux",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:22:13.374Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-turn": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:22:44.146Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe-turn2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:22:53.841Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "fluid-pipe2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:23:52.663Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 2, "tip": "Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Input 2/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:26:47.916Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-conversion": {
+   "footprint": { "w": 4, "h": 4 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 3 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 4 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 3 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 4 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 4 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 3 },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 2, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 3, "tip": "Input/Output 2/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:26:13.289Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-fluid-passthrough": {
+   "footprint": { "w": 2, "h": 4 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 3 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 3 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 2, "tip": "Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Input 2/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:29:34.683Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-intersection": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 2, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 2, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "notes": "peut transporter deux flux différents",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:34:13.078Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-item-passthrough": {
+   "footprint": { "w": 2, "h": 4 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 2 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 3 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 2 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 3 },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Input 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 2, "tip": "Output 2/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:38:44.745Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-junction": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 2, "tip": "Input/Output 1/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:40:10.825Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-section": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 1, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 2, "tip": "Input/Output 1/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "notes": "Ne dispose que d'un seul port.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:17:27.258Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "large-fluid-pipe-turn": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 2, "tip": "Input/Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 2, "tip": "Input/Output /2 large fluid pipe" },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 1, "tip": "Input/Output 1/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:25:54.450Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "logic-fluid-pipe-valve": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "logique", "direction": "entrée", "side": "dessus", "cell": [2, 2] },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:26:34.780Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "logic-item-pipe-valve": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "logique", "direction": "entrée", "side": "dessus", "cell": [2, 2] },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:26:49.943Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18), corrigé par l'utilisateur le 2026-10-18" },
+   "notes": "Ports relevés « fluide » par erreur dans l'export : ce sont des ports objet (correction de l'utilisateur)."
+  },
+  "long-fluid-pipe2": {
+   "footprint": { "w": 1, "h": 4 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:30:30.074Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "long-large-fluid-pipe": {
+   "footprint": { "w": 2, "h": 4 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Input 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 2, "tip": "Output 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output 1/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:31:33.194Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "long-pipe2": {
+   "footprint": { "w": 1, "h": 4 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:31:51.336Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-intersection": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "notes": "Deux flux d'objets disponibles",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:32:49.921Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-junction": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:33:21.018Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-junction2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:33:30.115Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-section": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "notes": "un seul flux disponible",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:33:51.589Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-section2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "notes": "Un seul flux disponible",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:34:12.419Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-turn": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:34:22.928Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-turn2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 1 },
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:34:34.414Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe-value": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 2 },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 2, "shown": "Un valve activable par le joueur" }
+   ],
+   "noPower": true,
+   "notes": "\"Pipe valve\" pas \"pipe value\"",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:36:22.439Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "pipe2": {
+   "footprint": { "w": 1, "h": 2 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:36:40.315Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "rusty-fluid-pipe-and-item-intersection": {
+   "footprint": { "w": 3, "h": 3 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 2 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 2 }
+   ],
+   "noPower": true,
+   "notes": "Dispose d'un flux de fluide et d'un flux d'objet.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:37:38.113Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "rusty-fluid-pipe-intersection": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "les deux", "side": "haut", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "gauche", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "droite", "cell": 2 },
+    { "type": "fluide", "direction": "les deux", "side": "bas", "cell": 2 }
+   ],
+   "noPower": true,
+   "notes": "Dispose de deux flux de fluide.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:38:16.026Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "rusty-pipe-intersection": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "objet", "direction": "les deux", "side": "bas", "cell": 2 },
+    { "type": "objet", "direction": "les deux", "side": "droite", "cell": 2 },
+    { "type": "objet", "direction": "les deux", "side": "haut", "cell": 2 },
+    { "type": "objet", "direction": "les deux", "side": "gauche", "cell": 2 }
+   ],
+   "noPower": true,
+   "notes": "Dispose de deux flux d'objets.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:38:41.927Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "short-fluid-pipe": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:38:52.191Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "short-fluid-pipe2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:39:03.596Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "short-large-fluid-pipe": {
+   "footprint": { "w": 2, "h": 1 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1, "tip": "Input 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2, "tip": "Input 2/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1, "tip": "Output 1/2 large fluid pipe" },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 2, "tip": "Output 2/2 large fluid pipe" }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:39:53.176Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "short-pipe": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:41:17.005Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "short-pipe2": {
+   "footprint": { "w": 1, "h": 1 },
+   "ports": [
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:40:58.305Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "diesel-engine-air-input": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [],
+   "noPower": true,
+   "noPorts": true,
+   "notes": "Aucun port (correction de l'utilisateur) : le port de l'export était celui de la Diesel Engine Fuel Input.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T14:24:45.029Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18), corrigé par l'utilisateur le 2026-10-18" }
+  },
+  "diesel-engine-controller": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [],
+   "noPower": true,
+   "noPorts": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T14:35:43.009Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+  },
+  "diesel-engine-fuel-input": {
+   "footprint": { "w": 2, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "entrée", "side": "gauche", "cell": 2 }
+   ],
+   "notes": "Port relevé avec l'entrée d'air par erreur, de type fluide (correction de l'utilisateur). Prise électrique non relevée.",
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T14:24:45.029Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18), corrigé par l'utilisateur le 2026-10-18" }
   }
  }
 }

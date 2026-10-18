@@ -12,14 +12,11 @@ import {
   ASSEMBLY_SHORT,
   blockFaces,
   blockRange,
-  EDGES,
-  type Edge,
   editDiff,
   FACES,
   type FaceKey,
   fact,
   findBlock,
-  frontEdge,
   isOpen,
   type ModAssembly,
   type ModBlock,
@@ -74,7 +71,6 @@ const STATE_BADGE: Record<SurveyState, string> = {
 const TOOL_LABEL: Record<Tool, string> = { objet: "Port objet", fluide: "Port fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" };
 const TIER = ["", "I", "II", "III", "IV", "V"];
 const FACE_LABEL: Record<FaceKey, string> = { back: "Derrière", front: "Devant", side: "Côtés" };
-const EDGE_LABEL: Record<Edge, string> = { haut: "bord haut", bas: "bord bas", gauche: "bord gauche", droite: "bord droit" };
 /** Ce qu'on rappelle d'un bloc de la ferme sous « À savoir » (règles de pose, pas de calcul). */
 const RANGE_NOTES = ["count", "sprinklersPerTank", "needsTankInControllerRange", "mustBeInControllerRange", "extraTanksNeedWater", "multipleOutputs", "placement"];
 
@@ -551,9 +547,7 @@ export function initBuildings(
       h += texts.map((f) => `<p class="hint">${esc(f.text)} ${openTag(f)}</p>`).join("");
       h += `<p class="hint">Sources : ${srcTags(texts.flatMap((f) => f.sources), info.local)}</p>`;
     }
-    const fe = frontEdge(b, edit);
-    const edges = EDGES.map((e) => `<option value="${e}"${fe === e ? " selected" : ""}>${EDGE_LABEL[e]}</option>`).join("");
-    h += `<div class="row"><label>Devant, sur la grille du relevé <select data-mod="front"><option value="">inconnu</option>${edges}</select></label><span class="hint">le bord qui regarde dans le sens de la chaîne, le bloc posé sans rotation ; sert aux plans de pose (S14)</span>${fe ? "" : openTag(rule(a, "frontEdge"))}</div>`;
+    // Le bord « devant » (S12) n'est plus demandé : le sens d'un bloc ne pose jamais problème (S14, MOD-17).
     return h;
   }
 
@@ -659,18 +653,6 @@ export function initBuildings(
     if (!found) return;
     const b = found.block;
     const f = t.dataset.mod!;
-    if (f === "front") {
-      // Le bord « devant » s'enregistre tout de suite (pas besoin de « ✎ Corriger »).
-      const next: ModularEdit = { ...(localMod[b.id] ?? {}), source: surveySource("correction notée dans l'éditeur de bâtiments du calculateur") };
-      if (t.value) next.frontEdge = t.value as Edge;
-      else delete next.frontEdge;
-      if (Object.keys(next).length > 1) localMod[b.id] = next;
-      else delete localMod[b.id];
-      saveLocalModular(localMod);
-      modMsg = t.value ? `Devant = ${EDGE_LABEL[t.value as Edge]}, enregistré dans ce navigateur. Pense à l'exporter.` : "Bord « devant » remis à inconnu.";
-      renderList();
-      return renderModular();
-    }
     if (!modDraft) return;
     const face = t.dataset.face as FaceKey | undefined;
     const id = t.dataset.id;

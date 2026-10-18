@@ -63,10 +63,10 @@ describe("blocs par contact : faces", () => {
     expect(rep.sort()).toEqual(["diesel-engine-crankshaft", "diesel-engine-flywheel", "high-pressure-turbine", "low-pressure-turbine"]);
   });
 
-  it("une correction locale remplace les faces ; le bord « devant » est inconnu par défaut (MOD-17)", () => {
+  it("une correction locale remplace les faces ; le bord « devant » ne se demande plus (MOD-17 close en S14)", () => {
     const { assembly, block } = get("diesel-engine-cylinder");
     expect(frontEdge(block)).toBeNull();
-    expect(isOpen(file, assembly.rules.find((r) => r.key === "frontEdge"))).toBe(true);
+    expect(isOpen(file, assembly.rules.find((r) => r.key === "frontEdge"))).toBe(false);
     const edit: ModularEdit = { faces: { side: ["diesel-engine-crankshaft"], back: ["diesel-engine-decoration"] }, frontEdge: "haut", source: src };
     const info = blockFaces(block, edit);
     expect(info.local).toBe(true);
