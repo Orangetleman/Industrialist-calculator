@@ -754,6 +754,22 @@ Questions : Q14.
   configuration dans l'éditeur, d'accord pour une formule plus tard (à la demande). La longueur
   (nombre de vilebrequins) ne change pas la puissance. Ferme : compris juste ; les poteaux HV ne
   s'utilisent pas directement (il faut un transformateur).
+- **Q16 (S18), moteur diesel.** Maquette `maquette/moteur-diesel.html`.
+  1. Autres carburants (Crude, Poor Quality, Diesel) : aucune consommation écrite nulle part. Une
+     configuration n'est proposée avec un carburant que si elle a été relevée avec lui. Ou bien un
+     seul relevé (même moteur, autre carburant) donne un rapport appliqué à toutes les
+     configurations, marqué « déduit » ?
+  2. L'Info Panel : sa consommation est-elle la vraie (le Fandom dit de la multiplier par le
+     rapport air/carburant) ? Le relevé note ce que l'écran affiche ; dis-moi si c'est à corriger.
+  3. Le tableau du wiki à 6 cylindres : on garde « accélérateur supposé 100 % » ?
+  4. Choix du calcul parmi les configurations : par défaut le moins de carburant par MF (le
+     32 cylindres gagne : 0,031 L par MMF contre 0,064 au mieux pour 6 cylindres), avec « le moins
+     cher », « le moins de place » ou une configuration imposée au choix, par plan ?
+  5. Le relevé compte aussi les blocs (entrées d'air, échappements, entrées de carburant,
+     générateurs, volants) : le plan de pose et le prix prennent ces nombres (MOD-14) ?
+  6. Maquette : relevé et tableau des configurations dans l'éditeur (Diesel Engine Controller),
+     choix et « ⚙ Panneau du contrôleur : rapport … accélérateur … » dans le schéma, la liste, le
+     plan de pose et « Comment c'est calculé ». D'accord ?
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 

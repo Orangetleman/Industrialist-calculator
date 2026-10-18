@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S18 — Moteur diesel</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 6px 10px; font-size: .86rem; }
+.box { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.box h4 { margin: 0; font-size: .95rem; }
+.row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: .88rem; }
+.row label { display: inline-flex; gap: 6px; align-items: center; }
+input.num { width: 4.5em; }
+.tbl-wrap { overflow-x: auto; }
+table.cfg { border-collapse: collapse; font-size: .84rem; width: 100%; min-width: 560px; }
+table.cfg td, table.cfg th { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+table.cfg tr.on td { background: var(--accent-soft); font-weight: 600; }
+.tag { font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid currentColor; white-space: nowrap; }
+.tag.wiki { color: var(--steel); } .tag.jeu { color: var(--accent); } .tag.unk { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.panel { font-family: ui-monospace, monospace; font-size: .85rem; background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 6px 10px; }
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S18 — Moteur diesel : relevés, carburant, réglages</h1>
+<p class="mq-note">Valeurs du tableau = celles de <code>data/modular.json</code> (wiki Miraheze). Les lignes « relevé en jeu » sont des exemples de forme : leurs chiffres sont remplacés ici par « … » (aucune valeur inventée).</p>
+
+<h2 class="mq-t">1. Éditeur de bâtiments › Diesel Engine Controller › « Relevé de configuration »</h2>
+<div class="box">
+  <h4>Nouveau relevé (lu sur l'Info Panel)</h4>
+  <div class="row">
+    <label>Cylindres <input class="num" type="number" value="6"></label>
+    <label>Rapport air/carburant <input class="num" type="number" value="14"></label>
+    <label>Accélérateur (%) <input class="num" type="number" value="100"></label>
+    <label>Carburant <select><option>Refined Diesel</option><option>Diesel</option><option>Poor Quality Diesel</option><option>Crude Diesel</option></select></label>
+  </div>
+  <div class="row">
+    <label>Entrées d'air <input class="num" type="number" value="1"></label>
+    <label>Échappements <input class="num" type="number" value="1"></label>
+    <label>Entrées de carburant <input class="num" type="number" value="1"></label>
+    <label>Générateurs <input class="num" type="number" value="1"></label>
+    <label>Volants <input class="num" type="number" value="0"></label>
+  </div>
+  <div class="row">
+    <label>Puissance (MF/s) <input type="text" placeholder="lu sur l'Info Panel" size="14"></label>
+    <label>Consommation (L/s) <input type="text" placeholder="lu sur l'Info Panel" size="14"></label>
+    <label>Couple (MT, facultatif) <input class="num" type="text"></label>
+    <button>Enregistrer le relevé</button>
+  </div>
+  <p class="hint">Gardé dans le navigateur, exporté avec les autres relevés (clé <code>diesel</code>). Les blocs comptés servent au plan de pose et au prix.</p>
+</div>
+
+<h2 class="mq-t">2. Les configurations connues (même endroit, sous le relevé)</h2>
+<div class="box">
+  <div class="tbl-wrap"><table class="cfg">
+    <tr><th>Cyl.</th><th>Rapport</th><th>Accél.</th><th>Carburant</th><th>MF/s</th><th>L/s</th><th>L par MMF</th><th>Source</th></tr>
+    <tr><td>6</td><td>10</td><td>100 %*</td><td>Refined</td><td>1,36 M</td><td>0,180</td><td>0,132</td><td><span class="tag wiki">wiki</span></td></tr>
+    <tr><td>6</td><td>13</td><td>100 %*</td><td>Refined</td><td>1,50 M</td><td>0,138</td><td>0,092</td><td><span class="tag wiki">wiki</span></td></tr>
+    <tr><td>6</td><td>16</td><td>100 %*</td><td>Refined</td><td>1,34 M</td><td>0,086</td><td>0,064</td><td><span class="tag wiki">wiki</span></td></tr>
+    <tr class="on"><td>32</td><td>14</td><td>59 %</td><td>Refined</td><td>3,00 M</td><td>0,092</td><td>0,031</td><td><span class="tag wiki">wiki</span> <span class="tag unk">blocs ⚠ MOD-14</span></td></tr>
+    <tr><td>6</td><td>16</td><td>100 %</td><td>Diesel</td><td>…</td><td>…</td><td>…</td><td><span class="tag jeu">relevé en jeu</span> ✕</td></tr>
+  </table></div>
+  <p class="hint">* accélérateur supposé (non écrit sur le wiki). Les 7 lignes du tableau à 6 cylindres sont toutes là ; 3 montrées ici.</p>
+</div>
+
+<h2 class="mq-t">3. Schéma / liste de construction : le moteur choisi et ses réglages</h2>
+<div class="box">
+  <div class="row"><b>Énergie 6 MMF/s → 2 moteurs diesel 32 cylindres</b></div>
+  <div class="row">Choisir : <label><input type="radio" name="c" checked> le moins de carburant</label><label><input type="radio" name="c"> le moins cher</label><label><input type="radio" name="c"> le moins de place</label><select><option>ou cette configuration…</option></select></div>
+  <div class="row">Carburant : <select><option>Refined Diesel</option><option>Diesel (relevé : 1 configuration)</option><option disabled>Crude Diesel — à relever</option></select></div>
+  <div class="panel">⚙ Panneau du contrôleur : rapport air/carburant <b>14</b> · accélérateur <b>59 %</b></div>
+  <p class="hint">Refined Diesel : 2 × 0,092 L/s = 11,04 L/min. Le ⚙ apparaît aussi dans le plan de pose du moteur et « Comment c'est calculé ». Une configuration sans relevé pour ce carburant n'est pas proposée.</p>
+</div>
+
+<h2 class="mq-t">Questions (Q16)</h2>
+<div class="mq-q">Voir PLAN-ACTION.md § 4, Q16.</div>
+</div>
+</body>
+</html>
