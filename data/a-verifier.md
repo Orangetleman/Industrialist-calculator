@@ -691,4 +691,86 @@ Pellets, la Hardened Plastic Casing ; le « carry » est la Quarry.
   Nuclear Power Plant (non calculées), HV Power Control, Underground Waste Facility, Hand Crank,
   portes et capteurs logiques, Metal Sign. Le Sign, la Statue, le Large Flag, le Logic Buzzer ne
   sont pas dans `machines.json` (variantes ou objets d'événement).
+
+### Vitesse des RP et plafond souple (recherche du 2026-10-18)
+
+Recherche sans code, pour le lot S20 proposé (PLAN-ACTION.md). Cherché : Miraheze (Research
+System, RP Making, Research Station3, Research Tracking Panel, Satellite Dish Controller, lus le
+2026-10-18), Fandom en contrôle (pages refusées au robot : HTTP 402, comme avant), guide
+allthings.how (mis à jour le 25 juillet 2026), recherche générale (Reddit, YouTube, Discord : rien
+de chiffré trouvé).
+
+**Ce que disent les sources** (toutes déjà dans `research-stations.json`, sauf mention) :
+
+| Fait | Source | Date |
+| --- | --- | --- |
+| Au-delà du plafond, RP/s = RP/s actuels × 10^(1−x) pour les stations 1 à 3, × 10^(1−√x) pour la 4, avec x = max(RP actuels ÷ plafond, 1). C'est un plafond **souple** : on peut le dépasser. | Miraheze, Research System | page modifiée le 2026-10-06, lue le 2026-10-18 |
+| Le Research Tracking Panel affiche un « Absolute Cap », où la production de RP est proche de 0. | Miraheze, Research System | idem |
+| Le panneau suit la production totale et celle de chaque station, le plafond souple (« efficiency threshold ») et le plafond dur ; texte rouge quand un plafond est atteint. « Up until you reach the efficiency threshold, you will gain research at a constant speed. » | Miraheze, Research Tracking Panel | lue le 2026-10-18 |
+| L'écran du bas du panneau donne les contrôleurs de paraboles, leur efficacité, les paraboles et les RP/s des contrôleurs. | Miraheze, Research Tracking Panel | idem |
+| Bonus des paraboles = B × 0,78 × log(R + 1). B : RP de base des stations ; R : somme des valeurs de recherche des liquides de **tous** les contrôleurs. Paraboles pour 100 % : ⌈S + √(S × R)⌉ (S : contrôleurs actifs). Chaque parabole alimentée ajoute la même part d'efficacité ; le bonus ne joue qu'au-dessus de 0 %. Pas de formule de l'efficacité. | Miraheze, Satellite Dish Controller | lue le 2026-10-18 |
+| RS3 : « research efficiency threshold (the soft cap) is based on the item's sell value » ; m = stations RS3 actives. | Miraheze, Research Station3 | idem |
+| Mini-jeu Logic : « roughly doubles RP/s and the soft cap ». Le site calcule autrement (circuits de la RS4, formule de la page Research Station4). | Miraheze, RP Making | idem |
+| Le plafond porte sur le **solde** de RP, pas sur le temps ; dépenser des RP dans le menu Research le fait redescendre et rend la pleine vitesse. Le panneau écrit « MAX RP BEFORE RP/S IS NEARLY ZERO ». | allthings.how (guide, source secondaire) | 2026-07-25 |
+| Aucune source ne dit comment se combinent les plafonds de plusieurs tiers, ni si les RP/s de tiers différents s'additionnent. | — | — |
+
+**Confrontation avec le relevé de l'utilisateur** (capture du Research Tracking Panel, 2026-10-18) :
+19 273,50 RP, 50,40 RP/s ; Tier 3 : 4 actives (+47,47 RP/s), seuil 76 875 RP ; « Max RP before RP/s is
+nearly zero » > 231 000 RP ; tiers 1, 2 et 4 à 0 ; paraboles : 2 contrôleurs (+2,93 RP/s), 7 paraboles
+(100 % d'efficacité).
+
+Les formules du wiki retrouvent tous les nombres, **en supposant** deux Crankshaft dans chaque
+station (Crankshaft : 754 $, valeur de recherche 35, `items.json`) et un liquide de valeur 0,1 dans
+chaque contrôleur :
+
+| Nombre de l'écran | Calcul | Résultat |
+| --- | --- | --- |
+| +47,47 RP/s | V = 4 × (35 + 35) × 0,7 (même item deux fois) = 196 ; 2 × 196^0,6 | 47,466 |
+| 76 875 RP (seuil) | C = 4 × (log₄(754 ÷ 600) + 1) = 4,6592 ; 16 500 × (log₂(C + 1) + √C) | 76 875,4 |
+| > 231 000 RP | 3 × seuil = 230 626, où le facteur vaut 10^(1−3) = 1 % (0,50 RP/s) | arrondi au millier supérieur ? |
+| +2,93 RP/s | bonus = 2,93 ÷ 47,47 = 0,0617 = 0,78 × log₁₀(R + 1) → R = 0,1999 | R = 0,2 = 2 × 0,1 |
+| 50,40 RP/s | 47,47 + 2,93 | 50,40 |
+
+Conséquences : le seuil d'efficacité du panneau **est** le plafond (« RP Cap ») du wiki, et le
+« Max RP before RP/s is nearly zero » est le point où la vitesse tombe à 1 % (3 × seuil pour les
+tiers 1 à 3 ; 9 × seuil supposé pour le tier 4, où √x = 3). Le « log » des paraboles est bien décimal
+(le logarithme népérien donnerait R = 0,082, le binaire 0,056 : aucun liquide de cette valeur).
+76 875 = 4 × 19 218,75 n'est qu'une coïncidence : le seuil ne croît pas comme le nombre de stations
+(5 stations : 85 535 ; 6 : 93 087, mêmes items).
+
+**Évolution prévue pour cette installation** (déduite des formules, rien de mesuré) : seuil atteint
+dans 19 min (à 50,40 RP/s constants). Au-delà, sans dépense, le solde suit
+RP(t) = seuil × (1 + log₁₀(1 + ln 10 × r × t ÷ seuil)), t compté depuis le seuil : 100 000 RP →
+25,2 RP/s ; 2 × seuil (153 751 RP) → 5,04 RP/s, 1 h 40 après le seuil ; 3 × seuil → 0,50 RP/s,
+18 h 13 après. Le site compte aujourd'hui les RP en ligne droite (`currentRp`) : au bout de 24 h, il
+afficherait environ 4,4 millions de RP au lieu d'environ 240 000.
+
+**Questions :**
+
+- **RP-01** Quels items sont dans tes 4 Research Station3 ? Deux Crankshaft dans chacune
+  (déduit des nombres, à confirmer) ?
+- **RP-02** Quel liquide dans tes 2 Satellite Dish Controllers ? Le calcul donne une valeur de
+  recherche de 0,1 chacun : Light Oil ou Naphtha (`items.json`) ?
+- **RP-03** Paraboles : le wiki en demande ⌈2 + √(2 × 0,2)⌉ = 3 pour 100 %, tu en as 7. Si tu
+  coupes l'électricité d'une parabole à la fois, à partir de combien l'efficacité passe-t-elle sous
+  100 %, et quel pourcentage s'affiche à chaque pas ? (donne la formule de l'efficacité, que le wiki
+  n'a pas)
+- **RP-04** Au-delà du seuil, la vitesse suit-elle 10^(1−x) ? Prévu, sans dépenser de RP : vers
+  100 000 RP, environ 25,2 RP/s au total ; vers 153 750 RP, environ 5,0 RP/s. Le +2,93 des paraboles
+  baisse-t-il dans la même proportion ?
+- **RP-05** Plusieurs tiers à la fois : chacun a-t-il son seuil, appliqué à ses propres RP/s (le
+  panneau les affiche par tier), ou un seul plafond commun (ta note du 2026-10-12) ? Que devient le
+  « Max RP before … » ?
+- **RP-06** « > 231 000 » : est-ce 3 × le seuil arrondi au millier supérieur ? Contrôle avec une
+  5ᵉ station identique : seuil prévu 85 535 RP, « Max RP » vers 256 604 (> 257 000 ?), +54,27 RP/s
+  pour les stations, +3,35 pour les paraboles.
+- **RP-07** Une station est-elle « active » dès qu'elle est alimentée et reçoit ses deux items ?
+  Une station qui manque d'un item compte-t-elle à moitié, ou pas du tout ?
+- **RP-08** Dépenser des RP au-delà du seuil rend-il la pleine vitesse tout de suite (le guide le
+  dit) ?
+- **RP-09** (seulement avec une Research Station4) Mini-jeu Logic : le wiki dit tantôt « double à
+  peu près la vitesse et le plafond », tantôt des circuits qui ajoutent plafond ÷ 40 000 × n × 6 ÷ t
+  RP/s. Que montre le panneau avant et après ?
+
+Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 <!-- notes-manuelles:fin -->

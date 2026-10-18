@@ -145,6 +145,27 @@ chaque bloc (MOD-01, 03, 05).
 9. Seulement si tu as une turbine : pour chaque turbine, débit et température de la vapeur,
    nombre de HPT et de LPT, puissance affichée (MOD-16).
 
+## Points de recherche (panneau de suivi)
+
+Questions RP-01 à RP-09 dans `data/a-verifier.md`. Tout se lit sur le **Research Tracking Panel**
+(Build › Misc, 700 $) et sur les stations elles-mêmes. Une capture de chaque écran suffit, avec
+l'heure de la capture.
+
+1. **Écran du haut, à un instant donné** : RP et RP/s de la première ligne ; pour chaque tier, les
+   stations actives, leurs RP/s et le seuil d'efficacité ; la ligne « Max RP before RP/s is nearly
+   zero ». **Écran du bas** : contrôleurs actifs et leurs RP/s, paraboles actives, efficacité.
+2. **Ce que le panneau ne montre pas** : les deux items de chaque station (RP-01) et le liquide de
+   chaque contrôleur de paraboles (RP-02).
+3. **Paraboles (RP-03)** : couper l'électricité d'une parabole à la fois et noter l'efficacité
+   affichée à chaque pas, jusqu'à ce qu'elle passe sous 100 %.
+4. **Au-delà du seuil (RP-04, RP-08)** : laisser monter les RP sans rien dépenser et prendre une
+   capture vers 1,3 × le seuil, puis vers 2 × le seuil (RP, RP/s, RP/s des paraboles). Dépenser
+   ensuite des RP pour repasser sous le seuil et noter les RP/s juste après.
+5. **Plusieurs tiers (RP-05)** : poser une station d'un autre tier (une Research Station1 suffit,
+   75 $) et refaire la capture des deux écrans.
+6. **Contrôle (RP-06, RP-07)** : ajouter une station identique aux autres, puis retirer un item
+   d'une station, et refaire la capture à chaque fois.
+
 ## Sans le site : la fiche texte
 
 Si c'est plus simple sur le moment, envoie la capture vue de dessus avec, pour chaque port qui ne

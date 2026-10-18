@@ -55,6 +55,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | R10 | Naviguer dans les crafts comme dans l'onglet « Recipes » du jeu, et corriger ce qui existe ou non. Depuis le graphe : la référence du craft, cliquable. | Une page « Recettes » : liste avec recherche, fiche objet, fiche machine, crafts cliquables. Des corrections : valeurs, craft inexistant, craft manquant. Un lien depuis le schéma. | S5, S6, S7 |
 | R11 | (2026-10-18) Une option pour passer le site en anglais, et un site parfaitement accessible et ergonomique (« un peu barbare » aujourd'hui), pour le montrer au serveur Discord de la communauté sans avoir honte d'un résultat brouillon, incomplet ou plein d'erreurs. | Deux chantiers liés : la traduction (tout le texte, les nombres, les dates) et une remise à niveau de la forme (clarté, cohérence, finition, accessibilité au sens large). Le lot écrit le plan, il ne l'exécute pas. | S16 |
 | R12 | (2026-10-18, premier jet) Construire sa propre chaîne de production pour en voir les statistiques : un plan vierge, des menus « burger » pour ouvrir une liste de machines, des liaisons qu'on trace en maintenant le clic et en glissant avec l'outil tuyau (du bon type, fluide ou objet), comme les convoyeurs de Mindustry. | Un mode « bac à sable », l'inverse du calculateur : on pose, le site calcule. Très gros : le lot écrit le plan et la maquette, il ne l'exécute pas. | S17 |
+| R13 | (2026-10-18) Le gain de RP baisse quand les RP accumulés augmentent, et la baisse se calcule avec ce qu'on lit en jeu (Research Tracking Panel : seuil d'efficacité, « Max RP before RP/s is nearly zero »…). Que manque-t-il au site ? | Recherche faite le 2026-10-18 (sans code) : les formules du wiki retrouvent la capture au centième près. Le site connaît le plafond souple pour l'installation qu'il propose, mais compte les RP du joueur en ligne droite et ignore ses stations. | S20 |
 | — | En attente depuis le 2026-10-14 : (1) la sortie du collecteur central d'une double rangée entre deux machines ; (2) « Toute l'usine » dans le site. | Inchangé. | S2, S3, S4 |
 
 ## 2. Ordre proposé (à valider : Q10)
@@ -80,6 +81,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18, S19 | à faire |
 | S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
+| S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 | à faire — **place à valider (Q17)** : proposée entre S19 et S15 |
 
 Pourquoi cet ordre :
 - **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
@@ -522,6 +524,79 @@ Demandé pendant S14 (Q15) : relever les ports directement dans la grille, avec 
 face pour ce qu'elle accueille (blocs modulaires), et retirer les informations qui ne servent pas au
 joueur. Maquette d'abord.
 
+### S20 — Recherche : vitesse réelle des RP et état de mes stations
+
+Retour : R13. Recherche faite le 2026-10-18 (sources, confrontation et questions RP-01 à RP-09 dans
+`data/a-verifier.md`, « Vitesse des RP et plafond souple » ; méthode dans RELEVES.md, « Points de
+recherche »). Place dans l'ordre : à valider (Q17).
+
+Ce qui existe (vérifié dans le code le 2026-10-18) :
+- `data/research-stations.json` : toutes les formules du wiki, sourcées (vitesse et plafond des RS1
+  à RS4, facteur de prix, pénalité de 30 %, circuits Logic, paraboles, plafond souple 10^(1−x) et
+  10^(1−√x), RP de départ). Rien n'y est marqué « à vérifier ».
+- `src/engine/research-points.ts` : ces formules, `designResearch` (une installation **neuve**, d'un
+  seul type de station, avec ou sans paraboles) et `unlockTimeline` (chronologie avec le plafond
+  souple, par intégration numérique).
+- « Mon usine » (`progress.ts`) : RP, RP/s et heure de saisie. `currentRp` les prolonge **en ligne
+  droite**, sans plafond ; `withRpRate` change la vitesse sans perdre les RP accumulés.
+- Objectif recherche (`main.ts`, `computeResearch`) : la chronologie « à ton rythme actuel » prend un
+  plafond infini ; celle « avec l'installation » ajoute la vitesse actuelle à celle des stations
+  neuves, avec le seul plafond des stations neuves. Plafond voulu (`capNeeded`) : la recherche la
+  plus chère, ou un nombre saisi.
+- `a-verifier.md` (2026-10-12) : « plafond général, commun à toutes les stations » selon
+  l'utilisateur, à préciser en jeu ; les installations mixtes ne sont pas proposées.
+
+Ce que la recherche apporte :
+- Le seuil d'efficacité du panneau est le plafond du wiki ; « Max RP before RP/s is nearly zero »
+  est le solde où la vitesse tombe à 1 % (3 × seuil, tiers 1 à 3). Les formules retrouvent la
+  capture : +47,47 RP/s, 76 875 RP, +2,93 RP/s (log décimal confirmé), > 231 000 RP.
+- La baisse porte sur le **solde** de RP non dépensés : dépenser rend la vitesse.
+- Au-delà du seuil (tiers 1 à 3), le solde suit une formule exacte :
+  RP(t) = seuil × (1 + log₁₀(1 + ln 10 × r × t ÷ seuil)). Pour le tier 4 : intégration numérique,
+  comme `unlockTimeline`.
+- Deux stations du même tier ne s'additionnent pas : la vitesse vient de la somme des valeurs de
+  toutes les stations du tier (2 × V^0,6), et le plafond du nombre total de stations (m). Ajouter
+  des stations à celles du joueur n'est donc pas la même chose que poser une installation neuve à
+  côté.
+
+Ce qu'il faut pouvoir saisir (« Mon usine », section « Ma recherche ») :
+
+| Information | Où la lire en jeu | À quoi elle sert |
+| --- | --- | --- |
+| RP et RP/s, avec l'heure | Research Tracking Panel, 1ʳᵉ ligne (déjà saisis) | point de départ de l'estimation |
+| Seuil d'efficacité de chaque tier | panneau, une ligne par tier | moment où la vitesse baisse ; vitesse réelle au-delà |
+| Stations actives et RP/s de chaque tier | panneau, une ligne par tier | vitesse propre à chaque tier (si chaque tier a son seuil, RP-05) ; contrôle |
+| « Max RP before RP/s is nearly zero » | panneau, dernière ligne | contrôle (doit valoir 3 × le seuil) ; plafond de fait de l'estimation |
+| Contrôleurs actifs et leurs RP/s ; paraboles actives ; efficacité | écran du bas du panneau | part des paraboles ; savoir si elle baisse avec le reste (RP-04) |
+| Items de chaque station (ou d'un groupe de stations identiques) | la station elle-même (pas sur le panneau) | recalculer vitesse et seuil ; proposer d'**ajouter** des stations à celles qui existent |
+| Liquide de chaque contrôleur | le contrôleur | recalculer le bonus ; nombre de paraboles pour 100 % |
+| Circuits Logic résolus (RS4) | la Research Station4 | plafond et vitesse du tier 4 (RP-09) |
+| Recherches qui seront dépensées | l'arbre du site (option « dépenser les RP », déjà là) | le solde redescend, la vitesse remonte |
+
+Deux niveaux, au choix du joueur : **rapide** (recopier les nombres du panneau : RP, RP/s, seuil par
+tier, « Max RP ») et **détaillé** (stations, items, liquides : le site recalcule les nombres du
+panneau et affiche « ✓ comme en jeu » ou l'écart, comme pour les arroseurs en S12).
+
+Ce qu'il faut faire :
+- Moteur : RP estimés avec le plafond souple (formule exacte pour les tiers 1 à 3) ; temps pour
+  atteindre un solde (seuil, 2 × seuil, une recherche) ; RP/s à un instant donné ; installation du
+  joueur décrite par tier (stations, items, liquides) et recalculée ; proposition « ajouter N
+  stations à tes stations du tier 3 » à côté de « poser une installation neuve ».
+- « Mon usine » : section « Ma recherche » (deux niveaux), RP ≈ maintenant avec le plafond, « seuil
+  atteint dans … », « au-delà, la vitesse baisse : dépense tes RP » ; en-tête du site : RP/s réels.
+- Objectif recherche : chronologies avec le vrai seuil du joueur (« à ton rythme actuel » ne prend
+  plus un plafond infini) ; « Comment c'est calculé » pour la vitesse et le seuil.
+- Tests : la capture du 2026-10-18 refaite par le moteur (47,47 ; 76 875 ; 2,93 ; 230 626) ; la
+  formule exacte comparée à l'intégration numérique.
+
+Questions : Q17, et RP-01 à RP-08 (relevés). Ce qui reste sans réponse est écrit « supposé » sur le
+site (la règle des tiers multiples en premier). Maquette d'abord.
+
+Critère de fin : avec les nombres de la capture saisis dans « Mon usine », le site affiche les RP
+estimés à l'instant, l'heure du seuil et la vitesse au-delà, et l'écart avec un nouveau relevé en
+jeu après le seuil (RP-04) reste sous 2 % ; l'objectif recherche part des stations du joueur ; tests
+verts ; parcours réel avec captures.
+
 ### S16 — Plan : le site en anglais, et une forme présentable à la communauté
 
 Retour : R11. **Ce lot écrit un plan, il ne code rien** (une maquette si elle aide à décider).
@@ -770,6 +845,14 @@ Questions : Q14.
   6. Maquette : relevé et tableau des configurations dans l'éditeur (Diesel Engine Controller),
      choix et « ⚙ Panneau du contrôleur : rapport … accélérateur … » dans le schéma, la liste, le
      plan de pose et « Comment c'est calculé ». D'accord ?
+- **Q17 (S20), vitesse des RP.** Posée le 2026-10-18, après la recherche.
+  1. Place du lot : entre S19 et S15 (proposé : la revue S15 verra alors la recherche finie), ou
+     ailleurs ?
+  2. Saisie : les deux niveaux (« rapide » : recopier le panneau ; « détaillé » : stations, items,
+     liquides, recalculés et comparés au panneau), ou un seul ?
+  3. Tant que RP-05 (plusieurs tiers) n'a pas de réponse : un seuil par tier, appliqué aux RP/s de ce
+     tier (ce que suggère le panneau), marqué « supposé » ?
+  4. Relevés RP-01 à RP-08 (RELEVES.md, « Points de recherche ») : avant le lot, ou pendant ?
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -883,6 +966,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-18, S18** (397 tests, déployé) : Q16 posée et validée (décisions S18 au § 5). Moteur : `DieselReading`, `parseDieselReading`, `dieselConfigs(file, relevés)` (un relevé remplace la configuration aux mêmes réglages et carburant), `dieselPick` (carburant, prix ou place par MF/s, ou imposée), `SolveRequest.diesel` (seule la configuration choisie parmi les moteurs) ; volants posés dans la ligne (`designDiesel`). Site : éditeur du moteur, carburant dans « Calcul », tableau des configurations (wiki ou relevé en jeu, L par MMF, ✕), formulaire « Relevé de configuration » gardé dans le navigateur, exporté et importé (clé `diesel`) ; barre du bas du schéma (carburant, critère, configuration), « ⚙ Panneau du contrôleur : rapport … accélérateur … » dans la liste, le plan de pose et « Comment c'est calculé » ; un choix par plan (`dieselChoice`).
   Parcours réel (navigateur intégré, DOM) : relevé de test (Diesel, valeurs fictives, effacé ensuite) → dans le tableau et le calcul ; énergie 2 MMF/s, autres centrales écartées : 1 moteur 32 cylindres (le moins de carburant), ⚙ rapport 14, 59 % ; carburant Diesel + « le moins cher » → 3 moteurs du relevé, rapport 16, 100 %, dans le plan de pose et « Comment c'est calculé ». Téléphone 375 px : la barre passe à la ligne.
   À surveiller : le défaut change les plans d'énergie au diesel (32 cylindres au lieu de 6, liste de blocs incomplète MOD-14) ; la page du schéma déborde déjà à 375 px (608 px de large sans la barre, d'avant S18) ; un 2ᵉ générateur relevé est compté dans le prix mais le dessin n'en pose qu'un ; l'éditeur garde les données du chargement pour les noms et prix.
+- **2026-10-18, recherche R13** (sans code, non déployé) : vitesse des RP et plafond souple. Les formules du wiki retrouvent la capture du Research Tracking Panel (4 RS3 à deux Crankshaft supposés, liquide de valeur 0,1 supposé) ; « Max RP before … » = 3 × seuil. Questions RP-01 à RP-09 (`a-verifier.md`), méthode dans RELEVES.md, lot S20 proposé (Q17, place à valider).
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions
