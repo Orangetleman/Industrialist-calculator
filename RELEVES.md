@@ -34,27 +34,38 @@ Page **Données**, onglet « Éditeur de bâtiments » de https://industrialist.
 5. Pour retoucher : mode **✥ Capture** (en bas à gauche de la grille). On glisse la capture,
    la molette l'agrandit (Maj + molette : plus fin), les flèches la décalent d'un dixième de
    case. En mode **✎ Ports**, on se déplace et on zoome comme dans l'arbre de recherche.
-6. Pose les ports :
-   - **Port objet** ou **Port fluide**, sens **entrée**, **sortie** ou **les deux** (poteaux,
-     stockages) : clique dans la marge, en face du plot de la capture ;
+6. Pose les ports, dans la marge de la grille (la couleur de chaque type est sur son bouton) :
+   - **Objet** ou **Fluide**, sens **entrée**, **sortie** ou **les deux** (poteaux, stockages) :
+     clique dans la marge, en face du plot de la capture ;
    - **Prise ⚡** : clique sur le corps, à peu près au-dessus du boîtier jaune (la demi-case
      suffit). Sens **sortie** pour un générateur, **les deux** pour un poteau ;
    - **Logique** : dans la marge ou sur le corps selon le bâtiment ;
-   - clique ensuite sur un port pour ajouter **l'info-bulle du jeu**. Avec la gomme, un clic sur
-     un port le retire. Aucun port ne dépasse du bâtiment : le tuyau se branche sur la case juste
-     à côté du bord (l'ancien champ « Plot » a été retiré le 2026-10-16).
-   - Pas de prise électrique (Boiler, Firebox…) : coche **Sans prise électrique**.
+   - un clic sur un port ouvre sa **bulle**, à côté de lui : type, sens, **info-bulle du jeu**,
+     Supprimer. Avec la gomme, un clic sur un port le retire. Aucun port ne dépasse du bâtiment :
+     le tuyau se branche sur la case juste à côté du bord.
+   - Option **Pose : Bulle** (à droite des outils) : sans outil, un clic sur une case vide ouvre
+     la bulle, où l'on choisit le sens puis le type. Le mode **Outils** reste le défaut.
+   - Pas de prise électrique (Boiler, Firebox…) : coche **Sans prise électrique**, sous la grille.
    - Pas de port objet, fluide ni logique (Tree, Farm Harvester…) : coche **Sans port**.
+   - Ce que la capture ne montre pas (un poteau en hauteur…) : **Remarques**, replié sous la grille.
 7. Le relevé est **complet** dès que l'empreinte, les ports (ou « sans port ») et la prise (ou « sans prise ») sont
-   là. **Enregistrer le relevé**, puis **Exporter mes relevés** quand tu en as plusieurs.
-   Envoie-moi le fichier : je l'intègre à `data/ports.json`. Une fois intégré, la copie locale
-   est retirée de ton navigateur toute seule.
+   là. **Enregistrer** (un seul bouton, sous la grille : il garde aussi l'interface et la
+   correction d'un bloc modulaire, seulement ce qui a changé), puis **Exporter mes relevés** quand
+   tu en as plusieurs. Envoie-moi le fichier : je l'intègre à `data/ports.json`. Une fois intégré,
+   la copie locale est retirée de ton navigateur toute seule.
+
+Bloc modulaire par contact (moteur diesel, turbine) : une **case par face** entoure la grille
+(devant en haut, derrière en bas, côtés à gauche et à droite ; c'est une convention de dessin, le
+sens d'un bloc ne pose pas problème en jeu). Un clic sur une case l'ouvre : blocs qu'elle accueille,
+« obligatoire », et l'option **Côtés réglés à part** (les deux côtés suivent la même règle par
+défaut). Bloc par portée (ferme d'arbres) : la portée tient sur une ligne au-dessus de la grille
+(**✎ Corriger**), et **◯ Portée** dessine le cercle dans la grille.
 
 N'importe qui peut s'en servir pour ajouter un bâtiment, et l'export fonctionne de la même façon.
 
 ### L'interface d'une machine (S10)
 
-Sous les ports, la section **Interface** note ce que la machine propose quand on s'en approche
+Sous la grille, la section repliée **⚙ Interface** note ce que la machine propose quand on s'en approche
 (« [E] Interact », un levier, un écran). Rien pour le placement : seulement le réglage.
 
 1. **Type** : fenêtre de réglages, levier, choix direct sur la machine, ou bouton ; **Où** (sur
@@ -65,7 +76,7 @@ Sous les ports, la section **Interface** note ce que la machine propose quand on
    - **un nombre** : sa valeur par défaut et ce qu'il multiplie dans tous les crafts (entrées,
      sorties ou énergie), comme l'écran de la Chemical Plant ;
    - **sans effet sur le calcul** (porte logique, panneau…) : dire pourquoi.
-3. **Enregistrer l'interface**. Elle sert tout de suite aux plans (« ⚙ levier sur … ») et part
+3. **Enregistrer** (le bouton sous la grille). Elle sert tout de suite aux plans (« ⚙ levier sur … ») et part
    avec **Exporter mes relevés** (clé `interfaces`, à intégrer à `data/interfaces.json`).
 
 Les interfaces déjà connues (wiki et tes réponses) sont dans `data/interfaces.json` ; un ⚙ les
@@ -134,11 +145,8 @@ chaque bloc (MOD-01, 03, 05).
    d'échappement (seuil de MOD-14).
 7. **Faces (MOD-11, MOD-13)** : une capture vue de dessus du montage, une autre avec le volant
    posé ; et la distance la plus courte entre deux moteurs qui marchent tous les deux.
-8. **Devant (MOD-17)** : pour chaque bloc du moteur (et de la turbine si tu en as une), pose-le
-   sans le faire pivoter, comme pour son relevé de ports, à côté d'un bloc déjà posé dans la
-   chaîne. Le bord tourné vers le générateur (ou vers la Turbine Output) est « devant ». Note-le
-   dans l'éditeur de bâtiments, section « Ensemble modulaire », champ « Devant, sur la grille du
-   relevé » : il s'enregistre tout de suite et part avec « Exporter mes relevés ».
+8. ~~**Devant (MOD-17)**~~ : plus demandé depuis S14 (le sens d'un bloc ne pose jamais problème) ;
+   le champ a été retiré de l'éditeur.
 
 ### Turbine
 

@@ -1,21 +1,30 @@
 import { describe, expect, it } from "vitest";
+import modularJson from "../../data/modular.json";
 import portsJson from "../../data/ports.json";
 import type { PortsEntry, PortsFile } from "../engine/extension-types.ts";
+import { blockFaces, editDiff, findBlock, type ModularEdit, type ModularFile } from "../engine/modular.ts";
 import {
   applyTool,
   bodyPoint,
   CELL,
   checkEntry,
+  entryChanged,
   exportSurveys,
+  faceBoxes,
   fitTwoCorners,
   isComplete,
   marginToPort,
   mergeSurveys,
+  parseModular,
   parseSurveys,
   portCenter,
   pruneIntegrated,
+  sameSize,
   scaleAround,
+  setFaceRequired,
+  splitSides,
   surveyState,
+  toggleFaceBlock,
 } from "./buildings-model.ts";
 
 const src = { wiki: "saisie" as const, fetchedAt: "2026-10-12T09:00:00Z" };
@@ -147,5 +156,78 @@ describe("éditeur de bâtiments", () => {
     // Largeur et hauteur inversées : les proportions ne collent pas (ratio 4).
     expect(fitTwoCorners(b, [100, 50], [180, 90], 2, 4)!.ratio).toBeCloseTo(0.25);
     expect(fitTwoCorners(b, [100, 50], [101, 90], 4, 2)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------- S19 : cases des faces, Enregistrer
+const modular = modularJson as unknown as ModularFile;
+const crank = findBlock(modular, "diesel-engine-crankshaft")!;
+const draftOf = () => {
+  const faces = blockFaces(crank.block).faces!;
+  return {
+    source: src,
+    faces: Object.fromEntries(faces.map((r) => [r.face, [...r.blocks]])),
+    facesRequired: Object.fromEntries(faces.map((r) => [r.face, r.required === true])),
+  } as ModularEdit;
+};
+
+describe("éditeur simplifié (S19)", () => {
+  it("une case par face : devant en haut, derrière en bas, les côtés communs à gauche et à droite", () => {
+    const boxes = faceBoxes(blockFaces(crank.block))!;
+    expect(boxes.haut.blocks).toContain("diesel-engine-generator");
+    expect(boxes.bas.blocks).toContain("diesel-engine-controller");
+    expect(boxes.gauche).toEqual(boxes.droite);
+    expect(boxes.gauche.blocks).toContain("diesel-engine-cylinder");
+    expect([boxes.haut.required, boxes.bas.required, boxes.gauche.required]).toEqual([true, true, false]);
+    // Bloc posé sur un côté : devant et derrière ne sont pas cités, donc « rien ».
+    const cyl = findBlock(modular, "diesel-engine-cylinder")!;
+    expect(faceBoxes(blockFaces(cyl.block))!.haut).toEqual({ blocks: [], required: false });
+  });
+
+  it("côtés liés par défaut : cocher à gauche coche aussi à droite", () => {
+    const d = toggleFaceBlock(draftOf(), "gauche", "diesel-engine-cylinder", false);
+    const boxes = faceBoxes(blockFaces(crank.block, d))!;
+    expect(boxes.droite.blocks).not.toContain("diesel-engine-cylinder");
+    expect(setFaceRequired(d, "droite", true).facesRequired?.side).toBe(true);
+  });
+
+  it("côtés réglés à part : chacun le sien, leur réunion reste la face « côtés » ; réunir les fusionne", () => {
+    let d = splitSides(draftOf(), true);
+    d = toggleFaceBlock(d, "gauche", "diesel-engine-cylinder", false);
+    d = setFaceRequired(d, "droite", true);
+    const boxes = faceBoxes(blockFaces(crank.block, d))!;
+    expect(boxes.gauche.blocks).not.toContain("diesel-engine-cylinder");
+    expect(boxes.droite.blocks).toContain("diesel-engine-cylinder");
+    expect([boxes.gauche.required, boxes.droite.required]).toEqual([false, true]);
+    // Enregistré : la face « side » = réunion (le cylindre y reste), obligatoire ; le détail est gardé.
+    const kept = editDiff(crank.assembly, crank.block, d)!;
+    expect(kept.sides).toMatchObject({ rightRequired: true });
+    expect(kept.facesRequired?.side).toBe(true);
+    expect(blockFaces(crank.block, kept).faces!.find((r) => r.face === "side")!.blocks).toContain("diesel-engine-cylinder");
+    // Export puis import : les deux côtés reviennent.
+    const back = parseModular(JSON.parse(JSON.stringify(exportSurveys({}, {}, { [crank.block.id]: kept }))))!;
+    expect(back[crank.block.id]!.sides).toEqual(kept.sides);
+    // Réunir : côtés communs, obligatoires puisque l'un l'était.
+    const merged = splitSides(d, false);
+    expect(merged.sides).toBeUndefined();
+    expect(merged.facesRequired?.side).toBe(true);
+    expect(merged.faces?.side).toContain("diesel-engine-cylinder");
+  });
+
+  it("un seul Enregistrer : un relevé inchangé n'est pas réenregistré", () => {
+    const base: PortsEntry = { footprint: { w: 4, h: 2 }, ports: [{ type: "objet", direction: "entrée", side: "bas", cell: 1 }], source: src };
+    expect(entryChanged(structuredClone(base), base)).toBe(false);
+    expect(entryChanged({ ...structuredClone(base), source: { wiki: "saisie", fetchedAt: "2026-10-19T00:00:00Z" } }, base)).toBe(false);
+    expect(entryChanged({ ...structuredClone(base), noPower: true }, base)).toBe(true);
+    // Bâtiment pas encore relevé : rien posé, rien à enregistrer.
+    expect(entryChanged({ footprint: { w: 2, h: 2 }, ports: [], source: src }, undefined)).toBe(false);
+    expect(entryChanged({ footprint: { w: 2, h: 2 }, ports: [], noPorts: true, source: src }, undefined)).toBe(true);
+  });
+
+  it("la taille du wiki ne s'affiche que si elle diffère du relevé", () => {
+    expect(sameSize({ w: 4, h: 2 }, { w: 4, l: 2 })).toBe(true);
+    expect(sameSize({ w: 2, h: 4 }, { w: 4, l: 2 })).toBe(true);
+    expect(sameSize({ w: 3, h: 3 }, { w: 4, l: 2 })).toBe(false);
+    expect(sameSize({ w: 3, h: 3 }, null)).toBe(true);
   });
 });

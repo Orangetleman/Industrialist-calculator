@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S19 — Éditeur de bâtiments simplifié</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.mq-q ol { margin: 4px 0 0; padding-left: 20px; }
+.mq-q li { margin: 6px 0; }
+table.inv { border-collapse: collapse; font-size: .84rem; width: 100%; background: var(--surface); }
+table.inv th, table.inv td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+table.inv th { background: var(--bg); }
+.v-keep { color: var(--ok); font-weight: 600; white-space: nowrap; }
+.v-move { color: var(--steel); font-weight: 600; white-space: nowrap; }
+.v-fold { color: var(--warn); font-weight: 600; white-space: nowrap; }
+.v-drop { color: var(--bad); font-weight: 600; white-space: nowrap; }
+
+/* Nouvel éditeur. */
+.ed { display: flex; flex-direction: column; gap: 10px; }
+.ed-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.ed-head h3 { margin: 0; }
+.ed-size { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); }
+.ed-tools { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ed-tools button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.ed-tools .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; border: 1px solid #0004; }
+.sw.o { background: linear-gradient(135deg, #d9b300 50%, #b03ab8 50%); }
+.sw.f { background: linear-gradient(135deg, #2f7fd0 50%, #14a3a3 50%); }
+.sw.e { background: linear-gradient(135deg, #f2d21b 50%, #ff8a1a 50%); }
+.sw.l { background: #7a4bd0; }
+.ed-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.ed-dirlabel { font-size: .78rem; color: var(--muted); }
+
+/* La croix : une case par face autour de la grille. */
+.cross { display: grid; grid-template-columns: minmax(80px, 150px) 1fr minmax(80px, 150px); grid-template-rows: auto 1fr auto; gap: 6px; }
+.cross .frame { grid-column: 2; grid-row: 2; }
+.face { border: 1px dashed var(--line); border-radius: 8px; background: var(--surface); padding: 5px 8px; font-size: .8rem; display: flex; flex-direction: column; gap: 3px; cursor: pointer; text-align: left; font: inherit; font-size: .8rem; color: var(--ink); }
+.face:hover { border-color: var(--accent); }
+.face.req { border-style: solid; border-color: var(--accent); }
+.face.none { color: var(--muted); }
+.face b { font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.face.req b::after { content: " · obligatoire"; color: var(--accent); text-transform: none; letter-spacing: 0; }
+.face .names { display: flex; flex-wrap: wrap; gap: 2px 6px; }
+.face-top { grid-column: 2; grid-row: 1; }
+.face-bottom { grid-column: 2; grid-row: 3; }
+.face-left { grid-column: 1; grid-row: 2; }
+.face-right { grid-column: 3; grid-row: 2; }
+.face.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+.frame { position: relative; height: 300px; border-radius: 10px; border: 1px solid var(--line); background: #1d2126; overflow: hidden; }
+.frame svg { width: 100%; height: 100%; display: block; }
+.frame .help { position: absolute; left: 10px; right: 10px; top: 6px; margin: 0; font-size: .76rem; color: #dde2e7; text-align: center; text-shadow: 0 1px 2px #000; }
+.frame .zoom { position: absolute; right: 8px; bottom: 8px; display: flex; flex-direction: column; gap: 4px; }
+.frame .zoom button { width: 30px; height: 30px; padding: 0; }
+.frame .range-btn { position: absolute; left: 8px; bottom: 8px; }
+
+/* Bulles : port cliqué, face cliquée. */
+.bubble { position: absolute; z-index: 2; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 14px #0006; padding: 8px 10px; font-size: .82rem; display: flex; flex-direction: column; gap: 6px; width: 250px; }
+.bubble .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.bubble input[type="text"] { font: inherit; font-size: .82rem; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; background: var(--bg); color: var(--ink); }
+.bubble button { padding: 3px 8px; font-size: .8rem; }
+.bubble button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.bubble .mchip { font-size: .78rem; }
+.face-pop { position: static; width: auto; border-style: solid; }
+
+.ed-foot { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: .86rem; }
+.ed-foot label { display: inline-flex; gap: 6px; align-items: center; }
+.ed-foot .grow { flex: 1; }
+.ed-more { display: flex; flex-direction: column; gap: 4px; }
+.ed-more details { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 6px 10px; font-size: .86rem; }
+.ed-more summary { cursor: pointer; font-weight: 600; }
+.ed-more summary .hint { font-weight: 400; }
+.ed-range { font-size: .86rem; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.mchip { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin: 1px 2px; background: var(--surface); white-space: nowrap; }
+.mchip.off { color: var(--muted); border-style: dashed; }
+.must { font-size: .74rem; font-weight: 600; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.must.unk { background: var(--warn-soft); color: var(--warn); }
+
+/* Grille (reprise de l'éditeur actuel). */
+.bld-margin { fill: #2a3038; stroke: #3a4048; stroke-width: 1; }
+.bld-corner { fill: #1d2126; }
+.bld-body { fill: rgba(47, 93, 124, .28); stroke: rgba(143, 184, 214, .25); stroke-width: 1; }
+.bld-outline { fill: none; stroke: #8fb8d6; stroke-width: 2.5; }
+.bld-port rect { stroke: #000a; stroke-width: 1.5; }
+.bld-port text { font-size: 15px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: #0007; stroke-width: 2px; }
+.bld-port.sel rect { stroke: #fff; stroke-width: 3; }
+.circ { fill: rgba(67, 182, 73, .08); stroke: #43b649; stroke-width: .25; stroke-dasharray: .8 .5; }
+
+@media (max-width: 600px) {
+  .cross { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; }
+  .cross .frame { grid-column: 1 / 3; grid-row: 2; }
+  .face-top { grid-column: 1 / 3; grid-row: 1; }
+  .face-left { grid-column: 1; grid-row: 3; }
+  .face-right { grid-column: 2; grid-row: 3; }
+  .face-bottom { grid-column: 1 / 3; grid-row: 4; }
+}
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S19 — Éditeur de bâtiments simplifié</h1>
+<p class="mq-note">Demande faite pendant S14 : relever les ports directement dans la grille, une case sur chaque face pour ce qu'elle accueille (blocs modulaires), et retirer les informations qui ne servent pas au joueur. Les exemples reprennent de vrais relevés (<code>data/ports.json</code>) et les vraies règles (<code>data/modular.json</code>). La revue d'ensemble de l'interface viendra en S15 : ce lot ne touche qu'à l'éditeur.</p>
+<p class="mq-note"><b>Rien ne change dans les fichiers :</b> mêmes champs dans <code>data/ports.json</code>, même export « Exporter mes relevés » (clés <code>machines</code>, <code>interfaces</code>, <code>modular</code>, <code>diesel</code>), mêmes imports. Les anciens relevés restent lisibles. Seul l'écran change.</p>
+
+<h2 class="mq-t">1. Ce que l'éditeur affiche aujourd'hui, et ce que je propose</h2>
+<table class="inv">
+<thead><tr><th>Élément</th><th>Aujourd'hui</th><th>Proposition</th></tr></thead>
+<tbody>
+<tr><td>Liste : ligne d'états</td><td>« 93 dans le dépôt (intégrés au site) · 0 local (dans ce navigateur, déjà utilisés par tes plans de pose ; « Exporter » pour les envoyer) · … manquants (ports supposés) »</td><td><span class="v-move">Raccourcir</span> : « 93 relevés · 0 à envoyer · … manquants », l'explication au survol.</td></tr>
+<tr><td>Liste : repères</td><td>⬡ ensemble, ⚙ interface, état, « incomplet »</td><td><span class="v-keep">Garder</span>.</td></tr>
+<tr><td>Texte d'accueil</td><td>Deux paragraphes</td><td><span class="v-keep">Garder</span>, une phrase de moins (la remarque sur les rotations reste).</td></tr>
+<tr><td>En-tête</td><td>Nom, « Taille wiki : 2×2 », phrase d'état (« relevé local : déjà utilisé par tes plans de pose… »)</td><td><span class="v-move">Raccourcir</span> : nom, repère d'état, taille relevée « 2 × 2 cases ✎ ». La taille du wiki ne s'affiche que si elle diffère (⚠).</td></tr>
+<tr><td>Largeur, hauteur, ⇄</td><td>Toujours ouverts au-dessus des outils</td><td><span class="v-fold">Derrière ✎</span> à côté de la taille (on la change rarement).</td></tr>
+<tr><td>« D'après le wiki, il consomme jusqu'à … : il a une prise électrique »</td><td>Phrase à côté des cases à cocher</td><td><span class="v-move">Déplacer</span> : seulement dans la liste des manques, quand la prise n'est pas posée.</td></tr>
+<tr><td>Outils et « Sens »</td><td>5 boutons + Sens (3 boutons)</td><td><span class="v-keep">Garder</span>, avec la couleur de chaque type sur son bouton.</td></tr>
+<tr><td>Légende sous la grille</td><td>8 pastilles (objet entrée, objet sortie, fluide…)</td><td><span class="v-drop">Retirer</span> : les couleurs sont sur les boutons, le détail au survol d'un port.</td></tr>
+<tr><td>Formulaire du port sous la grille</td><td>Phrase d'aide, ou : type et place, Sens, « Info-bulle du jeu », « Ce que le jeu affiche », Supprimer</td><td><span class="v-move">Dans la grille</span> : une bulle à côté du port cliqué (type, sens, info-bulle, supprimer). « Ce que le jeu affiche » <span class="v-drop">retiré</span> de l'écran (17 ports l'ont déjà : gardé dans les données et l'export).</td></tr>
+<tr><td>Section « Interface »</td><td>Toujours ouverte, même sans interface (« Type : aucune » et une phrase d'explication)</td><td><span class="v-fold">Repliée</span> : une ligne « ⚙ Interface : aucune », ouverte d'office si la machine en a une.</td></tr>
+<tr><td>Ensemble modulaire : titre</td><td>« Ensemble modulaire · Moteur diesel (Tier II) · par contact : les blocs se touchent, face contre face », puis le rôle du bloc</td><td><span class="v-move">Raccourcir</span> : « ⬡ Moteur diesel » sur la ligne du nom ; le rôle au survol.</td></tr>
+<tr><td>Ensemble modulaire : chaîne</td><td>Controller → Crankshaft × n → Generator, « Dans la ligne, facultatif », « Sur les côtés de la ligne »</td><td><span class="v-drop">Retirer</span> : les cases des faces disent la même chose, bloc par bloc.</td></tr>
+<tr><td>Ensemble modulaire : faces</td><td>Phrase « Les faces se lisent dans le sens de la chaîne… », tableau Face / Doit être touchée ? / Blocs, textes des wikis, sources, bouton ✎ Corriger puis un 2ᵉ tableau à cases</td><td><span class="v-move">Dans la grille</span> : une case sur chaque face. Un clic sur la case la modifie sur place. Sources et textes des wikis au survol ; ⚠ reste sur la case quand une question est ouverte.</td></tr>
+<tr><td>Ferme : portée</td><td>Portée (bord et centre), forme, critère, dessert, doit être à portée de, « À savoir » (7 règles), « Contrôle » (grille d'arbres, « ✓ cohérent avec les wikis »)</td><td><span class="v-move">Une ligne</span> sous la grille (portée, dessert, doit être à portée de) et un bouton « ◯ Portée » qui dessine le cercle dans la grille. « À savoir » <span class="v-fold">replié</span>. « Contrôle » <span class="v-drop">retiré</span> (vérification des données, couverte par les tests).</td></tr>
+<tr><td>Bloc « Calcul » (S13) de la ferme</td><td>Blocs saisis → Oak Log/min, limite, eau, électricité, « Au plus juste »</td><td><span class="v-fold">Replié</span> (question 4).</td></tr>
+<tr><td>Moteur : configurations et « Relevé de configuration » (S18)</td><td>Sur chaque bloc du moteur : calcul, tableau des configurations, formulaire de relevé</td><td><span class="v-fold">Replié</span>, ouvert d'office sur le contrôleur seulement (c'est là qu'on lit l'Info Panel).</td></tr>
+<tr><td>Capture d'écran en fond</td><td>Repliée, avec 3 étapes</td><td><span class="v-keep">Garder</span> (déjà repliée).</td></tr>
+<tr><td>Remarques</td><td>Zone de texte toujours ouverte</td><td><span class="v-fold">Repliée</span>, ouverte d'office si une remarque existe.</td></tr>
+<tr><td>Manques et boutons</td><td>Liste des manques, « Enregistrer le relevé », « Oublier », et un 2ᵉ bouton « Enregistrer » pour l'interface, un 3ᵉ pour la correction du bloc</td><td><span class="v-move">Une seule ligne</span> sous la grille : cases « Sans prise », « Sans port », manques, un seul « Enregistrer » (question 2).</td></tr>
+</tbody>
+</table>
+
+<h2 class="mq-t">2. Un bloc modulaire : Diesel Engine Crankshaft (pas encore relevé)</h2>
+<p class="mq-note">Les quatre cases entourent la grille. Ce qu'elles contiennent vient de <code>data/modular.json</code> (faces du vilebrequin : derrière, devant, côtés). On pose les ports dans la marge de la grille, comme aujourd'hui. Ici, la case « Côtés » a été cliquée : elle s'ouvre en dessous pour être modifiée.</p>
+<div class="panel ed">
+  <div class="ed-head"><h3>Diesel Engine Crankshaft</h3><span class="bld-badge none">manquant</span><span class="bld-badge mod">⬡ moteur</span><span class="ed-size">2 × 2 cases <button type="button" class="link small" title="Changer la taille">✎</button></span></div>
+  <div class="ed-tools" role="toolbar">
+    <button type="button" aria-pressed="true"><i class="sw o"></i>Objet</button>
+    <button type="button"><i class="sw f"></i>Fluide</button>
+    <button type="button"><i class="sw e"></i>Prise ⚡</button>
+    <button type="button"><i class="sw l"></i>Logique</button>
+    <button type="button">Gomme</button>
+    <span class="ed-sep"></span><span class="ed-dirlabel">Sens</span>
+    <button type="button" aria-pressed="true">entrée</button><button type="button">sortie</button><button type="button">les deux</button>
+  </div>
+  <div class="cross">
+    <button type="button" class="face face-top req" title="Wiki : la tige de devant reçoit le vilebrequin suivant ou le générateur (Miraheze, Fandom) · ⚠ MOD-11 : quelle face est plate, à confirmer"><b>Devant</b><span class="names">Crankshaft · Generator · Flywheel</span></button>
+    <button type="button" class="face face-left on" title="Wiki : les deux tiges latérales reçoivent les blocs de côté"><b>Côtés</b><span class="names">Cylinder · Air Input · Exhaust · Fuel Input · Info Panel · Decoration · Crankshaft Sideways</span></button>
+    <div class="frame">
+      <p class="help">Clique dans la marge pour poser un port, sur le corps pour la prise ⚡</p>
+      <svg viewBox="0 0 120 120" role="img" aria-label="Grille 2 × 2 avec sa marge, aucun port posé">
+        <rect x="0" y="0" width="30" height="30" class="bld-corner"/><rect x="30" y="0" width="30" height="30" class="bld-margin"/><rect x="60" y="0" width="30" height="30" class="bld-margin"/><rect x="90" y="0" width="30" height="30" class="bld-corner"/>
+        <rect x="0" y="30" width="30" height="30" class="bld-margin"/><rect x="30" y="30" width="30" height="30" class="bld-body"/><rect x="60" y="30" width="30" height="30" class="bld-body"/><rect x="90" y="30" width="30" height="30" class="bld-margin"/>
+        <rect x="0" y="60" width="30" height="30" class="bld-margin"/><rect x="30" y="60" width="30" height="30" class="bld-body"/><rect x="60" y="60" width="30" height="30" class="bld-body"/><rect x="90" y="60" width="30" height="30" class="bld-margin"/>
+        <rect x="0" y="90" width="30" height="30" class="bld-corner"/><rect x="30" y="90" width="30" height="30" class="bld-margin"/><rect x="60" y="90" width="30" height="30" class="bld-margin"/><rect x="90" y="90" width="30" height="30" class="bld-corner"/>
+        <rect x="30" y="30" width="60" height="60" class="bld-outline"/>
+      </svg>
+      <div class="zoom"><button type="button" aria-label="Zoomer">+</button><button type="button" aria-label="Dézoomer">−</button><button type="button" aria-label="Tout voir">⤢</button></div>
+    </div>
+    <button type="button" class="face face-right on" title="Les deux côtés suivent la même règle"><b>Côtés</b><span class="names">Cylinder · Air Input · Exhaust · Fuel Input · Info Panel · Decoration · Crankshaft Sideways</span></button>
+    <button type="button" class="face face-bottom req" title="Wiki : le côté plat se tourne vers le contrôleur ou le vilebrequin précédent · ⚠ MOD-11"><b>Derrière</b><span class="names">Controller · Crankshaft · Flywheel <span class="must unk">⚠ MOD-11</span></span></button>
+  </div>
+  <div class="bubble face-pop">
+    <div class="row"><b>Côtés (gauche et droite)</b> — ce que la face accueille :</div>
+    <div class="row">
+      <label class="mchip"><input type="checkbox" checked> Cylinder</label><label class="mchip"><input type="checkbox" checked> Air Input</label><label class="mchip"><input type="checkbox" checked> Exhaust</label><label class="mchip"><input type="checkbox" checked> Fuel Input</label><label class="mchip"><input type="checkbox" checked> Info Panel</label><label class="mchip"><input type="checkbox" checked> Decoration</label><label class="mchip"><input type="checkbox" checked> Crankshaft Sideways</label>
+      <label class="mchip off"><input type="checkbox"> Controller</label><label class="mchip off"><input type="checkbox"> Crankshaft</label><label class="mchip off"><input type="checkbox"> Generator</label><label class="mchip off"><input type="checkbox"> Flywheel</label>
+    </div>
+    <div class="row"><label><input type="checkbox"> doit être touchée (obligatoire)</label> <span class="hint">· source : Miraheze, Fandom, ta réponse du 2026-10-18</span></div>
+    <div class="row"><button type="button">Fermer</button></div>
+  </div>
+  <div class="ed-foot">
+    <label><input type="checkbox"> Sans prise électrique</label>
+    <label><input type="checkbox"> Sans port</label>
+    <span class="grow hint">À faire : aucun port (pose-les, ou coche « Sans port ») · pas de prise électrique (pose-la, ou coche « Sans prise »)</span>
+    <button type="button" class="primary">Enregistrer</button>
+  </div>
+  <div class="ed-more">
+    <details><summary>⚙ Moteur diesel : configurations <span class="hint">· 8 relevées, relevé de l'Info Panel sur le contrôleur</span></summary><p class="hint">(contenu actuel de S18, inchangé)</p></details>
+    <details><summary>⚙ Interface <span class="hint">· aucune</span></summary><p class="hint">(contenu actuel de S10, inchangé)</p></details>
+    <details><summary>Capture d'écran en fond <span class="hint">· reste dans ton navigateur</span></summary><p class="hint">(inchangé)</p></details>
+    <details><summary>Remarques</summary><p class="hint">(zone de texte, inchangée)</p></details>
+  </div>
+</div>
+<p class="mq-note">Le dessin place <b>devant en haut</b> et <b>derrière en bas</b>. C'est une convention d'affichage : depuis S14, le sens d'un bloc ne pose jamais problème (MOD-17 close), et les ports restent relevés tels que le bloc est posé en jeu, sans pivoter (question 1). Les cases sans bloc (« rien ») sont grisées ; une case encadrée en orange est obligatoire.</p>
+
+<h2 class="mq-t">3. Un bâtiment ordinaire : Press (relevé du dépôt)</h2>
+<p class="mq-note">Pas de case de face (ce n'est pas un bloc modulaire) : la grille prend toute la largeur. On a cliqué sur la sortie : la bulle s'ouvre à côté du port, dans la grille. Plus de formulaire sous la grille, plus de légende.</p>
+<div class="panel ed">
+  <div class="ed-head"><h3>Press</h3><span class="bld-badge ok">dépôt</span><span class="ed-size">4 × 2 cases <button type="button" class="link small">✎</button></span></div>
+  <div class="ed-tools" role="toolbar">
+    <button type="button" aria-pressed="true"><i class="sw o"></i>Objet</button><button type="button"><i class="sw f"></i>Fluide</button><button type="button"><i class="sw e"></i>Prise ⚡</button><button type="button"><i class="sw l"></i>Logique</button><button type="button">Gomme</button>
+    <span class="ed-sep"></span><span class="ed-dirlabel">Sens</span><button type="button" aria-pressed="true">entrée</button><button type="button">sortie</button><button type="button">les deux</button>
+  </div>
+  <div class="frame">
+    <p class="help">Clique dans la marge pour poser un port, sur le corps pour la prise ⚡ · clic sur un port : le modifier</p>
+    <svg viewBox="-20 0 220 120" role="img" aria-label="Press 4 × 2 : entrée et sortie objet en bas, prise sur le dessus">
+      <g>
+        <rect x="0" y="0" width="30" height="30" class="bld-corner"/><rect x="30" y="0" width="30" height="30" class="bld-margin"/><rect x="60" y="0" width="30" height="30" class="bld-margin"/><rect x="90" y="0" width="30" height="30" class="bld-margin"/><rect x="120" y="0" width="30" height="30" class="bld-margin"/><rect x="150" y="0" width="30" height="30" class="bld-corner"/>
+        <rect x="0" y="30" width="30" height="30" class="bld-margin"/><rect x="30" y="30" width="30" height="30" class="bld-body"/><rect x="60" y="30" width="30" height="30" class="bld-body"/><rect x="90" y="30" width="30" height="30" class="bld-body"/><rect x="120" y="30" width="30" height="30" class="bld-body"/><rect x="150" y="30" width="30" height="30" class="bld-margin"/>
+        <rect x="0" y="60" width="30" height="30" class="bld-margin"/><rect x="30" y="60" width="30" height="30" class="bld-body"/><rect x="60" y="60" width="30" height="30" class="bld-body"/><rect x="90" y="60" width="30" height="30" class="bld-body"/><rect x="120" y="60" width="30" height="30" class="bld-body"/><rect x="150" y="60" width="30" height="30" class="bld-margin"/>
+        <rect x="0" y="90" width="30" height="30" class="bld-corner"/><rect x="30" y="90" width="30" height="30" class="bld-margin"/><rect x="60" y="90" width="30" height="30" class="bld-margin"/><rect x="90" y="90" width="30" height="30" class="bld-margin"/><rect x="120" y="90" width="30" height="30" class="bld-margin"/><rect x="150" y="90" width="30" height="30" class="bld-corner"/>
+        <rect x="30" y="30" width="120" height="60" class="bld-outline"/>
+      </g>
+      <g class="bld-port"><rect x="32" y="92" width="26" height="26" rx="4" fill="#d9b300"/><text x="45" y="111" text-anchor="middle">▲</text><title>objet · entrée · bas, case 1 — « input for metal ingot »</title></g>
+      <g class="bld-port sel"><rect x="122" y="92" width="26" height="26" rx="4" fill="#b03ab8"/><text x="135" y="111" text-anchor="middle">▼</text></g>
+      <g class="bld-port"><rect x="34" y="64" width="22" height="22" rx="3" fill="#f2d21b"/><text x="45" y="80" text-anchor="middle" style="fill:#222;stroke:none">⚡</text></g>
+    </svg>
+    <div class="bubble" style="right: 14px; top: 44px;">
+      <div class="row"><b>Sortie objet</b> <span class="hint">· bas, case 4</span></div>
+      <div class="row"><span class="hint">Type</span><button type="button" aria-pressed="true">Objet</button><button type="button">Fluide</button><button type="button">Logique</button></div>
+      <div class="row"><span class="hint">Sens</span><button type="button">entrée</button><button type="button" aria-pressed="true">sortie</button><button type="button">les deux</button></div>
+      <label class="hint">Info-bulle du jeu (facultatif)<input type="text" value="Outpour for metal plates"></label>
+      <div class="row"><button type="button">Supprimer</button><button type="button" class="link">Fermer</button></div>
+    </div>
+    <div class="zoom"><button type="button" aria-label="Zoomer">+</button><button type="button" aria-label="Dézoomer">−</button><button type="button" aria-label="Tout voir">⤢</button></div>
+  </div>
+  <div class="ed-foot">
+    <label><input type="checkbox"> Sans prise électrique</label>
+    <label><input type="checkbox"> Sans port</label>
+    <span class="grow ok-text">✓ Relevé complet</span>
+    <button type="button" class="primary">Enregistrer</button>
+  </div>
+  <div class="ed-more">
+    <details><summary>⚙ Interface <span class="hint">· aucune</span></summary></details>
+    <details><summary>Capture d'écran en fond <span class="hint">· reste dans ton navigateur</span></summary></details>
+    <details><summary>Remarques <span class="hint">· 1 remarque</span></summary><p>Les câbles électriques ne sont pas gênés par les obstacles.</p></details>
+  </div>
+</div>
+
+<h2 class="mq-t">4. Un bloc à portée : Tree Farm Sprinkler (relevé du dépôt)</h2>
+<p class="mq-note">Par portée, les blocs ne se touchent pas : pas de case de face. La portée tient sur une ligne, et « ◯ Portée » dessine le cercle dans la grille (dézoomée). Valeurs de <code>data/modular.json</code> : 10 cases depuis le bord (relevé du 2026-10-16), dessert les arbres.</p>
+<div class="panel ed">
+  <div class="ed-head"><h3>Tree Farm Sprinkler</h3><span class="bld-badge ok">dépôt</span><span class="bld-badge mod">⬡ ferme</span><span class="ed-size">4 × 4 cases <button type="button" class="link small">✎</button></span></div>
+  <div class="ed-range"><span><b>Portée</b> 10 cases depuis le bord <span class="must unk" title="MOD-03">⚠</span></span><span><b>Dessert</b> Tree</span><span><b>Doit être à portée de</b> Controller (58 cases) · Water Tank (portée infinie)</span><button type="button" class="link small">✎ Corriger</button></div>
+  <div class="frame" style="height: 260px">
+    <svg viewBox="-15 -15 30 30" role="img" aria-label="Arroseur 4 × 4 et son cercle de portée, 12 cases depuis le centre">
+      <circle r="12" class="circ"/>
+      <rect x="-2" y="-2" width="4" height="4" fill="rgba(47,93,124,.5)" stroke="#8fb8d6" stroke-width=".25"/>
+    </svg>
+    <button type="button" class="range-btn" aria-pressed="true">◯ Portée</button>
+    <div class="zoom"><button type="button" aria-label="Zoomer">+</button><button type="button" aria-label="Dézoomer">−</button><button type="button" aria-label="Tout voir">⤢</button></div>
+  </div>
+  <div class="ed-foot">
+    <label><input type="checkbox" checked> Sans prise électrique</label>
+    <label><input type="checkbox" checked> Sans port</label>
+    <span class="grow ok-text">✓ Relevé complet</span>
+    <button type="button" class="primary">Enregistrer</button>
+  </div>
+  <div class="ed-more">
+    <details><summary>À savoir <span class="hint">· 1 règle : un réservoir à portée du contrôleur</span></summary></details>
+    <details><summary>⚙ Ferme d'arbres : calcul <span class="hint">· blocs saisis → Oak Log/min</span></summary></details>
+    <details><summary>Capture d'écran en fond</summary></details>
+    <details><summary>Remarques</summary></details>
+  </div>
+</div>
+
+<h2 class="mq-t">5. Questions</h2>
+<div class="mq-q">
+<ol>
+  <li><b>Sens des faces.</b> Dans le dessin, devant en haut, derrière en bas, les deux côtés à gauche et à droite. Les deux cases « Côtés » suivent la même règle : en cocher une coche l'autre, comme dans les données d'aujourd'hui. Ça te va ? Ou faut-il pouvoir régler gauche et droite à part (par exemple pour le Crankshaft Sideways, dont un côté touche la 1ʳᵉ ligne et l'autre reçoit la nouvelle) ?</li>
+  <li><b>Un seul « Enregistrer ».</b> Il garde ensemble le relevé (ports, taille), la correction des faces ou de la portée, et l'interface. Aujourd'hui, il y a trois boutons. Chaque partie reste à part dans l'export, et rien n'est enregistré pour une partie qui n'a pas changé. D'accord ?</li>
+  <li><b>Poser un port.</b> Je garde les outils au-dessus de la grille : on choisit « Objet · sortie », puis chaque clic dans la marge pose un port. Un clic sur un port ouvre la bulle. Ou bien préfères-tu sans outils : un clic sur une case vide ouvre la bulle, et on y choisit le type et le sens (deux clics par port) ?</li>
+  <li><b>Bloc « Calcul » de la ferme (S13).</b> Je le replie, ou je le retire de l'éditeur ? Le plan de l'objet Oak Log fait déjà ce calcul. Les configurations du moteur (S18) restent : on les relève sur le contrôleur.</li>
+  <li><b>Retraits.</b> Je retire la chaîne de l'ensemble, la légende, le « Contrôle » de la portée (grille d'arbres « ✓ cohérent »), le champ « Ce que le jeu affiche » et la taille du wiki quand elle est identique. Les sources passent au survol. Un de ces éléments te sert-il ?</li>
+</ol>
+</div>
+</div>
+</body>
+</html>

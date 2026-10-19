@@ -2,7 +2,7 @@
 // Grille affichée : l'empreinte entourée d'une marge d'une case, où se posent les plots des ports.
 
 import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
-import { EDGES, type Edge, FACES, type FaceKey, type ModularEdit, type ModularEdits } from "../engine/modular.ts";
+import { EDGES, type Edge, FACES, type FaceKey, type FacesInfo, type ModularEdit, type ModularEdits, type SideSplit } from "../engine/modular.ts";
 import type { Source } from "../engine/types.ts";
 
 export const CELL = 30; // pixels par case dans le SVG (la vue est ensuite mise à l'échelle)
@@ -94,6 +94,22 @@ export function checkEntry(e: PortsEntry): string[] {
 export const isComplete = (e: PortsEntry) => checkEntry(e).length === 0;
 
 /**
+ * Le relevé en cours diffère-t-il de celui en vigueur (S19 : « Enregistrer » ne garde que ce qui a
+ * changé) ? Sans relevé en vigueur, il change dès qu'on a posé ou coché quelque chose.
+ */
+export function entryChanged(e: PortsEntry, base: PortsEntry | undefined): boolean {
+  const sig = (x: PortsEntry) => JSON.stringify([x.footprint, x.ports, !!x.noPower, !!x.noPorts, x.notes ?? ""]);
+  if (!base) return e.ports.length > 0 || !!e.noPower || !!e.noPorts || !!e.notes;
+  return sig(e) !== sig(base);
+}
+
+/** Taille du wiki identique à l'empreinte relevée (dans un sens ou dans l'autre) ? */
+export function sameSize(fp: { w: number; h: number } | null, wiki: { w: number; l: number } | null): boolean {
+  if (!fp || !wiki) return true;
+  return (fp.w === wiki.w && fp.h === wiki.l) || (fp.w === wiki.l && fp.h === wiki.w);
+}
+
+/**
  * Fichier d'export (même format que data/ports.json) ; les interfaces notées (S10) vont à
  * data/interfaces.json, les corrections des blocs modulaires (S12) à data/modular.json.
  */
@@ -135,10 +151,81 @@ export function parseModular(raw: unknown): ModularEdits | null {
     const serves = strings(e.serves);
     if (serves) edit.serves = serves;
     if (EDGES.includes(e.frontEdge as Edge)) edit.frontEdge = e.frontEdge as Edge;
+    if (obj(e.sides)) {
+      const left = strings(e.sides.left);
+      const right = strings(e.sides.right);
+      if (left && right) edit.sides = { left, right, ...(e.sides.leftRequired === true ? { leftRequired: true } : {}), ...(e.sides.rightRequired === true ? { rightRequired: true } : {}) };
+    }
     if (typeof e.note === "string" && e.note) edit.note = e.note;
     out[id] = edit;
   }
   return out;
+}
+
+// ---------------------------------------------------------------- cases des faces (S19)
+
+/**
+ * Case de face autour de la grille. Convention d'affichage (S19) : devant en haut, derrière en
+ * bas, les côtés à gauche et à droite. Le sens d'un bloc ne pose pas problème en jeu (MOD-17).
+ */
+export type FaceBox = "haut" | "bas" | "gauche" | "droite";
+export const FACE_BOXES: FaceBox[] = ["haut", "gauche", "droite", "bas"];
+export const BOX_FACE: Record<FaceBox, FaceKey> = { haut: "front", bas: "back", gauche: "side", droite: "side" };
+
+export type FaceBoxInfo = { blocks: string[]; required: boolean | null };
+
+/** Ce que chaque case affiche : la face des données, ou le côté réglé à part. Rien de connu : null. */
+export function faceBoxes(info: FacesInfo): Record<FaceBox, FaceBoxInfo> | null {
+  if (!info.faces) return null;
+  const of = (f: FaceKey): FaceBoxInfo => {
+    const r = info.faces!.find((x) => x.face === f);
+    return { blocks: r?.blocks ?? [], required: r ? r.required : false };
+  };
+  const side = of("side");
+  const s = info.sides;
+  return {
+    haut: of("front"),
+    bas: of("back"),
+    gauche: s ? { blocks: s.left, required: !!s.leftRequired } : side,
+    droite: s ? { blocks: s.right, required: !!s.rightRequired } : side,
+  };
+}
+
+/** Brouillon : coche ou décoche un bloc sur une case ; les côtés liés changent ensemble. */
+export function toggleFaceBlock(draft: ModularEdit, box: FaceBox, id: string, on: boolean): ModularEdit {
+  const flip = (list: string[] | undefined) => (on ? [...(list ?? []).filter((x) => x !== id), id] : (list ?? []).filter((x) => x !== id));
+  if (draft.sides && (box === "gauche" || box === "droite")) {
+    const k = box === "gauche" ? "left" : "right";
+    return { ...draft, sides: { ...draft.sides, [k]: flip(draft.sides[k]) } };
+  }
+  const f = BOX_FACE[box];
+  return { ...draft, faces: { ...draft.faces, [f]: flip(draft.faces?.[f]) } };
+}
+
+/** Brouillon : rend une case obligatoire ou facultative. */
+export function setFaceRequired(draft: ModularEdit, box: FaceBox, on: boolean): ModularEdit {
+  if (draft.sides && (box === "gauche" || box === "droite")) {
+    return { ...draft, sides: { ...draft.sides, [box === "gauche" ? "leftRequired" : "rightRequired"]: on } };
+  }
+  return { ...draft, facesRequired: { ...draft.facesRequired, [BOX_FACE[box]]: on } };
+}
+
+/**
+ * Option « Côtés réglés à part » : séparer part des côtés communs ; réunir garde les blocs des
+ * deux côtés, obligatoire si l'un des deux l'était.
+ */
+export function splitSides(draft: ModularEdit, on: boolean): ModularEdit {
+  if (on) {
+    if (draft.sides) return draft;
+    const side = draft.faces?.side ?? [];
+    const req = draft.facesRequired?.side === true;
+    const sides: SideSplit = { left: [...side], right: [...side], ...(req ? { leftRequired: true, rightRequired: true } : {}) };
+    return { ...draft, sides };
+  }
+  if (!draft.sides) return draft;
+  const { left, right, leftRequired, rightRequired } = draft.sides;
+  const { sides: _gone, ...rest } = draft;
+  return { ...rest, faces: { ...rest.faces, side: [...new Set([...left, ...right])] }, facesRequired: { ...rest.facesRequired, side: !!(leftRequired || rightRequired) } };
 }
 
 // ---------------------------------------------------------------- interfaces (S10)

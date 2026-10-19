@@ -2,6 +2,8 @@
 // directement sur une grille, en s'aidant d'une capture d'écran posée en fond.
 // La grille se manipule comme l'arbre de recherche (glisser, molette). La capture se cale en
 // deux clics (deux coins du bâtiment), puis s'ajuste à la main en mode « Capture ».
+// S19 : un port se modifie dans une bulle à côté de lui ; un bloc modulaire a une case par face
+// autour de la grille ; un seul « Enregistrer » ; le reste est replié sous la grille.
 // La capture reste dans le navigateur (jamais envoyée) ; les relevés sont gardés localement
 // et s'exportent au format de data/ports.json.
 
@@ -13,8 +15,6 @@ import {
   blockFaces,
   blockRange,
   editDiff,
-  FACES,
-  type FaceKey,
   fact,
   findBlock,
   isOpen,
@@ -23,9 +23,6 @@ import {
   type ModFact,
   type ModularEdit,
   type ModularFile,
-  repeats,
-  rule,
-  treeGrid,
 } from "../engine/modular.ts";
 import { dieselConfigs, farmBlocks, farmRates, parseDieselReading, type DieselReading } from "../engine/modular-calc.ts";
 import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, readDieselForm, type ModCalcState } from "./modcalc-view.ts";
@@ -35,7 +32,11 @@ import {
   bodyPoint,
   CELL,
   checkEntry,
+  entryChanged,
   exportSurveys,
+  FACE_BOXES,
+  type FaceBox,
+  faceBoxes,
   fitTwoCorners,
   INTERFACE_KINDS,
   isComplete,
@@ -47,10 +48,14 @@ import {
   parseSurveys,
   portCenter,
   pruneIntegrated,
+  sameSize,
   scaleAround,
+  setFaceRequired,
+  splitSides,
   type SurveyState,
   surveySource,
   surveyState,
+  toggleFaceBlock,
   type Tool,
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
@@ -61,6 +66,9 @@ type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: numbe
 /** Ce que fait la souris sur la grille. */
 type Mode = "ports" | "capture" | "coins";
 type PortTool = Exclude<Tool, "gomme">;
+type Place = Pick<Port, "side" | "cell">;
+/** Bulle ouverte : un port posé (le modifier), ou une case vide (y poser un port, mode « Bulle »). */
+type Bubble = { kind: "port"; index: number } | { kind: "new"; place: Place } | null;
 
 const STATE_BADGE: Record<SurveyState, string> = {
   depot: `<span class="bld-badge ok" title="intégré aux données du site : sert à tout le monde">dépôt</span>`,
@@ -68,17 +76,15 @@ const STATE_BADGE: Record<SurveyState, string> = {
   manquant: `<span class="bld-badge none" title="pas encore relevé : les plans de pose supposent ses ports">manquant</span>`,
 };
 
-const TOOL_LABEL: Record<Tool, string> = { objet: "Port objet", fluide: "Port fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" };
+const TOOL_LABEL: Record<Tool, string> = { objet: "Objet", fluide: "Fluide", énergie: "Prise ⚡", logique: "Logique", gomme: "Gomme" };
+const TYPE_NAME: Record<PortTool, string> = { objet: "objet", fluide: "fluide", énergie: "prise ⚡", logique: "logique" };
+const DIRS = ["entrée", "sortie", "les deux"] as const;
 const TIER = ["", "I", "II", "III", "IV", "V"];
-const FACE_LABEL: Record<FaceKey, string> = { back: "Derrière", front: "Devant", side: "Côtés" };
+const BOX_LABEL: Record<FaceBox, string> = { haut: "Devant", bas: "Derrière", gauche: "Côté", droite: "Côté" };
 /** Ce qu'on rappelle d'un bloc de la ferme sous « À savoir » (règles de pose, pas de calcul). */
 const RANGE_NOTES = ["count", "sprinklersPerTank", "needsTankInControllerRange", "mustBeInControllerRange", "extraTanksNeedWater", "multipleOutputs", "placement"];
-
-const HELP: Record<Mode, string> = {
-  ports: "Glisse pour te déplacer · molette pour zoomer · clique dans la marge (ports) ou sur le corps (prise ⚡)",
-  capture: "Glisse pour déplacer la capture · molette pour l'agrandir ou la réduire (Maj : plus fin) · flèches : réglage fin",
-  coins: "",
-};
+/** Choix du mode de pose (outils ou bulle), gardé dans ce navigateur. */
+const POSE_KEY = "ind-calc:v1:pose-bulle";
 
 /**
  * `onSelect` : appelé quand un bâtiment est choisi (pour l'adresse de la page).
@@ -103,11 +109,15 @@ export function initBuildings(
   saveLocalInterfaces(localIfaces);
   /** Interface du bâtiment choisi, en cours de saisie (null : aucune). */
   let iface: MachineInterface | null = null;
-  let ifaceMsg = "";
-  // Corrections des blocs modulaires notées dans ce navigateur (S12) ; brouillon pendant « ✎ Corriger ».
+  // Corrections des blocs modulaires notées dans ce navigateur (S12) ; brouillon dès qu'on touche une case de face ou la portée.
   let localMod = loadLocalModular();
   let modDraft: ModularEdit | null = null;
-  let modMsg = "";
+  /** Case de face ouverte sous la grille (null : aucune). */
+  let openBox: FaceBox | null = null;
+  /** Portée en cours de correction (ferme d'arbres). */
+  let rangeEdit = false;
+  /** Cercle de portée dessiné dans la grille. */
+  let showRange = false;
   /** Bloc « Calcul » des ensembles (S13) : blocs saisis, gardés le temps de la page. */
   const mcState: ModCalcState = structuredClone(MODCALC_DEFAULT);
   /** Message du relevé de configuration du moteur (S18). */
@@ -118,11 +128,18 @@ export function initBuildings(
   let tool: Tool = "objet";
   // Un sens par outil : passer de « sortie objet » à la prise ⚡ ne fait pas une prise en sortie.
   const dirByTool: Record<PortTool, Port["direction"]> = { objet: "entrée", fluide: "entrée", énergie: "entrée", logique: "entrée" };
-  let selectedPort: number | null = null;
+  /** Mode « Bulle » : un clic sur une case vide ouvre une bulle (type et sens choisis dedans). */
+  let poseBubble = loadPose();
+  /** Sens proposé dans la bulle d'une case vide (le dernier choisi). */
+  let bubbleDir: Port["direction"] = "entrée";
+  let bubble: Bubble = null;
+  let sizeOpen = false;
   let filter = "";
   let bg: Bg | null = null;
   let mode: Mode = "ports";
   let corners: [number, number][] = [];
+  /** Décalage de la grille dans le SVG (en unités SVG) quand le cercle de portée dépasse. */
+  let off = 0;
   let message = pruned.dropped.length ? `${pruned.dropped.length} relevé(s) local(aux) déjà intégré(s) aux données : copie locale retirée.` : "";
 
   const machines = [...data.machines.values()].sort((a, b) => Number(a.kind === "building") - Number(b.kind === "building") || a.name.localeCompare(b.name));
@@ -143,40 +160,48 @@ export function initBuildings(
       <div class="bld-main">
         <div class="panel" id="bld-intro">
           <h3>Éditeur de bâtiments</h3>
-          <p>Choisis un bâtiment dans la liste. Tu poses ses entrées, ses sorties et sa prise électrique sur une grille, en t'aidant d'une capture d'écran en vue de dessus. Les relevés sont gardés dans ce navigateur ; « Exporter mes relevés » produit un fichier à m'envoyer (ou à mettre dans <code>data/ports.json</code>).</p>
+          <p>Choisis un bâtiment dans la liste, puis pose ses entrées, ses sorties et sa prise électrique sur la grille, en t'aidant si besoin d'une capture d'écran en vue de dessus. « Exporter mes relevés » produit un fichier à m'envoyer.</p>
           <p class="hint">1 case = 1 Short Pipe. Pose le bâtiment sans le faire pivoter : tous les bâtiments ont 4 rotations (quarts de tour), le calculateur les déduit.</p>
         </div>
         <div class="panel bld-editor" id="bld-editor" hidden>
           <div class="bld-head" id="bld-head"></div>
-          <div class="bld-row" id="bld-dims"></div>
+          <div class="bld-row" id="bld-dims" hidden></div>
+          <div class="bld-range" id="bld-range" hidden></div>
           <div class="bld-tools" id="bld-tools" role="toolbar" aria-label="Outils"></div>
-          <div class="bld-frame" id="bld-frame" tabindex="0" aria-label="Grille du bâtiment : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour tout voir">
-            <div id="bld-canvas"></div>
-            <p class="bld-help" id="bld-help"></p>
-            <div class="seg bld-mode" id="bld-mode" role="radiogroup" aria-label="Ce que fait la souris" hidden>
-              <button type="button" role="radio" data-mode="ports" title="Poser et modifier les ports">✎ Ports</button>
-              <button type="button" role="radio" data-mode="capture" title="Déplacer et agrandir la capture à la main">✥ Capture</button>
-            </div>
-            <div class="rs-zoom">
-              <button type="button" data-bzoom="in" aria-label="Zoomer">+</button>
-              <button type="button" data-bzoom="out" aria-label="Dézoomer">−</button>
-              <button type="button" data-bzoom="fit" aria-label="Tout voir">⤢</button>
+          <div class="bld-cross" id="bld-cross">
+            ${FACE_BOXES.map((b) => `<button type="button" class="bld-face bld-face-${b}" data-box="${b}" hidden></button>`).join("")}
+            <div class="bld-stage">
+              <div class="bld-frame" id="bld-frame" tabindex="0" aria-label="Grille du bâtiment : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour tout voir">
+                <div id="bld-canvas"></div>
+                <p class="bld-help" id="bld-help"></p>
+                <div class="seg bld-mode" id="bld-mode" role="radiogroup" aria-label="Ce que fait la souris" hidden>
+                  <button type="button" role="radio" data-mode="ports" title="Poser et modifier les ports">✎ Ports</button>
+                  <button type="button" role="radio" data-mode="capture" title="Déplacer et agrandir la capture à la main">✥ Capture</button>
+                </div>
+                <button type="button" class="bld-rangebtn" id="bld-rangebtn" hidden>◯ Portée</button>
+                <div class="rs-zoom">
+                  <button type="button" data-bzoom="in" aria-label="Zoomer">+</button>
+                  <button type="button" data-bzoom="out" aria-label="Dézoomer">−</button>
+                  <button type="button" data-bzoom="fit" aria-label="Tout voir">⤢</button>
+                </div>
+              </div>
+              <div class="bld-bubble" id="bld-bubble" role="dialog" aria-label="Port" hidden></div>
             </div>
           </div>
-          <p class="bld-legend">
-            <span><i class="sw-oi"></i>objet entrée</span><span><i class="sw-oo"></i>objet sortie</span>
-            <span><i class="sw-fi"></i>fluide entrée</span><span><i class="sw-fo"></i>fluide sortie</span>
-            <span><i class="sw-ei"></i>prise ⚡</span><span><i class="sw-eo"></i>⚡ produite</span><span><i class="sw-l"></i>logique</span>
-            <span><i class="sw-both"></i>deux couleurs = les deux sens</span>
-          </p>
+          <div id="bld-facepop"></div>
           <p class="bld-msg" id="bld-msg" aria-live="polite"></p>
-          <div id="bld-portform"></div>
-          <div id="bld-iface"></div>
-          <div id="bld-mod"></div>
-          <details class="bld-bg" id="bld-bg"><summary>Capture d'écran en fond (reste dans ton navigateur)</summary><div id="bld-bgbody"></div></details>
-          <label class="bld-notes">Remarques <textarea id="bld-notes" rows="2" placeholder="ex. ce que la capture ne montre pas"></textarea></label>
-          <div id="bld-status" aria-live="polite"></div>
-          <div class="actions" id="bld-actions"></div>
+          <div class="bld-foot" id="bld-foot">
+            <label class="bld-check"><input type="checkbox" id="bld-nopower"> Sans prise électrique</label>
+            <label class="bld-check"><input type="checkbox" id="bld-noports"> Sans port</label>
+            <div class="bld-status" id="bld-status" aria-live="polite"></div>
+            <div class="actions" id="bld-actions"></div>
+          </div>
+          <div class="bld-more">
+            <details id="bld-d-mod" hidden><summary id="bld-s-mod"></summary><div id="bld-mod"></div></details>
+            <details id="bld-d-iface"><summary id="bld-s-iface"></summary><div id="bld-iface"></div></details>
+            <details class="bld-bg" id="bld-bg"><summary>Capture d'écran en fond <span class="hint">· reste dans ton navigateur</span></summary><div id="bld-bgbody"></div></details>
+            <details id="bld-d-notes"><summary id="bld-s-notes">Remarques</summary><label class="bld-notes"><span class="sr-only">Remarques</span><textarea id="bld-notes" rows="2" placeholder="ex. ce que la capture ne montre pas, un poteau en hauteur"></textarea></label></details>
+          </div>
         </div>
       </div>
     </div>`;
@@ -187,13 +212,28 @@ export function initBuildings(
   function save(): void {
     saveLocalSurveys(local);
   }
+  function loadPose(): boolean {
+    try {
+      return localStorage.getItem(POSE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+  function savePose(): void {
+    try {
+      localStorage.setItem(POSE_KEY, poseBubble ? "1" : "0");
+    } catch {
+      // stockage indisponible : le choix vaut pour la page
+    }
+  }
 
   // ---------------------------------------------------------------- liste
   function renderList(): void {
     const q = filter.trim().toLowerCase();
     const n = { depot: 0, local: 0, manquant: 0 };
     for (const m of machines) n[surveyState(m.id, repo, local)]++;
-    $("#bld-states").innerHTML = `<b>${n.depot}</b> dans le dépôt (intégrés au site) · <b>${n.local}</b> local (dans ce navigateur, déjà utilisés par tes plans de pose ; « Exporter » pour les envoyer) · <b>${n.manquant}</b> manquants (ports supposés)`;
+    $("#bld-states").innerHTML =
+      `<span title="intégrés aux données du site">${n.depot} relevés</span> · <span title="relevés dans ce navigateur, déjà utilisés par tes plans de pose : « Exporter mes relevés » pour les envoyer">${n.local} à envoyer</span> · <span title="pas encore relevés : les plans de pose supposent leurs ports">${n.manquant} manquants</span>`;
     $("#bld-items").innerHTML = machines
       .filter((m) => !q || m.name.toLowerCase().includes(q) || !!ASSEMBLY_SHORT[assemblyOf.get(m.id)?.id ?? ""]?.includes(q))
       .map((m) => {
@@ -218,13 +258,19 @@ export function initBuildings(
     entry = base ? structuredClone(base) : { footprint: m.size ? { w: m.size.w, h: m.size.l } : { w: 2, h: 2 }, ports: [], source: surveySource() };
     const known = localIfaces[id] ?? repoIfaces[id];
     iface = known ? structuredClone(known) : null;
-    ifaceMsg = "";
     modDraft = null;
-    modMsg = "";
-    selectedPort = null;
+    openBox = null;
+    rangeEdit = false;
+    showRange = false;
+    bubble = null;
+    sizeOpen = false;
     mode = "ports";
     corners = [];
     message = "";
+    // Ce qui est replié : ouvert d'office seulement quand il y a quelque chose à voir.
+    ($("#bld-d-iface") as HTMLDetailsElement).open = !!iface;
+    ($("#bld-d-notes") as HTMLDetailsElement).open = !!entry.notes;
+    ($("#bld-d-mod") as HTMLDetailsElement).open = id === "diesel-engine-controller";
     renderList();
     renderEditor(false);
     onSelect(id);
@@ -233,12 +279,30 @@ export function initBuildings(
   // ---------------------------------------------------------------- dessin
   const bgTransform = (b: Bg) => `translate(${b.x * CELL} ${b.y * CELL}) scale(${b.scale}) rotate(${b.rot} ${b.natW / 2} ${b.natH / 2})`;
 
+  /** Bloc à portée (ferme) : rayon depuis le centre, en cases, s'il est connu. */
+  function rangeRadius(): number | null {
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    if (!found || found.assembly.assembly === "contact") return null;
+    const size = data.machines.get(found.block.id)?.size ?? null;
+    const edits = modDraft ? { ...localMod, [found.block.id]: modDraft } : localMod;
+    return blockRange(found.assembly, found.block, size, edits).fromCenter;
+  }
+
+  function portTitle(p: Port): string {
+    const where = p.side === "dessus" ? `dessus, case ${(p.cell as number[]).join(", ")}` : `${p.side}, case ${p.cell}`;
+    return `${TYPE_NAME[p.type]} · ${p.direction} · ${where}${p.tip ? ` — « ${p.tip} »` : ""} · clic : modifier`;
+  }
+
   function svg(): string {
     const e = entry!;
     const { w, h } = e.footprint!;
-    const W = (w + 2) * CELL;
-    const H = (h + 2) * CELL;
-    let s = `<svg id="bld-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grille du bâtiment : marge pour les ports, corps pour la prise électrique">`;
+    const radius = showRange ? rangeRadius() : null;
+    // Le cercle de portée dépasse de la grille : on l'agrandit autour (décalage `off`).
+    const pad = radius ? Math.max(0, Math.ceil(radius - Math.min(w, h) / 2 - 1) + 1) : 0;
+    off = pad * CELL;
+    const W = (w + 2) * CELL + 2 * off;
+    const H = (h + 2) * CELL + 2 * off;
+    let s = `<svg id="bld-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grille du bâtiment : marge pour les ports, corps pour la prise électrique"><g transform="translate(${off} ${off})">`;
     if (bg) s += `<g id="bld-bgimg" opacity="${bg.opacity}" transform="${bgTransform(bg)}"><image href="${bg.url}" width="${bg.natW}" height="${bg.natH}"/></g>`;
     // Sans capture : cases pleines. Avec capture : seulement les traits, pour voir les plots dessous.
     for (let gx = 0; gx < w + 2; gx++) {
@@ -250,9 +314,14 @@ export function initBuildings(
       }
     }
     s += `<rect x="${CELL}" y="${CELL}" width="${w * CELL}" height="${h * CELL}" class="bld-outline"/>`;
+    if (radius) s += `<circle class="bld-circ" cx="${(1 + w / 2) * CELL}" cy="${(1 + h / 2) * CELL}" r="${radius * CELL}"><title>Portée : ${fmt(radius, 2)} cases depuis le centre</title></circle>`;
+    if (bubble?.kind === "new") {
+      const [x, y] = portCenter(w, h, { ...bubble.place, type: "objet", direction: "entrée" });
+      s += `<rect class="bld-target" x="${x - 13}" y="${y - 13}" width="26" height="26" rx="4"/>`;
+    }
     e.ports.forEach((p, i) => {
       const [x, y] = portCenter(w, h, p);
-      const sel = i === selectedPort ? " sel" : "";
+      const sel = bubble?.kind === "port" && bubble.index === i ? " sel" : "";
       const dir = p.direction === "sortie" ? "out" : p.direction === "les deux" ? "both" : "in";
       const r = p.side === "dessus" ? 11 : 13;
       const half = dir === "both" ? `<path class="half" d="M${x + r} ${y - r}L${x + r} ${y + r}L${x - r} ${y + r}Z"/>` : "";
@@ -264,10 +333,10 @@ export function initBuildings(
         const outward = { haut: "▲", bas: "▼", gauche: "◀", droite: "▶" }[p.side];
         glyph = dir === "out" ? outward : inward;
       }
-      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}<text x="${x}" y="${y + (p.side === "dessus" ? 5 : 6)}" text-anchor="middle">${glyph}</text></g>`;
+      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><title>${esc(portTitle(p))}</title><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}<text x="${x}" y="${y + (p.side === "dessus" ? 5 : 6)}" text-anchor="middle">${glyph}</text></g>`;
     });
     for (const [cx, cy] of corners) s += `<g class="bld-mark"><line x1="${cx - 12}" y1="${cy}" x2="${cx + 12}" y2="${cy}"/><line x1="${cx}" y1="${cy - 12}" x2="${cx}" y2="${cy + 12}"/></g>`;
-    return `${s}</svg>`;
+    return `${s}</g></svg>`;
   }
 
   /** Redessine la grille ; `keepView` garde le cadrage (sauf si la taille de la grille change). */
@@ -276,22 +345,24 @@ export function initBuildings(
     const c = $("#bld-canvas");
     c.innerHTML = svg();
     const { w, h } = entry.footprint!;
-    pz.attach(c.querySelector("svg") as SVGSVGElement, (w + 2) * CELL, (h + 2) * CELL, keepView);
+    pz.attach(c.querySelector("svg") as SVGSVGElement, (w + 2) * CELL + 2 * off, (h + 2) * CELL + 2 * off, keepView);
     renderStatus();
+    renderBubble();
   }
 
   function maxViewWidth(): number {
     const { w, h } = entry?.footprint ?? { w: 2, h: 2 };
-    const grid = Math.max(w + 2, h + 2) * CELL;
+    const grid = Math.max(w + 2, h + 2) * CELL + 2 * off;
     const img = bg ? Math.max(bg.natW, bg.natH) * bg.scale + 2 * Math.max(Math.abs(bg.x), Math.abs(bg.y)) * CELL : 0;
     return Math.max(grid, img) * 2;
   }
 
   function imageBox(b: Bg) {
-    return { x: b.x * CELL, y: b.y * CELL, w: b.natW * b.scale, h: b.natH * b.scale };
+    return { x: b.x * CELL + off, y: b.y * CELL + off, w: b.natW * b.scale, h: b.natH * b.scale };
   }
 
-  function toSvg(clientX: number, clientY: number): [number, number] | null {
+  /** Point de l'écran → coordonnées de la grille (unités SVG, la marge commençant à 0). */
+  function toGrid(clientX: number, clientY: number): [number, number] | null {
     const el = root.querySelector<SVGSVGElement>("#bld-svg");
     const ctm = el?.getScreenCTM();
     if (!el || !ctm) return null;
@@ -299,7 +370,7 @@ export function initBuildings(
     pt.x = clientX;
     pt.y = clientY;
     const p = pt.matrixTransform(ctm.inverse());
-    return [p.x, p.y];
+    return [p.x - off, p.y - off];
   }
 
   /** Déplacement fluide de la capture : seule la transformation de l'image change. */
@@ -314,7 +385,7 @@ export function initBuildings(
     if (mode !== "ports") mode = "ports";
   }
 
-  // ---------------------------------------------------------------- panneaux
+  // ---------------------------------------------------------------- en-tête et outils
   function powerHint(id: string): string {
     const recs = [...data.recipes.values()].filter((r) => r.machine === id && r.energyMFps !== null);
     if (!recs.length) return "";
@@ -326,57 +397,123 @@ export function initBuildings(
     $("#bld-intro").hidden = !!entry;
     $("#bld-editor").hidden = !entry;
     if (!entry || !selectedId) return;
-    const m = data.machines.get(selectedId)!;
-    const st = surveyState(selectedId, repo, local);
-    const where =
-      st === "local"
-        ? `relevé local : déjà utilisé par tes plans de pose${repo.machines[selectedId] ? " (à la place de celui du dépôt)" : ""}, à envoyer`
-        : st === "depot"
-          ? "dans le dépôt : intégré au site"
-          : "manquant : les plans de pose supposent ses ports";
-    $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3><span class="hint">Taille wiki : ${m.size ? `${m.size.w}×${m.size.l}` : "—"} · ${where}</span>`;
-    const hint = powerHint(selectedId);
-    $("#bld-dims").innerHTML = `
-      <label>Largeur (cases) <input type="number" min="1" max="200" id="bld-w" value="${entry.footprint!.w}"></label>
-      <label>Hauteur (cases) <input type="number" min="1" max="200" id="bld-h" value="${entry.footprint!.h}"></label>
-      <button type="button" id="bld-swap" title="Échanger largeur et hauteur">⇄</button>
-      <label class="bld-check"><input type="checkbox" id="bld-nopower"${entry.noPower ? " checked" : ""}> Sans prise électrique</label>
-      <label class="bld-check"><input type="checkbox" id="bld-noports"${entry.noPorts ? " checked" : ""}> Sans port</label>
-      ${hint ? `<span class="hint bld-powerhint">${esc(hint)}</span>` : ""}`;
+    renderHead();
+    renderDims();
     renderTools();
-    refreshCanvas(keepView);
-    renderPortForm();
-    renderIface();
+    ($("#bld-nopower") as HTMLInputElement).checked = !!entry.noPower;
+    ($("#bld-noports") as HTMLInputElement).checked = !!entry.noPorts;
     renderModular();
+    refreshCanvas(keepView);
+    renderIface();
     renderBgPanel();
     ($("#bld-notes") as HTMLTextAreaElement).value = entry.notes ?? "";
+    renderNotesSummary();
     renderActions();
     renderMode();
   }
 
-  function renderTools(): void {
-    const dir = tool === "gomme" ? null : dirByTool[tool];
-    $("#bld-tools").innerHTML = `
-      ${(["objet", "fluide", "énergie", "logique", "gomme"] as Tool[]).map((t) => `<button type="button" data-tool="${t}" aria-pressed="${t === tool}">${TOOL_LABEL[t]}</button>`).join("")}
-      <span class="bld-sep"></span><span class="bld-dirlabel">Sens</span>
-      ${(["entrée", "sortie", "les deux"] as const).map((d) => `<button type="button" data-dir="${d}" aria-pressed="${d === dir}"${dir ? "" : " disabled"}>${d}</button>`).join("")}`;
+  function renderHead(): void {
+    const id = selectedId!;
+    const m = data.machines.get(id)!;
+    const asm = assemblyOf.get(id);
+    const fp = entry!.footprint!;
+    const wiki = sameSize(fp, m.size) ? "" : ` <span class="must unk" title="taille donnée par le wiki">⚠ wiki : ${m.size!.w} × ${m.size!.l}</span>`;
+    const mod = asm ? `<span class="bld-badge mod" title="${esc(findBlock(repoModular, id)?.block.role ?? "")}">⬡ ${esc(asm.name)} · Tier ${TIER[asm.tier] ?? asm.tier}</span>` : "";
+    const fix = localMod[id] ? `<span class="bld-badge local" title="correction des faces ou de la portée notée dans ce navigateur">correction locale</span>` : "";
+    $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3>${STATE_BADGE[surveyState(id, repo, local)]}${mod}${fix}<span class="bld-size">${fp.w} × ${fp.h} cases <button type="button" class="link small" id="bld-size" aria-expanded="${sizeOpen}" title="Changer la taille">✎</button>${wiki}</span>`;
   }
 
-  function renderPortForm(): void {
-    const box = $("#bld-portform");
-    if (selectedPort === null || !entry!.ports[selectedPort]) {
-      box.innerHTML = `<p class="hint">Clique dans la marge pour poser une entrée ou une sortie, et sur le corps pour la prise électrique. Clique sur un port pour le modifier. « Les deux » sert aux poteaux et aux stockages.</p>`;
+  function renderDims(): void {
+    const box = $("#bld-dims");
+    box.hidden = !sizeOpen;
+    if (!sizeOpen) return;
+    box.innerHTML = `
+      <label>Largeur (cases) <input type="number" min="1" max="200" id="bld-w" value="${entry!.footprint!.w}"></label>
+      <label>Hauteur (cases) <input type="number" min="1" max="200" id="bld-h" value="${entry!.footprint!.h}"></label>
+      <button type="button" id="bld-swap" title="Échanger largeur et hauteur">⇄</button>`;
+  }
+
+  function renderTools(): void {
+    const dir = tool === "gomme" ? null : dirByTool[tool];
+    const pose = `<span class="bld-sep"></span><span class="bld-dirlabel">Pose</span><span class="seg" role="radiogroup" aria-label="Façon de poser un port">
+      <button type="button" role="radio" data-posemode="outils" aria-checked="${!poseBubble}" title="Choisir un outil, puis chaque clic dans la marge pose un port">Outils</button>
+      <button type="button" role="radio" data-posemode="bulle" aria-checked="${poseBubble}" title="Un clic sur une case vide ouvre une bulle : on y choisit le type et le sens">Bulle</button></span>`;
+    if (poseBubble) {
+      $("#bld-tools").innerHTML = pose;
       return;
     }
-    const p = entry!.ports[selectedPort]!;
-    const where = p.side === "dessus" ? `dessus, case ${(p.cell as number[]).join(", ")}` : `${p.side}, case ${p.cell}`;
-    box.innerHTML = `<div class="bld-portform">
-      <b>${esc(p.type)} · ${esc(where)}</b>
-      <label>Sens <select data-pf="direction">${(["entrée", "sortie", "les deux"] as const).map((d) => `<option${p.direction === d ? " selected" : ""}>${d}</option>`).join("")}</select></label>
-      <label>Info-bulle du jeu <input data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="ex. Input for Coal or coke Fuel"></label>
-      <label>Ce que le jeu affiche <input data-pf="shown" value="${esc(p.shown ?? "")}" placeholder="ex. flèche violette vers le bas"></label>
-      <button type="button" class="link" data-pf-del>Supprimer ce port</button>
-    </div>`;
+    $("#bld-tools").innerHTML = `
+      ${(["objet", "fluide", "énergie", "logique", "gomme"] as Tool[]).map((t) => `<button type="button" data-tool="${t}" aria-pressed="${t === tool}">${t === "gomme" ? "" : `<i class="bld-sw ${t}"></i>`}${TOOL_LABEL[t]}</button>`).join("")}
+      <span class="bld-sep"></span><span class="bld-dirlabel">Sens</span>
+      ${DIRS.map((d) => `<button type="button" data-dir="${d}" aria-pressed="${d === dir}"${dir ? "" : " disabled"}>${d}</button>`).join("")}${pose}`;
+  }
+
+  // ---------------------------------------------------------------- bulle d'un port (S19)
+  const placeText = (p: Place) => (p.side === "dessus" ? `dessus, case ${(p.cell as number[]).join(", ")}` : `${p.side}, case ${p.cell}`);
+  /** Types possibles à un emplacement : la marge reçoit les ports, le corps la prise et la logique. */
+  const typesAt = (p: Place): PortTool[] => (p.side === "dessus" ? ["énergie", "logique"] : ["objet", "fluide", "logique"]);
+
+  function renderBubble(): void {
+    const box = $("#bld-bubble");
+    const p = bubble?.kind === "port" ? entry?.ports[bubble.index] : undefined;
+    if (!bubble || !entry || (bubble.kind === "port" && !p)) {
+      box.hidden = true;
+      box.innerHTML = "";
+      if (bubble) bubble = null;
+      return;
+    }
+    const pressed = (on: boolean) => `aria-pressed="${on}"`;
+    if (bubble.kind === "port" && p) {
+      const types = typesAt(p).map((t) => `<button type="button" data-bb-type="${t}" ${pressed(p.type === t)}>${TYPE_NAME[t]}</button>`).join("");
+      const dirs = DIRS.map((d) => `<button type="button" data-bb-dir="${d}" ${pressed(p.direction === d)}>${d}</button>`).join("");
+      box.innerHTML = `<div class="row"><b>${esc(TYPE_NAME[p.type])} · ${esc(p.direction)}</b><span class="hint">${esc(placeText(p))}</span></div>
+        <div class="row"><span class="hint">Type</span>${types}</div>
+        <div class="row"><span class="hint">Sens</span>${dirs}</div>
+        <label class="hint">Info-bulle du jeu (facultatif)<input type="text" data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="ex. Input for Coal or coke Fuel"></label>
+        <div class="row"><button type="button" data-bb-del>Supprimer</button><button type="button" class="link small" data-bb-close>Fermer</button></div>`;
+    } else if (bubble.kind === "new") {
+      const place = bubble.place;
+      const dirs = DIRS.map((d) => `<button type="button" data-bb-ndir="${d}" ${pressed(bubbleDir === d)}>${d}</button>`).join("");
+      const types = typesAt(place).map((t) => `<button type="button" data-bb-new="${t}"><i class="bld-sw ${t}"></i>${TYPE_NAME[t]}</button>`).join("");
+      box.innerHTML = `<div class="row"><b>Nouveau port</b><span class="hint">${esc(placeText(place))}</span></div>
+        <div class="row"><span class="hint">Sens</span>${dirs}</div>
+        <div class="row"><span class="hint">Poser</span>${types}</div>
+        <div class="row"><button type="button" class="link small" data-bb-close>Fermer</button></div>`;
+    }
+    box.hidden = false;
+    placeBubble();
+  }
+
+  /** Place la bulle à côté de son port (ou de sa case), dans le cadre, en suivant le zoom. */
+  function placeBubble(): void {
+    const box = $("#bld-bubble");
+    if (!bubble || box.hidden || !entry) return;
+    const el = root.querySelector<SVGSVGElement>("#bld-svg");
+    const ctm = el?.getScreenCTM();
+    if (!el || !ctm) return;
+    const { w, h } = entry.footprint!;
+    const at = bubble.kind === "port" ? entry.ports[bubble.index] : { ...bubble.place, type: "objet" as const, direction: "entrée" as const };
+    if (!at) return;
+    const [x, y] = portCenter(w, h, at);
+    const pt = el.createSVGPoint();
+    pt.x = x + off;
+    pt.y = y + off;
+    const s = pt.matrixTransform(ctm);
+    const stage = (box.parentElement as HTMLElement).getBoundingClientRect();
+    const bw = box.offsetWidth || 250;
+    const bh = box.offsetHeight || 150;
+    let left = s.x - stage.left + 22;
+    if (left + bw > stage.width) left = s.x - stage.left - 22 - bw;
+    left = Math.max(0, Math.min(stage.width - bw, left));
+    const top = Math.max(0, Math.min(stage.height - bh, s.y - stage.top - bh / 2));
+    box.style.left = `${left}px`;
+    box.style.top = `${top}px`;
+  }
+
+  function closeBubble(): void {
+    if (!bubble) return;
+    bubble = null;
+    refreshCanvas(true);
   }
 
   // ---------------------------------------------------------------- interface (S10)
@@ -409,11 +546,16 @@ export function initBuildings(
     return `<table><thead><tr><th>Position (texte du jeu)</th><th>Crafts de cette position</th><th></th></tr></thead><tbody>${rows}</tbody></table><button type="button" class="link small" data-if-add-choice data-s="${k}">+ une position</button>`;
   }
 
+  /** Interface en vigueur (copie locale, sinon dépôt), pour savoir si la saisie a changé. */
+  const ifaceBase = (id: string) => localIfaces[id] ?? repoIfaces[id] ?? null;
+  const ifaceChanged = (id: string) => JSON.stringify(iface) !== JSON.stringify(ifaceBase(id));
+
   function renderIface(): void {
     const box = $("#bld-iface");
     if (!selectedId) return;
     const i = iface;
-    const state = localIfaces[selectedId] ? `<span class="bld-badge local">local · à envoyer</span>` : repoIfaces[selectedId] ? `<span class="bld-badge ok">dépôt</span>` : "";
+    const state = localIfaces[selectedId] ? ` <span class="bld-badge local">local · à envoyer</span>` : "";
+    $("#bld-s-iface").innerHTML = `⚙ Interface <span class="hint">· ${i ? esc(KIND_LABEL[i.kind]) : "aucune"}</span>${state}`;
     const kinds = `<select data-if="kind"><option value=""${i ? "" : " selected"}>aucune</option>${INTERFACE_KINDS.map((k) => `<option value="${esc(k)}"${i?.kind === k ? " selected" : ""}>${esc(KIND_LABEL[k])}</option>`).join("")}</select>`;
     let body = "";
     if (i) {
@@ -435,10 +577,8 @@ export function initBuildings(
       const problems = checkInterface(i, recs.map((r) => r.id));
       if (problems.length) body += `<ul class="bld-problems">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
     }
-    const save = i || localIfaces[selectedId] ? `<button type="button" id="bld-if-save">Enregistrer l'interface</button>` : "";
-    const forget = localIfaces[selectedId] ? `<button type="button" class="link" id="bld-if-forget">Oublier mon interface locale</button>` : "";
-    box.innerHTML = `<div class="bld-iface"><h4>Interface ${state} <span class="hint">· l'étiquette « [E] Interact », un levier ou un écran : seulement le réglage de la machine, rien pour le placement</span></h4>
-      <div class="row"><label>Type ${kinds}</label></div>${body}<div class="actions">${save}${forget}</div><p class="bld-msg" aria-live="polite">${esc(ifaceMsg)}</p></div>`;
+    box.innerHTML = `<div class="bld-iface"><p class="hint">L'étiquette « [E] Interact », un levier ou un écran : seulement le réglage de la machine, rien pour le placement.</p>
+      <div class="row"><label>Type ${kinds}</label></div>${body}</div>`;
   }
 
   /** Une saisie dans la section « Interface » (champ, case ou liste). `redraw` : redessiner la section. */
@@ -446,6 +586,7 @@ export function initBuildings(
     const f = t.dataset.if!;
     if (f === "kind") {
       iface = t.value ? { ...(iface ?? { settings: [], sources: [] }), kind: t.value as InterfaceKind } : null;
+      renderStatus();
       return renderIface();
     }
     if (!iface) return;
@@ -467,10 +608,11 @@ export function initBuildings(
       if (t.value === "positions") st.choices = [{ label: "", recipes: [] }];
       if (t.value === "nombre") st.number = { default: 1, scales: null };
     }
+    renderStatus();
     if (redraw) renderIface();
   }
 
-  // ---------------------------------------------------------------- ensemble modulaire (S12)
+  // ---------------------------------------------------------------- ensemble modulaire (S12, S19)
   const modName = (id: string) => data.machines.get(id)?.name ?? id;
   /** Nom sans le début commun à tous les blocs de l'ensemble (« Diesel Engine Crankshaft » → « Crankshaft »). */
   function shortName(a: ModAssembly, id: string): string {
@@ -481,157 +623,152 @@ export function initBuildings(
   }
   const modChip = (a: ModAssembly) => (id: string) => `<span class="mchip"><button type="button" class="link" data-bld="${esc(id)}" title="Ouvrir ${esc(modName(id))}">${esc(shortName(a, id))}</button></span>`;
 
-  /** Étiquettes de source, une par wiki (les pages au survol), plus « ta correction » si besoin. */
-  function srcTags(ids: string[], local = false): string {
-    const groups = new Map<string, { cls: string; url?: string; titles: string[] }>();
-    for (const id of new Set(ids)) {
-      const s = repoModular.sources[id];
-      if (!s) continue;
-      const label = s.wiki === "miraheze" ? "Miraheze" : s.wiki === "fandom" ? "Fandom" : s.wiki === "jeu" ? "relevé en jeu" : "ta réponse";
-      const g = groups.get(label) ?? { cls: s.wiki === "miraheze" || s.wiki === "fandom" ? "wiki" : "jeu", url: s.url, titles: [] };
-      g.titles.push(s.page ?? s.note ?? id);
-      groups.set(label, g);
-    }
-    let out = [...groups]
-      .map(([label, g]) =>
-        g.url
-          ? `<a class="src-tag ${g.cls}" href="${esc(g.url)}" target="_blank" rel="noopener" title="${esc(g.titles.join(" · "))}">${label}</a>`
-          : `<span class="src-tag ${g.cls}" title="${esc(g.titles.join(" · "))}">${label}</span>`,
-      )
-      .join("");
-    if (local) out += `<span class="src-tag fix" title="notée dans ce navigateur">ta correction</span>`;
-    return out;
+  /** Sources d'un ensemble de faits, en texte (pour le survol). */
+  function srcText(ids: string[]): string {
+    return [...new Set(ids)]
+      .map((id) => repoModular.sources[id])
+      .filter((s): s is NonNullable<typeof s> => !!s)
+      .map((s) => `${s.wiki === "miraheze" ? "Miraheze" : s.wiki === "fandom" ? "Fandom" : s.wiki === "jeu" ? "relevé en jeu" : "ta réponse"}${s.page ? ` (${s.page})` : ""}`)
+      .filter((x, i, all) => all.indexOf(x) === i)
+      .join(" · ");
   }
-  /** ⚠ sur une question encore ouverte : un clic ouvre « ✎ Corriger ». */
-  const openTag = (f: ModFact | undefined) =>
-    isOpen(repoModular, f) ? `<button type="button" class="must unk" data-mod-edit title="${esc(f!.text)} — voir data/a-verifier.md ; clic : corriger">⚠ ${esc(f!.question!)}</button>` : "";
+  /** ⚠ sur une question encore ouverte (le détail au survol). */
+  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" title="${esc(f!.text)} — voir data/a-verifier.md">⚠ ${esc(f!.question!)}</span>` : "");
 
-  function chainHtml(a: ModAssembly, b: ModBlock): string {
-    const order = (rule(a, "order")?.value as string[] | undefined) ?? [];
-    if (!order.length) return "";
-    const box = (id: string) => {
-      const blk = a.blocks.find((x) => x.id === id);
-      return `<span class="b${id === b.id ? " on" : ""}">${esc(shortName(a, id))}${blk && repeats(blk) ? " × n" : ""}</span>`;
-    };
-    const list = (key: string, label: string) => {
-      const ids = rule(a, key)?.value as string[] | undefined;
-      return ids?.length ? `<p class="mchain-side">${label} : ${ids.map((id) => (id === b.id ? `<b>${esc(shortName(a, id))}</b>` : esc(shortName(a, id)))).join(", ")}.</p>` : "";
-    };
-    return `<div class="mchain">${order.map(box).join('<span class="arrow">→</span>')}</div>${list("optionalInLine", "Dans la ligne, facultatif")}${list("sideMounted", "Sur les côtés de la ligne")}`;
-  }
-
-  function contactHtml(a: ModAssembly, b: ModBlock): string {
-    const edit = localMod[b.id];
-    const info = blockFaces(b, modDraft ?? edit);
-    let h = chainHtml(a, b);
-    const names = a.faceNames ?? {};
-    h += `<p class="hint">Les faces se lisent dans le sens de la chaîne : <b>devant</b> = ${esc(names.front ?? "")}, <b>derrière</b> = ${esc(names.back ?? "")}, <b>côtés</b> = ${esc(names.side ?? "")}.</p>`;
-    if (modDraft) {
-      const faces = modDraft.faces ?? {};
-      const rows = FACES.map((f) => {
-        const list = faces[f] ?? [];
-        const chips = a.blocks
-          .map((x) => `<label class="mchip${list.includes(x.id) ? "" : " off"}"><input type="checkbox" data-mod="face" data-face="${f}" data-id="${esc(x.id)}"${list.includes(x.id) ? " checked" : ""}> ${esc(shortName(a, x.id))}</label>`)
-          .join("");
-        return `<tr><th>${FACE_LABEL[f]}</th><td><label class="bld-check"><input type="checkbox" data-mod="req" data-face="${f}"${modDraft!.facesRequired?.[f] ? " checked" : ""}> obligatoire</label></td><td>${chips}</td></tr>`;
-      }).join("");
-      h += `<table><thead><tr><th>Face</th><th>Doit être touchée ?</th><th>Blocs qui peuvent la toucher</th></tr></thead><tbody>${rows}</tbody></table>`;
-    } else if (!info.faces) {
-      h += `<p>On ne sait pas encore comment ce bloc se pose. ${openTag(info.facesFact)}</p>`;
-    } else {
-      const rows = info.faces
-        .map((r) => {
-          const must = r.required === null ? `<span class="must unk">inconnu</span>` : r.required ? `<span class="must yes">obligatoire</span>` : `<span class="must no">facultatif</span>`;
-          return `<tr><th>${FACE_LABEL[r.face]}</th><td>${must}</td><td>${r.blocks.length ? r.blocks.map(modChip(a)).join("") : `<span class="hint">rien</span>`}</td></tr>`;
-        })
-        .join("");
-      h += `<table><thead><tr><th>Face</th><th>Doit être touchée ?</th><th>Blocs qui peuvent la toucher (clic : ouvrir le bloc)</th></tr></thead><tbody>${rows}</tbody></table>`;
-      const texts = [info.facesFact, info.requiredFact].filter((f): f is ModFact => !!f);
-      h += texts.map((f) => `<p class="hint">${esc(f.text)} ${openTag(f)}</p>`).join("");
-      h += `<p class="hint">Sources : ${srcTags(texts.flatMap((f) => f.sources), info.local)}</p>`;
-    }
-    // Le bord « devant » (S12) n'est plus demandé : le sens d'un bloc ne pose jamais problème (S14, MOD-17).
-    return h;
-  }
-
-  function rangeSvg(side: number, radius: number): { svg: string; count: number } {
-    const g = treeGrid(side, radius);
-    const v = radius + 2;
-    let s = `<svg viewBox="${-v} ${-v} ${2 * v} ${2 * v}" role="img" aria-label="Portée sur une grille d'arbres : ${g.count} emplacements touchés">`;
-    for (const t of g.trees) s += `<rect x="${t.x0 + 0.2}" y="${t.y0 + 0.2}" width="${t.x1 - t.x0 - 0.4}" height="${t.y1 - t.y0 - 0.4}" rx=".6" class="${t.inRange ? "t-in" : "t-out"}"/>`;
-    s += `<rect x="${-side / 2}" y="${-side / 2}" width="${side}" height="${side}" class="blk"/><circle r="${radius}" class="circ"/></svg>`;
-    return { svg: s, count: g.count };
-  }
-
-  function rangeHtml(a: ModAssembly, b: ModBlock): string {
-    const size = data.machines.get(b.id)?.size ?? null;
-    const edits = modDraft ? { ...localMod, [b.id]: modDraft } : localMod;
-    const r = blockRange(a, b, size, edits);
-    const rows: string[] = [];
-    const item = (dt: string, dd: string) => rows.push(`<dt>${dt}</dt><dd>${dd}</dd>`);
-    if (modDraft) {
-      const v = typeof r.tiles === "number" ? fmt(r.tiles, 2) : "";
-      item(
-        "Portée",
-        `<input type="text" inputmode="decimal" class="num" data-mod="range" value="${v}"${r.tiles === "infinie" ? " disabled" : ""} aria-label="Portée en cases depuis le bord"> cases depuis le bord <label class="bld-check"><input type="checkbox" data-mod="infinite"${r.tiles === "infinie" ? " checked" : ""}> infinie</label>`,
-      );
-      const others = a.blocks.filter((x) => x.id !== b.id);
-      item("Dessert", others.map((x) => `<label class="mchip${r.serves.includes(x.id) ? "" : " off"}"><input type="checkbox" data-mod="serve" data-id="${esc(x.id)}"${r.serves.includes(x.id) ? " checked" : ""}> ${esc(modName(x.id))}</label>`).join(""));
-    } else {
-      const tilesText =
-        r.tiles === null
-          ? `<span class="hint">pas de portée : ce bloc est desservi par d'autres</span>`
-          : r.tiles === "infinie"
-            ? `<b>infinie</b> ${esc(r.rangeFact?.text ?? "")}`
-            : `<b>${fmt(r.tiles, 2)} cases</b> depuis le bord${r.fromCenter !== null ? ` (${fmt(r.fromCenter, 2)} depuis le centre, le bloc faisant ${size!.w} × ${size!.l})` : ""}`;
-      item("Portée", `${tilesText} ${r.rangeFact ? srcTags(r.rangeFact.sources, edits[b.id]?.rangeTiles !== undefined) : ""}`);
-      if (typeof r.tiles === "number") {
-        const crit = rule(a, "rangeCriterion");
-        const shape = rule(a, "rangeShape");
-        item("Forme", `cercle ; ${esc(crit?.text ?? "")} ${srcTags([...(shape?.sources ?? []), ...(crit?.sources ?? [])])}`);
-      }
-      if (r.serves.length) item("Dessert", `${r.serves.map(modChip(a)).join("")} ${esc(r.servesFact?.text ?? "")} ${srcTags(r.servesFact?.sources ?? [], !!edits[b.id]?.serves)}`);
-      else if (r.tiles !== null) item("Dessert", `<span class="hint">rien</span>`);
-    }
-    if (r.servedBy.length) {
-      const reach = (t: number | "infinie" | null) => (t === "infinie" ? "portée infinie" : typeof t === "number" ? `${fmt(t, 2)} cases depuis son bord` : "portée inconnue");
-      item("Doit être à portée de", r.servedBy.map((x) => `${modChip(a)(x.id)} <span class="hint">(${reach(x.tiles)})</span>`).join(" "));
-    }
-    const notes = RANGE_NOTES.map((k) => fact(b, k)).filter((f): f is ModFact => !!f);
-    if (notes.length && !modDraft) item("À savoir", `<ul>${notes.map((f) => `<li>${esc(f.text)} ${srcTags(f.sources)} ${openTag(f)}</li>`).join("")}</ul>`);
-    let drawing = "";
-    if (r.fromCenter !== null && size && r.serves.includes("tree")) {
-      const d = rangeSvg(size.w, r.fromCenter);
-      drawing = d.svg;
-      const grid = (fact(b, "treesPerSprinkler")?.value as { grid?: number } | undefined)?.grid;
-      let check = `Sur une grille régulière d'arbres (4 × 4 cases), le cercle touche <b>${d.count}</b> emplacements d'arbre (en vert).`;
-      if (grid !== undefined) check += d.count === grid ? ` C'est le nombre que donnent les deux wikis (${grid}). <span class="ok-text">✓ cohérent</span>` : ` <span class="must unk">⚠ les wikis disent ${grid} : vérifie la portée</span>`;
-      const perHarvester = fact(b, "treesPerHarvester");
-      if (perHarvester) check += ` Ce n'est pas le nombre qu'il récolte : ${esc(perHarvester.text)} ${openTag(perHarvester)}`;
-      item("Contrôle", check);
-    }
-    return `<div class="mrange">${drawing}<dl>${rows.join("")}</dl></div>`;
-  }
-
-  function renderModular(): void {
-    const box = $("#bld-mod");
+  /** Les quatre cases autour de la grille (blocs par contact) ; cachées pour les autres bâtiments. */
+  function renderFaces(): void {
     const found = selectedId ? findBlock(repoModular, selectedId) : null;
-    if (!found) {
+    const contact = !!found && found.assembly.assembly === "contact";
+    $("#bld-cross").classList.toggle("with-faces", contact);
+    const buttons = root.querySelectorAll<HTMLButtonElement>("[data-box]");
+    if (!contact) {
+      for (const b of buttons) b.hidden = true;
+      return;
+    }
+    const { assembly: a, block: b } = found!;
+    const info = blockFaces(b, modDraft ?? localMod[b.id]);
+    const boxes = faceBoxes(info);
+    const texts = [info.facesFact, info.requiredFact].filter((f): f is ModFact => !!f);
+    const title = `${texts.map((f) => f.text).join(" ")}${texts.length ? ` — sources : ${srcText(texts.flatMap((f) => f.sources))}` : ""}${info.local ? " — ta correction" : ""} · clic : modifier`;
+    const split = !!(modDraft ?? localMod[b.id])?.sides;
+    for (const el of buttons) {
+      const box = el.dataset.box as FaceBox;
+      el.hidden = false;
+      el.classList.toggle("on", openBox === box);
+      if (!boxes) {
+        el.className = `bld-face bld-face-${box} unk${openBox === box ? " on" : ""}`;
+        el.title = `On ne sait pas encore comment ce bloc se pose · clic : le noter`;
+        el.innerHTML = `<b>${BOX_LABEL[box]}</b><span class="names">?</span>${openMark(info.facesFact)}`;
+        continue;
+      }
+      const f = boxes[box];
+      const side = box === "gauche" || box === "droite";
+      el.className = `bld-face bld-face-${box}${f.required ? " req" : ""}${f.blocks.length ? "" : " none"}${openBox === box ? " on" : ""}`;
+      el.title = title;
+      el.setAttribute("aria-expanded", String(openBox === box));
+      const label = side ? (split ? `Côté ${box}` : "Côtés") : BOX_LABEL[box];
+      const names = f.blocks.length ? f.blocks.map((id) => esc(shortName(a, id))).join(" · ") : "rien";
+      // La question ouverte vaut pour tout le bloc : un seul ⚠, sur la case du bas.
+      el.innerHTML = `<b>${label}${f.required ? ` <span class="req-tag">obligatoire</span>` : ""}</b><span class="names">${names}</span>${box === "bas" ? openMark(info.facesFact) : ""}`;
+    }
+  }
+
+  /** Case de face ouverte sous la grille : blocs qu'elle accueille, obligatoire, côtés à part. */
+  function renderFacePop(): void {
+    const box = $("#bld-facepop");
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    if (!found || !openBox || !modDraft) {
       box.innerHTML = "";
       return;
     }
+    const { assembly: a } = found;
+    const info = blockFaces(found.block, modDraft);
+    const f = faceBoxes(info)?.[openBox] ?? { blocks: [], required: false };
+    const side = openBox === "gauche" || openBox === "droite";
+    const split = !!modDraft.sides;
+    const label = side ? (split ? `Côté ${openBox}` : "Côtés (gauche et droite)") : BOX_LABEL[openBox];
+    const chips = a.blocks
+      .map((x) => `<label class="mchip${f.blocks.includes(x.id) ? "" : " off"}"><input type="checkbox" data-fp="block" data-id="${esc(x.id)}"${f.blocks.includes(x.id) ? " checked" : ""}> ${esc(shortName(a, x.id))}</label>`)
+      .join("");
+    const texts = [info.facesFact, info.requiredFact].filter((x): x is ModFact => !!x);
+    const src = texts.length ? `<p class="hint">${texts.map((x) => `${esc(x.text)} ${openMark(x)}`).join(" ")} <span title="${esc(srcText(texts.flatMap((x) => x.sources)))}">· sources au survol</span></p>` : "";
+    box.innerHTML = `<div class="bld-facepop"><div class="row"><b>${label}</b><span class="hint">— ce que la face accueille :</span></div>
+      <div class="row">${chips}</div>
+      <div class="row"><label class="bld-check"><input type="checkbox" data-fp="req"${f.required ? " checked" : ""}> doit être touchée (obligatoire)</label>
+      ${side ? `<label class="bld-check" title="Par défaut, les deux côtés suivent la même règle"><input type="checkbox" data-fp="split"${split ? " checked" : ""}> Côtés réglés à part</label>` : ""}</div>
+      ${src}
+      <label class="bld-notes">Note sur la correction <input type="text" data-fp="note" value="${esc(modDraft.note ?? "")}" placeholder="ex. vu en jeu : le côté plat regarde le contrôleur"></label>
+      <div class="row"><button type="button" data-fp-close>Fermer</button><button type="button" class="link small" data-mod-cancel>Annuler mes changements des faces</button></div></div>`;
+  }
+
+  /** Portée d'un bloc de la ferme, sur une ligne (S19) ; ✎ la corrige sur place. */
+  function renderRange(): void {
+    const el = $("#bld-range");
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    const btn = $("#bld-rangebtn");
+    if (!found || found.assembly.assembly === "contact") {
+      el.hidden = true;
+      btn.hidden = true;
+      return;
+    }
     const { assembly: a, block: b } = found;
-    const edit = localMod[b.id];
-    const state = edit ? `<span class="bld-badge local">local · à envoyer</span>` : "";
-    const how = a.assembly === "contact" ? "par contact : les blocs se touchent, face contre face" : "par portée : les blocs ne se touchent pas, chacun doit être dans le cercle du bloc qui le dessert";
-    let body = `<p class="hint">${esc(b.role)}</p>${a.assembly === "contact" ? contactHtml(a, b) : rangeHtml(a, b)}`;
-    if (modDraft) body += `<label class="bld-notes">Note <input type="text" data-mod="note" value="${esc(modDraft.note ?? "")}" placeholder="ex. vu en jeu : le côté plat regarde le contrôleur"></label>`;
-    else if (edit?.note) body += `<p class="hint">Ta note : ${esc(edit.note)}</p>`;
-    if (!modDraft) body += modCalcHtml(repoModular, data, a, mcState, diesel.get(), mcMsg);
-    const actions = modDraft
-      ? `<button type="button" class="primary" data-mod-save>Enregistrer</button><button type="button" class="link" data-mod-cancel>Annuler</button>`
-      : `<button type="button" data-mod-edit>✎ Corriger</button>${edit ? `<button type="button" class="link" data-mod-forget>Oublier ma correction locale</button>` : ""}`;
-    box.innerHTML = `<div class="bld-mod${modDraft ? " editing" : ""}"><h4>Ensemble modulaire · ${esc(a.name)} (Tier ${TIER[a.tier] ?? a.tier}) ${state}<span class="hint">· ${how}</span></h4>${body}<div class="actions">${actions}</div><p class="bld-msg" aria-live="polite">${esc(modMsg)}</p></div>`;
+    const size = data.machines.get(b.id)?.size ?? null;
+    const edits = modDraft ? { ...localMod, [b.id]: modDraft } : localMod;
+    const r = blockRange(a, b, size, edits);
+    btn.hidden = r.fromCenter === null;
+    btn.setAttribute("aria-pressed", String(showRange));
+    const parts: string[] = [];
+    if (rangeEdit && modDraft) {
+      const v = typeof r.tiles === "number" ? fmt(r.tiles, 2) : "";
+      parts.push(
+        `<span><b>Portée</b> <input type="text" inputmode="decimal" class="num" data-mod="range" value="${v}"${r.tiles === "infinie" ? " disabled" : ""} aria-label="Portée en cases depuis le bord"> cases depuis le bord <label class="bld-check"><input type="checkbox" data-mod="infinite"${r.tiles === "infinie" ? " checked" : ""}> infinie</label></span>`,
+      );
+      const others = a.blocks.filter((x) => x.id !== b.id);
+      parts.push(`<span><b>Dessert</b> ${others.map((x) => `<label class="mchip${r.serves.includes(x.id) ? "" : " off"}"><input type="checkbox" data-mod="serve" data-id="${esc(x.id)}"${r.serves.includes(x.id) ? " checked" : ""}> ${esc(shortName(a, x.id))}</label>`).join("")}</span>`);
+      parts.push(`<span><button type="button" data-range-done>Fermer</button> <button type="button" class="link small" data-mod-cancel>Annuler</button></span>`);
+    } else {
+      const src = r.rangeFact ? ` title="${esc(`${r.rangeFact.text} — sources : ${srcText(r.rangeFact.sources)}`)}"` : "";
+      const tiles =
+        r.tiles === null ? `<span class="hint">aucune : desservi par d'autres blocs</span>` : r.tiles === "infinie" ? "infinie" : `${fmt(r.tiles, 2)} cases depuis le bord${r.fromCenter !== null ? ` (${fmt(r.fromCenter, 2)} depuis le centre)` : ""}`;
+      parts.push(`<span${src}><b>Portée</b> ${tiles} ${openMark(r.rangeFact)}</span>`);
+      if (r.serves.length) parts.push(`<span><b>Dessert</b> ${r.serves.map(modChip(a)).join("")}</span>`);
+      if (r.servedBy.length) {
+        const reach = (t: number | "infinie" | null) => (t === "infinie" ? "portée infinie" : typeof t === "number" ? `${fmt(t, 2)} cases` : "portée inconnue");
+        parts.push(`<span><b>Doit être à portée de</b> ${r.servedBy.map((x) => `${modChip(a)(x.id)}<span class="hint">(${reach(x.tiles)})</span>`).join(" ")}</span>`);
+      }
+      parts.push(`<button type="button" class="link small" data-range-edit>✎ Corriger</button>`);
+    }
+    el.hidden = false;
+    el.innerHTML = parts.join("");
+  }
+
+  /** Repliable « Ensemble » : « À savoir » (ferme) et le bloc « Calcul » (S13, S18). */
+  function renderModMore(): void {
+    const det = $("#bld-d-mod") as HTMLDetailsElement;
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    if (!found) {
+      det.hidden = true;
+      $("#bld-mod").innerHTML = "";
+      return;
+    }
+    det.hidden = false;
+    const { assembly: a, block: b } = found;
+    let body = "";
+    if (a.assembly !== "contact") {
+      const notes = RANGE_NOTES.map((k) => fact(b, k)).filter((f): f is ModFact => !!f);
+      if (notes.length) body += `<h5>À savoir</h5><ul class="bld-know">${notes.map((f) => `<li title="${esc(srcText(f.sources))}">${esc(f.text)} ${openMark(f)}</li>`).join("")}</ul>`;
+    }
+    body += modCalcHtml(repoModular, data, a, mcState, diesel.get(), mcMsg);
+    const what = a.id === "diesel-engine" ? "configurations et calcul" : a.id === "tree-farm" ? "à savoir et calcul" : "calcul";
+    $("#bld-s-mod").innerHTML = `⬡ ${esc(a.name)} <span class="hint">· ${what}</span>`;
+    $("#bld-mod").innerHTML = `<div class="bld-mod">${body}</div>`;
+  }
+
+  function renderModular(): void {
+    renderFaces();
+    renderFacePop();
+    renderRange();
+    renderModMore();
   }
 
   /** Brouillon de correction : les valeurs en vigueur (dépôt, ou correction locale). */
@@ -642,6 +779,7 @@ export function initBuildings(
       const faces = blockFaces(b, edit).faces ?? [];
       draft.faces = Object.fromEntries(faces.map((r) => [r.face, [...r.blocks]]));
       draft.facesRequired = Object.fromEntries(faces.map((r) => [r.face, r.required === true]));
+      if (edit?.sides) draft.sides = structuredClone(edit.sides);
     } else {
       const r = blockRange(a, b, data.machines.get(b.id)?.size ?? null, localMod);
       if (r.tiles !== null) draft.rangeTiles = r.tiles;
@@ -651,19 +789,33 @@ export function initBuildings(
     return draft;
   }
 
-  function modInput(t: HTMLInputElement & HTMLSelectElement): void {
+  function ensureDraft(): ModularEdit | null {
     const found = selectedId ? findBlock(repoModular, selectedId) : null;
-    if (!found) return;
+    if (!found) return null;
+    modDraft ??= modDraftFrom(found.assembly, found.block);
+    return modDraft;
+  }
+
+  /** Saisie dans une case de face ouverte. */
+  function facePopInput(t: HTMLInputElement): void {
+    if (!modDraft || !openBox) return;
+    const f = t.dataset.fp!;
+    if (f === "note") return void (modDraft.note = t.value || undefined);
+    if (f === "block") modDraft = toggleFaceBlock(modDraft, openBox, t.dataset.id!, t.checked);
+    else if (f === "req") modDraft = setFaceRequired(modDraft, openBox, t.checked);
+    else if (f === "split") modDraft = splitSides(modDraft, t.checked);
+    renderModular();
+    renderStatus();
+  }
+
+  /** Saisie dans la portée en cours de correction. */
+  function rangeInput(t: HTMLInputElement): void {
+    const found = selectedId ? findBlock(repoModular, selectedId) : null;
+    if (!found || !modDraft) return;
     const b = found.block;
     const f = t.dataset.mod!;
-    if (!modDraft) return;
-    const face = t.dataset.face as FaceKey | undefined;
     const id = t.dataset.id;
-    const toggle = (list: string[] | undefined) => (t.checked ? [...(list ?? []).filter((x) => x !== id), id!] : (list ?? []).filter((x) => x !== id));
-    if (f === "note") return void (modDraft.note = t.value || undefined);
-    if (f === "req" && face) modDraft.facesRequired = { ...modDraft.facesRequired, [face]: t.checked };
-    else if (f === "face" && face && id) modDraft.faces = { ...modDraft.faces, [face]: toggle(modDraft.faces?.[face]) };
-    else if (f === "serve" && id) modDraft.serves = toggle(modDraft.serves);
+    if (f === "serve" && id) modDraft.serves = t.checked ? [...(modDraft.serves ?? []).filter((x) => x !== id), id] : (modDraft.serves ?? []).filter((x) => x !== id);
     else if (f === "infinite") {
       const repoTiles = fact(b, "rangeTiles")?.value;
       modDraft.rangeTiles = t.checked ? "infinie" : typeof repoTiles === "number" ? repoTiles : undefined;
@@ -671,10 +823,20 @@ export function initBuildings(
       const v = Number(t.value.replace(",", "."));
       if (v > 0) {
         modDraft.rangeTiles = v;
-        modMsg = "";
-      } else modMsg = "Portée : un nombre de cases plus grand que 0.";
+        message = "";
+      } else message = "Portée : un nombre de cases plus grand que 0.";
     }
-    renderModular();
+    renderRange();
+    renderMode();
+    renderStatus();
+    if (showRange) refreshCanvas(true);
+  }
+
+  /** Correction des faces ou de la portée qui serait enregistrée (null : rien de différent). */
+  function modPending(): ModularEdit | null | undefined {
+    if (!modDraft || !selectedId) return undefined;
+    const found = findBlock(repoModular, selectedId)!;
+    return editDiff(found.assembly, found.block, { ...modDraft, frontEdge: localMod[selectedId]?.frontEdge });
   }
 
   /** Saisie du bloc « Calcul » : seul le résultat est redessiné (la case garde le curseur). */
@@ -696,6 +858,7 @@ export function initBuildings(
     if (out) out.innerHTML = modCalcOut(repoModular, data, a, mcState, diesel.get());
   }
 
+  // ---------------------------------------------------------------- capture, manques, boutons
   function renderBgPanel(): void {
     const details = $("#bld-bg") as HTMLDetailsElement;
     if (bg) details.open = true;
@@ -718,17 +881,46 @@ export function initBuildings(
       </ol>`;
   }
 
+  function renderNotesSummary(): void {
+    $("#bld-s-notes").innerHTML = `Remarques${entry?.notes ? ` <span class="hint">· 1 remarque</span>` : ""}`;
+  }
+
+  /** Ce qui n'est pas encore enregistré : relevé, interface, correction du bloc. */
+  function pendingParts(): string[] {
+    if (!entry || !selectedId) return [];
+    const out: string[] = [];
+    if (entryChanged(entry, local[selectedId] ?? repo.machines[selectedId])) out.push("relevé");
+    if (ifaceChanged(selectedId)) out.push("interface");
+    const mod = modPending();
+    // Comparaison sans la source : sa date change à chaque brouillon.
+    const strip = (x: ModularEdit | null | undefined) => (x ? JSON.stringify({ ...x, source: undefined }) : "null");
+    if (mod !== undefined && strip(mod) !== strip(localMod[selectedId])) out.push(findBlock(repoModular, selectedId)?.assembly.assembly === "contact" ? "faces" : "portée");
+    return out;
+  }
+
   function renderStatus(): void {
-    if (!entry) return;
+    if (!entry || !selectedId) return;
     const list = checkEntry(entry);
-    $("#bld-status").innerHTML = list.length ? `<ul class="bld-problems">${list.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : `<p class="ok-text">Relevé complet.</p>`;
+    const hint = powerHint(selectedId);
+    const noPlug = !entry.noPower && !entry.ports.some((p) => p.type === "énergie");
+    const problems = list.length
+      ? `<ul class="bld-problems">${list.map((p) => `<li>${esc(p)}</li>`).join("")}${noPlug && hint ? `<li class="hint">${esc(hint)}</li>` : ""}</ul>`
+      : `<span class="ok-text">✓ Relevé complet</span>`;
+    const pending = pendingParts();
+    const dirty = pending.length ? `<span class="bld-dirty">● non enregistré : ${esc(pending.join(", "))}</span>` : "";
+    $("#bld-status").innerHTML = `${problems}${dirty}`;
   }
 
   function renderActions(): void {
-    $("#bld-actions").innerHTML = `<button type="button" class="primary" id="bld-save">Enregistrer le relevé</button>${
-      selectedId && local[selectedId] ? `<button type="button" class="link" id="bld-forget">Oublier mon relevé local</button>` : ""
+    const id = selectedId;
+    const any = !!id && !!(local[id] || localIfaces[id] || localMod[id]);
+    $("#bld-actions").innerHTML = `<button type="button" class="primary" id="bld-save">Enregistrer</button>${
+      any ? `<button type="button" class="link" id="bld-forget" title="Revenir aux données du site pour ce bâtiment : relevé, interface et correction locaux">Oublier mes modifications locales</button>` : ""
     }`;
   }
+
+  const HELP_TOOLS = "Glisse pour te déplacer · molette pour zoomer · clique dans la marge (ports) ou sur le corps (prise ⚡) · clic sur un port : le modifier";
+  const HELP_BUBBLE = "Glisse pour te déplacer · molette pour zoomer · clique une case de la marge (port) ou du corps (prise ⚡) : une bulle s'ouvre";
 
   function renderMode(): void {
     if (!bg && mode !== "ports") mode = "ports";
@@ -739,7 +931,15 @@ export function initBuildings(
     seg.hidden = !bg;
     for (const b of seg.querySelectorAll<HTMLElement>("[data-mode]")) b.setAttribute("aria-checked", String(b.dataset.mode === mode || (mode === "coins" && b.dataset.mode === "ports")));
     $("#bld-help").textContent =
-      mode === "coins" ? (corners.length ? "Clique maintenant le coin bas-droit du bâtiment · Échap pour annuler" : "Clique le coin haut-gauche du bâtiment sur ta capture (zoome si besoin) · Échap pour annuler") : HELP[mode];
+      mode === "coins"
+        ? corners.length
+          ? "Clique maintenant le coin bas-droit du bâtiment · Échap pour annuler"
+          : "Clique le coin haut-gauche du bâtiment sur ta capture (zoome si besoin) · Échap pour annuler"
+        : mode === "capture"
+          ? "Glisse pour déplacer la capture · molette pour l'agrandir ou la réduire (Maj : plus fin) · flèches : réglage fin"
+          : poseBubble
+            ? HELP_BUBBLE
+            : HELP_TOOLS;
     $("#bld-msg").textContent = message;
     const cb = root.querySelector("#bld-corners");
     if (cb) cb.setAttribute("aria-pressed", String(mode === "coins"));
@@ -748,8 +948,49 @@ export function initBuildings(
   function setMode(m: Mode): void {
     mode = m;
     corners = [];
+    bubble = null;
     refreshCanvas(true);
     renderMode();
+  }
+
+  /** Un seul « Enregistrer » (S19) : relevé, interface et correction du bloc, seulement ce qui a changé. */
+  function saveAll(): void {
+    if (!entry || !selectedId) return;
+    const id = selectedId;
+    const done: string[] = [];
+    if (entryChanged(entry, local[id] ?? repo.machines[id])) {
+      entry.source = surveySource();
+      local[id] = structuredClone(entry);
+      save();
+      done.push(isComplete(entry) ? "relevé" : "relevé (encore incomplet)");
+    }
+    if (ifaceChanged(id)) {
+      if (iface) {
+        // Sources : celles du dépôt, plus cette saisie (une seule, la dernière).
+        iface.sources = [...iface.sources.filter((x) => x.wiki !== "saisie"), surveySource("interface notée dans l'éditeur de bâtiments du calculateur")];
+        if (JSON.stringify(iface) === JSON.stringify(repoIfaces[id])) delete localIfaces[id];
+        else localIfaces[id] = structuredClone(iface);
+        done.push(checkInterface(iface, machineRecipes(id).map((r) => r.id)).length ? "interface (incomplète)" : "interface");
+      } else {
+        delete localIfaces[id];
+        done.push("interface retirée");
+      }
+      saveLocalInterfaces(localIfaces);
+    }
+    const mod = modPending();
+    if (mod !== undefined) {
+      const had = !!localMod[id];
+      if (mod) localMod[id] = mod;
+      else delete localMod[id];
+      saveLocalModular(localMod);
+      if (mod || had) done.push(findBlock(repoModular, id)?.assembly.assembly === "contact" ? "faces" : "portée");
+      modDraft = null;
+      openBox = null;
+      rangeEdit = false;
+    }
+    message = done.length ? `Enregistré dans ce navigateur : ${done.join(", ")}. Pense à l'exporter (« Exporter mes relevés »).` : "Rien à enregistrer : aucune modification.";
+    renderList();
+    renderEditor();
   }
 
   // ---------------------------------------------------------------- capture : glisser, molette, clavier
@@ -762,6 +1003,7 @@ export function initBuildings(
     frame.focus({ preventScroll: true });
   });
   frame.addEventListener("pointermove", (e) => {
+    if (bubble && e.buttons) placeBubble(); // la bulle suit la grille qu'on fait glisser
     if (!bgDrag || !bg || e.pointerId !== bgDrag.id) return;
     const u = pz.unitsPerPixel() / CELL;
     bg.x = bgDrag.start.x + (e.clientX - bgDrag.x) * u;
@@ -778,11 +1020,11 @@ export function initBuildings(
   frame.addEventListener(
     "wheel",
     (e) => {
-      if (mode !== "capture" || !bg) return;
+      if (mode !== "capture" || !bg) return void (bubble && placeBubble());
       e.preventDefault();
       // Maj + molette : certains navigateurs envoient alors un défilement horizontal.
       const delta = (e.deltaY || e.deltaX) * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
-      const p = toSvg(e.clientX, e.clientY);
+      const p = toGrid(e.clientX, e.clientY);
       if (!p) return;
       Object.assign(bg, scaleAround(bg, Math.exp(-delta * (e.shiftKey ? 0.0001 : 0.0005)), p[0], p[1]));
       moveBg();
@@ -793,6 +1035,10 @@ export function initBuildings(
     if (e.key === "Escape" && mode !== "ports") {
       message = mode === "coins" ? "Calage annulé." : "";
       setMode("ports");
+      return e.preventDefault();
+    }
+    if (e.key === "Escape" && bubble) {
+      closeBubble();
       return e.preventDefault();
     }
     if (mode !== "capture" || !bg || e.target !== frame) return;
@@ -808,6 +1054,12 @@ export function initBuildings(
     moveBg();
     e.preventDefault();
   });
+  $("#bld-bubble").addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeBubble();
+      frame.focus({ preventScroll: true });
+    }
+  });
 
   // ---------------------------------------------------------------- événements
   root.addEventListener("input", (ev) => {
@@ -821,19 +1073,24 @@ export function initBuildings(
     if (t.id === "bld-w" || t.id === "bld-h") {
       const v = Math.max(1, Math.min(200, Math.round(Number(t.value)) || 1));
       entry.footprint = { w: t.id === "bld-w" ? v : entry.footprint!.w, h: t.id === "bld-h" ? v : entry.footprint!.h };
+      bubble = null;
+      renderHead();
       refreshCanvas();
     } else if (t.dataset.if && t.type === "text") ifaceInput(t, false);
-    else if (t.dataset.mod === "note") modInput(t as HTMLInputElement & HTMLSelectElement);
+    else if (t.dataset.fp === "note") facePopInput(t);
+    else if (t.dataset.mod === "range") rangeInput(t);
     else if (t.dataset.mc) mcInput(t);
-    else if (t.id === "bld-notes") entry.notes = t.value || undefined;
-    else if (t.id === "bld-bgo" && bg) {
+    else if (t.id === "bld-notes") {
+      entry.notes = t.value || undefined;
+      renderStatus();
+    } else if (t.id === "bld-bgo" && bg) {
       bg.opacity = Number(t.value);
       root.querySelector("#bld-bgimg")?.setAttribute("opacity", String(bg.opacity));
-    } else if (t.dataset.pf && selectedPort !== null) {
-      const p = entry.ports[selectedPort]!;
-      if (t.dataset.pf === "tip") p.tip = t.value || undefined;
-      if (t.dataset.pf === "shown") p.shown = t.value || undefined;
-      refreshCanvas();
+    } else if (t.dataset.pf === "tip" && bubble?.kind === "port") {
+      const p = entry.ports[bubble.index]!;
+      p.tip = t.value || undefined;
+      root.querySelector(`[data-port="${bubble.index}"] title`)!.textContent = portTitle(p);
+      renderStatus();
     }
   });
 
@@ -845,9 +1102,12 @@ export function initBuildings(
       if ((t as HTMLInputElement).type !== "text") ifaceInput(t as HTMLInputElement, true);
       return;
     }
+    if (t.dataset.fp) {
+      if (t.dataset.fp !== "note") facePopInput(t);
+      return;
+    }
     if (t.dataset.mod) {
-      // La note est prise à la frappe ; le reste redessine la section.
-      if (t.dataset.mod !== "note") modInput(t);
+      if (t.dataset.mod !== "range") rangeInput(t);
       return;
     }
     if (t.id === "bld-nopower") {
@@ -858,9 +1118,6 @@ export function initBuildings(
       if (t.checked) entry!.noPorts = true;
       else delete entry!.noPorts;
       renderStatus();
-    } else if (t.dataset.pf === "direction" && selectedPort !== null) {
-      entry!.ports[selectedPort]!.direction = t.value as Port["direction"];
-      refreshCanvas();
     } else if (t.id === "bld-bgfile" && t.files?.[0]) {
       const url = URL.createObjectURL(t.files[0]);
       const img = new Image();
@@ -889,6 +1146,7 @@ export function initBuildings(
       message = "";
       mode = "coins";
       corners = [];
+      bubble = null;
       renderBgPanel();
       refreshCanvas(true);
       pz.fitBox(imageBox(bg));
@@ -932,13 +1190,13 @@ export function initBuildings(
     if (target.closest("[data-mc-fit]")) {
       const rates = farmRates(repoModular);
       if (rates) Object.assign(mcState.farm, farmBlocks(rates, mcState.farm.trees));
-      return renderModular();
+      return renderModMore();
     }
     const cfgBtn = target.closest<HTMLElement>("[data-mc-cfg]");
     if (cfgBtn) {
       const c = dieselConfigs(repoModular, diesel.get()).find((x) => x.id === cfgBtn.dataset.mcCfg);
       if (c) mcState.diesel = { cylinders: c.cylinders, airFuel: c.airFuel, throttle: c.throttle, fuel: c.fuel };
-      return renderModular();
+      return renderModMore();
     }
     // Relevé de configuration du moteur (S18) : enregistrer, ou retirer un relevé de ce navigateur.
     if (target.closest("[data-dr-save]")) {
@@ -949,13 +1207,89 @@ export function initBuildings(
         mcMsg = "Relevé enregistré : il entre dans le calcul et l'export.";
         mcState.diesel = { cylinders: r.cylinders, airFuel: r.airFuel, throttle: r.throttle, fuel: r.fuel };
       }
-      return renderModular();
+      return renderModMore();
     }
     const del = target.closest<HTMLElement>("[data-dr-del]");
     if (del) {
       diesel.set(diesel.get().filter((r) => r.id !== del.dataset.drDel));
       mcMsg = "Relevé retiré.";
+      return renderModMore();
+    }
+    // Cases des faces (S19).
+    const boxBtn = target.closest<HTMLElement>("[data-box]");
+    if (boxBtn) {
+      const box = boxBtn.dataset.box as FaceBox;
+      if (openBox === box) openBox = null;
+      else if (ensureDraft()) openBox = box;
+      renderModular();
+      if (openBox) $("#bld-facepop").scrollIntoView({ block: "nearest" });
+      return;
+    }
+    if (target.closest("[data-fp-close]")) {
+      openBox = null;
       return renderModular();
+    }
+    if (target.closest("[data-mod-cancel]")) {
+      modDraft = null;
+      openBox = null;
+      rangeEdit = false;
+      message = "";
+      renderModular();
+      if (showRange) refreshCanvas(true);
+      renderMode();
+      return renderStatus();
+    }
+    if (target.closest("[data-range-edit]")) {
+      if (ensureDraft()) rangeEdit = true;
+      return renderRange();
+    }
+    if (target.closest("[data-range-done]")) {
+      rangeEdit = false;
+      renderRange();
+      return renderStatus();
+    }
+    if (target.closest("#bld-rangebtn")) {
+      showRange = !showRange;
+      bubble = null;
+      refreshCanvas(false);
+      return renderRange();
+    }
+    // Bulle d'un port.
+    if (target.closest("[data-bb-close]")) return closeBubble();
+    const bbType = target.closest<HTMLElement>("[data-bb-type]");
+    if (bbType && bubble?.kind === "port") {
+      entry.ports[bubble.index]!.type = bbType.dataset.bbType as Port["type"];
+      return refreshCanvas(true);
+    }
+    const bbDir = target.closest<HTMLElement>("[data-bb-dir]");
+    if (bbDir && bubble?.kind === "port") {
+      entry.ports[bubble.index]!.direction = bbDir.dataset.bbDir as Port["direction"];
+      return refreshCanvas(true);
+    }
+    if (target.closest("[data-bb-del]") && bubble?.kind === "port") {
+      entry.ports.splice(bubble.index, 1);
+      bubble = null;
+      return refreshCanvas(true);
+    }
+    const bbNdir = target.closest<HTMLElement>("[data-bb-ndir]");
+    if (bbNdir) {
+      bubbleDir = bbNdir.dataset.bbNdir as Port["direction"];
+      return renderBubble();
+    }
+    const bbNew = target.closest<HTMLElement>("[data-bb-new]");
+    if (bbNew && bubble?.kind === "new") {
+      entry.ports = applyTool(entry.ports, bbNew.dataset.bbNew as PortTool, bubble.place, bubbleDir);
+      bubble = { kind: "port", index: entry.ports.length - 1 };
+      return refreshCanvas(true);
+    }
+    const poseBtn = target.closest<HTMLElement>("[data-posemode]");
+    if (poseBtn) {
+      poseBubble = poseBtn.dataset.posemode === "bulle";
+      savePose();
+      bubble = null;
+      renderTools();
+      refreshCanvas(true);
+      return renderMode();
     }
     const toolBtn = target.closest<HTMLElement>("[data-tool]");
     if (toolBtn) {
@@ -980,11 +1314,17 @@ export function initBuildings(
       if (z === "in") pz.zoom(1.25);
       else if (z === "out") pz.zoom(1 / 1.25);
       else pz.fit();
-      return;
+      return placeBubble();
+    }
+    if (target.closest("#bld-size")) {
+      sizeOpen = !sizeOpen;
+      renderHead();
+      return renderDims();
     }
     if (target.closest("#bld-swap")) {
       const f = entry.footprint!;
       entry.footprint = { w: f.h, h: f.w };
+      bubble = null;
       return renderEditor();
     }
     if (target.closest("#bld-corners") && bg) {
@@ -1003,102 +1343,43 @@ export function initBuildings(
       refreshCanvas(true);
       return renderMode();
     }
-    if (target.closest("[data-pf-del]") && selectedPort !== null) {
-      entry.ports.splice(selectedPort, 1);
-      selectedPort = null;
-      return renderEditor();
-    }
-    if (target.closest("#bld-save")) {
-      entry.source = surveySource();
-      local[selectedId] = structuredClone(entry);
-      save();
-      message = isComplete(entry) ? "Relevé enregistré dans ce navigateur. Pense à l'exporter." : "Relevé enregistré, mais encore incomplet (voir la liste ci-dessous).";
-      renderList();
-      return renderEditor();
-    }
+    if (target.closest("#bld-save")) return saveAll();
     if (target.closest("[data-if-add-setting]") && iface) {
       iface.settings.push({ id: newSettingId(iface), name: "", choices: [{ label: "", recipes: [] }] });
+      renderStatus();
       return renderIface();
     }
     const sIdx = Number(target.closest<HTMLElement>("[data-s]")?.dataset.s);
     if (target.closest("[data-if-del-setting]") && iface) {
       iface.settings.splice(sIdx, 1);
+      renderStatus();
       return renderIface();
     }
     if (target.closest("[data-if-add-choice]") && iface?.settings[sIdx]?.choices) {
       iface.settings[sIdx]!.choices!.push({ label: "", recipes: [] });
+      renderStatus();
       return renderIface();
     }
     if (target.closest("[data-if-del-choice]") && iface?.settings[sIdx]?.choices) {
       iface.settings[sIdx]!.choices!.splice(Number(target.closest<HTMLElement>("[data-c]")!.dataset.c), 1);
+      renderStatus();
       return renderIface();
-    }
-    if (target.closest("#bld-if-save")) {
-      if (iface) {
-        // Sources : celles du dépôt, plus cette saisie (une seule, la dernière).
-        iface.sources = [...iface.sources.filter((x) => x.wiki !== "saisie"), surveySource("interface notée dans l'éditeur de bâtiments du calculateur")];
-        localIfaces[selectedId] = structuredClone(iface);
-        ifaceMsg = checkInterface(iface, machineRecipes(selectedId).map((r) => r.id)).length
-          ? "Interface enregistrée, mais incomplète (voir la liste)."
-          : "Interface enregistrée dans ce navigateur : les plans l'utilisent déjà. Pense à l'exporter.";
-      } else {
-        delete localIfaces[selectedId];
-        ifaceMsg = "Interface retirée de ce navigateur.";
-      }
-      saveLocalInterfaces(localIfaces);
-      renderList();
-      return renderIface();
-    }
-    if (target.closest("#bld-if-forget")) {
-      delete localIfaces[selectedId];
-      saveLocalInterfaces(localIfaces);
-      const known = repoIfaces[selectedId];
-      iface = known ? structuredClone(known) : null;
-      ifaceMsg = "Interface locale oubliée.";
-      renderList();
-      return renderIface();
-    }
-    if (target.closest("[data-mod-edit]")) {
-      const found = findBlock(repoModular, selectedId);
-      if (!found || modDraft) return;
-      modDraft = modDraftFrom(found.assembly, found.block);
-      modMsg = "";
-      renderModular();
-      return root.querySelector("#bld-mod .bld-mod")?.scrollIntoView({ block: "nearest" });
-    }
-    if (target.closest("[data-mod-cancel]")) {
-      modDraft = null;
-      modMsg = "";
-      return renderModular();
-    }
-    if (target.closest("[data-mod-save]") && modDraft) {
-      const found = findBlock(repoModular, selectedId)!;
-      const next = editDiff(found.assembly, found.block, { ...modDraft, frontEdge: localMod[selectedId]?.frontEdge });
-      if (next) localMod[selectedId] = next;
-      else delete localMod[selectedId];
-      saveLocalModular(localMod);
-      modDraft = null;
-      modMsg = next ? "Correction enregistrée dans ce navigateur. Pense à l'exporter (« Exporter mes relevés »)." : "Aucune différence avec les données du site : rien d'enregistré.";
-      renderList();
-      return renderModular();
-    }
-    if (target.closest("[data-mod-forget]")) {
-      delete localMod[selectedId];
-      saveLocalModular(localMod);
-      modDraft = null;
-      modMsg = "Correction locale oubliée : retour aux données du site.";
-      renderList();
-      return renderModular();
     }
     if (target.closest("#bld-forget")) {
       delete local[selectedId];
       save();
-      return select(selectedId);
+      delete localIfaces[selectedId];
+      saveLocalInterfaces(localIfaces);
+      delete localMod[selectedId];
+      saveLocalModular(localMod);
+      select(selectedId);
+      message = "Modifications locales oubliées : retour aux données du site.";
+      return renderMode();
     }
 
     // Clic sur la grille.
     if (!target.closest("#bld-svg") || pz.suppressClick || mode === "capture") return;
-    const pt = toSvg((ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
+    const pt = toGrid((ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
     if (!pt) return;
     const { w, h } = entry.footprint!;
     if (mode === "coins" && bg) {
@@ -1131,17 +1412,24 @@ export function initBuildings(
     const portEl = target.closest<SVGGElement>("[data-port]");
     if (portEl) {
       const i = Number(portEl.dataset.port);
-      if (tool === "gomme") {
+      if (tool === "gomme" && !poseBubble) {
         entry.ports.splice(i, 1);
-        selectedPort = null;
-      } else selectedPort = i;
-      refreshCanvas(true);
-      return renderPortForm();
+        bubble = null;
+      } else bubble = bubble?.kind === "port" && bubble.index === i ? null : { kind: "port", index: i };
+      return refreshCanvas(true);
     }
     const gx = Math.floor(pt[0] / CELL);
     const gy = Math.floor(pt[1] / CELL);
     const inBody = gx >= 1 && gx <= w && gy >= 1 && gy <= h;
-    let place: Pick<Port, "side" | "cell"> | null = null;
+    let place: Place | null = null;
+    if (poseBubble) {
+      if (inBody) {
+        const p = bodyPoint(w, h, pt[0], pt[1]);
+        if (p) place = { side: "dessus", cell: p };
+      } else place = marginToPort(w, h, gx, gy);
+      bubble = place ? { kind: "new", place } : null;
+      return refreshCanvas(true);
+    }
     if (inBody && (tool === "énergie" || tool === "logique" || tool === "gomme")) {
       const p = bodyPoint(w, h, pt[0], pt[1]);
       if (p) place = { side: "dessus", cell: p };
@@ -1150,9 +1438,8 @@ export function initBuildings(
     }
     if (!place) return;
     entry.ports = applyTool(entry.ports, tool, place, tool === "gomme" ? "entrée" : dirByTool[tool]);
-    selectedPort = tool === "gomme" ? null : entry.ports.length - 1;
+    bubble = null;
     refreshCanvas(true);
-    renderPortForm();
   });
 
   function exportFile(): void {

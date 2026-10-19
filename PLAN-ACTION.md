@@ -77,7 +77,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S13 | Modulaires (3/4) : calcul (puissance du moteur, bois de la ferme) | grosse | S12 + relevés | ✅ fait (voir § 6) |
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | ✅ fait (voir § 6) |
 | S18 | Moteur diesel : relevés de configuration, consommation selon le carburant, réglages du contrôleur | moyenne | S14 | ✅ fait |
-| S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | à faire |
+| S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | ✅ fait |
 | S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 (avant ou pendant : Q17) | à faire |
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S20 | à faire |
 | S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
@@ -862,6 +862,25 @@ Questions : Q14.
   3. Tant que RP-05 (plusieurs tiers) n'a pas de réponse : un seuil par tier, appliqué aux RP/s de ce
      tier (ce que suggère le panneau), marqué « supposé » ?
   4. Relevés RP-01 à RP-08 (RELEVES.md, « Points de recherche ») : avant le lot, ou pendant ?
+- **Q18 (S19), éditeur simplifié.** Maquette `maquette/editeur-simplifie.html` (inventaire de ce
+  que l'éditeur affiche, avec pour chaque élément : garder, déplacer dans la grille, replier ou
+  retirer). Aucun changement de fichier : `ports.json` et l'export restent les mêmes.
+  1. Faces dans le dessin : devant en haut, derrière en bas, côtés à gauche et à droite, les deux
+     côtés liés (comme les données) ; ou gauche et droite réglables à part ?
+  2. Un seul « Enregistrer » pour le relevé, la correction du bloc et l'interface (au lieu de trois) ?
+  3. Poser un port : outils gardés au-dessus de la grille, bulle au clic sur un port ; ou sans
+     outils, une bulle au clic sur une case vide (type et sens choisis dedans) ?
+  4. Bloc « Calcul » de la ferme (S13) dans l'éditeur : replié, ou retiré ?
+  5. Retraits proposés : chaîne de l'ensemble, légende, « Contrôle » de la portée, champ « Ce que le
+     jeu affiche », taille du wiki quand elle est identique ; sources au survol. Un de ces éléments
+     sert-il ?
+
+  Réponses (2026-10-19) : 1 « garder les deux avec les mêmes propriétés » (le fonctionnement du
+  Crankshaft Sideways n'est pas clair) ; la structure gère les deux côtés à part, mais ils sont
+  fusionnés par défaut, et une option les sépare ; 2 « okay » ; 3 « les deux » : le mode outils par
+  défaut, le mode bulle derrière une option à nommer ; 4 « oui » (replié, le défaut proposé) ; 5 tout
+  retirer (« Ce que le jeu affiche » servait parfois à dire qu'un poteau est en hauteur, ce que le
+  calcul n'utilise pas).
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -920,6 +939,10 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S18 Moteur | Maquette validée (`maquette/moteur-diesel.html`). Une configuration n'est proposée avec un carburant que si elle a été relevée avec lui (pas de rapport déduit : formule seulement à la demande). L'Info Panel affiche la vraie consommation : le relevé la note telle quelle. Tableau à 6 cylindres : accélérateur supposé 100 %, et la supposition s'affiche. | 2026-10-18 |
 | S18 Choix | Trois critères par plan : meilleur rapport production/consommation (par défaut, le moins de L par MMF), moins de place, meilleure production énergétique (la plus grande puissance par moteur) ; « le moins cher » retiré. La liste « ou cette configuration… » de la maquette validée reste. | 2026-10-18 |
 | S18 Blocs | Chaque type de bloc compte : le plan de pose et le prix prennent les nombres relevés (entrées d'air, échappements, entrées de carburant, générateurs, volants…). | 2026-10-18 |
+| S19 Maquette | Validée (`maquette/editeur-simplifie.html`) : une case par face autour de la grille (devant en haut, derrière en bas, côtés à gauche et à droite, convention d'affichage), modifiée sur place ; bulle à côté du port cliqué ; un seul « Enregistrer » ; Interface, Capture, Remarques, « À savoir » et les blocs « Calcul » repliés (configurations du moteur ouvertes d'office sur le contrôleur) ; portée de la ferme sur une ligne et « ◯ Portée » dessinée dans la grille. Fichiers inchangés (`ports.json`, export, import). | 2026-10-19 |
+| S19 Côtés | Les deux côtés suivent la même règle par défaut ; une option « Côtés réglés à part » les sépare (gauche et droite gardés à part dans la correction, leur réunion reste la face « côtés » des données). | 2026-10-19 |
+| S19 Pose | Mode outils par défaut (outil puis clic dans la marge) ; option « Pose : Bulle » où un clic sur une case vide ouvre une bulle pour choisir le type et le sens. | 2026-10-19 |
+| S19 Retraits | Retirés de l'écran : chaîne de l'ensemble, légende, « Contrôle » de la portée, champ « Ce que le jeu affiche » (gardé dans les données et l'export), taille du wiki quand elle est identique ; sources au survol. | 2026-10-19 |
 | S20 Place | Le lot S20 (vitesse réelle des RP) passe entre S19 et S15 ; les points 2 à 4 de Q17 se posent au début du lot. | 2026-10-19 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
@@ -979,6 +1002,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
   Parcours réel (navigateur intégré, DOM) : relevé de test (Diesel, valeurs fictives, effacé ensuite) → dans le tableau et le calcul ; énergie 2 MMF/s, autres centrales écartées : 1 moteur 32 cylindres (le moins de carburant), ⚙ rapport 14, 59 % ; carburant Diesel → 3 moteurs du relevé, rapport 16, 100 %, dans le plan de pose et « Comment c'est calculé » ; « moins de place » → 2 moteurs de 6 cylindres, rapport 13 ; « meilleure production énergétique » → 32 cylindres. Téléphone 375 px : la barre passe à la ligne.
   À surveiller : le défaut change les plans d'énergie au diesel (32 cylindres au lieu de 6, liste de blocs incomplète MOD-14) ; la page du schéma déborde déjà à 375 px (608 px de large sans la barre, d'avant S18) ; un 2ᵉ générateur relevé est compté dans le prix mais le dessin n'en pose qu'un ; l'éditeur garde les données du chargement pour les noms et prix.
 - **2026-10-18, recherche R13** (sans code, non déployé) : vitesse des RP et plafond souple. Les formules du wiki retrouvent la capture du Research Tracking Panel (4 RS3 à deux Crankshaft supposés, liquide de valeur 0,1 supposé) ; « Max RP before … » = 3 × seuil. Questions RP-01 à RP-09 (`a-verifier.md`), méthode dans RELEVES.md, lot S20 proposé (Q17, place à valider).
+- **2026-10-19, S19** (402 tests, déployé) : Q18 posée avec la maquette `maquette/editeur-simplifie.html` (inventaire de l'éditeur : garder, déplacer, replier, retirer), réponses et décisions S19 au § 5. Aucun changement de format : `ports.json`, l'export et l'import restent les mêmes ; seule nouveauté, la clé facultative `sides` d'une correction modulaire (côtés réglés à part, leur réunion reste la face « side »). Modèle : `faceBoxes`, `toggleFaceBlock`, `setFaceRequired`, `splitSides` (buildings-model.ts), `withSides` et `SideSplit` (modular.ts), `entryChanged`, `sameSize`. Éditeur réécrit : une case par face autour de la grille (devant en haut, derrière en bas, côtés liés par défaut, option « Côtés réglés à part »), modifiée sur place ; bulle à côté du port cliqué (type, sens, info-bulle, supprimer) ; option « Pose : Bulle » (clic sur une case vide → bulle), « Outils » par défaut ; un seul « Enregistrer » (seulement ce qui a changé, « ● non enregistré : … » tant qu'il reste quelque chose) et un seul « Oublier » ; portée de la ferme sur une ligne et « ◯ Portée » dessinée dans la grille ; Interface, Capture, Remarques, « À savoir » et « Calcul » repliés (configurations du moteur ouvertes d'office sur le contrôleur). Retirés : légende, formulaire sous la grille, champ « Ce que le jeu affiche » (gardé dans les données), chaîne, tableau des faces, « Contrôle » de la portée, taille du wiki quand elle est identique. RELEVES.md suit.
+  Parcours réel (navigateur intégré, DOM : captures impossibles, fenêtre masquée ; valeurs de test, effacées ensuite) : Crankshaft (manquant) → port fluide posé dans la marge, bulle à côté, sens passé à sortie, info-bulle ; case « Côtés » → côtés réglés à part, Cylinder retiré à gauche, droite obligatoire ; « Enregistrer » → « relevé (encore incomplet), faces », correction gardée avec `sides` et rechargée à l'identique ; mode Bulle : case vide du haut → « Nouveau port », objet « les deux » posé, corps → prise ⚡ ou logique ; arroseur : portée 10 cases, cercle de 12 cases depuis le centre dans la grille, correction à 11 → « ● non enregistré : portée », Annuler ; contrôleur : configurations ouvertes d'office ; Press : bulle avec l'info-bulle relevée ; 375 px sans débordement (le tableau des configurations défile dans son repli).
+  À surveiller : le clic sur un bouton « Pose » avait d'abord changé de page (attribut `data-pose` déjà pris par le site, renommé `data-posemode`) ; la bulle suit le glisser et la molette, mais reste à placer à la main si la page défile sous elle ; le relevé d'un bâtiment manquant n'est enregistré que si l'on a posé ou coché quelque chose ; l'export n'a pas été cliqué (téléchargement), il est couvert par un test aller-retour avec `sides`.
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions

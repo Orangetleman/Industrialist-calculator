@@ -51,9 +51,13 @@ export type ModularEdit = {
   rangeTiles?: number | "infinie";
   serves?: string[];
   frontEdge?: Edge;
+  /** Côtés réglés à part dans l'éditeur (S19) ; leur réunion reste la face « side ». */
+  sides?: SideSplit;
   note?: string;
   source: Source;
 };
+/** Côté gauche et côté droit du dessin de l'éditeur, quand ils ne suivent pas la même règle. */
+export type SideSplit = { left: string[]; right: string[]; leftRequired?: boolean; rightRequired?: boolean };
 export type ModularEdits = Record<string, ModularEdit>;
 
 /** Nom court d'un ensemble, pour le repère de la liste des bâtiments (et la recherche). */
@@ -86,6 +90,8 @@ export type FacesInfo = {
   requiredFact?: ModFact;
   /** Une partie vient d'une correction de ce navigateur. */
   local: boolean;
+  /** Côtés réglés à part (correction de ce navigateur). */
+  sides?: SideSplit;
 };
 
 /** Faces d'un bloc par contact, dans l'ordre derrière, devant, côtés (seulement celles que les données citent). */
@@ -94,10 +100,11 @@ export function blockFaces(block: ModBlock, edit?: ModularEdit): FacesInfo {
   const requiredFact = fact(block, "facesRequired");
   const value = (edit?.faces ?? (facesFact?.value as Partial<Record<FaceKey, string[]>> | null)) ?? null;
   const req = edit?.facesRequired ?? (requiredFact?.value as Partial<Record<FaceKey, boolean>> | undefined);
-  const local = !!(edit?.faces || edit?.facesRequired);
-  if (!value) return { faces: null, facesFact, requiredFact, local };
+  const local = !!(edit?.faces || edit?.facesRequired || edit?.sides);
+  const sides = edit?.sides ? { sides: edit.sides } : {};
+  if (!value) return { faces: null, facesFact, requiredFact, local, ...sides };
   const faces = FACES.filter((f) => value[f] !== undefined).map((face) => ({ face, blocks: value[face]!, required: req ? req[face] === true : null }));
-  return { faces, facesFact, requiredFact, local };
+  return { faces, facesFact, requiredFact, local, ...sides };
 }
 
 /** Un bloc qui peut se suivre lui-même dans la chaîne (vilebrequin, HPT, LPT) se pose en plusieurs exemplaires. */
@@ -119,6 +126,7 @@ export function frontEdge(block: ModBlock, edit?: ModularEdit): Edge | null {
  */
 export function editDiff(a: ModAssembly, b: ModBlock, draft: ModularEdit): ModularEdit | null {
   const order = (ids: string[]) => a.blocks.map((x) => x.id).filter((id) => ids.includes(id));
+  draft = withSides(draft);
   const out: ModularEdit = { source: draft.source };
   if (draft.faces) {
     const repoFaces = (fact(b, "faces")?.value as Partial<Record<FaceKey, string[]>> | null) ?? {};
@@ -138,9 +146,24 @@ export function editDiff(a: ModAssembly, b: ModBlock, draft: ModularEdit): Modul
     const repoServes = (fact(b, "serves")?.value as string[] | undefined) ?? [];
     if (order(draft.serves).join() !== order(repoServes).join()) out.serves = order(draft.serves);
   }
+  if (draft.sides) {
+    const { left, right, leftRequired, rightRequired } = draft.sides;
+    out.sides = { left: order(left), right: order(right), ...(leftRequired ? { leftRequired } : {}), ...(rightRequired ? { rightRequired } : {}) };
+  }
   if (draft.note) out.note = draft.note;
   if (draft.frontEdge) out.frontEdge = draft.frontEdge;
   return Object.keys(out).length > 1 ? out : null;
+}
+
+/** Côtés réglés à part : la face « side » devient leur réunion, obligatoire si l'un des deux l'est. */
+export function withSides(draft: ModularEdit): ModularEdit {
+  if (!draft.sides) return draft;
+  const { left, right, leftRequired, rightRequired } = draft.sides;
+  return {
+    ...draft,
+    faces: { ...draft.faces, side: [...new Set([...left, ...right])] },
+    facesRequired: { ...draft.facesRequired, side: !!(leftRequired || rightRequired) },
+  };
 }
 
 // ---------------------------------------------------------------- portée
