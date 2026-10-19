@@ -86,6 +86,36 @@ export const circuitRate = (p: RpParams, cap: number, circuits: number) => (cap 
 /** Paraboles : multiplicateur ajouté à la production de base (log décimal), et paraboles nécessaires. */
 export const satelliteBoost = (p: RpParams, R: number) => (R > 0 ? p.satellite.boostCoef * Math.log10(R + 1) : 0);
 export const dishesNeeded = (S: number, R: number) => Math.ceil(S + Math.sqrt(S * R) - 1e-9);
+/**
+ * Un tier entier, vu par ses deux grandeurs additives (S20) : `value` (RS1 : nombre de stations ;
+ * RS2 à RS4 : somme des valeurs de recherche V) et `factor` (RS1, RS2 : nombre de stations ; RS3,
+ * RS4 : facteur C). Deux groupes du même tier s'additionnent sur ces grandeurs, pas sur les RP/s.
+ */
+export type TierSum = { value: number; factor: number };
+export const tierRate = (p: RpParams, kind: StationKind, value: number) => (kind === "rs1" ? rs1Rate(value) : valueRate(p, value));
+export function tierCap(p: RpParams, kind: StationKind, factor: number): number {
+  if (kind === "rs1") return rs1Cap(p, factor);
+  if (kind === "rs2") return rs2Cap(p, factor);
+  return kind === "rs3" ? rs3Cap(p, factor) : rs4Cap(p, factor);
+}
+/** Grandeurs d'un tier retrouvées depuis le panneau (RP/s des stations et seuil) : inverses des formules. */
+export function tierSumFromPanel(p: RpParams, kind: StationKind, stationsRate: number, cap: number): TierSum {
+  const value = kind === "rs1" ? stationsRate ** 2 : stationsRate > 0 ? (stationsRate / p.rs2.rateCoef) ** (1 / p.rs2.rateExp) : 0;
+  let factor = 0;
+  if (Number.isFinite(cap) && cap > 0) {
+    let lo = 0;
+    let hi = 1;
+    while (tierCap(p, kind, hi) < cap && hi < 1e12) hi *= 2;
+    for (let i = 0; i < 100; i++) {
+      const mid = (lo + hi) / 2;
+      if (tierCap(p, kind, mid) < cap) lo = mid;
+      else hi = mid;
+    }
+    factor = (lo + hi) / 2;
+  }
+  return { value, factor };
+}
+
 /** Plafond souple : facteur appliqué à la vitesse quand les RP dépassent le plafond. */
 export function softCapFactor(rp: number, cap: number, kind: StationKind): number {
   const x = Math.max(rp / cap, 1);
@@ -130,6 +160,11 @@ export type RpRequest = {
   existing?: Record<string, number>;
   /** Stations autorisées (défaut : toutes celles débloquées). */
   kinds?: StationKind[];
+  /**
+   * Stations que le joueur a déjà, par tier (S20) : une installation du même tier s'y ajoute (vitesse
+   * et seuil recalculés sur tout le tier, `baseRate` = le gain, `cap` = le seuil du tier entier).
+   */
+  base?: Partial<Record<StationKind, TierSum>>;
 };
 
 export type RpCandidate = { design: RpDesign; plan: Plan; score: number };
@@ -165,27 +200,42 @@ function smallest(ok: (n: number) => boolean, max = 1e7): number | null {
 }
 
 /** Évaluation d'une installation : vitesse et plafond pour `n` stations. */
-export function evaluateStations(p: RpParams, kind: StationKind, n: number, items: string[], data: GameData, logic: boolean): { base: number; circuits: number; cap: number } {
-  if (kind === "rs1") return { base: rs1Rate(n), circuits: 0, cap: rs1Cap(p, n) };
+export function evaluateStations(
+  p: RpParams,
+  kind: StationKind,
+  n: number,
+  items: string[],
+  data: GameData,
+  logic: boolean,
+  base?: TierSum | null,
+): { base: number; circuits: number; cap: number } {
+  const own = groupSum(p, kind, n, items, data, logic);
+  // Stations ajoutées à celles du joueur (S20) : le tier se recalcule en entier ; `base` = le gain.
+  const value = own.value + (base?.value ?? 0);
+  const cap = tierCap(p, kind, own.factor + (base?.factor ?? 0));
+  const rate = tierRate(p, kind, value) - (base ? tierRate(p, kind, base.value) : 0);
+  return { base: rate, circuits: kind === "rs4" && logic ? circuitRate(p, cap, n) : 0, cap };
+}
+
+/** Grandeurs additives de `n` stations identiques (items, mini-jeu Logic pour la RS4). */
+export function groupSum(p: RpParams, kind: StationKind, n: number, items: string[], data: GameData, logic: boolean): TierSum {
+  if (kind === "rs1") return { value: n, factor: n };
   const vals = items.map((i) => researchValue(data, i) ?? 0);
-  if (kind === "rs2") return { base: valueRate(p, n * vals[0]!), circuits: 0, cap: rs2Cap(p, n) };
+  if (kind === "rs2") return { value: n * (vals[0] ?? 0), factor: n };
   const same = items[0] === items[1];
-  const sum = n * (vals[0]! + vals[1]!) * (same ? 1 - p.rs3.samePenalty : 1);
-  const price = items.reduce((s, i) => s + (data.items.get(i)?.sellValue ?? 0), 0) / items.length;
-  if (kind === "rs3") return { base: valueRate(p, sum), circuits: 0, cap: rs3Cap(p, capFactor(p, n, price)) };
-  const C = capFactor(p, logic ? n * p.rs4.logicWeight : n, price);
-  const cap = rs4Cap(p, C);
-  return { base: valueRate(p, sum), circuits: logic ? circuitRate(p, cap, n) : 0, cap };
+  const value = n * ((vals[0] ?? 0) + (vals[1] ?? 0)) * (same ? 1 - p.rs3.samePenalty : 1);
+  const price = items.reduce((s, i) => s + (data.items.get(i)?.sellValue ?? 0), 0) / Math.max(1, items.length);
+  return { value, factor: price > 0 ? capFactor(p, kind === "rs4" && logic ? n * p.rs4.logicWeight : n, price) : 0 };
 }
 
 function designFor(p: RpParams, data: GameData, kind: StationKind, items: string[], logic: boolean, sat: RpDesign["satellites"], req: RpRequest): RpDesign | null {
   const boost = sat ? satelliteBoost(p, sat.controllers * sat.fluidValue) : 0;
   const n = smallest((k) => {
-    const e = evaluateStations(p, kind, k, items, data, logic);
+    const e = evaluateStations(p, kind, k, items, data, logic, req.base?.[kind]);
     return e.base * (1 + boost) + e.circuits >= req.targetRate - 1e-9 && e.cap >= req.capNeeded - 1e-9;
   });
   if (n === null) return null;
-  const e = evaluateStations(p, kind, n, items, data, logic);
+  const e = evaluateStations(p, kind, n, items, data, logic, req.base?.[kind]);
   const perStation =
     kind === "rs2" ? { [items[0]!]: p.rs2.inputPerSec * 60 } : kind === "rs1" ? {} : Object.fromEntries(items.map((i) => [i, 0] as [string, number]));
   const consumption: Record<string, number> = {};

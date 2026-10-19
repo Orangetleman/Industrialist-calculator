@@ -978,3 +978,25 @@ ul.rc-err { padding-left: 18px; }
 .rc-line { display: flex; gap: 6px; align-items: center; }
 .rc-line input.qty { width: 5em; flex: none; }
 .rc-line input.it { flex: 1; min-width: 0; }
+
+/* ---- Mon usine › Ma recherche (S20) ---- */
+.rs-top-row { justify-content: space-between; }
+#rs-box .tw { overflow-x: auto; }
+table.rp-panel { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 520px; }
+table.rp-panel caption { text-align: left; padding-bottom: 4px; }
+table.rp-panel th, table.rp-panel td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+table.rp-panel tr.off td { color: var(--muted); }
+#rs-box input[inputmode], #rs-box .grp input.i { width: 6.5em; border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 3px 6px; font-family: var(--f-mono); }
+#rs-box .fields4 input { width: 100%; }
+#rs-box input.s, #rs-box input.n { width: 3.8em; }
+#rs-box .grp input.i { width: 11em; }
+.grp { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .88rem; padding: 4px 0; border-top: 1px dashed var(--line); }
+.grp-t { font-weight: 600; }
+.supp { font-size: .72rem; border-radius: 999px; padding: 0 7px; color: var(--warn); background: var(--warn-soft); border: 1px solid var(--warn); white-space: nowrap; }
+.okc { color: var(--ok); font-weight: 600; }
+.rs-checks { list-style: none; margin: 0; padding: 0; font-size: .86rem; display: flex; flex-direction: column; gap: 2px; }
+.rs-est { border-left: 4px solid var(--ok); background: var(--ok-soft); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.rs-est.over { border-left-color: var(--warn); background: var(--warn-soft); }
+.rs-est p { margin: 0; }
+.rs-est .big b { font-family: var(--f-mono); }
+table.rs-steps td.num { white-space: normal; }

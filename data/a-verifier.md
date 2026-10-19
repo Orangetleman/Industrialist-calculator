@@ -774,5 +774,19 @@ afficherait environ 4,4 millions de RP au lieu d'environ 240 000.
   peu près la vitesse et le plafond », tantôt des circuits qui ajoutent plafond ÷ 40 000 × n × 6 ÷ t
   RP/s. Que montre le panneau avant et après ?
 
+- **RP-10** (2026-10-20, page Research System du wiki, texte recopié par l'utilisateur) : « Research
+  Station3 and Research Station4 use the **average** RPx of the 2 Items inside ». La page Research
+  Station3 (formule du site) prend la **somme** des valeurs, avec −30 % pour deux items identiques.
+  Ta capture tranche pour la somme (deux Crankshaft supposés) : somme 4 × 70 × 0,7 = 196 → 47,47 RP/s,
+  comme le panneau ; moyenne 4 × 35 × 0,7 = 98 → 31,3 RP/s. Le site garde la somme. À confirmer avec
+  RP-01.
+- **RP-11** (S20) : stations d'un même tier avec des items **différents** d'une station à l'autre. Le
+  site additionne les valeurs (V) et les facteurs de seuil (C = somme, station par station, de
+  log₄(x ÷ 600) + 1) : identique au wiki quand toutes les stations sont pareilles, **supposé** sinon.
+  Contrôle : deux groupes d'items différents, et comparer le seuil du panneau.
+- **RP-12** (S20) : les contrôleurs de paraboles ajoutent B × 0,78 × log₁₀(R + 1) ; le site multiplie
+  ce bonus par l'efficacité affichée (supposé, faute de formule : RP-03) et le répartit entre les
+  tiers au prorata de leurs RP/s (supposé, RP-04/RP-05).
+
 Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 <!-- notes-manuelles:fin -->

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S20 — Ma recherche</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.mq-q ol { margin: 4px 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.tw { overflow-x: auto; }
+table.rp { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 520px; }
+table.rp th, table.rp td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+table.rp input { width: 6.5em; border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 3px 6px; font-family: var(--f-mono); }
+table.rp input.s { width: 3.5em; }
+table.rp tr.off td { color: var(--muted); }
+.est { border-left: 4px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.est .big b { font-family: var(--f-mono); }
+.supp { font-size: .72rem; border-radius: 999px; padding: 0 7px; color: var(--warn); background: var(--warn-soft); border: 1px solid var(--warn); white-space: nowrap; }
+.okc { color: var(--ok); font-weight: 600; }
+.grp { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .88rem; padding: 4px 0; border-top: 1px dashed var(--line); }
+.grp input { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 3px 6px; font-family: var(--f-mono); }
+.grp input.n { width: 3.5em; }
+.grp input.i { width: 10em; }
+.header-demo { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S20 — Ma recherche : vitesse réelle des RP</h1>
+<p class="mq-note">Tous les nombres viennent de ta capture du Research Tracking Panel (2026-10-18) et des formules du wiki
+(<code>data/research-stations.json</code>), recalculés le 2026-10-19. La maquette montre le site <b>2 h après la saisie</b>,
+sans rien dépenser. Ce qui n'est pas confirmé en jeu porte l'étiquette <span class="supp">supposé</span>.</p>
+
+<!-- ============================================================ 1 -->
+<h2 class="mq-t">1. Mon usine › « Ma recherche », niveau rapide (par défaut)</h2>
+<p class="mq-note">Nouvelle boîte, sur toute la largeur. Les champs RP et RP/s quittent « Ressources » pour venir ici (rien n'est perdu, la saisie actuelle est reprise).</p>
+<div class="box span2">
+  <h2>Ma recherche</h2>
+  <div class="row" style="justify-content:space-between">
+    <div class="seg" role="radiogroup" aria-label="Saisie">
+      <button type="button" role="radio" aria-checked="true">Rapide : je recopie le panneau</button>
+      <button type="button" role="radio" aria-checked="false">Détaillé : mes stations</button>
+    </div>
+    <span class="hint">Tout se lit sur le Research Tracking Panel (Build › Misc).</span>
+  </div>
+
+  <div class="row fields4">
+    <label>RP (1ʳᵉ ligne du panneau)<input value="19273,5"></label>
+    <label>RP/s (1ʳᵉ ligne)<input value="50,4"></label>
+  </div>
+  <p class="hint">Saisis il y a 2 h. Tu changes les RP : l'heure de saisie repart de maintenant.</p>
+
+  <div class="tw"><table class="rp">
+    <thead><tr><th>Ligne du panneau</th><th>Stations actives</th><th>RP/s</th><th>Seuil d'efficacité (RP)</th></tr></thead>
+    <tbody>
+      <tr class="off"><td>Tier 1</td><td><input class="s" placeholder="0"></td><td><input placeholder="—"></td><td><input placeholder="—"></td></tr>
+      <tr class="off"><td>Tier 2</td><td><input class="s" placeholder="0"></td><td><input placeholder="—"></td><td><input placeholder="—"></td></tr>
+      <tr><td><b>Tier 3</b></td><td><input class="s" value="4"></td><td><input value="47,47"></td><td><input value="76875"></td></tr>
+      <tr class="off"><td>Tier 4</td><td><input class="s" placeholder="0"></td><td><input placeholder="—"></td><td><input placeholder="—"></td></tr>
+      <tr><td>Paraboles (écran du bas)</td><td><input class="s" value="2"> contrôleurs</td><td><input value="2,93"></td><td><input class="s" value="7"> paraboles · <input class="s" value="100"> %</td></tr>
+      <tr><td>Max RP before RP/s is nearly zero</td><td colspan="3"><input value="231000"> <span class="okc">✓</span> <span class="hint">3 × seuil = 230 626, arrondi au millier supérieur</span> <span class="supp">supposé (RP-06)</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="hint"><span class="okc">✓ comme en jeu</span> : 47,47 + 2,93 = 50,40 RP/s, la 1ʳᵉ ligne.</p>
+
+  <div class="est">
+    <p class="big">≈ <b>154 226 RP</b> maintenant · vitesse réelle <b>4,97 RP/s</b> (10 % de 50,40)</p>
+    <p>⚠ <b>Seuil dépassé depuis 1 h 41</b> (atteint 19 min après la saisie). Au-delà, la vitesse baisse : <b>dépense tes RP</b> pour la retrouver.</p>
+  </div>
+
+  <div class="tw"><table class="mini">
+    <thead><tr><th>Solde de RP</th><th>Atteint</th><th>Vitesse à ce moment</th></tr></thead>
+    <tbody>
+      <tr><td>Seuil d'efficacité : 76 875</td><td class="num">19 min après la saisie</td><td class="num">50,40 RP/s (100 %)</td></tr>
+      <tr><td>100 000</td><td class="num">30 min après</td><td class="num">25,2 RP/s</td></tr>
+      <tr><td>2 × seuil : 153 751</td><td class="num">1 h 58 après</td><td class="num">5,04 RP/s (10 %)</td></tr>
+      <tr><td>3 × seuil : 230 626 (« Max RP »)</td><td class="num">18 h 32 après</td><td class="num">0,50 RP/s (1 %)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="hint">Sans rien dépenser. Le site comptait jusqu'ici en ligne droite : au bout de 24 h, il aurait affiché ≈ 4,4 millions de RP au lieu de ≈ 239 300.</p>
+
+  <details class="more"><summary>Comment c'est calculé</summary>
+    <table class="calc-t">
+      <tr><th>Sous le seuil</th><td class="f">RP = RP saisis + 50,40 × temps</td><td class="s">vitesse constante (wiki, Research Tracking Panel)</td></tr>
+      <tr><th>Vitesse au-delà</th><td class="f">RP/s × 10^(1 − RP ÷ seuil)</td><td class="s">wiki, Research System (tiers 1 à 3 ; tier 4 : 10^(1 − √(RP ÷ seuil)))</td></tr>
+      <tr><th>Solde au-delà</th><td class="f">seuil × (1 + log₁₀(1 + ln 10 × RP/s × t ÷ seuil))</td><td class="s">formule exacte, déduite de la précédente (t : temps depuis le seuil)</td></tr>
+      <tr><th>Un seuil par tier</th><td colspan="2">chaque tier ralentit à son propre seuil <span class="supp">supposé (RP-05)</span></td></tr>
+      <tr><th>Paraboles</th><td colspan="2">leur part (2,93) baisse comme celle des stations <span class="supp">supposé (RP-04)</span> ; elles se répartissent entre les tiers au prorata</td></tr>
+      <tr><th>Dépenser</th><td colspan="2">le solde redescend, la vitesse remonte aussitôt <span class="supp">supposé (RP-08)</span></td></tr>
+    </table>
+  </details>
+</div>
+
+<!-- ============================================================ 2 -->
+<h2 class="mq-t">2. Même boîte, niveau détaillé (« Détaillé : mes stations »)</h2>
+<p class="mq-note">Le site recalcule le panneau à partir des stations. Les nombres du niveau rapide, s'ils sont remplis, servent de contrôle. Ce niveau permet aussi de proposer « ajoute N stations aux tiennes » (partie 4).</p>
+<div class="box span2">
+  <h3>Mes stations (groupes de stations identiques)</h3>
+  <div class="grp"><b>Tier 3</b> <input class="n" value="4"> × Research Station3 avec <input class="i" value="Crankshaft"> + <input class="i" value="Crankshaft"> <span class="supp">supposé (RP-01)</span> <button class="link small">✕</button></div>
+  <div class="grp"><button class="link small">+ un groupe de stations</button> <span class="hint">(Tier 1 : rien à choisir ; Tier 2 : un item ; Tiers 3 et 4 : deux items ; Tier 4 : mini-jeu Logic résolu ?)</span></div>
+  <h3>Mes paraboles</h3>
+  <div class="grp"><input class="n" value="2"> × Satellite Dish Controller avec <input class="i" value="Light Oil"> <span class="supp">supposé (RP-02)</span> · <input class="n" value="7"> paraboles alimentées</div>
+
+  <div class="tw"><table class="rp">
+    <thead><tr><th></th><th>Calculé</th><th>Panneau</th><th></th></tr></thead>
+    <tbody>
+      <tr><td>Tier 3 : RP/s</td><td>47,47</td><td>47,47</td><td class="okc">✓ comme en jeu</td></tr>
+      <tr><td>Tier 3 : seuil</td><td>76 875</td><td>76 875</td><td class="okc">✓ comme en jeu</td></tr>
+      <tr><td>Paraboles : RP/s</td><td>2,93</td><td>2,93</td><td class="okc">✓ comme en jeu</td></tr>
+      <tr><td>Paraboles pour 100 %</td><td>3</td><td>7 posées</td><td class="hint">4 de trop ? (RP-03)</td></tr>
+      <tr><td>Max RP</td><td>230 626</td><td>&gt; 231 000</td><td class="okc">✓</td></tr>
+    </tbody>
+  </table></div>
+  <details class="more"><summary>Comment c'est calculé</summary>
+    <table class="calc-t">
+      <tr><th>Valeur V</th><td class="f">4 × (35 + 35) × 0,7 = 196</td><td class="s">valeur de recherche du Crankshaft : 35 ; −30 % si les deux items sont identiques (wiki, Research Station3)</td></tr>
+      <tr><th>RP/s du tier</th><td class="f">2 × 196^0,6 = 47,47</td><td class="s">wiki, Research Station3</td></tr>
+      <tr><th>Facteur C</th><td class="f">4 × (log₄(754 ÷ 600) + 1) = 4,659</td><td class="s">prix de vente du Crankshaft : 754 $ ; 4 stations actives</td></tr>
+      <tr><th>Seuil</th><td class="f">16 500 × (log₂(C + 1) + √C) = 76 875</td><td class="s">wiki, Research Station3</td></tr>
+      <tr><th>Paraboles</th><td class="f">47,47 × 0,78 × log₁₀(0,2 + 1) = 2,93</td><td class="s">R = 2 × 0,1 (Light Oil) ; log décimal, confirmé par ta capture</td></tr>
+    </table>
+  </details>
+</div>
+
+<!-- ============================================================ 3 -->
+<h2 class="mq-t">3. En-tête du site</h2>
+<div class="header-demo">
+  <span class="me-chip">42/149 recherches</span>
+  <span class="me-chip" title="RP estimés, vitesse réelle">≈ 154 k RP · 4,97/s ⚠ seuil</span>
+  <span class="me-chip">2,1 M$</span>
+</div>
+<p class="mq-note">La puce donne la vitesse <b>réelle</b> (après le seuil), avec « ⚠ seuil » quand il est dépassé. Les autres puces ne changent pas (nombres d'exemple).</p>
+
+<!-- ============================================================ 4 -->
+<h2 class="mq-t">4. Objectif recherche (exemple : débloquer Foundry, 100 000 RP, prérequis déjà débloqués)</h2>
+<p class="mq-note">« À ton rythme actuel » part de tes stations, avec ton vrai seuil (plus de plafond infini). Une nouvelle proposition, « Ajouter des stations aux tiennes », s'affiche à côté de l'installation neuve. L'installation neuve reste calculée comme aujourd'hui, mais si elle est du même tier que les tiennes, sa vitesse et son seuil sont fusionnés avec les tiens (deux groupes du même tier ne s'additionnent pas).</p>
+<div class="answer">
+  <details class="more" open><summary>Chronologie : quand chaque recherche sera débloquée</summary>
+    <div class="tw"><table class="mini">
+      <thead><tr><th>Recherche</th><th>RP</th><th>À ton rythme actuel</th><th>+ 4 stations aux tiennes</th><th>Avec l'installation neuve</th></tr></thead>
+      <tbody><tr><td>Foundry <span class="tag warn">au-delà de ton seuil</span></td><td class="num">100 000 RP</td><td class="num">30 min</td><td class="num">18 min</td><td class="num">(calculé)</td></tr></tbody>
+    </table></div>
+    <p class="hint">Depuis 19 273,5 RP (ta saisie) ; chaque déblocage dépense son coût. À ton rythme, le seuil (76 875) est dépassé : la vitesse tombe à 25,2 RP/s vers 100 000.</p>
+  </details>
+  <details class="more" open><summary>Ajouter des stations aux tiennes</summary>
+    <p><b>+ 4 Research Station3</b> avec Crankshaft + Crankshaft (comme les tiennes) → 8 stations au tier 3 : <b>71,95 RP/s</b> (+ 4,44 des paraboles), seuil <b>105 926 RP</b> (au lieu de 76 875). Prix des 4 stations et Crankshaft à fournir : (calculés).</p>
+    <p class="hint">Le plus petit nombre de stations dont le seuil couvre la recherche la plus chère visée (100 000 RP). 7 stations ne suffisent pas (seuil 99 822).</p>
+  </details>
+  <details class="more"><summary>Comment c'est calculé : vitesse et seuil</summary>
+    <table class="calc-t">
+      <tr><th>Ta vitesse</th><td class="f">47,47 (tier 3) + 2,93 (paraboles) = 50,40 RP/s</td><td class="s">Ma recherche, niveau rapide (ou recalculé au niveau détaillé)</td></tr>
+      <tr><th>Ton seuil</th><td class="f">76 875 RP (tier 3)</td><td class="s">idem ; un seuil par tier <span class="supp">supposé (RP-05)</span></td></tr>
+      <tr><th>Au-delà</th><td class="f">vitesse × 10^(1 − RP ÷ seuil)</td><td class="s">wiki, Research System</td></tr>
+      <tr><th>Stations ajoutées</th><td class="f">V = 8 × 49 = 392 ; 2 × 392^0,6 = 71,95 ; C = 8 × 1,165 → seuil 105 926</td><td class="s">mêmes formules, sur toutes les stations du tier</td></tr>
+    </table>
+  </details>
+</div>
+
+<!-- ============================================================ Q -->
+<h2 class="mq-t">Questions sur la maquette (Q19)</h2>
+<div class="mq-q">
+  <ol>
+    <li>Les champs RP et RP/s passent de « Ressources » à « Ma recherche » : d'accord ?</li>
+    <li>Les quatre tiers sont toujours affichés (lignes vides en gris), comme sur le panneau. Ou seulement « + Ajouter un tier » ?</li>
+    <li>Le tableau des soldes (seuil, 100 000, 2 × seuil, Max RP) : utile tel quel, ou seulement la ligne « seuil atteint dans … » ?</li>
+    <li>Objectif recherche : une colonne de plus dans la chronologie (« + N stations aux tiennes ») et un bloc qui la détaille. Ça te va, ou tu préfères la proposition seulement dans le bloc ?</li>
+    <li>Paraboles : l'efficacité (%) se recopie du panneau, faute de formule (RP-03). Le bonus est compté au prorata de ce pourcentage <span class="supp">supposé</span> : d'accord ?</li>
+  </ol>
+</div>
+</div>
+</body>
+</html>

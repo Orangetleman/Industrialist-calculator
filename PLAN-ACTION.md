@@ -78,7 +78,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | ✅ fait (voir § 6) |
 | S18 | Moteur diesel : relevés de configuration, consommation selon le carburant, réglages du contrôleur | moyenne | S14 | ✅ fait |
 | S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | ✅ fait |
-| S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 (avant ou pendant : Q17) | à faire |
+| S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 (pendant : Q17) | ✅ fait |
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S20 | à faire |
 | S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
@@ -862,6 +862,11 @@ Questions : Q14.
   3. Tant que RP-05 (plusieurs tiers) n'a pas de réponse : un seuil par tier, appliqué aux RP/s de ce
      tier (ce que suggère le panneau), marqué « supposé » ?
   4. Relevés RP-01 à RP-08 (RELEVES.md, « Points de recherche ») : avant le lot, ou pendant ?
+
+  Réponses (2026-10-19, début de S20) : 2 « les deux niveaux » (rapide par défaut, détaillé à
+  côté) ; 3 « oui, un seuil par tier », appliqué aux RP/s de ce tier et marqué « supposé » jusqu'à
+  RP-05 ; 4 « pendant » : le lot part des suppositions (deux Crankshaft, liquide de valeur 0,1) et
+  intègre les relevés quand ils arrivent.
 - **Q18 (S19), éditeur simplifié.** Maquette `maquette/editeur-simplifie.html` (inventaire de ce
   que l'éditeur affiche, avec pour chaque élément : garder, déplacer dans la grille, replier ou
   retirer). Aucun changement de fichier : `ports.json` et l'export restent les mêmes.
@@ -881,6 +886,17 @@ Questions : Q14.
   défaut, le mode bulle derrière une option à nommer ; 4 « oui » (replié, le défaut proposé) ; 5 tout
   retirer (« Ce que le jeu affiche » servait parfois à dire qu'un poteau est en hauteur, ce que le
   calcul n'utilise pas).
+- **Q19 (S20), maquette « Ma recherche ».** Maquette `maquette/recherche-rp.html` (nombres de la
+  capture du 2026-10-18, recalculés avec les formules du wiki, 2 h après la saisie).
+  1. Les champs RP et RP/s passent de « Ressources » à « Ma recherche » ?
+  2. Les quatre tiers toujours affichés (lignes vides en gris), ou « + Ajouter un tier » ?
+  3. Tableau des soldes (seuil, 100 000, 2 × seuil, Max RP), ou seulement « seuil atteint dans … » ?
+  4. Objectif recherche : une colonne « + N stations aux tiennes » dans la chronologie et un bloc qui
+     la détaille, ou le bloc seulement ?
+  5. Paraboles : efficacité recopiée du panneau, bonus compté au prorata (supposé) ?
+
+  Réponse (2026-10-20) : « Oui à tout » (avec, en complément, le texte de la page Research System
+  du wiki, reporté dans `a-verifier.md`).
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -944,6 +960,10 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S19 Pose | Mode outils par défaut (outil puis clic dans la marge) ; option « Pose : Bulle » où un clic sur une case vide ouvre une bulle pour choisir le type et le sens. | 2026-10-19 |
 | S19 Retraits | Retirés de l'écran : chaîne de l'ensemble, légende, « Contrôle » de la portée, champ « Ce que le jeu affiche » (gardé dans les données et l'export), taille du wiki quand elle est identique ; sources au survol. | 2026-10-19 |
 | S20 Place | Le lot S20 (vitesse réelle des RP) passe entre S19 et S15 ; les points 2 à 4 de Q17 se posent au début du lot. | 2026-10-19 |
+| S20 Saisie | Deux niveaux dans « Ma recherche » : rapide (recopier le panneau : RP/s et seuil de chaque tier, paraboles, « Max RP ») et détaillé (stations, items, liquides : le site recalcule le panneau et le compare). | 2026-10-19 |
+| S20 Tiers | Un seuil par tier, appliqué aux RP/s de ce tier, écrit « supposé » tant que RP-05 n'a pas de réponse. | 2026-10-19 |
+| S20 Relevés | RP-01 à RP-08 pendant le lot : le code part des suppositions (deux Crankshaft par station, liquide de valeur 0,1), écrites « supposé ». | 2026-10-19 |
+| S20 Maquette | Validée (`maquette/recherche-rp.html`) : RP et RP/s passent dans « Ma recherche » ; les quatre tiers toujours affichés ; tableau des soldes (seuil, 100 000, 2 × seuil, Max RP) ; colonne « + N stations aux tiennes » dans la chronologie et bloc qui la détaille ; efficacité des paraboles recopiée du panneau, bonus au prorata (supposé). | 2026-10-20 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions
@@ -1005,6 +1025,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-19, S19** (402 tests, déployé) : Q18 posée avec la maquette `maquette/editeur-simplifie.html` (inventaire de l'éditeur : garder, déplacer, replier, retirer), réponses et décisions S19 au § 5. Aucun changement de format : `ports.json`, l'export et l'import restent les mêmes ; seule nouveauté, la clé facultative `sides` d'une correction modulaire (côtés réglés à part, leur réunion reste la face « side »). Modèle : `faceBoxes`, `toggleFaceBlock`, `setFaceRequired`, `splitSides` (buildings-model.ts), `withSides` et `SideSplit` (modular.ts), `entryChanged`, `sameSize`. Éditeur réécrit : une case par face autour de la grille (devant en haut, derrière en bas, côtés liés par défaut, option « Côtés réglés à part »), modifiée sur place ; bulle à côté du port cliqué (type, sens, info-bulle, supprimer) ; option « Pose : Bulle » (clic sur une case vide → bulle), « Outils » par défaut ; un seul « Enregistrer » (seulement ce qui a changé, « ● non enregistré : … » tant qu'il reste quelque chose) et un seul « Oublier » ; portée de la ferme sur une ligne et « ◯ Portée » dessinée dans la grille ; Interface, Capture, Remarques, « À savoir » et « Calcul » repliés (configurations du moteur ouvertes d'office sur le contrôleur). Retirés : légende, formulaire sous la grille, champ « Ce que le jeu affiche » (gardé dans les données), chaîne, tableau des faces, « Contrôle » de la portée, taille du wiki quand elle est identique. RELEVES.md suit.
   Parcours réel (navigateur intégré, DOM : captures impossibles, fenêtre masquée ; valeurs de test, effacées ensuite) : Crankshaft (manquant) → port fluide posé dans la marge, bulle à côté, sens passé à sortie, info-bulle ; case « Côtés » → côtés réglés à part, Cylinder retiré à gauche, droite obligatoire ; « Enregistrer » → « relevé (encore incomplet), faces », correction gardée avec `sides` et rechargée à l'identique ; mode Bulle : case vide du haut → « Nouveau port », objet « les deux » posé, corps → prise ⚡ ou logique ; arroseur : portée 10 cases, cercle de 12 cases depuis le centre dans la grille, correction à 11 → « ● non enregistré : portée », Annuler ; contrôleur : configurations ouvertes d'office ; Press : bulle avec l'info-bulle relevée ; 375 px sans débordement (le tableau des configurations défile dans son repli).
   À surveiller : le clic sur un bouton « Pose » avait d'abord changé de page (attribut `data-pose` déjà pris par le site, renommé `data-posemode`) ; la bulle suit le glisser et la molette, mais reste à placer à la main si la page défile sous elle ; le relevé d'un bâtiment manquant n'est enregistré que si l'on a posé ou coché quelque chose ; l'export n'a pas été cliqué (téléchargement), il est couvert par un test aller-retour avec `sides`.
+- **2026-10-20, S20** (422 tests, déployé) : Q17 (points 2 à 4) et Q19 (maquette `maquette/recherche-rp.html`) posées et validées, décisions S20 au § 5. Moteur pur `src/engine/research-balance.ts` : `rateAt`, `timeToReach`, `balanceAfter` (formule exacte `exactBalance` pour un seul seuil des tiers 1 à 3, Simpson sinon), `nearlyZero` (« Max RP »), `balanceTimeline`, `researchModel` (niveau rapide : le panneau, grandeurs du tier retrouvées par les formules inverses `tierSumFromPanel` ; niveau détaillé : groupes de stations et contrôleurs, contrôles « comme en jeu »), `withAddedStations` et `proposeAddStations` (« + N stations aux tiennes »). `research-points.ts` : `TierSum`, `tierRate`, `tierCap`, `groupSum` ; `evaluateStations` et `designResearch` acceptent les stations du joueur (`base`) : une installation du même tier s'y ajoute (gain réel, seuil du tier entier). Site : boîte « Ma recherche » dans Mon usine (RP et RP/s déplacés), RP estimés avec le plafond partout (`currentRp` prend les tiers), puce d'en-tête à la vitesse réelle (« ⚠ seuil »), objectif recherche avec le vrai seuil, colonne et bloc « + N stations aux tiennes », « Comment c'est calculé » (vitesse et seuil). Saisie gardée dans `player.research` (export compris). Wiki (Research System, texte de l'utilisateur) : « average RPx » contredit la somme de la page Research Station3 ; la capture tranche pour la somme (RP-10). Nouveaux doutes RP-10 à RP-12.
+  Parcours réel (navigateur intégré, 371 px de large) : capture saisie au niveau rapide → seuil dans 19 min, 1,3 × seuil dans 30 min (25,26 RP/s), 2 × seuil 1 h 58 (5,04 RP/s), « Max RP » 230 625 (✓ avec 231 000) ; saisie avancée de 2 h (stockage modifié pour l'essai) → ≈ 154 229 RP, 4,96 RP/s (9,8 %), « seuil dépassé depuis 1 h 41 », en ligne droite le site aurait compté 382 682 ; niveau détaillé (4 RS3 Crankshaft + Crankshaft, 2 contrôleurs Light Oil) → 47,47 ✓, 76 875 ✓, 2,93 ✓, 230 626 ✓, 1ʳᵉ ligne ✓. Objectif « Foundry en 15 min » (Foundry décochée pour l'essai, recochée ensuite) : à ton rythme 30 min, + 7 stations aux tiennes 14 min (11 stations, 87,09 RP/s + 5,38, seuil 121 563, 700 000 $, 84 Crankshaft/min), installation neuve 15 min. Aucune erreur en console.
+  À surveiller : l'écart avec un relevé en jeu après le seuil (RP-04, critère < 2 %) n'est pas mesuré, faute de relevé ; tout repose encore sur deux suppositions (deux Crankshaft, liquide de valeur 0,1) et sur un seuil par tier (RP-05) ; les paraboles d'une installation neuve s'ajoutent telles quelles (le log des liquides de tous les contrôleurs n'est pas recombiné) ; « 1,3 × seuil » remplace le « 100 000 » d'exemple de la maquette (ligne utile au relevé RP-04).
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions

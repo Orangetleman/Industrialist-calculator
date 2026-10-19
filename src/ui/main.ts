@@ -36,7 +36,9 @@ import interfacesJson from "../../data/interfaces.json";
 import modularJson from "../../data/modular.json";
 import type { ModularFile } from "../engine/modular.ts";
 import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
-import { designResearch, rpParams, unlockTimeline, type RpResult } from "../engine/research-points.ts";
+import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
+import { balanceTimeline, emptySetup, nominalRate, proposeAddStations, rateAt, researchModel, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
+import { renderResearchForm, renderResearchOut } from "./research-mine.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { esc, fmt, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
 import {
@@ -258,7 +260,33 @@ function rebuildData(): void {
 }
 
 function playerState(): PlayerState {
-  return { ...toEngineProgress(prog), ...player, rp: currentRp(player) };
+  return { ...toEngineProgress(prog), ...player, rp: rpNow() };
+}
+
+// ---------------------------------------------------------------- ma recherche (S20)
+let rpModelCache: { key: string; data: GameData; model: RpModel | null } | null = null;
+/** Le modèle de la recherche du joueur (tiers, seuils, paraboles), d'après « Ma recherche ». */
+function rpModel(): RpModel | null {
+  if (!RP_PARAMS) return null;
+  const key = JSON.stringify([player.research, player.rpPerSec, player.rp]);
+  if (rpModelCache?.key !== key || rpModelCache.data !== data) rpModelCache = { key, data, model: researchModel(RP_PARAMS, data, player.research, player.rpPerSec, player.rp) };
+  return rpModelCache.model;
+}
+/** Les tiers qui font évoluer les RP (null : rien de renseigné). */
+function rpTiers(): RpTier[] | null {
+  const m = rpModel();
+  return m && m.source !== "aucune" ? m.tiers : null;
+}
+/** RP estimés maintenant, avec le plafond souple. */
+function rpNow(): number | null {
+  return currentRp(player, Date.now(), rpTiers());
+}
+/** Vitesse réelle maintenant (après le seuil), et seuil dépassé ? */
+function rpRealRate(): { rate: number; over: boolean } | null {
+  const tiers = rpTiers();
+  const rp = rpNow();
+  if (!tiers || rp === null || !(nominalRate(tiers) > 0)) return null;
+  return { rate: rateAt(tiers, rp), over: tiers.some((t) => rp > t.cap) };
 }
 
 const nodeName = (id: string) => data.nodes.get(id)?.name ?? id;
@@ -392,7 +420,12 @@ function computeResearch(): ResearchView | null {
   const ps = playerState();
   const p = toEngineProgress(prog);
   const rp0 = ps.rp ?? 0;
-  const current = settings.rpCurrent && player.rpPerSec ? player.rpPerSec : 0;
+  // Ma recherche (S20) : vitesse nominale de mes stations, et leurs grandeurs par tier.
+  const model = rpModel();
+  const mine = settings.rpCurrent && model && model.source !== "aucune" && nominalRate(model.tiers) > 0 ? model : null;
+  const current = mine ? nominalRate(mine.tiers) : 0;
+  const base: Partial<Record<StationKind, TierSum>> = {};
+  if (mine && mine.source !== "rps") for (const t of mine.tiers) if (!t.capMissing) base[t.kind] = t.sum;
   let nodes: string[] = [];
   if (settings.rpMode === "node" && settings.rpNode) nodes = missingNodes(data, p, settings.rpNode);
   if (settings.rpMode === "plan") {
@@ -424,6 +457,7 @@ function computeResearch(): ResearchView | null {
           useUnverified: settings.useUnverified,
           selfPowered: settings.selfPowered,
           existing: settings.useExisting ? settings.existing : {},
+          base,
         })
       : {
           best: null,
@@ -439,10 +473,33 @@ function computeResearch(): ResearchView | null {
           ],
         };
   const d = result.best?.design;
-  const kind = d?.kind ?? "rs2";
-  const timeline = d ? unlockTimeline(costs, rp0, d.rate + current, d.cap, kind) : null;
-  const timelineNow = current > 0 ? unlockTimeline(costs, rp0, current, Infinity, kind) : null;
-  return { ...result, nodes, capNeeded, targetRate, timeline, timelineNow, currentRate: current || null };
+  // Avec l'installation : du même tier que mes stations, elle s'y ajoute (tier recalculé en entier).
+  let withDesign: RpTier[] | null = null;
+  if (d) {
+    const add = groupSum(RP_PARAMS, d.kind, d.stations, d.items, data, d.logic);
+    withDesign = mine
+      ? withAddedStations(RP_PARAMS, mine, d.kind, add, { logic: d.logic ? d.stations : 0, extraRate: d.boostRate })
+      : [{ kind: d.kind, rate: d.baseRate + d.boostRate, cap: d.cap, circuits: d.circuitRate || undefined }];
+  }
+  const timeline = withDesign ? balanceTimeline(costs, rp0, withDesign) : null;
+  const timelineNow = mine ? balanceTimeline(costs, rp0, mine.tiers) : null;
+  // « Ajoute N stations aux tiennes » (niveau détaillé).
+  const prop = mine && costs.length + (settings.rpMode === "rate" ? 1 : 0) ? proposeAddStations(RP_PARAMS, data, player.research, mine, wanted, capNeeded) : null;
+  let add: ResearchView["add"] = null;
+  if (prop && "reason" in prop) add = prop;
+  else if (prop) {
+    const machines = prop.kind === "rs4" ? ["research-station3", "research-station4"] : [`research-station${prop.kind.slice(2)}`];
+    const consumption: Record<string, number> = {};
+    if (prop.kind === "rs2") consumption[prop.group.items[0]!] = prop.added * RP_PARAMS.rs2.inputPerSec * 60;
+    if (prop.kind === "rs3" || prop.kind === "rs4") for (const i of prop.group.items) consumption[i] = (consumption[i] ?? 0) + prop.added * RP_PARAMS.rs3.inputPerSecPerNode * 60;
+    add = {
+      ...prop,
+      buildingCost: prop.added * machines.reduce((a, m) => a + (data.machines.get(m)?.cost ?? 0), 0),
+      consumption,
+      timeline: balanceTimeline(costs, rp0, prop.tiers),
+    };
+  }
+  return { ...result, nodes, capNeeded, targetRate, timeline, timelineNow, currentRate: current || null, model: mine, add, mergedTier: d && mine?.tiers.some((t) => t.kind === d.kind && !t.capMissing) && mine.source !== "rps" ? d.kind : null };
 }
 
 /** L'objectif affiché, pour savoir si les machines fixées dans le schéma valent encore (S8). */
@@ -643,10 +700,13 @@ function renderHeader(): void {
     $("me").innerHTML = `<a class="me-chip cta" href="#usine">Renseigner mon usine</a>`;
     return;
   }
-  const rp = currentRp(player);
+  const rp = rpNow();
+  const real = rpRealRate();
   const chips = [
     `<a class="me-chip" href="#usine" title="Recherches débloquées">${unlockedCount()}/${researchTotal()} recherches</a>`,
-    rp !== null ? `<a class="me-chip" href="#usine" title="RP disponibles (estimés)">≈ ${esc(fmtShort(rp))} RP${player.rpPerSec ? ` · ${esc(fmt(player.rpPerSec, 1))}/s` : ""}</a>` : "",
+    rp !== null
+      ? `<a class="me-chip" href="#usine" title="RP disponibles et vitesse réelle (estimés)">≈ ${esc(fmtShort(rp))} RP${real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
+      : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="Argent">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
   $("me").innerHTML = chips.join("");
@@ -709,7 +769,12 @@ function renderPlanPage(): void {
   const existingN = Object.keys(settings.existing).length;
   $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans Mon usine)" : `(${fmtMoney(player.money)})`;
   $("existing-hint-plan").innerHTML = existingN ? `(${existingN} production${existingN > 1 ? "s" : ""} dans <a href="#usine">Mon usine</a>)` : `(aucune pour l'instant : <a href="#usine">Mon usine</a>)`;
-  $("rp-current-hint").textContent = player.rpPerSec ? `(${fmt(player.rpPerSec, 2)} RP/s dans Mon usine)` : "(renseigne-la dans Mon usine)";
+  const mineTiers = rpTiers();
+  const mineRate = mineTiers ? nominalRate(mineTiers) : 0;
+  const mineCap = mineTiers ? Math.min(...mineTiers.map((t) => t.cap)) : Infinity;
+  $("rp-current-hint").textContent = mineRate
+    ? `(${fmt(mineRate, 2)} RP/s dans Ma recherche${Number.isFinite(mineCap) ? `, seuil ${fmtRP(mineCap)}` : ", sans seuil"})`
+    : "(renseigne-la dans Mon usine › Ma recherche)";
   let goalHint = "";
   if (goal === "recherche" && settings.rpMode === "plan") {
     goalHint = `Plan d'objet utilisé : ${esc(settings.mode === "rate" ? `${fmt(settings.rate, 2)} ${itemName(settings.item)}/min` : `${settings.machines} machines finales de ${itemName(settings.item)}`)} — <a href="#objet">le changer</a>.`;
@@ -1393,21 +1458,45 @@ function syncPlayerForm(): void {
   set("p-money", player.money);
   set("p-plotw", player.plotW);
   set("p-ploth", player.plotH);
-  const rp = currentRp(player);
+  const rp = rpNow();
   set("p-rp", rp === null ? null : Math.floor(rp));
   set("p-rps", player.rpPerSec);
   input("p-spend").checked = player.spendRp;
   input("p-gamepass").checked = player.gamePass;
+  renderResearchBox();
+}
+
+/** « Ma recherche » : le formulaire (à l'ouverture et quand sa forme change) et ce qu'en tire le site. */
+function renderResearchBox(): void {
+  const s = player.research ?? emptySetup();
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rsmode]")) b.setAttribute("aria-checked", String(b.dataset.rsmode === s.mode));
+  $("rs-form").innerHTML = renderResearchForm(data, s);
   renderRpLive();
 }
 
-/** RP estimés maintenant, d'après les RP/s. */
+/** RP estimés maintenant, seuil, vitesse réelle (rafraîchi à chaque saisie et toutes les 5 s). */
 function renderRpLive(): void {
-  const rp = currentRp(player);
   $("rp-live").textContent =
-    rp !== null && player.rpPerSec && player.rpAt !== null
-      ? `≈ ${fmtRP(rp)} maintenant : ${fmtRP(player.rp)} saisis le ${new Date(player.rpAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}, + ${fmt(player.rpPerSec, 2)} RP/s depuis. Estimation : si ta production de RP change en jeu, corrige-la ici.`
+    player.rp !== null && player.rpAt !== null
+      ? `${fmtRP(player.rp)} saisis le ${new Date(player.rpAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}. Quand tu changes les RP, l'heure de saisie repart de maintenant.`
       : "";
+  const model = rpModel();
+  if (!model) return;
+  const now = Date.now();
+  const linear = player.rp !== null && player.rpAt !== null && player.rpPerSec ? player.rp + (player.rpPerSec * Math.max(0, now - player.rpAt)) / 1000 : null;
+  $("rs-out").innerHTML = renderResearchOut({ model, rp0: player.rp, rpAt: player.rpAt, rpNow: rpNow(), now, linearNow: linear });
+}
+
+/** Modifie « Ma recherche » et recalcule ce qui en dépend. `form` : redessiner le formulaire (groupe ajouté, mode…). */
+function updateResearch(fn: (s: ResearchSetup) => void, form = false): void {
+  const s: ResearchSetup = structuredClone(player.research ?? emptySetup());
+  fn(s);
+  player = { ...player, research: s };
+  savePlayer(player);
+  planDirty = true;
+  renderHeader();
+  if (form) renderResearchBox();
+  else renderRpLive();
 }
 
 /** Liste « Production déjà en place ». */
@@ -1471,7 +1560,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const p = toEngineProgress(prog);
   const layout = researchLayout();
   if (ui.selected && data.nodes.get(ui.selected)?.category !== treeView.category) ui.selected = null;
-  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, currentRp(player));
+  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, rpNow());
   const svg = $("rs-canvas").querySelector("svg") as SVGSVGElement;
   if (treeView.filter.trim()) {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
@@ -1481,7 +1570,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
-  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, currentRp(player));
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow());
   renderHud();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
 }
@@ -2043,7 +2132,7 @@ function bindRecettesEdit(): void {
  */
 async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
   const delta = rpDelta(data, prog.unlocked, next.unlocked);
-  const now = currentRp(player);
+  const now = rpNow();
   if (opts.spend !== false && player.spendRp && now !== null && delta.spent !== 0) {
     let available = now;
     while (delta.spent > available + 1e-9) {
@@ -2780,9 +2869,9 @@ function bindUsine(): void {
     $(id).addEventListener("input", (e) => {
       const v = parseOptional((e.target as HTMLInputElement).value);
       $(id).setAttribute("aria-invalid", String(v === "invalide"));
-      $(key === "plotW" || key === "plotH" ? "plot-hint" : "player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+      $(key === "plotW" || key === "plotH" ? "plot-hint" : key === "rp" || key === "rpPerSec" ? "rp-hint" : "player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
       if (v === "invalide") return;
-      if (key === "rpPerSec") player = withRpRate(player, v);
+      if (key === "rpPerSec") player = withRpRate(player, v, Date.now(), rpTiers());
       else if (key === "rp") player = { ...player, rp: v, rpAt: v === null ? null : Date.now() };
       else player = { ...player, [key]: v };
       savePlayer(player);
@@ -2791,6 +2880,7 @@ function bindUsine(): void {
       renderHeader();
     });
   }
+  bindResearchBox();
   $("p-spend").addEventListener("change", (e) => {
     player = { ...player, spendRp: (e.target as HTMLInputElement).checked };
     savePlayer(player);
@@ -3032,12 +3122,92 @@ function bindData(): void {
   });
 }
 
+/** « Ma recherche » (S20) : saisie rapide (le panneau) ou détaillée (les stations). */
+function bindResearchBox(): void {
+  const box = $("rs-box");
+  const tier = (k: string) => k as StationKind;
+  box.addEventListener("click", (e) => {
+    const t = e.target as HTMLElement;
+    const mode = t.closest<HTMLElement>("[data-rsmode]")?.dataset.rsmode;
+    if (mode === "rapide" || mode === "detaille") return updateResearch((s) => void (s.mode = mode), true);
+    if (t.closest("[data-rsg-addbtn]")) {
+      const k = tier(box.querySelector<HTMLSelectElement>("[data-rsg-add]")!.value);
+      return updateResearch((s) => void s.groups[k].push({ count: 1, items: [] }), true);
+    }
+    const del = t.closest<HTMLElement>("[data-rsg-del]")?.dataset.rsgDel;
+    if (del) {
+      const [k, i] = del.split(":");
+      return updateResearch((s) => void s.groups[tier(k!)].splice(Number(i), 1), true);
+    }
+    if (t.closest("[data-rsc-add]")) return updateResearch((s) => void s.controllers.push({ count: 1, fluid: "" }), true);
+    const cdel = t.closest<HTMLElement>("[data-rsc-del]")?.dataset.rscDel;
+    if (cdel !== undefined) return updateResearch((s) => void s.controllers.splice(Number(cdel), 1), true);
+  });
+  // Nombres : pris à chaque frappe (le formulaire n'est pas redessiné, le focus reste).
+  box.addEventListener("input", (e) => {
+    const el = e.target as HTMLInputElement;
+    const d = el.dataset;
+    const numeric = d.rsp ?? d.rsd ?? (d.rsmax !== undefined ? "max" : undefined) ?? (d.rsg?.endsWith(":count") ? d.rsg : undefined) ?? (d.rsc?.endsWith(":count") ? d.rsc : undefined);
+    if (numeric === undefined) return;
+    const v = parseOptional(el.value);
+    el.setAttribute("aria-invalid", String(v === "invalide"));
+    $("rp-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+    if (v === "invalide") return;
+    updateResearch((s) => {
+      if (d.rsp) {
+        const [k, f] = d.rsp.split(":") as [StationKind, "stations" | "rate" | "cap"];
+        s.panel[k][f] = v;
+      } else if (d.rsd) s.dish[d.rsd as keyof ResearchSetup["dish"]] = v;
+      else if (d.rsmax !== undefined) s.maxRp = v;
+      else if (d.rsg) {
+        const [k, i] = d.rsg.split(":");
+        const g = s.groups[tier(k!)][Number(i)];
+        if (g) g.count = v ?? 0;
+      } else if (d.rsc) {
+        const c = s.controllers[Number(d.rsc.split(":")[0])];
+        if (c) c.count = v ?? 0;
+      }
+    });
+  });
+  // Items, liquides (noms résolus en quittant le champ) et mini-jeu Logic.
+  box.addEventListener("change", (e) => {
+    const el = e.target as HTMLInputElement;
+    const g = el.dataset.rsg;
+    const c = el.dataset.rsc;
+    const field = g?.split(":")[2] ?? c?.split(":")[1];
+    if (!field || field === "count") return;
+    if (field === "logic") {
+      const [k, i] = g!.split(":");
+      return updateResearch((s) => {
+        const x = s.groups[tier(k!)][Number(i)];
+        if (x) x.logic = el.checked || undefined;
+      });
+    }
+    const id = el.value.trim() ? resolveItem(el.value) : "";
+    el.setAttribute("aria-invalid", String(id === null));
+    $("rp-hint").textContent = id === null ? `« ${el.value} » : objet inconnu, choisis-le dans la liste.` : "";
+    if (id === null) return;
+    if (id) el.value = itemName(id);
+    updateResearch((s) => {
+      if (g) {
+        const [k, i, f] = g.split(":");
+        const x = s.groups[tier(k!)][Number(i)];
+        if (x) x.items[Number(f!.slice(4))] = id;
+        if (x) for (let j = 0; j < x.items.length; j++) x.items[j] ??= ""; // pas de trou si l'item 2 vient avant le 1
+      } else {
+        const x = s.controllers[Number(c!.split(":")[0])];
+        if (x) x.fluid = id;
+      }
+    });
+  });
+}
+
 /** Les RP montent tout seuls : affichage rafraîchi, et l'arbre ou le plan quand ça change quelque chose. */
 let rpSignature = "";
 let lastRpPlanRender = 0;
 function tickRp(): void {
-  if (player.rp === null || !player.rpPerSec || player.rpAt === null) return;
-  const rp = currentRp(player)!;
+  if (player.rp === null || !rpTiers() || player.rpAt === null) return;
+  const rp = rpNow()!;
   const page = currentPage();
   renderHeader();
   if (page === "usine") {

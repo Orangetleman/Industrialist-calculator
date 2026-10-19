@@ -2,6 +2,7 @@
 // (pollution, argent, RP, RP/s). Persistance locale + rendu HTML (pur).
 
 import type { GameData } from "../engine/data.ts";
+import { balanceAfter, parseResearchSetup, type ResearchSetup, type RpTier } from "../engine/research-balance.ts";
 import type { ResearchCategory } from "../engine/types.ts";
 import { isNodeUnlocked, nodeDepths, type Progress } from "../engine/unlock.ts";
 import { esc, fmt } from "./format.ts";
@@ -26,6 +27,8 @@ export type PlayerInfo = {
   /** Taille de sa parcelle, en cases (1 case = 1 Short Pipe) ; null si non renseignée. */
   plotW: number | null;
   plotH: number | null;
+  /** « Ma recherche » (S20) : le panneau de suivi recopié, ou les stations ; null si non renseignée. */
+  research: ResearchSetup | null;
 };
 
 /** Un module (ou une usine) de `w` × `h` cases tient-il sur la parcelle, tel quel ou tourné d'un quart de tour ? */
@@ -38,11 +41,17 @@ export function fitsPlot(w: number, h: number, plot: { w: number; h: number }): 
 /** La parcelle, si ses deux côtés sont renseignés. */
 export const plotOf = (p: PlayerInfo) => (p.plotW && p.plotH ? { w: p.plotW, h: p.plotH } : null);
 
-/** RP estimés à l'instant `now` : RP saisis + RP/s × temps écoulé depuis la saisie. */
-export function currentRp(p: PlayerInfo, now = Date.now()): number | null {
+/**
+ * RP estimés à l'instant `now`, depuis les RP saisis. Avec `tiers` (S20, « Ma recherche ») : la
+ * vitesse baisse au-delà du seuil de chaque tier (plafond souple). Sans : RP/s × temps, en ligne droite.
+ */
+export function currentRp(p: PlayerInfo, now = Date.now(), tiers?: readonly RpTier[] | null): number | null {
   if (p.rp === null) return null;
-  if (!p.rpPerSec || p.rpAt === null) return p.rp;
-  return p.rp + p.rpPerSec * Math.max(0, now - p.rpAt) / 1000;
+  if (p.rpAt === null) return p.rp;
+  const dt = Math.max(0, now - p.rpAt) / 1000;
+  if (tiers?.length) return balanceAfter(tiers, p.rp, dt);
+  if (!p.rpPerSec) return p.rp;
+  return p.rp + p.rpPerSec * dt;
 }
 
 /** RP dépensés (> 0) ou rendus (< 0) en passant de `before` à `after` (racines et acquises d'office : gratuites). */
@@ -59,8 +68,8 @@ export function rpDelta(data: GameData, before: readonly string[], after: readon
 }
 
 /** Change la vitesse sans perdre les RP déjà accumulés (on repart de l'estimation actuelle). */
-export function withRpRate(p: PlayerInfo, rpPerSec: number | null, now = Date.now()): PlayerInfo {
-  const rp = currentRp(p, now);
+export function withRpRate(p: PlayerInfo, rpPerSec: number | null, now = Date.now(), tiers?: readonly RpTier[] | null): PlayerInfo {
+  const rp = currentRp(p, now, tiers);
   return { ...p, rp, rpPerSec, rpAt: rp === null ? null : now };
 }
 
@@ -68,7 +77,7 @@ const KEY_PROGRESS = "ind-calc:v1:progress";
 const KEY_PLAYER = "ind-calc:v1:player";
 
 export const EMPTY_PROGRESS: ProgressState = { unlocked: [], reqItemsDone: [], owned: [] };
-export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null };
+export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
 
 const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
 const numOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
@@ -93,7 +102,7 @@ export function loadPlayer(): PlayerInfo {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
-    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH) };
+    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH), research: parseResearchSetup(raw.research) };
   } catch {
     return { ...EMPTY_PLAYER };
   }
@@ -149,7 +158,7 @@ export function parseProgressExport(
   return {
     ok: true,
     progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
-    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH) },
+    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH), research: parseResearchSetup(pl.research) },
     dropped,
     exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,
   };

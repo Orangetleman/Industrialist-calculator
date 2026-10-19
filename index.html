@@ -260,14 +260,30 @@
       <div class="box">
         <h2>Ressources</h2>
         <div class="row fields4">
-          <label for="p-rp">RP disponibles<input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000"></label>
-          <label for="p-rps">RP par seconde<input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5"></label>
           <label for="p-money">Argent ($)<input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000"></label>
           <label for="p-pollution">Pollution (%)<input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12"></label>
         </div>
         <p class="hint" id="player-hint" role="status"></p>
+        <p class="hint">Servent à : la pousse des arbres (pollution), l'argent manquant. Tes RP sont dans « Ma recherche ».</p>
+      </div>
+
+      <div class="box span2" id="rs-box">
+        <h2>Ma recherche</h2>
+        <div class="row rs-top-row">
+          <div class="seg" role="radiogroup" aria-label="Saisie de ma recherche">
+            <button type="button" role="radio" data-rsmode="rapide" aria-checked="true">Rapide : je recopie le panneau</button>
+            <button type="button" role="radio" data-rsmode="detaille" aria-checked="false">Détaillé : mes stations</button>
+          </div>
+          <span class="hint">Tout se lit sur le Research Tracking Panel (Build › Misc).</span>
+        </div>
+        <div class="row fields4">
+          <label for="p-rp">RP (1ʳᵉ ligne du panneau)<input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000"></label>
+          <label for="p-rps">RP/s (1ʳᵉ ligne)<input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5"></label>
+        </div>
+        <p class="hint" id="rp-hint" role="status"></p>
         <p class="hint" id="rp-live" aria-live="off"></p>
-        <p class="hint">Servent à : la pousse des arbres (pollution), l'argent et les RP manquants, le temps pour les obtenir. Les RP montent tout seuls avec tes RP/s depuis ta dernière saisie.</p>
+        <div id="rs-form"></div>
+        <div id="rs-out" aria-live="off"></div>
       </div>
 
       <div class="box">

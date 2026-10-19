@@ -6,6 +6,7 @@ import recipesJson from "../../data/recipes.json";
 import researchJson from "../../data/research.json";
 import { makeData, progress } from "../../tests/engine-helpers.ts";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
+import { emptySetup } from "../engine/research-balance.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
@@ -112,20 +113,30 @@ describe("progression et « Ma partie »", () => {
 
   it("export puis import de la progression : aller-retour identique", () => {
     const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
-    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true, plotW: 120, plotH: 96 };
+    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true, plotW: 120, plotH: 96, research: { ...emptySetup(), mode: "detaille" as const, groups: { rs1: [], rs2: [], rs3: [{ count: 4, items: ["crankshaft", "crankshaft"] }], rs4: [] } } };
     const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
     expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" });
   });
 
   it("les RP évoluent avec les RP/s ; changer la vitesse garde les RP accumulés", () => {
     const t0 = Date.parse("2026-10-12T09:00:00Z");
-    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false, plotW: null, plotH: null };
+    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
     expect(currentRp(p, t0 + 60_000)).toBe(620); // + 2 RP/s × 60 s
     expect(currentRp({ ...p, rpPerSec: null }, t0 + 60_000)).toBe(500);
     expect(currentRp({ ...p, rp: null }, t0)).toBeNull();
     const q = withRpRate(p, 5, t0 + 60_000); // 620 RP acquis, puis 5 RP/s
     expect(q).toMatchObject({ rp: 620, rpPerSec: 5, rpAt: t0 + 60_000 });
     expect(currentRp(q, t0 + 120_000)).toBe(920);
+  });
+
+  it("S20 : avec les tiers de « Ma recherche », la vitesse baisse au-delà du seuil", () => {
+    const t0 = Date.parse("2026-10-18T12:00:00Z");
+    const p = { ...EMPTY_PLAYER, rp: 19273.5, rpPerSec: 50.4, rpAt: t0 };
+    const tiers = [{ kind: "rs3" as const, rate: 50.4, cap: 76875 }];
+    expect(currentRp(p, t0 + 600_000, tiers)).toBeCloseTo(19273.5 + 50.4 * 600, 6); // sous le seuil : ligne droite
+    expect(currentRp(p, t0 + 86_400_000, tiers)!).toBeCloseTo(239307, -1); // 24 h : ≈ 239 300, pas 4,4 millions
+    const q = withRpRate(p, 10, t0 + 86_400_000, tiers);
+    expect(q.rp!).toBeCloseTo(239307, -1);
   });
 
   it("parcelle : le plan tient tel quel, tourné d'un quart de tour, ou pas", () => {

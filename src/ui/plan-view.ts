@@ -10,7 +10,7 @@ import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
 import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
 import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtRP } from "./format.ts";
-import { designLine, researchAlternatives, researchExplain, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
+import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
 import { filterNote } from "./mfilter-view.ts";
 import { planKey, planMachines, type Goal } from "./state.ts";
@@ -734,10 +734,12 @@ export function renderDetails(v: ViewCtx): string {
   const p = v.plan;
   const parts: string[] = [];
   const nodeName = (id: string) => nodeN(v, id);
-  if (v.goal === "recherche" && v.research?.best) {
-    parts.push(more("Installation de recherche", researchExplain(v, v.research.best), true));
+  if (v.goal === "recherche" && v.research) {
+    if (v.research.best) parts.push(more("Installation de recherche", researchExplain(v, v.research.best) + researchMergeNote(v.research), true));
     parts.push(more("Chronologie : quand chaque recherche sera débloquée", researchTimeline(v.research, nodeName), true));
-    parts.push(more(`Autres installations comparées (${v.research.others.length})`, researchAlternatives(v, v.research)));
+    parts.push(more("Ajouter des stations aux tiennes", researchAddBlock(v, v.research), true));
+    if (v.research.best) parts.push(more(`Autres installations comparées (${v.research.others.length})`, researchAlternatives(v, v.research)));
+    parts.push(more("Comment c'est calculé : vitesse et seuil", researchHowBlock(v.research)));
   }
   const warn = warningsBlock(v);
   parts.push(more(`Remarques sur le calcul (${warn.count})`, warn.html));
