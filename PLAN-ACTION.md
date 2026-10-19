@@ -78,10 +78,10 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S14 | Modulaires (4/4) : plans de pose des ensembles | grosse | S13 | ✅ fait (voir § 6) |
 | S18 | Moteur diesel : relevés de configuration, consommation selon le carburant, réglages du contrôleur | moyenne | S14 | ✅ fait |
 | S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | à faire |
-| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18, S19 | à faire |
+| S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 (avant ou pendant : Q17) | à faire |
+| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S20 | à faire |
 | S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
-| S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 | à faire — **place à valider (Q17)** : proposée entre S19 et S15 |
 
 Pourquoi cet ordre :
 - **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
@@ -92,6 +92,7 @@ Pourquoi cet ordre :
 - **S10** ne touche pas au placement (Q5) : elle reste à sa place.
 - **Modulaires en dernier** : c'est le lot le plus gros et le moins documenté. La recherche (S11)
   peut être avancée si tu le souhaites.
+- **S20 avant S15** (réponse à Q17, 2026-10-19) : la revue d'ensemble verra la recherche finie.
 - **S15 à la fin** : l'utilisateur veut revoir l'interface dans son ensemble, pour qu'elle soit
   logique pour des joueurs (« t'es pas joueur et t'as pas la façon de réfléchir de ceux-ci ») :
   parcours guidés par lui, puis réorganisation. D'ici là, chaque lot garde l'interface simple et
@@ -528,7 +529,7 @@ joueur. Maquette d'abord.
 
 Retour : R13. Recherche faite le 2026-10-18 (sources, confrontation et questions RP-01 à RP-09 dans
 `data/a-verifier.md`, « Vitesse des RP et plafond souple » ; méthode dans RELEVES.md, « Points de
-recherche »). Place dans l'ordre : à valider (Q17).
+recherche »). Place dans l'ordre : entre S19 et S15 (réponse à Q17.1, 2026-10-19).
 
 Ce qui existe (vérifié dans le code le 2026-10-18) :
 - `data/research-stations.json` : toutes les formules du wiki, sourcées (vitesse et plafond des RS1
@@ -854,6 +855,8 @@ Questions : Q14.
 - **Q17 (S20), vitesse des RP.** Posée le 2026-10-18, après la recherche.
   1. Place du lot : entre S19 et S15 (proposé : la revue S15 verra alors la recherche finie), ou
      ailleurs ?
+     Réponse (2026-10-19) : « Place S20 entre S19 et S15. » Les points 2 à 4 restent à poser au
+     début du lot.
   2. Saisie : les deux niveaux (« rapide » : recopier le panneau ; « détaillé » : stations, items,
      liquides, recalculés et comparés au panneau), ou un seul ?
   3. Tant que RP-05 (plusieurs tiers) n'a pas de réponse : un seuil par tier, appliqué aux RP/s de ce
@@ -917,6 +920,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S18 Moteur | Maquette validée (`maquette/moteur-diesel.html`). Une configuration n'est proposée avec un carburant que si elle a été relevée avec lui (pas de rapport déduit : formule seulement à la demande). L'Info Panel affiche la vraie consommation : le relevé la note telle quelle. Tableau à 6 cylindres : accélérateur supposé 100 %, et la supposition s'affiche. | 2026-10-18 |
 | S18 Choix | Trois critères par plan : meilleur rapport production/consommation (par défaut, le moins de L par MMF), moins de place, meilleure production énergétique (la plus grande puissance par moteur) ; « le moins cher » retiré. La liste « ou cette configuration… » de la maquette validée reste. | 2026-10-18 |
 | S18 Blocs | Chaque type de bloc compte : le plan de pose et le prix prennent les nombres relevés (entrées d'air, échappements, entrées de carburant, générateurs, volants…). | 2026-10-18 |
+| S20 Place | Le lot S20 (vitesse réelle des RP) passe entre S19 et S15 ; les points 2 à 4 de Q17 se posent au début du lot. | 2026-10-19 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions
