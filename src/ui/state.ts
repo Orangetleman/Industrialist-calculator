@@ -125,7 +125,8 @@ export type Settings = {
   usine: UsineView;
   /** Objectif recherche : but, vitesse, recherche visée, délai, plafond (null = automatique), options. */
   rpMode: "rate" | "node" | "plan";
-  rpRate: number;
+  /** Vitesse voulue (RP/s) ; null tant que le joueur ne l'a pas saisie (S22 : rien de calculé d'office). */
+  rpRate: number | null;
   rpNode: string | null;
   rpMinutes: number;
   rpCap: number | null;
@@ -162,8 +163,8 @@ export const DEFAULT_SETTINGS: Settings = {
   tier3Only: false,
   posePriority: [...POSE_CRITERIA],
   usine: { full: true, glue: false, detail: false, power: true, plugs: false, links: false },
-  rpMode: "rate",
-  rpRate: 50,
+  rpMode: "node",
+  rpRate: null,
   rpNode: null,
   rpMinutes: 60,
   rpCap: null,
@@ -207,8 +208,8 @@ export function loadSettings(): Settings {
   out.useExisting = out.useExisting !== false;
   if (!["liste", "schema", "pose", "details"].includes(out.resultTab)) out.resultTab = "liste";
   if (out.energyUnit !== "k" && out.energyUnit !== "M") out.energyUnit = "k";
-  if (out.rpMode !== "rate" && out.rpMode !== "node" && out.rpMode !== "plan") out.rpMode = "rate";
-  if (!(out.rpRate > 0)) out.rpRate = DEFAULT_SETTINGS.rpRate;
+  if (out.rpMode !== "rate" && out.rpMode !== "node" && out.rpMode !== "plan") out.rpMode = DEFAULT_SETTINGS.rpMode;
+  if (out.rpRate !== null && !(out.rpRate > 0)) out.rpRate = null;
   if (!(out.rpMinutes > 0)) out.rpMinutes = DEFAULT_SETTINGS.rpMinutes;
   if (out.rpCap !== null && !(out.rpCap >= 0)) out.rpCap = null;
   if (typeof out.rpNode !== "string") out.rpNode = null;

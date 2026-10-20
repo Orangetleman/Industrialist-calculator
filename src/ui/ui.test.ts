@@ -6,7 +6,8 @@ import recipesJson from "../../data/recipes.json";
 import researchJson from "../../data/research.json";
 import { makeData, progress } from "../../tests/engine-helpers.ts";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
-import { emptySetup } from "../engine/research-balance.ts";
+import { balanceTimeline, emptySetup } from "../engine/research-balance.ts";
+import { missingNodes } from "../engine/unlock.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
@@ -383,6 +384,34 @@ describe("arbre de recherche « comme en jeu »", () => {
     expect(detail).toContain("Combines two items to craft a more advanced one");
     expect(detail).toContain('data-rs-action="unlock-all"');
     expect(detail).toContain("Water Pump → Modular Tree Farm → Sawmill → Craft Assembler");
+  });
+
+  it("S22 : la fiche dit dans combien de temps de jeu, à ton rythme (parcours C de S15)", () => {
+    // Partie de l'utilisateur au 2026-10-20 : 17 000 RP à 14 RP/s, sans seuil saisi (ligne droite).
+    const tiers = [{ kind: "rs3" as const, rate: 14, cap: Infinity }];
+    const eta = (ids: string[]) => {
+      const tl = balanceTimeline(ids.map((id) => ({ id, rp: data.nodes.get(id)!.rp })), 17_000, tiers);
+      return tl ? { seconds: tl[tl.length - 1]!.at, straight: true } : null;
+    };
+    const p = { unlocked: new Set(["gold-refining", "gold-acid-refinery"]) };
+    expect(missingNodes(data, p, "research-station-4")).toEqual(["research-station-4"]);
+    const html = renderNodeDetail(data, p, "research-station-4", 17_000, eta);
+    expect(html).toContain("il te manque 233"); // 250 000 − 17 000
+    expect(html).toContain(`≈ <b>${fmtDuration((250_000 - 17_000) / 14)} de jeu</b> à ton rythme`);
+    expect(fmtDuration((250_000 - 17_000) / 14)).toBe("4 h 37 min");
+    expect(html).toContain("en ligne droite");
+    expect(html).toContain('data-rs-faster="research-station-4"');
+    // RP/s inconnus : le panneau dit où les saisir ; déjà débloquée : rien.
+    expect(renderNodeDetail(data, p, "research-station-4", 17_000, () => null)).toContain("Mon usine › Ma recherche");
+    expect(renderNodeDetail(data, p, "gold-refining", 17_000, eta)).not.toContain("rs-eta");
+  });
+});
+
+describe("S22 : l'objectif recherche ne calcule rien d'office", () => {
+  it("par défaut : « débloquer une recherche », sans recherche ni vitesse choisies", () => {
+    expect(DEFAULT_SETTINGS.rpMode).toBe("node");
+    expect(DEFAULT_SETTINGS.rpNode).toBeNull();
+    expect(DEFAULT_SETTINGS.rpRate).toBeNull();
   });
 });
 

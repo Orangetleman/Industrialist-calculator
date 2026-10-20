@@ -282,6 +282,17 @@ function rpTiers(): RpTier[] | null {
   const m = rpModel();
   return m && m.source !== "aucune" ? m.tiers : null;
 }
+/** Temps de jeu pour débloquer ces recherches dans l'ordre, à ton rythme (S22), comme la chronologie de l'objectif recherche. */
+function rpEta(ids: string[]): { seconds: number; straight: boolean } | null {
+  const m = rpModel();
+  const tiers = rpTiers();
+  const rp = rpNow();
+  if (!m || !tiers || rp === null) return null;
+  const tl = balanceTimeline(ids.map((id) => ({ id, rp: data.nodes.get(id)?.rp ?? 0 })), rp, tiers);
+  const last = tl?.[tl.length - 1];
+  if (!last || !Number.isFinite(last.at)) return null;
+  return { seconds: last.at, straight: m.source === "rps" || tiers.every((t) => !Number.isFinite(t.cap)) };
+}
 /** RP estimés maintenant, avec le plafond souple, en temps de jeu (S21). */
 function rpNow(): number | null {
   const g = gameNow(journal.clock, Date.now());
@@ -526,10 +537,11 @@ function computeResearch(): ResearchView | null {
   const remaining = [...data.nodes.values()].filter((n) => !n.isRoot && !n.startUnlocked && !p.unlocked.has(n.id));
   const capNeeded = settings.rpCap ?? (settings.rpMode === "rate" ? Math.max(0, ...remaining.map((n) => n.rp)) : Math.max(0, ...costs.map((c) => c.rp)));
   const total = costs.reduce((s, c) => s + c.rp, 0);
-  const wanted = settings.rpMode === "rate" ? settings.rpRate : Math.max(0, total - rp0) / (settings.rpMinutes * 60);
+  const noRate = settings.rpMode === "rate" && settings.rpRate === null;
+  const wanted = settings.rpMode === "rate" ? (settings.rpRate ?? 0) : Math.max(0, total - rp0) / (settings.rpMinutes * 60);
   const targetRate = Math.max(0, wanted - current);
   const result: RpResult =
-    targetRate > 0 || settings.rpMode === "rate"
+    !noRate && (targetRate > 0 || settings.rpMode === "rate")
       ? designResearch(data, ps, RP_PARAMS, {
           targetRate: Math.max(targetRate, 1e-6),
           capNeeded,
@@ -545,7 +557,9 @@ function computeResearch(): ResearchView | null {
           best: null,
           others: [],
           warnings: [
-            settings.rpMode === "node" && !settings.rpNode
+            noRate
+              ? "Indique la vitesse voulue, en RP par seconde."
+              : settings.rpMode === "node" && !settings.rpNode
               ? "Choisis la recherche à débloquer."
               : !nodes.length
                 ? "Rien à débloquer : c'est déjà fait."
@@ -825,7 +839,7 @@ function syncForm(): void {
   input("no-fuel").checked = settings.energyNoFuel;
   set("distance", settings.distanceTiles === null ? "" : String(settings.distanceTiles));
   $<HTMLSelectElement>("rp-mode").value = settings.rpMode;
-  set("rp-rate", String(settings.rpRate));
+  set("rp-rate", settings.rpRate === null ? "" : String(settings.rpRate));
   set("rp-node", settings.rpNode ? nodeName(settings.rpNode) : "");
   set("rp-minutes", String(settings.rpMinutes));
   set("rp-cap", settings.rpCap === null ? "" : String(settings.rpCap));
@@ -1690,7 +1704,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
-  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow());
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow(), rpEta);
   renderHud();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
 }
@@ -2462,7 +2476,7 @@ function bindPlan(): void {
     settings.rpMode = (e.target as HTMLSelectElement).value as Settings["rpMode"];
     update();
   });
-  num("rp-rate", (v) => (v! > 0 ? ((settings.rpRate = v!), true) : false));
+  num("rp-rate", (v) => (v === null ? ((settings.rpRate = null), true) : v > 0 ? ((settings.rpRate = v), true) : false), true);
   num("rp-minutes", (v) => (v! > 0 ? ((settings.rpMinutes = v!), true) : false));
   num("rp-cap", (v) => (v === null ? ((settings.rpCap = null), true) : v >= 0 ? ((settings.rpCap = v), true) : false), true);
   $("rp-node").addEventListener("change", (e) => {
@@ -3115,6 +3129,16 @@ function bindTree(): void {
     const t = e.target as HTMLElement;
     const go = t.closest<HTMLElement>("[data-rs-goto]");
     if (go) return selectNode(go.dataset.rsGoto!);
+    const faster = t.closest<HTMLElement>("[data-rs-faster]");
+    if (faster) {
+      // « L'avoir plus vite » : l'objectif recherche, réglé sur cette recherche (S22).
+      settings.rpMode = "node";
+      settings.rpNode = faster.dataset.rsFaster!;
+      planDirty = true;
+      saveSettings(settings);
+      location.hash = "#rp";
+      return;
+    }
     const del = t.closest<HTMLElement>("[data-rs-desc-del]");
     if (del) {
       corrections = removeCorrection(corrections, "research", del.dataset.rsDescDel!, "description");

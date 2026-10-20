@@ -4,7 +4,7 @@
 import type { GameData } from "../engine/data.ts";
 import type { Machine, ResearchNode } from "../engine/types.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, type Progress } from "../engine/unlock.ts";
-import { esc, fmt, fmtMoney, fmtPollution, fmtRP } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMoney, fmtPollution, fmtRP } from "./format.ts";
 import { RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 
 export type NodeState = "done" | "available" | "expensive" | "locked" | "incoherent";
@@ -95,8 +95,23 @@ function descriptionBlock(n: ResearchNode): string {
     ${form(false)}`;
 }
 
+/** Temps de jeu pour débloquer des recherches dans l'ordre, à ton rythme (null : RP/s inconnus). */
+export type RpEta = (ids: string[]) => { seconds: number; straight: boolean } | null;
+
+/** « Dans combien de temps de jeu » (S22) : sous l'état, pour une recherche pas encore débloquée. */
+function etaLine(n: ResearchNode, path: string[], rp: number | null, eta: RpEta | undefined): string {
+  if (!eta) return "";
+  const t = eta(path);
+  if (!t) return `<p class="hint rs-eta">Pour savoir quand, saisis tes RP et tes RP/s dans <a href="#usine">Mon usine › Ma recherche</a>.</p>`;
+  if (!(t.seconds > 0)) return "";
+  const what = path.length > 1 ? ` (${path.length} recherches, chacune dépense son coût)` : "";
+  return `<p class="rs-eta">≈ <b>${esc(fmtDuration(t.seconds))} de jeu</b> à ton rythme${what}${
+    t.straight ? ` <span class="hint">en ligne droite : ton seuil n'est pas saisi dans Ma recherche</span>` : ""
+  }. <button type="button" class="link" data-rs-faster="${esc(n.id)}">L'avoir plus vite ▸</button></p>`;
+}
+
 /** Fiche détaillée d'une recherche (affichée sous l'arbre, comme le panneau du jeu). */
-export function renderNodeDetail(data: GameData, p: Progress, id: string | null, rp: number | null): string {
+export function renderNodeDetail(data: GameData, p: Progress, id: string | null, rp: number | null, eta?: RpEta): string {
   const n = id ? data.nodes.get(id) : undefined;
   if (!n) return `<p class="muted">Clique sur une recherche pour voir ce qu'elle débloque.</p>`;
   const st = nodeState(data, p, n, rp);
@@ -120,6 +135,7 @@ export function renderNodeDetail(data: GameData, p: Progress, id: string | null,
       <div class="rs-cost num">${n.isRoot ? "" : esc(fmtRP(n.rp))}</div>
     </div>
     <p class="rs-status">${esc(STATE_LABEL[st])}${st === "expensive" && rp !== null ? ` : il te manque ${esc(fmtRP(n.rp - rp))}` : ""}</p>
+    ${st === "expensive" || st === "locked" ? etaLine(n, [...missing, n.id], rp, eta) : ""}
     ${actions.length ? `<div class="actions">${actions.join("")}</div>` : ""}
     ${n.parents.length ? `<p class="meta"><span>Requiert ${n.requires === "any" && n.parents.length > 1 ? "l'une de" : ""} : ${n.parents.map((x) => `<button type="button" class="link${isNodeUnlocked(data, p, x) ? "" : " miss"}" data-rs-goto="${esc(x)}">${esc(nodeName(x))}</button>`).join(n.requires === "any" ? " ou " : " + ")}</span></p>` : ""}
     ${missing.length && !p.unlocked.has(n.id) ? `<p class="meta"><span>Chemin depuis ta progression : ${missing.map((x) => esc(nodeName(x))).join(" → ")} → ${esc(n.name)}</span></p>` : ""}

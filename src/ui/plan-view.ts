@@ -130,7 +130,7 @@ function headline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "bad" } {
 function researchGoalText(v: ViewCtx): string {
   const s = v.settings;
   const n = v.research?.nodes.length ?? 0;
-  if (s.rpMode === "rate") return `${fmt(s.rpRate, 2)} RP/s`;
+  if (s.rpMode === "rate") return `${fmt(s.rpRate ?? 0, 2)} RP/s`;
   if (s.rpMode === "node") return `débloquer ${esc(s.rpNode ? nodeN(v, s.rpNode) : "la recherche choisie")} en ${esc(fmtDuration(s.rpMinutes * 60))}`;
   return `débloquer ce qui manque à ton plan d'objet (${plural(n, "recherche", "recherches")}) en ${esc(fmtDuration(s.rpMinutes * 60))}`;
 }
@@ -138,16 +138,19 @@ function researchGoalText(v: ViewCtx): string {
 function researchHeadline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "bad" } {
   const r = v.research;
   if (!r) return { text: "Les formules des stations de recherche sont incomplètes dans les données.", tone: "bad" };
+  // « Quand » avant « comment » (S22) : le temps de jeu à ton rythme, puis l'installation pour aller plus vite.
+  const last = v.settings.rpMode !== "rate" ? r.timelineNow?.[r.timelineNow.length - 1] : undefined;
+  const pace = last && Number.isFinite(last.at) && last.at > 0 ? `À ton rythme : ≈ ${esc(fmtDuration(last.at))} de jeu. ` : "";
   if (!r.best) {
     const done = r.warnings.some((w) => /déjà|suffit/.test(w));
-    return { text: esc(r.warnings[0] ?? "Aucune installation possible avec ta progression."), tone: done ? "ok" : "bad" };
+    return { text: pace + esc(r.warnings[0] ?? "Aucune installation possible avec ta progression."), tone: done ? "ok" : "bad" };
   }
   const d = r.best.design;
   const chain = r.best.plan.totals.machines + r.best.plan.totals.farms;
   const buildings = d.buildings.reduce((s, b) => s + b.count, 0);
   const extra = buildings - d.stations * (d.kind === "rs4" ? 2 : 1);
   return {
-    text: `Pour ${researchGoalText(v)} : ${d.stations} × ${esc(STATION_KIND[d.kind]!)}${extra > 0 ? ` et ${plural(extra, "bâtiment de paraboles", "bâtiments de paraboles")}` : ""}${
+    text: `${pace}Pour ${researchGoalText(v)} : ${d.stations} × ${esc(STATION_KIND[d.kind]!)}${extra > 0 ? ` et ${plural(extra, "bâtiment de paraboles", "bâtiments de paraboles")}` : ""}${
       chain ? `, plus ${plural(chain, "machine", "machines")} pour leurs items` : ""
     }.`,
     tone: r.best.plan.status === "ok" ? "ok" : "warn",

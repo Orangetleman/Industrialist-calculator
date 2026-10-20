@@ -98,13 +98,13 @@
       <!-- recherche -->
       <label data-goals="recherche" for="rp-mode">But
         <select id="rp-mode">
+          <option value="node">débloquer une recherche</option>
           <option value="rate">atteindre une vitesse (RP/s)</option>
-          <option value="node">débloquer une recherche dans un délai</option>
           <option value="plan">débloquer ce qui manque à mon plan d'objet</option>
         </select>
       </label>
       <label data-goals="recherche" for="rp-rate" id="rp-rate-label">RP par seconde
-        <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal">
+        <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal" placeholder="ex. 50">
       </label>
       <label data-goals="recherche" class="grow" for="rp-node" id="rp-node-label">Recherche à débloquer
         <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3">
