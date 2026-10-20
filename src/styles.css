@@ -78,11 +78,21 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 /* Visite d'orientation (S24) : voile, projecteur, bulle fixe en bas ; bouton « ? » de l'en-tête. */
 .help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; padding: 0; }
 .help-btn:hover { color: var(--accent); border-color: var(--accent); }
-.tour-blocker { position: fixed; inset: 0; z-index: 1300; display: none; }
-.tour-blocker.open { display: block; }
-.tour-blocker.dim { background: rgba(0, 0, 0, .68); }
-.tour-spot { position: fixed; z-index: 1301; border-radius: 10px; pointer-events: none; display: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .68), 0 0 0 2px var(--accent); transition: top .22s, left .22s, width .22s, height .22s; }
-.tour-bubble { position: fixed; z-index: 1302; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); display: none; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+/* S24 bis : quatre volets autour du projecteur (le trou reste utilisable), page figée pendant la visite. */
+html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête collant décroche */
+.tour-shade { position: fixed; z-index: 1300; display: none; }
+.tour-shade.dim { background: rgba(0, 0, 0, .68); }
+.tour-spot { position: fixed; z-index: 1301; border-radius: 10px; pointer-events: none; display: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .68), 0 0 0 2px var(--accent); transition: top .45s ease, left .45s ease, width .45s ease, height .45s ease; }
+.tour-spot.pulse { animation: tour-pulse 1.2s ease-out .45s 2; }
+@keyframes tour-pulse { 0% { outline: 3px solid var(--accent); outline-offset: 0; } 100% { outline: 3px solid transparent; outline-offset: 14px; } }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-spot.pulse { animation: none; } }
+.tour-bubble { position: fixed; z-index: 1302; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); display: none; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); transition: top .3s, left .3s; }
+.tour-bubble.near { transform: none; bottom: auto; width: min(400px, calc(100vw - 24px)); }
+.tour-pin { position: absolute; top: 8px; right: 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font-size: .72rem; padding: 1px 8px; cursor: pointer; }
+.tour-pin:hover { color: var(--accent); border-color: var(--accent); }
+.tour-wait { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--ink); }
+.tour-wait .bar { height: 6px; border-radius: 3px; background: var(--bg); overflow: hidden; }
+.tour-wait .bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
 .tour-part { font-size: .68rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
 .tour-title { font: 700 1.05rem var(--f-display); margin-bottom: 5px; }
 .tour-text { font-size: .88rem; color: var(--muted); line-height: 1.5; }

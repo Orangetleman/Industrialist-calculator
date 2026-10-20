@@ -220,6 +220,7 @@ const tour = createTour(SITE_TOUR, {
     Object.assign(settings, { goal: "objet", item: "crankshaft", mode: "rate", rate: 60, fixed: null, machineFilters: {}, usine: { ...settings.usine, full: false } });
     enter("objet");
     planDirty = true;
+    render(); // l'adresse peut ne pas changer (première visite sur #objet) : l'exemple doit s'afficher tout de suite
   },
   go(hash) {
     location.hash = hash;
@@ -2309,6 +2310,12 @@ function bindRecettesEdit(): void {
  * `spend: false` : import d'un fichier ou remise à zéro, sans effet sur les RP.
  */
 async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
+  if (touring) {
+    // Pendant la visite (S24) : on essaie sur l'exemple, rien n'est enregistré ni dépensé.
+    prog = next;
+    planDirty = true;
+    return render();
+  }
   const delta = rpDelta(data, prog.unlocked, next.unlocked);
   const now = rpNow();
   if (opts.spend !== false && player.spendRp && now !== null && delta.spent !== 0) {
