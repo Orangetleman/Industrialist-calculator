@@ -788,5 +788,10 @@ afficherait environ 4,4 millions de RP au lieu d'environ 240 000.
   ce bonus par l'efficacité affichée (supposé, faute de formule : RP-03) et le répartit entre les
   tiers au prorata de leurs RP/s (supposé, RP-04/RP-05).
 
+- **Règle (utilisateur, 2026-10-20)** : les RP ne s'accumulent que quand le joueur est connecté au jeu ;
+  la sauvegarde suit le temps d'activité en jeu. Le site compte encore le temps réel depuis la saisie
+  (à corriger en S21 : interrupteur « Je joue / Je ne joue plus », temps de jeu). Le site ne déduit
+  rien de plus de cette règle.
+
 Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 <!-- notes-manuelles:fin -->
