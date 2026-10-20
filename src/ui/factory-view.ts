@@ -322,7 +322,8 @@ export function renderFactoryModule(
     .filter((a) => inside(Math.floor((a.x1 + a.x2) / 2), Math.floor((a.y1 + a.y2) / 2)))
     .map((a) => ({ net: a.net, x1: a.x1 - b.x, y1: a.y1 - b.y, x2: a.x2 - b.x, y2: a.y2 - b.y }));
   const svg = renderModuleSvg(m, name, { pieces, flows: mine, item: itemOf, wide, color: (net) => color.get(itemOf(net)) ?? "#9aa7b4" });
-  const info = renderModuleInfo(m, name);
+  // S26 : l'ordre de pose dans le sens où le module est posé dans l'usine, replié (le dessin suffit souvent).
+  const info = renderModuleInfo(m, name, undefined, null, b.rot);
   const sub = (k: string) => box.get(k)?.sub ?? k;
   const ins = f.nets.filter((n) => n.to.includes(key));
   const outs = f.nets.filter((n) => n.from === key);
@@ -335,6 +336,6 @@ export function renderFactoryModule(
     ${m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${esc(p.message)}</li>`).join("")}</ul>` : ""}`;
   const items = [...new Set(m.nets.map((n) => n.item))];
   const legend = `<ul class="mod-legend">${items.map((it) => `<li><i style="background:${color.get(it) ?? "#9aa7b4"}"></i>${esc(name(it))}</li>`).join("")}<li><i class="sw-plug"></i>Prise électrique</li>${m.poles.length ? `<li><i class="sw-pole"></i>Poteau</li>` : ""}<li><i class="sw-flow"></i>Liaison (sens du flux)</li></ul>`;
-  const details = `${turn ? `<p class="hint">L'ordre de pose décrit le module avant sa rotation (« au-dessus », « vers le haut »…) : dans l'usine, il est ${turn}.</p>` : ""}${info.details}`;
+  const details = info.details.replace('<details class="more pose-order" open>', '<details class="more pose-order">');
   return { title: `${b.label} — ${b.sub}`, svg, head, legend, details };
 }

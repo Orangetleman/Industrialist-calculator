@@ -90,6 +90,11 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 .u-modlist li { break-inside: avoid; padding: 2px 0; }
 .u-modlist label.done { color: var(--muted); text-decoration: line-through; }
 .pose-more > summary .hint { font-weight: 400; }
+/* Ordre de pose du joueur (S26) : une étape par touche du mode construction. */
+.pose-order .pose-phase { margin: 10px 0 2px; font-size: .92rem; display: flex; gap: 6px; align-items: baseline; }
+.pose-order .key { font-family: var(--f-mono); font-size: .78rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--bg); }
+.focus-posed { margin: 0 0 6px; font-weight: 600; }
+.focus-posed label.done { color: var(--ok); }
 /* Visite d'orientation (S24) : voile, projecteur, bulle fixe en bas ; bouton « ? » de l'en-tête. */
 .help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; padding: 0; }
 .help-btn:hover { color: var(--accent); border-color: var(--accent); }

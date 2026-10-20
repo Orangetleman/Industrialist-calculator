@@ -164,7 +164,87 @@ export function renderPassagePick(base: ModulePlan, options: PassageOption[], ch
 const layoutName = (m: { template: string; folds: number }) => (m.folds > 1 ? `${m.folds} blocs empilés (${m.template})` : m.template);
 
 /** Texte autour du dessin : résumé, problèmes, ressources, pièces, ordre de pose, hypothèses. */
-export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, survey: SurveyState = m.portsKnown ? "depot" : "manquant", plot: { w: number; h: number } | null = null): { head: string; legend: string; details: string } {
+// ---------------------------------------------------------------- ordre de pose du joueur (S26)
+
+/**
+ * Les étapes du joueur dans chaque module (parcours B de S15) : « je construis les bâtiments, puis les tuyaux,
+ * puis l'électricité, puis la logique », chacune avec sa touche du mode construction (relevée par l'utilisateur :
+ * 1 « & » bâtiments, 2 « é » câbles électriques et logiques, 3 « " » tuyaux, en AZERTY).
+ */
+export const POSE_PHASES = [
+  { key: "batiments", title: "Bâtiments", touche: "1", azerty: "&" },
+  { key: "tuyaux", title: "Tuyaux", touche: "3", azerty: '"' },
+  { key: "electricite", title: "Électricité", touche: "2", azerty: "é" },
+  { key: "logique", title: "Logique", touche: "2", azerty: "é" },
+] as const;
+export type PosePhase = (typeof POSE_PHASES)[number]["key"];
+
+/** L'étape du joueur d'une phrase de l'ordre de pose (écrites par le moteur des plans de pose). */
+export function phaseOf(line: string): PosePhase {
+  const t = line.replace(/^Dans chaque bloc : /, "");
+  if (/\bPole\b|poteau|relier chaque prise/i.test(t)) return "electricite";
+  if (/^poser (les \d+|\d+ blocs)/i.test(t)) return "batiments";
+  if (/logique|logic/i.test(t)) return "logique";
+  return "tuyaux";
+}
+
+/** Directions dans le sens horaire, et leurs tournures. */
+const DIRS = ["N", "E", "S", "W"] as const;
+type D = (typeof DIRS)[number];
+const SAY: Record<"a" | "par" | "vers", Record<D, string>> = {
+  a: { N: "en haut", E: "à droite", S: "en bas", W: "à gauche" },
+  par: { N: "par le haut", E: "par la droite", S: "par le bas", W: "par la gauche" },
+  vers: { N: "vers le haut", E: "vers la droite", S: "vers le bas", W: "vers la gauche" },
+};
+
+/**
+ * Une phrase de l'ordre de pose dans le sens où le module est posé dans l'usine (S26, défaut G3 de S15) : le
+ * module est tourné de `rot` quarts de tour (sens horaire), ses directions tournent avec lui.
+ */
+export function turnOrderText(text: string, rot: number): string {
+  const r = ((rot % 4) + 4) % 4;
+  if (!r) return text;
+  const turn = (d: D) => DIRS[(DIRS.indexOf(d) + r) % 4]!;
+  const odd = r % 2 === 1;
+  const forms: [RegExp, (m: string) => string][] = [
+    [/au-dessus et au-dessous/g, () => (odd ? "à gauche et à droite" : "au-dessus et au-dessous")],
+    [/à gauche et à droite/g, () => (odd ? "au-dessus et au-dessous" : "à gauche et à droite")],
+    [/les uns sous les autres/g, () => (odd ? "les uns à côté des autres" : "les uns sous les autres")],
+    [/les uns à côté des autres/g, () => (odd ? "les uns sous les autres" : "les uns à côté des autres")],
+    [/par le haut|par le bas|par la droite|par la gauche/g, (m) => SAY.par[turn((Object.keys(SAY.par) as D[]).find((d) => SAY.par[d] === m)!)]],
+    [/vers le haut|vers le bas|vers la droite|vers la gauche/g, (m) => SAY.vers[turn((Object.keys(SAY.vers) as D[]).find((d) => SAY.vers[d] === m)!)]],
+    [/à droite|à gauche|en haut|en bas/g, (m) => SAY.a[turn((Object.keys(SAY.a) as D[]).find((d) => SAY.a[d] === m)!)]],
+  ];
+  // Remplacements en une passe (une direction déjà tournée ne tourne pas deux fois).
+  const all = new RegExp(forms.map(([re]) => re.source).join("|"), "g");
+  return text.replace(all, (m) => {
+    const f = forms.find(([re]) => new RegExp(`^(?:${re.source})$`).test(m))!;
+    return f[1](m);
+  });
+}
+
+/** L'ordre de pose rangé par étape du joueur, dans le sens de l'usine ; une étape vide n'apparaît pas. */
+export function phasedOrder(order: readonly string[], rot = 0): { phase: (typeof POSE_PHASES)[number]; lines: string[] }[] {
+  return POSE_PHASES.map((phase) => ({
+    phase,
+    lines: order
+      .filter((o) => phaseOf(o) === phase.key)
+      .map((o) => turnOrderText(o, rot).replace("dans l'onglet 3 du mode construction", `en mode tuyaux (touche 3, « ${'"'} » en AZERTY)`)),
+  })).filter((p) => p.lines.length);
+}
+
+/** « Ordre de pose » d'un module : par étape du joueur, avec la touche du jeu, dans le sens de l'usine. */
+export function renderOrder(order: readonly string[], rot = 0, open = true): string {
+  const phases = phasedOrder(order, rot);
+  return `<details class="more pose-order"${open ? " open" : ""}><summary>Ordre de pose${rot % 4 ? " <span class=\"hint\">(dans le sens du module dans l'usine)</span>" : ""}</summary>${phases
+    .map(
+      ({ phase, lines }) =>
+        `<h4 class="pose-phase">${esc(phase.title)} <span class="key">${phase.touche}</span> <span class="hint">(« ${esc(phase.azerty)} » en AZERTY)</span></h4><ol class="steps-list">${lines.map((o) => `<li>${esc(o)}</li>`).join("")}</ol>`,
+    )
+    .join("")}</details>`;
+}
+
+export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, survey: SurveyState = m.portsKnown ? "depot" : "manquant", plot: { w: number; h: number } | null = null, rot = 0): { head: string; legend: string; details: string } {
   const color = netColors(m);
   const crossings = m.parts.filter((p) => /intersection/i.test(p.id));
   const crossCost = crossings.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
@@ -192,7 +272,7 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, su
   const rows = m.parts
     .map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${p.count}</td><td class="num">${p.unitPrice === null ? "?" : esc(fmtMoney(p.unitPrice))}</td><td class="num">${p.unitPrice === null ? "?" : esc(fmtMoney(p.unitPrice * p.count))}</td></tr>`)
     .join("");
-  const details = `<details class="more" open><summary>Ordre de pose</summary><ol class="steps-list">${m.order.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
+  const details = `${renderOrder(m.order, rot)}
     <details class="more"><summary>Pièces à acheter (${m.parts.reduce((s, p) => s + p.count, 0)})</summary><div class="tablewrap"><table class="mini"><thead><tr><th>Pièce</th><th>Nombre</th><th>Prix</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></details>
     <details class="more"><summary>Hypothèses à vérifier en jeu (${m.assumptions.length})</summary><ul class="notes">${m.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
   return { head, legend, details };

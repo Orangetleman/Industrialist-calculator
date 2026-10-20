@@ -1559,7 +1559,9 @@ function showFocus(key: string | null): void {
   }
   $("focus-title").textContent = out.title;
   $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">Clique une machine pour ouvrir sa fiche, un tuyau pour voir ses liaisons.</span></div>`;
-  $("focus-head").innerHTML = out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">Plan de pose seul de cette étape</button> · <button type="button" class="link" data-flow="${esc(key!)}">Voir au schéma</button></p>`;
+  // S26 : « Module posé ✓ » dans le panneau aussi (le même réglage que la liste sous l'usine).
+  const posed = posedSet().has(key!);
+  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> Module posé ✓</label></p>` + out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">Plan de pose seul de cette étape</button> · <button type="button" class="link" data-flow="${esc(key!)}">Voir au schéma</button></p>`;
   $("focus-legend").innerHTML = out.legend;
   $("focus-details").innerHTML = out.details;
   const frame = $("focus-frame");
@@ -2740,10 +2742,13 @@ function bindPlan(): void {
     document.querySelector<HTMLElement>(`#${el.closest("[id]")?.id ?? "pose-bar"} [data-uopt="${opt}"]${el instanceof HTMLInputElement && el.type === "radio" ? `[value="${el.value}"]` : ""}`)?.focus();
   };
   // Modules posés (S25).
-  $("pose-mods").addEventListener("change", (e) => {
-    const box = (e.target as Element).closest<HTMLInputElement>("[data-posed]");
-    if (box) setPosed(box.dataset.posed!, box.checked);
-  });
+  for (const id of ["pose-mods", "pose-focus"])
+    $(id).addEventListener("change", (e) => {
+      const box = (e.target as Element).closest<HTMLInputElement>("[data-posed]");
+      if (!box) return;
+      setPosed(box.dataset.posed!, box.checked);
+      box.closest("label")?.classList.toggle("done", box.checked);
+    });
   for (const id of ["pose-bar", "focus-bar-opts", "pose-more-usine"]) {
     $(id).addEventListener("change", onOption);
     $(id).addEventListener("click", (e) => {

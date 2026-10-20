@@ -9,6 +9,7 @@ import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { balanceTimeline, emptySetup } from "../engine/research-balance.ts";
 import { missingNodes } from "../engine/unlock.ts";
 import { SITE_TOUR, tourSeq } from "./tour.ts";
+import { phasedOrder, renderOrder, turnOrderText } from "./module-view.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
@@ -405,6 +406,36 @@ describe("arbre de recherche « comme en jeu »", () => {
     // RP/s inconnus : le panneau dit où les saisir ; déjà débloquée : rien.
     expect(renderNodeDetail(data, p, "research-station-4", 17_000, () => null)).toContain("Mon usine › Ma recherche");
     expect(renderNodeDetail(data, p, "gold-refining", 17_000, eta)).not.toContain("rs-eta");
+  });
+});
+
+describe("S26 : ordre de pose du joueur", () => {
+  // Phrases telles que les écrit le moteur des plans de pose (module.ts).
+  const order = [
+    "Poser 2 blocs de 8 Craft Assembler en double rangée, les uns sous les autres (le dernier n'en a que 7).",
+    "Tuyau principal d'entrée : Steel Rod, tier I (2 par seconde), à gauche, par le haut, avec un embranchement vers chaque bloc.",
+    "Dans chaque bloc : collecteur d'entrée : Gear, tuyaux tier I (2,13 par seconde).",
+    "Dans chaque bloc : le collecteur de Gear sort à angle droit vers le haut, entre les machines n° 2 et n° 3.",
+    "Dans chaque bloc : 13 croisement(s) sont collés à un port : ses deux tuyaux se relient à la machine ; dans l'onglet 3 du mode construction, dirige chaque vecteur vers la bonne entrée ou sortie.",
+    "Dans chaque bloc : poser 1 MV Pole le long du module, et relier chaque prise.",
+    "Poser 3 MV Pole au-dessus et au-dessous du module, et relier chaque prise.",
+  ];
+  it("bâtiments, puis tuyaux, puis électricité, avec la touche du jeu", () => {
+    const p = phasedOrder(order);
+    expect(p.map((x) => x.phase.key)).toEqual(["batiments", "tuyaux", "electricite"]);
+    expect(p.map((x) => x.lines.length)).toEqual([1, 4, 2]);
+    expect(p[1]!.lines[3]).toContain('en mode tuyaux (touche 3, « " » en AZERTY)');
+    const html = renderOrder(order);
+    expect(html.indexOf("Bâtiments")).toBeLessThan(html.indexOf("Tuyaux"));
+    expect(html.indexOf("Tuyaux")).toBeLessThan(html.indexOf("Électricité"));
+  });
+  it("dans le sens de l'usine : les directions tournent avec le module (sens horaire)", () => {
+    const t = "à gauche, par le haut, vers le haut, au-dessus et au-dessous, les uns sous les autres";
+    expect(turnOrderText(t, 0)).toBe(t);
+    expect(turnOrderText(t, 1)).toBe("en haut, par la droite, vers la droite, à gauche et à droite, les uns à côté des autres");
+    expect(turnOrderText(t, 2)).toBe("à droite, par le bas, vers le bas, au-dessus et au-dessous, les uns sous les autres");
+    expect(turnOrderText("à droite, par le bas", 3)).toBe("en haut, par la droite");
+    expect(turnOrderText(turnOrderText(t, 1), 3)).toBe(t); // un tour complet revient au départ
   });
 });
 
