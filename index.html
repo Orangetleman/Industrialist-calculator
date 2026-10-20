@@ -149,9 +149,10 @@
     <div id="fix-bar" hidden></div>
 
     <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result">
-      <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste">Liste de construction</button>
+      <!-- S25 : les deux vues de travail d'abord (l'Usine, puis le schéma), la liste et les détails ensuite. -->
+      <button type="button" role="tab" id="rtab-pose" data-rtab="pose" aria-controls="rpanel-pose">Usine</button>
       <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema">Schéma</button>
-      <button type="button" role="tab" id="rtab-pose" data-rtab="pose" aria-controls="rpanel-pose">Plans de pose</button>
+      <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste">Liste des machines</button>
       <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details">Détails</button>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
@@ -171,17 +172,13 @@
       <p class="hint">De gauche (extraction) à droite (objectif). Clique un bloc ou une flèche : la barre du bas mène à son plan de pose ou à son bâtiment, et « Comment c'est calculé » détaille chaque nombre et sa source. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-pose" aria-labelledby="rtab-pose" hidden>
-      <label class="pose-pick" for="pose-step">Étape
-        <select id="pose-step"></select>
-      </label>
-      <div class="pose-prio">
-        <span class="pose-prio-title">Priorités du plan <span class="hint">la première départage d'abord ; glisse une ligne ou utilise ↑ ↓ pour changer l'ordre</span></span>
-        <ol class="prio-list" id="pose-priority" aria-label="Priorités du plan de pose, dans l'ordre"></ol>
+      <!-- S25 : le dessin d'abord ; trois boutons au-dessus, le reste replié dans « Plus d'options ». -->
+      <div class="pose-top">
+        <label class="pose-pick" for="pose-step">Vue
+          <select id="pose-step"></select>
+        </label>
+        <div id="pose-bar"></div>
       </div>
-      <label class="check-line"><input type="checkbox" id="pose-tier3"> Seulement des tuyaux de tier III <span class="hint">(plus rapides, plus chers)</span></label>
-      <div id="pose-head"></div>
-      <div id="pose-links"></div>
-      <div id="pose-bar"></div>
       <div class="pose-split" id="pose-split">
         <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
           <div id="pose-canvas"></div>
@@ -192,6 +189,7 @@
             <button type="button" data-pzoom="fit" aria-label="Tout voir">⤢</button>
             <button type="button" data-pzoom="reset" aria-label="Vue de départ">⌂</button>
           </div>
+          <div class="u-busy" id="pose-busy" hidden></div>
           <div class="u-pick" id="pose-pick" hidden></div>
           <div class="u-tip" id="pose-tip" hidden></div>
         </div>
@@ -219,6 +217,18 @@
         </aside>
       </div>
       <div id="pose-legend"></div>
+      <div id="pose-mods"></div>
+      <div id="pose-head"></div>
+      <div id="pose-links"></div>
+      <details class="more pose-more" id="pose-more">
+        <summary>Plus d'options <span class="hint">calcul, disposition des modules, tuyaux</span></summary>
+        <div id="pose-more-usine"></div>
+        <div class="pose-prio">
+          <span class="pose-prio-title">Disposition des modules <span class="hint">la première départage d'abord ; glisse une ligne ou utilise ↑ ↓ pour changer l'ordre</span></span>
+          <ol class="prio-list" id="pose-priority" aria-label="Disposition des modules : priorités, dans l'ordre"></ol>
+        </div>
+        <label class="check-line"><input type="checkbox" id="pose-tier3"> Seulement des tuyaux de tier III <span class="hint">(plus rapides, plus chers)</span></label>
+      </details>
       <div id="pose-details"></div>
       <p class="callout-lite"><b>C'est une proposition.</b> Sers-t'en comme base pour construire, puis optimise-la comme tu le souhaites : le jeu permet souvent mieux qu'un calcul automatique.</p>
       <p class="hint">Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.</p>

@@ -24,7 +24,7 @@ import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engi
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
 import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
-import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryModule, renderFactorySvg, turnText } from "./factory-view.ts";
+import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
 import { runFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
@@ -1197,7 +1197,10 @@ function renderPose(): void {
     $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
     return;
   }
-  if (!poseStep || (poseStep !== USINE && !choices.some((s) => s.key === poseStep))) poseStep = (choices.find((s) => p.finals.includes(s.key)) ?? choices[0]!).key;
+  // S25 : l'onglet Usine s'ouvre sur toute l'usine ; un module s'ouvre en cliquant dessus (ou par la liste « Vue »).
+  if (!poseStep || (poseStep !== USINE && !choices.some((s) => s.key === poseStep))) poseStep = USINE;
+  $("pose-mods").innerHTML = "";
+  $("pose-more-usine").innerHTML = "";
   const mods = choices.filter((s) => !assemblyKind(s));
   const asms = choices.filter((s) => assemblyKind(s));
   const opt = (s: (typeof choices)[number], text: string) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(text)}</option>`;
@@ -1216,6 +1219,7 @@ function renderPose(): void {
   const curAsm = poseStep !== USINE && asms.some((s) => s.key === poseStep);
   $("pose-priority").closest<HTMLElement>(".pose-prio")!.hidden = curAsm;
   input("pose-tier3").closest<HTMLElement>("label")!.hidden = curAsm;
+  $("pose-more").hidden = curAsm;
   if (poseStep === USINE) return renderFactory();
   showFocus(null);
   if (curAsm) {
@@ -1462,19 +1466,39 @@ function renderFactory(): void {
   const st = currentFactory()!;
   $("pose-links").innerHTML = "";
   $("pose-bar").innerHTML = renderFactoryBar(settings.usine);
+  $("pose-more-usine").innerHTML = renderFactoryMore(settings.usine);
+  const panel = $("rpanel-pose");
   if (!st.plan) {
-    $("pose-frame").hidden = true;
-    showFocus(null);
-    $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
+    // Pendant le calcul, l'usine précédente reste affichée, estompée : la page ne bouge pas (S25, F10).
+    const keep = !$("pose-frame").hidden && !!$("pose-canvas").querySelector("svg.usine");
+    panel.classList.toggle("computing", keep);
+    if (!keep) {
+      $("pose-mods").innerHTML = "";
+      $("pose-frame").hidden = true;
+      showFocus(null);
+      $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
+    }
     const pct = Math.round(st.done * 100);
+    const progress = `<div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(st.label)}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${pct} %</span><button type="button" data-usine="cancel">Annuler</button></div>`;
+    const busy = $("pose-busy");
+    if (keep && !st.error && !st.cancelled) {
+      // L'avancement par-dessus l'ancien dessin ; le résumé reste en place jusqu'au nouveau.
+      busy.innerHTML = progress;
+      busy.hidden = false;
+      return;
+    }
+    busy.hidden = true;
+    busy.innerHTML = "";
+    panel.classList.remove("computing");
     $("pose-head").innerHTML = st.error
       ? `<p class="warn-text">Le calcul de toute l'usine a échoué : ${esc(st.error)}</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
       : st.cancelled
         ? `<p class="muted">Calcul de toute l'usine annulé.</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
-        : `<p class="mod-sum"><b>Toute l'usine — proposition</b> : calcul en arrière-plan${settings.usine.full ? ", quelques secondes à une minute selon la taille du plan" : ""}. Tu peux continuer à utiliser le site pendant ce temps.</p>
-          <div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(st.label)}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${pct} %</span><button type="button" data-usine="cancel">Annuler</button></div>`;
+        : `<p class="mod-sum"><b>Toute l'usine — proposition</b> : calcul en arrière-plan${settings.usine.full ? ", quelques secondes à une minute selon la taille du plan" : ""}. Tu peux continuer à utiliser le site pendant ce temps.</p>${progress}`;
     return;
   }
+  $("pose-busy").hidden = true;
+  $("pose-busy").innerHTML = "";
   const plot = plotOf(player);
   const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue);
   $("pose-head").innerHTML = info.head;
@@ -1485,6 +1509,31 @@ function renderFactory(): void {
   showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st)), `${st.key}|${USINE}`, true);
   setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
   markFocused();
+  $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet());
+  markPosed();
+  panel.classList.remove("computing");
+}
+
+// ---------------------------------------------------------------- modules posés (S25)
+const POSED = "posé:";
+/** Modules de l'usine cochés « posé » pour ce plan (dans le même stockage que la liste à cocher). */
+function posedSet(): Set<string> {
+  return new Set([...builtFor(built, signature)].filter((k) => k.startsWith(POSED)).map((k) => k.slice(POSED.length)));
+}
+function setPosed(key: string, on: boolean): void {
+  const keys = builtFor(built, signature);
+  if (on) keys.add(POSED + key);
+  else keys.delete(POSED + key);
+  built = setBuilt(built, signature, keys);
+  if (!touring) saveBuilt(built);
+  const st = currentFactory();
+  if (st?.plan) $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet());
+  markPosed();
+}
+/** Un module posé se grise dans le dessin de l'usine. */
+function markPosed(): void {
+  const posed = posedSet();
+  for (const g of $("pose-canvas").querySelectorAll<SVGGElement>(".u-mod")) g.classList.toggle("posed", posed.has(g.dataset.mod!));
 }
 
 /** Le module ouvert est encadré dans l'usine. */
@@ -2612,7 +2661,7 @@ function bindPlan(): void {
   });
   $("build").addEventListener("click", (e) => {
     if (!(e.target as HTMLElement).closest("[data-built-reset]")) return;
-    built = setBuilt(built, signature, []);
+    built = setBuilt(built, signature, [...builtFor(built, signature)].filter((k) => k.startsWith(POSED))); // les modules posés restent
     saveBuilt(built);
     renderBuild();
   });
@@ -2690,7 +2739,12 @@ function bindPlan(): void {
     renderPose();
     document.querySelector<HTMLElement>(`#${el.closest("[id]")?.id ?? "pose-bar"} [data-uopt="${opt}"]${el instanceof HTMLInputElement && el.type === "radio" ? `[value="${el.value}"]` : ""}`)?.focus();
   };
-  for (const id of ["pose-bar", "focus-bar-opts"]) {
+  // Modules posés (S25).
+  $("pose-mods").addEventListener("change", (e) => {
+    const box = (e.target as Element).closest<HTMLInputElement>("[data-posed]");
+    if (box) setPosed(box.dataset.posed!, box.checked);
+  });
+  for (const id of ["pose-bar", "focus-bar-opts", "pose-more-usine"]) {
     $(id).addEventListener("change", onOption);
     $(id).addEventListener("click", (e) => {
       if ((e.target as Element).closest("button[data-uopt]")) onOption(e);

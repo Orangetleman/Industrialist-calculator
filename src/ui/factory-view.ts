@@ -72,14 +72,15 @@ function contacts(f: FactoryPlan, name: Name, color: Map<string, string>): strin
 /** Dessin de l'usine (SVG), à placer dans un cadre navigable. La parcelle du joueur est tracée si connue. */
 export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf: TierOf, flows: FactoryArrow[] = []): { svg: string; width: number; height: number } {
   const color = factoryColors(f);
-  const VW = Math.max(f.W, plot?.w ?? 0) + 2;
-  const VH = Math.max(f.H, plot?.h ?? 0) + 2;
+  // S25 : le dessin est cadré sur l'usine ; la parcelle n'est qu'un repère (ses bords au-delà sont coupés).
+  const VW = f.W + 2;
+  const VH = f.H + 3;
   const sub = (key: string) => f.boxes.find((b) => b.key === key)?.sub ?? key;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW * C} ${VH * C}" class="usine" role="img" aria-label="Toute l'usine vue de dessus : ${f.W} × ${f.H} cases">`;
   s += `<defs><pattern id="ug1" width="${C}" height="${C}" patternUnits="userSpaceOnUse"><path d="M${C} 0 L0 0 0 ${C}" fill="none" stroke="#262c33" stroke-width="1"/></pattern><pattern id="ug10" width="${C * 10}" height="${C * 10}" patternUnits="userSpaceOnUse"><rect width="${C * 10}" height="${C * 10}" fill="url(#ug1)"/><path d="M${C * 10} 0 L0 0 0 ${C * 10}" fill="none" stroke="#323a43" stroke-width="1.5"/></pattern>`;
   s += `<marker id="ua" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd54a"/></marker><marker id="ub" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c9a83a"/></marker><marker id="uf" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#fff"/></marker></defs>`;
   s += `<rect width="${VW * C}" height="${VH * C}" fill="#1d2126"/><rect width="${VW * C}" height="${VH * C}" fill="url(#ug10)"/>`;
-  if (plot) s += `<rect class="u-plot" x="0" y="0" width="${plot.w * C}" height="${plot.h * C}" data-tip="${esc(`Ta parcelle : ${plot.w} × ${plot.h} cases`)}"/><text class="u-plot-t" x="${plot.w * C - 10}" y="${plot.h * C - 10}">ta parcelle ${plot.w} × ${plot.h}</text>`;
+  if (plot) s += `<rect class="u-plot" x="0" y="0" width="${plot.w * C}" height="${plot.h * C}" data-tip="${esc(`Ta parcelle : ${plot.w} × ${plot.h} cases`)}"/><text class="u-plot-t" x="${Math.min(plot.w, VW) * C - 10}" y="16">ta parcelle ${plot.w} × ${plot.h}</text>`;
   s += `<rect class="u-bbox" x="0" y="0" width="${f.W * C}" height="${f.H * C}"/><text class="u-bbox-t" x="${f.W * C - 8}" y="${f.H * C + 16}">usine ${f.W} × ${f.H}</text>`;
   // Modules : cadre, intérieur (machines et collecteurs), puis l'étiquette par-dessus. Survol : infobulle ; clic : panneau.
   for (const b of f.boxes) {
@@ -161,19 +162,38 @@ export function linksButton(on: boolean): string {
   return `<button type="button" class="u-links-btn" data-uopt="links" aria-pressed="${on}">⇄ ${on ? "Liaisons affichées" : "Afficher les liaisons"}</button>`;
 }
 
-/** Barre d'options de « Toute l'usine » (celles de la maquette v8) et le bouton des liaisons. */
+const radio = (opt: string, value: string, on: boolean, label: string, why: string) =>
+  `<label title="${esc(why)}"><input type="radio" name="u-${opt}" data-uopt="${opt}" value="${value}"${on ? " checked" : ""}> ${label}</label>`;
+
+/**
+ * Barre au-dessus de l'usine (S25) : les trois réglages dont le joueur se sert (« Tout afficher », « Réseau
+ * électrique », « Afficher les liaisons ») ; le calcul et les liaisons collées passent dans « Plus d'options »
+ * (renderFactoryMore), « Câbles » est retiré (« Afficher les liaisons » montre aussi les câbles vers les machines).
+ */
 export function renderFactoryBar(v: UsineView): string {
-  const radio = (opt: string, value: string, on: boolean, label: string, why: string) =>
-    `<label title="${esc(why)}"><input type="radio" name="u-${opt}" data-uopt="${opt}" value="${value}"${on ? " checked" : ""}> ${label}</label>`;
-  const check = (opt: keyof UsineView, label: string, why: string) => `<label title="${esc(why)}"><input type="checkbox" data-uopt="${opt}"${v[opt] ? " checked" : ""}> ${label}</label>`;
-  return `<div class="u-bar" role="group" aria-label="Options de la vue de l'usine">
-    <span class="grp"><b>Calcul</b>${radio("full", "1", v.full, "recalculé pour l'usine entière", "Une seule prise par collecteur, modules réorganisés et tournés vers leurs voisins ; plus de calcul.")}${radio("full", "0", !v.full, "module par module", "Chaque module tel que son plan de pose seul, relié aux autres par des tuyaux.")}</span>
-    <span class="grp${v.full ? " off" : ""}"><b>Liaisons</b>${radio("glue", "0", !v.glue, "des tuyaux", "Chaque liaison entre deux modules a son tuyau.")}${radio("glue", "1", v.glue, "coller quand c'est possible", "Une sortie collée contre l'entrée du module suivant, sans tuyau (module par module seulement).")}</span>
-    <span class="grp">${check("detail", "Tout afficher", "Montre l'intérieur des modules (machines et collecteurs) et les câbles entre les poteaux d'un même module.")}${check("power", "Réseau électrique", "Montre les poteaux et les câbles.")}</span>
-    <span class="grp${v.detail && v.power ? "" : " off"}"><b>Câbles</b>${radio("plugs", "0", !v.plugs, "entre poteaux", "Seulement les câbles entre poteaux.")}${radio("plugs", "1", v.plugs, "et vers chaque machine", "Aussi le câble de chaque poteau vers chaque prise de machine (avec « Tout afficher »).")}</span>
+  const check = (opt: keyof UsineView, label: string, why: string) => `<label class="u-tog" title="${esc(why)}"><input type="checkbox" data-uopt="${opt}"${v[opt] ? " checked" : ""}> ${label}</label>`;
+  return `<div class="u-bar" role="group" aria-label="Affichage de l'usine">
+    ${check("detail", "Tout afficher", "Montre l'intérieur des modules (machines et collecteurs) et les câbles entre les poteaux d'un même module.")}${check("power", "Réseau électrique", "Montre les poteaux et les câbles.")}
     ${linksButton(v.links)}
   </div>
-  <p class="hint u-hint">${v.links ? "Toutes les liaisons sont tracées : une flèche blanche par liaison entre deux pièces, dans le sens du flux, et les câbles électriques de chaque poteau vers ses voisins et ses machines." : "Clique un tuyau pour voir ses liaisons (sens du flux), un câble pour voir ce qu'il alimente, un module pour l'ouvrir à côté."}</p>`;
+  <p class="hint u-hint">${v.links ? "Toutes les liaisons sont tracées : une flèche blanche par liaison entre deux pièces, dans le sens du flux, et les câbles électriques de chaque poteau vers ses voisins et ses machines." : "Clique un tuyau pour voir ses liaisons, un câble pour voir ce qu'il alimente, un module pour ouvrir son plan."}</p>`;
+}
+
+/** « Plus d'options » de l'usine : le calcul (module par module par défaut, S25) et les liaisons collées. */
+export function renderFactoryMore(v: UsineView): string {
+  return `<div class="u-bar" role="group" aria-label="Calcul de l'usine">
+    <span class="grp"><b>Calcul</b>${radio("full", "0", !v.full, "module par module", "Chaque module tel que son plan de pose seul, relié aux autres par des tuyaux ; le plus rapide.")}${radio("full", "1", v.full, "recalculé pour l'usine entière", "Une seule prise par collecteur, modules réorganisés et tournés vers leurs voisins ; plus de calcul.")}</span>
+    <span class="grp${v.full ? " off" : ""}"><b>Liaisons</b>${radio("glue", "0", !v.glue, "des tuyaux", "Chaque liaison entre deux modules a son tuyau.")}${radio("glue", "1", v.glue, "coller quand c'est possible", "Une sortie collée contre l'entrée du module suivant, sans tuyau (module par module seulement).")}</span>
+  </div>`;
+}
+
+/** Liste des modules à côté de l'usine (S25) : « posé ✓ » quand il est construit en jeu ; il se grise dans le dessin. */
+export function renderFactoryModules(f: FactoryPlan, posed: ReadonlySet<string>): string {
+  const n = f.boxes.filter((b) => posed.has(b.key)).length;
+  const rows = f.boxes
+    .map((b) => `<li><label${posed.has(b.key) ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(b.key)}"${posed.has(b.key) ? " checked" : ""}> ${esc(b.label)} — ${esc(b.sub)}</label> <button type="button" class="link small" data-focus="${esc(b.key)}">ouvrir</button></li>`)
+    .join("");
+  return `<details class="more u-mods" open><summary>Modules (${f.boxes.length}) <span class="hint">${n} posé${n > 1 ? "s" : ""} sur ${f.boxes.length}</span></summary><p class="hint">Coche un module quand il est construit en jeu : il se grise dans le dessin. Gardé pour ce plan, dans ce navigateur.</p><ul class="u-modlist">${rows}</ul></details>`;
 }
 
 /** Machines incomplètes dans le plan de pose : pas dessinées, ports supposés, prix inconnus, problèmes. */
@@ -192,6 +212,28 @@ export function incompleteMachines(f: FactoryPlan): { box: Box; reasons: string[
   return out;
 }
 
+/**
+ * Liaisons non tracées (S25, F11) : avec les noms du jeu, pas les clés internes (« water → oak-log »). Une liaison
+ * vers une place réservée (ferme d'arbres…) est prévue : la place n'a pas de port ; c'est une note, pas une erreur.
+ */
+function unlinked(f: FactoryPlan, name: Name, sub: (key: string) => string): string {
+  if (!f.problems.length) return "";
+  const reserved = new Set(f.boxes.filter((b) => !b.mod).map((b) => b.key));
+  let expected = true;
+  const text = f.problems.map((p) => {
+    const m = /^(.*?) : (\S+) → (\S+)$/.exec(p);
+    if (!m) {
+      expected = false;
+      return p;
+    }
+    if (!reserved.has(m[3]!) && !reserved.has(m[2]!)) expected = false;
+    return `${m[1]} : ${sub(m[2]!)} → ${sub(m[3]!)}`;
+  });
+  return expected
+    ? `<p class="mod-other hint">${f.problems.length > 1 ? "Liaisons" : "Liaison"} à poser à la main : ${esc(text.join(" ; "))} (une place réservée, comme la ferme d'arbres, n'a pas de port dans le plan).</p>`
+    : `<ul class="notices"><li class="bad">${f.problems.length} liaison(s) non tracée(s) : ${esc(text.join(" ; "))}</li></ul>`;
+}
+
 /** Texte autour du dessin : résumé, légende, liaisons, passages et machines à compléter. */
 export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf: TierOf, ms: number, glue = false): { head: string; legend: string; details: string } {
   const color = factoryColors(f);
@@ -206,7 +248,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
   const missing = incompleteMachines(f);
   const pipes = f.full ? `${fmt(st.allPipeCells, 0)} cases en tout` : `${fmt(st.pipeCells, 0)} cases entre modules, ${fmt(st.allPipeCells, 0)} en tout`;
   const head = `<p class="mod-sum"><b>Toute l'usine — proposition</b> : ${f.W} × ${f.H} cases, ${f.boxes.length} module${f.boxes.length > 1 ? "s" : ""} · tuyaux : ${pipes}, ${st.allCrossings} croisement${st.allCrossings > 1 ? "s" : ""}${f.glued.length ? `, ${f.glued.length} contact${f.glued.length > 1 ? "s" : ""} direct${f.glued.length > 1 ? "s" : ""}` : ""} · électricité : ${esc(fmtMF(st.total))}, ${f.poleNodes.length} poteaux${st.relays ? ` + ${st.relays} relais` : ""}${st.upgraded ? ` (${st.upgraded} renforcés)` : ""}, ${esc(fmtMoney(st.polesCost))}.</p>${plotText}${
-    f.problems.length ? `<ul class="notices"><li class="bad">${f.problems.length} liaison(s) non tracée(s) : ${esc(f.problems.join(" ; "))}</li></ul>` : ""
+    unlinked(f, name, sub)
   }${st.overloaded ? `<ul class="notices"><li>${st.overloaded} câble(s) à doubler (charge au-delà du poteau le plus fort).</li></ul>` : ""}${
     missing.length ? `<p class="mod-other warn-text">${missing.length} module${missing.length > 1 ? "s" : ""} incomplet${missing.length > 1 ? "s" : ""} dans le plan de pose : voir « Machines à compléter » sous le dessin.</p>` : ""
   }<p class="mod-other">${

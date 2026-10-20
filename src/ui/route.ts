@@ -40,7 +40,7 @@ export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "ene
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
 export const GOAL_TITLE: Record<Goal, string> = { objet: "Produire un objet", énergie: "Produire de l'énergie", recherche: "Gagner des points de recherche", argent: "Gagner de l'argent" };
 const TABS: ResultTab[] = ["liste", "schema", "pose", "details"];
-const TAB_TITLE: Record<ResultTab, string> = { liste: "Liste de construction", schema: "Schéma", pose: "Plan de pose", details: "Détails" };
+const TAB_TITLE: Record<ResultTab, string> = { liste: "Liste des machines", schema: "Schéma", pose: "Plan de pose", details: "Détails" };
 const PAGE_TITLE: Record<Page, string> = { plan: "Planifier", usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
 
 export function parseRoute(hash: string): Route {
@@ -105,7 +105,7 @@ export function routeHash(r: Route): string {
 
 /** Nom court d'une vue, pour le bouton « Retour » (« Revenir à : Schéma »). */
 export function routeTitle(r: Route): string {
-  if (r.page === "plan" && r.tab === "pose" && r.step === USINE_STEP) return r.focus ? "Module dans l'usine" : "Toute l'usine";
+  if (r.page === "plan" && r.tab === "pose" && (r.step === USINE_STEP || !r.step)) return r.focus ? "Module dans l'usine" : "Usine";
   if (r.page === "plan") return r.tab ? TAB_TITLE[r.tab] : GOAL_TITLE[r.goal ?? "objet"];
   if (r.page === "recettes") return r.card ? (r.card.kind === "objet" ? "Fiche de l'objet" : "Fiche de la machine") : "Recettes";
   if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Contribuer";

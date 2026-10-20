@@ -19,7 +19,7 @@ import { designFactory, factoryFits, factoryInput, type FactoryPlan } from "./fa
 import { designModule, passageOptions } from "./module.ts";
 import { factoryFlows } from "./flow.ts";
 import { renderPassagePick } from "../../ui/module-view.ts";
-import { renderFactoryInfo, renderFactorySvg } from "../../ui/factory-view.ts";
+import { renderFactoryInfo, renderFactoryModules, renderFactorySvg } from "../../ui/factory-view.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
 const cat = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, (relevesJson as { poleRangeTiles: Record<string, number> }).poleRangeTiles);
@@ -95,6 +95,13 @@ describe("toute l'usine", () => {
     expect(renderFactoryInfo(f, name, PLOT, tierOf, ms).head).toContain("proposition");
     expect(renderFactoryInfo(f, name, PLOT, tierOf, ms).head).toContain("Tient sur ta parcelle");
     expect(renderFactorySvg(f, name, PLOT, tierOf).svg).toContain('class="u-plot"');
+    // S25 : le dessin est cadré sur l'usine (la parcelle n'est qu'un repère) ; modules « posés » cochés et comptés.
+    const svg = renderFactorySvg(f, name, PLOT, tierOf);
+    expect([svg.width, svg.height]).toEqual([(f.W + 2) * 10, (f.H + 3) * 10]);
+    const k0 = f.boxes[0]!.key;
+    const mods = renderFactoryModules(f, new Set([k0]));
+    expect(mods).toContain(`data-posed="${k0}" checked`);
+    expect(mods).toContain(`1 posé sur ${f.boxes.length}`);
     // Avancement : croissant, de 0 à 1.
     expect(steps[0]).toBe(0);
     expect(steps.at(-1)).toBe(1);

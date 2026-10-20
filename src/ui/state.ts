@@ -161,7 +161,8 @@ export const DEFAULT_SETTINGS: Settings = {
   useBudget: false,
   existing: {},
   useExisting: true,
-  resultTab: "liste",
+  // S25 : l'Usine (le plan de pose de toute l'usine) s'ouvre en premier, calculée module par module.
+  resultTab: "pose",
   energyUnit: "k",
   energyMFps: 1_000_000,
   energyGuaranteed: false,
@@ -169,7 +170,7 @@ export const DEFAULT_SETTINGS: Settings = {
   distanceTiles: null,
   tier3Only: false,
   posePriority: [...POSE_CRITERIA],
-  usine: { full: true, glue: false, detail: false, power: true, plugs: false, links: false },
+  usine: { full: false, glue: false, detail: false, power: true, plugs: false, links: false },
   rpMode: "node",
   rpRate: null,
   rpNode: null,
@@ -215,7 +216,7 @@ export function loadSettings(): Settings {
   // Réglages d'avant S23 : le joueur avait ses objectifs remplis, ils le restent.
   out.entered = Array.isArray(rest.entered) ? rest.entered.filter((g) => GOALS.includes(g)) : Object.keys(rest).length ? [...GOALS] : [];
   out.useExisting = out.useExisting !== false;
-  if (!["liste", "schema", "pose", "details"].includes(out.resultTab)) out.resultTab = "liste";
+  if (!["liste", "schema", "pose", "details"].includes(out.resultTab)) out.resultTab = DEFAULT_SETTINGS.resultTab;
   if (out.energyUnit !== "k" && out.energyUnit !== "M") out.energyUnit = "k";
   if (out.rpMode !== "rate" && out.rpMode !== "node" && out.rpMode !== "plan") out.rpMode = DEFAULT_SETTINGS.rpMode;
   if (out.rpRate !== null && !(out.rpRate > 0)) out.rpRate = null;
