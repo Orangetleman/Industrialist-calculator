@@ -57,6 +57,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | R12 | (2026-10-18, premier jet) Construire sa propre chaîne de production pour en voir les statistiques : un plan vierge, des menus « burger » pour ouvrir une liste de machines, des liaisons qu'on trace en maintenant le clic et en glissant avec l'outil tuyau (du bon type, fluide ou objet), comme les convoyeurs de Mindustry. | Un mode « bac à sable », l'inverse du calculateur : on pose, le site calcule. Très gros : le lot écrit le plan et la maquette, il ne l'exécute pas. | S17 |
 | R13 | (2026-10-18) Le gain de RP baisse quand les RP accumulés augmentent, et la baisse se calcule avec ce qu'on lit en jeu (Research Tracking Panel : seuil d'efficacité, « Max RP before RP/s is nearly zero »…). Que manque-t-il au site ? | Recherche faite le 2026-10-18 (sans code) : les formules du wiki retrouvent la capture au centième près. Le site connaît le plafond souple pour l'installation qu'il propose, mais compte les RP du joueur en ligne droite et ignore ses stations. | S20 |
 | R14 | (2026-10-20, après S20) Un graphe de l'évolution des RP du joueur, avec l'historique et les modifications qu'il y a apportées au fil du temps (changement de configuration…). Deux courbes : les RP et les RP/s. | Le moteur sait refaire la courbe entre deux instants (S20), mais le site ne garde que le dernier relevé et la dernière configuration. Il faut un journal (relevés, changements de configuration, dépenses) et deux graphiques dans « Ma recherche ». Complément : les RP ne montent que quand on est en jeu ; le temps compte en durées de jeu, avec un interrupteur « Je joue / Je ne joue plus ». | S21 |
+| R15 | (2026-10-20, pendant S15) « dans la refonte du site je veux pouvoir mettre en place un système de remarque collaborative automatiser que je recevrais dans une interface pour répondre et publier les demandes qui reviennent le plus souvent (pas nécessairement publier mais au moins avoir une vision sur les propositions) ». | Un bouton « Remarque » sur le site ; les remarques arrivent dans une page réservée à l'utilisateur, regroupées par sujet, avec une réponse et, au choix, une publication. Il faut un petit service côté serveur (le site est aujourd'hui statique sur le Pi) : à planifier, pas à coder en S15. | S16 (Q24.12) |
 | — | En attente depuis le 2026-10-14 : (1) la sortie du collecteur central d'une double rangée entre deux machines ; (2) « Toute l'usine » dans le site. | Inchangé. | S2, S3, S4 |
 
 ## 2. Ordre proposé (à valider : Q10)
@@ -81,8 +82,16 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | ✅ fait |
 | S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 (pendant : Q17) | ✅ fait |
 | S21 | Recherche : historique des RP, deux graphiques (RP et RP/s) avec les changements de configuration et les dépenses | moyenne | S20, maquette | ✅ fait |
-| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S21 | à faire |
-| S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
+| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S21 | ✅ fait |
+| S22 | Recherche : la durée « à ton rythme » dans l'arbre ; « Des RP » vide, « débloquer » d'abord | petite | S15 | à faire |
+| S23 | Planifier vide, nouveau menu, priorités du joueur, en-tête sur une ligne | moyenne | S15 | à faire |
+| S24 | Fenêtre d'orientation à la première visite | petite à moyenne, maquette | S23 | à faire |
+| S25 | L'Usine au premier plan : onglet, module par module, cadrage, « module posé ✓ » | moyenne | S23 | à faire |
+| S26 | Un module : ordre de pose dans le sens de l'usine et dans l'ordre du joueur | moyenne | S25 | à faire |
+| S27 | À évacuer : un tuyau jusqu'au bord choisi pour chaque produit | moyenne | S25 + capture de l'utilisateur | à faire |
+| S28 | Schéma et réglages visibles : vue complète, barre « Ton plan », ⚠ cliquables | moyenne | S23 | à faire |
+| S29 | Mon usine en deux onglets, bulle de l'arbre, vocabulaire de joueur | moyenne | S23 | à faire |
+| S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté ; remarques des joueurs (R15) | moyenne, sans code | S15, S22 à S29 | à faire |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
 
 Pourquoi cet ordre :
@@ -100,8 +109,15 @@ Pourquoi cet ordre :
   logique pour des joueurs (« t'es pas joueur et t'as pas la façon de réfléchir de ceux-ci ») :
   parcours guidés par lui, puis réorganisation. D'ici là, chaque lot garde l'interface simple et
   cohérente avec l'existant.
-- **S16 après S15** : la revue de S15 donne la liste des défauts vus par un joueur ; S16 en fait un
-  plan complet (anglais + forme) pour une version présentable au Discord. Ce plan donnera ses
+- **S22 à S29 après S15** (maquette validée le 2026-10-20) : la réorganisation tirée des parcours.
+  S22 d'abord : c'est le défaut le plus grave (une réponse absurde affichée d'office) et le lot le
+  plus court. S23 pose le cadre (menu, formulaires vides, priorités) dont dépendent les suivants.
+  S25 avant S26 et S27 : le panneau d'un module et la sortie des produits à évacuer vivent dans
+  l'Usine. S27 attend la capture de l'utilisateur (tuyaux sans destination). Le vocabulaire (S29)
+  vient en dernier, quand les écrans sont stables.
+- **S16 après S15 et S22 à S29** : la revue de S15 donne la liste des défauts vus par un joueur
+  (REVUE.md) ; S16 en fait un plan complet (anglais + forme) pour une version présentable au Discord,
+  sur un site déjà réorganisé, et y ajoute R15 (remarques des joueurs, Q24.12). Ce plan donnera ses
   propres lots, à insérer ensuite au § 2.
 - **S17 en dernier** : c'est une nouvelle fonction, pas une correction. Elle réutilise beaucoup de
   choses (moteur de calcul, plans de pose, tuyaux, éditeur de bâtiments). Mieux vaut la penser sur
@@ -668,6 +684,148 @@ saisies (relevés, une station ajoutée, une recherche débloquée), les deux
 graphiques montrent l'historique, les repères et l'écart prévision / relevé ; le journal survit au
 rechargement et à l'export ; tests verts ; parcours réel avec captures, ordinateur et téléphone.
 
+### S15 — Revue d'ensemble de l'interface, comme un joueur
+
+Retour : l'utilisateur veut revoir l'interface dans son ensemble, pour qu'elle soit logique pour des
+joueurs (« t'es pas joueur et t'as pas la façon de réfléchir de ceux-ci »). Place : après S1 à S14 et
+S18 à S21 (§ 2), avant S16, qui part de sa liste de défauts.
+
+Ce qui existe (vérifié le 2026-10-20, commit `554e136`, 437 tests) :
+- Menu : Accueil · Planifier · Mon usine · Arbre de recherche · Recettes · Données ; puces d'état et
+  bouton ▶/⏸ dans l'en-tête (`index.html`).
+- Planifier : une page par objectif (objet, énergie, RP, argent), Priorités, Machines (S9), Options
+  avancées ; résultat en onglets Liste de construction, Schéma (S7, S8, S10, S18), Plans de pose
+  (dont Toute l'usine S3-S4 et Ensembles modulaires S14), Détails.
+- Mon usine : progression, Ma recherche (S20, S21 : saisie, interrupteur, graphiques, journal),
+  ressources, production en place, réglages, export.
+- Recettes (S5, S6), Données (valeurs à vérifier, corrections, éditeur de bâtiments S10, S12, S19).
+- La refonte du 2026-10-12 (REFONTE.md) a fixé « une question, une page, une réponse ». Chaque lot
+  depuis le 2026-10-16 a ajouté sa fonction là où l'existant le permettait, en attendant cette revue.
+
+Ce qu'il faut faire :
+- **Tour du site page par page**, dans le navigateur intégré (captures si la fenêtre le permet, sinon
+  par le DOM, et le dire) : inventaire court de ce que voit un joueur, du jargon, des doublons, de ce
+  qui est caché ou mal placé.
+- **Parcours de joueur guidés par l'utilisateur** : en proposer 3 à 5, lui faire choisir l'ordre, les
+  suivre avec lui ; noter ses réactions mot pour mot, le nombre de gestes et ce qui bloque.
+- **Liste des défauts** vus par un joueur, classés par gravité (elle sert à S16).
+- **Réorganisation proposée** (menu, pages, vocabulaire de joueur, valeurs par défaut, ce qu'on replie
+  ou retire), sous forme de **maquette à valider** (`maquette/revue.html`, feuille de style en chemin
+  relatif).
+- **Après validation** : découper la réorganisation en lots courts (R1, R2…), chacun avec son critère
+  de fin, ajoutés au § 2 et ici. Pendant la session, seulement les changements simples et sûrs que
+  l'utilisateur demande.
+
+Questions : Q23 (parcours et leur ordre), puis celles de la maquette (Q24).
+
+Critère de fin : parcours faits avec l'utilisateur et notés ; liste des défauts classée ; maquette
+validée ; lots de réorganisation écrits et placés au § 2 ; tests verts.
+
+### S22 à S29 — Réorganisation de l'interface (tirée de S15)
+
+Source commune : [REVUE.md](REVUE.md) (parcours A à E, défauts G1-G4, M1-M12, F1-F11) et la maquette
+validée `maquette/revue.html` (décisions S15 au § 5). Chaque lot lit d'abord la partie de REVUE.md
+qui le concerne, vérifie dans le code ce qui existe (les fichiers cités ici viennent du tour du
+2026-10-20, commit `554e136`), et refait à la fin le parcours d'où viennent ses défauts, en comptant
+les gestes, sur ordinateur et téléphone. Aucun lot ne change un calcul sans le dire (§ 0, règle 5).
+Pour une partie vide : un second serveur de développement sur un port jamais utilisé (S15 : 5179,
+entrée `calculateur-neuf` ajoutée à `.claude/launch.json`, fichier non suivi par git, à recréer) a son
+propre stockage ; la progression de l'utilisateur s'y importe par « Importer… ».
+
+#### S22 — Recherche : la durée là où l'on regarde (G1, G2)
+
+- Arbre (`research-view.ts`) : le panneau d'une recherche non débloquée affiche « il te manque N RP ·
+  ≈ durée de jeu à ton rythme » (même calcul que la chronologie de `research-plan.ts`, temps de jeu,
+  plafond si « Ma recherche » le connaît, sinon « en ligne droite », dit comme tel), et un lien « L'avoir
+  plus vite » vers Planifier › Des RP réglé sur cette recherche.
+- Planifier › Des RP : vide tant que rien n'est saisi ; but « débloquer une recherche » en premier ;
+  la réponse commence par « à ton rythme : … », puis « en N min : … ».
+- Critère de fin : partie de l'utilisateur, Research Station 4 → la durée (4 h 37 de jeu au 2026-10-20)
+  lue dans l'arbre en 3 gestes ; « Des RP » n'affiche plus aucun plan sans saisie ; tests verts.
+
+#### S23 — Planifier vide, nouveau menu, priorités du joueur, en-tête (M5, M6, M7, F6 à F9)
+
+- Menu : Planifier · Arbre · Recettes · Mon usine · Contribuer (ex-Données ; anciennes adresses
+  redirigées). L'onglet Accueil disparaît (la fenêtre d'orientation est S24) ; `#accueil` mène à
+  Planifier.
+- Quatre objectifs vides par défaut, exemples en grisé (`placeholder`), aucun résultat ni onglet sans
+  saisie ; les réglages déjà saisis restent gardés.
+- Priorités par défaut d'un objet : le moins de place, puis de machines, puis d'énergie, le prix
+  ensuite (les priorités déjà choisies par un joueur ne changent pas) ; chiffres de la réponse dans cet
+  ordre, la pollution dans Détails.
+- En-tête sur une ligne jusqu'à 1 366 px, bouton « ← page précédente » retiré, « ▶ Je joue » écrit ;
+  rappel « Tu jouais encore ? » en bandeau sous l'en-tête.
+- Critère de fin : parcours A refait (partie vide → plan Crankshaft en tapant l'objet) ; aucune page
+  ne montre de résultat sans saisie ; tests verts (adresses redirigées comprises).
+
+#### S24 — Fenêtre d'orientation à la première visite
+
+- Une fenêtre à la première visite (et rouvrable depuis l'en-tête) qui explique à un joueur
+  d'Industrialist comment s'orienter : où planifier, où dire où il en est, l'usine et le schéma, les
+  recettes, ce qui est gardé dans le navigateur. Pas un tutoriel pas à pas.
+- Au début du lot : demander le lien de la page « philosophie » de l'utilisateur (modèle cité en
+  Q24) ; maquette du texte et de la forme à valider.
+- Critère de fin : maquette validée ; la fenêtre s'ouvre une fois, se referme, se rouvre ; lisible à
+  375 px ; tests verts.
+
+#### S25 — L'Usine au premier plan (M1, M8, M10, F10, F11)
+
+- Onglets du résultat : **Usine** (ex-« Toute l'usine », ouvert en premier), Schéma, Liste des
+  machines, Détails. L'Usine se calcule en **module par module** par défaut ; « recalculé pour l'usine
+  entière » reste au choix.
+- Dessin d'abord, cadré sur l'usine (la parcelle en repère) ; trois boutons (Tout afficher, Réseau
+  électrique, Afficher les liaisons), le reste dans « Plus d'options » ; « Câbles » retiré (la
+  liaison affichée le remplace).
+- À côté du dessin, la liste des modules avec « module posé ✓ » (gardé par plan), qui grise le module.
+- La page ne remonte plus quand on change de calcul ; « liaison non tracée » prévue (eau de la ferme)
+  en note, pas en rouge.
+- Critère de fin : parcours D refait, Usine visible en 1 geste après la réponse ; un module coché
+  reste grisé au rechargement ; mesures de l'usine inchangées (§ 6, S4) ; tests verts.
+
+#### S26 — Un module : l'ordre de pose du joueur (G3, M9)
+
+- Le panneau d'un module : le dessin, « module posé ✓ », puis l'ordre de pose replié.
+- L'ordre de pose est écrit **dans le sens où le module est posé dans l'usine** (directions tournées
+  avec lui), et rangé comme le joueur construit : bâtiments (touche 1, « & » en AZERTY), tuyaux
+  (touche 3, « " »), électricité puis logique (touche 2, « é »).
+- Critère de fin : un module tourné d'un demi-tour dans l'usine décrit ses tuyaux dans le bon sens
+  (test) ; l'ordre de pose d'une étape seule ne change que par son rangement ; tests verts.
+
+#### S27 — À évacuer : la sortie au bord choisi (G4)
+
+- Au début du lot : l'utilisateur montre les tuyaux « sans destination » (plan et capture) ; le plan
+  Crankshaft 60/min n'a rien à évacuer, il faut donc trouver lesquels il voit.
+- Pour chaque produit à évacuer : un tuyau jusqu'au bord choisi (en haut, en bas, à gauche, à droite),
+  réglable dans l'Usine, gardé par plan.
+- Critère de fin : sur un plan qui évacue (exemple de S15 : Research Station 4 en 1 h, Residue et
+  Clay), chaque produit sort au bord choisi ; aucun tuyau ne finit dans le vide ; tests verts.
+
+#### S28 — Schéma et réglages visibles (M2, M3, M4)
+
+- Schéma : la vue de départ montre toute la chaîne ; « ⤢ » agit sur le dessin, pas sur la page.
+- Barre « Ton plan » au-dessus des onglets : priorités, machines permises, réglages faits à la main
+  (machines fixées, recettes choisies, réglages des machines), valeurs à vérifier ; chacun cliquable,
+  avec ✕ pour l'annuler.
+- Barre du bloc : « Tu peux régler : » (machines, recette, ne plus utiliser) et « Voir le module dans
+  l'usine ».
+- ⚠ cliquable sur un bloc, une ligne ou un module qui utilise une valeur à vérifier → la correction.
+- Critère de fin : parcours E refait (valeur à vérifier du Crankshaft corrigeable en 2 gestes depuis
+  le résultat) ; chaque réglage de S8, S9, S10 et S18 visible et annulable depuis « Ton plan » ; tests
+  verts.
+
+#### S29 — Mon usine, arbre, vocabulaire (M11, M12, F1 à F5)
+
+- Mon usine en deux onglets : « Ma partie » (recherches, machines spéciales, ressources et parcelle,
+  production en place, transférer) et « Ma recherche » (S20, S21). Le champ des RP montre le dernier
+  relevé, l'estimation à côté.
+- Arbre : option « bulle » pour débloquer près de la recherche (comme l'éditeur de bâtiments), pas
+  par défaut.
+- Vocabulaire du tableau 8 de la maquette : plus aucun id interne à l'écran (test qui le cherche),
+  plus de références du projet (RP-04, MOD-09, « à m'envoyer »), mêmes unités partout, un seul nombre
+  pour une même chose (RP manquants, recherches comptées).
+- Critère de fin : Mon usine sous 2 000 px au téléphone par onglet ; test « aucun id à l'écran » ;
+  tests verts.
+
 ### S16 — Plan : le site en anglais, et une forme présentable à la communauté
 
 Retour : R11. **Ce lot écrit un plan, il ne code rien** (une maquette si elle aide à décider).
@@ -699,8 +857,14 @@ Le lot doit produire un fichier `PLAN-PUBLIC.md` (nom à confirmer) avec :
   tailles de cible, téléphone. Chaque point a un critère de réussite vérifiable.
 - **Ce qu'on montre ou cache dans la version publique** : outils de relevé, éditeur de bâtiments,
   « Données », valeurs incertaines (signalées sobrement).
+- **Les remarques des joueurs (R15)** : un bouton « Remarque » sur le site, une page réservée à
+  l'utilisateur pour lire, regrouper, répondre et publier au choix ; le service à ajouter sur le Pi
+  (sans toucher à MyPrism), le stockage, la modération, l'anti-abus.
 - **Le découpage en lots** : des sessions courtes, dans l'ordre, chacune avec ses critères de fin,
   à ajouter au § 2 après validation.
+
+Point de départ : la liste des défauts de S15 ([REVUE.md](REVUE.md), § 3) et ce qu'en ont corrigé
+S22 à S29.
 
 Questions : Q13.
 
@@ -997,6 +1161,32 @@ Questions : Q14.
   Réponses (2026-10-20) : 1 « oui » ; 2 « okay » ; 3 replié par défaut, « difficile à lire » : la plus grande
   partie de la lecture doit se faire **en interagissant directement avec le graphique** ; 4 en heures de jeu,
   comme la maquette (avant maintenant) ; 5 « oui ».
+- **Q23 (S15), parcours de joueur.** Posée le 2026-10-20, après le tour du site (inventaire dans
+  [REVUE.md](REVUE.md)).
+  1. Parcours proposés : A « je viens d'arriver sur le site », B « je veux 60 Crankshaft/min avec ce que
+     j'ai débloqué, et je le construis », C « quand aurai-je assez de RP pour débloquer X ? », D « je pose
+     un module en jeu d'après le plan de pose », E « une valeur du site ne correspond pas au jeu ». Lesquels,
+     dans quel ordre ? Un autre à la place ?
+  2. Qui tient la souris : toi sur le site en ligne avec ta vraie partie (tu me racontes), ou moi dans le
+     navigateur intégré pendant que tu me guides ?
+  3. Pour chaque parcours, je note tes réactions mot pour mot, le nombre de gestes et ce qui bloque.
+     D'accord ?
+
+  Réponses (2026-10-20, transmises par la session gestionnaire) : 1 « ils sont tous assez correcte, il y
+  aura le nouveau parcours de la session d'après donc voilà » (A à E retenus, dans l'ordre ; le parcours de
+  la session suivante n'est pas pour S15) ; 2 « (b) » (je tiens la souris dans le navigateur intégré, tu me
+  guides) ; 3 « ok ».
+- **Q24 (S15), maquette `maquette/revue.html`.** Posée le 2026-10-20, après les cinq parcours (notes et
+  liste des défauts dans [REVUE.md](REVUE.md)). Les douze questions sont au bas de la maquette : menu,
+  page d'arrivée vide, ordre des chiffres, barre « Ton plan », onglet ouvert en premier, tuyaux sans
+  destination, ordre de pose, barre du bloc, durée dans l'arbre, Mon usine en deux onglets,
+  vocabulaire, place de R15.
+
+  Réponse (2026-10-20) : « En soi j'aime bien l'idée d'une accueil, mais plutôt que d'en faire un onglet,
+  plutôt en faire un modal qui s'affiche à la première arrivé sur le site et qui faire un tuto pour bien
+  s'orienter sur le site. Le tuto doit être destiner à un utilisateur joueur d'Industrialist. C'est pas
+  vraiment un tuto, mais vraiment une explication de comment s'orienter sur le site. Si tu veux on avait
+  déjà fait ce genre de chose sur ma philosophie web page. À part ça tout me va. »
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -1069,6 +1259,11 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S21 Journal | Période par défaut 24 h (de jeu) ; frappes à moins de 2 min fondues ; 90 jours de temps de jeu gardés. | 2026-10-20 |
 | S21 Maquette | Validée (`maquette/historique-rp.html`, Q22) : interrupteur dans « Ma recherche » et bouton ▶/⏸ à côté de la puce RP ; site fermé pendant « Je joue » → question à la réouverture, « arrêté à la fermeture » tant qu'il n'y a pas de réponse ; le dernier relevé devient le premier point, hors jeu ; axe en heures de jeu avant maintenant ; journal replié par défaut, l'essentiel se lit en touchant le graphique (✕ dans le journal) ; bleu = prévu, orange = relevé. | 2026-10-20 |
 | S20 Maquette | Validée (`maquette/recherche-rp.html`) : RP et RP/s passent dans « Ma recherche » ; les quatre tiers toujours affichés ; tableau des soldes (seuil, 100 000, 2 × seuil, Max RP) ; colonne « + N stations aux tiennes » dans la chronologie et bloc qui la détaille ; efficacité des paraboles recopiée du panneau, bonus au prorata (supposé). | 2026-10-20 |
+| S15 Maquette | Validée (`maquette/revue.html`, Q24) : menu Planifier · Arbre · Recettes · Mon usine · Contribuer ; Planifier vide (exemples en grisé) pour les quatre objectifs ; chiffres place, machines, énergie, prix ; barre « Ton plan » ; onglets Usine (en premier, module par module), Schéma, Liste des machines, Détails ; « module posé ✓ » ; côté de sortie de ce qu'il faut évacuer ; ordre de pose dans le sens de l'usine et dans l'ordre du joueur, avec les touches ; ⚠ cliquable ; durée « à ton rythme » dans l'arbre ; Mon usine en deux onglets ; vocabulaire du tableau 8 ; R15 dans le plan de S16. | 2026-10-20 |
+| S15 Accueil | Pas d'onglet Accueil : une **fenêtre d'orientation** à la première visite, pour un joueur d'Industrialist (« pas vraiment un tuto, mais vraiment une explication de comment s'orienter sur le site ») ; modèle : la page « philosophie » d'un autre site de l'utilisateur (lien à demander au début du lot). | 2026-10-20 |
+| S15 Lots | Réorganisation découpée en S22 à S29, placés avant S16 (§ 2). | 2026-10-20 |
+| S15 Priorités | Priorités par défaut d'un objet : le moins de place, puis le moins de machines, puis le moins d'énergie, le prix en dernier (joueur avancé : « ma priorité se concentre sur la place et le nombre de machine, et l'énergie »). À faire dans un lot de réorganisation. | 2026-10-20 |
+| S15 Parcours | Les cinq parcours A à E, dans l'ordre ; Claude tient la souris dans le navigateur intégré, l'utilisateur guide ; réactions notées mot pour mot, gestes et blocages. | 2026-10-20 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions
@@ -1137,6 +1332,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-20, S21** (437 tests, déployé) : Q22 posée avec la maquette `maquette/historique-rp.html` (journal d'exemple calculé par le moteur sur la capture du 2026-10-18), réponses et décisions S21 au § 5. Moteur pur `src/engine/rp-history.ts` : horloge de jeu (`gameNow`, `setPlaying`, `stopAtLastSeen`, `needsRecall`), journal (`addEvent` : relevés, configurations, dépenses, frappes fondues sous 2 min de jeu, configuration identique non notée ; `prune` : 90 jours de jeu, points de départ gardés ; `removeEvent`), courbe par morceaux (`rpHistory`, `rpAtGame`, `readingGap`, `realTimeAt`). Site : interrupteur « Je joue / Je ne joue plus » en haut de « Ma recherche » et bouton ▶/⏸ dans l'en-tête ; RP, « seuil atteint dans … de jeu », chronologies de l'objectif recherche en temps de jeu (heure réelle seulement « si tu continues ») ; rappel « Tu jouais encore ? » à la réouverture (arrêt à la fermeture par défaut) ; deux graphiques SVG (`src/ui/rp-chart.ts`, palette contrôlée par le validateur du skill dataviz) avec prévision, pointillé au-delà de maintenant, relevés, seuil, repères ⚙/$ numérotés, reconnexions, info-bulle au survol, au toucher et au clavier ; journal replié avec ✕. Journal sous la clé `ind-calc:v1:rp-journal`, exporté avec la partie (clé facultative `history` ; un ancien fichier s'importe et commence un journal neuf). À la mise à jour, le dernier relevé devient le premier point, hors jeu.
   Parcours réel (navigateur intégré, ≈ 371 px et 1 280 px ; durées de jeu simulées en reculant l'horloge enregistrée, valeurs de test) : capture saisie → « Hors jeu », RP figés ; ▶ Je joue + 1 h → 128 752 RP, seuil dépassé depuis 41 min de jeu ; relevé 129 500 / 10,4 tapé au clavier → un seul événement (+0,5 % sur la prévision) ; Foundry rendue puis redébloquée dans l'arbre → deux repères $ ; 5ᵉ station du tier 3 (54,27 RP/s, seuil 85 534) → un seul repère ⚙ « stations 4 → 5, RP/s 47,47 → 54,27, seuil 76 875 → 85 534 » ; relevé 204 000 (−1,9 %) ; ⏸ puis 9 h hors jeu → 204 010 RP inchangés au rechargement ; reconnexion ▲ ; info-bulles au toucher ; export intercepté (clé `history`, 10 événements) puis import → journal identique ; site fermé 8 h pendant « Je joue » → question, arrêt à la fermeture sans réponse, « Je joue toujours » rétablit la session. Aucune erreur en console.
   À surveiller : le bouton de l'en-tête et celui de « Ma recherche » étaient redessinés toutes les 5 s (clic perdu) : seul le texte change désormais ; sur téléphone, l'en-tête ne montre que la puce « recherches » et le bouton ▶/⏸ (la puce RP est masquée, comme avant) ; le rappel ne sait pas si le téléphone était en veille avec le jeu ouvert (il demande) ; l'écart avec un vrai relevé après le seuil (RP-04) reste à mesurer en jeu.
+- **2026-10-20, S15** (437 tests, sans code du site, non déployé) : tour du site page par page (navigateur intégré, captures, et DOM quand la capture échouait) ; Q23 : cinq parcours guidés par l'utilisateur, Claude à la souris (A arrivée, B 60 Crankshaft/min et construire, C quand aurai-je les RP, D poser un module, E valeur fausse), réactions notées mot pour mot dans `REVUE.md` avec gestes et blocages, sur une partie vide (serveur `calculateur-neuf`, port 5179) puis sur la progression exportée de l'utilisateur ; 27 défauts classés (graves G1-G4, gênants M1-M12, finition F1-F11) ; maquette `maquette/revue.html` validée (Q24) avec une fenêtre d'orientation au lieu de l'accueil ; nouveau retour R15 (remarques des joueurs) placé dans S16 ; réorganisation découpée en S22 à S29, avant S16.
+  Mesures : de la partie vide au plan de pose total, 5 clics et une dizaine de crans de molette ; « quand aurai-je assez de RP pour Research Station 4 » : 7 gestes, réponse au 4ᵉ niveau (4 h 37 de jeu) ; valeur à vérifier du Crankshaft : 4 gestes depuis le schéma.
+  À surveiller : « Des RP » affiche d'office un plan absurde (27 156 stations, G1) jusqu'à S22 ; les tuyaux « sans destination » vus par l'utilisateur ne sont pas encore identifiés (capture demandée pour S27) ; les relevés de bâtiments du 2026-10-20 envoyés par l'utilisateur étaient déjà intégrés ; les serveurs du navigateur intégré peuvent être arrêtés par l'application en cours de session (relancer avec `preview_start`).
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions
