@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S24 — Visite d'orientation</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { background: var(--bg); }
+.mq-bar { max-width: 1120px; margin: 10px auto; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .86rem; background: var(--warn-soft); border-radius: 8px; }
+.mq-bar b { font-weight: 600; }
+.mq-q { max-width: 1120px; margin: 24px auto 60px; padding: 10px 16px; background: var(--warn-soft); border-radius: 8px; font-size: .9rem; }
+.mq-q ol { margin: 6px 0 0; padding-left: 22px; }
+.mq-q li { margin: 7px 0; }
+
+/* Faux site (statique). */
+.top-in { max-width: 1280px; }
+.help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; }
+.help-btn:hover { color: var(--accent); border-color: var(--accent); }
+.fake-frame { height: 170px; border-radius: 10px; background: #1d2126; display: grid; place-items: center; color: #9aa7b4; font-size: .85rem; }
+
+/* Visite : voile, projecteur, bulle (repris du site de philosophie de l'utilisateur, aux couleurs du calculateur). */
+.tour-blocker { position: fixed; inset: 0; z-index: 1300; display: none; }
+.tour-blocker.open { display: block; }
+.tour-blocker.dim { background: rgba(0, 0, 0, .68); }
+.tour-spot { position: fixed; z-index: 1301; border-radius: 10px; pointer-events: none; display: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .68), 0 0 0 2px var(--accent); transition: top .22s, left .22s, width .22s, height .22s; }
+.tour-bubble { position: fixed; z-index: 1302; width: min(340px, 92vw); display: none; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); transition: top .2s, left .2s; }
+.tour-bubble.docked { left: 50% !important; transform: translateX(-50%); top: auto !important; bottom: 16px; width: min(560px, 94vw); }
+.tour-part { font-size: .68rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.tour-title { font: 700 1.05rem var(--f-display); margin-bottom: 5px; }
+.tour-text { font-size: .88rem; color: var(--muted); line-height: 1.5; }
+.tour-text b { color: var(--ink); }
+.tour-dots { display: flex; gap: 5px; margin: 12px 0 10px; flex-wrap: wrap; }
+.tour-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: .25; }
+.tour-dot.done { opacity: .55; }
+.tour-dot.cur { opacity: 1; transform: scale(1.3); }
+.tour-ctrl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tour-ctrl .skip { margin-left: auto; display: flex; gap: 10px; }
+.tour-link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: .78rem; padding: 4px 2px; }
+.tour-btn { border-radius: 8px; padding: 6px 12px; font-size: .84rem; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.tour-btn.next { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 600; }
+.tour-decision { display: flex; flex-direction: column; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="mq-bar">
+  <span><b>Maquette S24</b> — la visite s'ouvre seule à la première visite ; le bouton <b>?</b> de l'en-tête la rejoue.</span>
+  <button type="button" class="tour-btn next" id="mq-start">▶ Lancer la visite</button>
+  <label><input type="radio" name="mq-bubble" value="follow" checked> Bulle qui suit le projecteur</label>
+  <label><input type="radio" name="mq-bubble" value="dock"> Bulle fixe, en bas de l'écran</label>
+</div>
+
+<!-- ================= Faux site (la page Planifier de S23, partie vide) ================= -->
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#"><img src="../public/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span>Calculateur<span class="long"> Industrialist</span></span></a>
+    <nav class="mainnav" aria-label="Sections" id="t-nav">
+      <a href="#" aria-current="page" id="t-plan">Planifier</a>
+      <a href="#" id="t-arbre">Arbre</a>
+      <a href="#" id="t-recettes">Recettes</a>
+      <a href="#" id="t-usine">Mon usine</a>
+      <a href="#" id="t-contrib">Contribuer</a>
+    </nav>
+    <div class="me" id="t-me"><a class="me-chip cta" href="#">Renseigner mon usine</a></div>
+    <button type="button" class="help-btn" id="t-help" title="Visite du site" aria-label="Rejouer la visite du site">?</button>
+  </div>
+</header>
+<main>
+  <section class="page">
+    <div class="callout" id="t-first"><p><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as.</p><a class="btn primary" href="#">Renseigner mon usine</a></div>
+    <nav class="goalnav" id="t-goals"><a href="#" aria-current="page">Un objet</a><a href="#">De l'énergie</a><a href="#">Des RP</a><a href="#">De l'argent</a></nav>
+    <h1>Produire un objet</h1>
+    <form class="query" onsubmit="return false">
+      <label class="grow" id="t-item">Objet <input placeholder="ex. Crankshaft"></label>
+      <label>Quantité <span class="qty"><input type="number" placeholder="60"><select><option>par minute</option></select></span></label>
+      <details class="criteria" id="t-prio"><summary><span class="criteria-title">Priorités</span> <span class="criteria-order">1 Le moins de place › 2 Le moins de machines › 3 Le moins d'énergie</span> <span class="criteria-edit">changer l'ordre</span></summary></details>
+    </form>
+    <div class="answer" id="t-answer">
+      <h2>Pour 60 Crankshaft/min : 158 machines et ≈ 61 arbres.</h2>
+      <p class="hint" style="margin:0">(exemple : la réponse apparaît dès que l'objet est choisi)</p>
+    </div>
+    <div class="rtabs" id="t-tabs"><button type="button" aria-selected="true">Liste de construction</button><button type="button">Schéma</button><button type="button">Plans de pose</button><button type="button">Détails</button></div>
+    <div class="fake-frame">(le résultat de l'onglet choisi)</div>
+  </section>
+</main>
+
+<div class="mq-q">
+  <b>Questions (Q25)</b>
+  <ol>
+    <li><b>La bulle</b> : qu'elle <b>suive le projecteur</b> (à côté de l'élément, comme ton site de philosophie) ou qu'elle reste <b>fixe en bas</b> (toujours au même endroit, le projecteur se déplace seul) ? Essaie les deux avec les boutons du haut.</li>
+    <li><b>Le contenu</b> : l'essentiel en 7 étapes (bienvenue, dire où tu en es, l'objet, la réponse, les vues du résultat, l'arbre, recettes et contribuer, puis le bouton ?), et une <b>visite détaillée</b> proposée à la fin (Ma recherche et « Je joue », priorités, filtre de machines, schéma, usine). Il manque une étape, ou une est de trop ?</li>
+    <li><b>Le ton</b> : les textes tutoient et parlent en joueur (Recipe Book, Research Tracking Panel). Ça te va ?</li>
+    <li><b>Quand</b> : seule à la toute première visite, puis seulement par le bouton <b>?</b>. Et le <b>clic dans le sombre</b> : sans effet pendant la visite, sauf à la dernière étape (comme ton site) ?</li>
+    <li><b>Téléphone</b> : la bulle passe en bas de l'écran quoi qu'il arrive (la place manque à côté). D'accord ?</li>
+  </ol>
+</div>
+
+<script>
+// Maquette : une visite à projecteur sur le faux site ci-dessus. Les étapes « détail » sont listées
+// pour donner le contenu ; dans le site, chacune ouvrirait la vraie page concernée.
+const $ = (s) => document.querySelector(s);
+const STEPS = [
+  { core: true, center: true, part: "Bienvenue", title: "Bienvenue sur le calculateur", text: "Dis ce que tu veux produire dans <b>Industrialist</b> : le site donne <b>toute la chaîne</b> (les machines, l'énergie, la place au sol, les plans de pose), avec <b>seulement ce que tu as débloqué</b>. Petit tour en 7 étapes ?", next: "Commencer ▶" },
+  { core: true, part: "Ta partie", target: "#t-me", title: "D'abord : où tu en es", text: "<b>Mon usine</b> garde ta progression : recherches débloquées, argent, RP. Tu peux aussi <b>importer</b> une partie exportée d'un autre appareil. Tout reste dans ton navigateur." },
+  { core: true, part: "Planifier", target: "#t-item", title: "L'objet à produire", text: "Tape le nom de l'objet <b>comme dans le Recipe Book</b> du jeu, puis la quantité par minute (ou le nombre de machines finales)." },
+  { core: true, part: "Planifier", target: "#t-answer", title: "La réponse", text: "En une ligne : combien de machines, puis la place au sol, l'énergie et le prix. Si une recherche manque, le site te dit laquelle." },
+  { core: true, part: "Planifier", target: "#t-tabs", title: "Tes vues de travail", text: "Le <b>schéma</b> montre la chaîne (clique un bloc pour régler son nombre de machines), les <b>plans de pose</b> dessinent l'usine module par module, comme tu la construis en jeu." },
+  { core: true, part: "Le reste du site", target: "#t-arbre", title: "L'arbre de recherche", text: "Comme en jeu. Pour une recherche pas encore débloquée : ce qui te manque, et <b>dans combien de temps de jeu</b> tu l'auras à ton rythme." },
+  { core: true, part: "Le reste du site", target: "#t-contrib", title: "Recettes et Contribuer", text: "<b>Recettes</b> : tous les crafts, comme l'onglet du jeu. <b>Contribuer</b> : corriger une valeur ⚠ qui ne colle pas au jeu, relever les ports d'un bâtiment." },
+  { core: true, part: "Fin", target: "#t-help", title: "Revoir la visite", text: "Ce bouton <b>?</b> rejoue la visite quand tu veux, en entier ou seulement le détail." },
+  // Détail (proposé après l'essentiel)
+  { part: "Ma recherche", target: "#t-usine", title: "Ma recherche et « Je joue »", text: "Recopie ton <b>Research Tracking Panel</b> : le site estime tes RP et leur baisse au-delà du seuil. Les RP ne montent qu'en jeu : clique <b>▶ Je joue</b> en lançant le jeu." },
+  { part: "Régler le plan", target: "#t-prio", title: "Les priorités", text: "Quand un objet se fabrique de plusieurs façons, la <b>première priorité</b> décide (par défaut : le moins de place). Glisse les lignes pour changer l'ordre." },
+  { part: "Régler le plan", target: "#t-goals", title: "Les autres objectifs", text: "Le site calcule aussi une <b>centrale</b> pour une puissance voulue, une installation de <b>recherche</b>, ou ce qu'il faut vendre pour un <b>revenu</b>." },
+  { part: "Fin", center: true, title: "C'est parti", text: "Tout est une <b>proposition</b> : sers-t'en comme base et optimise en jeu. Bonne construction !", next: "Terminer" },
+];
+const st = { i: -1, mode: "core", decision: false };
+let blocker, spot, bubble;
+function dom() {
+  if (blocker) return;
+  blocker = Object.assign(document.createElement("div"), { className: "tour-blocker" });
+  spot = Object.assign(document.createElement("div"), { className: "tour-spot" });
+  bubble = Object.assign(document.createElement("div"), { className: "tour-bubble" });
+  blocker.addEventListener("click", () => { const s = seq(); if (!st.decision && s.indexOf(st.i) === s.length - 1) next(); });
+  document.body.append(blocker, spot, bubble);
+  bubble.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-t]")?.dataset.t;
+    if (a === "next") next(); else if (a === "prev") prev(); else if (a === "end") end();
+    else if (a === "detail") { st.decision = false; st.mode = "detail"; st.i = seq()[0]; render(); }
+  });
+  addEventListener("resize", place);
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && st.i >= 0) end(); });
+}
+const seq = () => STEPS.map((s, k) => k).filter((k) => (st.mode === "core" ? STEPS[k].core : st.mode === "detail" ? !STEPS[k].core : true));
+const docked = () => document.querySelector("[name=mq-bubble]:checked").value === "dock" || innerWidth < 600;
+function start(mode) { dom(); st.mode = mode; st.decision = false; st.i = seq()[0]; render(); }
+function next() { const s = seq(), p = s.indexOf(st.i); if (p < s.length - 1) { st.i = s[p + 1]; render(); } else if (st.mode === "core") decide(); else end(); }
+function prev() { const s = seq(), p = s.indexOf(st.i); if (p > 0) { st.i = s[p - 1]; render(); } }
+function end() { st.i = -1; blocker.classList.remove("open", "dim"); spot.style.display = bubble.style.display = "none"; }
+function decide() {
+  st.decision = true;
+  blocker.classList.add("open", "dim"); spot.style.display = "none"; bubble.style.display = "block";
+  bubble.innerHTML = `<div class="tour-part">L'essentiel est vu</div><div class="tour-title">Tu sais t'orienter 👍</div>
+    <div class="tour-text">Tu veux la <b>visite détaillée</b> ? Ma recherche et « Je joue », les priorités, les autres objectifs. Le bouton <b>?</b> la rejoue quand tu veux.</div>
+    <div class="tour-decision" style="margin-top:12px"><button class="tour-btn next" data-t="detail">Oui, le détail ▶</button><button class="tour-link" data-t="end">Non merci, j'ai compris</button></div>`;
+  place();
+}
+function render() {
+  const s = STEPS[st.i], q = seq(), p = q.indexOf(st.i);
+  blocker.classList.add("open");
+  bubble.style.display = "block";
+  bubble.innerHTML = `<div class="tour-part">${s.part}</div><div class="tour-title">${s.title}</div><div class="tour-text">${s.text}</div>
+    <div class="tour-dots">${q.map((k, j) => `<span class="tour-dot${j < p ? " done" : j === p ? " cur" : ""}"></span>`).join("")}</div>
+    <div class="tour-ctrl">${p > 0 ? `<button class="tour-btn" data-t="prev">◀ Précédent</button>` : ""}<button class="tour-btn next" data-t="next">${s.next ?? (p === q.length - 1 ? (st.mode === "core" ? "Continuer ▶" : "Terminer") : "Suivant ▶")}</button>
+    <span class="skip">${p === q.length - 1 ? "" : `<button class="tour-link" data-t="end">${p === 0 ? "Passer la visite" : "Tout passer"}</button>`}</span></div>`;
+  place();
+}
+function place() {
+  if (st.i < 0 && !st.decision) return;
+  const s = st.decision ? { center: true } : STEPS[st.i];
+  const el = !s.center && s.target ? $(s.target) : null;
+  const dock = docked();
+  bubble.classList.toggle("docked", dock && !st.decision && !s.center);
+  if (!el) {
+    blocker.classList.add("dim"); spot.style.display = "none";
+    bubble.style.left = Math.max(8, (innerWidth - bubble.offsetWidth) / 2) + "px";
+    bubble.style.top = Math.max(8, (innerHeight - bubble.offsetHeight) / 2) + "px";
+    return;
+  }
+  el.scrollIntoView({ block: "center" });
+  blocker.classList.remove("dim");
+  const r = el.getBoundingClientRect(), pad = 6;
+  Object.assign(spot.style, { display: "block", top: r.top - pad + "px", left: r.left - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });
+  if (dock) return;
+  const bw = bubble.offsetWidth, bh = bubble.offsetHeight, gap = 14;
+  let top = r.bottom + pad + gap, left = Math.min(Math.max(8, r.left), innerWidth - bw - 8);
+  if (top + bh > innerHeight - 8) top = Math.max(8, r.top - pad - gap - bh);
+  bubble.style.top = top + "px"; bubble.style.left = left + "px";
+}
+$("#mq-start").addEventListener("click", () => start("core"));
+$("#t-help").addEventListener("click", () => start("full"));
+document.querySelectorAll("[name=mq-bubble]").forEach((r) => r.addEventListener("change", place));
+document.querySelectorAll("#t-nav a, .me a, .callout a, .goalnav a").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+// Première visite : la visite s'ouvre seule.
+start("core");
+</script>
+</body>
+</html>

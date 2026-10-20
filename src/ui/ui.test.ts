@@ -8,6 +8,7 @@ import { makeData, progress } from "../../tests/engine-helpers.ts";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { balanceTimeline, emptySetup } from "../engine/research-balance.ts";
 import { missingNodes } from "../engine/unlock.ts";
+import { SITE_TOUR, tourSeq } from "./tour.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
@@ -404,6 +405,20 @@ describe("arbre de recherche « comme en jeu »", () => {
     // RP/s inconnus : le panneau dit où les saisir ; déjà débloquée : rien.
     expect(renderNodeDetail(data, p, "research-station-4", 17_000, () => null)).toContain("Mon usine › Ma recherche");
     expect(renderNodeDetail(data, p, "gold-refining", 17_000, eta)).not.toContain("rs-eta");
+  });
+});
+
+describe("S24 : visite d'orientation", () => {
+  it("l'essentiel, puis un détail qui entre dans le schéma et l'usine complète (Q25)", () => {
+    const core = tourSeq(SITE_TOUR, "core");
+    const detail = tourSeq(SITE_TOUR, "detail");
+    expect(core).toHaveLength(8);
+    expect([...core, ...detail].sort((a, b) => a - b)).toEqual(tourSeq(SITE_TOUR, "full"));
+    const hashes = detail.map((k) => SITE_TOUR[k]!.hash);
+    expect(hashes).toContain("#objet/schema");
+    expect(hashes).toContain("#objet/pose/usine-entiere");
+    // Une cible par étape, sauf les cartes centrées (bienvenue, fin).
+    for (const s of SITE_TOUR) expect(!!s.target !== !!s.center, s.title).toBe(true);
   });
 });
 

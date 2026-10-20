@@ -75,6 +75,28 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 .recall-bar[hidden] { display: none; }
 .recall-bar > span { flex: 1 1 260px; }
 .blank-prompt { font-size: .95rem; margin: 0; }
+/* Visite d'orientation (S24) : voile, projecteur, bulle fixe en bas ; bouton « ? » de l'en-tête. */
+.help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; padding: 0; }
+.help-btn:hover { color: var(--accent); border-color: var(--accent); }
+.tour-blocker { position: fixed; inset: 0; z-index: 1300; display: none; }
+.tour-blocker.open { display: block; }
+.tour-blocker.dim { background: rgba(0, 0, 0, .68); }
+.tour-spot { position: fixed; z-index: 1301; border-radius: 10px; pointer-events: none; display: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .68), 0 0 0 2px var(--accent); transition: top .22s, left .22s, width .22s, height .22s; }
+.tour-bubble { position: fixed; z-index: 1302; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); display: none; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+.tour-part { font-size: .68rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.tour-title { font: 700 1.05rem var(--f-display); margin-bottom: 5px; }
+.tour-text { font-size: .88rem; color: var(--muted); line-height: 1.5; }
+.tour-text b { color: var(--ink); }
+.tour-dots { display: flex; gap: 5px; margin: 12px 0 10px; flex-wrap: wrap; }
+.tour-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: .25; }
+.tour-dot.done { opacity: .55; }
+.tour-dot.cur { opacity: 1; transform: scale(1.3); }
+.tour-ctrl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tour-skip { margin-left: auto; }
+.tour-link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: .78rem; padding: 4px 2px; }
+.tour-btn { border-radius: 8px; padding: 6px 12px; font-size: .84rem; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.tour-btn.next { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 600; }
+.tour-decision { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .mainnav { display: flex; gap: 2px; }
 .mainnav a { text-decoration: none; padding: 6px 11px; border-radius: 8px; color: var(--muted); font-weight: 500; white-space: nowrap; }
 .mainnav a:hover { color: var(--ink); background: var(--bg); }

@@ -85,7 +85,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S21 | ✅ fait |
 | S22 | Recherche : la durée « à ton rythme » dans l'arbre ; « Des RP » vide, « débloquer » d'abord | petite | S15 | ✅ fait |
 | S23 | Planifier vide, nouveau menu, priorités du joueur, en-tête sur une ligne | moyenne | S15 | ✅ fait |
-| S24 | Fenêtre d'orientation à la première visite | petite à moyenne, maquette | S23 | à faire |
+| S24 | Fenêtre d'orientation à la première visite | petite à moyenne, maquette | S23 | ✅ fait |
 | S25 | L'Usine au premier plan : onglet, module par module, cadrage, « module posé ✓ » | moyenne | S23 | à faire |
 | S26 | Un module : ordre de pose dans le sens de l'usine et dans l'ordre du joueur | moyenne | S25 | à faire |
 | S27 | À évacuer : un tuyau jusqu'au bord choisi pour chaque produit | moyenne | S25 + capture de l'utilisateur | à faire |
@@ -1187,6 +1187,16 @@ Questions : Q14.
   s'orienter sur le site. Le tuto doit être destiner à un utilisateur joueur d'Industrialist. C'est pas
   vraiment un tuto, mais vraiment une explication de comment s'orienter sur le site. Si tu veux on avait
   déjà fait ce genre de chose sur ma philosophie web page. À part ça tout me va. »
+- **Q25 (S24), maquette `maquette/orientation.html`.** Posée le 2026-10-20. Modèle donné par l'utilisateur :
+  la visite guidée de son site de philosophie (`js/08-visite-guidee.js` : voile, projecteur, bulle,
+  l'essentiel puis le détail, bouton « ? ») ; « c'est juste de quoi t'inspirer […] j'hésite encore à faire
+  suivre le texte descriptif avec le focus ». Questions au bas de la maquette : bulle qui suit le projecteur
+  ou fixe en bas ; contenu (7 étapes + détail) ; ton ; quand elle s'ouvre et le clic dans le sombre ;
+  téléphone.
+
+  Réponse (2026-10-20) : « Bulle fixe, et pour la visite détaillée, pense à rentrer dans les autres onglets,
+  j'aurais aimé que tu montre au minimum le graphe et un plan d'une usine complète histoire qu'on voit
+  vraiment le potentiel du site. Mais sinon c'est bien ».
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -1262,6 +1272,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S15 Maquette | Validée (`maquette/revue.html`, Q24) : menu Planifier · Arbre · Recettes · Mon usine · Contribuer ; Planifier vide (exemples en grisé) pour les quatre objectifs ; chiffres place, machines, énergie, prix ; barre « Ton plan » ; onglets Usine (en premier, module par module), Schéma, Liste des machines, Détails ; « module posé ✓ » ; côté de sortie de ce qu'il faut évacuer ; ordre de pose dans le sens de l'usine et dans l'ordre du joueur, avec les touches ; ⚠ cliquable ; durée « à ton rythme » dans l'arbre ; Mon usine en deux onglets ; vocabulaire du tableau 8 ; R15 dans le plan de S16. | 2026-10-20 |
 | S15 Accueil | Pas d'onglet Accueil : une **fenêtre d'orientation** à la première visite, pour un joueur d'Industrialist (« pas vraiment un tuto, mais vraiment une explication de comment s'orienter sur le site ») ; modèle : la page « philosophie » d'un autre site de l'utilisateur (lien à demander au début du lot). | 2026-10-20 |
 | S15 Lots | Réorganisation découpée en S22 à S29, placés avant S16 (§ 2). | 2026-10-20 |
+| S24 Visite | Maquette validée (`maquette/orientation.html`, Q25) : bulle fixe en bas ; l'essentiel (8 étapes) à la première visite, puis la visite détaillée proposée, qui entre dans les vues (au minimum le schéma et l'usine complète) ; bouton « ? » ; le reste comme la maquette. | 2026-10-20 |
 | S15 Priorités | Priorités par défaut d'un objet : le moins de place, puis le moins de machines, puis le moins d'énergie, le prix en dernier (joueur avancé : « ma priorité se concentre sur la place et le nombre de machine, et l'énergie »). À faire dans un lot de réorganisation. | 2026-10-20 |
 | S15 Parcours | Les cinq parcours A à E, dans l'ordre ; Claude tient la souris dans le navigateur intégré, l'utilisateur guide ; réactions notées mot pour mot, gestes et blocages. | 2026-10-20 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
@@ -1341,6 +1352,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-20, S23** (441 tests, déployé) : menu Planifier · Arbre · Recettes · Mon usine · Contribuer ; page Accueil retirée (`#accueil` et toute adresse inconnue → Planifier ; l'encadré « Première visite » passe en haut de Planifier) ; « Données » devient « Contribuer » (`#contribuer`, les adresses `#donnees…` restent lues). Objectifs vides par défaut (`settings.entered` : un objectif devient rempli dès qu'on y saisit un objet, une quantité, une puissance ou un revenu ; les réglages d'avant S23 sont considérés remplis) : exemples en grisé, une phrase, ni résultat ni onglets ; la quantité 60 n'apparaît qu'une fois l'objet choisi. Onglets du résultat masqués quand il n'y a rien (objectif recherche sans plan). Priorités par défaut d'un objet : place › machines › énergie › prix (les priorités déjà enregistrées ne changent pas). Chiffres de la réponse : cases au sol, machines, énergie, prix ; la pollution passe en tête de Détails (objet, argent ; l'énergie la garde). En-tête : bouton « ← page précédente » retiré, « ▶ Je joue » / « ⏸ En jeu » écrit, « · hors jeu » retiré de la puce (le bouton le dit), en-tête jusqu'à 1 280 px ; rappel « Tu jouais encore ? » en bandeau sous l'en-tête (✕ = arrêté à la fermeture).
   Parcours A refait (partie vide, port 5181) : page d'arrivée vide en 0 geste ; « Crankshaft » tapé → 60 apparaît, « ne peut pas encore être produit » ; « C'est fait, je les ai débloquées » → 158 machines, chiffres 3 996 cases · 158 machines · 609,2 kMF/s · 426 k$. `#accueil` → `#objet`, `#donnees/batiments` → Contribuer. Bandeau de rappel simulé (2 h) : affiché sous l'en-tête. En-tête sur une ligne à 1 366 px (partie de l'utilisateur, Arbre, trois puces) ; téléphone 375 px sans débordement.
   À surveiller : au téléphone, le menu défile et « Contribuer » est coupé à droite (comme « Données » avant) ; les joueurs existants gardent leurs objectifs remplis et leurs anciennes priorités (énergie d'abord) : seul un nouveau joueur a le nouvel ordre ; le titre de la page reste « Produire un objet » (la maquette disait « Que veux-tu produire ? »).
+- **2026-10-20, S24** (442 tests, déployé) : modèle donné par l'utilisateur (visite guidée de son site de philosophie), maquette `maquette/orientation.html` validée (Q25 : bulle fixe en bas, détail qui entre dans les vues). `src/ui/tour.ts` : voile, projecteur, bulle fixe en bas, l'essentiel (8 étapes) puis « Oui, le détail ▶ » / « Non merci » ; détail en 8 étapes qui ouvrent le schéma, l'usine complète (module par module), les priorités, le filtre de machines, Ma recherche, l'arbre et les recettes ; Échap ferme ; clic dans le sombre seulement à la dernière étape. Bouton « ? » dans l'en-tête (visite complète). Ouverture automatique à la première visite seulement (partie vide, clé `ind-calc:v1:visite`). Pendant la visite, la page montre un exemple (60 Crankshaft/min, toutes les recherches, sans filtre) : rien n'est enregistré (`saveSettings` suspendu), la progression et les réglages reviennent à l'identique à la fin.
+  Parcours réel : partie de l'utilisateur, « ? » → 16 étapes, schéma dessiné, usine calculée (73 × 133 cases, 12 modules) et éclairée ; à la fin, réglages enregistrés identiques, 128 recherches, retour sur Mon usine. Partie neuve (port 5183) : la visite s'ouvre seule, 8 étapes puis le choix ; « Non merci » → page vide, comme avant.
+  À surveiller : l'usine de l'exemple est encore cadrée sur la parcelle quand elle est renseignée (S25) ; les captures du navigateur intégré échouaient (fenêtre masquée) : parcours fait par le DOM ; les joueurs existants ne voient la visite que par « ? ».
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions

@@ -72,6 +72,7 @@ import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
+import { createTour, SITE_TOUR } from "./tour.ts";
 import {
   defaultDir,
   draftFrom,
@@ -130,7 +131,7 @@ import {
   setRemoved,
   saveBuilt,
   saveCorrections,
-  saveSettings,
+  saveSettings as storeSettings,
   setBuilt,
   setCorrection,
   engineFilter,
@@ -203,6 +204,43 @@ let data: GameData = buildGameData(files, []).data;
 let dataErrors: string[] = [];
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
+
+// ---------------------------------------------------------------- visite d'orientation (S24)
+/** Pendant la visite, la page montre un exemple : rien n'est enregistré, la partie revient à la fin. */
+let touring: { settings: string; prog: ProgressState; hash: string } | null = null;
+function saveSettings(s: Settings): void {
+  if (!touring) storeSettings(s);
+}
+const KEY_TOUR = "ind-calc:v1:visite";
+const tour = createTour(SITE_TOUR, {
+  onStart() {
+    touring = { settings: JSON.stringify(settings), prog, hash: location.hash };
+    // L'exemple : 60 Crankshaft/min, toutes les recherches, usine module par module, sans filtre.
+    prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
+    Object.assign(settings, { goal: "objet", item: "crankshaft", mode: "rate", rate: 60, fixed: null, machineFilters: {}, usine: { ...settings.usine, full: false } });
+    enter("objet");
+    planDirty = true;
+  },
+  go(hash) {
+    location.hash = hash;
+  },
+  onEnd() {
+    if (!touring) return;
+    const back = touring;
+    touring = null;
+    for (const k of Object.keys(settings)) delete (settings as Record<string, unknown>)[k];
+    Object.assign(settings, JSON.parse(back.settings));
+    prog = back.prog;
+    planDirty = true;
+    try {
+      localStorage.setItem(KEY_TOUR, "1");
+    } catch {
+      // stockage indisponible : la visite reviendra à la prochaine première visite
+    }
+    if (location.hash !== back.hash && back.hash) location.hash = back.hash;
+    else render();
+  },
+});
 /** Journal des RP (S21) : temps de jeu, relevés, configurations, dépenses, sessions. */
 let journal: RpJournal = loadJournal() ?? startJournal(Date.now(), player);
 saveJournal(journal);
@@ -3405,6 +3443,17 @@ bindRecettes();
 const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings });
 window.addEventListener("hashchange", showPage);
 showPage();
+// Visite d'orientation (S24) : seule à la toute première visite, puis par le bouton « ? ».
+$("help").addEventListener("click", () => tour.start("full"));
+if (isFresh()) {
+  let seen: string | null = "1";
+  try {
+    seen = localStorage.getItem(KEY_TOUR);
+  } catch {
+    // stockage indisponible : pas de visite automatique
+  }
+  if (!seen) tour.start("core");
+}
 window.setInterval(tickRp, 5000);
 bindHistory();
 void recallPlaying();
