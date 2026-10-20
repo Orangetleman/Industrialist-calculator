@@ -100,7 +100,6 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
         const s = tourSeq(steps, st.mode);
         if (!st.decision && s.indexOf(st.i) === s.length - 1) next();
       });
-      d.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
       return d;
     });
     spot = Object.assign(document.createElement("div"), { className: "tour-spot" });
@@ -133,7 +132,12 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") end();
   };
-  const onResize = () => place();
+  // Le projecteur suit sa cible : défilement, fenêtre redimensionnée, page qui change (bloc sélectionné…).
+  let frame = 0;
+  const follow = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => place(false));
+  };
 
   function start(mode: TourMode): void {
     build();
@@ -143,9 +147,9 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     st.i = tourSeq(steps, mode)[0]!;
     st.hole = null;
     if (fresh) {
-      document.documentElement.classList.add("touring"); // la page ne défile plus sous la visite
       document.addEventListener("keydown", onKey);
-      window.addEventListener("resize", onResize);
+      window.addEventListener("resize", follow);
+      window.addEventListener("scroll", follow, { passive: true });
       hooks.onStart();
     }
     render();
@@ -183,7 +187,8 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     bubble.style.display = "none";
     document.documentElement.classList.remove("touring");
     document.removeEventListener("keydown", onKey);
-    window.removeEventListener("resize", onResize);
+    window.removeEventListener("resize", follow);
+    window.removeEventListener("scroll", follow);
     hooks.onEnd();
   }
   const toggle = () =>
@@ -192,6 +197,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     stopTimers();
     st.decision = true;
     st.hole = null;
+    document.documentElement.classList.add("touring");
     shade(null);
     spot.style.display = "none";
     bubble.style.display = "block";
@@ -216,10 +222,16 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
       <div class="tour-ctrl">${p > 0 ? `<button type="button" class="tour-btn" data-tour="prev">◀ Précédent</button>` : ""}<button type="button" class="tour-btn next" data-tour="next">${label}</button>
       <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${p === 0 ? "Passer la visite" : "Tout passer"}</button>`}</span></div>`;
     bubble.querySelector<HTMLButtonElement>("[data-tour=next]")?.focus({ preventScroll: true });
-    // Plusieurs passes : la page change d'adresse, le schéma et l'usine se dessinent après.
+    // On regarde : la page est figée. On essaie (play) : la page défile, le projecteur suit sa cible.
+    document.documentElement.classList.toggle("touring", !step.play);
+    // Plusieurs passes de cadrage : la page change d'adresse, le schéma et l'usine se dessinent après.
     stopTimers();
-    st.timers = [0, 150, 450, 1200, 3000, 8000].map((ms) => window.setTimeout(place, ms));
-    if (step.wait) st.poll = window.setInterval(() => waitTick(step), 300);
+    st.timers = [0, 150, 450].map((ms) => window.setTimeout(() => place(true), ms));
+    // Puis le projecteur suit la cible (un bloc sélectionné agrandit la page, l'usine se calcule…).
+    st.poll = window.setInterval(() => {
+      if (step.wait) waitTick(step);
+      place(false);
+    }, 250);
   }
   /** Un calcul en cours (usine) : son avancement dans la bulle, puis le projecteur sur le résultat. */
   function waitTick(step: TourStep): void {
@@ -233,7 +245,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
       box.innerHTML = `<span>⏳ ${label} ${pct}</span><span class="bar"><i style="width:${parseFloat(pct) || 0}%"></i></span>`;
     } else if (!box.hidden) {
       box.hidden = true;
-      place();
+      place(true);
     }
   }
   /** Les volets autour du trou (null : un volet plein) ; `dim` : ils assombrissent eux-mêmes (pas de projecteur). */
@@ -255,7 +267,8 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
       Object.assign(d.style, { display: "block", top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px` });
     });
   }
-  function place(): void {
+  /** `frame` : recadrer la page sur la cible (entrée dans l'étape) ; sinon suivre la cible là où elle est. */
+  function place(frame = true): void {
     if (st.i < 0 || st.decision) return;
     const step = steps[st.i]!;
     const el = !step.center && step.target ? document.querySelector<HTMLElement>(step.target) : null;
@@ -275,29 +288,39 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     const room = near ? window.innerHeight - 8 : window.innerHeight - bubble.offsetHeight - 24;
     let r = el.getBoundingClientRect();
     const inHeader = !!el.closest(".top");
-    if (!inHeader && (r.top < minTop || r.bottom > room)) {
+    if (frame && !inHeader && (r.top < minTop || r.bottom > room)) {
       window.scrollBy(0, r.top - minTop);
       r = el.getBoundingClientRect();
     }
     const pad = 6;
-    const top = Math.max(4, r.top - pad);
+    // La partie visible de la cible : sous l'en-tête et, bulle fixe, au-dessus de la bulle.
+    const top = inHeader ? Math.max(4, r.top - pad) : Math.max(header + 2, r.top - pad);
     const bottom = Math.min(inHeader ? r.bottom + pad : room, r.bottom + pad);
-    const hole: Rect = { top, left: Math.max(4, r.left - pad), width: Math.min(window.innerWidth - 8, r.width + pad * 2), height: Math.max(0, bottom - top) };
+    if (bottom - top < 12) {
+      // Cible sortie de l'écran (on a fait défiler) : voile plein, on peut redéfiler vers elle.
+      st.hole = null;
+      spot.style.display = "none";
+      shade(null);
+      return;
+    }
+    const hole: Rect = { top, left: Math.max(4, r.left - pad), width: Math.min(window.innerWidth - 8, r.width + pad * 2), height: bottom - top };
+    if (!frame && st.hole && Math.abs(st.hole.top - hole.top) + Math.abs(st.hole.left - hole.left) + Math.abs(st.hole.width - hole.width) + Math.abs(st.hole.height - hole.height) < 1) return;
     // Premier éclairage après une carte centrée : le projecteur part de la bulle, l'œil le suit.
-    if (!st.hole) {
+    if (!st.hole && pulsed !== st.i) {
       const b = bubble.getBoundingClientRect();
       Object.assign(spot.style, { display: "block", transition: "none", top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px` });
       void spot.offsetWidth;
       spot.style.removeProperty("transition");
     }
-    // Une pulsation à chaque nouvelle étape ou quand la cible bouge (pas à chaque passe de recalage).
-    const moved = !st.hole || Math.abs(st.hole.top - hole.top) + Math.abs(st.hole.left - hole.left) + Math.abs(st.hole.width - hole.width) + Math.abs(st.hole.height - hole.height) > 4;
-    if (moved || pulsed !== st.i) {
+    // Une pulsation à chaque nouvelle étape seulement.
+    if (pulsed !== st.i) {
       pulsed = st.i;
       spot.classList.remove("pulse");
       void spot.offsetWidth;
       spot.classList.add("pulse");
     }
+    // Suivre la cible (défilement, page qui change) sans glissade : le projecteur colle à elle.
+    spot.style.transition = frame ? "" : "none";
     st.hole = hole;
     Object.assign(spot.style, { display: "block", top: `${hole.top}px`, left: `${hole.left}px`, width: `${hole.width}px`, height: `${hole.height}px` });
     // Élément utilisable : les volets laissent le trou ; sinon un volet plein, transparent (le projecteur assombrit).
