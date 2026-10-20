@@ -192,7 +192,18 @@ function kpis(v: ViewCtx): [string, string][] {
     fmtMF(t.energyAvg) + unk(t.energyUnknownSteps),
     t.energyProduced ? `énergie, produite sur place (${fmtMF(t.energyProduced)})` : `énergie · ${fmtMF(t.energyPeak)} en pointe`,
   ];
-  return [energy, cost, pollution, area];
+  // S23 : l'ordre qui compte pour un joueur (la place, les machines, l'énergie, puis le prix) ; la pollution passe dans Détails.
+  const machines: [string, string] = [fmt(t.machines, 0), "machines"];
+  return [area, machines, energy, cost];
+}
+
+/** La pollution du plan, pour Détails (S23 : retirée des chiffres de la réponse, sauf pour l'énergie). */
+function pollutionLine(v: ViewCtx): string {
+  const t = v.plan.totals;
+  const removes = t.pollutionPerHour[1] < 0;
+  return `<p class="hint">Pollution ${removes ? "retirée (les Scrubbers en retirent plus qu'il n'en est ajouté)" : "ajoutée"} : <b>${esc(fmtPol(t.pollutionPerHour))}</b>${
+    t.pollutionUnknownSteps ? ` (${t.pollutionUnknownSteps} étape(s) inconnue(s))` : ""
+  } · elle ralentit la pousse des arbres.</p>`;
 }
 
 function chipLine(label: string, chips: string[]): string {
@@ -773,6 +784,7 @@ export function renderDetails(v: ViewCtx): string {
     const how = p.engine === "simplexe" ? "optimisation exacte (simplexe)" : "choix heuristique, une recette par objet";
     parts.push(more("Comment ce plan est calculé", `<p>Priorité : ${esc(CRITERION_TEXT[p.criterion].label.toLowerCase())} ; ${esc(how)}. Les machines sont arrondies à l'unité supérieure, d'où l'occupation affichée quand elle n'est pas pleine.</p>`));
   }
+  if (v.goal === "objet" || v.goal === "argent") parts.unshift(pollutionLine(v));
   return parts.join("") || `<p class="muted">Rien de plus.</p>`;
 }
 

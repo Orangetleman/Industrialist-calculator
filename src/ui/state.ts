@@ -75,6 +75,11 @@ export type UsineView = { full: boolean; glue: boolean; detail: boolean; power: 
 export type Settings = {
   /** Objectif affiché : produire un objet, de l'énergie, des RP, ou de l'argent. */
   goal: Goal;
+  /**
+   * Objectifs que le joueur a déjà saisis (S23). Un objectif absent reste vide : exemples en grisé,
+   * aucun résultat. L'objectif recherche n'en a pas besoin (rien de choisi par défaut, S22).
+   */
+  entered: Goal[];
   item: string;
   mode: "rate" | "machines";
   rate: number;
@@ -137,11 +142,13 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   goal: "objet",
+  entered: [],
   item: "crankshaft",
   mode: "rate",
   rate: 60,
   machines: 15,
-  criteria: { objet: ["energy", "machines", "cost", "pollution", "area", "raw", "steps"], argent: ["machines", "energy", "cost", "pollution", "area", "raw"], énergie: ["machines", "cost", "raw", "pollution", "area"], recherche: ["machines", "energy", "cost"] },
+  // Objet : l'ordre d'un joueur avancé (S15) : la place, le nombre de machines, l'énergie, puis le prix.
+  criteria: { objet: ["area", "machines", "energy", "cost", "pollution", "raw", "steps"], argent: ["machines", "energy", "cost", "pollution", "area", "raw"], énergie: ["machines", "cost", "raw", "pollution", "area"], recherche: ["machines", "energy", "cost"] },
   useUnverified: false,
   forced: {},
   fixed: null,
@@ -205,6 +212,8 @@ export function loadSettings(): Settings {
   // Ancien format : une seule priorité par objectif ; elle passe en tête de la liste.
   out.criteria = Object.fromEntries(GOALS.map((g) => [g, criteriaList(g, saved[g])])) as Settings["criteria"];
   if (!GOALS.includes(out.goal)) out.goal = "objet";
+  // Réglages d'avant S23 : le joueur avait ses objectifs remplis, ils le restent.
+  out.entered = Array.isArray(rest.entered) ? rest.entered.filter((g) => GOALS.includes(g)) : Object.keys(rest).length ? [...GOALS] : [];
   out.useExisting = out.useExisting !== false;
   if (!["liste", "schema", "pose", "details"].includes(out.resultTab)) out.resultTab = "liste";
   if (out.energyUnit !== "k" && out.energyUnit !== "M") out.energyUnit = "k";

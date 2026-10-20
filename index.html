@@ -29,42 +29,30 @@
 <!-- Barre du haut : navigation courte + état du joueur, toujours visible -->
 <header class="top">
   <div class="top-in">
-    <button type="button" class="back" id="back" hidden><span aria-hidden="true">←</span> <span class="back-to" id="back-to"></span></button>
-    <a class="brand" href="#accueil"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span>Calculateur<span class="long"> Industrialist</span></span></a>
+    <a class="brand" href="#objet"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span>Calculateur<span class="long"> Industrialist</span></span></a>
+    <!-- S23 : Planifier d'abord (plus d'onglet Accueil), les outils de contribution en dernier. -->
     <nav class="mainnav" aria-label="Sections">
-      <a href="#accueil" data-nav="accueil">Accueil</a>
       <a href="#objet" data-nav="plan" id="nav-plan">Planifier</a>
-      <a href="#usine" data-nav="usine">Mon usine</a>
-      <a href="#arbre" data-nav="arbre">Arbre<span class="long"> de recherche</span></a>
+      <a href="#arbre" data-nav="arbre">Arbre</a>
       <a href="#recettes" data-nav="recettes">Recettes</a>
-      <a href="#donnees" data-nav="donnees">Données</a>
+      <a href="#usine" data-nav="usine">Mon usine</a>
+      <a href="#contribuer" data-nav="donnees">Contribuer</a>
     </nav>
     <div class="me" id="me" aria-label="Mon usine en bref"></div>
-    <button type="button" class="me-play" id="me-play" data-play="on" hidden>▶</button>
+    <button type="button" class="me-play" id="me-play" data-play="on" hidden>▶ Je joue</button>
   </div>
+  <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
+  <div class="recall-bar" id="recall" role="status" hidden></div>
 </header>
 
 <main id="main" tabindex="-1">
 
-  <!-- ====================================================== ACCUEIL -->
-  <section class="page" id="page-accueil" aria-labelledby="h-home" hidden>
-    <h1 id="h-home">Que veux-tu faire ?</h1>
-    <p class="lead">Dis ce que tu veux obtenir : le calculateur donne la liste exacte des machines à construire, avec seulement ce que tu as débloqué.</p>
-    <div class="cards">
-      <a class="card" href="#objet"><span class="ico" aria-hidden="true">⚙</span><b>Produire un objet</b><small>« 60 Crankshafts par minute » → les machines de toute la chaîne.</small></a>
-      <a class="card" href="#energie"><span class="ico" aria-hidden="true">⚡</span><b>Produire de l'énergie</b><small>« 2 MMF/s, sans combustible » → les centrales et leur alimentation.</small></a>
-      <a class="card" href="#rp"><span class="ico" aria-hidden="true">🔬</span><b>Gagner des points de recherche</b><small>« Débloquer la Research Station 3 en 1 h » → les stations et leurs items.</small></a>
-      <a class="card" href="#argent"><span class="ico" aria-hidden="true">$</span><b>Gagner de l'argent</b><small>« 10 000 $ par minute » → quoi fabriquer, quoi vendre, et les dépôts.</small></a>
-    </div>
-    <div class="callout" id="first-visit" hidden>
-      <p><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Deux minutes, une seule fois.</p>
-      <a class="btn primary" href="#usine">Renseigner mon usine</a>
-    </div>
-    <p class="hint home-note">Tout est gardé dans ce navigateur. Les données viennent des wikis du jeu ; en cas d'écart, le Recipe Book du jeu fait foi (corrige la valeur dans « Données »).</p>
-  </section>
-
   <!-- ====================================================== PLANIFIER (une page par objectif) -->
   <section class="page" id="page-plan" aria-labelledby="plan-title" hidden>
+    <div class="callout" id="first-visit" hidden>
+      <p><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Tout est gardé dans ce navigateur.</p>
+      <a class="btn primary" href="#usine">Renseigner mon usine</a>
+    </div>
     <nav class="goalnav" aria-label="Objectif">
       <a href="#objet" data-goal="objet">Un objet</a>
       <a href="#energie" data-goal="énergie">De l'énergie</a>
@@ -81,12 +69,12 @@
       </label>
       <datalist id="item-list"></datalist>
       <label data-goals="objet" for="qty">Quantité
-        <span class="qty"><input id="qty" type="number" min="0.01" step="any" inputmode="decimal">
+        <span class="qty"><input id="qty" type="number" min="0.01" step="any" inputmode="decimal" placeholder="60">
         <select id="qty-unit" aria-label="Unité de la quantité"><option value="rate">par minute</option><option value="machines">machines finales</option></select></span>
       </label>
       <!-- énergie -->
       <label data-goals="énergie" for="energy">Puissance voulue
-        <span class="qty"><input id="energy" type="number" min="0.001" step="any" inputmode="decimal">
+        <span class="qty"><input id="energy" type="number" min="0.001" step="any" inputmode="decimal" placeholder="ex. 1000">
         <select id="energy-unit" aria-label="Unité de puissance"><option value="k">kMF/s</option><option value="M">MMF/s</option></select></span>
       </label>
       <label data-goals="énergie" for="energy-mode">Production
@@ -114,7 +102,7 @@
       </label>
       <!-- argent -->
       <label data-goals="argent" for="money">Revenu voulu ($/min)
-        <input id="money" type="number" min="1" step="any" inputmode="decimal">
+        <input id="money" type="number" min="1" step="any" inputmode="decimal" placeholder="ex. 10000">
       </label>
       <!-- commun -->
       <details class="criteria" id="criteria">
@@ -159,7 +147,7 @@
     <div id="answer" aria-live="polite"></div>
     <div id="fix-bar" hidden></div>
 
-    <div class="rtabs" role="tablist" aria-label="Résultat">
+    <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result">
       <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste">Liste de construction</button>
       <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema">Schéma</button>
       <button type="button" role="tab" id="rtab-pose" data-rtab="pose" aria-controls="rpanel-pose">Plans de pose</button>
@@ -438,7 +426,7 @@
 
   <!-- ====================================================== DONNÉES -->
   <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
-    <h1 id="h-data">Données</h1>
+    <h1 id="h-data">Contribuer</h1>
     <p class="lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
     <div class="rtabs" role="tablist" aria-label="Outils">
       <button type="button" role="tab" id="dtab-verifier" data-dtab="verifier" aria-controls="dpanel-verifier">Valeurs à vérifier <span class="pill" id="verify-count"></span></button>

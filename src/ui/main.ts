@@ -388,7 +388,7 @@ const itemName = (id: string) => data.items.get(id)?.name ?? id;
 // ---------------------------------------------------------------- pages et adresses
 
 /** Adresses d'avant la refonte. */
-const OLD_ROUTES: Record<string, string> = { production: "", recherche: "arbre", verifier: "donnees", batiments: "donnees", partie: "usine" };
+const OLD_ROUTES: Record<string, string> = { production: "", accueil: "", recherche: "arbre", verifier: "contribuer", batiments: "contribuer", partie: "usine" };
 const KEY_STACK = "ind-calc:v1:pile";
 
 let route: Route = parseRoute(location.hash);
@@ -426,18 +426,6 @@ function refine(r: Route): void {
   route = r;
   stack = [...stack.slice(0, -1), h];
   saveStack();
-  renderBack();
-}
-
-function renderBack(): void {
-  const b = $<HTMLButtonElement>("back");
-  const prev = stack.length >= 2 ? stack.at(-2)! : null;
-  b.hidden = !prev;
-  if (!prev) return;
-  const t = routeTitle(parseRoute(prev));
-  b.title = `Revenir à : ${t}`;
-  b.setAttribute("aria-label", `Retour : ${t}`);
-  $("back-to").textContent = t;
 }
 
 /** Lit l'adresse : vue demandée, anciennes adresses redirigées. */
@@ -483,9 +471,8 @@ function showPage(): void {
     else a.removeAttribute("aria-current");
   }
   document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
-  const titles: Record<Page, string> = { accueil: "", plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Données" };
-  document.title = titles[page] ? `${titles[page]} — Calculateur de production` : "Calculateur de production";
-  renderBack();
+  const titles: Record<Page, string> = { plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
+  document.title = `${titles[page]} — Calculateur de production`;
   document.body.classList.remove("usine-wide");
   render();
   if (page === "donnees" && route.machine) buildings.show(route.machine);
@@ -777,8 +764,7 @@ function updateSoon(): void {
 function render(): void {
   renderHeader();
   const page = currentPage();
-  if (page === "accueil") renderHome();
-  else if (page === "plan") renderPlanPage();
+  if (page === "plan") renderPlanPage();
   else if (page === "usine") renderUsine();
   else if (page === "arbre") renderTreePage();
   else if (page === "recettes") renderRecettes();
@@ -802,7 +788,7 @@ function renderHeader(): void {
   const chips = [
     `<a class="me-chip" href="#usine" title="Recherches débloquées">${unlockedCount()}/${researchTotal()} recherches</a>`,
     rp !== null
-      ? `<a class="me-chip" href="#usine" title="RP disponibles et vitesse réelle (estimés, en temps de jeu)">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? " · hors jeu" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
+      ? `<a class="me-chip" href="#usine" title="RP disponibles et vitesse réelle (estimés, en temps de jeu)">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
       : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="Argent">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
@@ -813,28 +799,39 @@ function renderHeader(): void {
   play.hidden = rp === null;
   play.classList.toggle("on", on);
   play.dataset.play = on ? "off" : "on";
-  play.textContent = on ? "⏸" : "▶";
+  play.textContent = on ? "⏸ En jeu" : "▶ Je joue";
   play.title = on ? "En jeu : les RP montent. Clique quand tu quittes le jeu." : "Hors jeu : les RP ne bougent pas. Clique quand tu lances le jeu.";
   play.setAttribute("aria-label", on ? "Je ne joue plus" : "Je joue");
 }
 
-function renderHome(): void {
-  $("first-visit").hidden = !isFresh();
-}
-
 // ---------------------------------------------------------------- page d'un objectif
+
+/** Objectif pas encore saisi (S23) : champs vides, exemples en grisé, aucun résultat. */
+const isBlank = (g: Goal) => g !== "recherche" && !settings.entered.includes(g);
+/** Le joueur a saisi quelque chose dans cet objectif : ses valeurs s'affichent et le calcul se fait. */
+function enter(g: Goal): boolean {
+  if (settings.entered.includes(g)) return false;
+  settings.entered = [...settings.entered, g];
+  return true;
+}
+const BLANK_PROMPT: Record<Goal, string> = {
+  objet: "Choisis un objet et une quantité : le calcul n'utilise que ce que tu as débloqué.",
+  énergie: "Indique la puissance voulue.",
+  recherche: "",
+  argent: "Indique le revenu voulu, en $ par minute.",
+};
 
 function syncForm(): void {
   const set = (id: string, v: string) => {
     if (document.activeElement !== $(id)) input(id).value = v;
   };
-  set("item", data.items.get(settings.item)?.name ?? settings.item);
+  set("item", isBlank("objet") ? "" : (data.items.get(settings.item)?.name ?? settings.item));
   $<HTMLSelectElement>("qty-unit").value = settings.mode;
   // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste).
-  set("qty", settings.mode === "rate" ? String(Number(settings.rate.toFixed(4))) : String(settings.machines));
-  set("money", String(settings.money));
+  set("qty", isBlank("objet") ? "" : settings.mode === "rate" ? String(Number(settings.rate.toFixed(4))) : String(settings.machines));
+  set("money", isBlank("argent") ? "" : String(settings.money));
   $<HTMLSelectElement>("energy-unit").value = settings.energyUnit;
-  set("energy", String(Number((settings.energyMFps / (settings.energyUnit === "M" ? 1e6 : 1e3)).toFixed(4))));
+  set("energy", isBlank("énergie") ? "" : String(Number((settings.energyMFps / (settings.energyUnit === "M" ? 1e6 : 1e3)).toFixed(4))));
   $<HTMLSelectElement>("energy-mode").value = settings.energyGuaranteed ? "garantie" : "moyenne";
   input("no-fuel").checked = settings.energyNoFuel;
   set("distance", settings.distanceTiles === null ? "" : String(settings.distanceTiles));
@@ -904,10 +901,19 @@ function renderPlanPage(): void {
   }).length;
   $("adv-count").textContent = adv ? `(${adv} activée${adv > 1 ? "s" : ""})` : "(aucune activée)";
 
-  $("answer").innerHTML = renderAnswer(v);
+  $("first-visit").hidden = !isFresh();
+  // Rien de saisi (S23) : une phrase, pas de résultat ni d'onglets vides.
+  const blank = isBlank(goal);
+  const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
+  $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(BLANK_PROMPT[goal])}</p>` : renderAnswer(v);
   const fixBar = $("fix-bar");
-  fixBar.innerHTML = renderFixBar(v);
+  fixBar.innerHTML = blank ? "" : renderFixBar(v);
   fixBar.hidden = !fixBar.innerHTML;
+  $("rtabs-result").hidden = noResult;
+  if (noResult) {
+    for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = true;
+    return;
+  }
   rows = buildRows(v);
   signature = buildSignature(goal, rows);
   renderBuild();
@@ -2424,10 +2430,10 @@ function bindPlan(): void {
   const onItem = () => {
     const id = resolveItem(itemInput.value);
     $("item-hint").textContent = id ? "" : itemInput.value.trim() ? "Objet introuvable : choisis un nom dans la liste." : "";
-    if (id && id !== settings.item) {
-      settings.item = id;
-      update();
-    }
+    if (!id) return;
+    const changed = enter("objet") || id !== settings.item;
+    settings.item = id;
+    if (changed) update();
   };
   itemInput.addEventListener("change", onItem);
   itemInput.addEventListener("input", () => {
@@ -2445,6 +2451,7 @@ function bindPlan(): void {
     if (!(v! > 0)) return false;
     if (settings.mode === "rate") settings.rate = v!;
     else settings.machines = v!;
+    enter("objet");
     return true;
   });
   // Changer d'unité garde la même production : le nombre affiché est converti.
@@ -2460,8 +2467,8 @@ function bindPlan(): void {
     settings.mode = mode;
     update();
   });
-  num("money", (v) => (v! > 0 ? ((settings.money = v!), true) : false));
-  num("energy", (v) => (v! > 0 ? ((settings.energyMFps = v! * (settings.energyUnit === "M" ? 1e6 : 1e3)), true) : false));
+  num("money", (v) => (v! > 0 ? ((settings.money = v!), enter("argent"), true) : false));
+  num("energy", (v) => (v! > 0 ? ((settings.energyMFps = v! * (settings.energyUnit === "M" ? 1e6 : 1e3)), enter("énergie"), true) : false));
   $("energy-unit").addEventListener("change", (e) => {
     settings.energyUnit = (e.target as HTMLSelectElement).value === "M" ? "M" : "k";
     saveSettings(settings);
@@ -3396,7 +3403,6 @@ bindTree();
 bindData();
 bindRecettes();
 const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings });
-$("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);
 showPage();
 window.setInterval(tickRp, 5000);
@@ -3460,14 +3466,21 @@ async function recallPlaying(): Promise<void> {
   planDirty = true;
   renderHeader();
   if (currentPage() === "usine") renderRpLive(true);
-  const choice = await ask(
-    "Tu jouais encore ?",
-    `<p>Tu étais <b>en jeu</b> quand le site a été fermé, il y a <b>${esc(away)}</b>. Le jeu ne compte les RP que si tu es connecté.</p>`,
-    [
-      { value: "stop", label: "J'ai arrêté à la fermeture du site", primary: true },
-      { value: "go", label: `Je joue toujours : compter ${away}` },
-    ],
+  // Un bandeau sous l'en-tête (S23), pas une fenêtre par-dessus la page : on peut l'ignorer.
+  const bar = $("recall");
+  bar.innerHTML = `<span><b>Tu jouais encore ?</b> Tu étais en jeu quand le site a été fermé, il y a ${esc(away)}. Compté comme arrêté à la fermeture.</span>
+    <button type="button" class="small" data-recall="go">Je joue toujours : compter ${esc(away)}</button>
+    <button type="button" class="small" data-recall="stop" aria-label="Fermer : j'ai arrêté à la fermeture du site">✕</button>`;
+  bar.hidden = false;
+  const choice = await new Promise<string>((resolve) =>
+    bar.addEventListener("click", function on(e) {
+      const v = (e.target as HTMLElement).closest<HTMLElement>("[data-recall]")?.dataset.recall;
+      if (!v) return;
+      bar.removeEventListener("click", on);
+      resolve(v);
+    }),
   );
+  bar.hidden = true;
   if (choice !== "go" || journal.clock.playing) return;
   // La session continue : l'arrêt ajouté disparaît, l'horloge reprend comme avant la fermeture.
   setJournal({ clock: { ...before.clock, seen: Date.now() }, events: journal.events.filter((e) => e !== stop) });

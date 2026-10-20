@@ -13,7 +13,9 @@
 
 import type { Goal, ResultTab } from "./state.ts";
 
-export type Page = "accueil" | "plan" | "usine" | "arbre" | "recettes" | "donnees";
+// S23 : plus de page d'accueil (l'ancienne adresse #accueil mène à Planifier) ; « Données » devient
+// « Contribuer » (#contribuer ; les adresses #donnees… restent lues).
+export type Page = "plan" | "usine" | "arbre" | "recettes" | "donnees";
 export type DataTab = "verifier" | "batiments";
 export type RecipeKind = "objet" | "machine";
 /** Valeur à vérifier visée par un lien ⚠ (recette ou machine, et le champ). */
@@ -33,13 +35,13 @@ export type Route = {
 /** Entrée « Toute l'usine » de la liste des étapes du plan de pose. */
 export const USINE_STEP = "usine-entiere";
 
-export const PAGES: Page[] = ["accueil", "plan", "usine", "arbre", "recettes", "donnees"];
+export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
 export const GOAL_TITLE: Record<Goal, string> = { objet: "Produire un objet", énergie: "Produire de l'énergie", recherche: "Gagner des points de recherche", argent: "Gagner de l'argent" };
 const TABS: ResultTab[] = ["liste", "schema", "pose", "details"];
 const TAB_TITLE: Record<ResultTab, string> = { liste: "Liste de construction", schema: "Schéma", pose: "Plan de pose", details: "Détails" };
-const PAGE_TITLE: Record<Page, string> = { accueil: "Accueil", plan: "Planifier", usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Données" };
+const PAGE_TITLE: Record<Page, string> = { plan: "Planifier", usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
 
 export function parseRoute(hash: string): Route {
   const parts = hash
@@ -63,7 +65,7 @@ export function parseRoute(hash: string): Route {
     }
     return r;
   }
-  if (head === "donnees") {
+  if (head === "contribuer" || head === "donnees") {
     const r: Route = { page: "donnees" };
     if (a === "verifier" || a === "batiments") r.dataTab = a;
     if (a === "batiments" && b) r.machine = b;
@@ -75,7 +77,7 @@ export function parseRoute(hash: string): Route {
     if ((a === "objet" || a === "machine") && b) r.card = { kind: a, id: b, ...(c ? { craft: c } : {}) };
     return r;
   }
-  return { page: (PAGES as string[]).includes(head) && head !== "plan" ? (head as Page) : "accueil" };
+  return (PAGES as string[]).includes(head) && head !== "plan" ? { page: head as Page } : { page: "plan" };
 }
 
 export function routeHash(r: Route): string {
@@ -88,7 +90,7 @@ export function routeHash(r: Route): string {
       if (r.focus && r.tab === "pose" && r.step === USINE_STEP) parts.push(r.focus);
     }
   } else if (r.page === "donnees") {
-    parts.push("donnees");
+    parts.push("contribuer");
     if (r.dataTab) {
       parts.push(r.dataTab);
       if (r.machine && r.dataTab === "batiments") parts.push(r.machine);
@@ -106,7 +108,7 @@ export function routeTitle(r: Route): string {
   if (r.page === "plan" && r.tab === "pose" && r.step === USINE_STEP) return r.focus ? "Module dans l'usine" : "Toute l'usine";
   if (r.page === "plan") return r.tab ? TAB_TITLE[r.tab] : GOAL_TITLE[r.goal ?? "objet"];
   if (r.page === "recettes") return r.card ? (r.card.kind === "objet" ? "Fiche de l'objet" : "Fiche de la machine") : "Recettes";
-  if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Données";
+  if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Contribuer";
   return PAGE_TITLE[r.page];
 }
 

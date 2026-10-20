@@ -516,7 +516,7 @@ function tools(ctx: RecipesCtx, kind: EntryKind, id: string, picture: Picture | 
 /** Bandeau du mode correction. */
 function editBar(ctx: RecipesCtx): string {
   if (!ctx.edit) return "";
-  return `<div class="rc-editbar"><span><b>Mode correction</b> · chaque valeur enregistrée compte comme un relevé en jeu, daté du jour ; elle s'exporte dans <code>overrides.json</code> (<a href="#donnees/verifier">Données › Mes corrections</a>).</span><button type="button" class="small" data-rc-edit-off>✓ Terminer</button></div>`;
+  return `<div class="rc-editbar"><span><b>Mode correction</b> · chaque valeur enregistrée compte comme un relevé en jeu, daté du jour ; elle s'exporte dans <code>overrides.json</code> (<a href="#donnees/verifier">Contribuer › Mes corrections</a>).</span><button type="button" class="small" data-rc-edit-off>✓ Terminer</button></div>`;
 }
 
 /** Étiquette d'un objet ajouté par le joueur, et de quoi l'effacer si l'ajout est à moi. */
@@ -606,7 +606,7 @@ export function renderMachineCard(ctx: RecipesCtx, id: string): string {
       ${price}
       ${facts.length ? `<p class="rc-facts">${facts.join(" · ")}</p>` : ""}
       ${others.length ? `<p class="rc-facts">Aussi à vérifier : ${others.map((f) => `<a class="rc-flag warn" href="${verifyHref("machine", id, f.field)}" title="${esc(f.detail)}">⚠ ${esc(f.field)}</a>`).join(", ")}</p>` : ""}
-      ${ctx.edit ? `<p class="hint">Taille, tier, pollution et recherche : <a href="#donnees/verifier/machine/${encodeURIComponent(id)}">Données</a> ; ports et prises : éditeur de bâtiments.</p>` : ""}
+      ${ctx.edit ? `<p class="hint">Taille, tier, pollution et recherche : <a href="#donnees/verifier/machine/${encodeURIComponent(id)}">Contribuer</a> ; ports et prises : éditeur de bâtiments.</p>` : ""}
     </div>
     ${tools(ctx, "machine", id, picture)}
   </header>

@@ -4,8 +4,8 @@ import { nextStack, parseRoute, routeHash, routeTitle } from "./route.ts";
 describe("adresses des vues", () => {
   it("chaque vue a son adresse, relue à l'identique", () => {
     const routes = [
-      { page: "accueil" },
       { page: "usine" },
+      { page: "arbre" },
       { page: "plan", goal: "objet" },
       { page: "plan", goal: "énergie", tab: "liste" },
       { page: "plan", goal: "objet", tab: "schema", step: "plastic-bottle" },
@@ -25,9 +25,13 @@ describe("adresses des vues", () => {
   });
 
   it("adresses inconnues ou incomplètes : une vue sensée", () => {
-    expect(parseRoute("")).toEqual({ page: "accueil" });
-    expect(parseRoute("#nimporte")).toEqual({ page: "accueil" });
-    expect(parseRoute("#plan")).toEqual({ page: "accueil" });
+    // S23 : plus de page d'accueil, tout mène à Planifier ; #contribuer et l'ancien #donnees mènent à Contribuer.
+    expect(parseRoute("")).toEqual({ page: "plan" });
+    expect(parseRoute("#nimporte")).toEqual({ page: "plan" });
+    expect(parseRoute("#plan")).toEqual({ page: "plan" });
+    expect(parseRoute("#accueil")).toEqual({ page: "plan" });
+    expect(parseRoute("#contribuer/batiments/press")).toEqual({ page: "donnees", dataTab: "batiments", machine: "press" });
+    expect(routeHash({ page: "donnees", dataTab: "verifier" })).toBe("#contribuer/verifier");
     expect(parseRoute("#objet/nimporte/x")).toEqual({ page: "plan", goal: "objet" });
     expect(parseRoute("#objet/liste/x")).toEqual({ page: "plan", goal: "objet", tab: "liste" }); // pas d'étape pour la liste
     expect(parseRoute("#donnees/verifier/x")).toEqual({ page: "donnees", dataTab: "verifier" });

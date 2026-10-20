@@ -407,6 +407,33 @@ describe("arbre de recherche « comme en jeu »", () => {
   });
 });
 
+describe("S23 : Planifier vide, priorités du joueur", () => {
+  const withStore = (saved: unknown, fn: () => void) => {
+    const g = globalThis as { localStorage?: unknown };
+    const before = g.localStorage;
+    g.localStorage = { getItem: () => (saved === null ? null : JSON.stringify(saved)), setItem: () => {} };
+    try {
+      fn();
+    } finally {
+      g.localStorage = before;
+    }
+  };
+  it("nouveau joueur : aucun objectif saisi ; priorités place › machines › énergie › prix", () => {
+    withStore(null, () => {
+      const st = loadSettings();
+      expect(st.entered).toEqual([]);
+      expect(st.criteria.objet.slice(0, 4)).toEqual(["area", "machines", "energy", "cost"]);
+    });
+  });
+  it("réglages d'avant S23 : les objectifs restent remplis, les priorités choisies ne bougent pas", () => {
+    withStore({ item: "gear", criteria: { objet: ["energy", "machines", "cost"] } }, () => {
+      const st = loadSettings();
+      expect(st.entered).toEqual([...GOALS]);
+      expect(st.criteria.objet[0]).toBe("energy");
+    });
+  });
+});
+
 describe("S22 : l'objectif recherche ne calcule rien d'office", () => {
   it("par défaut : « débloquer une recherche », sans recherche ni vitesse choisies", () => {
     expect(DEFAULT_SETTINGS.rpMode).toBe("node");
