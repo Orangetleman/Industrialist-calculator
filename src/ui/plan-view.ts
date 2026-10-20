@@ -235,7 +235,7 @@ function missingNotes(v: ViewCtx): string[] {
     out.push(`<li class="bad">Non produit : ${why.join(" ; ")}</li>`);
   }
   if (e.nodesToUnlock.length) {
-    const time = e.rpMissing && e.secondsToRp !== null ? `, ≈ ${esc(fmtDuration(e.secondsToRp))} à ton rythme` : e.rpMissing ? `, il te manque ${esc(fmtRP(e.rpMissing))}` : "";
+    const time = e.rpMissing && e.secondsToRp !== null ? `, ≈ ${esc(fmtDuration(e.secondsToRp))} de jeu à ton rythme` : e.rpMissing ? `, il te manque ${esc(fmtRP(e.rpMissing))}` : "";
     out.push(
       `<li>À débloquer : ${e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ")} (${esc(fmtRP(e.rpNeeded))}${time})${
         e.reqItems.length ? ` et vendre ${e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? " ✓" : ""}`).join(", ")}` : ""

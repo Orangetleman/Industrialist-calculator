@@ -37,13 +37,15 @@ import modularJson from "../../data/modular.json";
 import type { ModularFile } from "../engine/modular.ts";
 import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
 import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
-import { balanceTimeline, emptySetup, nominalRate, proposeAddStations, rateAt, researchModel, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
-import { renderResearchForm, renderResearchOut } from "./research-mine.ts";
+import { balanceTimeline, emptySetup, nominalRate, proposeAddStations, rateAt, researchModel, timeToReach, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
+import { renderResearchForm, renderResearchOut, researchHow } from "./research-mine.ts";
+import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
+import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { esc, fmt, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
 import {
-  currentRp,
   exportProgress,
+  loadJournal,
   loadPlayer,
   loadProgress,
   parseOptional,
@@ -53,10 +55,10 @@ import {
   renderTree,
   rpDelta,
   sanitizeProgress,
+  saveJournal,
   savePlayer,
   saveProgress,
   toEngineProgress,
-  withRpRate,
   plotOf,
   type PlayerInfo,
   type ProgressState,
@@ -201,6 +203,9 @@ let data: GameData = buildGameData(files, []).data;
 let dataErrors: string[] = [];
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
+/** Journal des RP (S21) : temps de jeu, relevés, configurations, dépenses, sessions. */
+let journal: RpJournal = loadJournal() ?? startJournal(Date.now(), player);
+saveJournal(journal);
 let built = loadBuilt();
 /** Notes sur les valeurs à vérifier : celles du dépôt (overrides.json, clé `_notes`), puis les miennes. */
 const repoNotes: Notes = cleanNotes((overridesJson as { _notes?: unknown })._notes);
@@ -277,9 +282,86 @@ function rpTiers(): RpTier[] | null {
   const m = rpModel();
   return m && m.source !== "aucune" ? m.tiers : null;
 }
-/** RP estimés maintenant, avec le plafond souple. */
+/** RP estimés maintenant, avec le plafond souple, en temps de jeu (S21). */
 function rpNow(): number | null {
-  return currentRp(player, Date.now(), rpTiers());
+  const g = gameNow(journal.clock, Date.now());
+  return rpAtGame(historyTo(g), g);
+}
+
+// ---------------------------------------------------------------- historique des RP (S21)
+const tiersCache = new Map<string, RpTier[] | null>();
+/** Les tiers d'une configuration du journal (même modèle que « Ma recherche »). */
+function tiersOf(setup: ResearchSetup | null, rps: number | null): RpTier[] | null {
+  if (!RP_PARAMS) return null;
+  const key = JSON.stringify([setup, rps]);
+  if (!tiersCache.has(key)) {
+    if (tiersCache.size > 200) tiersCache.clear();
+    const m = researchModel(RP_PARAMS, data, setup, rps, null);
+    tiersCache.set(key, m.source === "aucune" ? null : m.tiers);
+  }
+  return tiersCache.get(key)!;
+}
+let histCache: { j: RpJournal; end: number; data: GameData; h: RpHistory } | null = null;
+/** La courbe du journal jusqu'au temps de jeu `end`. */
+function historyTo(end: number): RpHistory {
+  if (histCache?.j !== journal || histCache.end !== end || histCache.data !== data) histCache = { j: journal, end, data, h: rpHistory(journal, tiersOf, end) };
+  return histCache.h;
+}
+/** Remplace le contenu seulement s'il change (les boutons rafraîchis toutes les 5 s restent cliquables). */
+function setHtml(el: HTMLElement, html: string): void {
+  if (el.dataset.html !== html) {
+    el.innerHTML = html;
+    el.dataset.html = html;
+  }
+}
+/** L'interrupteur : seul le texte change tant que l'état est le même (le bouton reste cliquable). */
+function refreshPlay(now: number): void {
+  const box = $("rs-play");
+  const tmp = document.createElement("div");
+  tmp.innerHTML = renderPlay(journal, now);
+  const next = tmp.firstElementChild!;
+  const cur = box.firstElementChild;
+  if (!cur || cur.className !== next.className) return box.replaceChildren(next);
+  for (const sel of [".state", ".hint"]) {
+    const a = cur.querySelector(sel);
+    const b = next.querySelector(sel);
+    if (a && b && a.textContent !== b.textContent) a.textContent = b.textContent;
+  }
+}
+/** Change le journal (et le garde). */
+function setJournal(j: RpJournal): void {
+  if (j === journal) return;
+  journal = j;
+  saveJournal(journal);
+}
+const KEY_RP_PERIOD = "ind-calc:v1:rp-period";
+let rpPeriod = (() => {
+  try {
+    const raw = localStorage.getItem(KEY_RP_PERIOD);
+    const v = Number(raw);
+    return raw !== null && Number.isFinite(v) ? v : 86_400_000;
+  } catch {
+    return 86_400_000;
+  }
+})();
+let rhJournalOpen = false;
+const rhNames: Names = { node: (id) => nodeName(id), item: (id) => itemName(id) };
+/** « Je joue » / « Je ne joue plus » (Ma recherche et en-tête). */
+function togglePlaying(on: boolean): void {
+  setJournal(setPlaying(journal, on, Date.now()));
+  planDirty = true;
+  renderHeader();
+  if (currentPage() === "usine") renderRpLive(true);
+}
+/** Les deux graphiques et le journal (au changement du journal, de la période, de la largeur). */
+function renderHistoryBox(): void {
+  const box = document.getElementById("rs-hist");
+  if (!box || currentPage() !== "usine") return;
+  const gNow = gameNow(journal.clock, Date.now());
+  const dom = chartDomain(journal, gNow, rpPeriod);
+  const W = Math.max(280, Math.round(box.clientWidth || 600));
+  rhJournalOpen = box.querySelector<HTMLDetailsElement>("details.rh-journal")?.open ?? rhJournalOpen;
+  box.innerHTML = renderHistory(historyTo(dom[1]), journal, gNow, rpPeriod, W, rhNames, rhJournalOpen);
 }
 /** Vitesse réelle maintenant (après le seuil), et seuil dépassé ? */
 function rpRealRate(): { rate: number; over: boolean } | null {
@@ -697,7 +779,8 @@ const isFresh = () => !prog.unlocked.length && player.money === null && player.r
 function renderHeader(): void {
   $<HTMLAnchorElement>("nav-plan").href = `#${GOAL_ROUTE[settings.goal]}`;
   if (isFresh()) {
-    $("me").innerHTML = `<a class="me-chip cta" href="#usine">Renseigner mon usine</a>`;
+    setHtml($("me"), `<a class="me-chip cta" href="#usine">Renseigner mon usine</a>`);
+    $("me-play").hidden = true;
     return;
   }
   const rp = rpNow();
@@ -705,11 +788,20 @@ function renderHeader(): void {
   const chips = [
     `<a class="me-chip" href="#usine" title="Recherches débloquées">${unlockedCount()}/${researchTotal()} recherches</a>`,
     rp !== null
-      ? `<a class="me-chip" href="#usine" title="RP disponibles et vitesse réelle (estimés)">≈ ${esc(fmtShort(rp))} RP${real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
+      ? `<a class="me-chip" href="#usine" title="RP disponibles et vitesse réelle (estimés, en temps de jeu)">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? " · hors jeu" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
       : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="Argent">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
-  $("me").innerHTML = chips.join("");
+  setHtml($("me"), chips.join(""));
+  // Interrupteur « Je joue » (S21) : un bouton fixe, pour qu'il reste cliquable quand les puces changent.
+  const play = $<HTMLButtonElement>("me-play");
+  const on = journal.clock.playing;
+  play.hidden = rp === null;
+  play.classList.toggle("on", on);
+  play.dataset.play = on ? "off" : "on";
+  play.textContent = on ? "⏸" : "▶";
+  play.title = on ? "En jeu : les RP montent. Clique quand tu quittes le jeu." : "Hors jeu : les RP ne bougent pas. Clique quand tu lances le jeu.";
+  play.setAttribute("aria-label", on ? "Je ne joue plus" : "Je joue");
 }
 
 function renderHome(): void {
@@ -1471,20 +1563,47 @@ function renderResearchBox(): void {
   const s = player.research ?? emptySetup();
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rsmode]")) b.setAttribute("aria-checked", String(b.dataset.rsmode === s.mode));
   $("rs-form").innerHTML = renderResearchForm(data, s);
-  renderRpLive();
+  renderRpLive(true);
 }
 
-/** RP estimés maintenant, seuil, vitesse réelle (rafraîchi à chaque saisie et toutes les 5 s). */
-function renderRpLive(): void {
+/**
+ * RP estimés maintenant, seuil, vitesse réelle (rafraîchi à chaque saisie et toutes les 5 s), en
+ * temps de jeu. `full` : aussi « Comment c'est calculé » et les graphiques.
+ */
+let rsHowKey = "";
+/** Temps de jeu où le solde a franchi le seuil le plus bas (en remontant les morceaux de la courbe). */
+function overSince(h: RpHistory, model: RpModel): number | null {
+  const caps = model.tiers.map((t) => t.cap).filter((c) => Number.isFinite(c));
+  if (!caps.length) return null;
+  const cap = Math.min(...caps);
+  for (let i = h.pieces.length - 1; i >= 0; i--) {
+    const p = h.pieces[i]!;
+    if (p.rp0 < cap) return p.tiers ? Math.min(p.to, p.from + timeToReach(p.tiers, p.rp0, cap) * 1000) : p.to; // franchi dans ce morceau, ou par un relevé juste après
+  }
+  return null;
+}
+function renderRpLive(full = false): void {
+  const now = Date.now();
+  const gNow = gameNow(journal.clock, now);
+  refreshPlay(now);
+  const h = historyTo(gNow);
+  const last = [...journal.events].reverse().find((e) => e.type === "releve" && e.rp !== null);
   $("rp-live").textContent =
-    player.rp !== null && player.rpAt !== null
-      ? `${fmtRP(player.rp)} saisis le ${new Date(player.rpAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}. Quand tu changes les RP, l'heure de saisie repart de maintenant.`
+    last && last.type === "releve"
+      ? `Dernier relevé : ${fmtRP(last.rp)}, ${gNow - last.g < 30_000 ? "sans temps de jeu depuis" : `il y a ${fmtDuration((gNow - last.g) / 1000)} de jeu`} (saisi le ${new Date(last.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}). Chaque saisie est notée dans le journal.`
       : "";
   const model = rpModel();
   if (!model) return;
-  const now = Date.now();
-  const linear = player.rp !== null && player.rpAt !== null && player.rpPerSec ? player.rp + (player.rpPerSec * Math.max(0, now - player.rpAt)) / 1000 : null;
-  $("rs-out").innerHTML = renderResearchOut({ model, rp0: player.rp, rpAt: player.rpAt, rpNow: rpNow(), now, linearNow: linear });
+  const base = h.pieces[h.pieces.length - 1] ?? null;
+  const nominal = model.source === "aucune" ? 0 : nominalRate(model.tiers);
+  const linear = base && nominal > 0 ? base.rp0 + (nominal * (gNow - base.from)) / 1000 : null;
+  $("rs-out").innerHTML = renderResearchOut({ model, rp0: base?.rp0 ?? null, rpAt: base?.from ?? null, rpNow: rpNow(), now: gNow, playing: journal.clock.playing, realNow: now, linearNow: linear, how: false, overSince: overSince(h, model) });
+  const howKey = JSON.stringify([player.research, player.rpPerSec, model.source]);
+  if (full || howKey !== rsHowKey) {
+    rsHowKey = howKey;
+    $("rs-how").innerHTML = model.source === "aucune" ? "" : `<details class="more"><summary>Comment c'est calculé</summary>${researchHow(model)}</details>`;
+  }
+  if (full) renderHistoryBox();
 }
 
 /** Modifie « Ma recherche » et recalcule ce qui en dépend. `form` : redessiner le formulaire (groupe ajouté, mode…). */
@@ -1493,10 +1612,11 @@ function updateResearch(fn: (s: ResearchSetup) => void, form = false): void {
   fn(s);
   player = { ...player, research: s };
   savePlayer(player);
+  setJournal(addEvent(journal, { type: "config", setup: s }, Date.now()));
   planDirty = true;
   renderHeader();
   if (form) renderResearchBox();
-  else renderRpLive();
+  else renderRpLive(true);
 }
 
 /** Liste « Production déjà en place ». */
@@ -2152,7 +2272,10 @@ async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}):
       const v = parseOptional((document.getElementById("ask-rp") as HTMLInputElement | null)?.value ?? "");
       if (typeof v === "number" && v >= 0) available = v;
     }
-    player = { ...player, rp: available - delta.spent, rpAt: Date.now() };
+    const t = Date.now();
+    if (Math.abs(available - now) > 0.5) setJournal(addEvent(journal, { type: "releve", rp: available, rps: null }, t));
+    setJournal(addEvent(journal, { type: "depense", spent: delta.spent, added: delta.added, removed: delta.removed }, t));
+    player = { ...player, rp: available - delta.spent, rpAt: t };
     savePlayer(player);
   }
   commitProgress(next);
@@ -2820,7 +2943,7 @@ function bindUsine(): void {
 
   // Transférer la partie (autre adresse, autre appareil)
   $("progress-export").addEventListener("click", () => {
-    const file = exportProgress(prog, player);
+    const file = exportProgress(prog, player, new Date(), journal);
     downloadJson(file, `progression-industrialist-${file.exportedAt.slice(0, 10)}.json`);
     $("progress-io-hint").textContent = "Fichier exporté.";
   });
@@ -2853,6 +2976,7 @@ function bindUsine(): void {
     if (choice !== "yes") return;
     player = parsed.player;
     savePlayer(player);
+    setJournal(parsed.history ?? startJournal(Date.now(), player));
     void setProgress(parsed.progress, { spend: false });
     $("progress-io-hint").textContent = `Partie importée : ${parsed.progress.unlocked.length} recherche(s).`;
   });
@@ -2871,11 +2995,13 @@ function bindUsine(): void {
       $(id).setAttribute("aria-invalid", String(v === "invalide"));
       $(key === "plotW" || key === "plotH" ? "plot-hint" : key === "rp" || key === "rpPerSec" ? "rp-hint" : "player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
       if (v === "invalide") return;
-      if (key === "rpPerSec") player = withRpRate(player, v, Date.now(), rpTiers());
-      else if (key === "rp") player = { ...player, rp: v, rpAt: v === null ? null : Date.now() };
-      else player = { ...player, [key]: v };
+      if (key === "rp" || key === "rpPerSec") {
+        const t = Date.now();
+        player = key === "rp" ? { ...player, rp: v, rpAt: v === null ? null : t } : { ...player, rpPerSec: v };
+        setJournal(addEvent(journal, { type: "releve", rp: key === "rp" ? v : null, rps: key === "rpPerSec" ? v : null }, t));
+      } else player = { ...player, [key]: v };
       savePlayer(player);
-      renderRpLive();
+      renderRpLive(key === "rp" || key === "rpPerSec");
       planDirty = true;
       renderHeader();
     });
@@ -3205,14 +3331,22 @@ function bindResearchBox(): void {
 /** Les RP montent tout seuls : affichage rafraîchi, et l'arbre ou le plan quand ça change quelque chose. */
 let rpSignature = "";
 let lastRpPlanRender = 0;
+let lastHistRender = 0;
 function tickRp(): void {
-  if (player.rp === null || !rpTiers() || player.rpAt === null) return;
-  const rp = rpNow()!;
   const page = currentPage();
+  if (journal.clock.playing) setJournal(touch(journal, Date.now()));
+  if (page === "usine") refreshPlay(Date.now());
+  const rp = rpNow();
+  if (rp === null || !rpTiers() || !journal.clock.playing) return;
   renderHeader();
   if (page === "usine") {
     if (document.activeElement !== $("p-rp")) input("p-rp").value = String(Math.floor(rp));
     renderRpLive();
+    // Les graphiques avancent avec le temps de jeu, sans gêner une lecture en cours.
+    if (Date.now() - lastHistRender > 60_000 && document.querySelector<HTMLElement>("#rs-hist .rh-tip")?.hidden !== false) {
+      lastHistRender = Date.now();
+      renderHistoryBox();
+    }
   }
   // Recherches qui deviennent abordables : l'arbre change de couleur.
   const sig = [...data.nodes.values()].filter((n) => !n.isRoot && n.rp <= rp).length.toString();
@@ -3242,3 +3376,78 @@ $("back").addEventListener("click", () => history.back());
 window.addEventListener("hashchange", showPage);
 showPage();
 window.setInterval(tickRp, 5000);
+bindHistory();
+void recallPlaying();
+
+/** Interrupteur (Ma recherche, en-tête), période, ✕ du journal, survol des graphiques (S21). */
+function bindHistory(): void {
+  document.addEventListener("click", (e) => {
+    const t = e.target as HTMLElement;
+    const play = t.closest<HTMLElement>("[data-play]")?.dataset.play;
+    if (play) return togglePlaying(play === "on");
+    const period = t.closest<HTMLElement>("[data-rh-period]")?.dataset.rhPeriod;
+    if (period !== undefined) {
+      rpPeriod = Number(period);
+      try {
+        localStorage.setItem(KEY_RP_PERIOD, period);
+      } catch {
+        // période pour cette visite seulement
+      }
+      return renderHistoryBox();
+    }
+    const del = t.closest<HTMLElement>("[data-rh-del]")?.dataset.rhDel;
+    if (del !== undefined) {
+      setJournal(removeEvent(journal, Number(del)));
+      planDirty = true;
+      renderHeader();
+      renderRpLive(true);
+    }
+  });
+  const box = $("rs-hist");
+  bindHistoryHover(box, () => {
+    const gNow = gameNow(journal.clock, Date.now());
+    return { h: historyTo(chartDomain(journal, gNow, rpPeriod)[1]), j: journal, gNow, period: rpPeriod, names: rhNames };
+  });
+  let width = box.clientWidth;
+  new ResizeObserver(() => {
+    if (Math.abs(box.clientWidth - width) < 8) return;
+    width = box.clientWidth;
+    renderHistoryBox();
+  }).observe(box);
+  const keepSeen = () => {
+    if (journal.clock.playing) setJournal(touch(journal, Date.now()));
+  };
+  window.addEventListener("pagehide", keepSeen);
+  document.addEventListener("visibilitychange", keepSeen);
+}
+
+/** À l'ouverture : « Je joue » est resté actif pendant que le site était fermé (Q22.1). */
+async function recallPlaying(): Promise<void> {
+  const now = Date.now();
+  if (!needsRecall(journal, now)) {
+    if (journal.clock.playing) setJournal(touch(journal, now));
+    return;
+  }
+  const before = journal;
+  const away = fmtDuration((now - before.clock.seen) / 1000);
+  // Tant qu'il n'y a pas de réponse : « arrêté à la fermeture du site ».
+  setJournal(stopAtLastSeen(journal, now));
+  const stop = journal.events[journal.events.length - 1];
+  planDirty = true;
+  renderHeader();
+  if (currentPage() === "usine") renderRpLive(true);
+  const choice = await ask(
+    "Tu jouais encore ?",
+    `<p>Tu étais <b>en jeu</b> quand le site a été fermé, il y a <b>${esc(away)}</b>. Le jeu ne compte les RP que si tu es connecté.</p>`,
+    [
+      { value: "stop", label: "J'ai arrêté à la fermeture du site", primary: true },
+      { value: "go", label: `Je joue toujours : compter ${away}` },
+    ],
+  );
+  if (choice !== "go" || journal.clock.playing) return;
+  // La session continue : l'arrêt ajouté disparaît, l'horloge reprend comme avant la fermeture.
+  setJournal({ clock: { ...before.clock, seen: Date.now() }, events: journal.events.filter((e) => e !== stop) });
+  planDirty = true;
+  renderHeader();
+  if (currentPage() === "usine") renderRpLive(true);
+}

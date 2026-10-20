@@ -104,7 +104,7 @@ export function researchTimeline(v: ResearchView, nodeName: (id: string) => stri
         ? " « À ton rythme actuel » compte en ligne droite : recopie ton seuil dans Mon usine (Ma recherche)."
         : "";
   return `<div class="tablewrap"><table class="mini"><thead><tr><th>Recherche</th><th>RP</th>${now ? "<th>À ton rythme actuel</th>" : ""}${addHead}${inst ? "<th>Avec l'installation neuve</th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="hint">Depuis tes RP actuels ; chaque déblocage dépense son coût. Au-delà du seuil, la vitesse chute.${capText}</p>`;
+    <p class="hint">Depuis tes RP actuels, en <b>temps de jeu</b> (les RP ne montent que quand tu es connecté) ; chaque déblocage dépense son coût. Au-delà du seuil, la vitesse chute.${capText}</p>`;
 }
 
 /** Autres installations comparées. */

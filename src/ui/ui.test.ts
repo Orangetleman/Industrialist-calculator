@@ -115,7 +115,7 @@ describe("progression et « Ma partie »", () => {
     const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
     const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true, plotW: 120, plotH: 96, research: { ...emptySetup(), mode: "detaille" as const, groups: { rs1: [], rs2: [], rs3: [{ count: 4, items: ["crankshaft", "crankshaft"] }], rs4: [] } } };
     const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
-    expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" });
+    expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, history: null, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" }); // ancien fichier, sans journal (S21)
   });
 
   it("les RP évoluent avec les RP/s ; changer la vitesse garde les RP accumulés", () => {

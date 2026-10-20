@@ -241,7 +241,7 @@ describe("Ma recherche : rendu (S20)", async () => {
 
   it("2 h après la saisie : ≈ 154 226 RP, 4,97 RP/s, seuil dépassé depuis 1 h 41", () => {
     const rpNow = balanceAfter(m.tiers, RP0, 7200);
-    const html = renderResearchOut({ model: m, rp0: RP0, rpAt: t0, rpNow, now: t0 + 7_200_000, linearNow: RP0 + 50.4 * 7200 });
+    const html = renderResearchOut({ model: m, rp0: RP0, rpAt: t0, rpNow, now: t0 + 7_200_000, playing: false, realNow: t0 + 7_200_000, linearNow: RP0 + 50.4 * 7200 });
     expect(html).toContain("154\u202f226 RP");
     expect(html).toContain("4,97 RP/s");
     expect(html).toContain("Seuil dépassé depuis 1 h 41 min");

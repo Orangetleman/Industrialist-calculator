@@ -69,16 +69,28 @@ export function renderResearchForm(data: GameData, s: ResearchSetup): string {
 
 export type ResearchOutArgs = {
   model: RpModel;
-  /** RP et heure de la saisie, RP estimés maintenant. */
+  /**
+   * Départ de la courbe actuelle (dernier relevé, dépense ou changement de configuration) : RP et
+   * temps de jeu (ms) ; RP estimés maintenant ; temps de jeu actuel (S21 : tout compte en temps de jeu).
+   */
   rp0: number | null;
   rpAt: number | null;
   rpNow: number | null;
   now: number;
+  /** En jeu : les heures réelles se déduisent (« si tu continues ») ; hors jeu, rien ne bouge. */
+  playing: boolean;
+  realNow: number;
   /** Ce que le site aurait compté en ligne droite (avant S20). */
   linearNow: number | null;
+  /** Moment (temps de jeu) où le seuil a été franchi, retrouvé dans l'historique ; null : inconnu. */
+  overSince?: number | null;
+  /** Ajouter « Comment c'est calculé » (sinon, la page l'affiche à part). */
+  how?: boolean;
 };
 
 const clock = (ms: number) => new Date(ms).toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+/** Heure réelle d'un instant de jeu à venir : seulement en jeu (« si tu continues »). */
+const realAt = (a: ResearchOutArgs, g: number) => (a.playing ? ` (${clock(a.realNow + (g - a.now))} si tu continues)` : "");
 
 /** RP estimés, seuil, vitesse réelle, contrôles et « Comment c'est calculé ». */
 export function renderResearchOut(a: ResearchOutArgs): string {
@@ -114,13 +126,13 @@ export function renderResearchOut(a: ResearchOutArgs): string {
   } else if (minCap === null) {
     lines.push(`<p>Seuil non renseigné : le site compte en ligne droite. Recopie-le dans le tableau.</p>`);
   } else if (over) {
-    const since = a.rp0 >= minCap ? null : t0 + timeToReach(tiers, a.rp0, minCap) * 1000;
+    const since = a.overSince !== undefined ? a.overSince : a.rp0 >= minCap ? null : t0 + timeToReach(tiers, a.rp0, minCap) * 1000;
     lines.push(
-      `<p>⚠ <b>Seuil dépassé${since !== null ? ` depuis ${esc(fmtDuration((a.now - since) / 1000))}` : " (déjà à la saisie)"}</b>. Au-delà, la vitesse baisse : <b>dépense tes RP</b> pour la retrouver.</p>`,
+      `<p>⚠ <b>Seuil dépassé${since !== null ? ` depuis ${esc(fmtDuration((a.now - since) / 1000))} de jeu` : " (avant le début du journal)"}</b>. Au-delà, la vitesse baisse : <b>dépense tes RP</b> pour la retrouver.</p>`,
     );
   } else {
     const at = t0 + timeToReach(tiers, a.rp0, minCap) * 1000;
-    lines.push(`<p>Seuil (${esc(fmtRP(minCap))}) atteint dans <b>${esc(fmtDuration((at - a.now) / 1000))}</b> (${esc(clock(at))}). Au-delà, la vitesse baisse : dépense tes RP avant.</p>`);
+    lines.push(`<p>Seuil (${esc(fmtRP(minCap))}) atteint dans <b>${esc(fmtDuration((at - a.now) / 1000))} de jeu</b>${esc(realAt(a, at))}. Au-delà, la vitesse baisse : dépense tes RP avant.</p>`);
   }
   out.push(`<div class="rs-est${over ? " over" : ""}">${lines.join("")}</div>`);
 
@@ -133,9 +145,9 @@ export function renderResearchOut(a: ResearchOutArgs): string {
     if (nz !== null) rows.push({ label: `« Max RP » : ${fmtRP(nz)}`, rp: nz });
     rows.sort((x, y) => x.rp - y.rp);
     const when = (rp: number) => {
-      if (rp <= a.rp0!) return "déjà dépassé à la saisie";
+      if (rp <= a.rp0!) return "déjà dépassé au dernier point du journal";
       const at = t0 + timeToReach(tiers, a.rp0!, rp) * 1000;
-      return at <= a.now ? `atteint il y a ${fmtDuration((a.now - at) / 1000)}` : `dans ${fmtDuration((at - a.now) / 1000)} (${clock(at)})`;
+      return at <= a.now ? `atteint il y a ${fmtDuration((a.now - at) / 1000)} de jeu` : `dans ${fmtDuration((at - a.now) / 1000)} de jeu${realAt(a, at)}`;
     };
     out.push(`<div class="tw"><table class="mini rs-steps"><thead><tr><th>Solde de RP</th><th>Atteint</th><th>Vitesse à ce moment</th></tr></thead><tbody>${rows
       .map((r) => {
@@ -146,7 +158,7 @@ export function renderResearchOut(a: ResearchOutArgs): string {
     const lin = a.linearNow !== null && a.linearNow > rpNow * 1.01 ? ` En ligne droite (sans le seuil), le site aurait compté ${esc(fmtRP(a.linearNow))} maintenant.` : "";
     out.push(`<p class="hint">Sans rien dépenser. Les lignes 1,3 × et 2 × seuil servent au relevé RP-04.${lin}</p>`);
   }
-  out.push(`<details class="more"><summary>Comment c'est calculé</summary>${researchHow(m)}</details>`);
+  if (a.how !== false) out.push(`<details class="more"><summary>Comment c'est calculé</summary>${researchHow(m)}</details>`);
   return out.join("");
 }
 

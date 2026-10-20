@@ -4,6 +4,7 @@
   --bg: #eef1f4; --surface: #ffffff; --ink: #17212b; --muted: #5b6876; --line: #c9d1da;
   --accent: #b4530a; --accent-soft: #f6e3d3; --steel: #2f5d7c; --steel-soft: #e1eaf1;
   --ok: #2e7d4f; --ok-soft: #ddf0e4; --warn: #a86a00; --bad: #b3261e; --bad-soft: #fbe3e1; --warn-soft: #fbf0d9;
+  --rp-pred: #2a6db3; --rp-meas: #b4530a; /* graphiques des RP (S21), palette contrôlée : daltonisme, contraste */
   --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -14,6 +15,7 @@
     --bg: #12171c; --surface: #1b222a; --ink: #e6ebf0; --muted: #9aa7b4; --line: #34404c;
     --accent: #f0913a; --accent-soft: #3a2614; --steel: #8fb8d6; --steel-soft: #1f2d39;
     --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --bad: #ff8a80; --bad-soft: #3a1c1a; --warn-soft: #362b14;
+    --rp-pred: #3987e5; --rp-meas: #d95926;
     color-scheme: dark;
   }
 }
@@ -21,6 +23,7 @@
   --bg: #12171c; --surface: #1b222a; --ink: #e6ebf0; --muted: #9aa7b4; --line: #34404c;
   --accent: #f0913a; --accent-soft: #3a2614; --steel: #8fb8d6; --steel-soft: #1f2d39;
   --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --bad: #ff8a80; --bad-soft: #3a1c1a; --warn-soft: #362b14;
+    --rp-pred: #3987e5; --rp-meas: #d95926;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -1000,3 +1003,57 @@ table.rp-panel tr.off td { color: var(--muted); }
 .rs-est p { margin: 0; }
 .rs-est .big b { font-family: var(--f-mono); }
 table.rs-steps td.num { white-space: normal; }
+
+/* Ma recherche › historique (S21) : interrupteur « Je joue », deux graphiques en temps de jeu */
+.play { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); }
+.play.on { border-color: var(--ok); background: var(--ok-soft); }
+.play .state { font-weight: 600; }
+.play.on .state::before { content: "● "; color: var(--ok); }
+.play.off .state::before { content: "○ "; color: var(--muted); }
+.play .hint { flex: 1 1 16em; margin: 0; }
+.play button { font-weight: 600; }
+.me-play { border: 1px solid var(--line); border-radius: 999px; width: 28px; height: 28px; padding: 0; line-height: 1; background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
+.me-play.on { border-color: var(--ok); color: var(--ok); }
+.rh-title { margin: 6px 0 0; font-size: .95rem; }
+.rh { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.rh-bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.rh-bar .hint { margin: 0; }
+.rh-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--muted); }
+.rh-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.rh-legend svg { overflow: visible; }
+.rh-legend .lg-pred { stroke: var(--rp-pred); stroke-width: 2; }
+.rh-legend .lg-pred.future { stroke-dasharray: 2 4; }
+.rh-legend .lg-meas { fill: var(--rp-meas); }
+.rh-legend .lg-cap { stroke: var(--muted); stroke-dasharray: 6 3; }
+.rh-legend .lg-flag { fill: var(--surface); stroke: var(--ink); }
+.rh-legend .lg-recon { fill: var(--muted); }
+.rh-chart h3 { font-size: .85rem; margin: 6px 0 0; }
+.rh-chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; cursor: crosshair; }
+.rh-chart svg:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
+.rh-chart svg text { font-family: var(--f-body); font-size: 10.5px; fill: var(--muted); }
+.rh-chart svg text.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.rh-chart .grid { stroke: var(--line); stroke-width: 1; }
+.rh-chart .pred { fill: none; stroke: var(--rp-pred); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rh-chart .pred.future { stroke-dasharray: 2 4; }
+.rh-chart .cap { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 6 3; }
+.rh-chart .meas { fill: var(--rp-meas); stroke: var(--surface); stroke-width: 2; }
+.rh-chart .mark { stroke: var(--ink); stroke-opacity: .35; stroke-width: 1; }
+.rh-chart .now { stroke: var(--ink); stroke-opacity: .6; stroke-width: 1; }
+.rh-chart .flag { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+.rh-chart .flag-t { fill: var(--ink); font-size: 10px; font-weight: 600; text-anchor: middle; }
+.rh-chart .recon { fill: var(--muted); }
+.rh-chart .hair { stroke: var(--ink); stroke-width: 1; stroke-opacity: .5; }
+.rh-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: .78rem; box-shadow: 0 2px 8px rgb(0 0 0 / .15); max-width: min(260px, 90%); z-index: 2; display: flex; flex-direction: column; gap: 3px; }
+.rh-tip[hidden] { display: none; }
+.rh-tip b { font-family: var(--f-mono); }
+.rh-tip .k { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 4px; }
+.rh-tip .k.pred { background: var(--rp-pred); }
+.rh-tip .k.meas { background: var(--rp-meas); height: 4px; border-radius: 2px; }
+.rh-tip .t { color: var(--muted); }
+table.rh-log { border-collapse: collapse; font-size: .82rem; width: 100%; }
+table.rh-log th, table.rh-log td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); vertical-align: top; }
+table.rh-log td.num { white-space: nowrap; }
+@media (forced-colors: active) {
+  .rh-chart .pred { stroke: CanvasText; }
+  .rh-chart .meas { fill: Highlight; }
+}

@@ -40,6 +40,7 @@
       <a href="#donnees" data-nav="donnees">Données</a>
     </nav>
     <div class="me" id="me" aria-label="Mon usine en bref"></div>
+    <button type="button" class="me-play" id="me-play" data-play="on" hidden>▶</button>
   </div>
 </header>
 
@@ -269,6 +270,7 @@
 
       <div class="box span2" id="rs-box">
         <h2>Ma recherche</h2>
+        <div id="rs-play"></div>
         <div class="row rs-top-row">
           <div class="seg" role="radiogroup" aria-label="Saisie de ma recherche">
             <button type="button" role="radio" data-rsmode="rapide" aria-checked="true">Rapide : je recopie le panneau</button>
@@ -284,6 +286,9 @@
         <p class="hint" id="rp-live" aria-live="off"></p>
         <div id="rs-form"></div>
         <div id="rs-out" aria-live="off"></div>
+        <h3 class="rh-title">Historique, en temps de jeu</h3>
+        <div class="rh" id="rs-hist"></div>
+        <div id="rs-how"></div>
       </div>
 
       <div class="box">

@@ -3,6 +3,7 @@
 
 import type { GameData } from "../engine/data.ts";
 import { balanceAfter, parseResearchSetup, type ResearchSetup, type RpTier } from "../engine/research-balance.ts";
+import { parseJournal, type RpJournal } from "../engine/rp-history.ts";
 import type { ResearchCategory } from "../engine/types.ts";
 import { isNodeUnlocked, nodeDepths, type Progress } from "../engine/unlock.ts";
 import { esc, fmt } from "./format.ts";
@@ -11,8 +12,8 @@ import { esc, fmt } from "./format.ts";
 
 export type ProgressState = { unlocked: string[]; reqItemsDone: string[]; owned: string[] };
 /**
- * « Ma partie ». `rpAt` : moment (ms) où les RP ont été saisis ; avec `rpPerSec`, les RP
- * évoluent tout seuls (estimation : la vitesse réelle peut changer en jeu).
+ * « Ma partie ». `rp`, `rpPerSec` : le dernier relevé (1ʳᵉ ligne du panneau) ; `rpAt` : heure réelle de
+ * la saisie. Depuis S21, l'estimation vient du journal (`rp-history.ts`), en temps de jeu.
  */
 export type PlayerInfo = {
   pollutionPct: number | null;
@@ -42,7 +43,8 @@ export function fitsPlot(w: number, h: number, plot: { w: number; h: number }): 
 export const plotOf = (p: PlayerInfo) => (p.plotW && p.plotH ? { w: p.plotW, h: p.plotH } : null);
 
 /**
- * RP estimés à l'instant `now`, depuis les RP saisis. Avec `tiers` (S20, « Ma recherche ») : la
+ * RP estimés à l'instant `now`, depuis les RP saisis, en temps réel continu (avant S21 ; le site
+ * compte désormais en temps de jeu avec le journal, `rpHistory`). Avec `tiers` (S20, « Ma recherche ») : la
  * vitesse baisse au-delà du seuil de chaque tier (plafond souple). Sans : RP/s × temps, en ligne droite.
  */
 export function currentRp(p: PlayerInfo, now = Date.now(), tiers?: readonly RpTier[] | null): number | null {
@@ -115,6 +117,23 @@ export function savePlayer(p: PlayerInfo): void {
   }
 }
 
+/** Journal des RP (S21), sous sa propre clé ; null s'il n'existe pas encore (premier passage après S21). */
+const KEY_JOURNAL = "ind-calc:v1:rp-journal";
+export function loadJournal(): RpJournal | null {
+  try {
+    return parseJournal(JSON.parse(localStorage.getItem(KEY_JOURNAL) ?? "null"));
+  } catch {
+    return null;
+  }
+}
+export function saveJournal(j: RpJournal): void {
+  try {
+    localStorage.setItem(KEY_JOURNAL, JSON.stringify(j));
+  } catch {
+    // idem
+  }
+}
+
 /** Ne garde que les ids qui existent encore dans les données (après une mise à jour du wiki). */
 export function sanitizeProgress(data: GameData, p: ProgressState): ProgressState {
   return {
@@ -132,10 +151,11 @@ export function toEngineProgress(p: ProgressState): Progress {
 
 /** Fichier d'export : progression + « Ma partie », pour passer d'une adresse (ou d'un appareil) à l'autre. */
 export const PROGRESS_FORMAT = "industrialist-progression";
-export type ProgressExport = { format: typeof PROGRESS_FORMAT; version: 1; exportedAt: string; progress: ProgressState; player: PlayerInfo };
+/** `history` (S21, facultatif) : le journal des RP ; un fichier plus ancien s'importe sans lui. */
+export type ProgressExport = { format: typeof PROGRESS_FORMAT; version: 1; exportedAt: string; progress: ProgressState; player: PlayerInfo; history?: RpJournal };
 
-export function exportProgress(progress: ProgressState, player: PlayerInfo, now = new Date()): ProgressExport {
-  return { format: PROGRESS_FORMAT, version: 1, exportedAt: now.toISOString(), progress, player };
+export function exportProgress(progress: ProgressState, player: PlayerInfo, now = new Date(), history: RpJournal | null = null): ProgressExport {
+  return { format: PROGRESS_FORMAT, version: 1, exportedAt: now.toISOString(), progress, player, ...(history ? { history } : {}) };
 }
 
 /**
@@ -145,7 +165,7 @@ export function exportProgress(progress: ProgressState, player: PlayerInfo, now 
 export function parseProgressExport(
   data: GameData,
   raw: unknown,
-): { ok: true; progress: ProgressState; player: PlayerInfo; dropped: number; exportedAt: string | null } | { ok: false; error: string } {
+): { ok: true; progress: ProgressState; player: PlayerInfo; history: RpJournal | null; dropped: number; exportedAt: string | null } | { ok: false; error: string } {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "ce n'est pas un fichier de progression" };
   const r = raw as Record<string, unknown>;
   if (r.format !== PROGRESS_FORMAT) return { ok: false, error: "ce fichier n'a pas été exporté par le calculateur (format inconnu)" };
@@ -159,6 +179,7 @@ export function parseProgressExport(
     ok: true,
     progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
     player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH), research: parseResearchSetup(pl.research) },
+    history: parseJournal(r.history),
     dropped,
     exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,
   };

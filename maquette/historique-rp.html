@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S21 — Historique des RP</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.mq-q ol { margin: 4px 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ex { font-size: .7rem; border-radius: 999px; padding: 0 6px; color: var(--muted); border: 1px dashed var(--muted); white-space: nowrap; }
+.real { font-size: .7rem; border-radius: 999px; padding: 0 6px; color: var(--ok); border: 1px solid var(--ok); white-space: nowrap; }
+.header-demo { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+
+/* Interrupteur « Je joue / Je ne joue plus » */
+:root { --rp-pred: #2a6db3; --rp-meas: #b4530a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --rp-pred: #3987e5; --rp-meas: #d95926; } }
+:root[data-theme="dark"] { --rp-pred: #3987e5; --rp-meas: #d95926; }
+.play { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); }
+.play.on { border-color: var(--ok); background: var(--ok-soft); }
+.play .state { font-weight: 600; }
+.play.on .state::before { content: "● "; color: var(--ok); }
+.play.off .state::before { content: "○ "; color: var(--muted); }
+.play button { font-weight: 600; }
+.me-play { border: 1px solid var(--line); border-radius: 999px; width: 28px; height: 28px; padding: 0; line-height: 1; background: var(--surface); cursor: pointer; }
+.me-play.on { border-color: var(--ok); color: var(--ok); }
+.recall { border-left: 4px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+.recall .row { gap: 8px; flex-wrap: wrap; }
+
+/* Graphiques */
+.rh { display: flex; flex-direction: column; gap: 6px; }
+.rh-bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.rh-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--muted); }
+.rh-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.rh-legend svg { overflow: visible; }
+.rh-chart { position: relative; }
+.rh-chart h3 { font-size: .85rem; margin: 6px 0 0; }
+.rh-chart svg { display: block; width: 100%; touch-action: pan-y; }
+.rh-chart svg text { font-family: var(--f-body); font-size: 10.5px; fill: var(--muted); }
+.rh-chart svg text.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.rh-chart .grid { stroke: var(--line); stroke-width: 1; }
+.rh-chart .pred { fill: none; stroke: var(--rp-pred); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rh-chart .pred.future { stroke-dasharray: 2 4; }
+.rh-chart .cap { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 6 3; }
+.rh-chart .meas { fill: var(--rp-meas); stroke: var(--surface); stroke-width: 2; }
+.rh-chart .mark { stroke: var(--ink); stroke-opacity: .35; stroke-width: 1; }
+.rh-chart .now { stroke: var(--ink); stroke-opacity: .6; stroke-width: 1; }
+.rh-chart .flag { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+.rh-chart .flag-t { fill: var(--ink); font-size: 10px; font-weight: 600; text-anchor: middle; }
+.rh-chart .recon { fill: var(--muted); }
+.rh-chart .hair { stroke: var(--ink); stroke-width: 1; stroke-opacity: .5; }
+.rh-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: .78rem; box-shadow: 0 2px 8px rgb(0 0 0 / .12); max-width: 240px; z-index: 2; }
+.rh-tip b { font-family: var(--f-mono); }
+.rh-tip .k { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 4px; }
+.rh-tip .t { color: var(--muted); }
+table.rh-log { border-collapse: collapse; font-size: .82rem; width: 100%; }
+table.rh-log th, table.rh-log td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); vertical-align: top; }
+table.rh-log td.num { white-space: nowrap; }
+table.rh-log button { padding: 0 6px; }
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S21 — Historique des RP, en temps de jeu</h1>
+<p class="mq-note">Le premier point est ta capture du 2026-10-18 (19 273,5 RP, 50,40 RP/s, tier 3 : 4 stations, 47,47 RP/s, seuil
+76 875 ; paraboles 2,93 RP/s), placée au début du temps de jeu. Tout le reste est un <b>journal d'exemple</b>, calculé par le moteur
+du site (<code>balanceAfter</code>, <code>rateAt</code>) : chaque événement inventé porte l'étiquette <span class="ex">exemple</span>.
+La maquette montre le site après <b>20 h de jeu</b> en 4 sessions (avec 29 h hors jeu entre elles, qui ne prennent aucune place).</p>
+
+<!-- ============================================================ 1 -->
+<h2 class="mq-t">1. L'interrupteur « Je joue / Je ne joue plus »</h2>
+<p class="mq-note">En haut de « Ma recherche », et en petit bouton à côté de la puce RP de l'en-tête (accessible depuis toutes les pages).
+Hors jeu, les RP estimés, « seuil atteint dans … » et les chronologies de l'objectif recherche s'arrêtent. Les durées affichées sont des
+<b>durées de jeu</b> (« dans 12 min de jeu »). L'heure réelle n'est donnée que pendant une session (« vers 15 h 40 si tu continues »).</p>
+
+<div class="header-demo">
+  <span class="hint">En-tête, en jeu :</span>
+  <a class="me-chip" href="#">≈ 207 k RP · 2,24/s ⚠ seuil</a>
+  <button type="button" class="me-play on" title="En jeu depuis 1 h 12 : clique quand tu quittes le jeu" aria-label="Je ne joue plus">⏸</button>
+  <span class="hint" style="margin-left:12px">hors jeu :</span>
+  <a class="me-chip" href="#">≈ 207 k RP · ⏸ hors jeu</a>
+  <button type="button" class="me-play" title="Hors jeu : les RP ne bougent pas. Clique quand tu lances le jeu" aria-label="Je joue">▶</button>
+</div>
+
+<div class="box span2">
+  <h2>Ma recherche</h2>
+  <div class="play on">
+    <span class="state">En jeu depuis 1 h 12</span>
+    <span class="hint">Les RP montent. 20 h 00 de jeu au total depuis ta capture.</span>
+    <button type="button">⏸ Je ne joue plus</button>
+  </div>
+  <div class="play off">
+    <span class="state">Hors jeu depuis 14 h</span>
+    <span class="hint">Les RP ne bougent pas : le jeu ne les compte que quand tu es connecté.</span>
+    <button type="button">▶ Je joue</button>
+  </div>
+  <p class="hint">(les deux états sont montrés l'un sous l'autre ; le site n'en affiche qu'un)</p>
+  <div class="rs-est"><p class="big">≈ <b>206 900 RP</b> maintenant · vitesse réelle <b>2,30 RP/s</b> (3,9 % de 58,47)</p>
+  <p>⚠ <b>Seuil dépassé depuis 3 h 10 de jeu</b>. Au-delà, la vitesse baisse : <b>dépense tes RP</b> pour la retrouver.</p></div>
+</div>
+
+<h2 class="mq-t">2. À l'ouverture du site (Q22.1)</h2>
+<p class="mq-note">Si « Je joue » est resté actif alors que le site était fermé (navigateur fermé, téléphone en veille) plus de 30 min, le site ne
+sait pas si tu jouais. Il demande, une fois :</p>
+<div class="recall">
+  <p><b>Tu étais « en jeu » quand le site a été fermé, il y a 8 h 20.</b> Le jeu ne compte les RP que si tu es connecté.</p>
+  <div class="row">
+    <button type="button" class="primary">J'ai arrêté à la fermeture du site</button>
+    <button type="button">Je joue toujours : compter 8 h 20</button>
+  </div>
+</div>
+<p class="mq-note">Tant qu'il n'a pas de réponse, il compte comme « arrêté à la fermeture » (proposition : c'est le cas le plus courant, et
+un relevé corrige l'inverse). Sans « Je joue » actif, il rappelle seulement l'état : « Hors jeu depuis 2 j. ▶ Je joue ».</p>
+
+<!-- ============================================================ 3 -->
+<h2 class="mq-t">3. Les deux graphiques, un peu plus bas dans « Ma recherche »</h2>
+<p class="mq-note">Sous le tableau des soldes, avant « Comment c'est calculé ». Même axe horizontal pour les deux, gradué en <b>heures de jeu
+avant maintenant</b> (Q22.4) ; la prévision continue en pointillé au-delà de maintenant (un quart de la période). Survole (ou touche) un
+graphique : un trait vertical suit le doigt sur les deux, avec les valeurs. Les repères numérotés sont les changements de configuration (⚙)
+et les dépenses ($) ; les petits triangles sous l'axe, les reconnexions.</p>
+
+<div class="box span2">
+  <h2>Ma recherche <span class="hint" style="font-weight:400">› historique</span></h2>
+  <div class="rh" id="rh">
+    <div class="rh-bar">
+      <div class="seg" role="radiogroup" aria-label="Période, en temps de jeu">
+        <button type="button" role="radio" data-period="86400" aria-checked="true">24 h de jeu</button>
+        <button type="button" role="radio" data-period="604800" aria-checked="false">7 jours</button>
+        <button type="button" role="radio" data-period="0" aria-checked="false">Tout</button>
+      </div>
+      <span class="hint">20 h 00 de jeu depuis la capture · 16 événements</span>
+    </div>
+    <div class="rh-legend" aria-hidden="true">
+      <span><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--rp-pred)" stroke-width="2"/></svg>prévu</span>
+      <span><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--rp-pred)" stroke-width="2" stroke-dasharray="2 4"/></svg>prévision</span>
+      <span><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="var(--rp-meas)"/></svg>relevé</span>
+      <span><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--muted)" stroke-dasharray="6 3"/></svg>seuil</span>
+      <span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--surface)" stroke="var(--ink)"/></svg>⚙ configuration</span>
+      <span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="var(--surface)" stroke="var(--ink)"/></svg>$ dépense</span>
+      <span><svg width="10" height="8"><path d="M5 0 L10 8 L0 8 Z" fill="var(--muted)"/></svg>reconnexion</span>
+    </div>
+    <div class="rh-chart"><h3>RP (solde)</h3><svg id="c-rp" role="img" aria-label="Solde de RP en fonction du temps de jeu"></svg></div>
+    <div class="rh-chart"><h3>RP/s (vitesse)</h3><svg id="c-rps" role="img" aria-label="Vitesse des RP en fonction du temps de jeu"></svg></div>
+    <div class="rh-tip" id="rh-tip" hidden></div>
+    <details class="more" open><summary>Journal (16 événements)</summary>
+      <div class="tw"><table class="rh-log" id="rh-log"><thead><tr><th>#</th><th>Temps de jeu</th><th>Événement</th><th>Écart prévu / relevé</th><th></th></tr></thead><tbody></tbody></table></div>
+      <p class="hint">Le journal garde 90 jours de jeu ; les saisies à moins de 2 min d'écart sont fondues en une. ✕ retire un événement
+      (une faute de frappe, par exemple) : la courbe est recalculée (Q22.3).</p>
+    </details>
+  </div>
+</div>
+
+<p class="mq-note">Ce que montre l'exemple : le seuil (76 875) est atteint en 19 min de jeu, puis la vitesse s'effondre (≈ 10 RP/s à 1 h,
+2 RP/s ensuite) ; « Foundry » rend la vitesse ($2) ; la 5ᵉ station relève le seuil (⚙3, 85 534) ; chaque relevé montre l'écart avec la
+prévision (+0,6 %, −1,8 %, +0,9 %), puis la courbe repart du relevé (petite marche). Les écarts sont inventés (<span class="ex">exemple</span>) :
+seuls tes relevés diront si le site suit le jeu à moins de 2 % (RP-04).</p>
+
+<!-- ============================================================ 4 -->
+<h2 class="mq-t">4. Ce qui est enregistré, et où</h2>
+<ul class="mq-note">
+  <li><b>Relevé</b> : à chaque saisie des RP ou des RP/s de la 1ʳᵉ ligne (frappes fondues sur 2 min).</li>
+  <li><b>Configuration</b> : toute la saisie de « Ma recherche », automatiquement à chaque modification ; le repère dit ce qui a changé
+  (« Tier 3 : stations 4 → 5 ; RP/s 47,47 → 54,27 ; seuil 76 875 → 85 534 », « Liquide : Light Oil », « Paraboles : 2,93 → 3,35 RP/s »).</li>
+  <li><b>Dépense</b> : une recherche cochée (ou décochée) sur le site avec « dépenser les RP » : son nom, les RP avant et après.</li>
+  <li><b>Session</b> : chaque « Je joue » et « Je ne joue plus », avec l'heure réelle (affichée au survol du triangle).</li>
+  <li>Gardé dans le navigateur, sous une clé à part, et <b>ajouté à l'export de la partie</b> (clé facultative : un ancien fichier
+  s'importe toujours, il commence simplement un journal neuf).</li>
+  <li>À la mise à jour, ton dernier relevé devient le premier point du journal, <b>hors jeu</b> (Q22.2).</li>
+</ul>
+
+<!-- ============================================================ 5 -->
+<h2 class="mq-t">5. Questions (Q22)</h2>
+<div class="mq-q">
+<ol>
+  <li><b>Site fermé pendant « Je joue »</b> : à la réouverture, demander comme au point 2 (« J'ai arrêté à la fermeture » / « Je joue
+  toujours »), et compter « arrêté à la fermeture » tant que tu n'as pas répondu ?</li>
+  <li><b>Passage au temps de jeu</b> : aujourd'hui le site a prolongé ton dernier relevé en temps réel (heures hors jeu comprises). À la
+  mise à jour, il repart de ce relevé tel que saisi, hors jeu, et l'estimation en temps réel est abandonnée. D'accord ?</li>
+  <li><b>Journal visible</b> (replié sous les graphiques) avec ✕ pour retirer un événement faux ?</li>
+  <li><b>Axe du temps</b> : en heures de jeu avant maintenant (« −20 h … maint. … +6 h »), comme ici ; ou depuis le premier point
+  (« 0 h … 20 h ») ?</li>
+  <li><b>Le reste</b> (interrupteur dans « Ma recherche » et dans l'en-tête, deux graphiques, repères numérotés, couleurs bleu = prévu,
+  orange = relevé) te convient-il ?</li>
+</ol>
+</div>
+</div>
+
+<script>
+const D = {"now":72000,"end":93600,"events":[{"g":0,"type":"releve","rp":19273.5,"rps":50.4,"real":true},{"g":0,"type":"config","text":"Configuration de la capture : tier 3, 4 stations, 47,47 RP/s, seuil 76 875 ; paraboles 2,93 RP/s","cfg":0,"real":true,"before":{"rate":50.4,"cap":76874.99999999999},"after":{"rate":50.4,"cap":76874.99999999999}},{"g":0,"type":"session","on":true,"text":"Je joue"},{"g":3600,"type":"releve","err":0.006,"rp":129380,"rps":10.46,"pred":128608.17383491712,"predRps":10.702338467958791},{"g":7200,"type":"session","on":false,"text":"Je ne joue plus (hors jeu 9 h)"},{"g":7200,"type":"session","on":true,"text":"Je joue"},{"g":8100,"type":"depense","cost":100000,"text":"Foundry débloquée","before":158741.38200004882,"after":58741.38200004882},{"g":18000,"type":"config","cfg":1,"text":"+ 1 station du tier 3","before":{"rate":50.4,"cap":76874.99999999999},"after":{"rate":57.620436542843116,"cap":85534.13583781994}},{"g":25200,"type":"session","on":false,"text":"Je ne joue plus (hors jeu 14 h)"},{"g":25200,"type":"session","on":true,"text":"Je joue"},{"g":32400,"type":"releve","err":-0.018,"rp":209943.5,"rps":2.02,"pred":213791.96904199052,"predRps":1.8242468278283694},{"g":39600,"type":"config","cfg":2,"text":"Paraboles : + 1 contrôleur","before":{"rate":57.620436542843116,"cap":85534.13583781994},"after":{"rate":58.470677037475454,"cap":85534.13583781994}},{"g":46800,"type":"session","on":false,"text":"Je ne joue plus (hors jeu 6 h)"},{"g":46800,"type":"session","on":true,"text":"Je joue"},{"g":50400,"type":"depense","cost":125000,"text":"Air Separation Unit débloquée","before":235489.41447459324,"after":110489.41447459324},{"g":64800,"type":"releve","err":0.009,"rp":206383.5,"rps":2.26,"pred":204542.5737211022,"predRps":2.3745540893564745}],"caps":[{"from":0,"to":18000,"cap":76874.99999999999},{"from":18000,"to":93600,"cap":85534.13583781994}],"curve":[[0,19274,50.4],[0,19274,50.4],[300,34394,50.4],[600,49514,50.4],[900,64634,50.4],[1200,79636,46.4],[1500,91271,32.75],[1800,99882,25.3],[2100,106722,20.61],[2400,112396,17.39],[2700,117244,15.04],[3000,121477,13.25],[3300,125232,11.84],[3600,128608,10.7],[3600,129380,10.46],[3900,132379,9.56],[4200,135130,8.8],[4500,137672,8.16],[4800,140033,7.6],[5100,142239,7.11],[5400,144308,6.69],[5700,146256,6.31],[6000,148097,5.97],[6300,149842,5.67],[6600,151500,5.39],[6900,153079,5.14],[7200,154587,4.92],[7500,156030,4.71],[7800,157413,4.52],[8100,158741,4.34],[8100,58741,50.4],[8400,73861,50.4],[8700,87205,36.99],[9000,96785,27.76],[9300,104221,22.22],[9600,110298,18.52],[9900,115437,15.88],[10200,119890,13.9],[10500,123819,12.35],[10800,127333,11.12],[11100,130512,10.11],[11400,133415,9.27],[11700,136086,8.55],[12000,138558,7.94],[12300,140860,7.41],[12600,143014,6.95],[12900,145037,6.54],[13200,146944,6.18],[13500,148748,5.85],[13800,150460,5.56],[14100,152088,5.3],[14400,153641,5.06],[14700,155124,4.84],[15000,156545,4.64],[15300,157907,4.45],[15600,159216,4.28],[15900,160476,4.12],[16200,161689,3.97],[16500,162861,3.84],[16800,163992,3.71],[17100,165087,3.59],[17400,166146,3.48],[17700,167173,3.37],[18000,168170,3.27],[18000,168170,6.23],[18300,169993,5.93],[18600,171731,5.66],[18900,173392,5.41],[19200,174981,5.19],[19500,176505,4.98],[19800,177969,4.79],[20100,179378,4.61],[20400,180735,4.44],[20700,182044,4.29],[21000,183308,4.14],[21300,184531,4.01],[21600,185715,3.88],[21900,186863,3.77],[22200,187976,3.66],[22500,189057,3.55],[22800,190107,3.45],[23100,191128,3.36],[23400,192122,3.27],[23700,193090,3.19],[24000,194033,3.11],[24300,194953,3.03],[24600,195851,2.96],[24900,196728,2.89],[25200,197584,2.82],[25500,198421,2.76],[25800,199240,2.7],[26100,200041,2.64],[26400,200825,2.59],[26700,201593,2.53],[27000,202345,2.48],[27300,203083,2.43],[27600,203806,2.39],[27900,204515,2.34],[28200,205211,2.3],[28500,205894,2.26],[28800,206565,2.22],[29100,207224,2.18],[29400,207872,2.14],[29700,208508,2.1],[30000,209134,2.07],[30300,209749,2.03],[30600,210354,2],[30900,210950,1.97],[31200,211536,1.94],[31500,212113,1.91],[31800,212681,1.88],[32100,213241,1.85],[32400,213792,1.82],[32400,209944,2.02],[32700,210546,1.99],[33000,211138,1.96],[33300,211721,1.93],[33600,212295,1.9],[33900,212861,1.87],[34200,213418,1.84],[34500,213967,1.82],[34800,214507,1.79],[35100,215040,1.76],[35400,215566,1.74],[35700,216084,1.72],[36000,216595,1.69],[36300,217099,1.67],[36600,217596,1.65],[36900,218087,1.63],[37200,218571,1.6],[37500,219050,1.58],[37800,219522,1.56],[38100,219988,1.54],[38400,220448,1.52],[38700,220903,1.51],[39000,221352,1.49],[39300,221796,1.47],[39600,222234,1.45],[39600,222234,1.47],[39900,222674,1.46],[40200,223109,1.44],[40500,223539,1.42],[40800,223963,1.41],[41100,224383,1.39],[41400,224798,1.38],[41700,225209,1.36],[42000,225615,1.35],[42300,226017,1.33],[42600,226415,1.32],[42900,226808,1.3],[43200,227197,1.29],[43500,227582,1.28],[43800,227963,1.26],[44100,228341,1.25],[44400,228714,1.24],[44700,229084,1.23],[45000,229450,1.21],[45300,229813,1.2],[45600,230172,1.19],[45900,230527,1.18],[46200,230879,1.17],[46500,231228,1.16],[46800,231574,1.15],[47100,231917,1.14],[47400,232256,1.13],[47700,232592,1.12],[48000,232926,1.11],[48300,233256,1.1],[48600,233583,1.09],[48900,233908,1.08],[49200,234230,1.07],[49500,234549,1.06],[49800,234865,1.05],[50100,235178,1.04],[50400,235489,1.03],[50400,110489,29.87],[50700,118516,24.06],[51000,125113,20.15],[51300,130713,17.33],[51600,135578,15.2],[51900,139879,13.54],[52200,143734,12.2],[52500,147226,11.11],[52800,150417,10.19],[53100,153356,9.42],[53400,156080,8.75],[53700,158617,8.18],[54000,160992,7.67],[54300,163225,7.22],[54600,165330,6.82],[54900,167323,6.47],[55200,169214,6.15],[55500,171014,5.86],[55800,172730,5.59],[56100,174371,5.35],[56400,175942,5.13],[56700,177449,4.92],[57000,178898,4.74],[57300,180292,4.56],[57600,181636,4.4],[57900,182933,4.25],[58200,184186,4.11],[58500,185398,3.98],[58800,186572,3.85],[59100,187710,3.74],[59400,188814,3.63],[59700,189887,3.52],[60000,190929,3.43],[60300,191943,3.33],[60600,192929,3.25],[60900,193891,3.16],[61200,194828,3.08],[61500,195742,3.01],[61800,196634,2.94],[62100,197505,2.87],[62400,198356,2.8],[62700,199188,2.74],[63000,200002,2.68],[63300,200798,2.63],[63600,201578,2.57],[63900,202342,2.52],[64200,203090,2.47],[64500,203823,2.42],[64800,204543,2.37],[64800,206384,2.26],[65100,207055,2.22],[65400,207715,2.18],[65700,208364,2.14],[66000,209001,2.11],[66300,209627,2.07],[66600,210243,2.04],[66900,210849,2],[67200,211446,1.97],[67500,212033,1.94],[67800,212610,1.91],[68100,213179,1.88],[68400,213740,1.85],[68700,214292,1.83],[69000,214836,1.8],[69300,215372,1.77],[69600,215900,1.75],[69900,216421,1.72],[70200,216935,1.7],[70500,217442,1.68],[70800,217942,1.66],[71100,218435,1.63],[71400,218922,1.61],[71700,219403,1.59],[72000,219877,1.57],[72300,220346,1.55],[72600,220808,1.53],[72900,221265,1.51],[73200,221717,1.5],[73500,222163,1.48],[73800,222603,1.46],[74100,223039,1.44],[74400,223469,1.43],[74700,223895,1.41],[75000,224315,1.39],[75300,224731,1.38],[75600,225143,1.36],[75900,225550,1.35],[76200,225952,1.33],[76500,226350,1.32],[76800,226744,1.31],[77100,227134,1.29],[77400,227520,1.28],[77700,227902,1.27],[78000,228280,1.25],[78300,228654,1.24],[78600,229024,1.23],[78900,229391,1.22],[79200,229754,1.2],[79500,230114,1.19],[79800,230470,1.18],[80100,230823,1.17],[80400,231172,1.16],[80700,231518,1.15],[81000,231861,1.14],[81300,232201,1.13],[81600,232538,1.12],[81900,232872,1.11],[82200,233203,1.1],[82500,233530,1.09],[82800,233855,1.08],[83100,234178,1.07],[83400,234497,1.06],[83700,234814,1.05],[84000,235128,1.04],[84300,235439,1.03],[84600,235748,1.03],[84900,236054,1.02],[85200,236358,1.01],[85500,236659,1],[85800,236958,0.99],[86100,237255,0.98],[86400,237549,0.98],[86700,237841,0.97],[87000,238130,0.96],[87300,238417,0.95],[87600,238702,0.95],[87900,238985,0.94],[88200,239266,0.93],[88500,239545,0.93],[88800,239821,0.92],[89100,240096,0.91],[89400,240369,0.91],[89700,240639,0.9],[90000,240908,0.89],[90300,241174,0.89],[90600,241439,0.88],[90900,241702,0.87],[91200,241963,0.87],[91500,242222,0.86],[91800,242480,0.86],[92100,242736,0.85],[92400,242989,0.84],[92700,243242,0.84],[93000,243492,0.83],[93300,243741,0.83],[93600,243988,0.82]]};
+const H = 3600;
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const nf = (x, d = 0) => x.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const dur = (s) => { const h = Math.floor(s / H), m = Math.round((s % H) / 60); return h ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`; };
+const rel = (g) => { const d = g - D.now; if (Math.abs(d) < 60) return "maintenant"; return `${d < 0 ? "il y a" : "dans"} ${dur(Math.abs(d))} de jeu`; };
+const kfmt = (v) => (v >= 1000 ? `${nf(v / 1000)} k` : nf(v));
+
+// Repères numérotés : configurations (après la première) et dépenses.
+const marks = [];
+for (const e of D.events) {
+  if ((e.type === "config" && !e.real) || e.type === "depense") marks.push(e);
+}
+marks.forEach((m, i) => (m.n = i + 1));
+const relevés = D.events.filter((e) => e.type === "releve");
+const recons = D.events.filter((e) => e.type === "session" && e.on && e.g > 0);
+const offs = D.events.filter((e) => e.type === "session" && !e.on);
+const cfgText = (e) =>
+  e.cfg === 1 ? "Tier 3 : stations 4 → 5 ; RP/s 47,47 → 54,27 ; seuil 76 875 → 85 534 ; paraboles 2,93 → 3,35 RP/s" : e.cfg === 2 ? "Paraboles : 3,35 → 4,20 RP/s (+ 1 contrôleur)" : e.text;
+
+let period = 86400;
+function domain() {
+  const x0 = period ? Math.max(0, D.now - period) : 0;
+  const span = D.now - x0;
+  return [x0, D.now + span / 4];
+}
+function draw(svg, kind) {
+  const W = svg.parentElement.clientWidth;
+  const Hh = kind === "rp" ? 190 : 140;
+  const m = { l: 44, r: 8, t: kind === "rp" ? 22 : 8, b: kind === "rp" ? 8 : 26 };
+  const [x0, x1] = domain();
+  const pts = D.curve.filter((p) => p[0] >= x0 - 300 && p[0] <= x1);
+  const val = (p) => (kind === "rp" ? p[1] : p[2]);
+  let ymax = Math.max(...pts.map(val), ...(kind === "rp" ? D.caps.map((c) => c.cap) : []), ...relevés.filter((r) => r.g >= x0).map((r) => (kind === "rp" ? r.rp : r.rps)));
+  const nice = (v) => { const p = 10 ** Math.floor(Math.log10(v)); const f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
+  const stepY = nice(ymax / 5);
+  ymax = Math.ceil(ymax / stepY) * stepY;
+  const X = (g) => m.l + ((g - x0) / (x1 - x0)) * (W - m.l - m.r);
+  const Y = (v) => m.t + (1 - v / ymax) * (Hh - m.t - m.b);
+  svg.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
+  svg.setAttribute("height", Hh);
+  let s = "";
+  for (let v = 0; v <= ymax + 1e-9; v += stepY) s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="num" x="${m.l - 4}" y="${Y(v) + 3.5}" text-anchor="end">${kind === "rp" ? kfmt(v) : nf(v)}</text>`;
+  // graduation horizontale : heures de jeu avant maintenant
+  const span = x1 - x0;
+  const stepX = [H, 2 * H, 4 * H, 6 * H, 12 * H, 24 * H, 48 * H].find((st) => span / st <= (W < 500 ? 5 : 9)) ?? 96 * H;
+  if (kind === "rps") {
+    for (let g = D.now - Math.floor((D.now - x0) / stepX) * stepX; g <= x1; g += stepX) {
+      const d = Math.round((g - D.now) / H);
+      s += `<text class="num" x="${X(g)}" y="${Hh - 6}" text-anchor="middle">${d === 0 ? "maint." : `${d > 0 ? "+" : "−"}${Math.abs(d) >= 48 ? `${Math.abs(d) / 24} j` : `${Math.abs(d)} h`}`}</text>`;
+    }
+    for (const r of recons) if (r.g >= x0) s += `<path class="recon" d="M${X(r.g)} ${Hh - m.b + 2} l4 7 h-8 Z"><title>Reconnexion ${offs.find((o) => o.g === r.g)?.text.replace("Je ne joue plus ", "") ?? ""}</title></path>`;
+  }
+  // repères verticaux
+  for (const mk of marks) if (mk.g >= x0) s += `<line class="mark" x1="${X(mk.g)}" x2="${X(mk.g)}" y1="${m.t}" y2="${Hh - m.b}"/>`;
+  s += `<line class="now" x1="${X(D.now)}" x2="${X(D.now)}" y1="${m.t - (kind === "rp" ? 14 : 0)}" y2="${Hh - m.b}"/>`;
+  if (kind === "rp") {
+    s += `<text x="${X(D.now) + 3}" y="${m.t - 6}">maintenant</text>`;
+    for (const c of D.caps) {
+      const a = Math.max(c.from, x0), b = Math.min(c.to, x1);
+      if (b > a) s += `<line class="cap" x1="${X(a)}" x2="${X(b)}" y1="${Y(c.cap)}" y2="${Y(c.cap)}"/>`;
+    }
+    const last = D.caps[D.caps.length - 1];
+    s += `<text x="${W - m.r}" y="${Y(last.cap) - 4}" text-anchor="end">seuil ${nf(last.cap)}</text>`;
+  }
+  const path = (arr) => arr.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)} ${Y(val(p)).toFixed(1)}`).join("");
+  s += `<path class="pred" d="${path(pts.filter((p) => p[0] <= D.now))}"/>`;
+  s += `<path class="pred future" d="${path(pts.filter((p) => p[0] >= D.now))}"/>`;
+  for (const r of relevés) if (r.g >= x0) s += `<circle class="meas" cx="${X(r.g)}" cy="${Y(kind === "rp" ? r.rp : r.rps)}" r="4.5"/>`;
+  // étiquette du dernier écart (sélective : un seul nombre sur le graphique)
+  const lastR = relevés[relevés.length - 1];
+  if (kind === "rp" && lastR.pred) s += `<text class="num" x="${X(lastR.g) - 7}" y="${Y(lastR.rp) - 8}" text-anchor="end">${(lastR.rp - lastR.pred) / lastR.pred >= 0 ? "+" : "−"}${nf(Math.abs((lastR.rp - lastR.pred) / lastR.pred) * 100, 1)} %</text>`;
+  if (kind === "rp") for (const mk of marks) if (mk.g >= x0) {
+    const x = X(mk.g);
+    s += mk.type === "config" ? `<circle class="flag" cx="${x}" cy="${m.t - 8}" r="7"/>` : `<rect class="flag" x="${x - 7}" y="${m.t - 15}" width="14" height="14" rx="2"/>`;
+    s += `<text class="flag-t" x="${x}" y="${m.t - 4.5}">${mk.n}</text>`;
+  }
+  s += `<line class="hair" id="hair-${kind}" y1="${m.t}" y2="${Hh - m.b}" visibility="hidden"/>`;
+  svg.innerHTML = s;
+  svg._X = X; svg._inv = (px) => x0 + ((px - m.l) / (W - m.l - m.r)) * (x1 - x0); svg._m = m;
+}
+const svgs = [document.getElementById("c-rp"), document.getElementById("c-rps")];
+function drawAll() { draw(svgs[0], "rp"); draw(svgs[1], "rps"); }
+const tip = document.getElementById("rh-tip");
+function at(g) {
+  let best = D.curve[0];
+  for (const p of D.curve) if (Math.abs(p[0] - g) < Math.abs(best[0] - g) || (p[0] === best[0])) { if (p[0] <= g + 150) best = p; }
+  return best;
+}
+function hover(ev) {
+  const svg = ev.currentTarget;
+  const r = svg.getBoundingClientRect();
+  const px = ((ev.clientX - r.left) / r.width) * svg.viewBox.baseVal.width;
+  const [x0, x1] = domain();
+  const g = Math.min(x1, Math.max(x0, svg._inv(px)));
+  const p = at(g);
+  for (const s of svgs) { const h = s.querySelector(".hair"); h.setAttribute("x1", s._X(p[0])); h.setAttribute("x2", s._X(p[0])); h.setAttribute("visibility", "visible"); }
+  const near = (e) => Math.abs(svg._X(e.g) - svg._X(p[0])) < 12;
+  const rows = [`<div class="t">${p[0] > D.now ? "prévision, " : ""}${rel(p[0])}</div>`,
+    `<div><span class="k" style="background:var(--rp-pred)"></span><b>${nf(p[1])}</b> RP · <b>${nf(p[2], 2)}</b> RP/s</div>`];
+  for (const e of relevés) if (near(e)) rows.push(`<div><span class="k" style="background:var(--rp-meas)"></span>relevé <b>${nf(e.rp, 1)}</b> RP · <b>${nf(e.rps, 2)}</b> RP/s${e.pred ? `<br><span class="t">prévu ${nf(e.pred)} : écart ${e.rp >= e.pred ? "+" : "−"}${nf(Math.abs(e.rp - e.pred))} RP (${e.rp >= e.pred ? "+" : "−"}${nf(Math.abs((e.rp - e.pred) / e.pred) * 100, 1)} %)</span>` : ""} ${e.real ? '<span class="real">capture</span>' : '<span class="ex">exemple</span>'}</div>`);
+  for (const mk of marks) if (near(mk)) rows.push(`<div>${mk.type === "config" ? "⚙" : "$"}${mk.n} ${mk.type === "config" ? cfgText(mk) : `${mk.text} : −${nf(mk.cost)} RP (${nf(mk.before)} → ${nf(mk.after)})`} <span class="ex">exemple</span></div>`);
+  for (const rc of recons) if (near(rc)) rows.push(`<div class="t">▲ reconnexion ${offs.find((o) => o.g === rc.g)?.text.replace("Je ne joue plus ", "") ?? ""}</div>`);
+  tip.innerHTML = rows.join("");
+  tip.hidden = false;
+  const box = document.getElementById("rh").getBoundingClientRect();
+  const left = ev.clientX - box.left;
+  tip.style.left = `${Math.max(0, Math.min(box.width - tip.offsetWidth, left + (left > box.width / 2 ? -tip.offsetWidth - 12 : 12)))}px`;
+  tip.style.top = `${r.top - box.top + 24}px`;
+}
+for (const s of svgs) {
+  s.addEventListener("pointermove", hover);
+  s.addEventListener("pointerdown", hover);
+  s.addEventListener("pointerleave", () => { tip.hidden = true; for (const x of svgs) x.querySelector(".hair").setAttribute("visibility", "hidden"); });
+}
+for (const b of document.querySelectorAll("[data-period]")) b.addEventListener("click", () => {
+  period = Number(b.dataset.period);
+  for (const x of document.querySelectorAll("[data-period]")) x.setAttribute("aria-checked", String(x === b));
+  drawAll();
+});
+// journal (vue tableau)
+const tb = document.querySelector("#rh-log tbody");
+tb.innerHTML = D.events.map((e) => {
+  const tag = e.real ? '<span class="real">capture</span>' : '<span class="ex">exemple</span>';
+  let what = "", gap = "";
+  if (e.type === "releve") { what = `Relevé : ${nf(e.rp, 1)} RP, ${nf(e.rps, 2)} RP/s`; if (e.pred) gap = `${e.rp >= e.pred ? "+" : "−"}${nf(Math.abs(e.rp - e.pred))} RP (${e.rp >= e.pred ? "+" : "−"}${nf(Math.abs((e.rp - e.pred) / e.pred) * 100, 1)} %)`; }
+  else if (e.type === "config") what = `⚙${e.n ?? ""} Configuration : ${cfgText(e)}`;
+  else if (e.type === "depense") what = `$${e.n} ${e.text} : −${nf(e.cost)} RP (${nf(e.before)} → ${nf(e.after)})`;
+  else what = e.on ? "▶ Je joue" : `⏸ ${e.text}`;
+  return `<tr><td>${e.n ?? ""}</td><td class="num">${dur(e.g)}</td><td>${what} ${tag}</td><td class="num">${gap}</td><td>${e.real ? "" : '<button type="button" title="Retirer cet événement">✕</button>'}</td></tr>`;
+}).join("");
+drawAll();
+new ResizeObserver(drawAll).observe(document.getElementById("rh"));
+</script>
+</body>
+</html>
