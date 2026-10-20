@@ -56,6 +56,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | R11 | (2026-10-18) Une option pour passer le site en anglais, et un site parfaitement accessible et ergonomique (« un peu barbare » aujourd'hui), pour le montrer au serveur Discord de la communauté sans avoir honte d'un résultat brouillon, incomplet ou plein d'erreurs. | Deux chantiers liés : la traduction (tout le texte, les nombres, les dates) et une remise à niveau de la forme (clarté, cohérence, finition, accessibilité au sens large). Le lot écrit le plan, il ne l'exécute pas. | S16 |
 | R12 | (2026-10-18, premier jet) Construire sa propre chaîne de production pour en voir les statistiques : un plan vierge, des menus « burger » pour ouvrir une liste de machines, des liaisons qu'on trace en maintenant le clic et en glissant avec l'outil tuyau (du bon type, fluide ou objet), comme les convoyeurs de Mindustry. | Un mode « bac à sable », l'inverse du calculateur : on pose, le site calcule. Très gros : le lot écrit le plan et la maquette, il ne l'exécute pas. | S17 |
 | R13 | (2026-10-18) Le gain de RP baisse quand les RP accumulés augmentent, et la baisse se calcule avec ce qu'on lit en jeu (Research Tracking Panel : seuil d'efficacité, « Max RP before RP/s is nearly zero »…). Que manque-t-il au site ? | Recherche faite le 2026-10-18 (sans code) : les formules du wiki retrouvent la capture au centième près. Le site connaît le plafond souple pour l'installation qu'il propose, mais compte les RP du joueur en ligne droite et ignore ses stations. | S20 |
+| R14 | (2026-10-20, après S20) Un graphe de l'évolution des RP du joueur, avec l'historique et les modifications qu'il y a apportées au fil du temps (changement de configuration…). Deux courbes : les RP et les RP/s. | Le moteur sait refaire la courbe entre deux instants (S20), mais le site ne garde que le dernier relevé et la dernière configuration. Il faut un journal (relevés, changements de configuration, dépenses) et deux graphiques dans « Ma recherche ». | S21 |
 | — | En attente depuis le 2026-10-14 : (1) la sortie du collecteur central d'une double rangée entre deux machines ; (2) « Toute l'usine » dans le site. | Inchangé. | S2, S3, S4 |
 
 ## 2. Ordre proposé (à valider : Q10)
@@ -79,7 +80,8 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S18 | Moteur diesel : relevés de configuration, consommation selon le carburant, réglages du contrôleur | moyenne | S14 | ✅ fait |
 | S19 | Éditeur de bâtiments simplifié : ports dans la grille, une case par face, moins de bruit | moyenne | S14, maquette | ✅ fait |
 | S20 | Recherche : vitesse réelle des RP (plafond souple) et état de mes stations dans « Mon usine » | moyenne | relevés RP-01 à RP-08 (pendant : Q17) | ✅ fait |
-| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S20 | à faire |
+| S21 | Recherche : historique des RP, deux graphiques (RP et RP/s) avec les changements de configuration et les dépenses | moyenne | S20, maquette | à faire |
+| S15 | Revue d'ensemble de l'interface avec l'utilisateur, comme un joueur | moyenne | S1 à S14, S18 à S21 | à faire |
 | S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté | moyenne, sans code | S15 | à faire |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
 
@@ -93,6 +95,7 @@ Pourquoi cet ordre :
 - **Modulaires en dernier** : c'est le lot le plus gros et le moins documenté. La recherche (S11)
   peut être avancée si tu le souhaites.
 - **S20 avant S15** (réponse à Q17, 2026-10-19) : la revue d'ensemble verra la recherche finie.
+- **S21 avant S15** (réponse à Q20, 2026-10-20) : l'historique des RP fait partie de la recherche.
 - **S15 à la fin** : l'utilisateur veut revoir l'interface dans son ensemble, pour qu'elle soit
   logique pour des joueurs (« t'es pas joueur et t'as pas la façon de réfléchir de ceux-ci ») :
   parcours guidés par lui, puis réorganisation. D'ici là, chaque lot garde l'interface simple et
@@ -598,6 +601,54 @@ estimés à l'instant, l'heure du seuil et la vitesse au-delà, et l'écart avec
 jeu après le seuil (RP-04) reste sous 2 % ; l'objectif recherche part des stations du joueur ; tests
 verts ; parcours réel avec captures.
 
+### S21 — Recherche : historique des RP et deux graphiques
+
+Retour : R14 (2026-10-20, après S20). Place : entre S20 et S15 (Q20.1).
+
+Ce qui existe (vérifié dans le code le 2026-10-20, commit `afa77d9`) :
+- `src/engine/research-balance.ts` : `balanceAfter`, `timeToReach`, `rateAt`, `researchModel` (tiers,
+  seuils, paraboles, à partir de « Ma recherche ») ; la courbe entre deux instants se refait pour
+  n'importe quelle configuration.
+- `src/ui/progress.ts` : `PlayerInfo` garde **un seul** relevé (`rp`, `rpPerSec`, `rpAt`) et **une
+  seule** configuration (`research`) ; chaque saisie remplace la précédente. Aucun historique.
+- `setProgress` (main.ts) dépense les RP d'une recherche débloquée sur le site (option « dépenser »),
+  sans rien noter.
+- Le site dessine ses graphiques en SVG sans bibliothèque (arbre, plans) : pas de dépendance à ajouter.
+
+Ce qu'il faut faire :
+- **Journal** (pur, testé), gardé dans le navigateur (clé à part) et exporté avec la partie (clé
+  facultative, l'ancien format reste lisible). Trois types d'événements, chacun daté :
+  - relevé : RP et RP/s de la 1ʳᵉ ligne du panneau (à chaque saisie) ;
+  - configuration : la saisie de « Ma recherche » entière, enregistrée **automatiquement** à chaque
+    modification (Q20.3) ; les frappes rapprochées se fondent en un seul événement ;
+  - dépense : recherches débloquées (ou rendues) sur le site, RP avant et après.
+  Premier point possible : la capture du 2026-10-18 (19 273,50 RP, 50,40 RP/s), à dater (Q21).
+- **Moteur de l'historique** : la courbe prévue repart de chaque relevé et de chaque dépense, avec la
+  configuration en vigueur ; à chaque relevé, l'écart entre la prévision et le relevé (en RP et en %).
+  C'est le contrôle qui manque à RP-04 et au critère « moins de 2 % » de S20. Ce qui est dépensé en jeu
+  sans être coché sur le site apparaît comme une marche, que le relevé suivant corrige.
+- **Deux graphiques** dans « Ma recherche », un peu plus bas (Q20.2), sur le même axe du temps
+  (Q20.3) :
+  - **RP** : les relevés en points, la courbe prévue en trait, le seuil de chaque période en ligne
+    horizontale (il change avec la configuration), la prévision au-delà de maintenant en pointillé ;
+  - **RP/s** : la vitesse prévue (elle baisse au-delà du seuil, remonte après une dépense), les RP/s
+    relevés en points ;
+  - sur les deux : un repère vertical à chaque changement de configuration et à chaque dépense, avec
+    au survol (ou au toucher) ce qui a changé (« + 1 station du tier 3 », « liquide : Light Oil »,
+    « Foundry débloquée : −100 000 RP ») ; une période au choix (24 h, 7 jours, tout).
+  - Lire le skill `dataviz` avant d'écrire les graphiques ; tenir à 375 px de large.
+- **Tests** : journal (fusion des frappes, export et import), courbe d'un journal fictif (relevé,
+  changement de configuration, dépense, relevé) contre `balanceAfter` morceau par morceau, écart d'un
+  relevé.
+
+Questions : Q21 (au début du lot). Maquette d'abord (un fichier dans `maquette/`, feuille de style en
+chemin relatif), avec un journal d'exemple construit sur la capture du 2026-10-18 et des événements
+marqués « exemple ».
+
+Critère de fin : après quelques saisies (relevés, une station ajoutée, une recherche débloquée), les deux
+graphiques montrent l'historique, les repères et l'écart prévision / relevé ; le journal survit au
+rechargement et à l'export ; tests verts ; parcours réel avec captures, ordinateur et téléphone.
+
 ### S16 — Plan : le site en anglais, et une forme présentable à la communauté
 
 Retour : R11. **Ce lot écrit un plan, il ne code rien** (une maquette si elle aide à décider).
@@ -897,6 +948,18 @@ Questions : Q14.
 
   Réponse (2026-10-20) : « Oui à tout » (avec, en complément, le texte de la page Research System
   du wiki, reporté dans `a-verifier.md`).
+- **Q20 (S21), historique des RP.** Posée le 2026-10-20, après S20.
+  1. Place du lot : avant ou après S15 ?
+  2. Le graphique : dans « Ma recherche » (Mon usine) ou sur une page à part ?
+  3. Les changements de configuration : notés automatiquement, ou seulement sur « Noter ce changement » ?
+
+  Réponses (2026-10-20) : 1 « avant S15 » ; 2 « dans Ma recherche, un peu plus bas » ; 3
+  « enregistrement automatique », et **deux courbes** : l'évolution des RP et celle des RP/s.
+- **Q21 (S21), à poser au début du lot.**
+  1. La capture du 2026-10-18 comme premier point : à quelle heure l'as-tu prise (même approximative) ?
+  2. Période affichée par défaut : 24 h, 7 jours ou tout l'historique ?
+  3. Frappes rapprochées : fondues en un seul événement si elles ont moins de 2 minutes d'écart ?
+  4. Taille du journal : garder tout, ou seulement les 90 derniers jours ?
 - **Q10, ordre.** L'ordre du § 2 te convient-il ?
   Oui vas-y, propose moi le lancement des différentes sessions et comporte toi comme gestionnaire des sessions
 
@@ -963,6 +1026,8 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S20 Saisie | Deux niveaux dans « Ma recherche » : rapide (recopier le panneau : RP/s et seuil de chaque tier, paraboles, « Max RP ») et détaillé (stations, items, liquides : le site recalcule le panneau et le compare). | 2026-10-19 |
 | S20 Tiers | Un seuil par tier, appliqué aux RP/s de ce tier, écrit « supposé » tant que RP-05 n'a pas de réponse. | 2026-10-19 |
 | S20 Relevés | RP-01 à RP-08 pendant le lot : le code part des suppositions (deux Crankshaft par station, liquide de valeur 0,1), écrites « supposé ». | 2026-10-19 |
+| S21 Place | Nouveau lot S21 (historique des RP, R14) entre S20 et S15. | 2026-10-20 |
+| S21 Graphiques | Dans « Ma recherche », un peu plus bas ; deux courbes (RP et RP/s) ; changements de configuration enregistrés automatiquement. | 2026-10-20 |
 | S20 Maquette | Validée (`maquette/recherche-rp.html`) : RP et RP/s passent dans « Ma recherche » ; les quatre tiers toujours affichés ; tableau des soldes (seuil, 100 000, 2 × seuil, Max RP) ; colonne « + N stations aux tiennes » dans la chronologie et bloc qui la détaille ; efficacité des paraboles recopiée du panneau, bonus au prorata (supposé). | 2026-10-20 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
@@ -1028,6 +1093,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-20, S20** (422 tests, déployé) : Q17 (points 2 à 4) et Q19 (maquette `maquette/recherche-rp.html`) posées et validées, décisions S20 au § 5. Moteur pur `src/engine/research-balance.ts` : `rateAt`, `timeToReach`, `balanceAfter` (formule exacte `exactBalance` pour un seul seuil des tiers 1 à 3, Simpson sinon), `nearlyZero` (« Max RP »), `balanceTimeline`, `researchModel` (niveau rapide : le panneau, grandeurs du tier retrouvées par les formules inverses `tierSumFromPanel` ; niveau détaillé : groupes de stations et contrôleurs, contrôles « comme en jeu »), `withAddedStations` et `proposeAddStations` (« + N stations aux tiennes »). `research-points.ts` : `TierSum`, `tierRate`, `tierCap`, `groupSum` ; `evaluateStations` et `designResearch` acceptent les stations du joueur (`base`) : une installation du même tier s'y ajoute (gain réel, seuil du tier entier). Site : boîte « Ma recherche » dans Mon usine (RP et RP/s déplacés), RP estimés avec le plafond partout (`currentRp` prend les tiers), puce d'en-tête à la vitesse réelle (« ⚠ seuil »), objectif recherche avec le vrai seuil, colonne et bloc « + N stations aux tiennes », « Comment c'est calculé » (vitesse et seuil). Saisie gardée dans `player.research` (export compris). Wiki (Research System, texte de l'utilisateur) : « average RPx » contredit la somme de la page Research Station3 ; la capture tranche pour la somme (RP-10). Nouveaux doutes RP-10 à RP-12.
   Parcours réel (navigateur intégré, 371 px de large) : capture saisie au niveau rapide → seuil dans 19 min, 1,3 × seuil dans 30 min (25,26 RP/s), 2 × seuil 1 h 58 (5,04 RP/s), « Max RP » 230 625 (✓ avec 231 000) ; saisie avancée de 2 h (stockage modifié pour l'essai) → ≈ 154 229 RP, 4,96 RP/s (9,8 %), « seuil dépassé depuis 1 h 41 », en ligne droite le site aurait compté 382 682 ; niveau détaillé (4 RS3 Crankshaft + Crankshaft, 2 contrôleurs Light Oil) → 47,47 ✓, 76 875 ✓, 2,93 ✓, 230 626 ✓, 1ʳᵉ ligne ✓. Objectif « Foundry en 15 min » (Foundry décochée pour l'essai, recochée ensuite) : à ton rythme 30 min, + 7 stations aux tiennes 14 min (11 stations, 87,09 RP/s + 5,38, seuil 121 563, 700 000 $, 84 Crankshaft/min), installation neuve 15 min. Aucune erreur en console.
   À surveiller : l'écart avec un relevé en jeu après le seuil (RP-04, critère < 2 %) n'est pas mesuré, faute de relevé ; tout repose encore sur deux suppositions (deux Crankshaft, liquide de valeur 0,1) et sur un seuil par tier (RP-05) ; les paraboles d'une installation neuve s'ajoutent telles quelles (le log des liquides de tous les contrôleurs n'est pas recombiné) ; « 1,3 × seuil » remplace le « 100 000 » d'exemple de la maquette (ligne utile au relevé RP-04).
+- **2026-10-20, après S20** : nouveau retour R14 (graphe de l'évolution des RP avec l'historique des changements) ; Q20 posée et répondue ; lot S21 écrit au § 3, placé avant S15. Aucun code.
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions
