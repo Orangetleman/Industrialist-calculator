@@ -24,7 +24,7 @@ import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engi
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
 import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
-import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
+import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
 import { runFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
@@ -1380,8 +1380,10 @@ function showPoseSvg(f: { svg: string; width: number; height: number }, k: strin
 /** Clé du calcul de toute l'usine : il est refait quand l'un de ces réglages change. */
 function factoryKey(v = settings.usine): string {
   const plot = plotOf(player);
-  return `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
+  return `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${JSON.stringify(evacNow())}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
 }
+/** Bords choisis pour les produits à évacuer de ce plan (S27). */
+const evacNow = () => settings.evacSides[planKey(settings.goal, settings.item) ?? ""] ?? {};
 
 /** Le calcul pour les réglages en cours, et celui de l'usine recalculée (passages conseillés, version d'un module). */
 const currentFactory = () => factories.get(factoryKey()) ?? null;
@@ -1418,7 +1420,7 @@ function startFactory(): void {
     CATALOG,
     plot,
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
-    v.full ? { full: true } : { glue: v.glue },
+    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow() },
   );
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: "Démarrage", error: null, cancelled: false, flows: null };
   factories.set(key, st);
@@ -1509,7 +1511,7 @@ function renderFactory(): void {
   showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st)), `${st.key}|${USINE}`, true);
   setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
   markFocused();
-  $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet());
+  $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet()) + renderFactoryEvac(st.plan, anyName, evacNow());
   markPosed();
   panel.classList.remove("computing");
 }
@@ -2742,6 +2744,18 @@ function bindPlan(): void {
     document.querySelector<HTMLElement>(`#${el.closest("[id]")?.id ?? "pose-bar"} [data-uopt="${opt}"]${el instanceof HTMLInputElement && el.type === "radio" ? `[value="${el.value}"]` : ""}`)?.focus();
   };
   // Modules posés (S25).
+  // Bord de sortie d'un produit à évacuer (S27) : gardé par plan, l'usine se recalcule.
+  $("pose-mods").addEventListener("change", (e) => {
+    const sel = (e.target as Element).closest<HTMLSelectElement>("select[data-evac]");
+    if (!sel) return;
+    const key = planKey(settings.goal, settings.item) ?? "";
+    const sides = { ...(settings.evacSides[key] ?? {}) };
+    if (sel.value) sides[sel.dataset.evac!] = sel.value as "haut" | "bas" | "gauche" | "droite";
+    else delete sides[sel.dataset.evac!];
+    settings.evacSides = { ...settings.evacSides, [key]: sides };
+    saveSettings(settings);
+    renderPose();
+  });
   for (const id of ["pose-mods", "pose-focus"])
     $(id).addEventListener("change", (e) => {
       const box = (e.target as Element).closest<HTMLInputElement>("[data-posed]");

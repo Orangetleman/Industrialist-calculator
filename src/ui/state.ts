@@ -100,6 +100,8 @@ export type Settings = {
   machineSettings: Record<string, MachineSettings>;
   /** Moteur diesel de chaque plan (S18) : carburant, critère, configuration imposée, par clé de plan. */
   dieselChoice: Record<string, DieselChoice>;
+  /** Bord de l'usine par où sort chaque produit à évacuer (S27), par clé de plan puis par objet. */
+  evacSides: Record<string, Record<string, "haut" | "bas" | "gauche" | "droite">>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
   money: number;
   /** La chaîne produit sa propre énergie. */
@@ -155,6 +157,7 @@ export const DEFAULT_SETTINGS: Settings = {
   machineFilters: {},
   machineSettings: {},
   dieselChoice: {},
+  evacSides: {},
   money: 10000,
   selfPowered: false,
   maxPollution: null,
@@ -213,6 +216,7 @@ export function loadSettings(): Settings {
   // Ancien format : une seule priorité par objectif ; elle passe en tête de la liste.
   out.criteria = Object.fromEntries(GOALS.map((g) => [g, criteriaList(g, saved[g])])) as Settings["criteria"];
   if (!GOALS.includes(out.goal)) out.goal = "objet";
+  if (!out.evacSides || typeof out.evacSides !== "object") out.evacSides = {};
   // Réglages d'avant S23 : le joueur avait ses objectifs remplis, ils le restent.
   out.entered = Array.isArray(rest.entered) ? rest.entered.filter((g) => GOALS.includes(g)) : Object.keys(rest).length ? [...GOALS] : [];
   out.useExisting = out.useExisting !== false;
