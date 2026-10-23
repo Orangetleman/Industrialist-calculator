@@ -12,11 +12,11 @@ import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
 import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtRP } from "./format.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
-import { filterNote } from "./mfilter-view.ts";
 import { planKey, planMachines, type Goal } from "./state.ts";
 import { verifyHref } from "./recipes-view.ts";
 import type { Interfaces, MachineSettings } from "../engine/interfaces.ts";
 import { renderScreenInputs, settingChips, settingLines } from "./iface-view.ts";
+import { doubtText, fieldWord, fixAttr, stepWarnings, warnButton, warnChips } from "./plan-bar.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
@@ -291,15 +291,12 @@ export function renderAnswer(v: ViewCtx): string {
       p.surplus.filter((s) => s.item !== ENERGY && s.item !== POLLUTION).map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min`, "accent")),
     ),
   ].join("");
-  const forcedUsed = p.steps.filter((s) => s.forced).length;
   const notes = [
     v.fresh ? `<li>Le calcul part d'une partie neuve (seulement ce qui est acquis d'office). <a href="#usine">Indique tes recherches débloquées</a> pour un plan qui te correspond.</li>` : "",
     ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${esc(w.message)}</li>`),
     ...missingNotes(v),
     ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${esc(x)}</li>`),
     tierSuggestion(v),
-    forcedUsed ? `<li>${plural(forcedUsed, "recette est choisie à la main", "recettes sont choisies à la main")} (onglet Détails). <button type="button" class="link" data-forced-reset>Revenir aux choix automatiques</button></li>` : "",
-    filterNote(v, planMachines(v.settings, planKey(v.goal, v.settings.item))),
   ].filter(Boolean);
   return `<div class="answer ${h.tone}" role="status"><h2>${h.text}</h2>${stats}${lines}${notes.length ? `<ul class="notices">${notes.join("")}</ul>` : ""}</div>`;
 }
@@ -328,6 +325,8 @@ export type BuildRow = {
   pose?: string;
   /** Réglage à faire sur les machines (S10) : pastilles « ⚙ … » (HTML). */
   setting?: string;
+  /** Valeur à vérifier utilisée par cette ligne (S28) : ⚠ cliquable vers la correction (HTML). */
+  warn?: string;
 };
 
 const STAGES = ["Extraction", "Transformation", "Produit final", "Vente", "Centrales électriques", "Énergie", "Dépollution", "Stations de recherche", "Réseau électrique", "Déjà en place", "Non produit"] as const;
@@ -359,6 +358,7 @@ function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
     pose: isPosable(s) ? s.key : undefined,
     setting: s.parts ? dieselSetting(v, s) : settingChips(settingLines(v.ifaces, v.msettings, s.machine, s.recipeId)) || undefined,
+    warn: warnButton(v, stepWarnings(v, s)) || undefined,
   };
 }
 
@@ -491,7 +491,7 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
         ? ` <button type="button" class="link small have" data-have="${esc(r.have.item)}" data-amount="${Math.round(r.have.perMin * 100) / 100}" title="Tu produis déjà cet objet ailleurs : le calcul s'en servira au lieu de construire.">je l'ai déjà</button>`
         : "";
       body += `<tr class="${[on ? "done" : "", r.buildable ? "" : "info"].filter(Boolean).join(" ")}"><td class="chk">${box}</td>
-        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="Comment poser ces machines : disposition, tuyaux, poteaux">plan de pose</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.setting ? `<div class="sub">${r.setting}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
+        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.warn ? ` ${r.warn}` : ""}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="Comment poser ces machines : disposition, tuyaux, poteaux">plan de pose</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.setting ? `<div class="sub">${r.setting}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
         <td class="prod">${esc(r.product)}${r.rate ? ` <span class="sub num">${esc(r.rate)}</span>` : ""}${have}</td>
         <td class="feeds">${r.feeds ? `<span class="sub-k">alimente</span> ${esc(r.feeds)}` : ""}</td>
         <td class="num energy">${esc(r.energy)}</td></tr>`;
@@ -570,7 +570,7 @@ export function renderEdgeHud(v: ViewCtx, e: { from: string; to: string; item: s
   const a = nodeText(v, e.from);
   const b = nodeText(v, e.to);
   const info = `<b>${esc(itemN(v, e.item))} · ${esc(flowLabel(e.perMin))}</b><span>de ${esc(a.text)} vers ${esc(b.text)}${e.loop ? " · boucle : remonte la chaîne" : ""}</span>`;
-  return `<div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">◂ Départ</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">Arrivée ▸</button><button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div>`;
+  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">◂ Départ</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">Arrivée ▸</button><button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div></div>`;
 }
 
 /** Barre du bas du schéma pour le bloc sélectionné : ce qu'il est, et où aller. */
@@ -582,32 +582,44 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   const name = st ? itemN(v, st.item) : itemN(v, v.plan.existing.find((x) => x.key === key)?.item ?? key);
   const fx = v.plan.fixed?.steps.find((s) => s.key === key);
   const info = `<b>${esc(name)}</b><span>${esc(st ? n.text.replace(/ \([^)]*\)$/, "") : n.text)}${fx ? " (fixé)" : ""}${st ? ` · reçoit ${ins} flux · en envoie ${outs}` : ""}</span>`;
-  const acts: string[] = [];
+  // S28 : ce qui est douteux (⚠ → la correction) et la position à mettre en jeu (S10), à côté du nom.
+  const notes: string[] = [];
+  if (st) notes.push(warnChips(v, stepWarnings(v, st)));
+  if (st && !st.parts) notes.push(settingChips(settingLines(v.ifaces, undefined, st.machine, st.recipeId)));
+  // « Tu peux régler : » (S28) : tout ce qui change ce bloc, au même endroit.
+  const sets: string[] = [];
+  const planGoal = v.goal !== "recherche";
   // Nombre de machines réglable (S8) : boutons, molette ou clavier ; pas pour une installation composée.
-  if (st && !st.parts && v.goal !== "recherche") {
-    acts.push(
+  if (st && !st.parts && planGoal) {
+    sets.push(
       `<span class="mset${fx ? " on" : ""}" title="Molette sur le nombre : une de plus ou de moins. Entrée pour appliquer un nombre tapé.">Machines : <button type="button" data-mset="-1" aria-label="Une machine de moins">−</button><input type="text" inputmode="numeric" data-mset-input data-key="${esc(key)}" value="${st.machines}" aria-label="Nombre de machines (${esc(name)})"><button type="button" data-mset="1" aria-label="Une machine de plus">+</button>${fx && fx.planMachines !== fx.machines ? ` <small>plan : ${fx.planMachines}</small>` : ""}</span>`,
     );
   }
-  // Interface de la machine (S10) : la position à mettre pour ce craft, et l'écran chiffré, réglable pour le plan.
-  if (st && !st.parts) {
-    const chips = settingChips(settingLines(v.ifaces, undefined, st.machine, st.recipeId));
-    if (chips) acts.push(chips);
-    if (v.goal !== "recherche") acts.push(renderScreenInputs(v.ifaces?.[st.machine], st.machine, machineN(v, st.machine), v.msettings?.[st.machine]));
+  // Recette de l'objet (comme dans Détails) : automatique ou choisie à la main.
+  if (st && planGoal && st.item !== ENERGY && st.item !== POLLUTION) {
+    const choose = recipeSelect(v, st.item, st.recipeId, st.alternatives);
+    if (choose) sets.push(`<span class="mset hud-recipe">Recette : ${choose}</span>`);
   }
+  // Écran chiffré de la machine (S10), réglable pour le plan.
+  if (st && !st.parts && planGoal) sets.push(renderScreenInputs(v.ifaces?.[st.machine], st.machine, machineN(v, st.machine), v.msettings?.[st.machine]));
   // Moteur diesel (S18) : carburant, critère ou configuration imposée, et les réglages du contrôleur.
-  if (st && st.machine === "diesel-engine-controller" && v.diesel && v.goal !== "recherche") acts.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === st.recipeId) ?? null));
-  if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
+  if (st && st.machine === "diesel-engine-controller" && v.diesel && planGoal) sets.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === st.recipeId) ?? null));
+  // Filtre de machines (S9) : écarter la machine de ce plan, d'un clic.
+  if (st && !st.parts && planGoal) {
+    sets.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="Écarter ${esc(machineN(v, st.machine))} de ce plan (réglage « Machines »)">Ne plus utiliser ${esc(machineN(v, st.machine))} ⊘</button>`);
+  }
+  const acts: string[] = [];
+  // Le module de cette étape, à sa place dans l'usine (S25) ; « Plan de pose seul » reste dans son panneau.
+  if (st && isPosable(st) && v.goal !== "recherche") acts.push(`<button type="button" class="flow-hud-btn primary" data-focus="${esc(key)}">Voir le module dans l'usine ▸</button>`);
+  else if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
   if (st && !st.parts) {
     const state = survey(st.machine);
     const label = state === "depot" ? "ports relevés" : state === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
     acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="Ouvrir ${esc(machineN(v, st.machine))} dans l'éditeur de bâtiments">Bâtiment : ${esc(label)} ✎</button>`);
   }
-  // Filtre de machines (S9) : écarter la machine de ce plan, d'un clic.
-  if (st && !st.parts && v.goal !== "recherche") {
-    acts.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="Écarter ${esc(machineN(v, st.machine))} de ce plan (réglage « Machines »)">Ne plus utiliser ${esc(machineN(v, st.machine))} ⊘</button>`);
-  }
-  return `<div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div>`;
+  const noteRow = notes.filter(Boolean).join(" ");
+  const setRow = sets.filter(Boolean).length ? `<div class="flow-hud-sets"><span class="flow-hud-k">Tu peux régler :</span>${sets.filter(Boolean).join("")}</div>` : "";
+  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div></div>${noteRow ? `<div class="flow-hud-notes">${noteRow}</div>` : ""}${setRow}`;
 }
 
 /**
@@ -658,7 +670,6 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
   const steps = new Map(p.steps.map((s) => [s.key, s]));
   const unres = new Map(p.unresolved.map((u) => [u.item, u]));
   const existing = new Map(p.existing.map((x) => [x.key, x]));
-  const warned = new Set(p.verify.filter((x) => x.used).map((x) => x.item));
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Schéma des flux, des matières premières (à gauche) vers l'objectif (à droite)">
 <defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="fa"/></marker></defs>`;
   L.edges.forEach((e, i) => {
@@ -692,10 +703,16 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
     const limit = !!fx && p.fixed!.limit === n.id;
     if (fx) sub += " · fixé";
     const tag = fx ? (limit ? "limite" : `${fmt(fx.utilization * 100, 0)} %`) : "";
+    // Valeur à vérifier (S28) : un ⚠ cliquable qui ouvre la correction de la première.
+    const doubts = st ? stepWarnings(v, st) : [];
+    const warn = doubts.length
+      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(`Valeur à vérifier : corriger (${name})`)}"><title>${esc(`À vérifier : ${doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(" ; ")} — clique pour corriger`)}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/><text x="${n.x + FW - 17}" y="${n.y + 45}" text-anchor="middle">⚠</text></g>`
+      : "";
     const fixTip = fx ? ` — ${fx.machines} fixée${fx.machines > 1 ? "s" : ""}${limit ? ", c'est l'étape qui limite" : `, utilisée${fx.machines > 1 ? "s" : ""} à ${fmt(fx.utilization * 100, 1)} %`}` : "";
     s += `<g class="fn ${n.kind}${fx ? " fixed" : ""}${limit ? " limit" : ""}" data-key="${esc(n.id)}"><title>${esc(tip + fixTip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
-<text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate || tag ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : tag ? `<text class="fn-tag${limit ? " limit" : ""}" x="${n.x + FW - 10}" y="${n.y + 21}" text-anchor="end">${esc(tag)}</text>` : ""}
-<text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, 26))}</text>${st && warned.has(st.item) ? `<text class="fn-warn" x="${n.x + FW - 12}" y="${n.y + 44}" text-anchor="end">⚠</text>` : ""}</g>`;
+<g class="fn-near"><text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate || tag ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : tag ? `<text class="fn-tag${limit ? " limit" : ""}" x="${n.x + FW - 10}" y="${n.y + 21}" text-anchor="end">${esc(tag)}</text>` : ""}
+<text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, doubts.length ? 22 : 26))}</text></g>
+<g class="fn-far" aria-hidden="true"><text class="fn-fname" x="${n.x + 9}" y="${n.y + 27}">${esc(trunc(name, 12))}</text><text class="fn-fsub" x="${n.x + 9}" y="${n.y + 50}">${esc(trunc(rate || sub.replace(/ · fixé$/, " ·fixé"), doubts.length ? 12 : 15))}</text></g>${warn}</g>`;
   }
   for (const [i, e] of L.edges.entries()) {
     // Étiquette sur deux lignes : le produit, puis son débit (nom entier au survol).

@@ -146,6 +146,7 @@
     </form>
 
     <div id="answer" aria-live="polite"></div>
+    <div id="plan-bar" hidden></div>
     <div id="fix-bar" hidden></div>
 
     <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result">
@@ -157,14 +158,13 @@
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
     <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
-      <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
+      <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revoir toute la chaîne">
         <div id="flow-canvas"></div>
         <p class="flow-help">Glisse pour te déplacer · molette pour zoomer · clique un bloc</p>
         <div class="rs-zoom">
           <button type="button" data-fzoom="in" aria-label="Zoomer">+</button>
           <button type="button" data-fzoom="out" aria-label="Dézoomer">−</button>
-          <button type="button" data-fzoom="fit" aria-label="Tout voir">⤢</button>
-          <button type="button" data-fzoom="reset" aria-label="Vue de départ">⌂</button>
+          <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne">⤢</button>
         </div>
       </div>
       <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>

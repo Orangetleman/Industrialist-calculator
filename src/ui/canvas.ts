@@ -12,6 +12,8 @@ export type PanZoomOptions = {
   fitOnReset?: boolean;
   /** Vue de départ calculée (cadre et contenu en pixels / unités SVG) ; prioritaire sur fitOnReset. */
   initialView?: (frame: { w: number; h: number }, content: { w: number; h: number }) => Box;
+  /** Appelé à chaque changement de vue, avec l'échelle (pixels écran par unité SVG). */
+  onView?: (pxPerUnit: number) => void;
 };
 
 export class PanZoom {
@@ -139,6 +141,7 @@ export class PanZoom {
     if (r.width && r.height) this.vb.h = this.vb.w * (r.height / r.width);
     this.svg.setAttribute("viewBox", `${this.vb.x} ${this.vb.y} ${this.vb.w} ${this.vb.h}`);
     this.frame.dataset.zoom = String(Math.round((r.width / this.vb.w) * 100));
+    if (r.width) this.opts.onView?.(r.width / this.vb.w);
   }
 
   private onWheel(e: WheelEvent): void {
@@ -149,6 +152,8 @@ export class PanZoom {
 
   private onDown(e: PointerEvent): void {
     if (e.button !== 0 || this.paused) return;
+    // Un bouton du cadre (zoom, ⤢) n'entame pas un glisser : son clic agit sur le dessin, rien d'autre.
+    if ((e.target as Element).closest?.("button, input, select, a")) return;
     this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vb: { ...this.vb }, moved: false };
   }
 

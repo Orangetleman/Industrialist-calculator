@@ -86,15 +86,14 @@ describe("affichage", () => {
     expect(only.more).toContain('data-mf-allow="tree"');
     expect(planMachineIds(ctx, base)).toContain("tree");
   });
-  it("réponse : note du filtre, et « Aucune machine permise ne fabrique » avec « Permettre … »", () => {
+  it("réponse : « Aucune machine permise ne fabrique » avec « Permettre … »", () => {
     const pm: PlanMachines = { ...NO_FILTER, mode: "exclure", exclure: ["blast-furnace", "blast-furnace-mk2"] };
     const html = renderAnswer(view(run(pm), pm));
     const t = text(html);
     expect(t).toContain("Aucune machine permise ne fabrique Steel Ingot (360/min manquent)");
     expect(html).toContain('data-mf-allow="blast-furnace-mk2"');
-    expect(t).toContain("Filtre de machines : toutes sauf Blast Furnace, Blast Furnace MK2.");
-    expect(html).toContain("data-mf-clear");
-    expect(renderAnswer(view(base, NO_FILTER))).not.toContain("Filtre de machines");
+    // S28 : le filtre se lit (et s'annule) dans la barre « Ton plan », plus dans la réponse.
+    expect(t).not.toContain("Filtre de machines");
   });
   it("schéma : « Ne plus utiliser » sur un bloc de machine, pas sur l'objectif RP", () => {
     const v = view(base, NO_FILTER);

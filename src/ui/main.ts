@@ -77,6 +77,8 @@ import {
   defaultDir,
   draftFrom,
   EDIT_ON,
+  fixableHere,
+  fixKey,
   newDraft,
   parseDraft,
   parseItemForm,
@@ -102,7 +104,9 @@ import {
   type Picture,
   type RecipesCtx,
   type SortKey,
+  verifyHref,
 } from "./recipes-view.ts";
+import { renderPlanBar, stepWarnings, warnButton, warnChips, type PlanBarInput } from "./plan-bar.ts";
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
@@ -134,6 +138,7 @@ import {
   saveSettings as storeSettings,
   setBuilt,
   setCorrection,
+  DEFAULT_SETTINGS,
   engineFilter,
   planKey,
   planMachines,
@@ -948,6 +953,12 @@ function renderPlanPage(): void {
   const fixBar = $("fix-bar");
   fixBar.innerHTML = blank ? "" : renderFixBar(v);
   fixBar.hidden = !fixBar.innerHTML;
+  // Ton plan (S28) : les réglages qui changent ce résultat, chacun cliquable, ✕ pour l'annuler.
+  const planBar = $("plan-bar");
+  const openWarn = planBar.querySelector<HTMLDetailsElement>(".pb-warn")?.open ?? false;
+  planBar.innerHTML = noResult ? "" : renderPlanBar(v, planBarInput(adv));
+  planBar.hidden = noResult;
+  if (openWarn) planBar.querySelector<HTMLDetailsElement>(".pb-warn")?.setAttribute("open", "");
   $("rtabs-result").hidden = noResult;
   if (noResult) {
     for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = true;
@@ -957,6 +968,63 @@ function renderPlanPage(): void {
   signature = buildSignature(goal, rows);
   renderBuild();
   renderResultTabs();
+}
+
+/** Réglages du plan affiché, pour la barre « Ton plan » (S28). */
+function planBarInput(advanced: number): PlanBarInput {
+  const goal = settings.goal;
+  const key = planKey(goal, settings.item);
+  return {
+    goal,
+    criteria: settings.criteria[goal],
+    filter: goal === "recherche" ? null : filterNow(),
+    fixed: (goal !== "recherche" && fixedNow()) || {},
+    forced: goal === "recherche" ? {} : settings.forced,
+    msettings: goal === "recherche" ? {} : msettingsNow(),
+    ifaces: currentInterfaces().all,
+    diesel: (key && settings.dieselChoice[key]) || null,
+    advanced,
+  };
+}
+
+/** Recette choisie à la main pour un objet (Détails, barre du bloc) ; "" : choix automatique. */
+function setForced(item: string, recipeId: string): void {
+  if (recipeId) settings.forced = { ...settings.forced, [item]: recipeId };
+  else {
+    const { [item]: _, ...rest } = settings.forced;
+    settings.forced = rest;
+  }
+  update();
+}
+
+/**
+ * Un ⚠ (S28) : ouvre la correction de la valeur. Dans la fiche (page Recettes, mode « ✎ Corriger », la
+ * case sélectionnée) quand elle s'y corrige, sinon dans Contribuer › Valeurs à vérifier.
+ */
+function openFix(attr: string): void {
+  const [scope, id, field, item] = attr.split("|") as ["recette" | "machine", string, string, string];
+  if (scope === "recette") {
+    const r = data.recipes.get(id);
+    if (!r || !fixableHere("recipes", field)) return void (location.hash = verifyHref("recette", id, field));
+    const card = item && data.items.has(item) && r.outputs[item] !== undefined ? { kind: "objet" as const, id: item } : { kind: "machine" as const, id: r.machine };
+    rcEdit = { ...EDIT_ON, craft: id, focus: fixKey("recipes", id, field) };
+    rcEditCard = `${card.kind}/${card.id}`;
+    rcRevealPending = true;
+    return go({ page: "recettes", card: { ...card, craft: id } });
+  }
+  if (!fixableHere("machines", field)) return void (location.hash = verifyHref("machine", id, field));
+  rcEdit = { ...EDIT_ON, craft: null, focus: fixKey("machines", id, field) };
+  rcEditCard = `machine/${id}`;
+  rcRevealPending = true;
+  go({ page: "recettes", card: { kind: "machine", id } });
+}
+
+/** Ouvre un réglage du formulaire depuis « Ton plan » : déplié, amené à l'écran, le focus dessus. */
+function openSetting(id: string): void {
+  const d = $<HTMLDetailsElement>(id);
+  d.open = true;
+  d.scrollIntoView({ block: "center", behavior: "smooth" });
+  d.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
 }
 
 function renderBuild(): void {
@@ -983,10 +1051,21 @@ let flowSel: string | null = null;
 let flowEdge: number | null = null;
 let flowEdgeBefore: number | null = null;
 let flowKey = "";
-/** Échelle de départ : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
+/**
+ * Échelle de départ (S28) : toute la chaîne, l'objet final compris, dans la largeur du cadre ; le cadre
+ * prend la hauteur qu'il faut (entre 240 px et 70 % de l'écran). En dessous de FLOW_FAR, les blocs
+ * passent en lecture de loin (nom et machines en gros).
+ */
+const FLOW_FAR = 0.75;
+/** Largeur réservée aux boutons de zoom, à droite du cadre. */
+const FLOW_ZOOM_W = 52;
+/** Plan de pose : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
 const FLOW_MIN_SCALE = 0.6;
 function flowStartScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
   return Math.max(FLOW_MIN_SCALE, Math.min(1, frame.w / content.w, frame.h / content.h));
+}
+function flowFitScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
+  return Math.min(1, frame.w / content.w, frame.h / content.h);
 }
 function renderFlowCanvas(): void {
   const f = renderFlow(viewCtx());
@@ -999,19 +1078,21 @@ function renderFlowCanvas(): void {
     return;
   }
   canvas.innerHTML = f.svg;
-  // Hauteur du cadre : le schéma à l'échelle de départ, entre 240 px et 70 % de l'écran.
   const fw = frame.clientWidth || 800;
-  const s = flowStartScale({ w: fw, h: window.innerHeight * 0.7 }, { w: f.width, h: f.height });
-  frame.style.height = `${Math.round(Math.max(240, Math.min(window.innerHeight * 0.7, f.height * s + 8)))}px`;
+  const maxH = window.innerHeight * 0.7;
+  const s = flowFitScale({ w: fw - FLOW_ZOOM_W, h: maxH }, { w: f.width, h: f.height });
+  frame.style.height = `${Math.round(Math.max(240, Math.min(maxH, f.height * s + 8)))}px`;
   flowPZ ??= new PanZoom(frame, {
     minWidth: 150,
     initialView: (fr, c) => {
-      const k = flowStartScale(fr, c);
+      // La colonne des boutons de zoom (à droite) ne cache pas l'objet final.
+      const room = Math.max(1, fr.w - FLOW_ZOOM_W);
+      const k = flowFitScale({ w: room, h: fr.h }, c);
       const w = fr.w / k;
       const h = fr.h / k;
-      // Tout tient : centré. Sinon : calé à gauche (l'extraction), centré en hauteur.
-      return { x: w >= c.w ? (c.w - w) / 2 : 0, y: (c.h - h) / 2, w, h };
+      return { x: (c.w - room / k) / 2, y: (c.h - h) / 2, w, h };
     },
+    onView: (k) => frame.classList.toggle("far", k < FLOW_FAR),
   });
   flowPZ.attach(canvas.querySelector("svg")!, f.width, f.height, signature === flowKey);
   flowKey = signature;
@@ -1341,7 +1422,9 @@ function renderAssembly(key: string, a: Assembly): void {
 function stepSettingLine(key: string): string {
   const st = plan?.steps.find((s) => s.key === key);
   const chips = st && !st.parts ? settingChips(settingLines(currentInterfaces().all, msettingsNow(), st.machine, st.recipeId), "à régler sur chaque machine : ") : "";
-  return chips ? `<p class="pose-setting">${chips}</p>` : "";
+  // Valeurs à vérifier de l'étape (S28) : ⚠ cliquables vers la correction.
+  const warns = st && plan ? warnChips(viewCtx(), stepWarnings(viewCtx(), st)) : "";
+  return (warns ? `<p class="pose-warn">${warns}</p>` : "") + (chips ? `<p class="pose-setting">${chips}</p>` : "");
 }
 
 /** Classes d'affichage d'un cadre (les autres classes « u-… » sont retirées). */
@@ -1509,7 +1592,7 @@ function renderFactory(): void {
   showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st)), `${st.key}|${USINE}`, true);
   setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
   markFocused();
-  $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet());
+  $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn);
   markPosed();
   panel.classList.remove("computing");
 }
@@ -1517,6 +1600,13 @@ function renderFactory(): void {
 // ---------------------------------------------------------------- modules posés (S25)
 const POSED = "posé:";
 /** Modules de l'usine cochés « posé » pour ce plan (dans le même stockage que la liste à cocher). */
+/** ⚠ d'un module de l'usine (S28) : les valeurs à vérifier de son étape. */
+function moduleWarn(key: string): string {
+  const v = viewCtx();
+  const st = v.plan.steps.find((s) => s.key === key);
+  return st ? warnButton(v, stepWarnings(v, st)) : "";
+}
+
 function posedSet(): Set<string> {
   return new Set([...builtFor(built, signature)].filter((k) => k.startsWith(POSED)).map((k) => k.slice(POSED.length)));
 }
@@ -1527,7 +1617,7 @@ function setPosed(key: string, on: boolean): void {
   built = setBuilt(built, signature, keys);
   if (!touring) saveBuilt(built);
   const st = currentFactory();
-  if (st?.plan) $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet());
+  if (st?.plan) $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn);
   markPosed();
 }
 /** Un module posé se grise dans le dessin de l'usine. */
@@ -2672,12 +2762,7 @@ function bindPlan(): void {
     const sel = e.target as HTMLSelectElement;
     const item = sel.dataset.force;
     if (!item) return;
-    if (sel.value) settings.forced = { ...settings.forced, [item]: sel.value };
-    else {
-      const { [item]: _, ...rest } = settings.forced;
-      settings.forced = rest;
-    }
-    update();
+    setForced(item, sel.value);
     $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
   });
   // « Le mettre en premier » (sous le résumé du plan).
@@ -2869,6 +2954,7 @@ function bindPlan(): void {
   // Schéma : un clic sur un bloc le sélectionne ; ailleurs, désélectionne (pas après un glisser).
   $("flow-canvas").addEventListener("click", (e) => {
     if (flowPZ?.suppressClick) return;
+    if ((e.target as Element).closest("[data-fix]")) return; // ⚠ : la correction (bindShared)
     const node = (e.target as Element).closest<SVGGElement>(".fn[data-key]");
     const edge = (e.target as Element).closest<SVGElement>("[data-edge]");
     if (!node && edge) {
@@ -2905,6 +2991,11 @@ function bindPlan(): void {
   // Moteur diesel (S18) : carburant, critère ou configuration imposée, pour ce plan.
   $("flow-hud").addEventListener("change", (e) => {
     const el = e.target as HTMLInputElement | HTMLSelectElement;
+    // Recette choisie dans la barre du bloc (S28), comme dans Détails.
+    if (el.matches("select[data-force]")) {
+      setForced(el.dataset.force!, el.value);
+      return $("flow-hud").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(el.dataset.force!)}"]`)?.focus();
+    }
     if (el.matches("[data-dsl-fuel]")) setDieselChoice({ fuel: el.value, config: null });
     else if (el.matches("[data-dsl-mode]")) setDieselChoice({ mode: (el as HTMLInputElement).dataset.dslMode as DieselChoice["mode"], config: null });
     else if (el.matches("[data-dsl-config]")) setDieselChoice({ config: el.value || null });
@@ -2970,8 +3061,7 @@ function bindPlan(): void {
       const z = b.dataset.fzoom;
       if (z === "in") flowPZ?.zoom(1.25);
       else if (z === "out") flowPZ?.zoom(1 / 1.25);
-      else if (z === "fit") flowPZ?.fit();
-      else flowPZ?.reset();
+      else flowPZ?.reset(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
     });
   }
 }
@@ -2980,6 +3070,32 @@ function bindPlan(): void {
 function bindShared(): void {
   document.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
+    // Menu des valeurs à vérifier : un clic ailleurs le referme.
+    const menu = document.querySelector<HTMLDetailsElement>(".pb-warn[open]");
+    if (menu && !menu.contains(t)) menu.open = false;
+    // Un ⚠ (S28) : la correction de la valeur, où qu'il soit (barre « Ton plan », bloc, ligne, module).
+    const fix = t.closest<HTMLElement>("[data-fix]");
+    if (fix) return openFix(fix.dataset.fix!);
+    // Ton plan (S28) : ouvrir un réglage, ou l'annuler (✕).
+    const pb = t.closest<HTMLElement>("[data-pb]")?.dataset.pb;
+    if (pb === "criteria" || pb === "mfilter" || pb === "advanced") return openSetting(pb);
+    if (pb === "details" || pb === "schema") return go({ page: "plan", goal: settings.goal, tab: pb });
+    const pbx = t.closest<HTMLElement>("[data-pb-x]");
+    if (pbx) {
+      const what = pbx.dataset.pbX;
+      if (what === "criteria") return setCriteria([...DEFAULT_SETTINGS.criteria[settings.goal]]);
+      if (what === "fixed") return setFixed(pbx.dataset.key!, null);
+      if (what === "forced") return setForced(pbx.dataset.item!, "");
+      if (what === "msetting") return setMachineSetting(pbx.dataset.machine!, null, null);
+      if (what === "diesel") {
+        const key = planKey(settings.goal, settings.item);
+        if (key) {
+          const { [key]: _, ...rest } = settings.dieselChoice;
+          settings.dieselChoice = rest;
+        }
+        return update();
+      }
+    }
     // Liens entre vues : plan de pose d'une étape, bloc du schéma, bâtiment dans l'éditeur.
     const focus = t.closest<HTMLElement>("[data-focus]");
     if (focus) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: focus.dataset.focus! });

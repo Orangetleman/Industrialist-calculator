@@ -250,7 +250,6 @@ button.link.have:hover { color: var(--steel); }
 .fn-name { fill: #e6ebf0; font: 600 13px var(--f-body); }
 .fn-sub { fill: #9aa7b4; font: 400 11.5px var(--f-mono); }
 .fn-rate { fill: #f0b37a; font: 600 12px var(--f-mono); }
-.fn-warn { fill: #e3b25a; font-size: 12px; }
 /* Machines fixées (S8) : cadre en tirets ; celle qui limite en orange. */
 .fn.fixed rect { stroke: #8fb8d6; stroke-width: 2.2; stroke-dasharray: 6 3; }
 .fn.limit rect { stroke: #f0913a; stroke-width: 2.6; stroke-dasharray: none; }
@@ -260,9 +259,28 @@ button.link.have:hover { color: var(--steel); }
 .fn:hover rect { stroke: #8fb8d6; }
 .fn.sel rect { stroke: #2ec4c9; stroke-width: 2.6; }
 .has-sel .fn:not(.sel):not(.hl) { opacity: .35; }
+/* Valeur à vérifier (S28) : ⚠ cliquable sur le bloc, vers la correction. */
+.fn .fn-warn rect { fill: #3b2c1f; stroke: #e3b25a; stroke-width: 1.2; stroke-dasharray: none; }
+.fn .fn-warn text { fill: #e3b25a; font: 600 14px var(--f-body); }
+.fn .fn-warn:hover rect { fill: #5a3f1c; }
+/* Vue de loin (S28) : le nom et les machines en gros ; les étiquettes des flèches au survol seulement. */
+.fn-fname { fill: #e6ebf0; font: 600 27px var(--f-body); }
+.fn-fsub { fill: #b6c1cc; font: 500 19px var(--f-mono); }
+.fn.final .fn-fsub { fill: #f0b37a; }
+.flow-frame:not(.far) .fn-far, .flow-frame.far .fn-near { display: none; }
+.flow-frame.far .fl:not(.hl):not(.hover) { display: none; }
+.flow-frame.far .fn .fn-warn text { font-size: 18px; }
 .has-sel .fe:not(.hl), .has-sel .fl:not(.hl) { opacity: .12; }
 .has-sel .fe.hl { stroke-width: 2.4; }
-.flow-hud { margin-top: 8px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 14px; padding: 10px 12px; border-radius: 10px; background: #262c33f0; border: 1px solid #4a525c; color: #e6ebf0; }
+.flow-hud { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 10px; background: #262c33f0; border: 1px solid #4a525c; color: #e6ebf0; }
+.flow-hud-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 14px; }
+.flow-hud-notes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* Barre du bloc (S28) : « Tu peux régler : » et ses réglages sur une ligne. */
+.flow-hud-sets { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; border-top: 1px solid #3a4149; padding-top: 8px; }
+.flow-hud-k { color: #9aa7b4; font-size: .82rem; font-weight: 600; }
+.hud-recipe select { max-width: min(420px, 70vw); background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 3px 4px; }
+.warn-chip { background: #3b2c1f; color: #f3d39a; border: 1px solid #e3b25a; border-radius: 999px; font-size: .82rem; padding: 3px 10px; text-align: left; }
+.warn-chip:hover { background: #5a3f1c; }
 .flow-hud[hidden] { display: none; }
 .flow-hud-info { display: flex; flex-direction: column; min-width: 0; }
 .flow-hud-info b { font-size: 1.02rem; }
@@ -288,6 +306,31 @@ button.link.have:hover { color: var(--steel); }
 .mset.dsl select { max-width: 100%; background: #1b1f24; color: #e6ebf0; border: 1px solid #4a525c; border-radius: 6px; padding: 3px 4px; }
 table.dsl-cfg tr.on td { background: var(--accent-soft); font-weight: 600; }
 .pose-setting { margin: 4px 0 8px; }
+/* Ton plan (S28) : les réglages qui changent le résultat, au-dessus des onglets. */
+#plan-bar { margin: 10px 0; }
+#plan-bar[hidden] { display: none; }
+.plan-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .84rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+.pb-title { font-size: .76rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); margin-right: 2px; }
+.pb-chip { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); overflow: hidden; }
+.pb-chip.set { border-color: var(--accent); background: var(--accent-soft); }
+.pb-chip button { border: none; background: transparent; color: var(--ink); font-size: .82rem; padding: 3px 10px; border-radius: 0; }
+.pb-chip .pb-open:hover { text-decoration: underline; }
+.pb-chip .pb-x { padding: 3px 8px; border-left: 1px solid var(--line); color: var(--muted); }
+.pb-chip .pb-x:hover { color: var(--bad); background: var(--bad-soft); }
+.pb-warn { position: relative; }
+.pb-warn > summary { list-style: none; cursor: pointer; padding: 3px 10px; border-color: var(--warn); background: var(--warn-soft); color: var(--ink); font-size: .82rem; }
+.pb-warn > summary::-webkit-details-marker { display: none; }
+.pb-menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; width: min(520px, 90vw); background: var(--surface); border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; box-shadow: 0 6px 20px #0005; }
+.pb-menu p { margin: 0 0 6px; }
+.pb-menu ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pb-menu button.link { text-align: left; font-size: .86rem; }
+.pb-go { color: var(--warn); white-space: nowrap; font-weight: 600; }
+@media (max-width: 600px) { .pb-warn { position: static; } .plan-bar { position: relative; } .pb-menu { left: 8px; right: 8px; width: auto; } }
+/* ⚠ cliquable d'une ligne ou d'un module (S28). */
+.warn-btn { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 0 6px; font-size: .8rem; line-height: 1.5; vertical-align: 1px; }
+.warn-btn:hover { background: var(--warn); color: var(--bg); }
+.pose-warn { margin: 4px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.pose-warn .warn-chip { background: var(--warn-soft); color: var(--ink); border-color: var(--warn); }
 #fix-bar { margin: 10px 0; }
 #fix-bar[hidden] { display: none; }
 .fixbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 14px; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--steel); background: var(--steel-soft); }

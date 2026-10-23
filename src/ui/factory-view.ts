@@ -188,10 +188,11 @@ export function renderFactoryMore(v: UsineView): string {
 }
 
 /** Liste des modules à côté de l'usine (S25) : « posé ✓ » quand il est construit en jeu ; il se grise dans le dessin. */
-export function renderFactoryModules(f: FactoryPlan, posed: ReadonlySet<string>): string {
+/** `warn` : le ⚠ cliquable d'un module qui utilise une valeur à vérifier (S28), en HTML. */
+export function renderFactoryModules(f: FactoryPlan, posed: ReadonlySet<string>, warn: (key: string) => string = () => ""): string {
   const n = f.boxes.filter((b) => posed.has(b.key)).length;
   const rows = f.boxes
-    .map((b) => `<li><label${posed.has(b.key) ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(b.key)}"${posed.has(b.key) ? " checked" : ""}> ${esc(b.label)} — ${esc(b.sub)}</label> <button type="button" class="link small" data-focus="${esc(b.key)}">ouvrir</button></li>`)
+    .map((b) => `<li><label${posed.has(b.key) ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(b.key)}"${posed.has(b.key) ? " checked" : ""}> ${esc(b.label)} — ${esc(b.sub)}</label>${warn(b.key) ? ` ${warn(b.key)}` : ""} <button type="button" class="link small" data-focus="${esc(b.key)}">ouvrir</button></li>`)
     .join("");
   return `<details class="more u-mods" open><summary>Modules (${f.boxes.length}) <span class="hint">${n} posé${n > 1 ? "s" : ""} sur ${f.boxes.length}</span></summary><p class="hint">Coche un module quand il est construit en jeu : il se grise dans le dessin. Gardé pour ce plan, dans ce navigateur.</p><ul class="u-modlist">${rows}</ul></details>`;
 }

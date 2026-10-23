@@ -121,9 +121,3 @@ export function renderFilterBody(ctx: Data, pm: PlanMachines, plan: Plan): { chi
   return { chips: chips || `<span class="hint">aucune</span>`, more, label: "Permises :", placeholder: "Chercher une machine à permettre…" };
 }
 
-/** Note de la réponse quand un filtre est actif. */
-export function filterNote(ctx: Data, pm: PlanMachines): string {
-  const sum = filterSummary(ctx, pm);
-  if (!sum) return "";
-  return `<li>Filtre de machines : ${esc(sum)}. <button type="button" class="link" data-mf-clear>Retirer le filtre</button></li>`;
-}
