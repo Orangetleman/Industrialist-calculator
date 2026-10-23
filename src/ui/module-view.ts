@@ -30,6 +30,8 @@ export type ModuleSvgOptions = {
   wide?: (net: string) => boolean;
   /** Vecteurs des liaisons (en cases du module) ; par défaut ceux du module seul. */
   flows?: FlowArrow[];
+  /** Infobulle d'un réseau que le module ne connaît pas (tuyau de l'usine) ; null : celle du module. */
+  netTip?: (net: string) => string | null;
 };
 
 /** Rôle d'une case de tuyau tirée de la grille de l'usine (pour l'infobulle et les tés). */
@@ -64,21 +66,33 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
   for (let x = 0; x <= m.width; x++) s += `<line x1="${ox + x * C}" y1="${oy}" x2="${ox + x * C}" y2="${oy + m.height * C}"/>`;
   for (let y = 0; y <= m.height; y++) s += `<line x1="${ox}" y1="${oy + y * C}" x2="${ox + m.width * C}" y2="${oy + y * C}"/>`;
   s += `</g>`;
-  // Machines : un clic ouvre la fiche de la machine.
+  // Machines : un clic ouvre la fiche de la machine. Infobulles en `data-tip` (la bulle du cadre, au survol et au clic).
   for (const mm of m.machines) {
-    s += `<g class="mm" data-machine="${esc(m.machine)}"><title>${esc(`${name(m.machine)} n° ${mm.id.slice(1)} — clique pour ouvrir sa fiche`)}</title><rect x="${ox + mm.x * C}" y="${oy + mm.y * C}" width="${mm.w * C}" height="${mm.h * C}" rx="3"/>`;
+    s += `<g class="mm" data-machine="${esc(m.machine)}" data-tip="${esc(`${name(m.machine)} n° ${mm.id.slice(1)}\nClique pour ouvrir sa fiche`)}"><rect x="${ox + mm.x * C}" y="${oy + mm.y * C}" width="${mm.w * C}" height="${mm.h * C}" rx="3"/>`;
     const label = mm.w * C >= 70 ? name(m.machine) : `n° ${mm.id.slice(1)}`;
     s += `<text x="${ox + (mm.x + mm.w / 2) * C}" y="${oy + (mm.y + mm.h / 2) * C + 4}" text-anchor="middle">${esc(label.length * 6.5 > mm.w * C - 6 ? `n° ${mm.id.slice(1)}` : label)}</text>`;
-    for (const p of mm.power) s += `<circle class="plug" cx="${ox + p.x * C}" cy="${oy + p.y * C}" r="3.5"><title>Prise électrique</title></circle>`;
+    for (const p of mm.power) s += `<circle class="plug" cx="${ox + p.x * C}" cy="${oy + p.y * C}" r="3.5" data-tip="Prise électrique de la machine n° ${mm.id.slice(1)}"/>`;
     s += `</g>`;
   }
   // Tuyaux : un trait du centre de la case vers chaque liaison ; croisement : le second réseau passe dessus.
   const seg = (x: number, y: number, d: Dir, col: string, w: boolean, bridge = false) =>
     `<line class="${bridge ? "pp bridge" : "pp"}" x1="${cx(x)}" y1="${cy(y)}" x2="${cx(x) + (STEP[d].x * C) / 2}" y2="${cy(y) + (STEP[d].y * C) / 2}" stroke="${col}" stroke-width="${w ? 5 : 3}"/>`;
   const res = (net: string) => name(itemOf(net));
+  // Ce qu'on sait d'un réseau : collecteur du module (rôle, débit, tuyau), ou ce que l'usine en dit (opts.netTip).
+  const netTip = (net: string): string => {
+    const own = opts.netTip?.(net);
+    if (own) return own;
+    const n = m.nets.find((x) => x.id === net);
+    if (!n) return res(net);
+    return `${name(n.item)}${n.line ? ` (n° ${n.line})` : ""} — collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"}, ${fmt(n.perSec, 2)}/s${n.pipe ? ` · tuyau tier ${n.pipe.tier === 1 ? "I" : "III"} (jusqu'à ${n.pipe.flowPerSec}/s)` : " · aucun tuyau assez rapide"}`;
+  };
+  const PIECE: Record<string, string> = { droit: "tuyau droit", coude: "coude", té: "té", croix: "croix", croisement: "croisement", bout: "bout" };
   for (const p of opts.pieces ?? m.pieces) {
-    const tip = p.role === "croisement" ? `Croisement : ${res(p.net)} / ${res(p.crossNet ?? "")}` : `${res(p.net)} — ${p.role}`;
-    s += `<g class="m-pipe" data-item="${esc(itemOf(p.net))}"><title>${esc(`${tip} · clique pour voir ses liaisons`)}</title>`;
+    const tip =
+      p.role === "croisement"
+        ? `Croisement (les deux tuyaux se croisent sans se mélanger)\n${netTip(p.net)}\n${netTip(p.crossNet ?? "")}`
+        : `${netTip(p.net)}\nPièce : ${PIECE[p.role] ?? p.role}`;
+    s += `<g class="m-pipe" data-item="${esc(itemOf(p.net))}" data-tip="${esc(`${tip}\nClique pour voir les liaisons de ce produit`)}">`;
     for (const d of p.links) s += seg(p.x, p.y, d, color(p.net), wide(p.net));
     if (p.crossNet) for (const d of p.crossLinks ?? []) s += seg(p.x, p.y, d, color(p.crossNet), wide(p.crossNet), true);
     if (p.role === "té" || p.role === "croix") s += `<circle cx="${cx(p.x)}" cy="${cy(p.y)}" r="3.2" fill="${color(p.net)}"/>`;
@@ -98,7 +112,7 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
       const bx = out ? ex : ex - 7 * f.x;
       const by = out ? ey : ey - 7 * f.y;
       const pts = [[bx - 5 * f.y, by + 5 * f.x], [bx + 7 * f.x, by + 7 * f.y], [bx + 5 * f.y, by - 5 * f.x]].map(([a, b]) => `${a},${b}`).join(" L");
-      s += `<g class="end"><title>${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}</title><path d="M${pts} z" fill="${color(n.id)}"/></g>`;
+      s += `<g class="end" data-tip="${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}"><path d="M${pts} z" fill="${color(n.id)}"/></g>`;
     }
   // Vecteurs des liaisons, par ressource : de 12 % à 88 % du trajet, pour qu'ils se suivent comme une chaîne.
   const byItem = new Map<string, string>();
@@ -115,7 +129,7 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
     const [px, py] = [ox + (p.x + p.w / 2) * C, oy + (p.y + p.h / 2) * C];
     for (const id of p.covers) for (const q of plugs.get(id) ?? []) s += `<line class="m-plug" x1="${px}" y1="${py}" x2="${ox + q.x * C}" y2="${oy + q.y * C}" marker-end="url(#mfb)"/>`;
   }
-  for (const p of m.poles) s += `<g class="pole"><title>${esc(`${name(p.pole)}${p.covers.length ? ` — machines ${p.covers.map((c) => c.slice(1)).join(", ")}` : " — relais"}`)}</title><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${C * p.w}" height="${C * p.h}" rx="4"/><text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text></g>`;
+  for (const p of m.poles) s += `<g class="pole" data-tip="${esc(`${name(p.pole)}${p.covers.length ? ` — alimente les machines ${p.covers.map((c) => c.slice(1)).join(", ")}` : " — relais"}`)}"><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${C * p.w}" height="${C * p.h}" rx="4"/><text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text></g>`;
   return { svg: s + "</svg>", width: W, height: H };
 }
 

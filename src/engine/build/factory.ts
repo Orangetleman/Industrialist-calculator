@@ -9,7 +9,7 @@ import type { PortsEntry } from "../extension-types.ts";
 import type { Catalog } from "./catalog.ts";
 import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
 import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
-import { Grid, route, type Occupant } from "./route.ts";
+import { Grid, Heap, route, stateKey, type Occupant } from "./route.ts";
 
 /** Une étape du plan, prête à devenir un module de l'usine. */
 export type FactoryStep = {
@@ -285,6 +285,29 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     const q2 = turnCell(p2, base.width, base.height, b.rot);
     return { x0: b.x + Math.min(q1.x, q2.x), y0: b.y + Math.min(q1.y, q2.y), x1: b.x + Math.max(q1.x, q2.x), y1: b.y + Math.max(q1.y, q2.y) };
   };
+  /**
+   * Places libres pour `b` (dans sa rotation du moment) parmi les modules `obstacles`, écart `CLR` : une carte des
+   * coins haut-gauche permis sur [0, X] × [0, Y], lue en O(1) (S27 bis : remplace une boucle sur tous les modules à
+   * chaque position essayée ; même règle que `sep` : deux modules séparés d'au moins `CLR` cases sur un axe).
+   */
+  const freeMap = (b: Box, obstacles: Box[], CLR: number, X: number, Y: number): ((x: number, y: number) => boolean) => {
+    const w = X + 2;
+    const diff = new Int32Array((X + 2) * (Y + 2));
+    for (const o of obstacles) {
+      // Coins interdits : o.x - b.w - CLR < x < o.x + o.w + CLR, et de même en y.
+      const xa = Math.max(0, o.x - b.w - CLR + 1);
+      const xb = Math.min(X, o.x + o.w + CLR - 1);
+      const ya = Math.max(0, o.y - b.h - CLR + 1);
+      const yb = Math.min(Y, o.y + o.h + CLR - 1);
+      if (xa > xb || ya > yb) continue;
+      diff[ya * w + xa]! += 1;
+      diff[ya * w + xb + 1]! -= 1;
+      diff[(yb + 1) * w + xa]! -= 1;
+      diff[(yb + 1) * w + xb + 1]! += 1;
+    }
+    for (let y = 0; y <= Y; y++) for (let x = 0; x <= X; x++) diff[y * w + x]! += (x ? diff[y * w + x - 1]! : 0) + (y ? diff[(y - 1) * w + x]! : 0) - (x && y ? diff[(y - 1) * w + x - 1]! : 0);
+    return (x, y) => x >= 0 && y >= 0 && x <= X && y <= Y && diff[y * w + x] === 0;
+  };
   // Amélioration du placement, puis tassement (sert aussi après le recalcul des modules).
   const improve = (CLR: number, glued: string[]) => {
     const sep = (b: Box, x: number, y: number, o: Box) => x + b.w + CLR <= o.x || o.x + o.w + CLR <= x || y + b.h + CLR <= o.y || o.y + o.h + CLR <= y;
@@ -295,42 +318,89 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       const end = endOf(o, item, role);
       return end ? { x: o.x + end.x + STEP[end.dir].x, y: o.y + end.y + STEP[end.dir].y } : { x: o.x + o.w / 2, y: o.y + o.h / 2 };
     };
-    const linkDist = (b: Box) =>
-      edgesAll
-        .filter((e) => !e.loop && (e.from === b.key || e.to === b.key))
-        .reduce((sum, e) => {
-          if (useCollectors) return sum + rectGap(collRect(byKey.get(e.from)!, e.item, "sortie"), collRect(byKey.get(e.to)!, e.item, "entrée"));
-          const a = portOf(byKey.get(e.from)!, e.item, "sortie");
-          const c = portOf(byKey.get(e.to)!, e.item, "entrée");
-          return sum + Math.abs(a.x - c.x) + Math.abs(a.y - c.y);
-        }, 0);
+    // Liaisons de chaque module, dans l'ordre des liaisons du plan (comme `linkDist`).
+    const edgesOf = new Map(boxes.map((b) => [b.key, edgesAll.filter((e) => !e.loop && (e.from === b.key || e.to === b.key))]));
     for (let pass = 0; pass < 4; pass++) {
       let improved = false;
       for (const b of boxes) {
         if (glued.some((g) => g.endsWith(`>${b.key}`) || g.startsWith(`${b.key}>`))) continue;
         const others = boxes.filter((o) => o !== b);
-        const bbox = (x: number, y: number) => {
-          const W = Math.max(x + b.w, ...others.map((o) => o.x + o.w));
-          const H = Math.max(y + b.h, ...others.map((o) => o.y + o.h));
-          const X0 = Math.min(x, ...others.map((o) => o.x));
-          const Y0 = Math.min(y, ...others.map((o) => o.y));
-          return { area: (W - X0) * (H - Y0), over: Math.max(0, W - X0 - PLOT.w) + Math.max(0, H - Y0 - PLOT.h) };
+        // S27 bis : ce qui ne bouge pas pendant que `b` cherche sa place est calculé une fois (étendue des autres
+        // modules, ports ou collecteurs des partenaires) ; ce qui bouge avec `b` est calculé une fois par rotation
+        // puis décalé. Mêmes positions, même ordre, mêmes scores (mêmes opérations sur des entiers et des demis) que
+        // `bbox` + `linkDist` d'avant : le placement trouvé ne change pas.
+        let oW = -Infinity;
+        let oH = -Infinity;
+        let oX0 = Infinity;
+        let oY0 = Infinity;
+        for (const o of others) {
+          oW = Math.max(oW, o.x + o.w);
+          oH = Math.max(oH, o.y + o.h);
+          oX0 = Math.min(oX0, o.x);
+          oY0 = Math.min(oY0, o.y);
+        }
+        const edges = edgesOf.get(b.key)!;
+        type Side = { mine: true; rel: Rect | Pt } | { mine: false; at: Rect | Pt };
+        let sides: [Side, Side][] = [];
+        const sideOf = (o: Box, item: string, role: "entrée" | "sortie"): Side => {
+          if (o !== b) return { mine: false, at: useCollectors ? collRect(o, item, role) : portOf(o, item, role) };
+          // Relatif à (0, 0) : le module est remis à sa place juste après.
+          const [x0, y0] = [b.x, b.y];
+          [b.x, b.y] = [0, 0];
+          const rel = useCollectors ? collRect(b, item, role) : portOf(b, item, role);
+          [b.x, b.y] = [x0, y0];
+          return { mine: true, rel };
         };
-        const scoreAt = () => {
-          const bb = bbox(b.x, b.y);
-          return bb.area + 4000 * bb.over + 10 * linkDist(b);
+        const prepare = () => {
+          sides = edges.map((e) => [sideOf(byKey.get(e.from)!, e.item, "sortie"), sideOf(byKey.get(e.to)!, e.item, "entrée")]);
         };
-        const start = { x: b.x, y: b.y, r: b.rot, score: scoreAt() };
+        const rectAt = (s: Side, x: number, y: number): Rect => {
+          if (!s.mine) return s.at as Rect;
+          const r = s.rel as Rect;
+          return { x0: x + r.x0, y0: y + r.y0, x1: x + r.x1, y1: y + r.y1 };
+        };
+        const ptAt = (s: Side, x: number, y: number): Pt => {
+          if (!s.mine) return s.at as Pt;
+          const p = s.rel as Pt;
+          return { x: x + p.x, y: y + p.y };
+        };
+        const scoreAt = (x: number, y: number) => {
+          const W = Math.max(x + b.w, oW);
+          const H = Math.max(y + b.h, oH);
+          const X0 = Math.min(x, oX0);
+          const Y0 = Math.min(y, oY0);
+          const area = (W - X0) * (H - Y0);
+          const over = Math.max(0, W - X0 - PLOT.w) + Math.max(0, H - Y0 - PLOT.h);
+          let sum = 0;
+          for (const [s1, s2] of sides) {
+            if (useCollectors) sum += rectGap(rectAt(s1, x, y), rectAt(s2, x, y));
+            else {
+              const a = ptAt(s1, x, y);
+              const c = ptAt(s2, x, y);
+              sum += Math.abs(a.x - c.x) + Math.abs(a.y - c.y);
+            }
+          }
+          return area + 4000 * over + 10 * sum;
+        };
+        prepare();
+        const start = { x: b.x, y: b.y, r: b.rot, score: scoreAt(b.x, b.y) };
         let best = start;
-        const curW = Math.max(0, ...others.map((o) => o.x + o.w));
-        const curH = Math.max(0, ...others.map((o) => o.y + o.h));
+        const curW = Math.max(0, oW);
+        const curH = Math.max(0, oH);
         for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
           setRot(b, r);
+          prepare();
+          const ok = freeMap(
+            b,
+            boxes.filter((o) => o.placed && o !== b),
+            CLR,
+            curW + CLR,
+            curH + CLR,
+          );
           for (let x = 0; x <= curW + CLR; x++)
             for (let y = 0; y <= curH + CLR; y++) {
-              if (!free(b, x, y)) continue;
-              [b.x, b.y] = [x, y];
-              const sc = scoreAt();
+              if (!ok(x, y)) continue;
+              const sc = scoreAt(x, y);
               if (sc < best.score - 1e-9) best = { x, y, r, score: sc };
             }
         }
@@ -392,9 +462,10 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
         setRot(b, r);
         const mineEnds = links.map((l) => endOf(b, l.e.item, l.mine));
+        const ok = freeMap(b, placed, CLR, curW + CLR, curH + CLR); // S27 bis : même règle que `free`, lue en O(1)
         for (let x = 0; x <= curW + CLR; x++) {
           for (let y = 0; y <= curH + CLR; y++) {
-            if (!free(b, x, y)) continue;
+            if (!ok(x, y)) continue;
             const W = Math.max(x + b.w, curW);
             const H = Math.max(y + b.h, curH);
             const over = Math.max(0, W - PLOT.w) + Math.max(0, H - PLOT.h);
@@ -434,10 +505,16 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       return { x, y };
     };
     const tb = [...to].map(cellOf);
-    const h = (c: Pt) => Math.min(...tb.map((t) => Math.abs(t.x - c.x) + Math.abs(t.y - c.y)));
+    const h = (c: Pt) => {
+      let m = Infinity;
+      for (const t of tb) m = Math.min(m, Math.abs(t.x - c.x) + Math.abs(t.y - c.y));
+      return m;
+    };
     type N = { c: Pt; d: Dir; g: number; f: number; prev: N | null; crossing: boolean; root: string };
-    const open: N[] = [];
-    const best = new Map<string, number>();
+    // S27 bis : file de priorité (le plus petit f, à égalité le premier entré : le même ordre que la recherche
+    // linéaire d'avant, en temps logarithmique) et clés numériques des états déjà vus.
+    const open = new Heap<N>();
+    const best = new Map<number, number>();
     const pipeOk = (k: string) => {
       const o = grid.cells.get(k);
       return o?.kind === "tuyau" && o.net === net && !o.cross && o.links.size < 4;
@@ -470,10 +547,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       }
     }
     let found: N | null = null;
-    for (let guard = 0; open.length && guard < 400_000; guard++) {
-      let bi = 0;
-      for (let q = 1; q < open.length; q++) if (open[q]!.f < open[bi]!.f) bi = q;
-      const cur = open.splice(bi, 1)[0]!;
+    for (let guard = 0; open.size && guard < 400_000; guard++) {
+      const cur = open.pop()!;
       if (found && cur.f >= found.g) break;
       const dirs: Dir[] = cur.crossing ? [cur.d] : (["N", "E", "S", "W"] as Dir[]).filter((d) => d !== OPPOSITE[cur.d]);
       for (const d of dirs) {
@@ -492,7 +567,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
           crossing = true;
         }
         const gg = cur.g + stepCost(k) + turn + (crossing ? 8 : 0);
-        const sk = `${k}|${d}|${crossing}`;
+        const sk = stateKey(n.x, n.y, d, crossing);
         if ((best.get(sk) ?? Infinity) <= gg) continue;
         best.set(sk, gg);
         open.push({ c: n, d, g: gg, f: gg + h(n), prev: cur, crossing, root: cur.root });
@@ -1030,7 +1105,12 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     }
     const bounds = { x0: 0, y0: 0, x1: W - 1, y1: H - 1 };
     let done: { id: string; t: Pt; side: EvacSide; at: Pt } | null = null;
+    // Liaisons de chaque case du réseau avant le tracé : la case où il se raccorde (bout devant la sortie, case du
+    // collecteur) existait déjà ; elle fait partie du tuyau d'évacuation (sinon un trou d'une case au dessin).
+    const linksOf = (id: string) => new Map([...grid.cells].flatMap(([k, o]) => (o.kind !== "tuyau" ? [] : o.net === id ? [[k, o.links.size] as const] : o.cross?.net === id ? [[k, o.cross.links.size] as const] : [])));
+    let joined: string[] = [];
     for (const { id, t } of options) {
+      const was = linksOf(id);
       const dist = { gauche: t.x, droite: W - 1 - t.x, haut: t.y, bas: H - 1 - t.y };
       const side: EvacSide = ev.side ?? (["gauche", "droite", "haut", "bas"] as EvacSide[]).sort((p, q) => dist[p] - dist[q])[0]!;
       const out = OUT[side];
@@ -1043,11 +1123,13 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       if (at) {
         grid.link(at, out, id); // le tuyau sort de l'usine par ce bord
         done = { id, t, side, at };
+        const now = linksOf(id);
+        joined = [...was].filter(([k, n]) => (now.get(k) ?? 0) > n).map(([k]) => k);
         break;
       }
     }
     if (!done) problems.push(`${name(ev.item)} : ${ev.from} → bord`);
-    const cells = [...grid.cells.keys()].filter((k) => !before.has(k));
+    const cells = [...joined, ...[...grid.cells.keys()].filter((k) => !before.has(k))];
     const fallback = options[0]?.t ?? { x: b.x, y: b.y };
     evacs.push({ ...ev, id: done?.id ?? options[0]?.id ?? `${b.key}:${ev.item}`, side: done?.side ?? ev.side ?? "droite", at: done?.at ?? fallback, cells, ok: !!done });
   }

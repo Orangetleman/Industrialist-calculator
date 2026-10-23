@@ -11,6 +11,15 @@ export type Bounds = { x0: number; y0: number; x1: number; y1: number };
 
 const COST = { step: 1, turn: 0.6, cross: 8 };
 
+/**
+ * Clé numérique d'un état de recherche (case, sens d'arrivée, croisement) : remplace la clé texte
+ * « x,y|sens|croisement » (S27 bis, plus rapide ; mêmes états distingués). Cases de −1 024 à 64 511.
+ */
+const DIR_INDEX: Record<Dir, number> = { N: 0, E: 1, S: 2, W: 3 };
+export function stateKey(x: number, y: number, d: Dir | null, crossing: boolean): number {
+  return (((x + 1024) * 65536 + (y + 1024)) * 5 + (d === null ? 4 : DIR_INDEX[d])) * 2 + (crossing ? 1 : 0);
+}
+
 export class Grid {
   readonly cells = new Map<string, Occupant>();
 
@@ -68,12 +77,12 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
   type Node = { c: Cell; d: Dir | null; g: number; f: number; prev: Node | null; crossing: boolean };
   const open = new Heap<Node>();
   open.push({ c: start, d: startCross ? away : null, g: startCross ? COST.cross : 0, f: h(start), prev: null, crossing: startCross });
-  const best = new Map<string, number>();
+  const best = new Map<number, number>();
   let found: Node | null = null;
   let guard = 0;
   while (open.size && guard++ < 200_000) {
     const cur = open.pop()!;
-    const sk = `${key(cur.c)}|${cur.d}|${cur.crossing}`;
+    const sk = stateKey(cur.c.x, cur.c.y, cur.d, cur.crossing);
     if ((best.get(sk) ?? Infinity) <= cur.g - 1e-9 && cur.prev) continue;
     const dirs: Dir[] = cur.crossing ? [cur.d!] : (["N", "E", "S", "W"] as Dir[]).filter((d) => !cur.d || d !== OPPOSITE[cur.d]);
     for (const d of dirs) {
@@ -123,8 +132,8 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
   return true;
 }
 
-function push<T extends { c: Cell; d: Dir | null; g: number; f: number; crossing: boolean }>(open: Heap<T>, best: Map<string, number>, n: T): void {
-  const sk = `${key(n.c)}|${n.d}|${n.crossing}`;
+function push<T extends { c: Cell; d: Dir | null; g: number; f: number; crossing: boolean }>(open: Heap<T>, best: Map<number, number>, n: T): void {
+  const sk = stateKey(n.c.x, n.c.y, n.d, n.crossing);
   if ((best.get(sk) ?? Infinity) <= n.g) return;
   best.set(sk, n.g);
   open.push(n);
@@ -134,7 +143,7 @@ function push<T extends { c: Cell; d: Dir | null; g: number; f: number; crossing
  * File de priorité (tas binaire) : le plus petit `f` d'abord ; à égalité, le premier entré
  * (comme une recherche linéaire du minimum, mais en temps logarithmique).
  */
-class Heap<T extends { f: number }> {
+export class Heap<T extends { f: number }> {
   private a: { v: T; seq: number }[] = [];
   private seq = 0;
   get size(): number {

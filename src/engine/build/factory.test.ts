@@ -125,6 +125,18 @@ describe("toute l'usine", () => {
       for (const ev of auto.evacs) {
         expect(ev.ok, `${ev.item} full=${full}`).toBe(true);
         expect(ev.cells.length).toBeGreaterThan(0);
+        // Le tracé touche son module (pas de trou d'une case à la sortie) : une case juste devant un de ses bords.
+        // (Un surplus d'un produit en partie consommé se raccorde au tuyau qui part déjà vers le client.)
+        if (!full && !plan.edges.some((e) => e.from === ev.from && e.item === ev.item)) {
+          const b = auto.boxes.find((x) => x.key === ev.from)!;
+          const touches = ev.cells.some((k) => {
+            const [x, y] = k.split(",").map(Number) as [number, number];
+            const inX = x >= b.x && x < b.x + b.w;
+            const inY = y >= b.y && y < b.y + b.h;
+            return (inY && (x === b.x - 1 || x === b.x + b.w)) || (inX && (y === b.y - 1 || y === b.y + b.h));
+          });
+          expect(touches, `${ev.item} touche ${b.key}`).toBe(true);
+        }
         // La case au bord est bien sur le bord annoncé.
         expect(ev.side === "gauche" ? ev.at.x === 0 : ev.side === "droite" ? ev.at.x === auto.W - 1 : ev.side === "haut" ? ev.at.y === 0 : ev.at.y === auto.H - 1).toBe(true);
       }

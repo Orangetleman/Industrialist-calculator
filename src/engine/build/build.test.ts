@@ -396,9 +396,11 @@ describe("vue du plan de pose", () => {
     const name = (id: string) => (id === "steel-rod" ? "<b>Rod</b>" : (data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id));
     const svg = renderModuleSvg(mod, name).svg;
     // Chaque machine mène à sa fiche (S4) ; les liaisons (vecteurs) sont dessinées, cachées par défaut.
-    expect((svg.match(new RegExp(`<g class="mm" data-machine="${mod.machine}">`, "g")) ?? []).length).toBe(mod.count);
+    expect((svg.match(new RegExp(`<g class="mm" data-machine="${mod.machine}" data-tip="`, "g")) ?? []).length).toBe(mod.count);
     expect(svg).toContain('class="m-flow"');
-    expect((svg.match(/<g class="pole">/g) ?? []).length).toBe(mod.poles.length);
+    expect((svg.match(/<g class="pole" data-tip="/g) ?? []).length).toBe(mod.poles.length);
+    // S27 bis : chaque tuyau a son infobulle (produit, collecteur, débit, tuyau).
+    expect(svg).toMatch(/<g class="m-pipe" data-item="[^"]+" data-tip="[^"]*collecteur (d&#39;entrée|d'entrée|de sortie)/);
     const info = renderModuleInfo(mod, name);
     expect((info.legend.match(/<li><i style/g) ?? []).length).toBe(mod.nets.length);
     expect(info.details).toContain("Ordre de pose");

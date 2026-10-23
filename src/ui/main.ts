@@ -25,7 +25,7 @@ import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/
 import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
 import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
-import { runFactory, type FactoryJob } from "./factory-job.ts";
+import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
@@ -1165,7 +1165,7 @@ let poseFitAll = false;
  * Calculs de toute l'usine, en arrière-plan (Web Worker) : un par réglage de calcul (recalculée, module par
  * module, collée), gardé tant que le plan, les priorités, les relevés et la parcelle ne changent pas.
  */
-type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: string; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null };
+type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: string; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean };
 const factories = new Map<string, FactoryState>();
 /** Module ouvert dans le panneau à côté de l'usine (adresse #…/pose/usine-entiere/<étape>). */
 let poseFocus: string | null = null;
@@ -1505,22 +1505,36 @@ function startFactory(): void {
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
     { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow() },
   );
-  const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: "Démarrage", error: null, cancelled: false, flows: null };
+  const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: "Recherche d'un calcul déjà fait", error: null, cancelled: false, flows: null };
   factories.set(key, st);
   const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
-  st.job = runFactory(input, {
-    progress: (done, label) => {
-      [st.done, st.label] = [done, label];
-      if (showing()) updateFactoryProgress();
-    },
-    done: (fp, ms) => {
-      [st.plan, st.ms, st.job] = [fp, ms, null];
-      if (showing() || (!$("rpanel-pose").hidden && poseStep !== USINE)) renderPose();
-    },
-    error: (message) => {
-      [st.error, st.job] = [message, null];
-      if (showing()) renderPose();
-    },
+  const refresh = () => {
+    if (showing() || (!$("rpanel-pose").hidden && poseStep !== USINE)) renderPose();
+  };
+  // S27 bis : un calcul déjà fait pour ces réglages (même code, mêmes données) est repris tel quel ;
+  // sinon il tourne dans le Web Worker et son résultat est gardé pour la prochaine fois.
+  void loadFactory(key).then((hit) => {
+    if (factories.get(key) !== st || st.cancelled) return;
+    if (hit) {
+      [st.plan, st.ms, st.cached] = [hit.plan, hit.ms, true];
+      return refresh();
+    }
+    st.label = "Démarrage";
+    st.job = runFactory(input, {
+      progress: (done, label) => {
+        [st.done, st.label] = [done, label];
+        if (showing()) updateFactoryProgress();
+      },
+      done: (fp, ms) => {
+        [st.plan, st.ms, st.job] = [fp, ms, null];
+        void saveFactory(key, fp, ms);
+        refresh();
+      },
+      error: (message) => {
+        [st.error, st.job] = [message, null];
+        if (showing()) renderPose();
+      },
+    });
   });
 }
 
@@ -1693,7 +1707,7 @@ function showAssemblyFocus(key: string, a: Assembly): void {
  * Sélection dans un cadre : une liaison (« n:… ») et les vecteurs de sa ressource, un câble (« c:… ») et tout ce
  * qu'il alimente, ou une ressource d'un module (« i:… ») ; le reste s'estompe.
  */
-function applySel(frame: HTMLElement, sel: string | null, pickId: string | null): void {
+function applySel(frame: HTMLElement, sel: string | null, pickId: string | null, clicked?: string): void {
   for (const el of frame.querySelectorAll(".on")) el.classList.remove("on");
   for (const el of document.querySelectorAll("#pose-details tr.on")) el.classList.remove("on");
   frame.classList.toggle("hl", !!sel);
@@ -1728,7 +1742,9 @@ function applySel(frame: HTMLElement, sel: string | null, pickId: string | null)
     text = (g?.dataset.tip ?? "").split(" — ")[0]!;
   } else {
     mark(`.m-pipe[data-item="${CSS.escape(id)}"], .m-flow[data-item="${CSS.escape(id)}"]`);
-    text = `${anyName(id)} : liaisons dans le sens du flux`;
+    // L'info du tuyau cliqué (produit, collecteur, débit, tuyau), sans la ligne « Clique pour… ».
+    const tipOf = clicked ?? frame.querySelector<SVGGElement>(`.m-pipe[data-item="${CSS.escape(id)}"]`)?.dataset.tip ?? "";
+    text = tipOf.split("\n").filter((l) => l && !l.startsWith("Clique")).join(" · ") || `${anyName(id)} : liaisons dans le sens du flux`;
   }
   if (pick) pick.innerHTML = `<span>${esc(text)}</span> <button type="button" class="link small" data-unsel>✕</button>`;
 }
@@ -2881,7 +2897,7 @@ function bindPlan(): void {
     const sel = t.closest<SVGElement>("[data-sel]")?.dataset.sel ?? (t.closest<SVGGElement>(".m-pipe[data-item]") ? `i:${t.closest<SVGGElement>(".m-pipe")!.dataset.item}` : null);
     if (sel) {
       poseSel = poseSel === sel ? null : sel;
-      return applySel($("pose-frame"), poseSel, "pose-pick");
+      return applySel($("pose-frame"), poseSel, "pose-pick", t.closest<SVGGElement>(".m-pipe[data-tip]")?.dataset.tip);
     }
     const mod = t.closest<SVGGElement>("[data-mod]");
     // Un module, ou un ensemble modulaire posé à sa place (S14) : son panneau à côté.
@@ -2912,28 +2928,37 @@ function bindPlan(): void {
     const blk = t.closest<SVGGElement>(".ab[data-sel]")?.dataset.sel ?? null;
     const sel = blk ?? (pipe ? `i:${pipe.dataset.item}` : null);
     focusSel = sel && focusSel !== sel ? sel : null;
-    applySel($("focus-frame"), focusSel, null);
+    // Le tuyau cliqué donne son info dans l'encadré (S27 bis : « on a aucune info dessus »).
+    applySel($("focus-frame"), focusSel, "focus-pick", pipe?.dataset.tip);
   });
-  // Infobulle du dessin de l'usine (modules, tuyaux, câbles) : suit la souris, cachée pendant un glisser.
-  const tip = $("pose-tip");
-  $("pose-frame").addEventListener("pointerover", (e) => {
-    const t = (e.target as Element).closest<SVGElement>("[data-tip]");
-    if (!t || $("pose-frame").classList.contains("dragging")) return;
-    tip.textContent = t.dataset.tip!;
-    tip.hidden = false;
+  $("focus-frame").addEventListener("click", (e) => {
+    if (!(e.target as Element).closest("[data-unsel]")) return;
+    focusSel = null;
+    applySel($("focus-frame"), null, "focus-pick");
   });
-  $("pose-frame").addEventListener("pointerout", (e) => {
-    if ((e.target as Element).closest("[data-tip]")) tip.hidden = true;
-  });
-  $("pose-frame").addEventListener("pointermove", (e) => {
-    if (tip.hidden) return;
-    if ($("pose-frame").classList.contains("dragging")) return void (tip.hidden = true);
-    const r = $("pose-frame").getBoundingClientRect();
-    const x = e.clientX - r.left + 14;
-    const y = e.clientY - r.top + 16;
-    tip.style.left = `${Math.max(4, Math.min(r.width - tip.offsetWidth - 4, x))}px`;
-    tip.style.top = `${y + tip.offsetHeight > r.height - 4 ? Math.max(4, e.clientY - r.top - tip.offsetHeight - 10) : y}px`;
-  });
+  // Infobulles des dessins (usine, module, panneau d'un module) : suivent la souris, cachées pendant un glisser.
+  for (const [frameId, tipId] of [["pose-frame", "pose-tip"], ["focus-frame", "focus-tip"]] as const) {
+    const frame = $(frameId);
+    const tip = $(tipId);
+    frame.addEventListener("pointerover", (e) => {
+      const t = (e.target as Element).closest<SVGElement>("[data-tip]");
+      if (!t || frame.classList.contains("dragging")) return;
+      tip.textContent = t.dataset.tip!;
+      tip.hidden = false;
+    });
+    frame.addEventListener("pointerout", (e) => {
+      if ((e.target as Element).closest("[data-tip]")) tip.hidden = true;
+    });
+    frame.addEventListener("pointermove", (e) => {
+      if (tip.hidden) return;
+      if (frame.classList.contains("dragging")) return void (tip.hidden = true);
+      const r = frame.getBoundingClientRect();
+      const x = e.clientX - r.left + 14;
+      const y = e.clientY - r.top + 16;
+      tip.style.left = `${Math.max(4, Math.min(r.width - tip.offsetWidth - 4, x))}px`;
+      tip.style.top = `${y + tip.offsetHeight > r.height - 4 ? Math.max(4, e.clientY - r.top - tip.offsetHeight - 10) : y}px`;
+    });
+  }
   // Panneau du module : retour à l'usine, plein écran (Échap pour revenir), zoom.
   const setFull = (on: boolean) => {
     $("pose-focus").classList.toggle("full", on);

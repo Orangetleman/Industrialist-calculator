@@ -372,10 +372,26 @@ export function renderFactoryModule(
   const mine = flows
     .filter((a) => inside(Math.floor((a.x1 + a.x2) / 2), Math.floor((a.y1 + a.y2) / 2)))
     .map((a) => ({ net: a.net, x1: a.x1 - b.x, y1: a.y1 - b.y, x2: a.x2 - b.x, y2: a.y2 - b.y }));
-  const svg = renderModuleSvg(m, name, { pieces, flows: mine, item: itemOf, wide, color: (net) => color.get(itemOf(net)) ?? "#9aa7b4" });
+  const sub = (k: string) => box.get(k)?.sub ?? k;
+  // Infobulle d'un tuyau de l'usine (S27 bis) : liaison entre modules, évacuation, collecteur d'un module.
+  const netTip = (net: string): string | null => {
+    const n = inter.get(net);
+    if (n) {
+      const t = tierOf(n.item, n.perMin);
+      return `${name(n.item)} · ${fmt(n.perMin, 1)}/min — de ${sub(n.from)} vers ${n.to.map(sub).join(" et ")}${t ? ` · tuyau tier ${t === 3 ? "III" : "I"}` : ""}`;
+    }
+    const ev = f.evacs?.find((e) => e.id === net);
+    if (ev) return `${name(ev.item)} · ${fmt(ev.perMin, 1)}/min à évacuer — sort ${SIDE_WORD[ev.side]} de l'usine`;
+    const i = net.indexOf("~");
+    if (i < 0) return null;
+    const owner = box.get(net.slice(0, i));
+    const c = owner?.mod?.nets.find((x) => x.id === net.slice(i + 1));
+    if (!c) return null;
+    return `${name(c.item)} — collecteur ${c.role === "entrée" ? "d'entrée" : "de sortie"} de ${owner!.sub}, ${fmt(c.perSec, 2)}/s${c.pipe ? ` · tuyau tier ${c.pipe.tier === 1 ? "I" : "III"} (jusqu'à ${c.pipe.flowPerSec}/s)` : ""}`;
+  };
+  const svg = renderModuleSvg(m, name, { pieces, flows: mine, item: itemOf, wide, color: (net) => color.get(itemOf(net)) ?? "#9aa7b4", netTip });
   // S26 : l'ordre de pose dans le sens où le module est posé dans l'usine, replié (le dessin suffit souvent).
   const info = renderModuleInfo(m, name, undefined, null, b.rot);
-  const sub = (k: string) => box.get(k)?.sub ?? k;
   const ins = f.nets.filter((n) => n.to.includes(key));
   const outs = f.nets.filter((n) => n.from === key);
   const passage = f.passagesKept.get(key);
