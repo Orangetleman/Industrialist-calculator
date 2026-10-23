@@ -167,6 +167,9 @@ export class PanZoom {
       d.moved = true;
       this.frame.setPointerCapture(e.pointerId);
       this.frame.classList.add("dragging");
+      // Pas de texte sélectionné pendant le glisser, même si le pointeur sort du cadre.
+      document.body.classList.add("panning");
+      window.getSelection()?.removeAllRanges();
     }
     const s = this.scale();
     this.vb = { ...this.vb, x: d.vb.x - dx * s, y: d.vb.y - dy * s };
@@ -178,6 +181,7 @@ export class PanZoom {
     if (!d || d.id !== e.pointerId) return;
     this.drag = null;
     this.frame.classList.remove("dragging");
+    document.body.classList.remove("panning");
     if (d.moved) {
       this.suppressClick = true;
       setTimeout(() => (this.suppressClick = false), 0);

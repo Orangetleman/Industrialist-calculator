@@ -32,6 +32,12 @@ export type FactoryStep = {
   reserve?: { w: number; h: number; label: string } | null;
 };
 export type FactoryEdge = { from: string; to: string; item: string; perMin: number; loop?: boolean };
+/** Bord de l'usine où sort un produit à évacuer (S27). */
+export type EvacSide = "haut" | "bas" | "gauche" | "droite";
+/** Un sous-produit que rien n'utilise dans le plan : il part par un tuyau jusqu'au bord de l'usine (S27). */
+export type FactoryEvacReq = { from: string; item: string; perMin: number; side?: EvacSide };
+/** Son tuyau : le bord atteint, la case au bord, les cases posées (`ok` : faux s'il n'a pas pu être tracé). */
+export type FactoryEvac = FactoryEvacReq & { id: string; side: EvacSide; at: { x: number; y: number }; cells: string[]; ok: boolean };
 export type FactoryOptions = {
   /** Coller deux modules (sortie contre entrée) quand c'est possible, sans tuyau. */
   glue?: boolean;
@@ -43,10 +49,14 @@ export type FactoryOptions = {
   room?: number;
   /** Un passage du collecteur central qui élargit son module est permis. */
   widen?: boolean;
+  /** Bord choisi pour chaque produit à évacuer (objet → bord) ; sinon le bord le plus proche. */
+  evacSides?: Record<string, EvacSide>;
 };
 export type FactoryInput = {
   steps: FactoryStep[];
   edges: FactoryEdge[];
+  /** Ce qu'il faut évacuer (S27) : sous-produits qu'aucune étape n'utilise. */
+  evac?: FactoryEvacReq[];
   /** Noms des objets et des machines (id → nom). */
   names: Record<string, string>;
   cat: Catalog;
@@ -83,6 +93,8 @@ export type FactoryPlan = {
   glued: string[];
   /** Liaisons non tracées. */
   problems: string[];
+  /** Tuyaux des produits à évacuer, jusqu'au bord de l'usine (S27). */
+  evacs: FactoryEvac[];
   poleNodes: FactoryPole[];
   links: FactoryCable[];
   feed: Pt;
@@ -179,7 +191,15 @@ export function factoryInput(
   const keys = new Set(steps.map((s) => s.key));
   const edges = plan.edges.filter((e) => keys.has(e.from) && keys.has(e.to));
   for (const e of edges) nm(e.item);
-  return { steps, edges, names, cat, plot, options };
+  // S27 : ce qu'aucune étape n'utilise d'un sous-produit (tout, ou le surplus) sort par un tuyau jusqu'au bord.
+  const evac = plan.steps.flatMap((s) =>
+    s.byproducts
+      // Toutes les liaisons comptent, boucles comprises (un sous-produit qui remonte la chaîne est consommé).
+      .map((b) => ({ b, left: b.perMin - plan.edges.filter((e) => e.from === s.key && e.item === b.item).reduce((t, e) => t + e.perMin, 0) }))
+      .filter(({ left }) => left > 1e-6)
+      .map(({ b, left }): FactoryEvacReq => ({ from: s.key, item: b.item, perMin: left, ...(options.evacSides?.[b.item] ? { side: options.evacSides[b.item] } : {}) })),
+  );
+  return { steps, edges, evac, names, cat, plot, options };
 }
 
 type Box = FactoryBox & { placed: boolean; variants: ModulePlan[]; req: ModuleRequest | null; entry: PortsEntry | null; size: { w: number; l: number } | null };
@@ -216,6 +236,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     boxes: [],
     cells: new Map(),
     nets: [],
+    evacs: [],
     netCells: {},
     glued: [],
     problems: [],
@@ -608,6 +629,14 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       n.to.push(e.to);
       grid.reserve(inn ? anchorAbs(c, inn) : { x: c.x - 1, y: c.y + Math.floor(c.h / 2) }, id);
     }
+    // S27 : la case devant chaque sortie à évacuer est prise d'avance (un tuyau entre modules n'y passe pas).
+    for (const ev of input.evac ?? []) {
+      const b = byKey.get(ev.from);
+      const end = b ? endOf(b, ev.item, "sortie") : null;
+      if (!b || !end) continue;
+      const a = anchorAbs(b, end);
+      if (!grid.cells.has(`${a.x},${a.y}`)) grid.link(a, OPPOSITE[end.dir], `${b.key}:${ev.item}`);
+    }
     for (const e of edges) {
       const p = byKey.get(e.from)!;
       const c = byKey.get(e.to)!;
@@ -964,6 +993,64 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   // collecteurs recalculés, raccords d'origine des modules remplacés par la prise unique) sont retirés, pièce par
   // pièce depuis le bout ; un té qui perd une branche devient un tuyau droit ou un coude.
   const pruned = full ? pruneDeadEnds() : 0;
+
+  // ------------------------------------------------------------ produits à évacuer (S27)
+  // Chaque sous-produit que rien n'utilise part de sa sortie jusqu'au bord de l'usine : le bord choisi par le
+  // joueur, sinon le plus proche. Le tuyau est tracé du bord vers la sortie (même chercheur que les liaisons).
+  const evacs: FactoryEvac[] = [];
+  const OUT: Record<EvacSide, Dir> = { haut: "N", bas: "S", gauche: "W", droite: "E" };
+  for (const ev of input.evac ?? []) {
+    const b = byKey.get(ev.from);
+    const n = b?.mod?.nets.find((x) => x.role === "sortie" && name(x.item) === name(ev.item));
+    if (!b?.mod || !n) continue;
+    const before = new Set(grid.cells.keys());
+    // Où se raccorder : (réseau, case visée). Recalculé : le collecteur du module, sinon le tuyau qui part déjà
+    // vers un client (surplus d'un produit en partie consommé, dont le bout de collecteur a été retiré).
+    // Module par module : un bout de tuyau devant la sortie du module, posé d'avance pendant les liaisons.
+    const options: { id: string; t: Pt }[] = [];
+    const cellsOf = (id: string) =>
+      [...grid.cells]
+        .filter(([, o]) => o.kind === "tuyau" && o.net === id && !o.cross && o.links.size < 4)
+        .map(([k]) => {
+          const [x, y] = k.split(",").map(Number) as [number, number];
+          return { x, y };
+        })
+        .sort((p, q) => Math.min(p.x, W - 1 - p.x, p.y, H - 1 - p.y) - Math.min(q.x, W - 1 - q.x, q.y, H - 1 - q.y));
+    if (through) {
+      for (const id of [`${b.key}~${n.id}`, `${b.key}:${ev.item}`]) {
+        const own = cellsOf(id);
+        if (own.length) options.push({ id, t: own[0]! });
+      }
+    } else if (n.end) {
+      const id = `${b.key}:${ev.item}`;
+      const a = anchorAbs(b, n.end);
+      const o = grid.cells.get(`${a.x},${a.y}`);
+      if (!o) grid.link(a, OPPOSITE[n.end.dir], id);
+      if (!o || (o.kind === "tuyau" && o.net === id)) options.push({ id, t: a });
+    }
+    const bounds = { x0: 0, y0: 0, x1: W - 1, y1: H - 1 };
+    let done: { id: string; t: Pt; side: EvacSide; at: Pt } | null = null;
+    for (const { id, t } of options) {
+      const dist = { gauche: t.x, droite: W - 1 - t.x, haut: t.y, bas: H - 1 - t.y };
+      const side: EvacSide = ev.side ?? (["gauche", "droite", "haut", "bas"] as EvacSide[]).sort((p, q) => dist[p] - dist[q])[0]!;
+      const out = OUT[side];
+      // Case de départ au bord : en face de la sortie, sinon la plus proche libre le long du bord.
+      const edgeCell = (k: number): Pt => (side === "gauche" ? { x: 0, y: k } : side === "droite" ? { x: W - 1, y: k } : side === "haut" ? { x: k, y: 0 } : { x: k, y: H - 1 });
+      const along = side === "gauche" || side === "droite" ? t.y : t.x;
+      const len = side === "gauche" || side === "droite" ? H : W;
+      const starts = Array.from({ length: len }, (_, k) => k).sort((p, q) => Math.abs(p - along) - Math.abs(q - along)).map(edgeCell).filter((p) => !grid.cells.has(`${p.x},${p.y}`));
+      const at = starts.slice(0, 12).find((s) => route(grid, id, s, out, bounds, (q) => Math.abs(q.x - t.x) + Math.abs(q.y - t.y)));
+      if (at) {
+        grid.link(at, out, id); // le tuyau sort de l'usine par ce bord
+        done = { id, t, side, at };
+        break;
+      }
+    }
+    if (!done) problems.push(`${name(ev.item)} : ${ev.from} → bord`);
+    const cells = [...grid.cells.keys()].filter((k) => !before.has(k));
+    const fallback = options[0]?.t ?? { x: b.x, y: b.y };
+    evacs.push({ ...ev, id: done?.id ?? options[0]?.id ?? `${b.key}:${ev.item}`, side: done?.side ?? ev.side ?? "droite", at: done?.at ?? fallback, cells, ok: !!done });
+  }
   progress(0.95, "Réseau électrique");
   const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
   const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
@@ -1154,6 +1241,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     netCells,
     glued,
     problems,
+    evacs,
     poleNodes,
     links,
     feed,

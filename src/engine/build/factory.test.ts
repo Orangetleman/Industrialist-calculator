@@ -108,6 +108,34 @@ describe("toute l'usine", () => {
     expect(steps.every((x, i) => i === 0 || x >= steps[i - 1]!)).toBe(true);
   }, 300_000);
 
+  it("S27 : chaque sous-produit inutilisé sort par un tuyau jusqu'au bord choisi (sinon le plus proche)", () => {
+    const plan = solve(data, all, { item: "light-oil", ratePerMin: 60, criterion: "machines", tiers: false });
+    const base = factoryInput(plan, look, cat, PLOT, { priority: ["place", "forme", "prix", "pieces"] });
+    expect(base.evac?.length).toBeGreaterThan(0);
+    // Ce qui reste après les liaisons (tout le sous-produit, ou son surplus).
+    for (const ev of base.evac!) {
+      const made = plan.steps.find((s) => s.key === ev.from)!.byproducts.find((b) => b.item === ev.item)!.perMin;
+      const used = plan.edges.filter((e) => e.from === ev.from && e.item === ev.item).reduce((t, e) => t + e.perMin, 0);
+      expect(ev.perMin).toBeCloseTo(made - used, 6);
+    }
+    const item = base.evac![0]!.item;
+    for (const full of [false, true]) {
+      const auto = designFactory(structuredClone(factoryInput(plan, look, cat, PLOT, { priority: ["place", "forme", "prix", "pieces"] }, { full })));
+      expect(auto.evacs.length, `full=${full}`).toBe(base.evac!.length);
+      for (const ev of auto.evacs) {
+        expect(ev.ok, `${ev.item} full=${full}`).toBe(true);
+        expect(ev.cells.length).toBeGreaterThan(0);
+        // La case au bord est bien sur le bord annoncé.
+        expect(ev.side === "gauche" ? ev.at.x === 0 : ev.side === "droite" ? ev.at.x === auto.W - 1 : ev.side === "haut" ? ev.at.y === 0 : ev.at.y === auto.H - 1).toBe(true);
+      }
+      // Bord imposé : en haut.
+      const up = designFactory(structuredClone(factoryInput(plan, look, cat, PLOT, { priority: ["place", "forme", "prix", "pieces"] }, { full, evacSides: { [item]: "haut" } })));
+      const ev = up.evacs.find((e) => e.item === item)!;
+      expect([ev.side, ev.ok, ev.at.y]).toEqual(["haut", true, 0]);
+      expect(renderFactorySvg(up, name, PLOT, () => 1).svg).toContain('class="u-net u-evac"');
+    }
+  }, 300_000);
+
   it("plan d'une seule étape, et plan vide : pas d'erreur", () => {
     const plan = solve(data, all, { item: "steel-ingot", ratePerMin: 10, criterion: "energy", tiers: false });
     const input = factoryInput({ steps: plan.steps.filter((s) => s.item === "steel-ingot"), edges: plan.edges }, look, cat, PLOT, { priority: ["place", "forme", "prix", "pieces"] }, { full: true });

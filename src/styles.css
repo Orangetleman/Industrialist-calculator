@@ -84,6 +84,11 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 #rpanel-pose.computing #pose-canvas, #rpanel-pose.computing #pose-mods, #rpanel-pose.computing #pose-legend { opacity: .4; pointer-events: none; transition: opacity .2s; }
 .u-busy { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; width: min(420px, 90%); background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: 8px 12px; box-shadow: 0 6px 20px #0008; }
 .u-busy .progress { margin: 0; }
+.u-evac-t { font: 600 9px var(--f-body); paint-order: stroke; stroke: #1d2126; stroke-width: 3px; pointer-events: none; }
+.u-evaclist { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: .86rem; }
+.u-evaclist li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; justify-content: space-between; max-width: 520px; }
+.u-evaclist .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+.u-evaclist select { font-size: .84rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
 .u-mod.posed { opacity: .3; }
 .u-mod.posed:hover { opacity: .7; }
 .u-modlist { list-style: none; margin: 6px 0 0; padding: 0; columns: 2 280px; font-size: .86rem; }
@@ -236,6 +241,9 @@ button.link.have:hover { color: var(--steel); }
 /* Schéma : cadre sombre navigable, comme l'arbre de recherche */
 .flow-frame { position: relative; height: 420px; border-radius: 12px; border: 1px solid var(--line); background: #1d2126; overflow: hidden; touch-action: none; cursor: grab; }
 .flow-frame.dragging { cursor: grabbing; }
+/* Glisser un cadre ne sélectionne plus de texte (même solution que le graphe du site de philosophie de l'utilisateur). */
+.flow-frame, .rs-frame, .bld-frame { -webkit-user-select: none; user-select: none; }
+body.panning { -webkit-user-select: none; user-select: none; }
 .flow-frame:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #flow-canvas, #flow-canvas svg { width: 100%; height: 100%; display: block; }
 .flow-help { position: absolute; left: 12px; top: 8px; margin: 0; font-size: .76rem; color: #9aa7b4; pointer-events: none; text-shadow: 0 1px 2px #000; }
@@ -463,7 +471,7 @@ ul.mod-legend i.sw-lane { height: 0; border-top: 3px dotted #d77fd0; border-radi
 ul.mod-legend i.sw-todo { width: 12px; height: 10px; border: 2px dashed #e3b25a; background: none; border-radius: 2px; }
 /* Toute l'usine (vue de dessus) */
 .usine .u-plot { fill: none; stroke: #6cc792; stroke-dasharray: 14 10; stroke-width: 3; }
-.usine .u-plot-t { fill: #6cc792; font-size: 14px; text-anchor: end; }
+.usine .u-plot-t { fill: #6cc792; font-size: 12px; text-anchor: start; opacity: .8; }
 .usine .u-bbox { fill: none; stroke: #e6ebf0; stroke-dasharray: 3 5; stroke-width: 1.5; opacity: .6; pointer-events: none; }
 .usine .u-bbox-t { fill: #9aa7b4; font-size: 12px; text-anchor: end; }
 .usine .u-box { fill: #22272e; stroke: #4a525c; stroke-width: 2; }

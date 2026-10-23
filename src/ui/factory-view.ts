@@ -7,7 +7,7 @@
 // afficher »), `u-nopower`, `u-plugs` (câbles vers chaque machine), `u-links` (« Afficher les liaisons »),
 // `hl` (une sélection : les éléments `.on` restent vifs).
 
-import { factoryFits, type FactoryPlan } from "../engine/build/factory.ts";
+import { factoryFits, type EvacSide, type FactoryPlan } from "../engine/build/factory.ts";
 import type { FactoryArrow } from "../engine/build/flow.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { PlacedPiece } from "../engine/build/module.ts";
@@ -26,7 +26,54 @@ type TierOf = (item: string, perMin: number) => 1 | 3 | null;
 type Box = FactoryPlan["boxes"][number];
 
 export function factoryColors(f: FactoryPlan): Map<string, string> {
-  return new Map([...new Set(f.nets.map((n) => n.item))].map((it, i) => [it, PALETTE[i % PALETTE.length]!]));
+  return new Map([...new Set([...f.nets.map((n) => n.item), ...(f.evacs ?? []).map((e) => e.item)])].map((it, i) => [it, PALETTE[i % PALETTE.length]!]));
+}
+
+const SIDE_DIR: Record<EvacSide, { x: number; y: number }> = { haut: { x: 0, y: -1 }, bas: { x: 0, y: 1 }, gauche: { x: -1, y: 0 }, droite: { x: 1, y: 0 } };
+const SIDE_WORD: Record<EvacSide, string> = { haut: "en haut", bas: "en bas", gauche: "à gauche", droite: "à droite" };
+
+/** Tuyaux des produits à évacuer (S27) : leur tracé, et une flèche qui sort de l'usine avec le nom du produit. */
+function evacSvg(f: FactoryPlan, name: Name, color: Map<string, string>): string {
+  let s = "";
+  for (const ev of f.evacs ?? []) {
+    let d = "";
+    for (const k of ev.cells) {
+      const o = f.cells.get(k);
+      if (o?.kind !== "tuyau") continue;
+      const [x, y] = k.split(",").map(Number) as [number, number];
+      const [cx, cy] = [(x + 0.5) * C, (y + 0.5) * C];
+      const links = o.net === ev.id ? o.links : o.cross?.net === ev.id ? o.cross.links : null;
+      for (const dd of links ?? []) d += `M${cx},${cy} L${cx + (STEP[dd].x * C) / 2},${cy + (STEP[dd].y * C) / 2} `;
+    }
+    const c = color.get(ev.item) ?? "#9aa7b4";
+    const tip = `${name(ev.item)} · ${fmt(ev.perMin, 1)}/min à évacuer — sort ${SIDE_WORD[ev.side]} de l'usine${ev.ok ? "" : " (tuyau non tracé)"}`;
+    s += `<g class="u-net u-evac" data-item="${esc(ev.item)}" data-tip="${esc(tip)}"><path class="u-hit" d="${d}"/><path class="u-line" d="${d}" stroke="${c}" stroke-width="2.6"/>`;
+    if (ev.ok) {
+      const v = SIDE_DIR[ev.side];
+      const [x0, y0] = [(ev.at.x + 0.5) * C, (ev.at.y + 0.5) * C];
+      // La flèche s'arrête au bord de la case ; le nom se lit juste à côté, à l'intérieur du cadre.
+      const [x1, y1] = [x0 + v.x * C * 0.5, y0 + v.y * C * 0.5];
+      const [tx, ty, anchor] = v.y ? [x0 + 7, y0 - v.y * 2, "start"] : [x0 - v.x * 6, y0 - 7, v.x > 0 ? "end" : "start"];
+      s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${c}" stroke-width="2.6" marker-end="url(#uf)"/><text class="u-evac-t" x="${tx}" y="${ty}" text-anchor="${anchor}" fill="${c}">${esc(name(ev.item))} ↗</text>`;
+    }
+    s += `</g>`;
+  }
+  return s;
+}
+
+/** « À évacuer » sous l'usine (S27) : chaque produit, son débit, et le bord par lequel il sort (choix gardé par plan). */
+export function renderFactoryEvac(f: FactoryPlan, name: Name, chosen: Partial<Record<string, EvacSide>>): string {
+  const list = f.evacs ?? [];
+  if (!list.length) return "";
+  const opt = (v: string, label: string, on: boolean) => `<option value="${v}"${on ? " selected" : ""}>${label}</option>`;
+  const rows = list
+    .map((ev) => {
+      const pick = chosen[ev.item];
+      return `<li><span><i class="sw" style="background:${factoryColors(f).get(ev.item)}"></i>${esc(name(ev.item))} <span class="hint">${esc(fmt(ev.perMin, 1))}/min</span>${ev.ok ? "" : ` <span class="warn-text">tuyau non tracé</span>`}</span>
+        <label class="sr-only" for="evac-${esc(ev.item)}">Bord de sortie de ${esc(name(ev.item))}</label><select id="evac-${esc(ev.item)}" data-evac="${esc(ev.item)}">${opt("", `le plus proche (${SIDE_WORD[ev.side]})`, !pick)}${(["haut", "bas", "gauche", "droite"] as EvacSide[]).map((s) => opt(s, SIDE_WORD[s], pick === s)).join("")}</select></li>`;
+    })
+    .join("");
+  return `<details class="more u-evacs" open><summary>À évacuer (${list.length}) <span class="hint">sous-produits que rien n'utilise dans le plan</span></summary><p class="hint">Chacun part par un tuyau jusqu'au bord de l'usine : choisis le bord (vers un dépôt, une vente ou un brûleur).</p><ul class="u-evaclist">${rows}</ul></details>`;
 }
 
 /** « tourné d'un quart de tour » (sens horaire) ; vide s'il n'est pas tourné. */
@@ -80,7 +127,7 @@ export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf:
   s += `<defs><pattern id="ug1" width="${C}" height="${C}" patternUnits="userSpaceOnUse"><path d="M${C} 0 L0 0 0 ${C}" fill="none" stroke="#262c33" stroke-width="1"/></pattern><pattern id="ug10" width="${C * 10}" height="${C * 10}" patternUnits="userSpaceOnUse"><rect width="${C * 10}" height="${C * 10}" fill="url(#ug1)"/><path d="M${C * 10} 0 L0 0 0 ${C * 10}" fill="none" stroke="#323a43" stroke-width="1.5"/></pattern>`;
   s += `<marker id="ua" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd54a"/></marker><marker id="ub" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c9a83a"/></marker><marker id="uf" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#fff"/></marker></defs>`;
   s += `<rect width="${VW * C}" height="${VH * C}" fill="#1d2126"/><rect width="${VW * C}" height="${VH * C}" fill="url(#ug10)"/>`;
-  if (plot) s += `<rect class="u-plot" x="0" y="0" width="${plot.w * C}" height="${plot.h * C}" data-tip="${esc(`Ta parcelle : ${plot.w} × ${plot.h} cases`)}"/><text class="u-plot-t" x="${Math.min(plot.w, VW) * C - 10}" y="16">ta parcelle ${plot.w} × ${plot.h}</text>`;
+  if (plot) s += `<rect class="u-plot" x="0" y="0" width="${plot.w * C}" height="${plot.h * C}" data-tip="${esc(`Ta parcelle : ${plot.w} × ${plot.h} cases`)}"/><text class="u-plot-t" x="6" y="${Math.min(plot.h, VH) * C - 6}">ta parcelle ${plot.w} × ${plot.h}</text>`;
   s += `<rect class="u-bbox" x="0" y="0" width="${f.W * C}" height="${f.H * C}"/><text class="u-bbox-t" x="${f.W * C - 8}" y="${f.H * C + 16}">usine ${f.W} × ${f.H}</text>`;
   // Modules : cadre, intérieur (machines et collecteurs), puis l'étiquette par-dessus. Survol : infobulle ; clic : panneau.
   for (const b of f.boxes) {
@@ -121,7 +168,8 @@ export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf:
     const tip = `${name(n.item)} · ${fmt(n.perMin, 0)}/min — de ${sub(n.from)} vers ${n.to.map(sub).join(" et ")} · ${f.netCells[n.id] ?? 0} cases de tuyau${f.full ? ", collecteurs des modules compris" : ""} · tier ${tier === 3 ? "III" : "I"}`;
     s += `<g class="u-net" data-sel="n:${esc(n.id)}" data-item="${esc(n.item)}" data-tip="${esc(`${tip}\nClique pour voir ses liaisons`)}"><path class="u-hit" d="${byNet.get(n.id) ?? ""}"/><path class="u-line" d="${byNet.get(n.id) ?? ""}" stroke="${color.get(n.item)}" stroke-width="${tier === 3 ? 4.6 : 2.6}"/></g>`;
   }
-  const netItem = (id: string) => name(f.nets.find((n) => n.id === id)?.item ?? "");
+  s += evacSvg(f, name, color);
+  const netItem = (id: string) => name(f.nets.find((n) => n.id === id)?.item ?? f.evacs?.find((e) => e.id === id)?.item ?? "");
   for (const [k, o] of f.cells) {
     if (o.kind !== "tuyau" || !o.cross) continue;
     const [x, y] = k.split(",").map(Number) as [number, number];
@@ -299,6 +347,8 @@ export function renderFactoryModule(
   const itemOf = (net: string) => {
     const n = inter.get(net);
     if (n) return n.item;
+    const ev = f.evacs?.find((e) => e.id === net);
+    if (ev) return ev.item; // tuyau d'un produit à évacuer (S27)
     const i = net.indexOf("~");
     if (i >= 0) return box.get(net.slice(0, i))?.mod?.nets.find((x) => x.id === net.slice(i + 1))?.item ?? net;
     return m.nets.find((x) => x.id === net)?.item ?? net;
