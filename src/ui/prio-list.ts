@@ -1,6 +1,7 @@
 // Liste de priorités à réordonner : glisser une ligne, ou ses boutons ↑ ↓ (clavier, téléphone).
 // La première départage d'abord, les suivantes seulement à égalité.
 
+import { t } from "../i18n/i18n.ts";
 import { esc } from "./format.ts";
 
 export type PrioItem<K extends string> = { key: K; label: string; why: string };
@@ -10,7 +11,7 @@ export function renderPrioItems<K extends string>(items: PrioItem<K>[]): string 
   return items
     .map(
       (it, i) =>
-        `<li draggable="true" data-crit="${esc(it.key)}"><span class="grip" aria-hidden="true">⋮⋮</span><span class="rank">${i + 1}</span><span class="crit"><b>${esc(it.label)}</b> <span class="hint">${esc(it.why)}</span></span><button type="button" class="mv" data-move="-1" aria-label="Monter ${esc(it.label)}"${i === 0 ? " disabled" : ""}>↑</button><button type="button" class="mv" data-move="1" aria-label="Descendre ${esc(it.label)}"${i === items.length - 1 ? " disabled" : ""}>↓</button></li>`,
+        `<li draggable="true" data-crit="${esc(it.key)}"><span class="grip" aria-hidden="true">⋮⋮</span><span class="rank">${i + 1}</span><span class="crit"><b>${esc(it.label)}</b> <span class="hint">${esc(it.why)}</span></span><button type="button" class="mv" data-move="-1" aria-label="${esc(t("prio.up", { label: it.label }))}"${i === 0 ? " disabled" : ""}>↑</button><button type="button" class="mv" data-move="1" aria-label="${esc(t("prio.down", { label: it.label }))}"${i === items.length - 1 ? " disabled" : ""}>↓</button></li>`,
     )
     .join("");
 }

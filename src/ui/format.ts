@@ -1,17 +1,21 @@
-// Mise en forme des nombres et libellés (pur, sans DOM).
+// Mise en forme des nombres et libellés (pur, sans DOM). S30 : selon la langue choisie
+// (« 1 234,5 » en français, « 1,234.5 » en anglais) ; les unités du jeu ne changent pas.
 
 import type { VerifyFlag } from "../engine/types.ts";
+import { lang, locale, t } from "../i18n/i18n.ts";
 
-const nf = (d: number) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: d });
-const cache = new Map<number, Intl.NumberFormat>();
+const nf = (d: number) => new Intl.NumberFormat(locale(), { minimumFractionDigits: 0, maximumFractionDigits: d });
+const cache = new Map<string, Intl.NumberFormat>();
+const en = () => lang() === "en";
 
-/** Nombre arrondi à d décimales, format français (espace insécable pour les milliers). */
+/** Nombre arrondi à d décimales, selon la langue (en français : espace insécable pour les milliers). */
 export function fmt(x: number, d = 1): string {
   if (!Number.isFinite(x)) return "—";
-  let f = cache.get(d);
+  const k = `${lang()}|${d}`;
+  let f = cache.get(k);
   if (!f) {
     f = nf(d);
-    cache.set(d, f);
+    cache.set(k, f);
   }
   const r = Math.round(x * 10 ** d) / 10 ** d;
   return f.format(Object.is(r, -0) ? 0 : r);
@@ -49,34 +53,48 @@ export function doubtText(f: Pick<VerifyFlag, "field" | "detail"> & Partial<Veri
   const pairs = [...f.detail.matchAll(/(Miraheze|Fandom|wiki|jeu)\s*:\s*(-?[\d.]+)/gi)].map((m) => ({ src: m[1]!, n: Number(m[2]) }));
   if (pairs.length < 2 || pairs.some((p) => !Number.isFinite(p.n))) return f.detail;
   const unit = (n: number) => (f.field === "durationS" ? `${fmt(n, 2)} s` : f.field === "energyMFps" ? fmtMF(n) : fmt(n, 3));
-  return pairs.map((p) => `${unit(p.n)} (${p.src})`).join(" ou ");
+  return pairs.map((p) => `${unit(p.n)} (${p.src})`).join(` ${t("common.or")} `);
 }
+
+/** Le signe $ devant le nombre, en anglais : « $950 », « -$5 ». */
+const dollarsEn = (text: string) => (text.startsWith("-") ? `-$${text.slice(1)}` : `$${text}`);
 
 export function fmtMoney(x: number | null): string {
   if (x === null || !Number.isFinite(x)) return "—";
-  return `${fmt(x, x < 100 ? 2 : 0)} $`;
+  const text = fmt(x, x < 100 ? 2 : 0);
+  return en() ? dollarsEn(text) : `${text} $`;
 }
 
-/** Nombre court pour les pastilles : « 950 », « 12,4 k », « 2,1 M ». */
+/** Nombre court pour les pastilles : « 950 », « 12,4 k », « 2,1 M » (« 12.4k » en anglais). */
 export function fmtShort(x: number): string {
   const a = Math.abs(x);
-  if (a >= 1e9) return `${fmt(x / 1e9, 2)} G`;
-  if (a >= 1e6) return `${fmt(x / 1e6, a >= 1e7 ? 1 : 2)} M`;
-  if (a >= 1e4) return `${fmt(x / 1e3, a >= 1e5 ? 0 : 1)} k`;
+  const u = (s: string) => (en() ? s : ` ${s}`);
+  if (a >= 1e9) return `${fmt(x / 1e9, 2)}${u("G")}`;
+  if (a >= 1e6) return `${fmt(x / 1e6, a >= 1e7 ? 1 : 2)}${u("M")}`;
+  if (a >= 1e4) return `${fmt(x / 1e3, a >= 1e5 ? 0 : 1)}${u("k")}`;
   return fmt(x, 0);
 }
 
-/** Somme d'argent courte : « 950 $ », « 2,1 M$ ». */
+/** Somme d'argent courte : « 950 $ », « 2,1 M$ » (« $950 », « $2.1M » en anglais). */
 export function fmtMoneyShort(x: number | null): string {
   if (x === null || !Number.isFinite(x)) return "—";
-  return Math.abs(x) >= 1e4 ? `${fmtShort(x)}$` : fmtMoney(x);
+  if (Math.abs(x) < 1e4) return fmtMoney(x);
+  return en() ? dollarsEn(fmtShort(x)) : `${fmtShort(x)}$`;
+}
+
+/** Pourcentage déjà arrondi : « 96 % » en français, « 96% » en anglais. */
+export const fmtPct = (text: string) => (en() ? `${text}%` : `${text} %`);
+
+/** Date et heure selon la langue (les options d'Intl.DateTimeFormat). */
+export function fmtDate(ms: number, opts?: Intl.DateTimeFormatOptions): string {
+  return new Date(ms).toLocaleString(locale(), opts);
 }
 
 export function fmtRP(x: number | null): string {
   return x === null || !Number.isFinite(x) ? "—" : `${fmt(x, 0)} RP`;
 }
 
-/** Durée lisible : « 45 s », « 12 min », « 3 h 05 min », « 2 j 4 h ». */
+/** Durée lisible : « 45 s », « 12 min », « 3 h 05 min », « 2 j 4 h » (« 2 d 4 h » en anglais). */
 export function fmtDuration(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds)) return "—";
   const s = Math.max(0, Math.round(seconds));
@@ -85,7 +103,7 @@ export function fmtDuration(seconds: number | null): string {
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
   if (h < 48) return `${h} h ${String(m % 60).padStart(2, "0")} min`;
-  return `${Math.floor(h / 24)} j ${h % 24} h`;
+  return `${Math.floor(h / 24)} ${en() ? "d" : "j"} ${h % 24} h`;
 }
 
 export function fmtPollution(p: [number, number] | number | null): string {

@@ -78,6 +78,10 @@ partage de montages, qui relève de S17 (bac à sable).
 - **Glossaire** français → anglais : celui de la maquette (écran 5) est accepté (Q28). Au début de
   S30, on cherche sur le wiki les mots du jeu qui manquent (case, parcelle, noms des modes de
   construction), et on note la source de chacun. Ce qui reste douteux va dans `data/a-verifier.md`.
+  **Fait en S30** (Q29, décision S30 Glossaire) : case → cell, parcelle → build area, outils Build /
+  Wire / Pipe / Delete, pollution en %/h ; doutes TR-01 à TR-03 dans `a-verifier.md`. Le catalogue
+  est `src/i18n/` ; les textes fixes d'`index.html` portent leur clé (`data-i18n`, `data-i18n-html`,
+  `data-i18n-attr`).
 
 ### Ce qui se traduit, et où
 

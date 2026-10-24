@@ -9,7 +9,8 @@ import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
 import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtRP } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP } from "./format.ts";
+import { joinList, t, type Key } from "../i18n/i18n.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
 import { planKey, planMachines, type Goal } from "./state.ts";
@@ -25,37 +26,28 @@ export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?
 
 // ---------------------------------------------------------------- priorité
 
-/** Libellé de joueur et effet de chaque priorité (critère d'optimisation). */
-export const CRITERION_TEXT: Record<Criterion, { label: string; why: string }> = {
-  machines: { label: "Le moins de machines", why: "garde les recettes qui demandent le moins de machines à poser (arbres et dépôts compris)." },
-  energy: { label: "Le moins d'énergie", why: "réduit la consommation électrique moyenne, utile si ton réseau est juste." },
-  cost: { label: "Le moins cher", why: "réduit le prix total des machines à acheter." },
-  pollution: { label: "Le moins de pollution", why: "réduit la pollution ajoutée (%/h), qui ralentit la pousse des arbres ; des Scrubbers peuvent être ajoutés." },
-  area: { label: "Le moins de place", why: "réduit la surface au sol occupée par les machines." },
-  raw: { label: "Le moins de matières premières", why: "réduit ce qu'il faut extraire (minerai, bois, pétrole…)." },
-  steps: { label: "La chaîne la plus courte", why: "une seule recette par objet, avec le moins d'étapes, même s'il faut plus de machines." },
-};
+/** Libellé de joueur et effet de chaque priorité (critère d'optimisation), dans la langue choisie. */
+export const criterionText = (c: Criterion): { label: string; why: string } => ({ label: t(`crit.${c}.label`), why: t(`crit.${c}.why`) });
 
 /** Ce que fait une priorité, selon l'objectif. */
 export function criterionWhy(goal: Goal, c: Criterion): string {
-  return goal === "énergie" && c === "machines"
-    ? "garde les centrales qui demandent le moins de bâtiments (extraction du combustible comprise)."
-    : goal === "recherche" && c === "machines"
-      ? "garde l'installation qui demande le moins de bâtiments (stations et chaîne des items)."
-      : CRITERION_TEXT[c].why;
+  return c === "machines" && (goal === "énergie" || goal === "recherche") ? t(`crit.machines.why.${goal}`) : criterionText(c).why;
 }
 
 /** Phrase d'aide sous les priorités : ce que fait la première, et le rôle des suivantes. */
 export function criterionHint(goal: Goal, c: Criterion): string {
-  return `${CRITERION_TEXT[c].label} : ${criterionWhy(goal, c)} C'est elle qui décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité.`;
+  return t("crit.hint", { label: criterionText(c).label, why: criterionWhy(goal, c) });
 }
 
 // ---------------------------------------------------------------- petits outils
 
-const plural = (n: number, one: string, many: string) => `${fmt(n, 0)} ${n > 1 ? many : one}`;
-const fmtRate = (x: number) => fmt(x, x >= 100 ? 0 : x >= 10 ? 1 : 2);
+/** « 3 machines » : nombre arrondi, pluriel accordé selon la langue. */
+const plural = (key: Key, n: number) => t(key, { n: Math.round(n) });
+// Vues pas encore traduites (liste, schéma, détails : S31) : leurs textes restent en français ici.
+const pluralFr = (n: number, one: string, many: string) => `${fmt(n, 0)} ${n > 1 ? many : one}`;
 /** « a », « a et b », « a, b et c ». */
 const joinFr = (list: string[]) => (list.length < 2 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} et ${list.at(-1)}`);
+const fmtRate = (x: number) => fmt(x, x >= 100 ? 0 : x >= 10 ? 1 : 2);
 const trunc = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 /** Pollution lisible : « 33 %/h », « 1,1 %/h », « 0,17 %/h » (fourchette si elle varie). */
 function fmtPol(p: [number, number]): string {
@@ -80,19 +72,19 @@ const BLOCKING = new Set([
 const isBlocking = (w: Warning) => BLOCKING.has(w.code);
 
 function countsText(p: Plan): string {
-  const parts = [plural(p.totals.machines, "machine", "machines")];
-  if (p.totals.farms) parts.push(`≈ ${fmt(p.totals.farms, 0)} arbres`);
-  if (p.totals.depots) parts.push(plural(p.totals.depots, "dépôt de vente", "dépôts de vente"));
-  return joinFr(parts);
+  const parts = [plural("ans.machines", p.totals.machines)];
+  if (p.totals.farms) parts.push(t("ans.trees", { n: fmt(p.totals.farms, 0) }));
+  if (p.totals.depots) parts.push(plural("ans.depots", p.totals.depots));
+  return joinList(parts);
 }
 
 const finalSteps = (p: Plan) => p.steps.filter((s) => p.finals.includes(s.key));
 /** Nom court d'une installation composée : « Centrale Firebox (coal) » (le détail des bâtiments est à part). */
-function plantName(v: Pick<ViewCtx, "data">, s: Step, prefix = "Centrale "): string {
+function plantName(v: Pick<ViewCtx, "data">, s: Step, word = true): string {
   const r = v.data.recipes.get(s.recipeId);
-  const name = r?.setupName ?? machineN(v, s.machine);
+  const name = (r?.setupName ?? machineN(v, s.machine)).split(" + ")[0]!;
   // Ferme d'arbres et moteur diesel modulaire (S13) : leur nom se suffit.
-  return `${r?.farm || r?.wholeUnits ? "" : prefix}${name.split(" + ")[0]}`;
+  return r?.farm || r?.wholeUnits || !word ? name : t("ans.plant", { name });
 }
 /** Pollution retirée par une étape de Scrubbers (%/h, positive). */
 function removedPollution(s: Step): string {
@@ -106,94 +98,101 @@ function removedPollution(s: Step): string {
 
 function headline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "bad" } {
   const p = v.plan;
-  const t = p.target;
-  const item = esc(itemN(v, t.item));
+  const tg = p.target;
+  const item = esc(itemN(v, tg.item));
   const missing = p.unresolved.filter((u) => !u.loopShortfall).length;
-  const partial = p.status === "partiel" ? `, mais ${plural(missing, "objet n'est pas produit", "objets ne sont pas produits")}` : "";
+  const partial = p.status === "partiel" ? plural("ans.partial", missing) : "";
   const tone = p.status === "ok" ? "ok" : p.status === "partiel" ? "warn" : "bad";
   if (v.goal === "recherche") return researchHeadline(v);
+  const counts = countsText(p);
   if (v.goal === "argent") {
-    if (p.status === "impossible") return { text: `Impossible de gagner ${esc(fmtMoney(t.ratePerMin))}/min avec ta progression actuelle.`, tone };
-    return { text: `Pour ${esc(fmtMoney(t.ratePerMin))}/min de ventes : ${countsText(p)}${partial}.`, tone };
+    const x = esc(fmtMoney(tg.ratePerMin));
+    return { text: p.status === "impossible" ? t("ans.money.impossible", { x }) : t("ans.money.ok", { x, counts, partial }), tone };
   }
   if (v.goal === "énergie") {
-    const how = v.settings.energyGuaranteed ? "garantis" : "en moyenne";
-    if (p.status === "impossible") return { text: `Impossible de produire ${esc(fmtMF(t.ratePerMin))} avec ta progression et ces options.`, tone };
-    return { text: `Pour ${esc(fmtMF(t.ratePerMin))} ${how} : ${countsText(p)}${partial}.`, tone };
+    const x = esc(fmtMF(tg.ratePerMin));
+    if (p.status === "impossible") return { text: t("ans.energy.impossible", { x }), tone };
+    return { text: t("ans.energy.ok", { x, how: t(v.settings.energyGuaranteed ? "ans.energy.guaranteed" : "ans.energy.avg"), counts, partial }), tone };
   }
-  if (p.status === "impossible") return { text: `${item} ne peut pas encore être produit avec ta progression.`, tone };
+  if (p.status === "impossible") return { text: t("ans.item.impossible", { item }), tone };
   const fin = finalSteps(p)[0];
-  const byMachines = t.finalMachines !== null && fin ? ` (${fmt(fin.machines, 0)} × ${esc(machineN(v, fin.machine))} en bout de chaîne)` : "";
-  return { text: `Pour ${fmtRate(t.ratePerMin)} ${item}/min${byMachines} : ${countsText(p)}${partial}.`, tone };
+  const by = tg.finalMachines !== null && fin ? t("ans.item.byMachines", { n: fmt(fin.machines, 0), m: esc(machineN(v, fin.machine)) }) : "";
+  return { text: t("ans.item.ok", { rate: fmtRate(tg.ratePerMin), item, by, counts, partial }), tone };
 }
 
 function researchGoalText(v: ViewCtx): string {
   const s = v.settings;
   const n = v.research?.nodes.length ?? 0;
+  const time = esc(fmtDuration(s.rpMinutes * 60));
   if (s.rpMode === "rate") return `${fmt(s.rpRate ?? 0, 2)} RP/s`;
-  if (s.rpMode === "node") return `débloquer ${esc(s.rpNode ? nodeN(v, s.rpNode) : "la recherche choisie")} en ${esc(fmtDuration(s.rpMinutes * 60))}`;
-  return `débloquer ce qui manque à ton plan d'objet (${plural(n, "recherche", "recherches")}) en ${esc(fmtDuration(s.rpMinutes * 60))}`;
+  if (s.rpMode === "node") return t("ans.rp.node", { node: esc(s.rpNode ? nodeN(v, s.rpNode) : t("ans.rp.node.chosen")), time });
+  return t("ans.rp.plan", { n: plural("ans.rp.n", n), time });
 }
 
 function researchHeadline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "bad" } {
   const r = v.research;
-  if (!r) return { text: "Les formules des stations de recherche sont incomplètes dans les données.", tone: "bad" };
+  if (!r) return { text: t("ans.rp.noData"), tone: "bad" };
   // « Quand » avant « comment » (S22) : le temps de jeu à ton rythme, puis l'installation pour aller plus vite.
   const last = v.settings.rpMode !== "rate" ? r.timelineNow?.[r.timelineNow.length - 1] : undefined;
-  const pace = last && Number.isFinite(last.at) && last.at > 0 ? `À ton rythme : ≈ ${esc(fmtDuration(last.at))} de jeu. ` : "";
+  const pace = last && Number.isFinite(last.at) && last.at > 0 ? t("ans.rp.pace", { t: esc(fmtDuration(last.at)) }) : "";
   if (!r.best) {
     const done = r.warnings.some((w) => /déjà|suffit/.test(w));
-    return { text: pace + esc(r.warnings[0] ?? "Aucune installation possible avec ta progression."), tone: done ? "ok" : "bad" };
+    return { text: pace + esc(r.warnings[0] ?? t("ans.rp.none")), tone: done ? "ok" : "bad" };
   }
   const d = r.best.design;
   const chain = r.best.plan.totals.machines + r.best.plan.totals.farms;
   const buildings = d.buildings.reduce((s, b) => s + b.count, 0);
   const extra = buildings - d.stations * (d.kind === "rs4" ? 2 : 1);
   return {
-    text: `${pace}Pour ${researchGoalText(v)} : ${d.stations} × ${esc(STATION_KIND[d.kind]!)}${extra > 0 ? ` et ${plural(extra, "bâtiment de paraboles", "bâtiments de paraboles")}` : ""}${
-      chain ? `, plus ${plural(chain, "machine", "machines")} pour leurs items` : ""
-    }.`,
+    text: t("ans.rp.ok", {
+      pace,
+      goal: researchGoalText(v),
+      n: String(d.stations),
+      kind: esc(STATION_KIND[d.kind]!),
+      extra: extra > 0 ? plural("ans.rp.dishes", extra) : "",
+      chain: chain ? plural("ans.rp.chain", chain) : "",
+    }),
     tone: r.best.plan.status === "ok" ? "ok" : "warn",
   };
 }
 
 function kpis(v: ViewCtx): [string, string][] {
   const p = v.plan;
-  const t = p.totals;
+  const tt = p.totals;
   const e = p.economy;
   const unk = (n: number) => (n ? "+" : "");
-  const costLabel =
-    e.money === null ? "prix des machines" : e.moneyMissing ? `il te manque ${fmtMoneyShort(e.moneyMissing)}` : `à dépenser · tu as ${fmtMoneyShort(e.money)} ✓`;
+  const costLabel = e.money === null ? t("kpi.cost") : e.moneyMissing ? t("kpi.cost.missing", { x: fmtMoneyShort(e.moneyMissing) }) : t("kpi.cost.ok", { x: fmtMoneyShort(e.money) });
   const cost: [string, string] = [fmtMoneyShort(e.buildCost) + unk(e.buildCostUnknown), costLabel];
-  const removes = t.pollutionPerHour[1] < 0;
+  const removes = tt.pollutionPerHour[1] < 0;
   const pollution: [string, string] = [
-    fmtPol(t.pollutionPerHour),
-    `${removes ? "pollution : les Scrubbers en retirent plus qu'il n'en est ajouté" : "pollution ajoutée"}${t.pollutionUnknownSteps ? ` (${t.pollutionUnknownSteps} inconnue[s])` : ""}`,
+    fmtPol(tt.pollutionPerHour),
+    `${t(removes ? "kpi.pollution.removes" : "kpi.pollution.adds")}${tt.pollutionUnknownSteps ? t("kpi.pollution.unknown", { n: String(tt.pollutionUnknownSteps) }) : ""}`,
   ];
   // Surface des machines seules (sans tuyaux ni poteaux) : si elle dépasse la parcelle, rien ne tiendra.
   const plotArea = v.plot ? v.plot.w * v.plot.h : null;
   const area: [string, string] = [
-    `${fmt(t.footprint, 0)}${unk(t.footprintUnknownSteps)}`,
-    plotArea === null ? "cases au sol" : t.footprint > plotArea ? `cases au sol : plus que ta parcelle (${fmt(plotArea, 0)})` : `cases au sol, machines seules (parcelle : ${fmt(plotArea, 0)})`,
+    `${fmt(tt.footprint, 0)}${unk(tt.footprintUnknownSteps)}`,
+    plotArea === null ? t("kpi.area") : t(tt.footprint > plotArea ? "kpi.area.over" : "kpi.area.fits", { x: fmt(plotArea, 0) }),
   ];
   if (v.goal === "recherche" && v.research?.best) {
     const d = v.research.best.design;
+    const total = d.buildingCost + e.buildCost;
     return [
-      [`${fmt(d.rate, d.rate >= 100 ? 0 : 2)} RP/s`, v.research.currentRate ? `en plus des ${fmt(v.research.currentRate, 2)} RP/s actuels` : "vitesse de l'installation"],
-      [fmtRP(d.cap), v.research.capNeeded ? `plafond de RP (il en faut ${fmtRP(v.research.capNeeded)})` : "plafond de RP"],
-      [fmtMF(t.energyAvg), "énergie, stations comprises"],
-      [fmtMoneyShort(d.buildingCost + e.buildCost) + unk(e.buildCostUnknown), e.money === null ? "prix total" : e.money >= d.buildingCost + e.buildCost ? `tu as ${fmtMoneyShort(e.money)} ✓` : `tu as ${fmtMoneyShort(e.money)}`],
+      [`${fmt(d.rate, d.rate >= 100 ? 0 : 2)} RP/s`, v.research.currentRate ? t("kpi.rp.extra", { x: fmt(v.research.currentRate, 2) }) : t("kpi.rp.rate")],
+      [fmtRP(d.cap), v.research.capNeeded ? t("kpi.rp.cap.need", { x: fmtRP(v.research.capNeeded) }) : t("kpi.rp.cap")],
+      [fmtMF(tt.energyAvg), t("kpi.rp.energy")],
+      [fmtMoneyShort(total) + unk(e.buildCostUnknown), e.money === null ? t("kpi.rp.cost") : t(e.money >= total ? "kpi.have.ok" : "kpi.have", { x: fmtMoneyShort(e.money) })],
     ];
   }
   if (v.goal === "énergie") {
-    return [[fmtMF(t.energyProduced), `produits, dont ${fmtMF(t.energyAvg)} pour la chaîne`], cost, pollution, area];
+    return [[fmtMF(tt.energyProduced), t("kpi.energy.produced", { x: fmtMF(tt.energyAvg) })], cost, pollution, area];
   }
   const energy: [string, string] = [
-    fmtMF(t.energyAvg) + unk(t.energyUnknownSteps),
-    t.energyProduced ? `énergie, produite sur place (${fmtMF(t.energyProduced)})` : `énergie · ${fmtMF(t.energyPeak)} en pointe`,
+    fmtMF(tt.energyAvg) + unk(tt.energyUnknownSteps),
+    tt.energyProduced ? t("kpi.energy.onSite", { x: fmtMF(tt.energyProduced) }) : t("kpi.energy.peak", { x: fmtMF(tt.energyPeak) }),
   ];
   // S23 : l'ordre qui compte pour un joueur (la place, les machines, l'énergie, puis le prix) ; la pollution passe dans Détails.
-  const machines: [string, string] = [fmt(t.machines, 0), "machines"];
+  const machines: [string, string] = [fmt(tt.machines, 0), t("kpi.machines")];
   return [area, machines, energy, cost];
 }
 
@@ -220,17 +219,17 @@ function tierSuggestion(v: ViewCtx): string {
   if (!better.length) return "";
   const best = better.sort((a, b) => Math.abs(Math.log(a.ratePerMin / cur.ratePerMin)) - Math.abs(Math.log(b.ratePerMin / cur.ratePerMin)))[0]!;
   // S29 (vocabulaire de la maquette) : « À 60/min au lieu de 30, tes machines tournent à 96 % (91 % ici) ».
-  return `<li class="tip">À ${tierButton(v, best)} au lieu de ${esc(tierUnit(v, cur.ratePerMin))}, tes machines tournent à ${fmt(best.efficiency * 100, 0)} % (${fmt(cur.efficiency * 100, 0)} % ici).</li>`;
+  return `<li class="tip">${t("ans.tier", { btn: tierButton(v, best), cur: esc(tierUnit(v, cur.ratePerMin)), a: fmtPct(fmt(best.efficiency * 100, 0)), b: fmtPct(fmt(cur.efficiency * 100, 0)) })}</li>`;
 }
 
 function tierUnit(v: ViewCtx, r: number): string {
   return v.goal === "argent" ? `${fmtMoney(r)}/min` : v.goal === "énergie" ? fmtMF(r) : `${fmtRate(r)}/min`;
 }
-function tierButton(v: ViewCtx, t: Plan["tiers"][number], long = false): string {
-  const whole = Math.abs(t.finalMachines - Math.round(t.finalMachines)) < 1e-6;
-  const final = v.goal === "objet" && whole ? ` data-final="${Math.round(t.finalMachines)}"` : "";
-  const label = long ? `${tierUnit(v, t.ratePerMin)} · ${plural(t.machines, "machine", "machines")} · ${fmt(t.efficiency * 100, 0)} %` : tierUnit(v, t.ratePerMin);
-  return `<button type="button" class="chip tier${t.exact ? " exact" : ""}" data-tier="${t.ratePerMin}"${final}>${esc(label)}${t.exact ? " ●" : ""}</button>`;
+function tierButton(v: ViewCtx, tier: Plan["tiers"][number], long = false): string {
+  const whole = Math.abs(tier.finalMachines - Math.round(tier.finalMachines)) < 1e-6;
+  const final = v.goal === "objet" && whole ? ` data-final="${Math.round(tier.finalMachines)}"` : "";
+  const label = long ? `${tierUnit(v, tier.ratePerMin)} · ${plural("ans.machines", tier.machines)} · ${fmtPct(fmt(tier.efficiency * 100, 0))}` : tierUnit(v, tier.ratePerMin);
+  return `<button type="button" class="chip tier${tier.exact ? " exact" : ""}" data-tier="${tier.ratePerMin}"${final}>${esc(label)}${tier.exact ? " ●" : ""}</button>`;
 }
 
 /** Ce qui manque (recherches, machines à posséder), avec les boutons pour le cocher. */
@@ -240,24 +239,23 @@ function missingNotes(v: ViewCtx): string[] {
   const out: string[] = [];
   // Filtre de machines (S9) : chaque objet que plus aucune machine permise ne fabrique, avec de quoi la permettre.
   for (const u of p.unresolved.filter((x) => !x.loopShortfall && x.reason === "machine écartée")) {
-    const allow = (u.excluded ?? []).map((m) => `<button type="button" class="link" data-mf-allow="${esc(m)}">Permettre ${esc(machineN(v, m))}</button>`).join(" · ");
-    const list = (u.excluded ?? []).map((m) => esc(machineN(v, m))).join(", ");
-    out.push(`<li class="bad">Aucune machine permise ne fabrique <b>${esc(itemN(v, u.item))}</b> (${esc(fmtRate(u.perMin))}/min manquent) : ${list} ${(u.excluded ?? []).length > 1 ? "sont écartées" : "est écartée"} par le filtre de machines. ${allow}</li>`);
+    const excluded = u.excluded ?? [];
+    const allow = excluded.map((m) => `<button type="button" class="link" data-mf-allow="${esc(m)}">${esc(t("mf.allow", { m: machineN(v, m) }))}</button>`).join(" · ");
+    const list = excluded.map((m) => esc(machineN(v, m))).join(", ");
+    out.push(`<li class="bad">${t("ans.mf.none.html", { item: esc(itemN(v, u.item)), rate: esc(fmtRate(u.perMin)), list, verb: t("ans.mf.verb", { n: excluded.length }), allow })}</li>`);
   }
   const unres = p.unresolved.filter((u) => !u.loopShortfall && u.reason !== "machine écartée");
   if (unres.length) {
     const why = unres.map((u) => `<b>${esc(itemN(v, u.item))}</b> (${esc(u.unlock ? lockText(v, u.unlock) : (LEAF_TEXT[u.reason] ?? u.reason))})`);
-    out.push(`<li class="bad">Non produit : ${why.join(" ; ")}</li>`);
+    out.push(`<li class="bad">${t("ans.unresolved", { list: why.join(" ; ") })}</li>`);
   }
   if (e.nodesToUnlock.length) {
-    const time = e.rpMissing && e.secondsToRp !== null ? `, ≈ ${esc(fmtDuration(e.secondsToRp))} de jeu à ton rythme` : e.rpMissing ? `, il te manque ${esc(fmtRP(e.rpMissing))}` : "";
-    out.push(
-      `<li>À débloquer pour tout ce plan : ${e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ")} (${esc(fmtRP(e.rpNeeded))} en tout${time})${
-        e.reqItems.length ? ` et vendre ${e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? " ✓" : ""}`).join(", ")}` : ""
-      }. ${unlockButton(e.nodesToUnlock, "C'est fait, je les ai débloquées")}</li>`,
-    );
+    const time = e.rpMissing && e.secondsToRp !== null ? t("ans.unlock.time", { t: esc(fmtDuration(e.secondsToRp)) }) : e.rpMissing ? t("ans.unlock.missing", { rp: esc(fmtRP(e.rpMissing)) }) : "";
+    const sell = e.reqItems.length ? t("ans.unlock.sell", { list: e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? " ✓" : ""}`).join(", ") }) : "";
+    const list = e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ");
+    out.push(`<li>${t("ans.unlock", { list, rp: esc(fmtRP(e.rpNeeded)), time, sell, btn: unlockButton(e.nodesToUnlock, t("ans.unlock.done")) })}</li>`);
   }
-  if (e.machinesToOwn.length) out.push(`<li>À posséder : ${e.machinesToOwn.map((m) => esc(machineN(v, m))).join(", ")} (machines hors arbre de recherche). ${ownButton(e.machinesToOwn)}</li>`);
+  if (e.machinesToOwn.length) out.push(`<li>${t("ans.own", { list: e.machinesToOwn.map((m) => esc(machineN(v, m))).join(", "), btn: ownButton(e.machinesToOwn) })}</li>`);
   return out;
 }
 
@@ -274,26 +272,26 @@ export function renderAnswer(v: ViewCtx): string {
   const lines = [
     v.goal === "énergie"
       ? chipLine(
-          "Centrales :",
-          plants.map((s) => chip(s.parts ? plantName(v, s, "") : `${fmt(s.machines, 0)} × ${machineN(v, s.machine)}`, fmtMF(-(s.energyAvg ?? 0)))),
+          t("ans.chips.plants"),
+          plants.map((s) => chip(s.parts ? plantName(v, s, false) : `${fmt(s.machines, 0)} × ${machineN(v, s.machine)}`, fmtMF(-(s.energyAvg ?? 0)))),
         )
       : "",
     v.goal === "recherche" && v.research?.best
-      ? chipLine("À fournir aux stations :", Object.entries(v.research.best.design.consumption).map(([i, q]) => chip(itemN(v, i), `${fmtRate(q)}/min`)))
+      ? chipLine(t("ans.chips.stations"), Object.entries(v.research.best.design.consumption).map(([i, q]) => chip(itemN(v, i), `${fmtRate(q)}/min`)))
       : "",
-    chipLine("Ventes :", p.sales.map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min × ${fmtMoney(s.price)}`))),
+    chipLine(t("ans.chips.sales"), p.sales.map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min × ${fmtMoney(s.price)}`))),
     chipLine(
-      "À extraire :",
+      t("ans.chips.raw"),
       p.raw.filter((r) => r.item !== ENERGY && r.item !== POLLUTION).map((r) => chip(itemN(v, r.item), `${fmtRate(r.perMin)}/min`)),
     ),
-    chipLine("Déjà en place, utilisé :", p.existing.map((x) => chip(itemN(v, x.item), `${fmtRate(x.used)} / ${fmtRate(x.available)} par min`, "ok"))),
+    chipLine(t("ans.chips.existing"), p.existing.map((x) => chip(itemN(v, x.item), t("ans.chips.existing.n", { used: fmtRate(x.used), available: fmtRate(x.available) }), "ok"))),
     chipLine(
-      "À évacuer :",
+      t("ans.chips.surplus"),
       p.surplus.filter((s) => s.item !== ENERGY && s.item !== POLLUTION).map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min`, "accent")),
     ),
   ].join("");
   const notes = [
-    v.fresh ? `<li>Le calcul part d'une partie neuve (seulement ce qui est acquis d'office). <a href="#usine">Indique tes recherches débloquées</a> pour un plan qui te correspond.</li>` : "",
+    v.fresh ? `<li>${t("ans.fresh.html")}</li>` : "",
     ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${esc(w.message)}</li>`),
     ...missingNotes(v),
     ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${esc(x)}</li>`),
@@ -417,7 +415,7 @@ export function buildRows(v: ViewCtx): BuildRow[] {
       rate: `sur ${fmt(net.distanceTiles! * 2, 0)} cases`,
       feeds: "",
       energy: "—",
-      note: `${plural(pole.lines, "ligne", "lignes")} de ${pole.polesPerLine} poteaux${pole.cost !== null ? ` · ${fmtMoney(pole.cost)}` : ""} (autres poteaux : Détails)`,
+      note: `${pluralFr(pole.lines, "ligne", "lignes")} de ${pole.polesPerLine} poteaux${pole.cost !== null ? ` · ${fmtMoney(pole.cost)}` : ""} (autres poteaux : Détails)`,
       buildable: true,
     });
   }
@@ -633,34 +631,35 @@ export function renderFixBar(v: ViewCtx): string {
   const rateText = (r: number) => (v.goal === "argent" ? `${fmtMoney(r)}/min` : v.goal === "énergie" ? fmtMF(r) : `${fmtRate(r)} ${itemN(v, v.plan.target.item)}/min`);
   const stepName = (key: string) => {
     const st = v.plan.steps.find((s) => s.key === key);
-    return st ? (st.item === ENERGY ? "Énergie" : itemN(v, st.item)) : itemN(v, key.split("@")[0]!);
+    return st ? (st.item === ENERGY ? t("common.energy") : itemN(v, st.item)) : itemN(v, key.split("@")[0]!);
   };
   const machinesText = (key: string, n: number) => {
     const st = v.plan.steps.find((s) => s.key === key);
-    return `${n} ${st ? machineN(v, st.machine) : "machines"} fixée${n > 1 ? "s" : ""}`;
+    return t("fix.machines", { n, m: st ? machineN(v, st.machine) : t("common.machines") });
   };
-  const pct = (x: number) => `${fmt(x * 100, x >= 0.9995 ? 0 : 1)} %`;
+  const pct = (x: number) => fmtPct(fmt(x * 100, x >= 0.9995 ? 0 : 1));
   const goTo = (key: string) => `<button type="button" class="link" data-flow="${esc(key)}">${esc(stepName(key))}</button>`;
   const lines: string[] = [];
   const top = f.steps.find((s) => s.key === f.limit);
-  if (f.reason === "machines" && top) lines.push(`<p>Limitée par <b>${goTo(top.key)}</b> : ${esc(machinesText(top.key, top.machines))}, utilisée${top.machines > 1 ? "s" : ""} à ${pct(top.utilization)}. Les autres étapes sont recalculées pour ce débit.</p>`);
+  if (f.reason === "machines" && top) {
+    lines.push(`<p>${t("fix.limit.html", { step: goTo(top.key), machines: esc(machinesText(top.key, top.machines)), used: t("fix.used", { n: top.machines }), pct: pct(top.utilization) })}</p>`);
+  }
   if (f.reason === "contrainte") {
-    const what = [v.plan.constraints.budget !== null ? "ton budget" : "", v.plan.constraints.maxPollution !== null ? "la pollution maximale" : ""].filter(Boolean).join(" ou ") || "une autre contrainte";
-    lines.push(`<p>Limitée par ${esc(what)} (options avancées) : les machines fixées ne sont pas toutes utilisées.</p>`);
+    const what = [v.plan.constraints.budget !== null ? t("fix.budget") : "", v.plan.constraints.maxPollution !== null ? t("fix.pollution") : ""].filter(Boolean).join(` ${t("common.or")} `) || t("fix.other");
+    lines.push(`<p>${t("fix.limit.constraint", { what: esc(what) })}</p>`);
   }
   const others = f.steps.filter((s) => s !== top || f.reason !== "machines");
   if (others.length) {
-    lines.push(
-      `<ul>${others.map((s) => `<li>${goTo(s.key)} : ${esc(machinesText(s.key, s.machines))}, utilisée${s.machines > 1 ? "s" : ""} à ${pct(s.utilization)} (${esc(fmt(s.exact, 2))} suffiraient).</li>`).join("")}</ul>`,
-    );
+    const li = (s: (typeof others)[number]) => t("fix.step", { step: goTo(s.key), machines: esc(machinesText(s.key, s.machines)), used: t("fix.used", { n: s.machines }), pct: pct(s.utilization), exact: esc(fmt(s.exact, 2)) });
+    lines.push(`<ul>${others.map((s) => `<li>${li(s)}</li>`).join("")}</ul>`);
   }
-  if (f.existingUsed) lines.push(`<p class="muted">Ta production déjà en place sert d'abord : le débit n'est pas proportionnel au nombre de machines.</p>`);
-  if (f.ignored.length) lines.push(`<p class="muted">Réglage sans effet pour ${esc(f.ignored.map(stepName).join(", "))} : bloc absent de ce plan ou non réglable.</p>`);
+  if (f.existingUsed) lines.push(`<p class="muted">${t("fix.existing")}</p>`);
+  if (f.ignored.length) lines.push(`<p class="muted">${t("fix.ignored", { list: esc(f.ignored.map(stepName).join(", ")) })}</p>`);
   const head =
     f.reason === "aucune"
-      ? `<p class="big">Machines fixées sans effet : calcul normal.</p>`
-      : `<p class="big">Production obtenue : ${esc(rateText(f.rate))}${Math.abs(f.rate - f.baseRate) > 1e-9 * f.baseRate ? ` <span class="muted">(au lieu de ${esc(rateText(f.baseRate))})</span>` : ""}</p>`;
-  return `<div class="fixbar" role="status"><div>${head}${lines.join("")}</div><button type="button" data-fix-reset>Revenir au calcul</button></div>`;
+      ? `<p class="big">${t("fix.none")}</p>`
+      : `<p class="big">${t("fix.rate", { x: esc(rateText(f.rate)) })}${Math.abs(f.rate - f.baseRate) > 1e-9 * f.baseRate ? ` <span class="muted">${t("fix.rate.instead", { x: esc(rateText(f.baseRate)) })}</span>` : ""}</p>`;
+  return `<div class="fixbar" role="status"><div>${head}${lines.join("")}</div><button type="button" data-fix-reset>${t("fix.reset")}</button></div>`;
 }
 
 /** Schéma des flux (SVG), à placer dans un cadre navigable. */
@@ -791,16 +790,16 @@ export function renderDetails(v: ViewCtx): string {
       more(
         "Réseau électrique (poteaux)",
         `<p>${esc(fmtMF(d.mfps))} à transporter${d.distanceTiles !== null ? ` sur ${fmt(d.distanceTiles * 2, 0)} cases (${fmt(d.distanceTiles, 1)} tuiles de portée)` : " — indique la distance dans les options pour compter les poteaux"}.</p><ul class="notes">${d.options
-          .map((o) => `<li>${esc(o.name)} : ${plural(o.lines, "ligne", "lignes")}${o.poles !== null ? `, ${o.poles} poteaux${o.cost !== null ? `, ${esc(fmtMoney(o.cost))}` : ""}` : ""}</li>`)
+          .map((o) => `<li>${esc(o.name)} : ${pluralFr(o.lines, "ligne", "lignes")}${o.poles !== null ? `, ${o.poles} poteaux${o.cost !== null ? `, ${esc(fmtMoney(o.cost))}` : ""}` : ""}</li>`)
           .join("")}</ul>`,
       ),
     );
   }
   const used = p.verify.filter((x) => x.used).length;
-  if (used) parts.push(more(`Valeurs à vérifier en jeu (${used})`, `<p>${plural(used, "valeur utilisée par ce plan est douteuse", "valeurs utilisées par ce plan sont douteuses")} (manquante, variable ou contradictoire entre les wikis). <a href="#donnees">Les voir et les corriger</a>.</p>`));
+  if (used) parts.push(more(`Valeurs à vérifier en jeu (${used})`, `<p>${pluralFr(used, "valeur utilisée par ce plan est douteuse", "valeurs utilisées par ce plan sont douteuses")} (manquante, variable ou contradictoire entre les wikis). <a href="#donnees">Les voir et les corriger</a>.</p>`));
   if (v.goal !== "recherche") {
     const how = p.engine === "simplexe" ? "optimisation exacte (simplexe)" : "choix heuristique, une recette par objet";
-    parts.push(more("Comment ce plan est calculé", `<p>Priorité : ${esc(CRITERION_TEXT[p.criterion].label.toLowerCase())} ; ${esc(how)}. Les machines sont arrondies à l'unité supérieure, d'où l'occupation affichée quand elle n'est pas pleine.</p>`));
+    parts.push(more("Comment ce plan est calculé", `<p>Priorité : ${esc(criterionText(p.criterion).label.toLowerCase())} ; ${esc(how)}. Les machines sont arrondies à l'unité supérieure, d'où l'occupation affichée quand elle n'est pas pleine.</p>`));
   }
   if (v.goal === "objet" || v.goal === "argent") parts.unshift(pollutionLine(v));
   return parts.join("") || `<p class="muted">Rien de plus.</p>`;

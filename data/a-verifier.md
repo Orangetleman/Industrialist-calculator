@@ -794,4 +794,17 @@ afficherait environ 4,4 millions de RP au lieu d'environ 240 000.
   rien de plus de cette règle.
 
 Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
+
+### Mots anglais du jeu (S30, glossaire de la traduction)
+
+- **TR-01** : « case » (1 Short Pipe, unité de place au sol du site) → **cell**. Le wiki n'a pas de mot
+  pour cette unité ; il compte en *tiles* (portée des poteaux, Building System : « cross 133 tiles »),
+  et 1 tile = 2 cases (relevé de l'utilisateur, 2026-10-13). À confirmer : le mot que le jeu affiche,
+  s'il en affiche un.
+- **TR-02** : « parcelle » (terrain du joueur) → **build area**. Le wiki parle du « world » du joueur
+  (page Pollution), jamais de « plot » ni de « land ». À confirmer : le mot du jeu pour la zone
+  constructible et son agrandissement.
+- **TR-03** : outils de construction → **Build, Wire, Pipe, Delete** (Building System : « All four
+  tools (Build, Wire, Pipe and Delete) »). Les touches 1, 2, 3 viennent de S15 ; le wiki ne donne que
+  « 1 » pour l'inventaire.
 <!-- notes-manuelles:fin -->

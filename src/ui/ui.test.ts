@@ -13,7 +13,7 @@ import { phasedOrder, renderOrder, turnOrderText } from "./module-view.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { buildRows, buildSignature, criterionHint, CRITERION_TEXT, renderAnswer, renderBuildList, renderDetails, renderFlow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionText, renderAnswer, renderBuildList, renderDetails, renderFlow, type ViewCtx } from "./plan-view.ts";
 import { renderVerify } from "./render.ts";
 import { currentRp, EMPTY_PLAYER, exportProgress, fitsPlot, parseOptional, parseProgressExport, plotOf, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
@@ -280,7 +280,7 @@ describe("priorité (critère) expliquée, par objectif", () => {
   it("chaque objectif propose ses priorités, avec un libellé et une explication", () => {
     for (const g of GOALS) {
       expect([...DEFAULT_SETTINGS.criteria[g]].sort()).toEqual([...CRITERIA[g]].sort()); // toutes, dans un ordre
-      for (const c of CRITERIA[g]) expect(criterionHint(g, c)).toContain(CRITERION_TEXT[c].label);
+      for (const c of CRITERIA[g]) expect(criterionHint(g, c)).toContain(criterionText(c).label);
     }
     expect(CRITERIA["énergie"]).not.toContain("energy");
     expect(CRITERIA["énergie"]).not.toContain("steps");

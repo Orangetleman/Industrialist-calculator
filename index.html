@@ -24,23 +24,26 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 </head>
 <body>
-<a class="skip" href="#main">Aller au contenu</a>
+<a class="skip" href="#main" data-i18n="site.skip">Aller au contenu</a>
 
-<!-- Barre du haut : navigation courte + état du joueur, toujours visible -->
+<!-- Barre du haut : navigation courte + état du joueur, toujours visible.
+     S30 : les textes fixes portent leur clé du catalogue (data-i18n…, src/i18n), traduits au chargement. -->
 <header class="top">
   <div class="top-in">
-    <a class="brand" href="#objet"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span>Calculateur<span class="long"> Industrialist</span></span></a>
+    <a class="brand" href="#objet"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span data-i18n-html="site.brand.html">Calculateur<span class="long"> Industrialist</span></span></a>
     <!-- S23 : Planifier d'abord (plus d'onglet Accueil), les outils de contribution en dernier. -->
-    <nav class="mainnav" aria-label="Sections">
-      <a href="#objet" data-nav="plan" id="nav-plan">Planifier</a>
-      <a href="#arbre" data-nav="arbre">Arbre</a>
-      <a href="#recettes" data-nav="recettes">Recettes</a>
-      <a href="#usine" data-nav="usine">Mon usine</a>
-      <a href="#contribuer" data-nav="donnees">Contribuer</a>
+    <nav class="mainnav" aria-label="Sections" data-i18n-attr="aria-label=nav.aria">
+      <a href="#objet" data-nav="plan" id="nav-plan" data-i18n="nav.plan">Planifier</a>
+      <a href="#arbre" data-nav="arbre" data-i18n="nav.arbre">Arbre</a>
+      <a href="#recettes" data-nav="recettes" data-i18n="nav.recettes">Recettes</a>
+      <a href="#usine" data-nav="usine" data-i18n="nav.usine">Mon usine</a>
+      <a href="#contribuer" data-nav="donnees" data-i18n="nav.contribuer">Contribuer</a>
     </nav>
-    <div class="me" id="me" aria-label="Mon usine en bref"></div>
+    <div class="me" id="me" aria-label="Mon usine en bref" data-i18n-attr="aria-label=header.me.aria"></div>
     <button type="button" class="me-play" id="me-play" data-play="on" hidden>▶ Je joue</button>
-    <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site">?</button>
+    <!-- S30 : la langue (maquette S16, écran 1), avant la visite. -->
+    <span class="lang-sw" id="lang-sw" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true" title="Français" lang="fr">FR</button><button type="button" data-lang="en" aria-pressed="false" title="English" lang="en">EN</button></span>
+    <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
   <div class="recall-bar" id="recall" role="status" hidden></div>
@@ -51,75 +54,75 @@
   <!-- ====================================================== PLANIFIER (une page par objectif) -->
   <section class="page" id="page-plan" aria-labelledby="plan-title" hidden>
     <div class="callout" id="first-visit" hidden>
-      <p><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Tout est gardé dans ce navigateur.</p>
-      <a class="btn primary" href="#usine">Renseigner mon usine</a>
+      <p data-i18n-html="plan.first.html"><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Tout est gardé dans ce navigateur.</p>
+      <a class="btn primary" href="#usine" data-i18n="header.cta">Renseigner mon usine</a>
     </div>
-    <nav class="goalnav" aria-label="Objectif">
-      <a href="#objet" data-goal="objet">Un objet</a>
-      <a href="#energie" data-goal="énergie">De l'énergie</a>
-      <a href="#rp" data-goal="recherche">Des RP</a>
-      <a href="#argent" data-goal="argent">De l'argent</a>
+    <nav class="goalnav" aria-label="Objectif" data-i18n-attr="aria-label=plan.goalnav.aria">
+      <a href="#objet" data-goal="objet" data-i18n="plan.goal.objet">Un objet</a>
+      <a href="#energie" data-goal="énergie" data-i18n="plan.goal.énergie">De l'énergie</a>
+      <a href="#rp" data-goal="recherche" data-i18n="plan.goal.recherche">Des RP</a>
+      <a href="#argent" data-goal="argent" data-i18n="plan.goal.argent">De l'argent</a>
     </nav>
     <h1 id="plan-title">Produire un objet</h1>
 
     <form class="query" id="query" novalidate>
       <!-- objet -->
-      <label class="grow" data-goals="objet" for="item">Objet
-        <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft">
+      <label class="grow" data-goals="objet" for="item"><span data-i18n="form.item">Objet</span>
+        <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft" data-i18n-attr="placeholder=form.item.ph">
         <span id="item-hint" class="hint warn-text" role="status"></span>
       </label>
       <datalist id="item-list"></datalist>
-      <label data-goals="objet" for="qty">Quantité
+      <label data-goals="objet" for="qty"><span data-i18n="form.qty">Quantité</span>
         <span class="qty"><input id="qty" type="number" min="0.01" step="any" inputmode="decimal" placeholder="60">
-        <select id="qty-unit" aria-label="Unité de la quantité"><option value="rate">par minute</option><option value="machines">machines finales</option></select></span>
+        <select id="qty-unit" aria-label="Unité de la quantité" data-i18n-attr="aria-label=form.qty.unit.aria"><option value="rate" data-i18n="form.qty.rate">par minute</option><option value="machines" data-i18n="form.qty.machines">machines finales</option></select></span>
       </label>
       <!-- énergie -->
-      <label data-goals="énergie" for="energy">Puissance voulue
-        <span class="qty"><input id="energy" type="number" min="0.001" step="any" inputmode="decimal" placeholder="ex. 1000">
-        <select id="energy-unit" aria-label="Unité de puissance"><option value="k">kMF/s</option><option value="M">MMF/s</option></select></span>
+      <label data-goals="énergie" for="energy"><span data-i18n="form.energy">Puissance voulue</span>
+        <span class="qty"><input id="energy" type="number" min="0.001" step="any" inputmode="decimal" placeholder="ex. 1000" data-i18n-attr="placeholder=form.energy.ph">
+        <select id="energy-unit" aria-label="Unité de puissance" data-i18n-attr="aria-label=form.energy.unit.aria"><option value="k">kMF/s</option><option value="M">MMF/s</option></select></span>
       </label>
-      <label data-goals="énergie" for="energy-mode">Production
+      <label data-goals="énergie" for="energy-mode"><span data-i18n="form.energy.mode">Production</span>
         <select id="energy-mode">
-          <option value="moyenne">en moyenne sur la journée</option>
-          <option value="garantie">garantie (nuit et vent faible compris)</option>
+          <option value="moyenne" data-i18n="form.energy.mode.avg">en moyenne sur la journée</option>
+          <option value="garantie" data-i18n="form.energy.mode.guaranteed">garantie (nuit et vent faible compris)</option>
         </select>
       </label>
       <!-- recherche -->
-      <label data-goals="recherche" for="rp-mode">But
+      <label data-goals="recherche" for="rp-mode"><span data-i18n="form.rp.mode">But</span>
         <select id="rp-mode">
-          <option value="node">débloquer une recherche</option>
-          <option value="rate">atteindre une vitesse (RP/s)</option>
-          <option value="plan">débloquer ce qui manque à mon plan d'objet</option>
+          <option value="node" data-i18n="form.rp.mode.node">débloquer une recherche</option>
+          <option value="rate" data-i18n="form.rp.mode.rate">atteindre une vitesse (RP/s)</option>
+          <option value="plan" data-i18n="form.rp.mode.plan">débloquer ce qui manque à mon plan d'objet</option>
         </select>
       </label>
-      <label data-goals="recherche" for="rp-rate" id="rp-rate-label">RP par seconde
-        <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal" placeholder="ex. 50">
+      <label data-goals="recherche" for="rp-rate" id="rp-rate-label"><span data-i18n="form.rp.rate">RP par seconde</span>
+        <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal" placeholder="ex. 50" data-i18n-attr="placeholder=form.rp.rate.ph">
       </label>
-      <label data-goals="recherche" class="grow" for="rp-node" id="rp-node-label">Recherche à débloquer
-        <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3">
+      <label data-goals="recherche" class="grow" for="rp-node" id="rp-node-label"><span data-i18n="form.rp.node">Recherche à débloquer</span>
+        <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3" data-i18n-attr="placeholder=form.rp.node.ph">
       </label>
-      <label data-goals="recherche" for="rp-minutes" id="rp-minutes-label">En combien de minutes
+      <label data-goals="recherche" for="rp-minutes" id="rp-minutes-label"><span data-i18n="form.rp.minutes">En combien de minutes</span>
         <input id="rp-minutes" type="number" min="1" step="any" inputmode="decimal">
       </label>
       <!-- argent -->
-      <label data-goals="argent" for="money">Revenu voulu ($/min)
-        <input id="money" type="number" min="1" step="any" inputmode="decimal" placeholder="ex. 10000">
+      <label data-goals="argent" for="money"><span data-i18n="form.money">Revenu voulu ($/min)</span>
+        <input id="money" type="number" min="1" step="any" inputmode="decimal" placeholder="ex. 10000" data-i18n-attr="placeholder=form.money.ph">
       </label>
       <!-- commun -->
       <details class="criteria" id="criteria">
-        <summary><span class="criteria-title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit">changer l'ordre</span></summary>
-        <p class="hint">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise ↑ ↓.</p>
-        <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre"></ol>
+        <summary><span class="criteria-title" data-i18n="crit.title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit" data-i18n="crit.edit">changer l'ordre</span></summary>
+        <p class="hint" data-i18n="crit.help">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise ↑ ↓.</p>
+        <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre" data-i18n-attr="aria-label=crit.list.aria"></ol>
       </details>
       <details class="criteria mfilter" id="mfilter" data-goals="objet énergie argent">
-        <summary><span class="criteria-title">Machines</span> <span class="criteria-order"><span class="mf-sum" id="mf-sum"></span></span> <span class="criteria-edit">en exclure ou choisir</span></summary>
-        <div class="mf-mode" role="radiogroup" aria-label="Machines que le calcul peut utiliser">
-          <label><input type="radio" name="mf-mode" value="toutes"> Toutes</label>
-          <label><input type="radio" name="mf-mode" value="exclure"> Toutes sauf…</label>
-          <label><input type="radio" name="mf-mode" value="seulement"> Seulement…</label>
+        <summary><span class="criteria-title" data-i18n="mf.title">Machines</span> <span class="criteria-order"><span class="mf-sum" id="mf-sum"></span></span> <span class="criteria-edit" data-i18n="mf.edit">en exclure ou choisir</span></summary>
+        <div class="mf-mode" role="radiogroup" aria-label="Machines que le calcul peut utiliser" data-i18n-attr="aria-label=mf.mode.aria">
+          <label><input type="radio" name="mf-mode" value="toutes"> <span data-i18n="mf.mode.toutes">Toutes</span></label>
+          <label><input type="radio" name="mf-mode" value="exclure"> <span data-i18n="mf.mode.exclure">Toutes sauf…</span></label>
+          <label><input type="radio" name="mf-mode" value="seulement"> <span data-i18n="mf.mode.seulement">Seulement…</span></label>
         </div>
         <div class="mf-row" id="mf-pick"><span class="k" id="mf-label"></span> <span id="mf-chips"></span>
-          <input type="search" id="mf-search" list="mf-list" autocomplete="off" spellcheck="false" aria-label="Chercher une machine"></div>
+          <input type="search" id="mf-search" list="mf-list" autocomplete="off" spellcheck="false" aria-label="Chercher une machine" data-i18n-attr="aria-label=mf.search.aria"></div>
         <datalist id="mf-list"></datalist>
         <div id="mf-more"></div>
       </details>
@@ -127,19 +130,19 @@
       <p class="hint" id="goal-hint"></p>
 
       <details class="advanced" id="advanced">
-        <summary>Options avancées <span class="muted" id="adv-count"></span></summary>
+        <summary><span data-i18n="adv.title">Options avancées</span> <span class="muted" id="adv-count"></span></summary>
         <div class="adv">
-          <label data-goals="objet argent recherche" class="check"><input type="checkbox" id="self-powered"> Produire ma propre énergie <span class="hint">(générateurs et combustible dans la chaîne)</span></label>
-          <label data-goals="énergie" class="check"><input type="checkbox" id="no-fuel"> Sans combustible <span class="hint">(solaire, éolien…)</span></label>
-          <label data-goals="énergie" class="inline">Distance jusqu'aux machines <input id="distance" type="number" min="0" step="1" inputmode="numeric" placeholder="—"> cases <span class="hint">(pour compter les poteaux)</span></label>
-          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-satellites"> Paraboles satellites</label>
-          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-logic"> Mini-jeu Logic des RS4</label>
-          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-current"> Compter ma production actuelle de RP <span class="hint" id="rp-current-hint"></span></label>
-          <label data-goals="recherche" class="inline">Plafond de RP voulu <input id="rp-cap" type="number" min="0" step="any" inputmode="decimal" placeholder="auto"></label>
-          <label class="check"><input type="checkbox" id="use-budget"> Ne pas dépasser mon argent <span class="hint" id="budget-hint"></span></label>
-          <label class="inline">Pollution au plus <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="—"> %/h</label>
-          <label class="check"><input type="checkbox" id="use-existing"> Utiliser ma production déjà en place <span class="hint" id="existing-hint-plan"></span></label>
-          <label class="check"><input type="checkbox" id="unverified"> Utiliser aussi les valeurs « à vérifier » <span class="hint">(recettes aux valeurs variables ou manquantes)</span></label>
+          <label data-goals="objet argent recherche" class="check"><input type="checkbox" id="self-powered"> <span data-i18n="adv.selfPowered">Produire ma propre énergie</span> <span class="hint" data-i18n="adv.selfPowered.hint">(générateurs et combustible dans la chaîne)</span></label>
+          <label data-goals="énergie" class="check"><input type="checkbox" id="no-fuel"> <span data-i18n="adv.noFuel">Sans combustible</span> <span class="hint" data-i18n="adv.noFuel.hint">(solaire, éolien…)</span></label>
+          <label data-goals="énergie" class="inline"><span data-i18n="adv.distance">Distance jusqu'aux machines</span> <input id="distance" type="number" min="0" step="1" inputmode="numeric" placeholder="—"> <span data-i18n="adv.cells">cases</span> <span class="hint" data-i18n="adv.distance.hint">(pour compter les poteaux)</span></label>
+          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-satellites"> <span data-i18n="adv.satellites">Paraboles satellites</span></label>
+          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-logic"> <span data-i18n="adv.logic">Mini-jeu Logic des RS4</span></label>
+          <label data-goals="recherche" class="check"><input type="checkbox" id="rp-current"> <span data-i18n="adv.rpCurrent">Compter ma production actuelle de RP</span> <span class="hint" id="rp-current-hint"></span></label>
+          <label data-goals="recherche" class="inline"><span data-i18n="adv.rpCap">Plafond de RP voulu</span> <input id="rp-cap" type="number" min="0" step="any" inputmode="decimal" placeholder="auto" data-i18n-attr="placeholder=adv.rpCap.ph"></label>
+          <label class="check"><input type="checkbox" id="use-budget"> <span data-i18n="adv.budget">Ne pas dépasser mon argent</span> <span class="hint" id="budget-hint"></span></label>
+          <label class="inline"><span data-i18n="adv.pollution">Pollution au plus</span> <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="—"> %/h</label>
+          <label class="check"><input type="checkbox" id="use-existing"> <span data-i18n="adv.existing">Utiliser ma production déjà en place</span> <span class="hint" id="existing-hint-plan"></span></label>
+          <label class="check"><input type="checkbox" id="unverified"> <span data-i18n="adv.unverified">Utiliser aussi les valeurs « à vérifier »</span> <span class="hint" data-i18n="adv.unverified.hint">(recettes aux valeurs variables ou manquantes)</span></label>
         </div>
         <p class="hint" id="adv-note"></p>
       </details>
@@ -149,66 +152,66 @@
     <div id="plan-bar" hidden></div>
     <div id="fix-bar" hidden></div>
 
-    <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result">
+    <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result" data-i18n-attr="aria-label=result.aria">
       <!-- S25 : les deux vues de travail d'abord (l'Usine, puis le schéma), la liste et les détails ensuite. -->
-      <button type="button" role="tab" id="rtab-pose" data-rtab="pose" aria-controls="rpanel-pose">Usine</button>
-      <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema">Schéma</button>
-      <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste">Liste des machines</button>
-      <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details">Détails</button>
+      <button type="button" role="tab" id="rtab-pose" data-rtab="pose" aria-controls="rpanel-pose" data-i18n="tab.usine">Usine</button>
+      <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema" data-i18n="tab.schema">Schéma</button>
+      <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste" data-i18n="tab.liste">Liste des machines</button>
+      <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details" data-i18n="tab.details">Détails</button>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
     <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
-      <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revoir toute la chaîne">
+      <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revoir toute la chaîne" data-i18n-attr="aria-label=flow.aria">
         <div id="flow-canvas"></div>
-        <p class="flow-help">Glisse pour te déplacer · molette pour zoomer · clique un bloc</p>
+        <p class="flow-help" data-i18n="flow.help">Glisse pour te déplacer · molette pour zoomer · clique un bloc</p>
         <div class="rs-zoom">
-          <button type="button" data-fzoom="in" aria-label="Zoomer">+</button>
-          <button type="button" data-fzoom="out" aria-label="Dézoomer">−</button>
-          <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne">⤢</button>
+          <button type="button" data-fzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
+          <button type="button" data-fzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
+          <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne" data-i18n-attr="aria-label=zoom.fit;title=zoom.fit.chain">⤢</button>
         </div>
       </div>
       <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
       <div id="flow-calc" hidden></div>
-      <p class="hint">De gauche (extraction) à droite (objectif). Clique un bloc ou une flèche : la barre du bas mène à son plan de pose ou à son bâtiment, et « Comment c'est calculé » détaille chaque nombre et sa source. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
+      <p class="hint" data-i18n="flow.hint">De gauche (extraction) à droite (objectif). Clique un bloc ou une flèche : la barre du bas mène à son plan de pose ou à son bâtiment, et « Comment c'est calculé » détaille chaque nombre et sa source. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-pose" aria-labelledby="rtab-pose" hidden>
       <!-- S25 : le dessin d'abord ; trois boutons au-dessus, le reste replié dans « Plus d'options ». -->
       <div class="pose-top">
-        <label class="pose-pick" for="pose-step">Vue
+        <label class="pose-pick" for="pose-step"><span data-i18n="pose.view">Vue</span>
           <select id="pose-step"></select>
         </label>
         <div id="pose-bar"></div>
       </div>
       <div class="pose-split" id="pose-split">
-        <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ">
+        <div class="flow-frame pose-frame" id="pose-frame" tabindex="0" aria-label="Plan de pose : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir à la vue de départ" data-i18n-attr="aria-label=pose.aria">
           <div id="pose-canvas"></div>
-          <p class="flow-help">Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer</p>
+          <p class="flow-help" data-i18n="pose.help">Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer</p>
           <div class="rs-zoom">
-            <button type="button" data-pzoom="in" aria-label="Zoomer">+</button>
-            <button type="button" data-pzoom="out" aria-label="Dézoomer">−</button>
-            <button type="button" data-pzoom="fit" aria-label="Tout voir">⤢</button>
-            <button type="button" data-pzoom="reset" aria-label="Vue de départ">⌂</button>
+            <button type="button" data-pzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
+            <button type="button" data-pzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
+            <button type="button" data-pzoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit">⤢</button>
+            <button type="button" data-pzoom="reset" aria-label="Vue de départ" data-i18n-attr="aria-label=zoom.reset">⌂</button>
           </div>
           <div class="u-busy" id="pose-busy" hidden></div>
           <div class="u-pick" id="pose-pick" hidden></div>
           <div class="u-tip" id="pose-tip" hidden></div>
         </div>
-        <aside class="pose-focus" id="pose-focus" aria-label="Module dans l'usine" hidden>
+        <aside class="pose-focus" id="pose-focus" aria-label="Module dans l'usine" data-i18n-attr="aria-label=route.module" hidden>
           <div class="focus-bar">
-            <button type="button" class="link" data-focus-back>← Retour à l'usine</button>
+            <button type="button" class="link" data-focus-back data-i18n="focus.back">← Retour à l'usine</button>
             <span class="focus-title" id="focus-title"></span>
-            <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)">⛶</button>
-            <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer">✕</button>
+            <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)" data-i18n-attr="title=focus.full">⛶</button>
+            <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer" data-i18n-attr="aria-label=focus.close;title=common.close">✕</button>
           </div>
           <div id="focus-bar-opts"></div>
-          <div class="flow-frame focus-frame" id="focus-frame" tabindex="0" aria-label="Module dans l'usine : glisser pour se déplacer, molette pour zoomer">
+          <div class="flow-frame focus-frame" id="focus-frame" tabindex="0" aria-label="Module dans l'usine : glisser pour se déplacer, molette pour zoomer" data-i18n-attr="aria-label=focus.aria">
             <div id="focus-canvas"></div>
             <div class="u-pick" id="focus-pick" hidden></div>
             <div class="u-tip" id="focus-tip" hidden></div>
             <div class="rs-zoom">
-              <button type="button" data-qzoom="in" aria-label="Zoomer">+</button>
-              <button type="button" data-qzoom="out" aria-label="Dézoomer">−</button>
-              <button type="button" data-qzoom="fit" aria-label="Tout voir">⤢</button>
+              <button type="button" data-qzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
+              <button type="button" data-qzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
+              <button type="button" data-qzoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit">⤢</button>
             </div>
           </div>
           <div class="focus-info">
@@ -223,17 +226,17 @@
       <div id="pose-head"></div>
       <div id="pose-links"></div>
       <details class="more pose-more" id="pose-more">
-        <summary>Plus d'options <span class="hint">calcul, disposition des modules, tuyaux</span></summary>
+        <summary><span data-i18n="pose.more">Plus d'options</span> <span class="hint" data-i18n="pose.more.hint">calcul, disposition des modules, tuyaux</span></summary>
         <div id="pose-more-usine"></div>
         <div class="pose-prio">
-          <span class="pose-prio-title">Disposition des modules <span class="hint">la première départage d'abord ; glisse une ligne ou utilise ↑ ↓ pour changer l'ordre</span></span>
-          <ol class="prio-list" id="pose-priority" aria-label="Disposition des modules : priorités, dans l'ordre"></ol>
+          <span class="pose-prio-title"><span data-i18n="pose.prio">Disposition des modules</span> <span class="hint" data-i18n="pose.prio.hint">la première départage d'abord ; glisse une ligne ou utilise ↑ ↓ pour changer l'ordre</span></span>
+          <ol class="prio-list" id="pose-priority" aria-label="Disposition des modules : priorités, dans l'ordre" data-i18n-attr="aria-label=pose.prio.aria"></ol>
         </div>
-        <label class="check-line"><input type="checkbox" id="pose-tier3"> Seulement des tuyaux de tier III <span class="hint">(plus rapides, plus chers)</span></label>
+        <label class="check-line"><input type="checkbox" id="pose-tier3"> <span data-i18n="pose.tier3">Seulement des tuyaux de tier III</span> <span class="hint" data-i18n="pose.tier3.hint">(plus rapides, plus chers)</span></label>
       </details>
       <div id="pose-details"></div>
-      <p class="callout-lite"><b>C'est une proposition.</b> Sers-t'en comme base pour construire, puis optimise-la comme tu le souhaites : le jeu permet souvent mieux qu'un calcul automatique.</p>
-      <p class="hint">Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.</p>
+      <p class="callout-lite" data-i18n-html="pose.proposal.html"><b>C'est une proposition.</b> Sers-t'en comme base pour construire, puis optimise-la comme tu le souhaites : le jeu permet souvent mieux qu'un calcul automatique.</p>
+      <p class="hint" data-i18n="pose.hint">Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-details" aria-labelledby="rtab-details" hidden><div id="details"></div></div>
   </section>
@@ -485,13 +488,13 @@
 
 <dialog id="ask" aria-labelledby="ask-title">
   <form method="dialog">
-    <h3 id="ask-title">Confirmer</h3>
+    <h3 id="ask-title" data-i18n="dialog.confirm">Confirmer</h3>
     <div id="ask-body"></div>
     <div class="row dialog-actions" id="ask-actions"></div>
   </form>
 </dialog>
 
-<footer class="src">
+<footer class="src" data-i18n-html="footer.html">
   Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, source principale ;
   <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-NC-SA 4.0 (Miraheze, images comprises) et CC BY-SA (Fandom), et relevés en jeu.
   Pousse des arbres : calculateur communautaire lié depuis la page Tree. Les recettes changent avec les mises à jour du jeu : en cas d'écart, le Recipe Book fait foi.

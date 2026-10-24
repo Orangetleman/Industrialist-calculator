@@ -11,6 +11,7 @@
 //   #recettes/<objet|machine>/<id>/<craft>  la même fiche, un craft mis en évidence (lien du schéma)
 // Fonctions pures, testées sans navigateur.
 
+import { t } from "../i18n/i18n.ts";
 import type { Goal, ResultTab } from "./state.ts";
 
 // S23 : plus de page d'accueil (l'ancienne adresse #accueil mène à Planifier) ; « Données » devient
@@ -41,10 +42,11 @@ export const USINE_STEP = "usine-entiere";
 export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
-export const GOAL_TITLE: Record<Goal, string> = { objet: "Produire un objet", énergie: "Produire de l'énergie", recherche: "Gagner des points de recherche", argent: "Gagner de l'argent" };
+/** Titre de la page d'un objectif (« Produire un objet »), dans la langue choisie (S30). */
+export const goalTitle = (g: Goal): string => t(`goal.title.${g}`);
 const TABS: ResultTab[] = ["liste", "schema", "pose", "details"];
-const TAB_TITLE: Record<ResultTab, string> = { liste: "Liste des machines", schema: "Schéma", pose: "Plan de pose", details: "Détails" };
-const PAGE_TITLE: Record<Page, string> = { plan: "Planifier", usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
+const tabTitle = (tab: ResultTab): string => t(`tab.${tab}`);
+const pageTitle = (p: Page): string => t(`page.${p}`);
 
 export function parseRoute(hash: string): Route {
   const parts = hash
@@ -112,12 +114,12 @@ export function routeHash(r: Route): string {
 
 /** Nom court d'une vue, pour le bouton « Retour » (« Revenir à : Schéma »). */
 export function routeTitle(r: Route): string {
-  if (r.page === "plan" && r.tab === "pose" && (r.step === USINE_STEP || !r.step)) return r.focus ? "Module dans l'usine" : "Usine";
-  if (r.page === "plan") return r.tab ? TAB_TITLE[r.tab] : GOAL_TITLE[r.goal ?? "objet"];
-  if (r.page === "recettes") return r.card ? (r.card.kind === "objet" ? "Fiche de l'objet" : "Fiche de la machine") : "Recettes";
-  if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Contribuer";
-  if (r.page === "usine" && r.usineTab === "recherche") return "Ma recherche";
-  return PAGE_TITLE[r.page];
+  if (r.page === "plan" && r.tab === "pose" && (r.step === USINE_STEP || !r.step)) return t(r.focus ? "route.module" : "tab.usine");
+  if (r.page === "plan") return r.tab ? tabTitle(r.tab) : goalTitle(r.goal ?? "objet");
+  if (r.page === "recettes") return r.card ? t(r.card.kind === "objet" ? "route.itemCard" : "route.machineCard") : pageTitle("recettes");
+  if (r.page === "donnees") return r.dataTab === "batiments" ? t("route.editor") : r.dataTab === "verifier" ? t("route.verify") : pageTitle("donnees");
+  if (r.page === "usine" && r.usineTab === "recherche") return t("page.recherche");
+  return pageTitle(r.page);
 }
 
 /**

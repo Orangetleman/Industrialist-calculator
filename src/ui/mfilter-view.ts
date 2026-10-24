@@ -4,6 +4,7 @@
 import type { GameData } from "../engine/data.ts";
 import { isExtractor } from "../engine/machine-filter.ts";
 import type { Plan } from "../engine/solve.ts";
+import { t } from "../i18n/i18n.ts";
 import { esc } from "./format.ts";
 import { machineN } from "./render.ts";
 import type { PlanMachines } from "./state.ts";
@@ -78,11 +79,13 @@ const names = (ctx: Data, ids: string[]) => [...ids].sort(byName(ctx)).map((id) 
 
 /** Le résumé, réglage replié (et la note de la réponse) ; null : aucun filtre actif. */
 export function filterSummary(ctx: Data, pm: PlanMachines): string | null {
-  if (pm.mode === "exclure" && pm.exclure.length) return `toutes sauf ${names(ctx, pm.exclure)}`;
+  if (pm.mode === "exclure" && pm.exclure.length) return t("mf.sum.except", { names: names(ctx, pm.exclure) });
   if (pm.mode === "seulement") {
     const n = pm.seulement.length;
-    const ext = pm.noExtraction.length ? `+ l'extraction, sauf ${names(ctx, pm.noExtraction)}` : "+ l'extraction";
-    return `seulement ${n ? (n === 1 ? names(ctx, pm.seulement) : `${n} machines`) : "l'extraction"}${n ? ` (${ext})` : pm.noExtraction.length ? `, sauf ${names(ctx, pm.noExtraction)}` : ""}`;
+    const noExt = pm.noExtraction.length ? names(ctx, pm.noExtraction) : "";
+    const ext = noExt ? t("mf.sum.plusExtExcept", { names: noExt }) : t("mf.sum.plusExt");
+    const what = n ? (n === 1 ? names(ctx, pm.seulement) : t("mf.sum.n", { n })) : t("mf.sum.extraction");
+    return t("mf.sum.only", { what }) + (n ? ` (${ext})` : noExt ? t("mf.sum.butNot", { names: noExt }) : "");
   }
   return null;
 }
@@ -97,27 +100,29 @@ const chip = (ctx: Data, id: string, attr: string, label: string, sign: string, 
 export function renderFilterBody(ctx: Data, pm: PlanMachines, plan: Plan): { chips: string; more: string; label: string; placeholder: string } {
   const inPlan = planMachineIds(ctx, plan);
   if (pm.mode === "toutes") {
-    return { chips: "", more: `<p class="hint">Le calcul choisit librement parmi les machines que tu as débloquées.</p>`, label: "", placeholder: "" };
+    return { chips: "", more: `<p class="hint">${t("mf.free")}</p>`, label: "", placeholder: "" };
   }
+  const none = `<span class="hint">${t("mf.none")}</span>`;
   if (pm.mode === "exclure") {
-    const chips = [...pm.exclure].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-allow", `Ne plus écarter ${machineN(ctx, id)}`, "×")).join("");
+    const chips = [...pm.exclure].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-allow", t("mf.unban", { m: machineN(ctx, id) }), "×")).join("");
     const add = inPlan.filter((id) => !pm.exclure.includes(id));
     const more = [
-      add.length ? `<div class="mf-row"><span class="hint">Machines de ce plan :</span> ${add.map((id) => `<button type="button" class="chip add" data-mf-ban="${esc(id)}">+ ${esc(machineN(ctx, id))}</button>`).join("")}</div>` : "",
-      `<p class="hint">Les crafts de ces machines ne sont plus proposés au calcul.</p>`,
+      add.length ? `<div class="mf-row"><span class="hint">${t("mf.inPlan")}</span> ${add.map((id) => `<button type="button" class="chip add" data-mf-ban="${esc(id)}">+ ${esc(machineN(ctx, id))}</button>`).join("")}</div>` : "",
+      `<p class="hint">${t("mf.excluded.note")}</p>`,
     ].join("");
-    return { chips: chips || `<span class="hint">aucune</span>`, more, label: "Écartées :", placeholder: "Chercher une machine à écarter…" };
+    return { chips: chips || none, more, label: t("mf.excluded"), placeholder: t("mf.excluded.ph") };
   }
-  const chips = [...pm.seulement].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-ban", `Retirer ${machineN(ctx, id)}`, "×")).join("");
+  const chips = [...pm.seulement].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-ban", t("mf.remove", { m: machineN(ctx, id) }), "×")).join("");
   const ext = [...new Set([...inPlan.filter((id) => extractor(ctx, id)), ...pm.noExtraction])].sort(byName(ctx));
   const others = filterableMachines(ctx).filter((id) => extractor(ctx, id) && !ext.includes(id)).length;
   const extChips = ext
-    .map((id) => (pm.noExtraction.includes(id) ? chip(ctx, id, "data-mf-allow", `Permettre ${machineN(ctx, id)}`, "↺", true) : chip(ctx, id, "data-mf-ban", `Écarter ${machineN(ctx, id)}`, "×")))
+    .map((id) => (pm.noExtraction.includes(id) ? chip(ctx, id, "data-mf-allow", t("mf.allow", { m: machineN(ctx, id) }), "↺", true) : chip(ctx, id, "data-mf-ban", t("mf.ban", { m: machineN(ctx, id) }), "×")))
     .join("");
+  const rest = ext.length ? (others === 1 ? t("mf.ext.others1") : t("mf.ext.others", { n: others })) : t("mf.ext.all", { n: others });
   const more = [
-    `<div class="mf-row"><span class="k">Extraction, permise d'office :</span> ${extChips}<span class="hint">${ext.length ? `et ${others === 1 ? "1 autre" : `les ${others} autres`}` : `les ${others} machines`} (catégorie « Extractors » du wiki, et les arbres)</span></div>`,
-    pm.seulement.length ? "" : `<p class="hint warn-text">Aucune machine de fabrication permise : seule l'extraction peut servir.</p>`,
+    `<div class="mf-row"><span class="k">${t("mf.ext")}</span> ${extChips}<span class="hint">${rest} ${t("mf.ext.source")}</span></div>`,
+    pm.seulement.length ? "" : `<p class="hint warn-text">${t("mf.ext.only")}</p>`,
   ].join("");
-  return { chips: chips || `<span class="hint">aucune</span>`, more, label: "Permises :", placeholder: "Chercher une machine à permettre…" };
+  return { chips: chips || none, more, label: t("mf.allowed"), placeholder: t("mf.allowed.ph") };
 }
 

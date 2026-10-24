@@ -7,7 +7,7 @@
 
 import { gameNow, readingGap, realTimeAt, removable, evalPiece, type Mark, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { TIERS, nominalRate, rateAt, type ResearchSetup } from "../engine/research-balance.ts";
-import { esc, fmt, fmtDuration, fmtShort } from "./format.ts";
+import { esc, fmt, fmtDate, fmtDuration, fmtShort } from "./format.ts";
 
 const H = 3_600_000;
 
@@ -18,7 +18,7 @@ export type Names = { node: (id: string) => string; item: (id: string) => string
 const n2 = (x: number | null, d: number) => (x === null ? "—" : fmt(x, d));
 const arrow = (a: number | null, b: number | null, d: number) => `${n2(a, d)} → ${n2(b, d)}`;
 const sgn = (x: number, d: number) => `${x >= 0 ? "+" : "−"}${fmt(Math.abs(x), d)}`;
-const clock = (ms: number) => new Date(ms).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const clock = (ms: number) => fmtDate(ms, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** Ce qui a changé dans « Ma recherche » (texte d'un repère ⚙). */
 export function describeSetupChange(prev: ResearchSetup | null, next: ResearchSetup | null, names: Names): string {

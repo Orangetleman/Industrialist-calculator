@@ -103,6 +103,11 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 /* Visite d'orientation (S24) : voile, projecteur, bulle fixe en bas ; bouton « ? » de l'en-tête. */
 .help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; padding: 0; }
 .help-btn:hover { color: var(--accent); border-color: var(--accent); }
+/* S30 : bouton FR / EN (maquette S16, écran 1). */
+.lang-sw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
+.lang-sw button { border: 0; background: var(--surface); color: var(--muted); font-size: .8rem; font-weight: 600; min-width: 34px; min-height: 28px; padding: 0 6px; cursor: pointer; }
+.lang-sw button[aria-pressed="true"] { background: var(--steel-soft); color: var(--ink); }
+.lang-sw button:hover { color: var(--accent); }
 /* S24 bis : quatre volets autour du projecteur (le trou reste utilisable), page figée pendant la visite. */
 html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête collant décroche */
 .tour-shade { position: fixed; z-index: 1300; display: none; }

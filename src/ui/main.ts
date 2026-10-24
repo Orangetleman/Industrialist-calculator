@@ -42,7 +42,9 @@ import { renderResearchForm, renderResearchOut, researchHow } from "./research-m
 import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { esc, fmt, fmtDuration, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseEnergy, parseInput } from "./format.ts";
+import { esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseEnergy, parseInput } from "./format.ts";
+import { applyStatic } from "../i18n/dom.ts";
+import { KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
 import {
   exportProgress,
   loadJournal,
@@ -67,7 +69,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioList, focusItem, renderPrioItems } from "./prio-list.ts";
-import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
+import { GOAL_ROUTE, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
@@ -111,7 +113,7 @@ import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, sav
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { allowMachine, banMachine, filterableMachines, filterSummary, findMachine, renderFilterBody, withMode } from "./mfilter-view.ts";
-import { buildRows, buildSignature, criterionHint, criterionWhy, CRITERION_TEXT, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, criterionText, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
   builtFor,
@@ -148,6 +150,20 @@ import {
   type Scope,
   type Settings,
 } from "./state.ts";
+
+// Langue (S30) : le choix gardé, sinon celle du navigateur ; avant tout rendu.
+setLang(
+  startLang(
+    (() => {
+      try {
+        return localStorage.getItem(KEY_LANG);
+      } catch {
+        return null;
+      }
+    })(),
+    navigator.language,
+  ),
+);
 
 const REPO_IFACES = interfacesJson as unknown as InterfacesFile;
 // Machines modulaires (S13) : la ferme d'arbres et les moteurs diesel relevés entrent dans le calcul.
@@ -500,6 +516,13 @@ function readRoute(): void {
 
 let lastPage: Page | null = null;
 let lastHash = "";
+/** Titre de l'onglet du navigateur : la vue, puis le nom du site. */
+function setDocTitle(): void {
+  const page = currentPage();
+  const view = page === "plan" ? goalTitle(settings.goal) : t(page === "usine" && route.usineTab === "recherche" ? "page.recherche" : `page.${page}`);
+  document.title = `${view} — ${t("site.title")}`;
+}
+
 function showPage(): void {
   if (lastHash) scrollOf.set(lastHash, window.scrollY);
   readRoute();
@@ -515,8 +538,7 @@ function showPage(): void {
     else a.removeAttribute("aria-current");
   }
   document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
-  const titles: Record<Page, string> = { plan: GOAL_TITLE[settings.goal], usine: route.usineTab === "recherche" ? "Ma recherche" : "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
-  document.title = `${titles[page]} — Calculateur de production`;
+  setDocTitle();
   document.body.classList.remove("usine-wide");
   render();
   if (page === "donnees" && route.machine) buildings.show(route.machine);
@@ -823,18 +845,19 @@ const isFresh = () => !prog.unlocked.length && player.money === null && player.r
 function renderHeader(): void {
   $<HTMLAnchorElement>("nav-plan").href = `#${GOAL_ROUTE[settings.goal]}`;
   if (isFresh()) {
-    setHtml($("me"), `<a class="me-chip cta" href="#usine">Renseigner mon usine</a>`);
+    setHtml($("me"), `<a class="me-chip cta" href="#usine">${esc(t("header.cta"))}</a>`);
     $("me-play").hidden = true;
     return;
   }
   const rp = rpNow();
   const real = rpRealRate();
+  const total = researchTotal();
   const chips = [
-    `<a class="me-chip" href="#usine" title="Recherches débloquées">${unlockedCount()}/${researchTotal()} recherches</a>`,
+    `<a class="me-chip" href="#usine" title="${esc(t("header.research.title"))}">${esc(t("header.research", { n: total, done: String(unlockedCount()), total: String(total) }))}</a>`,
     rp !== null
-      ? `<a class="me-chip" href="#usine/recherche" title="RP disponibles et vitesse réelle (estimés, en temps de jeu) : Ma recherche">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
+      ? `<a class="me-chip" href="#usine/recherche" title="${esc(t("header.rp.title"))}">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? t("header.rp.over") : ""}` : ""}</a>`
       : "",
-    player.money !== null ? `<a class="me-chip" href="#usine" title="Argent">${esc(fmtMoneyShort(player.money))}</a>` : "",
+    player.money !== null ? `<a class="me-chip" href="#usine" title="${esc(t("header.money.title"))}">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
   setHtml($("me"), chips.join(""));
   // Interrupteur « Je joue » (S21) : un bouton fixe, pour qu'il reste cliquable quand les puces changent.
@@ -843,9 +866,9 @@ function renderHeader(): void {
   play.hidden = rp === null;
   play.classList.toggle("on", on);
   play.dataset.play = on ? "off" : "on";
-  play.textContent = on ? "⏸ En jeu" : "▶ Je joue";
-  play.title = on ? "En jeu : les RP montent. Clique quand tu quittes le jeu." : "Hors jeu : les RP ne bougent pas. Clique quand tu lances le jeu.";
-  play.setAttribute("aria-label", on ? "Je ne joue plus" : "Je joue");
+  play.textContent = t(on ? "header.play.on" : "header.play.off");
+  play.title = t(on ? "header.play.on.title" : "header.play.off.title");
+  play.setAttribute("aria-label", t(on ? "header.play.on.aria" : "header.play.off.aria"));
 }
 
 // ---------------------------------------------------------------- page d'un objectif
@@ -858,12 +881,7 @@ function enter(g: Goal): boolean {
   settings.entered = [...settings.entered, g];
   return true;
 }
-const BLANK_PROMPT: Record<Goal, string> = {
-  objet: "Choisis un objet et une quantité : le calcul n'utilise que ce que tu as débloqué.",
-  énergie: "Indique la puissance voulue.",
-  recherche: "",
-  argent: "Indique le revenu voulu, en $ par minute.",
-};
+const blankPrompt = (g: Goal): string => (g === "recherche" ? "" : t(`plan.blank.${g}`));
 
 function syncForm(): void {
   const set = (id: string, v: string) => {
@@ -897,7 +915,7 @@ function syncForm(): void {
 function renderPlanPage(): void {
   const v = viewCtx();
   const goal = settings.goal;
-  $("plan-title").textContent = GOAL_TITLE[goal];
+  $("plan-title").textContent = goalTitle(goal);
   for (const a of document.querySelectorAll<HTMLAnchorElement>(".goalnav [data-goal]")) {
     if (a.dataset.goal === goal) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
@@ -914,27 +932,32 @@ function renderPlanPage(): void {
 
   // Textes d'aide propres à l'objectif.
   const existingN = Object.keys(settings.existing).length;
-  $("budget-hint").textContent = player.money === null ? "(renseigne ton argent dans Mon usine)" : `(${fmtMoney(player.money)})`;
-  $("existing-hint-plan").innerHTML = existingN ? `(${existingN} production${existingN > 1 ? "s" : ""} dans <a href="#usine">Mon usine</a>)` : `(aucune pour l'instant : <a href="#usine">Mon usine</a>)`;
+  $("budget-hint").textContent = player.money === null ? t("adv.budget.none") : `(${fmtMoney(player.money)})`;
+  $("existing-hint-plan").innerHTML = existingN ? t("adv.existing.some.html", { n: existingN }) : t("adv.existing.none.html");
   const mineTiers = rpTiers();
   const mineRate = mineTiers ? nominalRate(mineTiers) : 0;
-  const mineCap = mineTiers ? Math.min(...mineTiers.map((t) => t.cap)) : Infinity;
+  const mineCap = mineTiers ? Math.min(...mineTiers.map((tier) => tier.cap)) : Infinity;
   $("rp-current-hint").innerHTML = mineRate
-    ? `(${esc(fmt(mineRate, 2))} RP/s dans <a href="#usine/recherche">Ma recherche</a>${Number.isFinite(mineCap) ? `, seuil ${esc(fmtRP(mineCap))}` : ", sans seuil"})`
-    : `(renseigne-la dans <a href="#usine/recherche">Mon usine › Ma recherche</a>)`;
+    ? t("adv.rpCurrent.some.html", { rate: esc(fmt(mineRate, 2)), cap: Number.isFinite(mineCap) ? t("adv.rpCurrent.cap", { cap: esc(fmtRP(mineCap)) }) : t("adv.rpCurrent.noCap") })
+    : t("adv.rpCurrent.none.html");
   let goalHint = "";
   if (goal === "recherche" && settings.rpMode === "plan") {
-    goalHint = `Plan d'objet utilisé : ${esc(settings.mode === "rate" ? `${fmt(settings.rate, 2)} ${itemName(settings.item)}/min` : `${settings.machines} machines finales de ${itemName(settings.item)}`)} — <a href="#objet">le changer</a>.`;
+    const what = settings.mode === "rate" ? `${fmt(settings.rate, 2)} ${itemName(settings.item)}/min` : t("plan.goalHint.machines", { n: String(settings.machines), item: itemName(settings.item) });
+    goalHint = t("plan.goalHint.html", { what: esc(what) });
   }
   $("goal-hint").innerHTML = goalHint;
   $("adv-note").textContent =
     goal === "énergie"
-      ? `Centrales comparées : thermiques (Firebox, Gas Burner), générateurs à combustible, moteur diesel modulaire (configurations relevées sur le wiki), solaire (avec batteries pour la production garantie), éolien. Non calculées faute de données : ${ENERGY_FILE.notComputed
-          .filter((n) => n.machine !== "diesel-engine-generator")
-          .map((n) => (n.machine === "turbine-generator" ? "Modular Turbine (chiffres non fiables)" : (data.machines.get(n.machine)?.name ?? n.machine)))
-          .join(", ")}.`
+      ? t("adv.note.energy", {
+          list: ENERGY_FILE.notComputed
+            .filter((n) => n.machine !== "diesel-engine-generator")
+            .map((n) => (n.machine === "turbine-generator" ? t("adv.note.turbine") : (data.machines.get(n.machine)?.name ?? n.machine)))
+            .join(", "),
+        })
       : goal === "recherche" && rpView
-        ? `Plafond : ${settings.rpCap === null ? `automatique, ${settings.rpMode === "rate" ? "la recherche la plus chère qu'il te reste" : "la recherche visée la plus chère"} (${fmtRP(rpView.capNeeded)})` : fmtRP(settings.rpCap)}.`
+        ? t("adv.note.cap", {
+            cap: settings.rpCap === null ? t("adv.note.cap.auto", { which: t(settings.rpMode === "rate" ? "adv.note.cap.rate" : "adv.note.cap.node"), cap: fmtRP(rpView.capNeeded) }) : fmtRP(settings.rpCap),
+          })
         : "";
   // Options avancées actives (visibles pour cet objectif).
   const adv = [...document.querySelectorAll<HTMLInputElement>("#advanced input")].filter((i) => {
@@ -943,13 +966,13 @@ function renderPlanPage(): void {
     if (i.id === "use-existing" && !existingN) return false;
     return i.type === "checkbox" ? i.checked : i.value.trim() !== "";
   }).length;
-  $("adv-count").textContent = adv ? `(${adv} activée${adv > 1 ? "s" : ""})` : "(aucune activée)";
+  $("adv-count").textContent = adv ? t("adv.count", { n: adv }) : t("adv.count.none");
 
   $("first-visit").hidden = !isFresh();
   // Rien de saisi (S23) : une phrase, pas de résultat ni d'onglets vides.
   const blank = isBlank(goal);
   const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
-  $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(BLANK_PROMPT[goal])}</p>` : renderAnswer(v);
+  $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(blankPrompt(goal))}</p>` : renderAnswer(v);
   const fixBar = $("fix-bar");
   fixBar.innerHTML = blank ? "" : renderFixBar(v);
   fixBar.hidden = !fixBar.innerHTML;
@@ -1190,7 +1213,7 @@ const CRIT_TEXT: Record<PoseCriterion, { label: string; why: string }> = {
 function renderMachineFilter(p: Plan): void {
   const pm = filterNow();
   for (const r of document.querySelectorAll<HTMLInputElement>('input[name="mf-mode"]')) r.checked = r.value === pm.mode;
-  $("mf-sum").textContent = filterSummary({ data }, pm) ?? "toutes celles que tu as débloquées";
+  $("mf-sum").textContent = filterSummary({ data }, pm) ?? t("mf.sum.none");
   const body = renderFilterBody({ data }, pm, p);
   $("mf-pick").hidden = pm.mode === "toutes";
   $("mf-label").textContent = body.label;
@@ -1206,9 +1229,9 @@ function renderCriteria(): void {
   $("criteria-order").innerHTML =
     list
       .slice(0, 3)
-      .map((c, i) => `<span class="ord"><b>${i + 1}</b> ${esc(CRITERION_TEXT[c].label)}</span>`)
+      .map((c, i) => `<span class="ord"><b>${i + 1}</b> ${esc(criterionText(c).label)}</span>`)
       .join(`<span class="sep" aria-hidden="true">›</span>`) + (list.length > 3 ? `<span class="sep">› …</span>` : "");
-  $("criteria-list").innerHTML = renderPrioItems(list.map((c, i) => ({ key: c, label: CRITERION_TEXT[c].label, why: i === 0 ? criterionWhy(goal, c) : CRITERION_TEXT[c].why })));
+  $("criteria-list").innerHTML = renderPrioItems(list.map((c, i) => ({ key: c, label: criterionText(c).label, why: i === 0 ? criterionWhy(goal, c) : criterionText(c).why })));
   $("criterion-hint").textContent = criterionHint(goal, list[0]!);
 }
 
@@ -1788,7 +1811,7 @@ function renderRpEstimate(): void {
   const gNow = gameNow(journal.clock, Date.now());
   const last = [...journal.events].reverse().find((e) => e.type === "releve" && e.rp !== null);
   const when = last
-    ? `Relevé ${gNow - last.g < 30_000 ? "sans temps de jeu depuis" : `il y a ${fmtDuration((gNow - last.g) / 1000)} de jeu`} (saisi le ${new Date(last.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })})`
+    ? `Relevé ${gNow - last.g < 30_000 ? "sans temps de jeu depuis" : `il y a ${fmtDuration((gNow - last.g) / 1000)} de jeu`} (saisi le ${fmtDate(last.at, { dateStyle: "short", timeStyle: "short" })})`
     : "";
   const same = rp === null || player.rp === null || Math.floor(rp) === Math.floor(player.rp);
   const est = rp === null || same ? "" : `≈ ${fmtRP(Math.floor(rp))} maintenant`;
@@ -2064,7 +2087,7 @@ function renderData(): void {
   document.body.classList.toggle("wide", tab === "batiments");
   if (tab !== "verifier") return;
   const v = viewCtx();
-  const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(GOAL_TITLE[settings.goal].toLowerCase())}</a>`;
+  const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(goalTitle(settings.goal).toLowerCase())}</a>`;
   $("verify-context").innerHTML = `Valeurs de la chaîne du dernier calcul : ${esc(planLabel(v))} (${where}).`;
   const everything = allVerifyEntries(v);
   $("verify-all-count").textContent = String(new Set(everything.map((x) => `${x.scope}|${x.id}`)).size);
@@ -2735,7 +2758,7 @@ function bindPlan(): void {
   const itemInput = input("item");
   const onItem = () => {
     const id = resolveItem(itemInput.value);
-    $("item-hint").textContent = id ? "" : itemInput.value.trim() ? "Objet introuvable : choisis un nom dans la liste." : "";
+    $("item-hint").textContent = id ? "" : itemInput.value.trim() ? t("form.item.notFound") : "";
     if (!id) return;
     const changed = enter("objet") || id !== settings.item;
     settings.item = id;
@@ -2824,7 +2847,7 @@ function bindPlan(): void {
   const pickMachine = () => {
     const inp = input("mf-search");
     const id = findMachine({ data }, inp.value);
-    inp.setCustomValidity(id || !inp.value.trim() ? "" : "Machine inconnue : choisis-la dans la liste.");
+    inp.setCustomValidity(id || !inp.value.trim() ? "" : t("mf.unknown"));
     if (!id) return void (inp.value.trim() && inp.reportValidity());
     inp.value = "";
     const pm = filterNow();
@@ -3344,7 +3367,7 @@ function bindUsine(): void {
       $("progress-io-hint").textContent = `Import impossible : ${parsed.error}.`;
       return;
     }
-    const when = parsed.exportedAt ? ` (exporté le ${new Date(parsed.exportedAt).toLocaleString("fr-FR")})` : "";
+    const when = parsed.exportedAt ? ` (exporté le ${fmtDate(new Date(parsed.exportedAt).getTime())})` : "";
     const choice = await ask(
       "Importer une partie",
       `<p>Remplacer ta progression actuelle (${prog.unlocked.length} recherche(s) cochée(s)) par celle du fichier${esc(when)} : <b>${parsed.progress.unlocked.length}</b> recherche(s), ${parsed.progress.owned.length} machine(s) possédée(s), et tes ressources ?</p>${
@@ -3764,6 +3787,7 @@ bindUsine();
 bindTree();
 bindData();
 bindRecettes();
+bindLang();
 const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings });
 window.addEventListener("hashchange", showPage);
 showPage();
@@ -3781,6 +3805,34 @@ if (isFresh()) {
 window.setInterval(tickRp, 5000);
 bindHistory();
 void recallPlaying();
+
+// ---------------------------------------------------------------- langue (S30)
+
+/** Textes fixes, <html lang>, description et bouton FR / EN dans la langue choisie. */
+function applyLang(): void {
+  document.documentElement.lang = lang();
+  applyStatic(document);
+  document.querySelector('meta[name="description"]')?.setAttribute("content", t("site.description"));
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang()));
+}
+
+/** Bouton FR / EN : la page est redessinée sur place (saisie et usine calculée gardées), le choix est gardé. */
+function bindLang(): void {
+  applyLang();
+  $("lang-sw").addEventListener("click", (e) => {
+    const l = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-lang]")?.dataset.lang as Lang | undefined;
+    if (!l || l === lang()) return;
+    setLang(l);
+    try {
+      localStorage.setItem(KEY_LANG, l);
+    } catch {
+      // choix pour cette visite seulement
+    }
+    applyLang();
+    setDocTitle();
+    render();
+  });
+}
 
 /** Interrupteur (Ma recherche, en-tête), période, ✕ du journal, survol des graphiques (S21). */
 function bindHistory(): void {
@@ -3841,9 +3893,9 @@ async function recallPlaying(): Promise<void> {
   if (currentPage() === "usine") renderRpLive(true);
   // Un bandeau sous l'en-tête (S23), pas une fenêtre par-dessus la page : on peut l'ignorer.
   const bar = $("recall");
-  bar.innerHTML = `<span><b>Tu jouais encore ?</b> Tu étais en jeu quand le site a été fermé, il y a ${esc(away)}. Compté comme arrêté à la fermeture.</span>
-    <button type="button" class="small" data-recall="go">Je joue toujours : compter ${esc(away)}</button>
-    <button type="button" class="small" data-recall="stop" aria-label="Fermer : j'ai arrêté à la fermeture du site">✕</button>`;
+  bar.innerHTML = `<span>${t("recall.text.html", { away: esc(away) })}</span>
+    <button type="button" class="small" data-recall="go">${esc(t("recall.go", { away }))}</button>
+    <button type="button" class="small" data-recall="stop" aria-label="${esc(t("recall.close"))}">✕</button>`;
   bar.hidden = false;
   const choice = await new Promise<string>((resolve) =>
     bar.addEventListener("click", function on(e) {

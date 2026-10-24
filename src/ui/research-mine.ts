@@ -5,7 +5,7 @@
 import type { GameData } from "../engine/data.ts";
 import { itemsPerStation, nearlyZero, nominalRate, rateAt, TIERS, timeToReach, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
 import type { StationKind } from "../engine/research-points.ts";
-import { esc, fmt, fmtDuration, fmtRP } from "./format.ts";
+import { esc, fmt, fmtDate, fmtDuration, fmtRP } from "./format.ts";
 
 const TIER_N: Record<StationKind, string> = { rs1: "1", rs2: "2", rs3: "3", rs4: "4" };
 const STATION_N: Record<StationKind, string> = { rs1: "Research Station 1", rs2: "Research Station 2", rs3: "Research Station 3", rs4: "Research Station 3 + Research Station 4" };
@@ -91,7 +91,7 @@ export type ResearchOutArgs = {
   stepsOpen?: boolean;
 };
 
-const clock = (ms: number) => new Date(ms).toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+const clock = (ms: number) => fmtDate(ms, { weekday: "short", hour: "2-digit", minute: "2-digit" });
 /** Heure réelle d'un instant de jeu à venir : seulement en jeu (« si tu continues »). */
 const realAt = (a: ResearchOutArgs, g: number) => (a.playing ? ` (${clock(a.realNow + (g - a.now))} si tu continues)` : "");
 

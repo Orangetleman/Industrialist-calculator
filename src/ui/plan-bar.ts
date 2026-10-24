@@ -7,6 +7,7 @@ import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Step, VerifyEntry } from "../engine/solve.ts";
 import type { VerifyFlag } from "../engine/types.ts";
 import { DEFAULT_DIESEL, type DieselChoice } from "./diesel.ts";
+import { lang, t, type Key } from "../i18n/i18n.ts";
 import { doubtText, esc, fmt, fmtMF } from "./format.ts";
 import { screenText } from "./iface-view.ts";
 import { filterSummary } from "./mfilter-view.ts";
@@ -16,24 +17,17 @@ import type { Interfaces, MachineSettings } from "../engine/interfaces.ts";
 import { dieselFuelName } from "../engine/modular-calc.ts";
 
 /** Une priorité en un mot, pour la barre. */
-const CRIT_WORD: Record<Criterion, string> = {
-  area: "place",
-  machines: "machines",
-  energy: "énergie",
-  cost: "prix",
-  pollution: "pollution",
-  raw: "matières premières",
-  steps: "chaîne courte",
-};
+const critWord = (c: Criterion): string => t(`pb.crit.${c}`);
+const critWords = (list: Criterion[]) => list.slice(0, 3).map(critWord).join(" › ");
 
-const DIESEL_MODE: Record<DieselChoice["mode"], string> = { carburant: "meilleur rapport", place: "moins de place", puissance: "meilleure production" };
+/** Champs qui ont un mot de joueur (les autres s'affichent tels quels). */
+const FIELD_WORDS = new Set(["durationS", "energyMFps", "cost", "size", "machine", "parts", "pollutionPerHour", "unlockedBy"]);
 
 /** Une valeur d'un craft ou d'une machine, en mots de joueur (« durée », « sortie Gear »). */
 export function fieldWord(v: Pick<Ctx, "data">, field: string): string {
   const [head, rest] = [field.split(".")[0]!, field.split(".").slice(1).join(".")];
-  if (head === "inputs") return `entrée ${itemN(v, rest)}`;
-  if (head === "outputs") return `sortie ${itemN(v, rest)}`;
-  return ({ durationS: "durée", energyMFps: "énergie", cost: "prix", size: "taille", machine: "machine", parts: "bâtiments de l'installation", pollutionPerHour: "pollution", unlockedBy: "recherche qui la débloque" } as Record<string, string>)[head] ?? field;
+  if (head === "inputs" || head === "outputs") return t(`warn.field.${head}`, { item: itemN(v, rest) });
+  return FIELD_WORDS.has(head) ? t(`warn.field.${head}` as Key) : field;
 }
 
 // Le doute du wiki en mots de joueur (S28) : défini dans format.ts (S29, aussi pour les fiches Recettes).
@@ -50,16 +44,19 @@ export function stepWarnings(v: Pick<Ctx, "plan">, s: Pick<Step, "recipeId" | "m
 /** Petit ⚠ cliquable (ligne, module) : la première valeur à vérifier, les autres au survol. */
 export function warnButton(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {
   if (!list.length) return "";
-  const what = list.map((e) => `${fieldWord(v, e.flag.field)} : ${doubtText(e.flag)}`).join(" ; ");
-  return `<button type="button" class="warn-btn" ${fixAttr(list[0]!)} title="${esc(`À vérifier — ${what}. Clique pour corriger.`)}">⚠<span class="sr-only"> valeur à vérifier : ${esc(what)}, corriger</span></button>`;
+  const what = list.map((e) => `${fieldWord(v, e.flag.field)}${colon()}${doubtText(e.flag)}`).join(" ; ");
+  return `<button type="button" class="warn-btn" ${fixAttr(list[0]!)} title="${esc(t("warn.btn.title", { what }))}">⚠<span class="sr-only">${esc(t("warn.btn.sr", { what }))}</span></button>`;
 }
+
+/** « : » avec l'espace du français, « : » collé en anglais. */
+const colon = () => (lang() === "fr" ? " : " : ": ");
 
 /** Pastilles ⚠ de la barre du bloc : chaque valeur douteuse, en clair, avec « corriger ▸ ». */
 export function warnChips(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {
   return list
     .map((e) => {
-      const whose = e.scope === "machine" ? ` de ${machineN(v, e.id)}` : "";
-      return `<button type="button" class="warn-chip" ${fixAttr(e)}>⚠ ${esc(fieldWord(v, e.flag.field))}${esc(whose)} à vérifier : ${esc(doubtText(e.flag))} — corriger ▸</button>`;
+      const whose = e.scope === "machine" ? t("warn.of", { m: machineN(v, e.id) }) : "";
+      return `<button type="button" class="warn-chip" ${fixAttr(e)}>${esc(t("warn.chip", { field: fieldWord(v, e.flag.field), whose, doubt: doubtText(e.flag) }))}</button>`;
     })
     .join("");
 }
@@ -91,7 +88,7 @@ function chipHtml(c: Chip): string {
 }
 
 /** Nom court d'une étape : « Steel Ingot », « Énergie ». */
-const stepName = (v: Pick<Ctx, "data">, s: Step | undefined, key: string) => (s ? (s.item === ENERGY ? "Énergie" : itemN(v, s.item)) : itemN(v, key.split("@")[0]!));
+const stepName = (v: Pick<Ctx, "data">, s: Step | undefined, key: string) => (s ? (s.item === ENERGY ? t("common.energy") : itemN(v, s.item)) : itemN(v, key.split("@")[0]!));
 
 /**
  * La barre « Ton plan » : priorités, machines permises, réglages faits à la main, options avancées
@@ -103,27 +100,27 @@ export function renderPlanBar(v: Pick<Ctx, "data" | "plan">, b: PlanBarInput): s
   const isDefault = b.criteria.join() === DEFAULT_SETTINGS.criteria[b.goal].slice(0, b.criteria.length).join();
   chips.push(
     chipHtml({
-      label: `Priorités : ${b.criteria.slice(0, 3).map((c) => CRIT_WORD[c]).join(" › ")} ▾`,
+      label: t("pb.criteria", { list: critWords(b.criteria) }),
       open: `data-pb="criteria"`,
-      title: "Changer l'ordre des priorités du calcul",
+      title: t("pb.criteria.title"),
       set: !isDefault,
-      cancel: isDefault ? undefined : { attr: `data-pb-x="criteria"`, title: `Revenir à l'ordre par défaut (${DEFAULT_SETTINGS.criteria[b.goal].slice(0, 3).map((c) => CRIT_WORD[c]).join(" › ")})` },
+      cancel: isDefault ? undefined : { attr: `data-pb-x="criteria"`, title: t("pb.criteria.reset", { list: critWords(DEFAULT_SETTINGS.criteria[b.goal]) }) },
     }),
   );
   if (b.filter) {
     const sum = filterSummary(v, b.filter);
-    chips.push(chipHtml({ label: `Machines : ${sum ?? "toutes"} ▾`, open: `data-pb="mfilter"`, title: "Exclure des machines, ou n'utiliser que certaines", set: !!sum, cancel: sum ? { attr: `data-mf-clear`, title: "Retirer le filtre : toutes les machines débloquées" } : undefined }));
+    chips.push(chipHtml({ label: t("pb.mf", { sum: sum ?? t("pb.mf.all") }), open: `data-pb="mfilter"`, title: t("pb.mf.title"), set: !!sum, cancel: sum ? { attr: `data-mf-clear`, title: t("pb.mf.clear") } : undefined }));
   }
   // Réglages faits à la main : machines fixées, recettes choisies, écrans des machines, moteur diesel.
   for (const [key, n] of Object.entries(b.fixed)) {
     const s = p.steps.find((x) => x.key === key);
     chips.push(
       chipHtml({
-        label: `${n} × ${s ? machineN(v, s.machine) : "machines"} (${stepName(v, s, key)}) fixé${n > 1 ? "s" : ""}`,
+        label: t("pb.fixed", { n, m: s ? machineN(v, s.machine) : t("common.machines"), step: stepName(v, s, key) }),
         open: `data-flow="${esc(key)}"`,
-        title: "Voir ce bloc dans le schéma",
+        title: t("pb.toFlow"),
         set: true,
-        cancel: { attr: `data-pb-x="fixed" data-key="${esc(key)}"`, title: "Ne plus fixer ce nombre : revenir au calcul" },
+        cancel: { attr: `data-pb-x="fixed" data-key="${esc(key)}"`, title: t("pb.fixed.clear") },
       }),
     );
   }
@@ -134,11 +131,11 @@ export function renderPlanBar(v: Pick<Ctx, "data" | "plan">, b: PlanBarInput): s
     const s = p.steps.find((x) => x.item === item);
     chips.push(
       chipHtml({
-        label: `Recette de ${itemN(v, item)} : ${r ? machineN(v, r.machine) : recipeId}`,
+        label: t("pb.forced", { item: itemN(v, item), m: r ? machineN(v, r.machine) : recipeId }),
         open: s ? `data-flow="${esc(s.key)}"` : `data-pb="details"`,
-        title: s ? "Voir ce bloc dans le schéma (la recette se change dans sa barre)" : "Voir les recettes dans Détails",
+        title: t(s ? "pb.forced.title" : "pb.forced.details"),
         set: true,
-        cancel: { attr: `data-pb-x="forced" data-item="${esc(item)}"`, title: "Revenir au choix automatique pour cet objet" },
+        cancel: { attr: `data-pb-x="forced" data-item="${esc(item)}"`, title: t("pb.forced.clear") },
       }),
     );
   }
@@ -148,11 +145,11 @@ export function renderPlanBar(v: Pick<Ctx, "data" | "plan">, b: PlanBarInput): s
     const s = p.steps.find((x) => x.machine === machine);
     chips.push(
       chipHtml({
-        label: `${machineN(v, machine)} : écran ${text}`,
+        label: t("pb.screen", { m: machineN(v, machine), text }),
         open: s ? `data-flow="${esc(s.key)}"` : `data-pb="schema"`,
-        title: "Voir la machine dans le schéma, où se règle son écran",
+        title: t("pb.screen.title"),
         set: true,
-        cancel: { attr: `data-pb-x="msetting" data-machine="${esc(machine)}"`, title: "Remettre l'écran à 1×" },
+        cancel: { attr: `data-pb-x="msetting" data-machine="${esc(machine)}"`, title: t("pb.screen.clear") },
       }),
     );
   }
@@ -160,16 +157,16 @@ export function renderPlanBar(v: Pick<Ctx, "data" | "plan">, b: PlanBarInput): s
     const s = p.steps.find((x) => x.machine === "diesel-engine-controller");
     chips.push(
       chipHtml({
-        label: `Moteur diesel : ${dieselFuelName(b.diesel.fuel)}, ${b.diesel.config ? "configuration imposée" : DIESEL_MODE[b.diesel.mode]}`,
+        label: t("pb.diesel", { fuel: dieselFuelName(b.diesel.fuel), mode: t(b.diesel.config ? "pb.diesel.config" : `pb.diesel.${b.diesel.mode}`) }),
         open: s ? `data-flow="${esc(s.key)}"` : `data-pb="schema"`,
-        title: "Voir le moteur dans le schéma, où se règle son carburant",
+        title: t("pb.diesel.title"),
         set: true,
-        cancel: { attr: `data-pb-x="diesel"`, title: "Revenir au choix par défaut (Refined Diesel, meilleur rapport)" },
+        cancel: { attr: `data-pb-x="diesel"`, title: t("pb.diesel.clear") },
       }),
     );
   }
-  if (b.advanced) chips.push(chipHtml({ label: `Options avancées : ${b.advanced} ▾`, open: `data-pb="advanced"`, title: "Voir les options avancées activées", set: true }));
-  return `<div class="plan-bar" role="group" aria-label="Ton plan : les réglages qui changent ce résultat"><b class="pb-title">Ton plan</b>${chips.join("")}${verifyMenu(v)}</div>`;
+  if (b.advanced) chips.push(chipHtml({ label: t("pb.advanced", { n: String(b.advanced) }), open: `data-pb="advanced"`, title: t("pb.advanced.title"), set: true }));
+  return `<div class="plan-bar" role="group" aria-label="${esc(t("pb.aria"))}"><b class="pb-title">${t("pb.title")}</b>${chips.join("")}${verifyMenu(v)}</div>`;
 }
 
 /** « ⚠ N valeurs à vérifier ▾ » : la liste, chaque ligne mène à sa correction. */
@@ -179,9 +176,8 @@ function verifyMenu(v: Pick<Ctx, "data" | "plan">): string {
   const rows = used.map((e) => {
     const s = v.plan.steps.find((x) => (e.scope === "recette" ? x.recipeId === e.id : x.machine === e.id && x.item === e.item));
     const who = s ? `${itemN(v, s.item === ENERGY || s.item === POLLUTION ? s.item : e.item)} (${machineN(v, s.machine)})` : e.scope === "machine" ? machineN(v, e.id) : itemN(v, e.item);
-    const whose = e.scope === "machine" ? ` de ${machineN(v, e.id)}` : "";
-    return `<li><button type="button" class="link" ${fixAttr(e)}><b>${esc(who)}</b> : ${esc(fieldWord(v, e.flag.field))}${esc(whose)} — ${esc(doubtText(e.flag))} <span class="pb-go">corriger ▸</span></button></li>`;
+    const whose = e.scope === "machine" ? t("warn.of", { m: machineN(v, e.id) }) : "";
+    return `<li><button type="button" class="link" ${fixAttr(e)}><b>${esc(who)}</b>${colon()}${esc(fieldWord(v, e.flag.field))}${esc(whose)} — ${esc(doubtText(e.flag))} <span class="pb-go">${t("pb.fix")}</span></button></li>`;
   });
-  const n = used.length;
-  return `<details class="pb-warn"><summary class="pb-chip warn">⚠ ${n} valeur${n > 1 ? "s" : ""} à vérifier ▾</summary><div class="pb-menu"><p class="hint">Ces valeurs servent à ton plan, mais les wikis se contredisent ou ne les donnent pas. Clique pour la corriger avec ce que tu vois en jeu.</p><ul>${rows.join("")}</ul></div></details>`;
+  return `<details class="pb-warn"><summary class="pb-chip warn">${t("pb.verify", { n: used.length })}</summary><div class="pb-menu"><p class="hint">${t("pb.verify.hint")}</p><ul>${rows.join("")}</ul></div></details>`;
 }
