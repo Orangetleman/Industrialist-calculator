@@ -9,7 +9,21 @@ import type { PortsEntry } from "../extension-types.ts";
 import type { Catalog } from "./catalog.ts";
 import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
 import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
-import { Grid, Heap, route, stateKey, type Occupant } from "./route.ts";
+import { Grid, route, type Occupant } from "./route.ts";
+
+// Sens en nombres pour le chercheur des liaisons (S27 bis) : 0 nord, 1 est, 2 sud, 3 ouest (pair : vertical).
+const DIRS: Dir[] = ["N", "E", "S", "W"];
+const DX = [0, 1, 0, -1];
+const DY = [-1, 0, 1, 0];
+/** Sens suivants d'un tuyau arrivé en allant vers d : tout droit ou en tournant, jamais en arrière (ordre N, E, S, O). */
+const FORWARD = [
+  [0, 1, 3],
+  [0, 1, 2],
+  [1, 2, 3],
+  [0, 2, 3],
+];
+/** Dans un croisement : tout droit seulement. */
+const AHEAD = [[0], [1], [2], [3]];
 
 /** Une étape du plan, prête à devenir un module de l'usine. */
 export type FactoryStep = {
@@ -496,7 +510,45 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   let H = 0;
   let CLRused = 0;
   // Cases à l'intérieur d'un module : on peut y passer (entre les machines), mais on préfère les couloirs.
-  let inside = new Set<string>();
+  // Une case par octet sur la largeur de l'usine (S27 bis : plus rapide qu'un ensemble de textes « x,y »).
+  let inside = { w: 0, cells: new Uint8Array(0) };
+  const isInside = (x: number, y: number) => x >= 0 && x < inside.w && inside.cells[y * inside.w + x] === 1;
+  // S27 bis : mémoire de travail du chercheur, gardée d'un appel à l'autre. Chaque appel prend une nouvelle
+  // génération : une valeur notée d'une autre génération compte comme absente (rien à vider entre deux appels).
+  // Par case du cadre : ce que la grille y porte (lu une fois par appel, la grille ne change pas pendant la
+  // recherche) et la distance à l'arrivée la plus proche ; par état (case, sens, croisement) : le meilleur coût.
+  let gen = 0;
+  let cellSeen = new Uint32Array(0);
+  let cellInfo = new Uint8Array(0);
+  let hSeen = new Uint32Array(0);
+  let hMemo = new Float64Array(0);
+  let stateSeen = new Uint32Array(0);
+  let stateBest = new Float64Array(0);
+  // Nœuds de la recherche (case, sens, croisement, coûts, nœud précédent, départ) et tas des nœuds en attente.
+  let nX = new Int32Array(1 << 16);
+  let nY = new Int32Array(1 << 16);
+  let nD = new Uint8Array(1 << 16);
+  let nCross = new Uint8Array(1 << 16);
+  let nG = new Float64Array(1 << 16);
+  let nF = new Float64Array(1 << 16);
+  let nPrev = new Int32Array(1 << 16);
+  let nRoot = new Int32Array(1 << 16);
+  let heap = new Int32Array(1 << 16);
+  const growNodes = () => {
+    const more = <T extends Int32Array | Uint8Array | Float64Array>(a: T): T => {
+      const b = new (a.constructor as new (n: number) => T)(a.length * 2);
+      b.set(a);
+      return b;
+    };
+    [nX, nY, nPrev, nRoot, heap] = [more(nX), more(nY), more(nPrev), more(nRoot), more(heap)];
+    [nD, nCross] = [more(nD), more(nCross)];
+    [nG, nF] = [more(nG), more(nF)];
+  };
+  const OCCUPIED = 1;
+  const GOAL = 2; // case d'arrivée : un tuyau du réseau, sans croisement, avec un côté libre
+  const CROSS_NS = 4; // tuyau droit d'un autre réseau, traversable en allant vers le nord ou le sud
+  const CROSS_EW = 8; // … en allant vers l'est ou l'ouest
+  const INSIDE = 16;
   // Liaison à départs multiples (A*) : d'une case de `from` (par un côté libre) vers une case de `to` ;
   // croisements à angle droit. Renvoie les cases du chemin posé, ou null.
   const connect = (net: string, from: Set<string>, to: Set<string>, bounds: Rect): string[] | null => {
@@ -505,84 +557,173 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       return { x, y };
     };
     const tb = [...to].map(cellOf);
-    const h = (c: Pt) => {
+    const tx = Int32Array.from(tb, (t) => t.x);
+    const ty = Int32Array.from(tb, (t) => t.y);
+    const bw = bounds.x1 - bounds.x0 + 1;
+    const area = bw * (bounds.y1 - bounds.y0 + 1);
+    if (cellSeen.length < area) {
+      cellSeen = new Uint32Array(area);
+      cellInfo = new Uint8Array(area);
+      hSeen = new Uint32Array(area);
+      hMemo = new Float64Array(area);
+      stateSeen = new Uint32Array(area * 8);
+      stateBest = new Float64Array(area * 8);
+      gen = 0;
+    }
+    gen++;
+    /** Ce que porte la case (x, y) du cadre, d'indice i. */
+    const info = (x: number, y: number, i: number): number => {
+      if (cellSeen[i] === gen) return cellInfo[i]!;
+      const k = `${x},${y}`;
+      const o = grid.cells.get(k);
+      let v = 0;
+      if (o) {
+        v = OCCUPIED;
+        if (o.kind === "tuyau" && !o.cross) {
+          if (o.net === net) {
+            if (o.links.size < 4 && to.has(k)) v |= GOAL;
+          } else if (o.links.size === 2) {
+            if (o.links.has("E") && o.links.has("W")) v |= CROSS_NS;
+            if (o.links.has("N") && o.links.has("S")) v |= CROSS_EW;
+          }
+        }
+      }
+      if (isInside(x, y)) v |= INSIDE;
+      cellSeen[i] = gen;
+      cellInfo[i] = v;
+      return v;
+    };
+    // Distance (sans obstacle) à la case d'arrivée la plus proche : calculée une fois par case.
+    const h = (x: number, y: number, i: number): number => {
+      if (hSeen[i] === gen) return hMemo[i]!;
       let m = Infinity;
-      for (const t of tb) m = Math.min(m, Math.abs(t.x - c.x) + Math.abs(t.y - c.y));
+      for (let t = 0; t < tx.length; t++) m = Math.min(m, Math.abs(tx[t]! - x) + Math.abs(ty[t]! - y));
+      hSeen[i] = gen;
+      hMemo[i] = m;
       return m;
     };
-    type N = { c: Pt; d: Dir; g: number; f: number; prev: N | null; crossing: boolean; root: string };
-    // S27 bis : file de priorité (le plus petit f, à égalité le premier entré : le même ordre que la recherche
-    // linéaire d'avant, en temps logarithmique) et clés numériques des états déjà vus.
-    const open = new Heap<N>();
-    const best = new Map<number, number>();
+    // S27 bis : les nœuds de la recherche sont des indices dans des tableaux, croissants dans l'ordre de création,
+    // et la file de priorité un tas de ces indices : le plus petit f, à égalité le premier entré (le même ordre
+    // que la recherche linéaire d'avant, en temps logarithmique ; un nœud entre dans la file dès sa création).
+    let count = 0;
+    let size = 0;
+    const roots: string[] = [];
+    const node = (x: number, y: number, d: number, g: number, f: number, prev: number, crossing: boolean, root: number): number => {
+      if (count === nX.length) growNodes();
+      const id = count++;
+      nX[id] = x;
+      nY[id] = y;
+      nD[id] = d;
+      nCross[id] = crossing ? 1 : 0;
+      nG[id] = g;
+      nF[id] = f;
+      nPrev[id] = prev;
+      nRoot[id] = root;
+      return id;
+    };
+    const before = (a: number, b: number) => nF[a]! < nF[b]! || (nF[a] === nF[b] && a < b);
+    const push = (id: number) => {
+      let i = size++;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        const q = heap[p]!;
+        if (!before(id, q)) break;
+        heap[i] = q;
+        i = p;
+      }
+      heap[i] = id;
+    };
+    const pop = (): number => {
+      const top = heap[0]!;
+      const x = heap[--size]!;
+      if (size) {
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1;
+          if (l >= size) break;
+          const c = l + 1 < size && before(heap[l + 1]!, heap[l]!) ? l + 1 : l;
+          if (!before(heap[c]!, x)) break;
+          heap[i] = heap[c]!;
+          i = c;
+        }
+        heap[i] = x;
+      }
+      return top;
+    };
     const pipeOk = (k: string) => {
       const o = grid.cells.get(k);
       return o?.kind === "tuyau" && o.net === net && !o.cross && o.links.size < 4;
     };
-    const straightOther = (k: string, d: Dir) => {
-      const o = grid.cells.get(k);
-      const vertical = d === "N" || d === "S";
-      return o?.kind === "tuyau" && o.net !== net && !o.cross && o.links.size === 2 && (vertical ? o.links.has("E") && o.links.has("W") : o.links.has("N") && o.links.has("S"));
-    };
-    const stepCost = (k: string) => 1 + (inside.has(k) ? 0.8 : 0);
+    const stepCost = (v: number) => 1 + (v & INSIDE ? 0.8 : 0);
     for (const k of from) {
       if (!pipeOk(k)) continue;
       const c = cellOf(k);
       const links = (grid.cells.get(k) as { links: Set<Dir> }).links;
-      for (const d of ["N", "E", "S", "W"] as Dir[]) {
-        if (links.has(d)) continue;
-        const n = { x: c.x + STEP[d].x, y: c.y + STEP[d].y };
-        const nk = `${n.x},${n.y}`;
-        if (n.x < bounds.x0 || n.y < bounds.y0 || n.x > bounds.x1 || n.y > bounds.y1) continue;
-        if (to.has(nk) && pipeOk(nk)) {
-          grid.link(c, d, net);
-          grid.link(n, OPPOSITE[d], net);
+      for (let d = 0; d < 4; d++) {
+        if (links.has(DIRS[d]!)) continue;
+        const nx = c.x + DX[d]!;
+        const ny = c.y + DY[d]!;
+        if (nx < bounds.x0 || ny < bounds.y0 || nx > bounds.x1 || ny > bounds.y1) continue;
+        const i = (ny - bounds.y0) * bw + (nx - bounds.x0);
+        const v = info(nx, ny, i);
+        if (v & GOAL) {
+          grid.link(c, DIRS[d]!, net);
+          grid.link({ x: nx, y: ny }, OPPOSITE[DIRS[d]!], net);
           return [];
         }
-        if (grid.cells.get(nk)) {
-          if (straightOther(nk, d)) open.push({ c: n, d, g: 9, f: 9 + h(n), prev: null, crossing: true, root: k });
+        if (!roots.length || roots.at(-1) !== k) roots.push(k);
+        if (v & OCCUPIED) {
+          if (v & (d % 2 ? CROSS_EW : CROSS_NS)) push(node(nx, ny, d, 9, 9 + h(nx, ny, i), -1, true, roots.length - 1));
           continue;
         }
-        open.push({ c: n, d, g: stepCost(nk), f: stepCost(nk) + h(n), prev: null, crossing: false, root: k });
+        push(node(nx, ny, d, stepCost(v), stepCost(v) + h(nx, ny, i), -1, false, roots.length - 1));
       }
     }
-    let found: N | null = null;
-    for (let guard = 0; open.size && guard < 400_000; guard++) {
-      const cur = open.pop()!;
-      if (found && cur.f >= found.g) break;
-      const dirs: Dir[] = cur.crossing ? [cur.d] : (["N", "E", "S", "W"] as Dir[]).filter((d) => d !== OPPOSITE[cur.d]);
-      for (const d of dirs) {
-        const n = { x: cur.c.x + STEP[d].x, y: cur.c.y + STEP[d].y };
-        if (n.x < bounds.x0 || n.y < bounds.y0 || n.x > bounds.x1 || n.y > bounds.y1) continue;
-        const k = `${n.x},${n.y}`;
-        const turn = d !== cur.d ? 0.6 : 0;
-        if (to.has(k) && pipeOk(k)) {
-          const gg = cur.g + 1 + turn;
-          if (!found || gg < found.g) found = { c: n, d, g: gg, f: gg, prev: cur, crossing: false, root: cur.root };
+    let found = -1;
+    for (let guard = 0; size && guard < 400_000; guard++) {
+      const cur = pop();
+      if (found >= 0 && nF[cur]! >= nG[found]!) break;
+      const cd = nD[cur]!;
+      const cx = nX[cur]!;
+      const cy = nY[cur]!;
+      const cg = nG[cur]!;
+      for (const d of nCross[cur] ? AHEAD[cd]! : FORWARD[cd]!) {
+        const nx = cx + DX[d]!;
+        const ny = cy + DY[d]!;
+        if (nx < bounds.x0 || ny < bounds.y0 || nx > bounds.x1 || ny > bounds.y1) continue;
+        const i = (ny - bounds.y0) * bw + (nx - bounds.x0);
+        const v = info(nx, ny, i);
+        const turn = d !== cd ? 0.6 : 0;
+        if (v & GOAL) {
+          const gg = cg + 1 + turn;
+          if (found < 0 || gg < nG[found]!) found = node(nx, ny, d, gg, gg, cur, false, nRoot[cur]!);
           continue;
         }
         let crossing = false;
-        if (grid.cells.get(k)) {
-          if (!straightOther(k, d)) continue;
+        if (v & OCCUPIED) {
+          if (!(v & (d % 2 ? CROSS_EW : CROSS_NS))) continue;
           crossing = true;
         }
-        const gg = cur.g + stepCost(k) + turn + (crossing ? 8 : 0);
-        const sk = stateKey(n.x, n.y, d, crossing);
-        if ((best.get(sk) ?? Infinity) <= gg) continue;
-        best.set(sk, gg);
-        open.push({ c: n, d, g: gg, f: gg + h(n), prev: cur, crossing, root: cur.root });
+        const gg = cg + stepCost(v) + turn + (crossing ? 8 : 0);
+        const s = i * 8 + d * 2 + (crossing ? 1 : 0);
+        if (stateSeen[s] === gen && stateBest[s]! <= gg) continue;
+        stateSeen[s] = gen;
+        stateBest[s] = gg;
+        push(node(nx, ny, d, gg, gg + h(nx, ny, i), cur, crossing, nRoot[cur]!));
       }
     }
-    if (!found) return null;
-    const path: N[] = [];
-    for (let n: N | null = found; n; n = n.prev) path.unshift(n);
-    let prev = cellOf(path[0]!.root);
+    if (found < 0) return null;
+    const path: number[] = [];
+    for (let n = found; n >= 0; n = nPrev[n]!) path.unshift(n);
+    let prev: Pt = cellOf(roots[nRoot[path[0]!]!]!);
     const cells: string[] = [];
     for (const n of path) {
-      grid.link(prev, n.d, net);
-      grid.link(n.c, OPPOSITE[n.d], net);
-      prev = n.c;
-      if (n !== path.at(-1)) cells.push(`${n.c.x},${n.c.y}`);
+      const c = { x: nX[n]!, y: nY[n]! };
+      const d = DIRS[nD[n]!]!;
+      grid.link(prev, d, net);
+      grid.link(c, OPPOSITE[d], net);
+      prev = c;
+      if (n !== path.at(-1)) cells.push(`${c.x},${c.y}`);
     }
     return cells;
   };
@@ -621,8 +762,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     const edges = [...edges0.filter((e) => firstEdges.includes(k0(e))), ...edges0.filter((e) => !firstEdges.includes(k0(e)))];
     failedEdges = [];
     tapLog = [];
-    inside = new Set();
-    for (const b of boxes) for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) inside.add(`${b.x + i},${b.y + j}`);
+    inside = { w: W, cells: new Uint8Array(W * H) };
+    for (const b of boxes) for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) if (b.x + i < W && b.y + j < H) inside.cells[(b.y + j) * W + b.x + i] = 1;
     const exits = new Map<string, Set<string>>(); // liaison → cases où un nouveau client peut se brancher
     for (const e of edges) {
       const id = `${e.from}:${e.item}`;
@@ -728,6 +869,9 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       for (let k = 0; k < 4; k++) {
         routeBetweenOnce();
         if (!failedEdges.length) return;
+        // S27 bis : rien de nouveau à tracer d'abord : le tour suivant serait le même (calcul déterministe, seul
+        // compte l'ensemble des liaisons tracées d'abord), comme tous les suivants ; on garde celui-ci.
+        if (failedEdges.every((x) => firstEdges.includes(x))) return;
         firstEdges = [...failedEdges, ...firstEdges.filter((x) => !failedEdges.includes(x))];
       }
       return;

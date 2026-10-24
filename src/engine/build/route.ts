@@ -144,49 +144,57 @@ function push<T extends { c: Cell; d: Dir | null; g: number; f: number; crossing
  * (comme une recherche linéaire du minimum, mais en temps logarithmique).
  */
 export class Heap<T extends { f: number }> {
-  private a: { v: T; seq: number }[] = [];
+  // Valeurs et numéros d'entrée côte à côte ; on déplace les éléments vers un trou au lieu de les échanger
+  // (moins d'objets créés). L'ordre (f, numéro d'entrée) est total : les sorties sont les mêmes qu'avant.
+  private v: T[] = [];
+  private s: number[] = [];
   private seq = 0;
   get size(): number {
-    return this.a.length;
+    return this.v.length;
   }
   peek(): T | undefined {
-    return this.a[0]?.v;
+    return this.v[0];
   }
-  private less(i: number, j: number): boolean {
-    const x = this.a[i]!;
-    const y = this.a[j]!;
-    return x.v.f < y.v.f || (x.v.f === y.v.f && x.seq < y.seq);
-  }
-  private swap(i: number, j: number): void {
-    [this.a[i], this.a[j]] = [this.a[j]!, this.a[i]!];
-  }
-  push(v: T): void {
-    this.a.push({ v, seq: this.seq++ });
-    let i = this.a.length - 1;
+  push(x: T): void {
+    const { v, s } = this;
+    const q = this.seq++;
+    let i = v.length;
+    v.push(x);
+    s.push(q);
     while (i > 0) {
       const p = (i - 1) >> 1;
-      if (!this.less(i, p)) break;
-      this.swap(i, p);
+      const pv = v[p]!;
+      if (!(x.f < pv.f || (x.f === pv.f && q < s[p]!))) break;
+      v[i] = pv;
+      s[i] = s[p]!;
       i = p;
     }
+    v[i] = x;
+    s[i] = q;
   }
   pop(): T | undefined {
-    if (!this.a.length) return undefined;
-    const top = this.a[0]!.v;
-    const last = this.a.pop()!;
-    if (this.a.length) {
-      this.a[0] = last;
+    const { v, s } = this;
+    if (!v.length) return undefined;
+    const top = v[0]!;
+    const x = v.pop()!;
+    const q = s.pop()!;
+    const n = v.length;
+    if (n) {
       let i = 0;
       for (;;) {
         const l = 2 * i + 1;
+        if (l >= n) break;
         const r = l + 1;
-        let m = i;
-        if (l < this.a.length && this.less(l, m)) m = l;
-        if (r < this.a.length && this.less(r, m)) m = r;
-        if (m === i) break;
-        this.swap(i, m);
-        i = m;
+        let c = l;
+        if (r < n && (v[r]!.f < v[l]!.f || (v[r]!.f === v[l]!.f && s[r]! < s[l]!))) c = r;
+        const cv = v[c]!;
+        if (!(cv.f < x.f || (cv.f === x.f && s[c]! < q))) break;
+        v[i] = cv;
+        s[i] = s[c]!;
+        i = c;
       }
+      v[i] = x;
+      s[i] = q;
     }
     return top;
   }

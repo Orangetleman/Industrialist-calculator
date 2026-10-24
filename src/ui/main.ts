@@ -1599,7 +1599,7 @@ function renderFactory(): void {
   $("pose-busy").hidden = true;
   $("pose-busy").innerHTML = "";
   const plot = plotOf(player);
-  const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue);
+  const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue, st.cached);
   $("pose-head").innerHTML = info.head;
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;

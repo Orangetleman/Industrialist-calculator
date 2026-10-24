@@ -284,7 +284,7 @@ function unlinked(f: FactoryPlan, name: Name, sub: (key: string) => string): str
 }
 
 /** Texte autour du dessin : résumé, légende, liaisons, passages et machines à compléter. */
-export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf: TierOf, ms: number, glue = false): { head: string; legend: string; details: string } {
+export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf: TierOf, ms: number, glue = false, cached = false): { head: string; legend: string; details: string } {
   const color = factoryColors(f);
   const st = f.stats;
   const sub = (key: string) => f.boxes.find((b) => b.key === key)?.sub ?? key;
@@ -304,7 +304,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
     f.full
       ? `Recalculée pour l'usine entière : une seule prise par collecteur, modules tournés vers leurs voisins, collecteur central d'une double rangée sorti entre deux machines quand ça raccourcit les tuyaux sans élargir le module${st.pruned ? `, puis ${st.pruned} case${st.pruned > 1 ? "s" : ""} de tuyau sans issue retirée${st.pruned > 1 ? "s" : ""} (bouts qui ne menaient nulle part)` : ""}.`
       : `Module par module : chaque module tel que son plan de pose seul, relié aux autres par des tuyaux${glue ? `, ou collé quand c'est possible${f.glued.length ? "" : " (aucune liaison n'a pu être collée dans ce plan)"}` : ""}.`
-  } Calculée en ${fmt(ms / 1000, 1)} s.</p>`;
+  } Calculée en ${fmt(ms / 1000, 1)} s${cached ? ", gardée dans ce navigateur : reprise sans recalcul" : ""}.</p>`;
   const items = [...color.keys()];
   const legend = `<ul class="mod-legend">${items.map((it) => `<li><i style="background:${color.get(it)}"></i>${esc(name(it))}</li>`).join("")}<li><i class="sw-pole"></i>Poteau</li><li><i class="sw-cable"></i>Câble électrique</li><li><i class="sw-flow"></i>Liaison (sens du flux)</li>${plot ? `<li><i class="sw-plot"></i>Ta parcelle</li>` : ""}</ul>`;
   const rows = f.nets
