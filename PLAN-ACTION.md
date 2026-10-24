@@ -53,11 +53,11 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | R8 | Machines modulaires, à voir sur le wiki : il faut indiquer les blocs qui entourent chaque bloc. Exemples : Diesel Engine (Tier II), assemblage par contact ; ferme d'arbres (Tier I), assemblage par portées. | Deux familles. Par contact : moteur diesel, turbine modulaire (Tier IV). Par portée : ferme d'arbres. Il faut une recherche sur le wiki, des données, un éditeur, le calcul et le plan de pose. | S11 – S14 |
 | R9 | Détailler le calcul dans la présentation du graphe, pour qu'on sache d'où sortent les valeurs. | Pour un bloc ou une flèche du schéma : la recette, les formules et la source de chaque valeur. | S7 |
 | R10 | Naviguer dans les crafts comme dans l'onglet « Recipes » du jeu, et corriger ce qui existe ou non. Depuis le graphe : la référence du craft, cliquable. | Une page « Recettes » : liste avec recherche, fiche objet, fiche machine, crafts cliquables. Des corrections : valeurs, craft inexistant, craft manquant. Un lien depuis le schéma. | S5, S6, S7 |
-| R11 | (2026-10-18) Une option pour passer le site en anglais, et un site parfaitement accessible et ergonomique (« un peu barbare » aujourd'hui), pour le montrer au serveur Discord de la communauté sans avoir honte d'un résultat brouillon, incomplet ou plein d'erreurs. | Deux chantiers liés : la traduction (tout le texte, les nombres, les dates) et une remise à niveau de la forme (clarté, cohérence, finition, accessibilité au sens large). Le lot écrit le plan, il ne l'exécute pas. | S16 |
-| R12 | (2026-10-18, premier jet) Construire sa propre chaîne de production pour en voir les statistiques : un plan vierge, des menus « burger » pour ouvrir une liste de machines, des liaisons qu'on trace en maintenant le clic et en glissant avec l'outil tuyau (du bon type, fluide ou objet), comme les convoyeurs de Mindustry. | Un mode « bac à sable », l'inverse du calculateur : on pose, le site calcule. Très gros : le lot écrit le plan et la maquette, il ne l'exécute pas. | S17 |
+| R11 | (2026-10-18) Une option pour passer le site en anglais, et un site parfaitement accessible et ergonomique (« un peu barbare » aujourd'hui), pour le montrer au serveur Discord de la communauté sans avoir honte d'un résultat brouillon, incomplet ou plein d'erreurs. | Deux chantiers liés : la traduction (tout le texte, les nombres, les dates) et une remise à niveau de la forme (clarté, cohérence, finition, accessibilité au sens large). Le lot écrit le plan, il ne l'exécute pas. | S16 (plan), S30 à S33, S37 |
+| R12 | (2026-10-18, premier jet) Construire sa propre chaîne de production pour en voir les statistiques : un plan vierge, des menus « burger » pour ouvrir une liste de machines, des liaisons qu'on trace en maintenant le clic et en glissant avec l'outil tuyau (du bon type, fluide ou objet), comme les convoyeurs de Mindustry. | Un mode « bac à sable », l'inverse du calculateur : on pose, le site calcule. Très gros : le lot écrit le plan et la maquette, il ne l'exécute pas. | S17 (après S37) |
 | R13 | (2026-10-18) Le gain de RP baisse quand les RP accumulés augmentent, et la baisse se calcule avec ce qu'on lit en jeu (Research Tracking Panel : seuil d'efficacité, « Max RP before RP/s is nearly zero »…). Que manque-t-il au site ? | Recherche faite le 2026-10-18 (sans code) : les formules du wiki retrouvent la capture au centième près. Le site connaît le plafond souple pour l'installation qu'il propose, mais compte les RP du joueur en ligne droite et ignore ses stations. | S20 |
 | R14 | (2026-10-20, après S20) Un graphe de l'évolution des RP du joueur, avec l'historique et les modifications qu'il y a apportées au fil du temps (changement de configuration…). Deux courbes : les RP et les RP/s. | Le moteur sait refaire la courbe entre deux instants (S20), mais le site ne garde que le dernier relevé et la dernière configuration. Il faut un journal (relevés, changements de configuration, dépenses) et deux graphiques dans « Ma recherche ». Complément : les RP ne montent que quand on est en jeu ; le temps compte en durées de jeu, avec un interrupteur « Je joue / Je ne joue plus ». | S21 |
-| R15 | (2026-10-20, pendant S15) « dans la refonte du site je veux pouvoir mettre en place un système de remarque collaborative automatiser que je recevrais dans une interface pour répondre et publier les demandes qui reviennent le plus souvent (pas nécessairement publier mais au moins avoir une vision sur les propositions) ». | Un bouton « Remarque » sur le site ; les remarques arrivent dans une page réservée à l'utilisateur, regroupées par sujet, avec une réponse et, au choix, une publication. Il faut un petit service côté serveur (le site est aujourd'hui statique sur le Pi) : à planifier, pas à coder en S15. | S16 (Q24.12) |
+| R15 | (2026-10-20, pendant S15) « dans la refonte du site je veux pouvoir mettre en place un système de remarque collaborative automatiser que je recevrais dans une interface pour répondre et publier les demandes qui reviennent le plus souvent (pas nécessairement publier mais au moins avoir une vision sur les propositions) ». | Un bouton « Remarque » sur le site ; les remarques arrivent dans une page réservée à l'utilisateur, regroupées par sujet, avec une réponse et, au choix, une publication. Il faut un petit service côté serveur (le site est aujourd'hui statique sur le Pi) : à planifier, pas à coder en S15. | S16 (plan), S34 à S36 |
 | — | En attente depuis le 2026-10-14 : (1) la sortie du collecteur central d'une double rangée entre deux machines ; (2) « Toute l'usine » dans le site. | Inchangé. | S2, S3, S4 |
 
 ## 2. Ordre proposé (à valider : Q10)
@@ -91,8 +91,16 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S27 | À évacuer : un tuyau jusqu'au bord choisi pour chaque produit | moyenne | S25 + capture de l'utilisateur | ✅ fait |
 | S28 | Schéma et réglages visibles : vue complète, barre « Ton plan », ⚠ cliquables | moyenne | S23 | ✅ fait |
 | S29 | Mon usine en deux onglets, bulle de l'arbre, vocabulaire de joueur | moyenne | S23 | ✅ fait |
-| S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté ; remarques des joueurs (R15) | moyenne, sans code | S15, S22 à S29 | à faire |
-| S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S16 | à faire |
+| S16 | Plan (sans code) : site en anglais et remise à niveau de l'ergonomie, pour la communauté ; remarques des joueurs (R15) | moyenne, sans code | S15, S22 à S29 | ✅ fait ([PLAN-PUBLIC.md](PLAN-PUBLIC.md), maquette `maquette/public.html` validée) |
+| S30 | Traduction (1/3) : glossaire, catalogue et `t()`, bouton FR / EN, nombres et dates ; squelette, en-tête, menu, pied de page, Planifier | moyenne | maquette S16 | à faire |
+| S31 | Traduction (2/3) : toutes les vues, visite comprise ; test « rien d'oublié » | grosse | S30 | à faire |
+| S32 | Traduction (3/3) : messages du moteur en codes, notes des données ; empreintes de l'usine identiques | grosse | S31 | à faire |
+| S33 | Forme publique : nom, mentions, pied de page, aperçu Discord, contrastes, cibles, téléphone, clavier, lecteur d'écran, calcul long | moyenne | S30 | à faire |
+| S34 | Remarques (1/3) : le service Node sur le Pi (sans dépendance), tests, mise en place après accord | moyenne | maquette S16 (peut aller en parallèle de S31 à S33) | à faire |
+| S35 | Remarques (2/3) : côté joueur (bouton, fenêtre, « Envoyer ma correction », « Mes remarques », visite, Discord) | moyenne | S30, S34 | à faire |
+| S36 | Remarques (3/3) : tableau de bord de l'utilisateur et page publique Propositions (+1) | moyenne à grosse | S35 | à faire |
+| S37 | Répétition générale : relecture de l'anglais, parcours A à E en anglais, remarque de bout en bout ; feu vert pour le Discord | moyenne | S30 à S36 | à faire |
+| S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S37 | à faire |
 
 Pourquoi cet ordre :
 - **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
@@ -119,7 +127,11 @@ Pourquoi cet ordre :
   (REVUE.md) ; S16 en fait un plan complet (anglais + forme) pour une version présentable au Discord,
   sur un site déjà réorganisé, et y ajoute R15 (remarques des joueurs, Q24.12). Ce plan donnera ses
   propres lots, à insérer ensuite au § 2.
-- **S17 en dernier** : c'est une nouvelle fonction, pas une correction. Elle réutilise beaucoup de
+- **S30 à S37 après S16** (plan écrit le 2026-10-24, [PLAN-PUBLIC.md](PLAN-PUBLIC.md) § 6) : le socle de
+  la traduction d'abord, pour que tout texte ajouté ensuite entre dans les deux catalogues ; le service
+  des remarques (S34) ne touche que des fichiers nouveaux et peut avancer en parallèle ; le lien n'est
+  posté sur le Discord qu'après S37 (tableau de bord et Propositions finis, décision S16 Publication).
+- **S17 en dernier** (après S37) : c'est une nouvelle fonction, pas une correction. Elle réutilise beaucoup de
   choses (moteur de calcul, plans de pose, tuyaux, éditeur de bâtiments). Mieux vaut la penser sur
   un site déjà propre et traduit, pour ne pas tout traduire deux fois.
 
@@ -867,7 +879,32 @@ Le lot doit produire un fichier `PLAN-PUBLIC.md` (nom à confirmer) avec :
 Point de départ : la liste des défauts de S15 ([REVUE.md](REVUE.md), § 3) et ce qu'en ont corrigé
 S22 à S29.
 
-Questions : Q13.
+Questions : Q13, puis Q26 (remarques) et Q27 (accessibilité), posées le 2026-10-24 ; Q28 (maquette).
+
+**Plan écrit (2026-10-24) : [PLAN-PUBLIC.md](PLAN-PUBLIC.md)**, avec la maquette `maquette/public.html`
+(Q28, validée : décision S16 Maquette). En bref :
+- **État des lieux** (§ 1) : les 27 défauts de la revue sont réglés (S22 à S29) ; il reste P1 à P12 :
+  tout le texte en dur (≈ 1 400 textes dans `src/ui`, 800 dans le moteur, notes des données), nom du
+  site différent selon l'endroit, aperçu Discord en français, pied de page sans auteur, deux contrastes
+  trop faibles (bouton orange en sombre 2,4:1, ⚠ de Recettes en clair 3,9:1), menu coupé et cibles
+  sous 24 px au téléphone, Recettes à 10 500 px au téléphone, Contribuer vide sans calcul, calcul long
+  sans « Arrêter », restes F4 et P11 ; points du lecteur d'écran non vérifiés.
+- **Traduction** (§ 2) : catalogues `src/i18n/fr.ts` et `en.ts` (type `typeof fr` : une clé oubliée
+  ne compile pas), `t()` avec `Intl.PluralRules`, langue du navigateur puis bouton FR / EN gardé, mêmes
+  adresses, `format.ts` seul à écrire nombres et dates ; moteur en codes et valeurs (empreintes de
+  l'usine identiques) ; notes des données dans `data/i18n/en.json` ; noms du jeu en anglais dans les
+  deux langues ; test « rien d'oublié » ; glossaire validé avant S30.
+- **Forme et accessibilité** (§ 3) : un critère mesurable par point, contrôlé sur six pages × deux
+  tailles × deux thèmes × deux langues.
+- **Visiteurs** (§ 4) : tout visible, Contribuer présenté comme « Aider à corriger le site » ;
+  Propositions dans le pied de page ; tableau de bord sans lien (`/tableau/`).
+- **Remarques** (§ 5) : bouton « 💬 Remarque », « Envoyer ma correction », « Mes remarques », page
+  Propositions avec +1, étape de la visite ; tableau de bord (boîte, sujets, réponse, publication,
+  corrections en JSON, message dans le salon Discord) ; service `industrialist-remarques` (Node 24 du
+  Pi, `node:http` + `node:sqlite`, 127.0.0.1:8091 derrière le nginx de l'Industrialist, unité à lui,
+  64 Mo, MyPrism contrôlé avant et après, nginx rechargé après accord).
+- **Lots** (§ 6) : S30 à S37, placés au § 2 avec leurs critères de fin ; le lien n'est posté qu'après
+  S37.
 
 ### S17 — Plan : construire sa propre chaîne de production (bac à sable)
 
@@ -1014,6 +1051,47 @@ Questions : Q14.
   - Une adresse ou une page d'accueil à part pour eux ?
   - Qui relit l'anglais : toi, un membre du Discord ?
   - Des sites que tu trouves bien faits (outils du jeu ou d'autres jeux) à prendre comme référence ?
+
+  Posée le 2026-10-24 en 9 points, avec une proposition pour chacun : 1 français et anglais, catalogue
+  ouvert à d'autres langues ; 2 langue du navigateur, bouton FR / EN dans l'en-tête, choix gardé ;
+  3 mêmes adresses dans les deux langues ; 4 (b) Contribuer visible, présenté comme « Aider à corriger
+  le site » ; 5 pas de page à part, aperçu du lien sur Discord (titre, phrase, image) ; 6 nom
+  « Industrialist Production Planner », pied de page « outil de fan, non officiel », crédits du wiki,
+  pseudo ; 7 qui relit l'anglais ; 8 sites de référence ; 9 ce qui doit être fini avant de poster le lien
+  (proposé : anglais, forme, bouton « Remarque » ; publication plus tard).
+
+  Réponses (2026-10-24) : « je suis complètement ok pour touuuut », avec : 6 « mon pseudo :
+  Orangentleman » ; 7 « Moi, mais laisser la possibilité de signaler une erreur » ; 8
+  « https://mindustryschematics.com » ; 9 « La page de publication et mon dashboard de reçu des remarques
+  et des propositions doit être finis avant la publication ».
+- **Q26 (S16), remarques des joueurs (R15).** Posée le 2026-10-24 : 1 un joueur envoie un type (erreur de
+  valeur, bogue, idée), un texte, la page (ajoutée seule), un pseudo Discord facultatif ; 2 une page
+  réservée sur le site, protégée par un mot de passe, et peut-être un message dans un salon de ton
+  Discord (webhook séparé, sans toucher à MyPrism) ; 3 remarques rangées par sujet avec « N joueurs l'ont
+  demandé », page publique « Propositions » qui ne montre que ce que tu publies, avec +1 ; 4 un petit
+  service Node sans dépendance (fichier ou SQLite intégrée à Node), compte et unité à lui, derrière le
+  nginx de l'Industrialist (`/api/`), rechargement de nginx demandé avant ; 5 au plus 5 remarques par
+  heure et par visiteur, 2 000 caractères, rien de public sans accord, IP jamais gardée en clair
+  (empreinte effacée sous 24 h) ; 6 les corrections (« ✎ Corriger ») et les relevés de bâtiments envoyés
+  par le même service ; 7 une étape « remarques » dans la visite d'orientation.
+
+  Réponses (2026-10-24) : tout « ok » ; 2 « Pour le discord j'ai fais un salon reservé sur mon serv, le
+  bot y a accès » ; 6 « oui complètement ».
+- **Q27 (S16), accessibilité.** Posée le 2026-10-24 : tout au clavier, contrastes suffisants, cibles d'au
+  moins 24 px au téléphone, formulaires et boutons lisibles par un lecteur d'écran ; schéma et dessin de
+  l'usine visuels, la liste des machines et les textes en sont la version lisible.
+
+  Réponse (2026-10-24) : « ok ».
+- **Q28 (S16), maquette `maquette/public.html`.** Posée le 2026-10-24 : 1 en-tête (nom, « Non officiel »,
+  FR / EN, « 💬 Remarque », « ? ») et « Planificateur Industrialist » en français ; 2 aperçu Discord en
+  anglais, français en variante ; 3 fenêtre Remarque (quatre types, pseudo facultatif, « Mes remarques »,
+  « Envoyer mes corrections ») ; 4 Propositions : sujets publiés seulement, pas dans le menu ; 5 tableau
+  de bord `/tableau/`, en français, mot de passe tapé par l'utilisateur sur le Pi ; 6 Discord par un
+  webhook du salon réservé (le bot de MyPrism n'est pas touché) ; 7 glossaire et mots du jeu (case,
+  parcelle, modes de construction) ; 8 ordre S30 → S37, S34 en parallèle possible.
+
+  Réponse (2026-10-24) : « ok pour tout, je te laisse chercher les mots du jeu sur le wiki au début de
+  S30 ».
 - **Q14 (S17), bac à sable.** À poser au début de S17.
   - Ce qui compte le plus : les statistiques, ou un plan de pose fidèle au jeu (cases, raccords) ?
   - Grille du jeu (cases et tuyaux réels) ou schéma libre ?
@@ -1278,6 +1356,13 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S15 Priorités | Priorités par défaut d'un objet : le moins de place, puis le moins de machines, puis le moins d'énergie, le prix en dernier (joueur avancé : « ma priorité se concentre sur la place et le nombre de machine, et l'énergie »). À faire dans un lot de réorganisation. | 2026-10-20 |
 | S15 Parcours | Les cinq parcours A à E, dans l'ordre ; Claude tient la souris dans le navigateur intégré, l'utilisateur guide ; réactions notées mot pour mot, gestes et blocages. | 2026-10-20 |
 | S29 Noms | « Water Pump2 », « Research Station4 », « Short Pipe2 »… (chiffre collé) : « Dans le jeu ya pas d'espace. Mais en soi c'est plus propre avec un espace donc fais au mieux » → le site affiche « Water Pump 2 » (comme l'arbre du jeu), les fichiers de données gardent le nom du wiki (`spacedName`, `buildGameData`). | 2026-10-24 |
+| S16 Langues | Français et anglais ; catalogue de textes ouvert à d'autres langues ; langue du navigateur par défaut (français si `fr-*`, sinon anglais), bouton FR / EN dans l'en-tête, choix gardé ; mêmes adresses (`#objet`…) dans les deux langues. | 2026-10-24 |
+| S16 Relecture | L'utilisateur relit l'anglais ; un moyen de signaler une erreur de traduction reste ouvert aux joueurs (par les remarques). | 2026-10-24 |
+| S16 Public | Contribuer reste visible, présenté comme « Aider à corriger le site » ; même adresse pour le Discord, avec un aperçu du lien (titre, phrase, image) ; nom anglais « Industrialist Production Planner » ; pied de page « outil de fan, non officiel », crédits du wiki (CC BY-NC-SA), « par Orangentleman ». Référence donnée : mindustryschematics.com. | 2026-10-24 |
+| S16 Publication | Le lien n'est posté sur le Discord qu'une fois finis : l'anglais, la forme, le bouton « Remarque », **le tableau de bord des remarques et propositions de l'utilisateur et la page publique « Propositions »**. | 2026-10-24 |
+| S16 Remarques | Type (erreur de valeur, bogue, idée, traduction), texte, page ajoutée seule, pseudo Discord facultatif ; tableau de bord réservé (mot de passe) ; remarques rangées par sujet (« N joueurs l'ont demandé ») ; page « Propositions » qui ne montre que ce que l'utilisateur publie, avec +1 ; service Node sans dépendance, compte et unité à lui, derrière le nginx de l'Industrialist (`/api/`), rechargement de nginx demandé avant, MyPrism intouché ; 5 remarques par heure et par visiteur, 2 000 caractères, empreinte d'IP effacée sous 24 h ; corrections et relevés de bâtiments envoyés par le même service ; une étape « remarques » dans la visite. Discord : un salon réservé existe sur le serveur de l'utilisateur, son bot y a accès (moyen d'y écrire à confirmer au lot du service : webhook du salon, sans toucher au bot). | 2026-10-24 |
+| S16 Maquette | Validée (`maquette/public.html`, Q28, « ok pour tout ») : « Industrialist Production Planner » / « Planificateur Industrialist », « Non officiel » à côté du nom, FR / EN, « 💬 Remarque » et « ? » dans l'en-tête ; pied de page en trois lignes ; aperçu Discord en anglais (fr_FR en variante) ; fenêtre Remarque (valeur fausse, bogue, idée, traduction ; pseudo facultatif ; « Mes remarques ») et « Envoyer mes corrections » ; Propositions (`#propositions`) hors du menu ; tableau de bord `/tableau/` en français, mot de passe tapé par l'utilisateur sur le Pi ; Discord par un **webhook du salon réservé**, sans toucher au bot ; glossaire proposé, mots du jeu (case, parcelle, modes de construction) à chercher sur le wiki au début de S30 ; ordre S30 → S37, S34 possible en parallèle. | 2026-10-24 |
+| S16 Accessibilité | Tout au clavier ; contrastes suffisants ; cibles d'au moins 24 px au téléphone ; formulaires et boutons lisibles par un lecteur d'écran ; schéma et usine restent visuels, la liste des machines et les textes en sont la version lisible. | 2026-10-24 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 
 ## 6. Journal des sessions
@@ -1379,6 +1464,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-24, S29** (458 tests, déployé) : maquette déjà validée (écran 7 et tableau 8 de `maquette/revue.html`, Q24). **Mon usine en deux onglets** : « Ma partie » (`#usine` : recherches débloquées et « dépenser ses RP », machines spéciales repliées derrière leur compte, ressources et parcelle, production en place, transférer) et « Ma recherche » (`#usine/recherche`, S20 et S21) ; le champ des RP garde le dernier relevé, à côté « Relevé il y a 3 h 35 min de jeu (saisi le …) · ≈ 226 237 RP maintenant » ; la puce RP de l'en-tête, l'arbre, la visite et l'objectif RP mènent à Ma recherche. **Arbre** : option « Débloquer : Panneau / Bulle » (Panneau par défaut, choix gardé, `ind-calc:v1:arbre-bulle`) ; en mode bulle, un clic sur une recherche ouvre à côté d'elle une bulle (prix, état, durée à ton rythme, mêmes boutons que le panneau, ✕ ou Échap), qui suit le glisser et le zoom. **Vocabulaire** : plus d'identifiant de craft (« Craft blast_furnace_09 » dans Comment c'est calculé, « Recette … » dans Contribuer, `recipes/…` dans Mes corrections), plus de nom de champ (`durationS` dans ✎ Corriger), plus de référence du projet (RP-04 à RP-12 → « supposé », MOD-xx → « à relever en jeu », « à m'envoyer », `data/overrides.json`) ; noms numérotés avec une espace (décision S29 Noms, § 5) ; l'énergie en « 4 kMF/s » partout, aussi dans les ⚠ et les cases à corriger (« 4 k » se lit 4 000 MF/s) ; « Débit voisin mieux rempli » → « À 108/min au lieu de 60/min, tes machines tournent à 95 % (85 % ici) » (Light Oil) ; « Recherche manquante pour Craft Assembler (4 825 RP) » et « À débloquer pour tout ce plan (9 735 RP en tout) » ; « Partie importée : N/146 recherches débloquées », le même compte que l'en-tête (non essayé avec un vrai fichier). Test `vocabulaire.test.ts` : plans Crankshaft, Light Oil, Steel Plate (toutes recherches et partie neuve), panneau de chaque bloc, valeurs à vérifier, fiches et arbre, avec les vraies données : aucun identifiant à plusieurs morceaux, nom de champ, référence ni nom collé.
   Contrôlé (navigateur intégré) : Ma partie 1 915 px et Ma recherche 1 994 px au téléphone (375 px, partie d'essai, au-delà du seuil), sans débordement ; bulle ouverte sur Water Pump 2, son bouton ouvre le même dialogue que le panneau (annulé), elle suit le glisser ; partie neuve (port 5187) : 60 Crankshaft/min tapés, les deux nombres de RP nommés ; 17 vues parcourues sans identifiant ni référence. Empreintes de l'usine identiques sur les 8 plans (les noms ne changent pas le calcul).
   À surveiller : en mode « Détaillé » ou avec beaucoup de stations, Ma recherche peut repasser au-dessus de 2 000 px au téléphone ; la pollution reste en « %/h » (F4, pas de mot proposé dans la maquette) ; j'ai d'abord modifié deux fichiers avec `sed` (même contenu), la règle de l'utilisateur est Write/Edit.
+- **2026-10-24, S16** (458 tests, sans code du site, non déployé) : Q13, Q26 (remarques) et Q27 (accessibilité) posées puis répondues (« complètement ok pour touuuut », pseudo Orangentleman, relecture par l'utilisateur, référence mindustryschematics.com, tableau de bord et Propositions finis avant de poster le lien, salon Discord réservé) ; tour du site en nouveau venu (port 5189, `calculateur-public`, 1 366 et 375 px, clair et sombre, contrastes et cibles mesurés par le DOM) → 12 points P1 à P12 ; [PLAN-PUBLIC.md](PLAN-PUBLIC.md) (traduction, forme, visiteurs, remarques, service sur le Pi, lots, risques) ; maquette `maquette/public.html` validée (Q28) ; lots S30 à S37 placés au § 2, S17 après S37.
+  Mesures : ≈ 1 400 textes en dur dans `src/ui`, 800 dans `src/engine`, 55 dans `index.html` ; contrastes trop faibles : bouton principal en sombre 2,4:1, ⚠ de Recettes en clair 3,9:1 ; au téléphone, menu coupé sur les six pages, 11 cibles sous 24 px sur Planifier et 19 sur Ma partie, Recettes 10 500 px ; aucune erreur en console ; Node 24 et ≈ 630 Mo libres sur le Pi (lecture seule, rien modifié).
+  À surveiller : les mots anglais du jeu (case, parcelle, modes de construction) sont à chercher sur le wiki au début de S30 ; les textes SVG (schéma, usine, arbre) faussent la mesure automatique des contrastes : contrôle à l'œil en S33 ; le service des remarques demandera un rechargement de nginx sur le Pi (accord avant, S34).
 - **2026-10-18, après S13** : deux nouveaux retours (R11, R12) ajoutés au plan sous forme de lots de planification, sans code : S16 (site en anglais et ergonomie, pour le Discord) et S17 (bac à sable : construire sa chaîne, tracé des tuyaux à la Mindustry). Questions Q13 et Q14 à poser au début de ces lots. Ordre : S14, S15, S16, S17.
 
 ## 7. Gestion des sessions

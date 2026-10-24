@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S16 — Version publique</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement : ce qui serait ajouté à styles.css. */
+body { background: var(--bg); }
+.mq-bar { max-width: 1120px; margin: 10px auto; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .86rem; background: var(--warn-soft); border-radius: 8px; }
+.mq-bar b { font-weight: 600; }
+.mq-sec { max-width: 1120px; margin: 26px auto 0; padding: 0 16px; }
+.mq-sec > h2 { font: 700 1.1rem var(--f-display); margin-bottom: 4px; }
+.mq-sec > p.mq-note { font-size: .86rem; color: var(--muted); margin-bottom: 10px; max-width: 760px; }
+.mq-q { max-width: 1120px; margin: 30px auto 60px; padding: 10px 16px; background: var(--warn-soft); border-radius: 8px; font-size: .9rem; }
+.mq-q ol { margin: 6px 0 0; padding-left: 22px; }
+.mq-q li { margin: 7px 0; }
+.mq-screen { border: 1px dashed var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); }
+
+/* En-tête public */
+.top-in { max-width: 1280px; }
+.unofficial { font: 600 .66rem var(--f-body, inherit); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 2px; }
+.lang-sw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
+.lang-sw button { border: 0; background: var(--surface); color: var(--muted); font-size: .8rem; font-weight: 600; min-width: 34px; min-height: 28px; cursor: pointer; }
+.lang-sw button[aria-pressed="true"] { background: var(--steel-soft); color: var(--ink); }
+.remark-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; min-height: 28px; padding: 0 10px; font-size: .84rem; cursor: pointer; flex: none; }
+.remark-btn:hover { border-color: var(--accent); }
+.help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; }
+.top-tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.pub-foot { border-top: 1px solid var(--line); padding: 12px 16px; font-size: .8rem; color: var(--muted); display: grid; gap: 4px; }
+.pub-foot a { color: var(--muted); }
+.pub-foot .links { display: flex; gap: 14px; flex-wrap: wrap; }
+.pub-foot .links a { display: inline-block; min-height: 24px; line-height: 24px; color: var(--ink); }
+.fake-page { padding: 18px 16px; }
+.fake-page h1 { font: 700 1.5rem var(--f-display); margin: 6px 0 12px; }
+
+/* Fenêtre Remarque (affichée en place, pas en dialog modal, pour la maquette) */
+.rm-win { max-width: 480px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+.rm-win h3 { font: 700 1.05rem var(--f-display); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.rm-win h3 .x { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; min-width: 28px; min-height: 28px; }
+.rm-types { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.rm-types label { border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; font-size: .84rem; cursor: pointer; min-height: 28px; display: inline-flex; align-items: center; gap: 5px; }
+.rm-types input { margin: 0; }
+.rm-types label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.rm-win textarea { width: 100%; min-height: 110px; resize: vertical; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.rm-win input[type=text] { width: 100%; }
+.rm-meta { font-size: .78rem; color: var(--muted); margin: 8px 0; line-height: 1.45; }
+.rm-meta code { font-size: .76rem; }
+.rm-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.rm-actions .left { margin-right: auto; font-size: .8rem; }
+.rm-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.rm-tabs button { border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 8px; padding: 4px 10px; font-size: .84rem; cursor: pointer; min-height: 28px; }
+.rm-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.rm-mine { display: grid; gap: 8px; }
+.rm-mine .it { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .86rem; }
+.rm-mine .it .h { display: flex; gap: 8px; align-items: baseline; font-size: .78rem; color: var(--muted); }
+.rm-mine .it .ans { margin-top: 6px; border-left: 3px solid var(--accent); padding-left: 8px; }
+.rm-ok { border: 1px solid var(--ok); border-radius: 8px; padding: 10px; font-size: .88rem; }
+.rm-err { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 10px; font-size: .88rem; }
+.hp { position: absolute; left: -9999px; }
+.mq-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.mq-row > div { flex: 1 1 340px; }
+.mq-cap { font-size: .78rem; color: var(--muted); margin: 6px 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+/* Propositions (publique) */
+.pr-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.pr-tools input { flex: 1 1 220px; }
+.pr-list { display: grid; gap: 10px; }
+.pr { display: grid; grid-template-columns: 58px 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.pr-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pr-vote button { width: 44px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-weight: 700; cursor: pointer; }
+.pr-vote button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.pr-vote .n { font: 700 1rem var(--f-mono); }
+.pr-vote small { font-size: .68rem; color: var(--muted); text-align: center; line-height: 1.2; }
+.pr h3 { font: 700 1rem var(--f-display); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pr .st { font: 600 .72rem inherit; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--line); }
+.pr .st.prevu { border-color: var(--steel); background: var(--steel-soft); }
+.pr .st.fait { border-color: var(--ok); }
+.pr .st.refuse { color: var(--muted); }
+.pr .st.propose { border-color: var(--accent); }
+.pr p { font-size: .88rem; margin-top: 4px; }
+.pr .rep { margin-top: 8px; font-size: .86rem; border-left: 3px solid var(--accent); padding-left: 8px; }
+.pr .rep b { font-weight: 600; }
+.pr .meta { font-size: .76rem; color: var(--muted); margin-top: 6px; }
+
+/* Tableau de bord */
+.tb { display: grid; grid-template-columns: 340px 1fr; min-height: 520px; background: var(--surface); }
+.tb-head { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tb-head b { font: 700 1rem var(--f-display); }
+.tb-head .tabs button { min-height: 28px; }
+.tb-head .right { margin-left: auto; font-size: .8rem; color: var(--muted); }
+.tb-list { border-right: 1px solid var(--line); overflow: auto; }
+.tb-filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.tb-filters select { font-size: .8rem; }
+.tb-it { padding: 9px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: .86rem; }
+.tb-it:hover { background: var(--bg); }
+.tb-it.sel { background: var(--accent-soft); }
+.tb-it .h { display: flex; gap: 6px; align-items: baseline; font-size: .74rem; color: var(--muted); }
+.tb-it .h .new { color: var(--accent); font-weight: 700; }
+.tb-it .t { margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tb-det { padding: 14px 18px; display: grid; gap: 12px; align-content: start; }
+.tb-det .quote { background: var(--bg); border-radius: 8px; padding: 10px 12px; font-size: .9rem; white-space: pre-wrap; }
+.tb-det .ctx { font-size: .8rem; color: var(--muted); display: flex; gap: 6px 14px; flex-wrap: wrap; }
+.tb-det label { font-size: .84rem; font-weight: 600; display: grid; gap: 4px; }
+.tb-det textarea { min-height: 70px; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.tb-det .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tb-det .acts .del { margin-left: auto; color: var(--warn); }
+.tb-subj { display: grid; gap: 8px; padding: 10px 12px; }
+.tb-subj .s { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .86rem; display: flex; gap: 10px; align-items: center; }
+.tb-subj .s .n { font: 700 .95rem var(--f-mono); min-width: 2.4em; text-align: right; }
+.tb-subj .s .pub { margin-left: auto; font-size: .76rem; }
+.corr { border: 1px solid var(--steel); border-radius: 8px; padding: 8px 10px; font-size: .84rem; }
+.corr code { font-size: .78rem; }
+.discord { display: flex; gap: 10px; background: #313338; color: #dbdee1; border-radius: 8px; padding: 10px 12px; font-size: .86rem; max-width: 520px; }
+.discord .av { width: 34px; height: 34px; border-radius: 50%; background: #f0913a; flex: none; display: grid; place-items: center; font-weight: 700; color: #1d2126; }
+.discord .n { color: #f2f3f5; font-weight: 600; }
+.discord .n small { color: #949ba4; font-weight: 400; margin-left: 6px; font-size: .74rem; }
+.discord .emb { margin-top: 4px; border-left: 4px solid #f0913a; background: #2b2d31; border-radius: 4px; padding: 8px 10px; }
+.discord a { color: #00a8fc; }
+
+/* Glossaire */
+.gl { width: 100%; border-collapse: collapse; font-size: .86rem; background: var(--surface); border-radius: 10px; overflow: hidden; }
+.gl th, .gl td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.gl th { font-weight: 600; background: var(--steel-soft); }
+.gl .src { font-size: .76rem; color: var(--muted); }
+.gl .ask { color: var(--warn); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .tb { grid-template-columns: 1fr; }
+  .tb-list { border-right: 0; border-bottom: 1px solid var(--line); max-height: 260px; }
+  .mq-screen .mainnav { order: 5; width: 100%; justify-content: space-between; }
+  .mq-screen .mainnav a { padding: 6px 3px; font-size: .84rem; }
+  .brand .long, .unofficial-long { display: none; }
+  .remark-btn .lbl { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="mq-bar">
+  <span><b>Maquette S16</b> — version publique : langue, remarques des joueurs, page Propositions, ton tableau de bord. Rien n'est branché : les boutons montrent seulement les états.</span>
+  <span>Langue de la maquette :</span>
+  <span class="lang-sw" role="group" aria-label="Langue"><button type="button" data-l="fr" aria-pressed="true">FR</button><button type="button" data-l="en" aria-pressed="false">EN</button></span>
+</div>
+
+<!-- ============================================================ 1. EN-TÊTE ET PIED DE PAGE -->
+<section class="mq-sec">
+  <h2>1. En-tête et pied de page publics</h2>
+  <p class="mq-note">Un seul nom partout, la mention « Non officiel » à côté. À droite : le bouton FR / EN (langue du navigateur au premier passage, puis ton choix, gardé), « 💬 Remarque », « ? » (la visite). Le pied de page tient en trois lignes : qui, d'où viennent les données, où écrire. Au téléphone (&lt; 760 px), « Remarque » ne garde que 💬 et le menu tient sans défiler.</p>
+  <div class="mq-screen">
+    <header class="top" style="position: static">
+      <div class="top-in">
+        <a class="brand" href="#"><img src="../public/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span data-fr="Planificateur&lt;span class=&quot;long&quot;&gt; Industrialist&lt;/span&gt;" data-en="&lt;span class=&quot;long&quot;&gt;Industrialist &lt;/span&gt;Production Planner">Planificateur<span class="long"> Industrialist</span></span></a>
+        <span class="unofficial" data-fr="Non officiel" data-en="Unofficial">Non officiel</span>
+        <nav class="mainnav" aria-label="Sections">
+          <a href="#" aria-current="page" data-fr="Planifier" data-en="Plan">Planifier</a>
+          <a href="#" data-fr="Arbre" data-en="Research">Arbre</a>
+          <a href="#" data-fr="Recettes" data-en="Recipes">Recettes</a>
+          <a href="#" data-fr="Mon usine" data-en="My factory">Mon usine</a>
+          <a href="#" data-fr="Contribuer" data-en="Contribute">Contribuer</a>
+        </nav>
+        <div class="top-tools">
+          <span class="lang-sw" role="group" aria-label="Langue / Language"><button type="button" data-l="fr" aria-pressed="true">FR</button><button type="button" data-l="en" aria-pressed="false">EN</button></span>
+          <button type="button" class="remark-btn" data-open="rm">💬 <span class="lbl" data-fr="Remarque" data-en="Feedback">Remarque</span></button>
+          <button type="button" class="help-btn" aria-label="Visite du site">?</button>
+        </div>
+      </div>
+    </header>
+    <div class="fake-page">
+      <h1 data-fr="Que veux-tu produire ?" data-en="What do you want to make?">Que veux-tu produire ?</h1>
+      <p class="muted" data-fr="Choisis un objet et une quantité : le calcul n'utilise que ce que tu as débloqué." data-en="Pick an item and an amount: the plan only uses what you have unlocked.">Choisis un objet et une quantité : le calcul n'utilise que ce que tu as débloqué.</p>
+    </div>
+    <footer class="pub-foot">
+      <span data-fr="Outil de fan, &lt;b&gt;non officiel&lt;/b&gt;, fait par &lt;b&gt;Orangentleman&lt;/b&gt; pour le jeu Roblox Industrialist." data-en="Fan-made, &lt;b&gt;unofficial&lt;/b&gt; tool by &lt;b&gt;Orangentleman&lt;/b&gt; for the Roblox game Industrialist.">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</span>
+      <span data-fr="Données : wiki Industrialist (&lt;a href=&quot;#&quot;&gt;Miraheze&lt;/a&gt;, &lt;a href=&quot;#&quot;&gt;Fandom&lt;/a&gt;), CC BY-NC-SA 4.0, et relevés en jeu. En cas d'écart, le Recipe Book du jeu fait foi." data-en="Data: Industrialist wiki (&lt;a href=&quot;#&quot;&gt;Miraheze&lt;/a&gt;, &lt;a href=&quot;#&quot;&gt;Fandom&lt;/a&gt;), CC BY-NC-SA 4.0, and in-game readings. If they differ, the in-game Recipe Book wins.">Données : wiki Industrialist (<a href="#">Miraheze</a>, <a href="#">Fandom</a>), CC BY-NC-SA 4.0, et relevés en jeu. En cas d'écart, le Recipe Book du jeu fait foi.</span>
+      <span class="links"><a href="#" data-open="rm" data-fr="💬 Envoyer une remarque" data-en="💬 Send feedback">💬 Envoyer une remarque</a><a href="#propositions" data-fr="Propositions des joueurs" data-en="Player suggestions">Propositions des joueurs</a></span>
+    </footer>
+  </div>
+
+  <p class="mq-cap" style="margin-top: 14px" data-fr="Aperçu du lien collé sur Discord (en anglais)" data-en="Link preview on Discord (in English)">Aperçu du lien collé sur Discord (en anglais)</p>
+  <div class="discord">
+    <div class="av">O</div>
+    <div><div class="n">Orangentleman <small>aujourd'hui à 18:02</small></div>
+      <div><a href="#">https://industrialist.myprisme.fr</a></div>
+      <div class="emb"><div style="font-size:.76rem;color:#b5bac1">Industrialist Production Planner</div>
+        <div style="color:#00a8fc;font-weight:600">Industrialist Production Planner (unofficial)</div>
+        <div style="margin-top:2px">Full production chains for Roblox Industrialist: machines, power, floor space and a build plan for every module, based on what you have unlocked.</div>
+        <div style="margin-top:8px;height:90px;border-radius:4px;background:#1d2126;display:grid;place-items:center;color:#9aa7b4;font-size:.8rem">og-image.png (1200 × 630, déjà là)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2. FENÊTRE REMARQUE -->
+<section class="mq-sec">
+  <h2 data-fr="2. La fenêtre « Remarque » (joueur)" data-en="2. The feedback window (player)">2. La fenêtre « Remarque » (joueur)</h2>
+  <p class="mq-note">Elle s'ouvre par « 💬 Remarque » (en-tête ou pied de page). Deux onglets : écrire, et « Mes remarques » (gardées dans le navigateur, avec ta réponse quand tu en écris une). Ce qui part avec la remarque est écrit sous le champ. À droite : après l'envoi, et si le service ne répond pas (le texte est gardé).</p>
+  <div class="mq-row">
+    <div>
+      <p class="mq-cap">Écrire</p>
+      <div class="rm-win" role="dialog" aria-labelledby="rm-t">
+        <h3 id="rm-t"><span data-fr="💬 Une remarque ?" data-en="💬 Feedback">💬 Une remarque ?</span><button type="button" class="x" aria-label="Fermer">✕</button></h3>
+        <div class="rm-tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-rmtab="w" data-fr="Écrire" data-en="Write">Écrire</button><button type="button" role="tab" aria-selected="false" data-rmtab="m" data-fr="Mes remarques (2)" data-en="My feedback (2)">Mes remarques (2)</button></div>
+        <div data-rmpane="w">
+          <div class="rm-types" role="radiogroup" aria-label="Type">
+            <label><input type="radio" name="rmt" checked> <span data-fr="⚠ Valeur fausse" data-en="⚠ Wrong value">⚠ Valeur fausse</span></label>
+            <label><input type="radio" name="rmt"> <span data-fr="🐞 Bogue" data-en="🐞 Bug">🐞 Bogue</span></label>
+            <label><input type="radio" name="rmt"> <span data-fr="💡 Idée" data-en="💡 Idea">💡 Idée</span></label>
+            <label><input type="radio" name="rmt"> <span data-fr="🌐 Traduction" data-en="🌐 Translation">🌐 Traduction</span></label>
+          </div>
+          <textarea aria-label="Ta remarque" data-fr-ph="Dis ce que tu as vu, et ce que le jeu affiche." data-en-ph="Tell what you saw, and what the game shows." placeholder="Dis ce que tu as vu, et ce que le jeu affiche."></textarea>
+          <div class="hint" style="text-align:right">0 / 2 000</div>
+          <label style="font-size:.86rem;display:grid;gap:4px;margin-top:6px"><span data-fr="Pseudo Discord (facultatif, pour te répondre)" data-en="Discord name (optional, so I can reply)">Pseudo Discord (facultatif, pour te répondre)</span><input type="text" placeholder="ex. Orangentleman"></label>
+          <input type="text" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <p class="rm-meta" data-fr="Part avec : la page (&lt;code&gt;Planifier › 60 Crankshaft/min › Usine&lt;/code&gt;), la langue et la version du site. Ni ta partie, ni ton adresse. Rien n'est publié sans l'accord de l'auteur." data-en="Sent along: the page (&lt;code&gt;Plan › 60 Crankshaft/min › Factory&lt;/code&gt;), language and site version. Not your save, not your address. Nothing is made public without the author's approval.">Part avec : la page (<code>Planifier › 60 Crankshaft/min › Usine</code>), la langue et la version du site. Ni ta partie, ni ton adresse. Rien n'est publié sans l'accord de l'auteur.</p>
+          <div class="rm-actions"><a class="left" href="#propositions" data-fr="Voir les propositions ▸" data-en="See suggestions ▸">Voir les propositions ▸</a><button type="button" class="btn" data-fr="Annuler" data-en="Cancel">Annuler</button><button type="button" class="btn primary" data-fr="Envoyer" data-en="Send">Envoyer</button></div>
+        </div>
+        <div data-rmpane="m" hidden>
+          <div class="rm-mine">
+            <div class="it"><div class="h"><b>n° 41</b> · ⚠ <span data-fr="Valeur fausse · il y a 2 jours" data-en="Wrong value · 2 days ago">Valeur fausse · il y a 2 jours</span></div>
+              <div data-fr="Le Gear sort 20 par craft, pas 10." data-en="The Gear outputs 20 per craft, not 10.">Le Gear sort 20 par craft, pas 10.</div>
+              <div class="ans"><b>Orangentleman :</b> <span data-fr="Merci, corrigé (relevé en jeu). En ligne depuis hier." data-en="Thanks, fixed (checked in game). Live since yesterday.">Merci, corrigé (relevé en jeu). En ligne depuis hier.</span></div></div>
+            <div class="it"><div class="h"><b>n° 57</b> · 💡 <span data-fr="Idée · aujourd'hui" data-en="Idea · today">Idée · aujourd'hui</span></div>
+              <div data-fr="Pouvoir partager un plan par un lien." data-en="Share a plan with a link.">Pouvoir partager un plan par un lien.</div>
+              <div class="hint" data-fr="Pas encore de réponse." data-en="No reply yet.">Pas encore de réponse.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="mq-cap" data-fr="Après l'envoi" data-en="After sending">Après l'envoi</p>
+      <div class="rm-ok" data-fr="✓ Reçu, merci ! Ta remarque porte le &lt;b&gt;n° 58&lt;/b&gt;. Tu retrouveras la réponse dans « Mes remarques »." data-en="✓ Received, thanks! Your feedback is &lt;b&gt;#58&lt;/b&gt;. You'll find the reply in “My feedback”.">✓ Reçu, merci ! Ta remarque porte le <b>n° 58</b>. Tu retrouveras la réponse dans « Mes remarques ».</div>
+      <p class="mq-cap" style="margin-top:14px" data-fr="Si le service ne répond pas" data-en="If the service is down">Si le service ne répond pas</p>
+      <div class="rm-err" data-fr="L'envoi n'a pas marché (le service ne répond pas). Ton texte est gardé : réessaie dans un moment." data-en="Sending failed (the service isn't answering). Your text is kept: try again in a moment.">L'envoi n'a pas marché (le service ne répond pas). Ton texte est gardé : réessaie dans un moment.</div>
+      <p class="mq-cap" style="margin-top:14px" data-fr="Dans Contribuer, ✎ Corriger et l'éditeur de bâtiments" data-en="In Contribute, ✎ Fix and the building editor">Dans Contribuer, ✎ Corriger et l'éditeur de bâtiments</p>
+      <div class="panel" style="padding:12px">
+        <b data-fr="Mes corrections" data-en="My fixes">Mes corrections</b> <span class="chip"><span class="n">3</span></span>
+        <p class="hint" style="margin:4px 0 8px" data-fr="Elles servent déjà à tes plans. Envoie-les à l'auteur pour qu'elles servent à tout le monde." data-en="They already apply to your plans. Send them to the author so everyone gets them.">Elles servent déjà à tes plans. Envoie-les à l'auteur pour qu'elles servent à tout le monde.</p>
+        <button type="button" class="btn primary" data-fr="📤 Envoyer mes corrections" data-en="📤 Send my fixes">📤 Envoyer mes corrections</button>
+        <button type="button" class="btn" data-fr="Exporter…" data-en="Export…">Exporter…</button>
+      </div>
+      <p class="mq-cap" style="margin-top:14px" data-fr="Étape ajoutée à la visite" data-en="New step in the tour">Étape ajoutée à la visite</p>
+      <div class="rm-win" style="max-width:none"><div class="hint" style="text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600">8 / 9</div>
+        <b data-fr="Une remarque ? C'est ici" data-en="Feedback? Right here">Une remarque ? C'est ici</b>
+        <p class="hint" style="margin-top:4px" data-fr="Une valeur fausse, un bogue, une idée : « 💬 Remarque » l'envoie à l'auteur, avec la page où tu es. Les demandes qui reviennent souvent sont dans « Propositions »." data-en="A wrong value, a bug, an idea: “💬 Feedback” sends it to the author with the page you're on. Popular requests are listed in “Suggestions”.">Une valeur fausse, un bogue, une idée : « 💬 Remarque » l'envoie à l'auteur, avec la page où tu es. Les demandes qui reviennent souvent sont dans « Propositions ».</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 3. PROPOSITIONS -->
+<section class="mq-sec" id="propositions">
+  <h2 data-fr="3. La page « Propositions » (publique)" data-en="3. The “Suggestions” page (public)">3. La page « Propositions » (publique)</h2>
+  <p class="mq-note">Seulement les sujets que tu as publiés. Le compteur ajoute les remarques rangées dans le sujet et les +1 (un par visiteur), sur le modèle des votes de mindustryschematics.com. Tri : les plus demandés d'abord. Adresse <code>#propositions</code>, liée depuis le pied de page et la fenêtre Remarque, pas depuis le menu.</p>
+  <div class="pr-tools">
+    <input type="search" data-fr-ph="Chercher une proposition…" data-en-ph="Search suggestions…" placeholder="Chercher une proposition…" aria-label="Chercher">
+    <select aria-label="État"><option data-fr="Tous les états" data-en="All states">Tous les états</option><option>Prévu</option><option>Fait</option></select>
+    <select aria-label="Tri"><option data-fr="Les plus demandées" data-en="Most requested">Les plus demandées</option><option>Les plus récentes</option></select>
+  </div>
+  <div class="pr-list">
+    <article class="pr">
+      <div class="pr-vote"><button type="button" aria-pressed="false" aria-label="+1">+1</button><span class="n">23</span><small data-fr="joueurs" data-en="players">joueurs</small></div>
+      <div><h3><span data-fr="Partager un plan par un lien" data-en="Share a plan with a link">Partager un plan par un lien</span> <span class="st prevu" data-fr="Prévu" data-en="Planned">Prévu</span></h3>
+        <p data-fr="Envoyer à un ami le plan affiché (objet, quantité, réglages) sans exporter sa partie." data-en="Send a friend the plan on screen (item, amount, settings) without exporting your save.">Envoyer à un ami le plan affiché (objet, quantité, réglages) sans exporter sa partie.</p>
+        <div class="rep"><b>Orangentleman :</b> <span data-fr="Bonne idée, ça viendra avec le bac à sable." data-en="Good idea, it will come with the sandbox.">Bonne idée, ça viendra avec le bac à sable.</span></div>
+        <div class="meta" data-fr="9 remarques + 14 « +1 » · mis à jour le 24/10/2026" data-en="9 requests + 14 “+1” · updated Oct 24, 2026">9 remarques + 14 « +1 » · mis à jour le 24/10/2026</div></div>
+    </article>
+    <article class="pr">
+      <div class="pr-vote"><button type="button" aria-pressed="true" aria-label="+1">+1</button><span class="n">11</span><small data-fr="joueurs" data-en="players">joueurs</small></div>
+      <div><h3><span data-fr="Turbine modulaire dans le calcul" data-en="Modular turbine in the planner">Turbine modulaire dans le calcul</span> <span class="st propose" data-fr="Proposé" data-en="Suggested">Proposé</span></h3>
+        <p data-fr="La turbine (Tier IV) est marquée « non fiable » : il manque des relevés en jeu." data-en="The turbine (Tier IV) is marked “unreliable”: in-game readings are missing.">La turbine (Tier IV) est marquée « non fiable » : il manque des relevés en jeu.</p>
+        <div class="meta" data-fr="Tu as mis +1 · 6 remarques + 5 « +1 »" data-en="You voted +1 · 6 requests + 5 “+1”">Tu as mis +1 · 6 remarques + 5 « +1 »</div></div>
+    </article>
+    <article class="pr">
+      <div class="pr-vote"><button type="button" aria-pressed="false" aria-label="+1">+1</button><span class="n">7</span><small data-fr="joueurs" data-en="players">joueurs</small></div>
+      <div><h3><span data-fr="Site en anglais" data-en="English version">Site en anglais</span> <span class="st fait" data-fr="Fait ✓" data-en="Done ✓">Fait ✓</span></h3>
+        <div class="meta" data-fr="Exemple de sujet fait (il reste visible, en bas de la liste)" data-en="Example of a done topic (stays visible, at the bottom)">Exemple de sujet fait (il reste visible, en bas de la liste)</div></div>
+    </article>
+  </div>
+  <p class="hint" style="margin-top:6px">Les textes et les nombres de cette page sont des exemples de maquette, pas de vraies remarques.</p>
+</section>
+
+<!-- ============================================================ 4. TABLEAU DE BORD -->
+<section class="mq-sec">
+  <h2>4. Ton tableau de bord (réservé)</h2>
+  <p class="mq-note">Adresse <code>/tableau/</code>, aucune entrée dans le site, mot de passe. Trois onglets : Boîte de réception, Sujets, Corrections. À gauche la liste (filtres type, état, langue), à droite la remarque choisie : ranger dans un sujet, répondre, publier le sujet. En dessous : le message posté dans ton salon Discord à chaque nouvelle remarque. Le tableau de bord reste en français (il n'est que pour toi).</p>
+  <div class="mq-screen">
+    <div class="tb">
+      <div class="tb-head"><b>📥 Remarques</b>
+        <div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" class="btn" data-tbtab="in">Boîte de réception <span class="chip"><span class="n">4 nouvelles</span></span></button><button type="button" role="tab" aria-selected="false" class="btn" data-tbtab="su">Sujets (12)</button><button type="button" role="tab" aria-selected="false" class="btn" data-tbtab="co">Corrections (3)</button></div>
+        <span class="right">Connecté · <a href="#">Exporter tout (JSON)</a> · <a href="#">Se déconnecter</a></span></div>
+      <div class="tb-list" data-tbpane="in">
+        <div class="tb-filters"><select aria-label="Type"><option>Tous les types</option><option>⚠ Valeur fausse</option><option>🐞 Bogue</option><option>💡 Idée</option><option>🌐 Traduction</option><option>📤 Correction</option></select><select aria-label="État"><option>Non rangées</option><option>Toutes</option><option>Répondues</option></select><select aria-label="Langue"><option>FR + EN</option></select></div>
+        <div class="tb-it sel"><div class="h"><span class="new">● nouveau</span> n° 58 · 💡 Idée · EN · il y a 4 min</div><div class="t">Would love to share a plan with a link so my friend can build the same factory.</div></div>
+        <div class="tb-it"><div class="h"><span class="new">● nouveau</span> n° 57 · 💡 Idée · FR · il y a 1 h</div><div class="t">Pouvoir partager un plan par un lien.</div></div>
+        <div class="tb-it"><div class="h"><span class="new">● nouveau</span> n° 56 · 🌐 Traduction · EN · il y a 3 h</div><div class="t">« floor tiles » sounds odd, the game says …</div></div>
+        <div class="tb-it"><div class="h"><span class="new">● nouveau</span> n° 55 · 📤 Correction · FR · hier</div><div class="t">3 corrections : Gear (sortie), Coal Generator (énergie), ports du Smelter</div></div>
+        <div class="tb-it"><div class="h">n° 54 · 🐞 Bogue · EN · hier · rangée dans « Usine lente »</div><div class="t">The factory tab took ages for Electric Motor…</div></div>
+      </div>
+      <div class="tb-det">
+        <div class="quote">Would love to share a plan with a link so my friend can build the same factory.</div>
+        <div class="ctx"><span>Pseudo : <b>steelworker_42</b></span><span>Page : <a href="#">Plan › 60 Gearbox/min › Factory ▸</a></span><span>Langue : EN</span><span>Site : version du 24/10</span></div>
+        <label>Ranger dans un sujet
+          <select><option>Partager un plan par un lien (9 remarques, 14 +1)</option><option>+ Nouveau sujet…</option></select></label>
+        <label>Répondre au joueur (il le lit dans « Mes remarques »)
+          <textarea placeholder="Ta réponse…"></textarea></label>
+        <div class="acts"><button type="button" class="btn primary">Ranger et répondre</button><button type="button" class="btn">Ranger seulement</button><button type="button" class="btn del">Supprimer (abus)…</button></div>
+      </div>
+      <div class="tb-subj" data-tbpane="su" hidden style="grid-column: 1 / -1">
+        <div class="s"><span class="n">23</span><span><b>Partager un plan par un lien</b> · Prévu · ta réponse écrite</span><label class="pub"><input type="checkbox" checked> Publié</label></div>
+        <div class="s"><span class="n">11</span><span><b>Turbine modulaire dans le calcul</b> · Proposé</span><label class="pub"><input type="checkbox" checked> Publié</label></div>
+        <div class="s"><span class="n">4</span><span><b>Usine lente sur les grosses chaînes</b> · Proposé · pas de réponse</span><label class="pub"><input type="checkbox"> Publié</label></div>
+        <p class="hint">Un clic sur un sujet ouvre ses remarques, son état (proposé, prévu, fait, refusé), son titre et sa réponse publique.</p>
+      </div>
+      <div class="tb-subj" data-tbpane="co" hidden style="grid-column: 1 / -1">
+        <div class="corr"><b>n° 55</b> · FR · hier · 3 corrections<br>
+          <code>recettes : gear_01 · sortie Gear 10 → 20 (Miraheze 20, Fandom 10)</code><br>
+          <code>machines : coal_generator · énergie 4 kMF/s → 4,2 kMF/s</code><br>
+          <code>bâtiments : Smelter · 2 ports relevés</code><br>
+          <div class="acts" style="margin-top:6px"><button type="button" class="btn primary">⬇ Télécharger le JSON</button><span class="hint">à intégrer par « Importer… », comme aujourd'hui</span></div></div>
+      </div>
+    </div>
+  </div>
+  <p class="mq-cap" style="margin-top:14px">Message dans ton salon Discord réservé</p>
+  <div class="discord">
+    <div class="av">R</div>
+    <div><div class="n">Remarques Industrialist <small>APP · aujourd'hui à 18:06</small></div>
+      <div class="emb"><b>💡 Idée · n° 58 · EN</b><br>Would love to share a plan with a link so my friend can build the same factory.<br><span style="color:#949ba4">Plan › 60 Gearbox/min › Factory · steelworker_42</span><br><a href="#">Ouvrir dans le tableau de bord</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 5. GLOSSAIRE -->
+<section class="mq-sec">
+  <h2>5. Glossaire français → anglais (à valider avant S30)</h2>
+  <p class="mq-note">Les mots du jeu d'abord. « jeu » = mot déjà cité par toi ou relevé dans le projet ; « proposé » = mon choix, à corriger ; <span class="ask">?</span> = je ne connais pas le mot du jeu, dis-le moi (ou je le cherche sur le wiki au début de S30).</p>
+  <table class="gl">
+    <thead><tr><th>Français (site)</th><th>Anglais</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Planifier · Arbre · Recettes · Mon usine · Contribuer</td><td>Plan · Research · Recipes · My factory · Contribute</td><td class="src">Recipes : jeu (onglet « Recipes ») ; le reste proposé</td></tr>
+      <tr><td>Usine · Schéma · Liste des machines · Détails</td><td>Factory · Chart · Machine list · Details</td><td class="src">proposé</td></tr>
+      <tr><td>Ma partie · Ma recherche</td><td>My game · My research</td><td class="src">proposé</td></tr>
+      <tr><td>case (place au sol : « 2 252 cases »)</td><td class="ask">? (tiles, studs…)</td><td class="src">mot du jeu inconnu</td></tr>
+      <tr><td>parcelle</td><td class="ask">? (plot, land…)</td><td class="src">mot du jeu inconnu</td></tr>
+      <tr><td>tuyau · poteau · câble</td><td>pipe · power pole · wire</td><td class="src">pipe : jeu (« Short Pipe ») ; pole : jeu (« HV Pole ») ; wire proposé</td></tr>
+      <tr><td>collecteur (tuyau commun d'une rangée)</td><td>manifold</td><td class="src">proposé</td></tr>
+      <tr><td>module · module posé ✓</td><td>module · module built ✓</td><td class="src">proposé</td></tr>
+      <tr><td>ordre de pose</td><td>build order</td><td class="src">proposé</td></tr>
+      <tr><td>mode construction : bâtiments (1), câbles (2), tuyaux (3)</td><td>Build mode: buildings (1), wiring (2), pipes (3)</td><td class="src">touches : jeu (S15) ; noms des modes <span class="ask">?</span></td></tr>
+      <tr><td>À évacuer</td><td>Surplus to remove</td><td class="src">proposé</td></tr>
+      <tr><td>Ton plan · Tu peux régler :</td><td>Your plan · You can adjust:</td><td class="src">proposé</td></tr>
+      <tr><td>valeur à vérifier ⚠</td><td>unverified value ⚠</td><td class="src">proposé</td></tr>
+      <tr><td>Je joue / Je ne joue plus · temps de jeu</td><td>Playing / Not playing · playtime</td><td class="src">proposé</td></tr>
+      <tr><td>RP · RP/s · MF/s · $</td><td>RP · RP/s · MF/s · $</td><td class="src">jeu (inchangés)</td></tr>
+      <tr><td>seuil d'efficacité · « Max RP »</td><td>efficiency threshold · “Max RP before RP/s is nearly zero”</td><td class="src">jeu (Research Tracking Panel, R13)</td></tr>
+      <tr><td>ferme d'arbres · moteur diesel · ensemble modulaire</td><td>tree farm · Diesel Engine · modular build</td><td class="src">Diesel Engine : jeu ; le reste proposé</td></tr>
+      <tr><td>pollution (%/h)</td><td class="ask">? (mot à choisir avec toi, F4)</td><td class="src">reste de la revue</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="mq-q">
+  <b>Questions (Q28)</b> — « ok » suffit si la proposition te va.
+  <ol>
+    <li><b>En-tête</b> : nom, « Non officiel », FR / EN, « 💬 Remarque », « ? » (écran 1) : ça te va ? Et en français, « <b>Planificateur Industrialist</b> » (au lieu de « Calculateur Industrialist ») ?</li>
+    <li><b>Aperçu Discord en anglais</b> (la communauté du jeu est surtout anglophone), avec le français en variante : d'accord ?</li>
+    <li><b>Fenêtre Remarque</b> (écran 2) : les quatre types, le pseudo facultatif, « Mes remarques » dans la même fenêtre, « 📤 Envoyer mes corrections » dans Contribuer : ça te va ?</li>
+    <li><b>Propositions</b> (écran 3) : seulement tes sujets publiés, compteur = remarques + « +1 », les « faits » restent en bas ; pas d'entrée dans le menu (pied de page et fenêtre seulement). D'accord ?</li>
+    <li><b>Tableau de bord</b> (écran 4) : à l'adresse <code>/tableau/</code>, en français seulement, avec un mot de passe que tu choisiras (je ne le vois jamais : tu le tapes toi-même sur le Pi). D'accord ?</li>
+    <li><b>Discord</b> : tu as un salon réservé où « le bot a accès ». Pour ne jamais toucher à MyPrism, je propose un <b>webhook du salon</b> (Paramètres du salon › Intégrations › Webhooks › Nouveau webhook, puis tu colles son adresse sur le Pi) : le service y poste sans passer par le bot. D'accord, ou tu veux que ce soit ton bot qui poste (il faudrait alors modifier MyPrism, ce qui est hors de la règle) ?</li>
+    <li><b>Glossaire</b> (écran 5) : corrige ce qui sonne faux, et donne les mots du jeu pour « case », « parcelle » et les noms des modes de construction si tu les connais. Sinon, je les cherche sur le wiki au début de S30.</li>
+    <li><b>Ordre des lots</b> S30 → S37 (plan § 2), avec S34 (le service) possible en parallèle : ça te va ?</li>
+  </ol>
+</div>
+
+<script>
+// Maquette seulement : bascule de langue et onglets.
+function setLang(l) {
+  document.documentElement.lang = l;
+  for (const b of document.querySelectorAll('[data-l]')) b.setAttribute('aria-pressed', String(b.dataset.l === l));
+  for (const e of document.querySelectorAll('[data-fr]')) e.innerHTML = e.dataset[l] ?? e.dataset.fr;
+  for (const e of document.querySelectorAll('[data-fr-ph]')) e.placeholder = l === 'en' ? e.dataset.enPh : e.dataset.frPh;
+}
+for (const b of document.querySelectorAll('[data-l]')) b.addEventListener('click', () => setLang(b.dataset.l));
+for (const b of document.querySelectorAll('[data-rmtab]')) b.addEventListener('click', () => {
+  for (const x of document.querySelectorAll('[data-rmtab]')) x.setAttribute('aria-selected', String(x === b));
+  for (const p of document.querySelectorAll('[data-rmpane]')) p.hidden = p.dataset.rmpane !== b.dataset.rmtab;
+});
+for (const b of document.querySelectorAll('[data-tbtab]')) b.addEventListener('click', () => {
+  for (const x of document.querySelectorAll('[data-tbtab]')) x.setAttribute('aria-selected', String(x === b));
+  const t = b.dataset.tbtab;
+  for (const p of document.querySelectorAll('[data-tbpane]')) p.hidden = p.dataset.tbpane !== t;
+  document.querySelector('.tb-det').hidden = t !== 'in';
+});
+for (const b of document.querySelectorAll('.pr-vote button')) b.addEventListener('click', () => {
+  const on = b.getAttribute('aria-pressed') !== 'true';
+  b.setAttribute('aria-pressed', String(on));
+  const n = b.parentElement.querySelector('.n'); n.textContent = String(Number(n.textContent) + (on ? 1 : -1));
+});
+</script>
+</body>
+</html>
