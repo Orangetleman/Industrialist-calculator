@@ -8,10 +8,11 @@ import type { StationKind } from "../engine/research-points.ts";
 import { esc, fmt, fmtDuration, fmtRP } from "./format.ts";
 
 const TIER_N: Record<StationKind, string> = { rs1: "1", rs2: "2", rs3: "3", rs4: "4" };
-const STATION_N: Record<StationKind, string> = { rs1: "Research Station1", rs2: "Research Station2", rs3: "Research Station3", rs4: "Research Station3 + Research Station4" };
+const STATION_N: Record<StationKind, string> = { rs1: "Research Station 1", rs2: "Research Station 2", rs3: "Research Station 3", rs4: "Research Station 3 + Research Station 4" };
 
 /** Étiquette « supposé », avec le relevé qui le confirmera. */
-export const assumed = (ref: string) => `<span class="supp" title="Pas encore confirmé en jeu : voir data/a-verifier.md">supposé (${esc(ref)})</span>`;
+/** « supposé » : pas encore confirmé en jeu ; la référence de la question (data/a-verifier.md) reste dans `data-ref`, pas à l'écran (S29). */
+export const assumed = (ref: string) => `<span class="supp" data-ref="${esc(ref)}" title="Pas encore confirmé en jeu">supposé</span>`;
 
 const val = (x: number | null) => (x === null ? "" : String(x).replace(".", ","));
 const input = (attr: string, v: number | null, cls = "", ph = "—") => `<input ${attr} inputmode="decimal" autocomplete="off" class="${cls}" value="${esc(val(v))}" placeholder="${esc(ph)}">`;
@@ -86,6 +87,8 @@ export type ResearchOutArgs = {
   overSince?: number | null;
   /** Ajouter « Comment c'est calculé » (sinon, la page l'affiche à part). */
   how?: boolean;
+  /** Tableau des seuils déplié (le joueur l'a ouvert avant le rafraîchissement). */
+  stepsOpen?: boolean;
 };
 
 const clock = (ms: number) => new Date(ms).toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit" });
@@ -149,14 +152,14 @@ export function renderResearchOut(a: ResearchOutArgs): string {
       const at = t0 + timeToReach(tiers, a.rp0!, rp) * 1000;
       return at <= a.now ? `atteint il y a ${fmtDuration((a.now - at) / 1000)} de jeu` : `dans ${fmtDuration((at - a.now) / 1000)} de jeu${realAt(a, at)}`;
     };
-    out.push(`<div class="tw"><table class="mini rs-steps"><thead><tr><th>Solde de RP</th><th>Atteint</th><th>Vitesse à ce moment</th></tr></thead><tbody>${rows
+    const lin = a.linearNow !== null && a.linearNow > rpNow * 1.01 ? ` En ligne droite (sans le seuil), le site aurait compté ${esc(fmtRP(a.linearNow))} maintenant.` : "";
+    // S29 : replié (Mon usine tient en moins de 2 000 px au téléphone) ; `stepsOpen` garde le dépliage au rafraîchissement.
+    out.push(`<details class="more rs-steps-d"${a.stepsOpen ? " open" : ""}><summary>Quand ta vitesse baisse : seuils et « Max RP »</summary><div class="tw"><table class="mini rs-steps"><thead><tr><th>Solde de RP</th><th>Atteint</th><th>Vitesse à ce moment</th></tr></thead><tbody>${rows
       .map((r) => {
         const v = rateAt(tiers, r.rp);
         return `<tr><td>${esc(r.label)}</td><td class="num">${esc(when(r.rp))}</td><td class="num">${esc(fmt(v, 2))} RP/s (${esc(fmt((v / nominal) * 100, 0))} %)</td></tr>`;
       })
-      .join("")}</tbody></table></div>`);
-    const lin = a.linearNow !== null && a.linearNow > rpNow * 1.01 ? ` En ligne droite (sans le seuil), le site aurait compté ${esc(fmtRP(a.linearNow))} maintenant.` : "";
-    out.push(`<p class="hint">Sans rien dépenser. Les lignes 1,3 × et 2 × seuil servent au relevé RP-04.${lin}</p>`);
+      .join("")}</tbody></table></div><p class="hint">Sans rien dépenser.${lin}</p></details>`);
   }
   if (a.how !== false) out.push(`<details class="more"><summary>Comment c'est calculé</summary>${researchHow(m)}</details>`);
   return out.join("");
@@ -176,7 +179,7 @@ export function researchHow(m: RpModel): string {
       row(
         `Tier ${n} : vitesse`,
         t.kind === "rs1" ? `√${esc(fmt(t.sum.value, 0))} = ${esc(fmt(t.stationsRate, 2))} RP/s` : `V = ${esc(fmt(t.sum.value, 2))} ; 2 × V^0,6 = ${esc(fmt(t.stationsRate, 2))} RP/s`,
-        t.kind === "rs1" ? "wiki, Research Station1" : "V : somme des valeurs de recherche des items de toutes les stations du tier, −30 % si les deux items d'une station sont identiques (wiki)",
+        t.kind === "rs1" ? "wiki, Research Station 1" : "V : somme des valeurs de recherche des items de toutes les stations du tier, −30 % si les deux items d'une station sont identiques (wiki)",
       );
       row(
         `Tier ${n} : seuil`,
@@ -185,7 +188,7 @@ export function researchHow(m: RpModel): string {
           : `C = ${esc(fmt(t.sum.factor, 3))} ; ${t.kind === "rs3" ? "16 500 × (log₂(C + 1) + √C)" : "150 000 × (log₂(C + 1) + C^0,9)"} = ${esc(fmtRP(t.cap))}`,
         t.kind === "rs3" || t.kind === "rs4" ? `C = somme, station par station, de log₄(prix moyen ÷ 600) + 1 (wiki) ; items différents d'une station à l'autre : ${assumed("RP-11")}` : "wiki, nombre de stations du tier",
       );
-      if (t.circuits) row(`Tier ${n} : circuits Logic`, `${esc(fmt(t.circuits, 2))} RP/s sous le seuil`, `wiki, Research Station4 ; ${assumed("RP-09")}`);
+      if (t.circuits) row(`Tier ${n} : circuits Logic`, `${esc(fmt(t.circuits, 2))} RP/s sous le seuil`, `wiki, Research Station 4 ; ${assumed("RP-09")}`);
     } else {
       row(`Tier ${n}`, `${esc(fmt(t.stationsRate, 2))} RP/s ; seuil ${t.capMissing ? "non renseigné" : esc(fmtRP(t.cap))}`, "recopiés du panneau");
     }

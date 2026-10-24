@@ -1,5 +1,7 @@
 // Mise en forme des nombres et libellés (pur, sans DOM).
 
+import type { VerifyFlag } from "../engine/types.ts";
+
 const nf = (d: number) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: d });
 const cache = new Map<number, Intl.NumberFormat>();
 
@@ -23,6 +25,31 @@ export function fmtMF(w: number | null): string {
   if (a >= 1e6) return `${fmt(w / 1e6, 2)} MMF/s`;
   if (a >= 1e3) return `${fmt(w / 1e3, 1)} kMF/s`;
   return `${fmt(w, 0)} MF/s`;
+}
+
+/** Énergie dans une case à corriger (S29, comme ailleurs) : « 4 k » pour 4 000 MF/s, « 2,5 M », « 30 ». */
+export function energyInputText(w: number | null): string {
+  if (w === null || !Number.isFinite(w)) return "";
+  const a = Math.abs(w);
+  const t = a >= 1e9 ? `${fmt(w / 1e9, 4)} G` : a >= 1e6 ? `${fmt(w / 1e6, 4)} M` : a >= 1e3 ? `${fmt(w / 1e3, 4)} k` : fmt(w, 4);
+  return t.replace(/\s(?=\d)/g, "");
+}
+
+/** Lit une énergie saisie en MF/s : « 4500 », « 4,5 k », « 4,5 kMF/s », « -2 M » ; null si ce n'est pas un nombre. */
+export function parseEnergy(raw: string): number | null {
+  const m = /^([-+−]?\d+(?:[.,]\d+)?)\s*([kKmMgG]?)\s*(?:MF(?:\/s)?)?$/.exec(raw.replace(/[\s  ](?=\d)/g, "").trim());
+  if (!m) return null;
+  const n = Number(m[1]!.replace("−", "-").replace(",", "."));
+  const mult = { "": 1, k: 1e3, m: 1e6, g: 1e9 }[m[2]!.toLowerCase() as "" | "k" | "m" | "g"];
+  return Number.isFinite(n) ? n * mult : null;
+}
+
+/** Le doute du wiki, avec ses unités : « 15 s (Miraheze) ou 17,2 s (Fandom) » ; sinon le texte relevé (S28). */
+export function doubtText(f: Pick<VerifyFlag, "field" | "detail"> & Partial<VerifyFlag>): string {
+  const pairs = [...f.detail.matchAll(/(Miraheze|Fandom|wiki|jeu)\s*:\s*(-?[\d.]+)/gi)].map((m) => ({ src: m[1]!, n: Number(m[2]) }));
+  if (pairs.length < 2 || pairs.some((p) => !Number.isFinite(p.n))) return f.detail;
+  const unit = (n: number) => (f.field === "durationS" ? `${fmt(n, 2)} s` : f.field === "energyMFps" ? fmtMF(n) : fmt(n, 3));
+  return pairs.map((p) => `${unit(p.n)} (${p.src})`).join(" ou ");
 }
 
 export function fmtMoney(x: number | null): string {
@@ -87,7 +114,7 @@ export function fieldLabel(field: string, name: (id: string) => string): string 
   return (
     {
       durationS: "durée du cycle (s)",
-      energyMFps: "énergie (MF/s)",
+      energyMFps: "énergie",
       outputs: "sorties",
       cost: "prix ($)",
       size: "taille (cases)",
@@ -115,6 +142,10 @@ export function parseInput(field: string, raw: string): { ok: true; value: unkno
   if (field === "size") {
     const m = /^(\d+(?:[.,]\d+)?)\s*[x×*]\s*(\d+(?:[.,]\d+)?)$/i.exec(t);
     return m ? { ok: true, value: { w: Number(m[1]!.replace(",", ".")), l: Number(m[2]!.replace(",", ".")) } } : { ok: false, error: "format attendu : 8x8" };
+  }
+  if (field === "energyMFps") {
+    const e = parseEnergy(t);
+    return e === null ? { ok: false, error: "nombre de MF/s attendu (ex. 4500 ou 4,5 k)" } : { ok: true, value: e };
   }
   const n = Number(t.replace(/\s/g, "").replace(",", "."));
   if (!t || !Number.isFinite(n)) return { ok: false, error: "nombre attendu" };

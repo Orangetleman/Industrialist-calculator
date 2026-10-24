@@ -5,7 +5,7 @@ import type { GameData } from "../engine/data.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, VerifyEntry } from "../engine/solve.ts";
 import type { OverridesFile, Recipe, Source } from "../engine/types.ts";
-import { esc, fieldLabel, fmt, fmtRP, isEditableField, REASON_LABEL } from "./format.ts";
+import { esc, fieldLabel, fmt, fmtMF, fmtRP, isEditableField, REASON_LABEL } from "./format.ts";
 import { noteKey, type Notes, type Settings } from "./state.ts";
 
 export type Ctx = { data: GameData; plan: Plan; settings: Settings; corrections: OverridesFile };
@@ -66,7 +66,7 @@ export function accessButton(a: Step["access"]): string {
 export function lockText(ctx: Ctx, a: Step["access"]): string {
   if (a.available) return "";
   if (a.needsOwnership) return `Il faut posséder la machine ${machineN(ctx, a.machine)} (elle ne se débloque pas par la recherche).`;
-  return `Recherche manquante : ${a.missingNodes.map((n) => nodeN(ctx, n)).join(" → ")} (${fmtRP(a.rpCost)})${a.reqItems.length ? ` et vendre ${a.reqItems.map((r) => `${r.amount} ${itemN(ctx, r.item)}`).join(", ")}` : ""}.`;
+  return `Recherche manquante pour ${machineN(ctx, a.machine)} : ${a.missingNodes.map((n) => nodeN(ctx, n)).join(" → ")} (${fmtRP(a.rpCost)})${a.reqItems.length ? ` et vendre ${a.reqItems.map((r) => `${r.amount} ${itemN(ctx, r.item)}`).join(", ")}` : ""}.`;
 }
 
 export const LEAF_TEXT: Record<string, string> = {
@@ -102,11 +102,12 @@ export function allVerifyEntries(ctx: Pick<Ctx, "data" | "plan">): VerifyEntry[]
   return out;
 }
 
-function showValue(v: unknown): string {
+/** Valeur lisible ; l'énergie avec son préfixe comme ailleurs (« 4 kMF/s », S29). */
+function showValue(v: unknown, field = ""): string {
   if (v === null || v === undefined) return "—";
-  if (typeof v === "number") return fmt(v, 4);
+  if (typeof v === "number") return field === "energyMFps" ? fmtMF(v) : fmt(v, 4);
   if (typeof v === "object" && v && "w" in v && "l" in v) return `${(v as { w: number }).w}×${(v as { l: number }).l}`;
-  if (Array.isArray(v)) return v.map(showValue).join(" – ");
+  if (Array.isArray(v)) return v.map((x) => showValue(x, field)).join(" – ");
   const s = String(v);
   return s.length > 80 ? `${s.slice(0, 79)}…` : s;
 }
@@ -129,16 +130,14 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
     const head = list[0]!;
     const isRecipe = head.scope === "recette";
     const entity = isRecipe ? ctx.data.recipes.get(head.id) : ctx.data.machines.get(head.id);
-    const title = isRecipe
-      ? `Recette <code>${esc(head.id)}</code> · ${esc(machineN(ctx, (entity as Recipe | undefined)?.machine ?? ""))} → ${esc(itemN(ctx, head.item))}`
-      : `Machine ${esc(machineN(ctx, head.id))}`;
+    const title = isRecipe ? `Craft : ${esc(machineN(ctx, (entity as Recipe | undefined)?.machine ?? ""))} → ${esc(itemN(ctx, head.item))}` : `Machine ${esc(machineN(ctx, head.id))}`;
     const primary = entity?.sources[0];
     const rows = list
       .map((v) => {
         const editable = isEditableField(head.scope, v.flag.field);
         const scopeKey = isRecipe ? "recipes" : "machines";
         const fid = `fix-${v.id}-${v.flag.field}`;
-        const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value))}</b> selon ${sourceLink(a.source)}`).join(" ; ");
+        const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value, v.flag.field))}</b> selon ${sourceLink(a.source)}`).join(" ; ");
         // Pour une contradiction, le détail répète les valeurs : on le remplace par « retenu / autre ».
         const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${esc(v.flag.detail)}</div>`;
         const nk = noteKey(scopeKey, v.id, v.flag.field);
@@ -150,12 +149,12 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
         const input = editable
           ? `<form class="fix" data-scope="${scopeKey}" data-id="${esc(v.id)}" data-field="${esc(v.flag.field)}">
               <label for="${esc(fid)}">Valeur relevée en jeu</label>
-              <input id="${esc(fid)}" name="value" inputmode="decimal" placeholder="${v.flag.field === "size" ? "ex. 8x8" : `actuel : ${esc(showValue(currentValue(ctx, v)))}`}" autocomplete="off">
+              <input id="${esc(fid)}" name="value" inputmode="decimal" placeholder="${v.flag.field === "size" ? "ex. 8x8" : v.flag.field === "energyMFps" ? `actuel : ${esc(showValue(currentValue(ctx, v), v.flag.field))} (ex. 4,5 k)` : `actuel : ${esc(showValue(currentValue(ctx, v)))}`}" autocomplete="off">
               <button type="submit">Appliquer</button><span class="fix-error" role="alert"></span></form>`
-          : `<p class="muted vdetail">Ce champ ne se corrige pas ici (voir <code>data/overrides.json</code>).</p>`;
+          : `<p class="muted vdetail">Ce champ ne se corrige pas ici : laisse une note.</p>`;
         return `<li class="vrow"><div class="vhead"><span class="vfield">${esc(fieldLabel(v.flag.field, (id) => itemN(ctx, id)))}</span>
             <span class="badge ${esc(v.flag.reason)}">${esc(REASON_LABEL[v.flag.reason] ?? v.flag.reason)}</span></div>
-          <div class="vvals">Retenu : <b class="num">${esc(showValue(currentValue(ctx, v)))}</b>${primary ? ` selon ${sourceLink(primary)}` : ""}${alts ? ` · Autre : ${alts}` : ""}</div>
+          <div class="vvals">Retenu : <b class="num">${esc(showValue(currentValue(ctx, v), v.flag.field))}</b>${primary ? ` selon ${sourceLink(primary)}` : ""}${alts ? ` · Autre : ${alts}` : ""}</div>
           ${detail}${input}${noteBox}</li>`;
       })
       .join("");
@@ -169,10 +168,18 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
 
 export function renderCorrections(ctx: Ctx): string {
   const rows: string[] = [];
+  // S29 : ce qui est corrigé, en noms du jeu (plus « recipes/blast_furnace_09 »).
+  const what = (scope: "recipes" | "machines" | "items" | "research", id: string) => {
+    if (scope === "recipes") {
+      const r = ctx.data.recipes.get(id);
+      return r ? `Craft : ${machineN(ctx, r.machine)} → ${Object.keys(r.outputs).map((i) => itemN(ctx, i)).join(", ")}` : "Craft retiré des données";
+    }
+    return scope === "machines" ? `Machine ${machineN(ctx, id)}` : scope === "items" ? `Objet ${itemN(ctx, id)}` : `Recherche ${nodeN(ctx, id)}`;
+  };
   for (const scope of ["recipes", "machines", "items", "research"] as const) {
     for (const [id, fields] of Object.entries(ctx.corrections[scope] ?? {})) {
       for (const [field, entry] of Object.entries(fields)) {
-        rows.push(`<li><code>${esc(scope)}/${esc(id)}</code> · ${esc(fieldLabel(field, (x) => itemN(ctx, x)))} = <b>${esc(showValue(entry.value))}</b> <span class="muted">(${esc(entry.source.fetchedAt.slice(0, 10))})</span>
+        rows.push(`<li>${esc(what(scope, id))} · ${esc(fieldLabel(field, (x) => itemN(ctx, x)))} = <b>${esc(field === "machine" && typeof entry.value === "string" ? machineN(ctx, entry.value) : showValue(entry.value, field))}</b> <span class="muted">(${esc(entry.source.fetchedAt.slice(0, 10))})</span>
           <button type="button" class="link" data-remove="${esc(scope)}|${esc(id)}|${esc(field)}">retirer</button></li>`);
       }
     }

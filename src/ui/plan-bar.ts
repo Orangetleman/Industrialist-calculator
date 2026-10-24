@@ -7,7 +7,7 @@ import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Step, VerifyEntry } from "../engine/solve.ts";
 import type { VerifyFlag } from "../engine/types.ts";
 import { DEFAULT_DIESEL, type DieselChoice } from "./diesel.ts";
-import { esc, fmt, fmtMF } from "./format.ts";
+import { doubtText, esc, fmt, fmtMF } from "./format.ts";
 import { screenText } from "./iface-view.ts";
 import { filterSummary } from "./mfilter-view.ts";
 import { itemN, machineN, type Ctx } from "./render.ts";
@@ -36,13 +36,8 @@ export function fieldWord(v: Pick<Ctx, "data">, field: string): string {
   return ({ durationS: "durée", energyMFps: "énergie", cost: "prix", size: "taille", machine: "machine", parts: "bâtiments de l'installation", pollutionPerHour: "pollution", unlockedBy: "recherche qui la débloque" } as Record<string, string>)[head] ?? field;
 }
 
-/** Le doute du wiki, avec ses unités : « 15 s (Miraheze) ou 17,2 s (Fandom) » ; sinon le texte relevé. */
-export function doubtText(f: VerifyFlag): string {
-  const pairs = [...f.detail.matchAll(/(Miraheze|Fandom|wiki|jeu)\s*:\s*(-?[\d.]+)/gi)].map((m) => ({ src: m[1]!, n: Number(m[2]) }));
-  if (pairs.length < 2 || pairs.some((p) => !Number.isFinite(p.n))) return f.detail;
-  const unit = (n: number) => (f.field === "durationS" ? `${fmt(n, 2)} s` : f.field === "energyMFps" ? fmtMF(n) : fmt(n, 3));
-  return pairs.map((p) => `${unit(p.n)} (${p.src})`).join(" ou ");
-}
+// Le doute du wiki en mots de joueur (S28) : défini dans format.ts (S29, aussi pour les fiches Recettes).
+export { doubtText };
 
 /** Attribut d'un ⚠ : de quoi ouvrir la correction (portée, id, champ, objet de la fiche). */
 export const fixAttr = (e: Pick<VerifyEntry, "scope" | "id" | "item" | "flag">) => `data-fix="${esc(`${e.scope}|${e.id}|${e.flag.field}|${e.item}`)}"`;

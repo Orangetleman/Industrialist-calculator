@@ -17,6 +17,8 @@ import type { Goal, ResultTab } from "./state.ts";
 // « Contribuer » (#contribuer ; les adresses #donnees… restent lues).
 export type Page = "plan" | "usine" | "arbre" | "recettes" | "donnees";
 export type DataTab = "verifier" | "batiments";
+/** Onglet de Mon usine (S29) : « Ma partie » (#usine) ou « Ma recherche » (#usine/recherche). */
+export type UsineTab = "partie" | "recherche";
 export type RecipeKind = "objet" | "machine";
 /** Valeur à vérifier visée par un lien ⚠ (recette ou machine, et le champ). */
 export type VerifyTarget = { scope: "recette" | "machine"; id: string; field?: string };
@@ -27,6 +29,7 @@ export type Route = {
   step?: string;
   focus?: string;
   dataTab?: DataTab;
+  usineTab?: UsineTab;
   machine?: string;
   verify?: VerifyTarget;
   card?: { kind: RecipeKind; id: string; craft?: string };
@@ -77,6 +80,7 @@ export function parseRoute(hash: string): Route {
     if ((a === "objet" || a === "machine") && b) r.card = { kind: a, id: b, ...(c ? { craft: c } : {}) };
     return r;
   }
+  if (head === "usine") return a === "recherche" ? { page: "usine", usineTab: "recherche" } : { page: "usine" };
   return (PAGES as string[]).includes(head) && head !== "plan" ? { page: head as Page } : { page: "plan" };
 }
 
@@ -99,6 +103,9 @@ export function routeHash(r: Route): string {
   } else if (r.page === "recettes") {
     parts.push("recettes");
     if (r.card) parts.push(r.card.kind, r.card.id, ...(r.card.craft ? [r.card.craft] : []));
+  } else if (r.page === "usine") {
+    parts.push("usine");
+    if (r.usineTab === "recherche") parts.push("recherche");
   } else parts.push(r.page);
   return `#${parts.map(encodeURIComponent).join("/")}`;
 }
@@ -109,6 +116,7 @@ export function routeTitle(r: Route): string {
   if (r.page === "plan") return r.tab ? TAB_TITLE[r.tab] : GOAL_TITLE[r.goal ?? "objet"];
   if (r.page === "recettes") return r.card ? (r.card.kind === "objet" ? "Fiche de l'objet" : "Fiche de la machine") : "Recettes";
   if (r.page === "donnees") return r.dataTab === "batiments" ? "Éditeur de bâtiments" : r.dataTab === "verifier" ? "Valeurs à vérifier" : "Contribuer";
+  if (r.page === "usine" && r.usineTab === "recherche") return "Ma recherche";
   return PAGE_TITLE[r.page];
 }
 

@@ -671,6 +671,17 @@ details.fold > summary { cursor: pointer; }
 .rs-hud-action { pointer-events: auto; font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; padding: 10px 22px; border-radius: 12px; border: 2px solid #0b5f63; color: #fff; background: linear-gradient(#35d0d5, #138a8f); text-shadow: 0 1px 1px #0006; box-shadow: 0 2px 8px #0008; }
 .rs-hud-action:hover { filter: brightness(1.08); border-color: #0b5f63; }
 .rs-hud-action.undo { background: linear-gradient(#4a525c, #2a3038); border-color: #1d2126; }
+/* S29 : bulle de déblocage à côté de la recherche (option « Débloquer : Bulle »). */
+.rs-bubble { position: absolute; z-index: 3; width: 270px; max-width: calc(100% - 8px); background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 10px; padding: 8px 10px; font-size: .84rem; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 14px #0006; }
+.rs-bubble[hidden] { display: none; }
+.rs-bubble p { margin: 0; }
+.rs-bub-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.rs-bub-x { border: 0; background: none; padding: 0 2px; color: var(--muted); font-size: .9rem; line-height: 1; }
+.rs-bub-st .num { color: #2ec4c9; font-family: var(--f-mono); }
+.rs-bubble .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.rs-bubble .actions button { padding: 4px 10px; font-size: .82rem; }
+.tree-unlockmode { display: inline-flex; align-items: center; gap: 6px; }
+.tree-unlockmode .seg button { padding: 4px 10px; font-size: .82rem; }
 /* Canevas + fiche à droite (comme le panneau « Description » du jeu). */
 .rs-workspace { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
 @media (min-width: 900px) {
@@ -1088,6 +1099,11 @@ ul.rc-err { padding-left: 18px; }
 
 /* ---- Mon usine › Ma recherche (S20) ---- */
 .rs-top-row { justify-content: space-between; }
+/* S29 : l'estimation des RP à côté du dernier relevé. */
+.rp-est { margin: 0; align-self: flex-end; flex: 1 1 160px; padding-bottom: 8px; color: var(--muted); font-size: .85rem; }
+/* Les onglets de Mon usine posent leurs boîtes sans cadre de plus (moins de marges au téléphone). */
+#page-usine .rpanel { background: none; border: 0; padding: 12px 0 0; margin-top: 0; }
+@media (max-width: 600px) { .rs-top-row .seg button { padding: 6px 9px; font-size: .84rem; } }
 #rs-box .tw { overflow-x: auto; }
 table.rp-panel { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 520px; }
 table.rp-panel caption { text-align: left; padding-bottom: 4px; }
@@ -1114,8 +1130,8 @@ table.rs-steps td.num { white-space: normal; }
 .play .state { font-weight: 600; }
 .play.on .state::before { content: "● "; color: var(--ok); }
 .play.off .state::before { content: "○ "; color: var(--muted); }
-.play .hint { flex: 1 1 16em; margin: 0; }
-.play button { font-weight: 600; }
+.play .hint { flex: 1 1 100%; margin: 0; order: 3; }
+.play button { font-weight: 600; margin-left: auto; padding: 4px 12px; }
 .me-play { border: 1px solid var(--line); border-radius: 999px; height: 28px; padding: 0 10px; font-size: .8rem; white-space: nowrap; line-height: 1; background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
 .me-play.on { border-color: var(--ok); color: var(--ok); }
 .rh-title { margin: 6px 0 0; font-size: .95rem; }

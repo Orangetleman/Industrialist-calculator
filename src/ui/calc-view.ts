@@ -368,7 +368,8 @@ export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string 
     rows.push(...countRows(v, s, r, `${num(s.demandPerMin)} ÷ ${num(s.ratePerMachine)}`));
     rows.push(...flowRows(v, s, r, true));
   }
-  const foot = `<p class="calc-foot">Craft <code>${esc(r.id)}</code>${r.verify.length ? ` · ${r.verify.length} valeur${r.verify.length > 1 ? "s" : ""} à vérifier : un ⚠ mène à la valeur, dans la fiche, en mode « ✎ Corriger »` : ""}.</p>`;
+  // S29 : plus l'identifiant interne du craft ; seulement ce qui sert au joueur.
+  const foot = r.verify.length ? `<p class="calc-foot">${r.verify.length} valeur${r.verify.length > 1 ? "s" : ""} à vérifier dans ce craft : un ⚠ mène à la valeur, dans la fiche, en mode « ✎ Corriger ».</p>` : "";
   return panel(name, `${craft}${stepNote(v, s)}${table(rows)}${foot}`, link, ` data-calc-item="${esc(s.item === ENERGY || s.item === POLLUTION ? "" : s.item)}" data-calc-machine="${esc(r.machine)}" data-calc-craft="${esc(r.id)}"`);
 }
 

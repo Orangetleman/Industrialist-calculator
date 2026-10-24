@@ -219,7 +219,8 @@ function tierSuggestion(v: ViewCtx): string {
   const better = p.tiers.filter((t) => !t.current && t.efficiency >= cur.efficiency + 0.05);
   if (!better.length) return "";
   const best = better.sort((a, b) => Math.abs(Math.log(a.ratePerMin / cur.ratePerMin)) - Math.abs(Math.log(b.ratePerMin / cur.ratePerMin)))[0]!;
-  return `<li class="tip">Débit voisin mieux rempli : ${tierButton(v, best)} — machines occupées à ${fmt(best.efficiency * 100, 0)} % (contre ${fmt(cur.efficiency * 100, 0)} % ici).</li>`;
+  // S29 (vocabulaire de la maquette) : « À 60/min au lieu de 30, tes machines tournent à 96 % (91 % ici) ».
+  return `<li class="tip">À ${tierButton(v, best)} au lieu de ${esc(tierUnit(v, cur.ratePerMin))}, tes machines tournent à ${fmt(best.efficiency * 100, 0)} % (${fmt(cur.efficiency * 100, 0)} % ici).</li>`;
 }
 
 function tierUnit(v: ViewCtx, r: number): string {
@@ -251,7 +252,7 @@ function missingNotes(v: ViewCtx): string[] {
   if (e.nodesToUnlock.length) {
     const time = e.rpMissing && e.secondsToRp !== null ? `, ≈ ${esc(fmtDuration(e.secondsToRp))} de jeu à ton rythme` : e.rpMissing ? `, il te manque ${esc(fmtRP(e.rpMissing))}` : "";
     out.push(
-      `<li>À débloquer : ${e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ")} (${esc(fmtRP(e.rpNeeded))}${time})${
+      `<li>À débloquer pour tout ce plan : ${e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ")} (${esc(fmtRP(e.rpNeeded))} en tout${time})${
         e.reqItems.length ? ` et vendre ${e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? " ✓" : ""}`).join(", ")}` : ""
       }. ${unlockButton(e.nodesToUnlock, "C'est fait, je les ai débloquées")}</li>`,
     );

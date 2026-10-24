@@ -160,7 +160,7 @@ export function initBuildings(
       <div class="bld-main">
         <div class="panel" id="bld-intro">
           <h3>Éditeur de bâtiments</h3>
-          <p>Choisis un bâtiment dans la liste, puis pose ses entrées, ses sorties et sa prise électrique sur la grille, en t'aidant si besoin d'une capture d'écran en vue de dessus. « Exporter mes relevés » produit un fichier à m'envoyer.</p>
+          <p>Choisis un bâtiment dans la liste, puis pose ses entrées, ses sorties et sa prise électrique sur la grille, en t'aidant si besoin d'une capture d'écran en vue de dessus. Tes relevés servent tout de suite à tes plans, dans ce navigateur ; « Exporter mes relevés » en fait un fichier, à partager pour que le site les intègre.</p>
           <p class="hint">1 case = 1 Short Pipe. Pose le bâtiment sans le faire pivoter : tous les bâtiments ont 4 rotations (quarts de tour), le calculateur les déduit.</p>
         </div>
         <div class="panel bld-editor" id="bld-editor" hidden>
@@ -633,7 +633,7 @@ export function initBuildings(
       .join(" · ");
   }
   /** ⚠ sur une question encore ouverte (le détail au survol). */
-  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" title="${esc(f!.text)} — voir data/a-verifier.md">⚠ ${esc(f!.question!)}</span>` : "");
+  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" data-ref="${esc(f!.question!)}" title="${esc(f!.text)} — pas encore confirmé en jeu">⚠ à relever</span>` : "");
 
   /** Les quatre cases autour de la grille (blocs par contact) ; cachées pour les autres bâtiments. */
   function renderFaces(): void {

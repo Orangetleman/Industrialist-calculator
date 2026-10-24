@@ -42,7 +42,7 @@ import { renderResearchForm, renderResearchOut, researchHow } from "./research-m
 import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { esc, fmt, fmtDuration, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseInput } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseEnergy, parseInput } from "./format.ts";
 import {
   exportProgress,
   loadJournal,
@@ -71,7 +71,7 @@ import { GOAL_ROUTE, GOAL_TITLE, nextStack, PAGES, parseRoute, routeHash, routeT
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
-import { renderNodeDetail, renderResearchSvg } from "./research-view.ts";
+import { renderNodeBubble, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { createTour, SITE_TOUR } from "./tour.ts";
 import {
   defaultDir,
@@ -515,7 +515,7 @@ function showPage(): void {
     else a.removeAttribute("aria-current");
   }
   document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
-  const titles: Record<Page, string> = { plan: GOAL_TITLE[settings.goal], usine: "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
+  const titles: Record<Page, string> = { plan: GOAL_TITLE[settings.goal], usine: route.usineTab === "recherche" ? "Ma recherche" : "Mon usine", arbre: "Arbre de recherche", recettes: "Recettes", donnees: "Contribuer" };
   document.title = `${titles[page]} — Calculateur de production`;
   document.body.classList.remove("usine-wide");
   render();
@@ -832,7 +832,7 @@ function renderHeader(): void {
   const chips = [
     `<a class="me-chip" href="#usine" title="Recherches débloquées">${unlockedCount()}/${researchTotal()} recherches</a>`,
     rp !== null
-      ? `<a class="me-chip" href="#usine" title="RP disponibles et vitesse réelle (estimés, en temps de jeu)">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
+      ? `<a class="me-chip" href="#usine/recherche" title="RP disponibles et vitesse réelle (estimés, en temps de jeu) : Ma recherche">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? " ⚠ seuil" : ""}` : ""}</a>`
       : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="Argent">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
@@ -919,9 +919,9 @@ function renderPlanPage(): void {
   const mineTiers = rpTiers();
   const mineRate = mineTiers ? nominalRate(mineTiers) : 0;
   const mineCap = mineTiers ? Math.min(...mineTiers.map((t) => t.cap)) : Infinity;
-  $("rp-current-hint").textContent = mineRate
-    ? `(${fmt(mineRate, 2)} RP/s dans Ma recherche${Number.isFinite(mineCap) ? `, seuil ${fmtRP(mineCap)}` : ", sans seuil"})`
-    : "(renseigne-la dans Mon usine › Ma recherche)";
+  $("rp-current-hint").innerHTML = mineRate
+    ? `(${esc(fmt(mineRate, 2))} RP/s dans <a href="#usine/recherche">Ma recherche</a>${Number.isFinite(mineCap) ? `, seuil ${esc(fmtRP(mineCap))}` : ", sans seuil"})`
+    : `(renseigne-la dans <a href="#usine/recherche">Mon usine › Ma recherche</a>)`;
   let goalHint = "";
   if (goal === "recherche" && settings.rpMode === "plan") {
     goalHint = `Plan d'objet utilisé : ${esc(settings.mode === "rate" ? `${fmt(settings.rate, 2)} ${itemName(settings.item)}/min` : `${settings.machines} machines finales de ${itemName(settings.item)}`)} — <a href="#objet">le changer</a>.`;
@@ -1324,7 +1324,7 @@ function renderPose(): void {
   const m = chosen?.plan ?? base;
   const survey = surveyState(m.machine, REPO_PORTS, currentPorts().local);
   const info = renderModuleInfo(m, anyName, survey, plotOf(player));
-  const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
+  const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "ports relevés dans ce navigateur" : "ports pas encore relevés";
   const inFactory = fullFactory()?.plan?.boxes.find((b) => b.key === poseStep);
   const factoryLine = inFactory?.mod
     ? `Dans « Toute l'usine », ce module est recalculé${turnText(inFactory.rot) ? ` et ${turnText(inFactory.rot)}` : ""} (${inFactory.w} × ${inFactory.h} cases) : <button type="button" class="link" data-focus="${esc(poseStep)}">voir sa version dans l'usine</button>`
@@ -1752,10 +1752,15 @@ function applySel(frame: HTMLElement, sel: string | null, pickId: string | null,
 // ---------------------------------------------------------------- Mon usine
 
 function renderUsine(): void {
+  // S29 : deux onglets, « Ma partie » (#usine) et « Ma recherche » (#usine/recherche).
+  const tab = route.usineTab ?? "partie";
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-utab]")) b.setAttribute("aria-selected", String(b.dataset.utab === tab));
+  $("upanel-partie").hidden = tab !== "partie";
+  $("upanel-recherche").hidden = tab !== "recherche";
   const p = toEngineProgress(prog);
   $("progress-summary").textContent = progressSummary(data, p);
   $("progress-meter").style.width = `${Math.round((unlockedCount() / Math.max(1, researchTotal())) * 100)}%`;
-  $("owned").innerHTML = renderOwned(data, p);
+  $("owned").innerHTML = renderOwned(data, p, !!$("owned").querySelector<HTMLDetailsElement>("details")?.open);
   syncPlayerForm();
   renderExisting();
 }
@@ -1768,12 +1773,28 @@ function syncPlayerForm(): void {
   set("p-money", player.money);
   set("p-plotw", player.plotW);
   set("p-ploth", player.plotH);
-  const rp = rpNow();
-  set("p-rp", rp === null ? null : Math.floor(rp));
+  // S29 : le champ garde ton dernier relevé ; l'estimation de maintenant s'affiche à côté (`rp-est`).
+  set("p-rp", player.rp === null ? null : Math.floor(player.rp));
   set("p-rps", player.rpPerSec);
+  renderRpEstimate();
   input("p-spend").checked = player.spendRp;
   input("p-gamepass").checked = player.gamePass;
   renderResearchBox();
+}
+
+/** À côté du relevé : quand il a été fait (temps de jeu depuis) et les RP estimés maintenant, s'ils en diffèrent. */
+function renderRpEstimate(): void {
+  const rp = rpNow();
+  const gNow = gameNow(journal.clock, Date.now());
+  const last = [...journal.events].reverse().find((e) => e.type === "releve" && e.rp !== null);
+  const when = last
+    ? `Relevé ${gNow - last.g < 30_000 ? "sans temps de jeu depuis" : `il y a ${fmtDuration((gNow - last.g) / 1000)} de jeu`} (saisi le ${new Date(last.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })})`
+    : "";
+  const same = rp === null || player.rp === null || Math.floor(rp) === Math.floor(player.rp);
+  const est = rp === null || same ? "" : `≈ ${fmtRP(Math.floor(rp))} maintenant`;
+  const el = $("rp-est");
+  el.textContent = [when, est].filter(Boolean).join(" · ");
+  el.hidden = !el.textContent;
 }
 
 /** « Ma recherche » : le formulaire (à l'ouverture et quand sa forme change) et ce qu'en tire le site. */
@@ -1805,17 +1826,13 @@ function renderRpLive(full = false): void {
   const gNow = gameNow(journal.clock, now);
   refreshPlay(now);
   const h = historyTo(gNow);
-  const last = [...journal.events].reverse().find((e) => e.type === "releve" && e.rp !== null);
-  $("rp-live").textContent =
-    last && last.type === "releve"
-      ? `Dernier relevé : ${fmtRP(last.rp)}, ${gNow - last.g < 30_000 ? "sans temps de jeu depuis" : `il y a ${fmtDuration((gNow - last.g) / 1000)} de jeu`} (saisi le ${new Date(last.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}). Chaque saisie est notée dans le journal.`
-      : "";
+  renderRpEstimate();
   const model = rpModel();
   if (!model) return;
   const base = h.pieces[h.pieces.length - 1] ?? null;
   const nominal = model.source === "aucune" ? 0 : nominalRate(model.tiers);
   const linear = base && nominal > 0 ? base.rp0 + (nominal * (gNow - base.from)) / 1000 : null;
-  $("rs-out").innerHTML = renderResearchOut({ model, rp0: base?.rp0 ?? null, rpAt: base?.from ?? null, rpNow: rpNow(), now: gNow, playing: journal.clock.playing, realNow: now, linearNow: linear, how: false, overSince: overSince(h, model) });
+  $("rs-out").innerHTML = renderResearchOut({ model, rp0: base?.rp0 ?? null, rpAt: base?.from ?? null, rpNow: rpNow(), now: gNow, playing: journal.clock.playing, realNow: now, linearNow: linear, how: false, overSince: overSince(h, model), stepsOpen: !!$("rs-out").querySelector<HTMLDetailsElement>("details.rs-steps-d")?.open });
   const howKey = JSON.stringify([player.research, player.rpPerSec, model.source]);
   if (full || howKey !== rsHowKey) {
     rsHowKey = howKey;
@@ -1865,6 +1882,8 @@ function renderTreePage(focusKey: string | null = null): void {
   $("list-view").hidden = ui.view !== "list";
   for (const b of document.querySelectorAll<HTMLButtonElement>(".seg [data-view]")) b.setAttribute("aria-checked", String(b.dataset.view === ui.view));
   for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-cat]")) tab.setAttribute("aria-selected", String(tab.dataset.cat === treeView.category));
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-unlockmode]")) b.setAttribute("aria-checked", String((b.dataset.unlockmode === "bulle") === treeBubble));
+  document.querySelector<HTMLElement>(".tree-unlockmode")!.hidden = ui.view !== "tree";
   if (ui.view === "list") {
     $("tree").innerHTML = renderTree(data, p, treeView);
     if (focusKey) $("tree").querySelector<HTMLElement>(focusKey)?.focus();
@@ -1903,14 +1922,96 @@ function renderResearchCanvas(focusKey: string | null): void {
   if (treeView.filter.trim()) {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
   }
-  panzoom ??= new PanZoom($("rs-frame"));
+  panzoom ??= new PanZoom($("rs-frame"), { onView: () => placeTreeBubble() });
   const key = treeView.category;
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
   $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow(), rpEta);
   renderHud();
+  renderTreeBubble();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
+}
+
+// ---------------------------------------------------------------- bulle de l'arbre (S29)
+// Option « Débloquer : Bulle » (pas par défaut), comme « Pose : Bulle » de l'éditeur de bâtiments : un clic sur
+// une recherche ouvre une bulle à côté d'elle avec ses boutons, sans aller jusqu'au panneau. Choix gardé ici.
+const KEY_TREE_BUBBLE = "ind-calc:v1:arbre-bulle";
+let treeBubble = (() => {
+  try {
+    return localStorage.getItem(KEY_TREE_BUBBLE) === "1";
+  } catch {
+    return false;
+  }
+})();
+/** Recherche dont la bulle est ouverte. */
+let bubbleFor: string | null = null;
+
+function setTreeBubble(on: boolean): void {
+  treeBubble = on;
+  try {
+    localStorage.setItem(KEY_TREE_BUBBLE, on ? "1" : "0");
+  } catch {
+    // choix non gardé : il vaut pour cette visite
+  }
+  if (!on) bubbleFor = null;
+  renderTreePage();
+}
+
+function renderTreeBubble(): void {
+  const box = $("rs-bubble");
+  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, rpNow(), rpEta) : "";
+  box.innerHTML = html;
+  box.hidden = !html;
+  placeTreeBubble();
+}
+
+/** Clic dans le panneau d'une recherche ou dans sa bulle : aller à une autre, « L'avoir plus vite », débloquer… */
+async function onResearchClick(e: Event): Promise<void> {
+  const t = e.target as HTMLElement;
+  const go = t.closest<HTMLElement>("[data-rs-goto]");
+  if (go) return selectNode(go.dataset.rsGoto!);
+  const faster = t.closest<HTMLElement>("[data-rs-faster]");
+  if (faster) {
+    // « L'avoir plus vite » : l'objectif recherche, réglé sur cette recherche (S22).
+    settings.rpMode = "node";
+    settings.rpNode = faster.dataset.rsFaster!;
+    planDirty = true;
+    saveSettings(settings);
+    location.hash = "#rp";
+    return;
+  }
+  const del = t.closest<HTMLElement>("[data-rs-desc-del]");
+  if (del) {
+    corrections = removeCorrection(corrections, "research", del.dataset.rsDescDel!, "description");
+    saveCorrections(corrections);
+    rebuildData();
+    return update();
+  }
+  const act = t.closest<HTMLElement>("[data-rs-action]");
+  if (!act) return;
+  const id = act.dataset.id!;
+  if (act.dataset.rsAction === "unlock-all") void setProgress({ ...prog, unlocked: [...unlockUpTo(data, toEngineProgress(prog), id)] });
+  else if (act.dataset.rsAction === "unlock-one") void setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, id])] });
+  else if (act.dataset.rsAction === "lock") await toggleNode(id, false);
+}
+
+/** Place la bulle à côté de sa recherche, dans le cadre, et la fait suivre au glisser et au zoom. */
+function placeTreeBubble(): void {
+  const box = $("rs-bubble");
+  if (box.hidden || !bubbleFor) return;
+  const g = $("rs-canvas").querySelector<SVGGElement>(`[data-rs="${CSS.escape(bubbleFor)}"]`);
+  if (!g) return;
+  const r = g.getBoundingClientRect();
+  const f = $("rs-frame").getBoundingClientRect();
+  const bw = box.offsetWidth || 260;
+  const bh = box.offsetHeight || 160;
+  let left = r.right - f.left + 10;
+  if (left + bw > f.width - 4) left = r.left - f.left - 10 - bw;
+  left = Math.max(4, Math.min(f.width - bw - 4, left));
+  const top = Math.max(4, Math.min(f.height - bh - 4, r.top - f.top + r.height / 2 - bh / 2));
+  box.style.left = `${left}px`;
+  box.style.top = `${top}px`;
 }
 
 /** Bandeau du canevas, comme en jeu : coût et état à gauche, bouton d'action à droite. */
@@ -1926,7 +2027,8 @@ function renderHud(): void {
   const unlocked = prog.unlocked.includes(n.id);
   const missing = unlocked ? [] : missingNodes(data, p, n.id).filter((x) => x !== n.id);
   $("rs-hud-info").innerHTML = `<b>${esc(fmtRP(n.rp))}</b> <span>${esc(n.name)} · ${unlocked ? "déjà débloquée" : missing.length ? `${missing.length} prérequis manquant(s)` : "disponible"}</span>`;
-  btn.hidden = false;
+  // Bulle ouverte : ses boutons suffisent (pas de doublon dans le coin du cadre).
+  btn.hidden = treeBubble && bubbleFor === n.id;
   btn.dataset.id = n.id;
   btn.dataset.unlocked = String(unlocked);
   btn.textContent = unlocked ? "Retirer" : missing.length ? `Débloquer (+${missing.length})` : "Débloquer";
@@ -2310,7 +2412,7 @@ function saveCraftEdit(li: HTMLElement, id: string): void {
       if (el.value !== r.machine) next = setCorrection(next, "recipes", id, "machine", el.value, "relevé en jeu (page Recettes)");
       continue;
     }
-    const n = readNum(el.value);
+    const n = field === "energyMFps" ? parseEnergy(el.value) : readNum(el.value);
     const m = /^(inputs|outputs)\.(.+)$/.exec(field);
     const current = m ? r[m[1] as "inputs" | "outputs"][m[2]!] : r[field as "durationS" | "energyMFps"];
     if (n === null && !el.value.trim() && current === null) continue;
@@ -3258,7 +3360,9 @@ function bindUsine(): void {
     savePlayer(player);
     setJournal(parsed.history ?? startJournal(Date.now(), player));
     void setProgress(parsed.progress, { spend: false });
-    $("progress-io-hint").textContent = `Partie importée : ${parsed.progress.unlocked.length} recherche(s).`;
+    // S29 : le même compte que l'en-tête (les recherches acquises d'office comprises).
+    const n = [...data.nodes.values()].filter((x) => !x.isRoot && (x.startUnlocked || parsed.progress.unlocked.includes(x.id))).length;
+    $("progress-io-hint").textContent = `Partie importée : ${n}/${researchTotal()} recherches débloquées.`;
   });
 
   const playerFields: [string, keyof PlayerInfo][] = [
@@ -3361,7 +3465,30 @@ function bindTree(): void {
   $("rs-canvas").addEventListener("click", (e) => {
     if (panzoom?.suppressClick) return;
     const g = (e.target as Element).closest<SVGGElement>("[data-rs]");
+    // Mode bulle (S29) : la bulle s'ouvre à côté de la recherche cliquée ; un clic dans le vide la ferme.
+    if (treeBubble) bubbleFor = g ? g.dataset.rs! : null;
     if (g) selectNode(g.dataset.rs!, false);
+    else if (treeBubble) renderTreeBubble();
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-unlockmode]")) b.addEventListener("click", () => setTreeBubble(b.dataset.unlockmode === "bulle"));
+  const bubble = $("rs-bubble");
+  bubble.addEventListener("pointerdown", (e) => e.stopPropagation()); // pas de glisser du canevas depuis la bulle
+  bubble.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if ((e.target as Element).closest("[data-rsb-close]")) {
+      bubbleFor = null;
+      renderTreeBubble();
+      renderHud();
+      return;
+    }
+    void onResearchClick(e);
+  });
+  $("rs-frame").addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && bubbleFor) {
+      bubbleFor = null;
+      renderTreeBubble();
+      renderHud();
+    }
   });
   $("rs-canvas").addEventListener("keydown", (e) => {
     const g = (e.target as Element).closest<SVGGElement>("[data-rs]");
@@ -3391,34 +3518,7 @@ function bindTree(): void {
     if (btn.dataset.id) await toggleNode(btn.dataset.id, btn.dataset.unlocked !== "true");
   });
   $("rs-hud-action").addEventListener("pointerdown", (e) => e.stopPropagation()); // pas de glisser du canevas
-  $("rs-detail").addEventListener("click", async (e) => {
-    const t = e.target as HTMLElement;
-    const go = t.closest<HTMLElement>("[data-rs-goto]");
-    if (go) return selectNode(go.dataset.rsGoto!);
-    const faster = t.closest<HTMLElement>("[data-rs-faster]");
-    if (faster) {
-      // « L'avoir plus vite » : l'objectif recherche, réglé sur cette recherche (S22).
-      settings.rpMode = "node";
-      settings.rpNode = faster.dataset.rsFaster!;
-      planDirty = true;
-      saveSettings(settings);
-      location.hash = "#rp";
-      return;
-    }
-    const del = t.closest<HTMLElement>("[data-rs-desc-del]");
-    if (del) {
-      corrections = removeCorrection(corrections, "research", del.dataset.rsDescDel!, "description");
-      saveCorrections(corrections);
-      rebuildData();
-      return update();
-    }
-    const act = t.closest<HTMLElement>("[data-rs-action]");
-    if (!act) return;
-    const id = act.dataset.id!;
-    if (act.dataset.rsAction === "unlock-all") void setProgress({ ...prog, unlocked: [...unlockUpTo(data, toEngineProgress(prog), id)] });
-    else if (act.dataset.rsAction === "unlock-one") void setProgress({ ...prog, unlocked: [...new Set([...prog.unlocked, id])] });
-    else if (act.dataset.rsAction === "lock") await toggleNode(id, false);
-  });
+  $("rs-detail").addEventListener("click", (e) => void onResearchClick(e));
   // Description recopiée du jeu : gardée comme une correction (exportable avec les autres).
   $("rs-detail").addEventListener("submit", (e) => {
     const form = (e.target as HTMLElement).closest<HTMLFormElement>("form[data-rs-desc]");
@@ -3441,6 +3541,9 @@ function bindTree(): void {
 function bindData(): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-dtab]")) {
     b.addEventListener("click", () => go({ page: "donnees", dataTab: b.dataset.dtab === "batiments" ? "batiments" : "verifier" }));
+  }
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-utab]")) {
+    b.addEventListener("click", () => go(b.dataset.utab === "recherche" ? { page: "usine", usineTab: "recherche" } : { page: "usine" }));
   }
   // Saisie d'une valeur relevée en jeu
   $("verify").addEventListener("submit", (e) => {
@@ -3630,7 +3733,7 @@ function tickRp(): void {
   if (rp === null || !rpTiers() || !journal.clock.playing) return;
   renderHeader();
   if (page === "usine") {
-    if (document.activeElement !== $("p-rp")) input("p-rp").value = String(Math.floor(rp));
+    renderRpEstimate();
     renderRpLive();
     // Les graphiques avancent avec le temps de jeu, sans gêner une lecture en cours.
     if (Date.now() - lastHistRender > 60_000 && document.querySelector<HTMLElement>("#rs-hist .rh-tip")?.hidden !== false) {

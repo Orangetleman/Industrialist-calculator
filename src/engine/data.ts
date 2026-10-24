@@ -97,10 +97,16 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     for (const f of m.verify) if (f.field === "pollutionPerHour") f.detail = `${f.detail} : la plus forte (${String(m.pollutionPerHour).replace(".", ",")} %/h) est retenue, par prudence`;
   }
   if (files.interfaces) resolveScreenFlags(recipes, files.interfaces.machines);
+  // S29 : « Water Pump2 », « Research Station4 »… (nom du wiki et du jeu, chiffre collé) s'affichent
+  // « Water Pump 2 », « Research Station 4 » : plus lisible (choix de l'utilisateur, 2026-10-24).
+  for (const m of machines.values()) m.name = spacedName(m.name);
   return { data: { items, machines, recipes, nodes, producers: indexProducers(recipes), treeGrowth: structuredClone(files.machines.treeGrowth), removed }, errors, applied };
 }
 
 /** item → recettes qui le produisent (sortie nette > 0 ou quantité inconnue), triées par id. */
+/** « Water Pump2 » → « Water Pump 2 » (chiffre final collé à une minuscule) ; « Press MK2 » ne change pas. */
+export const spacedName = (name: string): string => name.replace(/([a-z])(\d+)$/, "$1 $2");
+
 export function indexProducers(recipes: Map<string, Recipe>): Map<string, Recipe[]> {
   const producers = new Map<string, Recipe[]>();
   for (const r of recipes.values()) {

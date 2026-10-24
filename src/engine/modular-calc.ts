@@ -326,7 +326,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
       parts: toParts(big.parts),
       partsComplete: big.partsComplete !== false,
       sources: big.sources,
-      note: "Configuration la plus connue (Miraheze), Refined Diesel. Une entrée d'air, un échappement et une entrée de carburant (le minimum du wiki) : leur nombre réel est à relever (MOD-14). Vilebrequins d'après le plan de pose (un bloc de côté par côté).",
+      note: "Configuration la plus connue (Miraheze), Refined Diesel. Une entrée d'air, un échappement et une entrée de carburant (le minimum du wiki) : leur nombre réel est à relever en jeu. Vilebrequins d'après le plan de pose (un bloc de côté par côté).",
     });
   }
   // Relevés de configuration (S18) : ceux du dépôt, puis ceux du navigateur ; un relevé remplace la
@@ -442,15 +442,15 @@ export function applyModular(recipes: Map<string, Recipe>, machines: Map<string,
       r.farm = { waterItem: "water", waterLpsPerTree: rates.waterLpsPerSprinkler.value / perSpr, energyPerCutMF: rates.energyPerCutMF.value, ...(geometry ? { geometry } : {}) };
       r.sources = [...r.sources, ...src];
       if (rates.treesPerHarvester.question) {
-        r.verify = [...r.verify, { field: "parts", reason: "approximatif", detail: `${perHarv} arbres par récolteur d'après le guide Miraheze ; le maximum réel est à relever (${rates.treesPerHarvester.question})` }];
+        r.verify = [...r.verify, { field: "parts", reason: "approximatif", detail: `${perHarv} arbres par récolteur d'après le guide Miraheze ; le maximum réel est à relever en jeu` }];
       }
     }
   }
   for (const c of dieselConfigs(file, readings)) {
     if (!c.parts.every((p) => machines.has(p.machine))) continue;
-    const verify: VerifyFlag[] = [{ field: "pollutionPerHour", reason: "manquant", detail: "pollution de l'échappement selon la configuration inconnue (MOD-15)" }];
+    const verify: VerifyFlag[] = [{ field: "pollutionPerHour", reason: "manquant", detail: "pollution de l'échappement selon la configuration inconnue" }];
     if (c.throttleAssumed) verify.push({ field: "energyMFps", reason: "approximatif", detail: "accélérateur non écrit par le tableau du contrôleur : supposé à 100 %" });
-    if (!c.partsComplete) verify.push({ field: "parts", reason: "manquant", detail: "blocs autres que contrôleur, cylindres et générateur à relever (MOD-14) : liste et prix incomplets" });
+    if (!c.partsComplete) verify.push({ field: "parts", reason: "manquant", detail: "blocs autres que contrôleur, cylindres et générateur à relever en jeu : liste et prix incomplets" });
     recipes.set(c.id, {
       id: c.id,
       machine: "diesel-engine-controller",

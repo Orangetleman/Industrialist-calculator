@@ -25,12 +25,12 @@ const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "
 const asm = (id: string) => file.assemblies.find((a) => a.id === id)!;
 
 describe("bloc « Calcul » de l'éditeur", () => {
-  it("ferme du guide (pousse 362,72 s à 0 %) : 29,11 Oak Log/min, eau, électricité, ⚠ MOD-09", () => {
+  it("ferme du guide (pousse 362,72 s à 0 %) : 29,11 Oak Log/min, eau, électricité, ⚠ à relever", () => {
     const t = text(modCalcHtml(file, data, asm("tree-farm"), structuredClone(MODCALC_DEFAULT)));
     expect(t).toContain("29,11 Oak Log/min");
     expect(t).toContain("118,8 L/min");
     expect(t).toContain("48,52 kMF/s");
-    expect(t).toContain("⚠ MOD-09");
+    expect(t).toContain("⚠ à relever");
     expect(t).toContain("776 emplacements");
   });
 
@@ -51,7 +51,7 @@ describe("bloc « Calcul » de l'éditeur", () => {
     st.diesel = { cylinders: 7, airFuel: 14, throttle: 100, fuel: "refined-diesel" };
     expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("À relever");
     st.diesel = { cylinders: 32, airFuel: 14, throttle: 59, fuel: "refined-diesel" };
-    expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("MOD-14");
+    expect(text(modCalcOut(file, data, asm("diesel-engine"), st))).toContain("à relever en jeu");
   });
 
   it("moteur (S18) : carburant, tableau des configurations, relevé en jeu, formulaire du relevé", () => {

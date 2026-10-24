@@ -102,12 +102,44 @@ export type RpEta = (ids: string[]) => { seconds: number; straight: boolean } | 
 function etaLine(n: ResearchNode, path: string[], rp: number | null, eta: RpEta | undefined): string {
   if (!eta) return "";
   const t = eta(path);
-  if (!t) return `<p class="hint rs-eta">Pour savoir quand, saisis tes RP et tes RP/s dans <a href="#usine">Mon usine › Ma recherche</a>.</p>`;
+  if (!t) return `<p class="hint rs-eta">Pour savoir quand, saisis tes RP et tes RP/s dans <a href="#usine/recherche">Mon usine › Ma recherche</a>.</p>`;
   if (!(t.seconds > 0)) return "";
   const what = path.length > 1 ? ` (${path.length} recherches, chacune dépense son coût)` : "";
   return `<p class="rs-eta">≈ <b>${esc(fmtDuration(t.seconds))} de jeu</b> à ton rythme${what}${
     t.straight ? ` <span class="hint">en ligne droite : ton seuil n'est pas saisi dans Ma recherche</span>` : ""
   }. <button type="button" class="link" data-rs-faster="${esc(n.id)}">L'avoir plus vite ▸</button></p>`;
+}
+
+/** Boutons d'une recherche (panneau et bulle) : débloquer, avec ou sans prérequis, ou marquer non débloquée. */
+function nodeActions(data: GameData, p: Progress, n: ResearchNode, missing: string[]): string[] {
+  const actions: string[] = [];
+  if (n.startUnlocked) actions.push(`<p class="hint">Acquise d'office dans un nouveau monde.</p>`);
+  else if (!n.isRoot) {
+    const deps = p.unlocked.has(n.id) ? dependentsOf(data, p, n.id) : [];
+    if (p.unlocked.has(n.id)) actions.push(`<button type="button" data-rs-action="lock" data-id="${esc(n.id)}">Marquer comme non débloquée${deps.length ? ` (+ ${deps.length} dépendante(s))` : ""}</button>`);
+    else if (missing.length) {
+      actions.push(`<button type="button" class="primary" data-rs-action="unlock-all" data-id="${esc(n.id)}">Débloquer avec ses ${missing.length} prérequis (${esc(fmtRP(rpCost(data, [...missing, n.id])))})</button>`);
+      actions.push(`<button type="button" data-rs-action="unlock-one" data-id="${esc(n.id)}">Seulement celle-ci</button>`);
+    } else actions.push(`<button type="button" class="primary" data-rs-action="unlock-one" data-id="${esc(n.id)}">Marquer comme débloquée</button>`);
+  }
+  return actions;
+}
+
+/**
+ * Bulle à côté de la recherche cliquée (S29, option « Débloquer : Bulle ») : prix, état, durée à ton rythme
+ * et les mêmes boutons que le panneau, sans aller jusqu'au panneau. Vide pour la racine.
+ */
+export function renderNodeBubble(data: GameData, p: Progress, id: string | null, rp: number | null, eta?: RpEta): string {
+  const n = id ? data.nodes.get(id) : undefined;
+  if (!n || n.isRoot) return "";
+  const st = nodeState(data, p, n, rp);
+  const missing = p.unlocked.has(n.id) ? [] : missingNodes(data, p, n.id).filter((x) => x !== n.id);
+  const nodeName = (x: string) => data.nodes.get(x)?.name ?? x;
+  return `<div class="rs-bub-head"><b>${esc(n.name)}</b><button type="button" class="rs-bub-x" data-rsb-close aria-label="Fermer la bulle">✕</button></div>
+    <p class="rs-bub-st"><span class="num">${esc(fmtRP(n.rp))}</span> · ${esc(STATE_LABEL[st])}${st === "expensive" && rp !== null ? ` : il te manque ${esc(fmtRP(n.rp - rp))}` : ""}</p>
+    ${st === "expensive" || st === "locked" ? etaLine(n, [...missing, n.id], rp, eta) : ""}
+    ${missing.length ? `<p class="hint">Avant : ${missing.map((x) => esc(nodeName(x))).join(" → ")}</p>` : ""}
+    <div class="actions">${nodeActions(data, p, n, missing).join("")}</div>`;
 }
 
 /** Fiche détaillée d'une recherche (affichée sous l'arbre, comme le panneau du jeu). */
@@ -116,18 +148,9 @@ export function renderNodeDetail(data: GameData, p: Progress, id: string | null,
   if (!n) return `<p class="muted">Clique sur une recherche pour voir ce qu'elle débloque.</p>`;
   const st = nodeState(data, p, n, rp);
   const missing = missingNodes(data, p, n.id).filter((x) => x !== n.id);
-  const deps = p.unlocked.has(n.id) ? dependentsOf(data, p, n.id) : [];
   const nodeName = (x: string) => data.nodes.get(x)?.name ?? x;
   const buildings = n.unlocksMachines.map((m) => data.machines.get(m)).filter((m): m is Machine => !!m);
-  const actions: string[] = [];
-  if (n.startUnlocked) actions.push(`<p class="hint">Acquise d'office dans un nouveau monde.</p>`);
-  else if (!n.isRoot) {
-    if (p.unlocked.has(n.id)) actions.push(`<button type="button" data-rs-action="lock" data-id="${esc(n.id)}">Marquer comme non débloquée${deps.length ? ` (+ ${deps.length} dépendante(s))` : ""}</button>`);
-    else if (missing.length) {
-      actions.push(`<button type="button" class="primary" data-rs-action="unlock-all" data-id="${esc(n.id)}">Débloquer avec ses ${missing.length} prérequis (${esc(fmtRP(rpCost(data, [...missing, n.id])))})</button>`);
-      actions.push(`<button type="button" data-rs-action="unlock-one" data-id="${esc(n.id)}">Seulement celle-ci</button>`);
-    } else actions.push(`<button type="button" class="primary" data-rs-action="unlock-one" data-id="${esc(n.id)}">Marquer comme débloquée</button>`);
-  }
+  const actions = nodeActions(data, p, n, missing);
   const reqDone = p.reqItemsDone?.has(n.id);
   return `<div class="rs-detail ${st}">
     <div class="rs-detail-head">

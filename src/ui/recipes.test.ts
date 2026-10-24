@@ -10,6 +10,7 @@ import { buildGameData, type RawFiles } from "../engine/data.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import { draftFrom, EDIT_ON, entryRp, entryValue, initials, itemCrafts, machineCrafts, newDraft, parseDraft, parseItemForm, recipeEntries, renderEntryList, renderEntryRows, renderItemCard, renderMachineCard, searchEntries, sortEntries, type Entry } from "./recipes-view.ts";
 import { cleanImages, cleanPrefs, parseImagesExport } from "./recipes-store.ts";
+import { energyInputText, parseEnergy } from "./format.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
 const { data } = buildGameData(files, [overridesJson as unknown as OverridesFile]);
@@ -203,8 +204,13 @@ describe("« ✎ Corriger » (S6)", () => {
 
   it("remplacer un craft : formulaire pré-rempli avec ses valeurs", () => {
     const d = draftFrom(data, data.recipes.get("craft_assembler_05")!, "sources", "replace");
-    expect(d).toMatchObject({ replace: "craft_assembler_05", id: null, machine: "Craft Assembler", durationS: "15", energyMFps: "4000" });
+    expect(d).toMatchObject({ replace: "craft_assembler_05", id: null, machine: "Craft Assembler", durationS: "15", energyMFps: "4 k" });
     expect(d.inputs).toEqual([{ item: "Steel Rod", qty: "2" }, { item: "Gear", qty: "4" }]);
+  });
+
+  it("énergie comme en jeu (S29) : « 4 k » s'affiche et se relit en MF/s", () => {
+    expect([energyInputText(4000), energyInputText(30), energyInputText(-2_500_000), energyInputText(null)]).toEqual(["4 k", "30", "-2,5 M", ""]);
+    expect(["4500", "4,5 k", "4,5 kMF/s", "4500 MF/s", "-2 M", "1 234", "abc", ""].map(parseEnergy)).toEqual([4500, 4500, 4500, 4500, -2e6, 1234, null, null]);
   });
 
   it("objet manquant : nom obligatoire et nouveau ; valeurs vides = inconnues", () => {

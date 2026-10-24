@@ -251,14 +251,16 @@ export function renderTree(data: GameData, p: Progress, view: TreeView): string 
 }
 
 /** Machines qu'aucun nœud ne débloque (Limited, variantes) : à cocher si on les possède. */
-export function renderOwned(data: GameData, p: Progress): string {
+/** Machines hors arbre (Limited, variantes) à cocher ; repliées derrière leur compte (S29), `open` : dépliées. */
+export function renderOwned(data: GameData, p: Progress, open = false): string {
   const list = [...data.machines.values()].filter((m) => m.unlockedBy === null).sort((a, b) => a.name.localeCompare(b.name));
   if (!list.length) return "";
-  return `<ul class="owned">${list
+  const n = list.filter((m) => p.owned?.has(m.id)).length;
+  return `<details class="more owned-d"${open ? " open" : ""}><summary>Coche celles que tu possèdes (${n} sur ${list.length})</summary><ul class="owned">${list
     .map(
       (m) => `<li><label><input type="checkbox" data-owned="${esc(m.id)}"${p.owned?.has(m.id) ? " checked" : ""}> ${esc(m.name)}${
         m.variantOf ? ` <span class="muted">(variante de ${esc(data.machines.get(m.variantOf)?.name ?? m.variantOf)})</span>` : ""
       }${m.limited ? ` <span class="muted">· Limited</span>` : ""}</label></li>`,
     )
-    .join("")}</ul>`;
+    .join("")}</ul></details>`;
 }

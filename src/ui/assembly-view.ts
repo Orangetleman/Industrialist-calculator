@@ -159,8 +159,8 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
     `Tire le tuyau des Oak Logs de chaque sortie le long de son passage : garde-le libre.`,
   ];
   const assumptions = [
-    `${fmt(ctx.perHarvester, 0)} arbres au plus par récolteur : chiffre du guide Miraheze ; le maximum réel est à relever (MOD-09).`,
-    "Portées relevées depuis le bord du bloc ; un bloc est à portée dès que le cercle le touche (réponses MOD-01 à MOD-06).",
+    `${fmt(ctx.perHarvester, 0)} arbres au plus par récolteur : chiffre du guide Miraheze ; le maximum réel est à relever en jeu.`,
+    "Portées relevées en jeu depuis le bord du bloc ; un bloc est à portée dès que le cercle le touche.",
     "Les passages sont tracés en ligne droite jusqu'au bord de la ferme ; un passage qui traverse le bois prend la place d'arbres, replacés ailleurs.",
     "Les câbles électriques ne sont pas gênés par les obstacles (relevé du 2026-10-12).",
     "La liste de construction et le prix comptent les blocs de ce plan.",
@@ -187,7 +187,7 @@ export function renderDieselSvg(p: DieselPlan, name: (id: string) => string): { 
   for (const b of p.blocks) {
     const k = ENGINE[b.kind] ?? { color: "#9aa7b4", short: "" };
     const unit = p.units > 1 ? ` (moteur ${b.unit})` : "";
-    const tip = `${name(b.machine)}${unit}${b.todo ? " — nombre à relever (MOD-14) : au moins un" : ""}${b.port ? " · arrivée du carburant par ce côté" : ""}`;
+    const tip = `${name(b.machine)}${unit}${b.todo ? " — nombre à relever en jeu : au moins un" : ""}${b.port ? " · arrivée du carburant par ce côté" : ""}`;
     s += blockG(b, ox, oy, k.color, k.short, tip, b.port ? portArrow(b.port, "#d77fd0", ox, oy) : "");
   }
   return { svg: s + "</svg>", width: W, height: H };
@@ -224,8 +224,8 @@ export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: str
   head += `<p class="mod-other">${esc(fmt(ctx.powerMFps / 1e6, 2))} MMF/s et ${esc(fmt(ctx.fuelLps, 3))} L/s de ${esc(ctx.name(ctx.fuel))} par moteur. Le moins de vilebrequins possible : un bloc de côté par côté, contrôleur compris (la longueur ne change pas la puissance).${p.freeSides ? ` ${plural(p.freeSides, "place de côté reste libre", "places de côté restent libres")} par moteur : une décoration (facultative) peut la cacher.` : ""}${p.units > 1 ? " Les moteurs sont côte à côte, sans toucher la ligne du voisin : leurs deux côtés restent libres." : ""}</p>`;
   head += `<p class="mod-other">${controllerPanel(ctx.airFuel, ctx.throttle, ctx.throttleAssumed)}</p>`;
   const notes: string[] = [];
-  if (ctx.todo.length) notes.push(`${ctx.todo.map((id) => ctx.name(id)).join(", ")} : nombre à relever (MOD-14) ; le plan en pose un de chaque, le minimum du wiki (en pointillés).`);
-  notes.push("Prise électrique du générateur : à relever (MOD-10) ; relie-le au réseau.");
+  if (ctx.todo.length) notes.push(`${ctx.todo.map((id) => ctx.name(id)).join(", ")} : nombre à relever en jeu ; le plan en pose un de chaque, le minimum du wiki (en pointillés).`);
+  notes.push("Prise électrique du générateur : place à relever en jeu ; relie-le au réseau.");
   head += `<ul class="notices">${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`;
   const sw = (kind: string) => `<i style="background:${ENGINE[kind]!.color}"></i>`;
   const legend = `<ul class="mod-legend"><li>${sw("controller")}Contrôleur</li><li>${sw("crankshaft")}Vilebrequin</li><li>${sw("generator")}Générateur</li>${p.counts["diesel-engine-flywheel"] ? `<li>${sw("flywheel")}Volant</li>` : ""}<li>${sw("cylinder")}Cylindre</li><li>${sw("air-input")}Entrée d'air</li><li>${sw("exhaust")}Échappement</li><li>${sw("fuel-input")}Entrée de carburant</li>${ctx.todo.length ? `<li><i class="sw-todo"></i>À relever</li>` : ""}</ul>`;
@@ -244,9 +244,9 @@ export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: str
     `Amène le ${ctx.name(ctx.fuel)} à l'entrée de carburant (flèche), et relie le générateur au réseau.`,
   ];
   const assumptions = [
-    ctx.reading ? "Configuration relevée en jeu (Info Panel) ; pas de formule connue (MOD-12)." : "Configuration relevée sur le wiki (pas de formule connue, MOD-12) ; ajoute les tiennes dans l'éditeur de bâtiments (Diesel Engine Controller, « Relevé de configuration »).",
+    ctx.reading ? "Configuration relevée en jeu (Info Panel) ; aucune formule connue." : "Configuration relevée sur le wiki (aucune formule connue) ; ajoute les tiennes dans l'éditeur de bâtiments (Diesel Engine Controller, « Relevé de configuration »).",
     "La longueur du moteur ne change pas la puissance (réponse du 2026-10-18).",
-    "Deux moteurs voisins peuvent se coller (MOD-13) : ici, leurs rangées de côté se touchent, pas leurs lignes.",
+    "Deux moteurs voisins peuvent se coller : ici, leurs rangées de côté se touchent, pas leurs lignes.",
   ];
   const details = `<details class="more" open><summary>Ordre de pose${p.units > 1 ? " (par moteur)" : ""}</summary><ol class="steps-list">${steps.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
     <details class="more"><summary>Pièces à acheter (${per.reduce((s, q) => s + q.count, 0) * p.units})</summary><div class="tablewrap"><table class="mini"><thead><tr><th>Pièce</th><th>Nombre</th><th>Prix</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></details>

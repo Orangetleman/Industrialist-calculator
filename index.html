@@ -241,98 +241,98 @@
   <!-- ====================================================== MON USINE -->
   <section class="page" id="page-usine" aria-labelledby="h-usine" hidden>
     <h1 id="h-usine">Mon usine</h1>
-    <p class="lead">Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.</p>
-    <div class="grid2">
-      <div class="box">
-        <h2>Recherches débloquées</h2>
-        <p class="big" id="progress-summary"></p>
-        <div class="meter" aria-hidden="true"><i id="progress-meter"></i></div>
-        <div class="row"><a class="btn" href="#arbre">Ouvrir l'arbre de recherche</a></div>
-        <form class="upto" id="upto-form">
-          <label for="upto">Tout débloquer jusqu'à
-            <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche">
-          </label>
-          <button type="submit">Débloquer avec ses prérequis</button>
-          <span class="hint" id="upto-hint" role="status"></span>
-        </form>
-        <datalist id="node-list"></datalist>
-        <button type="button" id="progress-reset" class="link small">Réinitialiser la progression</button>
-      </div>
-
-      <div class="box">
-        <h2>Ressources</h2>
-        <div class="row fields4">
-          <label for="p-money">Argent ($)<input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000"></label>
-          <label for="p-pollution">Pollution (%)<input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12"></label>
+    <!-- S29 : deux onglets. « Ma partie » : ce qui change les plans, dans l'ordre d'importance ; « Ma recherche » : S20 et S21. -->
+    <div class="rtabs" role="tablist" aria-label="Mon usine">
+      <button type="button" role="tab" id="utab-partie" data-utab="partie" aria-controls="upanel-partie">Ma partie</button>
+      <button type="button" role="tab" id="utab-recherche" data-utab="recherche" aria-controls="upanel-recherche">Ma recherche</button>
+    </div>
+    <div class="rpanel" role="tabpanel" id="upanel-partie" aria-labelledby="utab-partie">
+      <p class="lead">Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.</p>
+      <div class="grid2">
+        <div class="box">
+          <h2>Recherches débloquées</h2>
+          <p class="big" id="progress-summary"></p>
+          <div class="meter" aria-hidden="true"><i id="progress-meter"></i></div>
+          <div class="row"><a class="btn" href="#arbre">Ouvrir l'arbre de recherche</a></div>
+          <form class="upto" id="upto-form">
+            <label for="upto">Tout débloquer jusqu'à
+              <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche">
+            </label>
+            <button type="submit">Débloquer avec ses prérequis</button>
+            <span class="hint" id="upto-hint" role="status"></span>
+          </form>
+          <datalist id="node-list"></datalist>
+          <div class="checks"><label><input type="checkbox" id="p-spend"> Débloquer une recherche sur le site dépense ses RP (la retirer les rend)</label></div>
+          <button type="button" id="progress-reset" class="link small">Réinitialiser la progression</button>
         </div>
-        <p class="hint" id="player-hint" role="status"></p>
-        <p class="hint">Servent à : la pousse des arbres (pollution), l'argent manquant. Tes RP sont dans « Ma recherche ».</p>
-      </div>
 
-      <div class="box span2" id="rs-box">
-        <h2>Ma recherche</h2>
+        <div class="box">
+          <h2>Machines spéciales possédées</h2>
+          <p class="hint">Éditions « Limited » et variantes : elles ne se débloquent pas dans l'arbre de recherche, et les plans ne s'en servent que si tu les possèdes.</p>
+          <div id="owned"></div>
+          <div class="checks"><label><input type="checkbox" id="p-gamepass"> J'ai le passe du jeu <span class="hint">(compteurs de débit Item Rate Meter et Fluid Rate Meter ; le site ne s'en sert pas encore)</span></label></div>
+        </div>
+
+        <div class="box">
+          <h2>Ressources et parcelle</h2>
+          <div class="row fields4">
+            <label for="p-money">Argent ($)<input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000"></label>
+            <label for="p-pollution">Pollution (%)<input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12"></label>
+          </div>
+          <p class="hint" id="player-hint" role="status"></p>
+          <div class="row fields4">
+            <label for="p-plotw">Largeur de la parcelle (cases)<input id="p-plotw" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
+            <label for="p-ploth">Profondeur (cases)<input id="p-ploth" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
+          </div>
+          <p class="hint" id="plot-hint" role="status"></p>
+          <p class="hint">La pollution ralentit la pousse des arbres ; l'argent dit ce qui manque pour construire. La parcelle (1 case = 1 Short Pipe, 1 tuile = 2 cases) sert à vérifier que l'usine tient sur ton terrain, telle quelle ou tournée d'un quart de tour. Tes RP sont dans <a href="#usine/recherche">Ma recherche</a>.</p>
+        </div>
+
+        <div class="box">
+          <h2>Production déjà en place <span class="pill" id="existing-count"></span></h2>
+          <p class="hint">Ce que tes usines produisent déjà (ex. du plastique avec ton industrie pétrochimique) : les calculs s'en servent avant de construire du neuf. Tu peux aussi l'ajouter depuis une liste des machines (« je l'ai déjà »).</p>
+          <ul id="existing-list" class="existing-list"></ul>
+          <form id="existing-add" class="existing-add">
+            <label>Objet <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets"></label>
+            <label>Débit (/min) <input name="rate" type="number" min="0.01" step="any" inputmode="decimal"></label>
+            <button type="submit">Ajouter</button>
+          </form>
+          <p class="hint" id="existing-hint" role="status"></p>
+        </div>
+
+        <div class="box span2">
+          <h2>Transférer ma partie</h2>
+          <p class="hint">Tout est gardé dans ce navigateur, pour cette adresse. Pour le retrouver ailleurs, exporte ici puis importe le fichier là-bas.</p>
+          <div class="row">
+            <button type="button" id="progress-export">Exporter ma partie</button>
+            <label class="button">Importer…<input type="file" id="progress-import" accept="application/json,.json" hidden></label>
+          </div>
+          <p class="hint" id="progress-io-hint" role="status"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rpanel" role="tabpanel" id="upanel-recherche" aria-labelledby="utab-recherche" hidden>
+      <div class="box" id="rs-box">
         <div id="rs-play"></div>
         <div class="row rs-top-row">
           <div class="seg" role="radiogroup" aria-label="Saisie de ma recherche">
-            <button type="button" role="radio" data-rsmode="rapide" aria-checked="true">Rapide : je recopie le panneau</button>
+            <button type="button" role="radio" data-rsmode="rapide" aria-checked="true" title="Je recopie le Research Tracking Panel">Rapide : le panneau</button>
             <button type="button" role="radio" data-rsmode="detaille" aria-checked="false">Détaillé : mes stations</button>
           </div>
           <span class="hint">Tout se lit sur le Research Tracking Panel (Build › Misc).</span>
         </div>
         <div class="row fields4">
-          <label for="p-rp">RP (1ʳᵉ ligne du panneau)<input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000"></label>
+          <label for="p-rp">RP relevés (1ʳᵉ ligne)<input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000"></label>
           <label for="p-rps">RP/s (1ʳᵉ ligne)<input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5"></label>
+          <p class="rp-est" id="rp-est" aria-live="off"></p>
         </div>
         <p class="hint" id="rp-hint" role="status"></p>
-        <p class="hint" id="rp-live" aria-live="off"></p>
         <div id="rs-form"></div>
         <div id="rs-out" aria-live="off"></div>
         <h3 class="rh-title">Historique, en temps de jeu</h3>
         <div class="rh" id="rs-hist"></div>
         <div id="rs-how"></div>
-      </div>
-
-      <div class="box">
-        <h2>Ta parcelle</h2>
-        <div class="row fields4">
-          <label for="p-plotw">Largeur (cases)<input id="p-plotw" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
-          <label for="p-ploth">Profondeur (cases)<input id="p-ploth" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
-        </div>
-        <p class="hint" id="plot-hint" role="status"></p>
-        <p class="hint">1 case = 1 Short Pipe (1 tuile = 2 cases). Sert à vérifier que chaque plan de pose tient sur ton terrain, tel quel ou tourné d'un quart de tour.</p>
-      </div>
-
-      <div class="box">
-        <h2>Production déjà en place <span class="pill" id="existing-count"></span></h2>
-        <p class="hint">Ce que tes usines produisent déjà (ex. du plastique avec ton industrie pétrochimique) : les calculs s'en servent avant de construire du neuf. Tu peux aussi l'ajouter depuis une liste de construction (« je l'ai déjà »).</p>
-        <ul id="existing-list" class="existing-list"></ul>
-        <form id="existing-add" class="existing-add">
-          <label>Objet <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets"></label>
-          <label>Débit (/min) <input name="rate" type="number" min="0.01" step="any" inputmode="decimal"></label>
-          <button type="submit">Ajouter</button>
-        </form>
-        <p class="hint" id="existing-hint" role="status"></p>
-      </div>
-
-      <div class="box">
-        <h2>Réglages</h2>
-        <div class="checks">
-          <label><input type="checkbox" id="p-spend"> Débloquer une recherche sur le site dépense ses RP (la retirer les rend)</label>
-          <label><input type="checkbox" id="p-gamepass"> J'ai le passe du jeu <span class="hint">(compteurs de débit Item Rate Meter et Fluid Rate Meter : proposés dans les futurs plans de construction)</span></label>
-        </div>
-        <h3>Transférer ma partie</h3>
-        <p class="hint">Tout est gardé dans ce navigateur, pour cette adresse. Pour le retrouver ailleurs, exporte ici puis importe le fichier là-bas.</p>
-        <div class="row">
-          <button type="button" id="progress-export">Exporter ma partie</button>
-          <label class="button">Importer…<input type="file" id="progress-import" accept="application/json,.json" hidden></label>
-        </div>
-        <p class="hint" id="progress-io-hint" role="status"></p>
-      </div>
-
-      <div class="box span2">
-        <h2>Machines spéciales possédées</h2>
-        <p class="hint">Ces machines (éditions « Limited », variantes) ne se débloquent pas dans l'arbre de recherche : coche celles que tu possèdes.</p>
-        <div id="owned"></div>
       </div>
     </div>
   </section>
@@ -358,6 +358,11 @@
       <label class="tree-filter" for="tree-filter"><span class="sr-only">Chercher une recherche ou une machine</span>
         <input id="tree-filter" type="search" placeholder="Chercher (recherche ou machine)…" autocomplete="off">
       </label>
+      <!-- S29 : débloquer dans une bulle près de la recherche (option, comme « Pose : Bulle » de l'éditeur de bâtiments). -->
+      <span class="tree-unlockmode"><span class="hint">Débloquer</span><span class="seg" role="radiogroup" aria-label="Où débloquer une recherche">
+        <button type="button" role="radio" data-unlockmode="panneau" aria-checked="true" title="Clique une recherche, puis le bouton du cadre ou du panneau">Panneau</button>
+        <button type="button" role="radio" data-unlockmode="bulle" aria-checked="false" title="Clique une recherche : une bulle s'ouvre à côté, avec le bouton pour la débloquer">Bulle</button>
+      </span></span>
     </div>
 
     <div id="tree-view">
@@ -382,6 +387,7 @@
             <div class="rs-hud-info" id="rs-hud-info" aria-live="polite"></div>
             <button type="button" class="rs-hud-action" id="rs-hud-action" hidden></button>
           </div>
+          <div class="rs-bubble" id="rs-bubble" role="dialog" aria-label="Recherche choisie" hidden></div>
         </div>
         <aside class="panel rs-side" id="rs-detail" aria-live="polite" aria-label="Recherche sélectionnée"></aside>
       </div>
@@ -468,7 +474,7 @@
           <label class="button">Importer…<input type="file" id="import" accept="application/json,.json" hidden></label>
           <button type="button" id="clear-corrections" class="link">Tout effacer</button>
         </div>
-        <p class="hint">L'export produit un <code>overrides.json</code> (corrections du dépôt + les tiennes) à placer dans <code>data/</code> pour les rendre permanentes.</p>
+        <p class="hint">Tes corrections servent tout de suite à tes plans, dans ce navigateur. L'export en fait un fichier (celles du site et les tiennes), à partager pour que le site les intègre.</p>
       </div>
     </div>
     <div class="rpanel" role="tabpanel" id="dpanel-batiments" aria-labelledby="dtab-batiments" hidden>

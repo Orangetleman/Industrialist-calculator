@@ -85,7 +85,7 @@ export function renderPlay(j: RpJournal, now: number): string {
   const total = fmtDuration(gameNow(c, now) / 1000);
   return c.playing
     ? `<div class="play on"><span class="state">En jeu depuis ${esc(since)}</span><span class="hint">Les RP montent. ${esc(total)} de jeu depuis le début du journal.</span><button type="button" data-play="off">⏸ Je ne joue plus</button></div>`
-    : `<div class="play off"><span class="state">Hors jeu${j.events.some((e) => e.type === "session") ? ` depuis ${esc(since)}` : ""}</span><span class="hint">Les RP ne bougent pas : le jeu ne les compte que quand tu es connecté. Clique en lançant le jeu.</span><button type="button" data-play="on">▶ Je joue</button></div>`;
+    : `<div class="play off"><span class="state">Hors jeu${j.events.some((e) => e.type === "session") ? ` depuis ${esc(since)}` : ""}</span><span class="hint">Les RP ne montent qu'en jeu : clique en lançant le jeu.</span><button type="button" data-play="on">▶ Je joue</button></div>`;
 }
 
 // ---------------------------------------------------------------- graphiques

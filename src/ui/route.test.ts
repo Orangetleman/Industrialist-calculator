@@ -5,6 +5,7 @@ describe("adresses des vues", () => {
   it("chaque vue a son adresse, relue à l'identique", () => {
     const routes = [
       { page: "usine" },
+      { page: "usine", usineTab: "recherche" },
       { page: "arbre" },
       { page: "plan", goal: "objet" },
       { page: "plan", goal: "énergie", tab: "liste" },
@@ -44,6 +45,10 @@ describe("adresses des vues", () => {
     expect(routeTitle(parseRoute("#energie"))).toBe("Produire de l'énergie");
     expect(routeTitle(parseRoute("#donnees/batiments/press"))).toBe("Éditeur de bâtiments");
     expect(routeTitle(parseRoute("#usine"))).toBe("Mon usine");
+    // S29 : Mon usine en deux onglets ; une suite inconnue revient à « Ma partie ».
+    expect(routeTitle(parseRoute("#usine/recherche"))).toBe("Ma recherche");
+    expect(routeHash({ page: "usine", usineTab: "recherche" })).toBe("#usine/recherche");
+    expect(parseRoute("#usine/nimporte")).toEqual({ page: "usine" });
     expect(routeTitle(parseRoute("#recettes"))).toBe("Recettes");
     expect(routeTitle(parseRoute("#recettes/machine/press"))).toBe("Fiche de la machine");
     expect(routeTitle(parseRoute("#recettes/objet/gear"))).toBe("Fiche de l'objet");

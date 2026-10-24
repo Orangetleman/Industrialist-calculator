@@ -23,7 +23,7 @@ export type ResearchView = RpResult & {
   mergedTier?: StationKind | null;
 };
 
-export const STATION_KIND: Record<string, string> = { rs1: "Research Station1", rs2: "Research Station2", rs3: "Research Station3", rs4: "Research Station3 + Research Station4" };
+export const STATION_KIND: Record<string, string> = { rs1: "Research Station 1", rs2: "Research Station 2", rs3: "Research Station 3", rs4: "Research Station 3 + Research Station 4" };
 
 /** « 4 × Research Station2 · Gear · contrôleur de paraboles ». */
 export function designLine(ctx: Pick<Ctx, "data">, c: RpCandidate): string {
