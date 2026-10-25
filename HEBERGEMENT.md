@@ -53,12 +53,58 @@ Liste les versions présentes et indique celle en ligne.
 
 Rien n'a été modifié dans `~/myprism`, `/etc/cloudflared` ni dans les unités `myprism*`.
 
+### Le service des remarques (S34, installé le 2026-10-25)
+
+| Élément | Détail |
+| --- | --- |
+| `industrialist-remarques.service` | Node 24, sans dépendance (`server/*.ts`, lancé directement par Node), sur `127.0.0.1:8091`. Compte système `industrialist-remarques` sans connexion possible ; unité verrouillée (`ProtectSystem=strict`, `ProtectHome`, `CapabilityBoundingSet=` vide…), `MemoryMax=64M` et tas de Node plafonné à 32 Mo. |
+| `/opt/industrialist-remarques/` | Le code (root, lecture seule). |
+| `/var/lib/industrialist-remarques/` | La base `remarques.db` et une copie par nuit (`copie-AAAA-MM-JJ.db`, 7 gardées, sans empreinte d'IP). Dossier en 700, au compte du service. |
+| `/etc/industrialist-remarques/` | `reglages.env` (origines admises, `REMARQUES_FERMEES=1` pour fermer les envois) et `mot-de-passe` (haché par scrypt, lisible seulement par root et le service). |
+| nginx | `/etc/nginx/snippets/industrialist-api.conf` (`/api/` → 127.0.0.1:8091), inclus par le site de l'Industrialist seulement. L'ancienne version du site est gardée dans `industrialist.avant-remarques`. |
+
+**Attention : le noyau du Pi désactive le contrôle de la mémoire** (`cgroup_disable=memory` dans
+`/proc/cmdline`, réglage par défaut des Raspberry Pi). Les `MemoryMax` (ce service, le tunnel) ne sont donc
+**pas appliqués**. Mesuré au démarrage : 38 Mo de mémoire propre au processus, plus 54 Mo de fichiers partagés
+(le programme Node). Le plafond réel est celui du tas (`--max-old-space-size=32`).
+
+Mettre à jour le service (code, unité, nginx), **sans rien redémarrer ni recharger** :
+
+```bash
+npm run deploy:remarques
+```
+
+Puis, sur le Pi, après accord : `sudo systemctl restart industrialist-remarques` (et `sudo systemctl reload nginx`
+si le fichier de nginx a changé).
+
+Choisir le mot de passe du tableau de bord : il se tape sur le PC (une `*` par caractère) et y est haché ; seule
+la ligne hachée part vers le Pi. Il est pris en compte sans redémarrage.
+
+```bash
+npm run remarques:mot-de-passe
+```
+
+Relire les dernières remarques en attendant le tableau de bord (S36) :
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/relire-remarques.ps1
+```
+
+Contrôler MyPrism avant et après une intervention : `bash controle-myprism.sh > avant.txt`, puis
+`diff avant.txt apres.txt` (état et PID des unités, empreintes de leurs fichiers, code de `~/myprism`).
+
+**En local** : `npm run remarques` lance le même service sur une base de test (`.remarques-local/`, non suivi),
+avec les origines du serveur de développement. `npm run dev` lui passe `/api/`. Le mot de passe d'essai local est
+`essai-local` (créé haché à la première fois ; il ne sert qu'à cette base de test).
+
 **Ressources** (mesurées à l'installation) : environ 51 Mo de mémoire au total (tunnel 40 Mo,
 nginx 11 Mo) sur les 990 Mo du Pi, et un processeur au repos hors des visites. Le site pèse
 moins de 1 Mo par version.
 
-**Sauvegardes** : il n'y a rien à sauvegarder sur le Pi. Le code est dans git sur le PC, et la
-progression comme les corrections de chacun restent dans son navigateur.
+**Sauvegardes** : le site n'a rien à sauvegarder sur le Pi. Le code est dans git sur le PC, et la
+progression comme les corrections de chacun restent dans son navigateur. Seules les remarques des joueurs
+vivent sur le Pi (`/var/lib/industrialist-remarques/`, avec ses 7 copies de la nuit). Le tableau de bord pourra
+tout exporter en JSON (S36).
 
 **Mises à jour de sécurité** : nginx est un paquet Debian, mis à jour par `unattended-upgrades`
 comme le reste du système.

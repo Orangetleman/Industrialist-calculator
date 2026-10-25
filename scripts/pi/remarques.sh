@@ -55,16 +55,36 @@ cat >/usr/local/sbin/$NOM-mot-de-passe <<EOF
 # Pris en compte à la connexion suivante, sans redémarrage.
 set -euo pipefail
 [[ \$EUID -eq 0 ]] || { echo "À lancer avec sudo." >&2; exit 1; }
-read -rsp "Mot de passe du tableau de bord (10 caractères au moins) : " un; echo
-read -rsp "Encore une fois : " deux; echo
+ecrire() {
+  umask 027
+  printf '%s\n' "\$1" >$REGLAGES/mot-de-passe.tmp
+  chown root:$NOM $REGLAGES/mot-de-passe.tmp
+  mv -f $REGLAGES/mot-de-passe.tmp $REGLAGES/mot-de-passe
+  echo "Mot de passe enregistré (haché)."
+}
+# --ligne : la ligne déjà hachée arrive sur l'entrée standard (scripts/pi/mot-de-passe.ps1, haché sur le PC).
+if [[ \${1:-} == --ligne ]]; then
+  read -r ligne; ligne=\${ligne%\$'\r'}
+  [[ \$ligne =~ ^scrypt\\\$[0-9]+\\\$[0-9]+\\\$[0-9]+\\\$[A-Za-z0-9_-]+\\\$[A-Za-z0-9_-]+\$ ]] || { echo "Ligne hachée invalide : rien n'a changé." >&2; exit 1; }
+  ecrire "\$ligne"
+  exit 0
+fi
+# Une ligne vide est ignorée : un mot de passe collé arrive souvent avec son retour à la ligne, suivi d'Entrée.
+# Les marques d'un collage (\e[200~ … \e[201~) sont retirées.
+lire() {
+  local v=""
+  while [[ -z \$v ]]; do
+    read -rsp "\$1" v; echo >&2
+    v=\${v//\$'\e[200~'/}; v=\${v//\$'\e[201~'/}; v=\${v%\$'\r'}
+  done
+  printf '%s' "\$v"
+}
+un=\$(lire "Mot de passe du tableau de bord (10 caractères au moins), puis Entrée : ")
+deux=\$(lire "Encore une fois, puis Entrée : ")
 [[ "\$un" == "\$deux" ]] || { echo "Les deux ne sont pas identiques : rien n'a changé." >&2; exit 1; }
 ligne=\$(printf '%s' "\$un" | $NODE --disable-warning=ExperimentalWarning $CODE/hacher.ts)
 unset un deux
-umask 027
-printf '%s\n' "\$ligne" >$REGLAGES/mot-de-passe.tmp
-chown root:$NOM $REGLAGES/mot-de-passe.tmp
-mv -f $REGLAGES/mot-de-passe.tmp $REGLAGES/mot-de-passe
-echo "Mot de passe enregistré (haché)."
+ecrire "\$ligne"
 EOF
 chmod 750 /usr/local/sbin/$NOM-mot-de-passe
 

@@ -272,7 +272,9 @@ Pourquoi cet ordre :
 - **S34** : en local, une remarque envoyée est relue par l'accès réservé, la 6ᵉ dans l'heure est
   refusée, et l'empreinte d'IP est effacée au bout de 24 h (test, horloge simulée). Sur le Pi, la
   même chose passe par `https://industrialist.myprisme.fr/api/`, et les unités de MyPrism sont
-  actives et inchangées avant et après.
+  actives et inchangées avant et après. **Fait le 2026-10-25** (`server/`, test `server/service.test.ts`,
+  `scripts/pi/remarques.sh`, HEBERGEMENT.md ; `MemoryMax` non appliqué par le noyau du Pi, voir le bilan au § 6
+  du plan d'action).
 - **S35** : depuis le site en ligne, une remarque de chaque type et une correction arrivent, avec
   leur page. Le message apparaît dans le salon Discord. La réponse se lit dans « Mes remarques ». Si
   le service est arrêté, le site le dit et garde le texte. Tests verts.
