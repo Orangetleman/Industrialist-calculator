@@ -3,6 +3,7 @@
 // comme les corrections.
 
 import { defaultDir, type ListFilter, type ListSort, type ListView, type SortKey } from "./recipes-view.ts";
+import { t } from "../i18n/i18n.ts";
 
 const KEY_PREFS = "ind-calc:v1:recettes";
 const KEY_IMAGES = "ind-calc:v1:images";
@@ -75,6 +76,6 @@ export function exportImages(m: MyImages): { _lisezMoi: string; images: MyImages
 export function parseImagesExport(raw: unknown): MyImages {
   const imgs = (raw as { images?: unknown } | null)?.images;
   const out = cleanImages(imgs);
-  if (!Object.keys(out).length) throw new Error("aucune image reconnue dans ce fichier");
+  if (!Object.keys(out).length) throw new Error(t("rec.noImage"));
   return out;
 }

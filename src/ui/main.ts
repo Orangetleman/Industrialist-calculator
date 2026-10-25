@@ -42,7 +42,7 @@ import { renderResearchForm, renderResearchOut, researchHow } from "./research-m
 import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtRP, fmtShort, parseEnergy, parseInput } from "./format.ts";
+import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, frRaw, frText, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { applyStatic } from "../i18n/dom.ts";
 import { KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
 import {
@@ -611,14 +611,14 @@ function computeResearch(): ResearchView | null {
           others: [],
           warnings: [
             noRate
-              ? "Indique la vitesse voulue, en RP par seconde."
+              ? t("m.rp.noRate")
               : settings.rpMode === "node" && !settings.rpNode
-              ? "Choisis la recherche à débloquer."
+              ? t("m.rp.pickNode")
               : !nodes.length
-                ? "Rien à débloquer : c'est déjà fait."
+                ? t("m.rp.nothing")
                 : total <= rp0
-                  ? "Tu as déjà assez de RP pour tout débloquer."
-                  : "Ta production actuelle de RP suffit pour ce délai.",
+                  ? t("m.rp.enough")
+                  : t("m.rp.fastEnough"),
           ],
         };
   const d = result.best?.design;
@@ -1096,7 +1096,7 @@ function renderFlowCanvas(): void {
   const frame = $("flow-frame");
   frame.classList.toggle("empty", !f);
   if (!f) {
-    canvas.innerHTML = `<p class="flow-empty">Rien à afficher : aucune étape dans ce plan.</p>`;
+    canvas.innerHTML = `<p class="flow-empty">${t("m.flow.empty")}</p>`;
     frame.style.height = "";
     return;
   }
@@ -1200,13 +1200,8 @@ let focusSel: string | null = null;
 let poseKey = "";
 const anyName = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
-/** Critères des plans de pose, en mots de joueur. */
-const CRIT_TEXT: Record<PoseCriterion, { label: string; why: string }> = {
-  place: { label: "Place au sol", why: "la plus petite surface, poteaux compris" },
-  forme: { label: "Forme ramassée", why: "le plus grand côté le plus court : rangées repliées plutôt qu'une longue bande" },
-  prix: { label: "Prix", why: "le moins de dépenses : croisements, tuyaux, poteaux" },
-  pieces: { label: "Pièces à poser", why: "le moins de tuyaux et de poteaux à placer" },
-};
+/** Critères des plans de pose, en mots de joueur, dans la langue choisie. */
+const critText = (c: PoseCriterion): { label: string; why: string } => ({ label: t(`mv.crit.${c}`), why: t(`m.crit.${c}.why`) });
 
 /** Priorités du plan (objectif en cours) : l'ordre en une ligne, la liste à réordonner dépliée. */
 /** Réglage « Machines » du plan (S9) : mode, machines choisies, raccourcis ; la recherche reste en place. */
@@ -1242,7 +1237,7 @@ function setCriteria(list: Criterion[], focus?: Criterion): void {
 }
 
 function renderPriority(): void {
-  $("pose-priority").innerHTML = renderPrioItems(settings.posePriority.map((k) => ({ key: k, ...CRIT_TEXT[k] })));
+  $("pose-priority").innerHTML = renderPrioItems(settings.posePriority.map((k) => ({ key: k, ...critText(k) })));
 }
 
 function setPriority(list: PoseCriterion[], focus?: PoseCriterion): void {
@@ -1287,7 +1282,7 @@ const viaKey = (o: Pick<PassageOption, "item" | "passage">) => `${o.item}|${o.pa
 /** Après le nom d'une étape : d'où viennent les ports de sa machine, quand ce n'est pas le dépôt. */
 function portsLabel(machine: string): string {
   const st = surveyState(machine, REPO_PORTS, currentPorts().local);
-  return st === "local" ? " (relevé local)" : st === "manquant" ? " (ports supposés)" : "";
+  return st === "local" ? t("m.ports.local") : st === "manquant" ? t("m.ports.assumed") : "";
 }
 
 function renderPose(): void {
@@ -1296,7 +1291,7 @@ function renderPose(): void {
   const sel = $<HTMLSelectElement>("pose-step");
   if (!choices.length) {
     sel.innerHTML = "";
-    $("pose-head").innerHTML = `<p class="muted">Aucune étape à poser dans ce plan (les centrales composées, sauf le moteur diesel, ne sont pas encore dessinées).</p>`;
+    $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
     $("pose-frame").hidden = true;
     $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
     return;
@@ -1309,9 +1304,9 @@ function renderPose(): void {
   const asms = choices.filter((s) => assemblyKind(s));
   const opt = (s: (typeof choices)[number], text: string) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(text)}</option>`;
   sel.innerHTML =
-    `<option value="${USINE}"${poseStep === USINE ? " selected" : ""}>Toute l'usine (proposition, calculée en arrière-plan)</option>` +
-    (mods.length ? `<optgroup label="Un module par étape">${mods.map((s) => opt(s, `${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)).join("")}</optgroup>` : "") +
-    (asms.length ? `<optgroup label="Ensembles modulaires">${asms.map((s) => opt(s, assemblyKind(s) === "ferme" ? `Ferme d'arbres — ${s.machines} arbres, ${anyName(s.item)}` : `${s.machines} × Moteur diesel modulaire — énergie`)).join("")}</optgroup>` : "");
+    `<option value="${USINE}"${poseStep === USINE ? " selected" : ""}>${esc(t("m.pose.usine"))}</option>` +
+    (mods.length ? `<optgroup label="${esc(t("m.pose.perStep"))}">${mods.map((s) => opt(s, `${s.machines} × ${anyName(s.machine)} — ${anyName(s.item)}`)).join("")}</optgroup>` : "") +
+    (asms.length ? `<optgroup label="${esc(t("m.pose.asms"))}">${asms.map((s) => opt(s, assemblyKind(s) === "ferme" ? t("m.pose.farm", { n: String(s.machines), item: anyName(s.item) }) : t("m.pose.engine", { n: String(s.machines) }))).join("")}</optgroup>` : "");
   // Les ports locaux après le nom d'un module (relevé local, ports supposés).
   for (const s of mods) {
     const o = sel.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(s.key)}"]`);
@@ -1330,14 +1325,14 @@ function renderPose(): void {
     const a = assemblyOf(poseStep);
     $("pose-frame").hidden = !a;
     if (a) return renderAssembly(poseStep, a);
-    $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cet ensemble : il manque une valeur dans les données modulaires.</p>`;
+    $("pose-head").innerHTML = `<p class="muted">${t("m.pose.noAsm")}</p>`;
     $("pose-links").innerHTML = $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-bar").innerHTML = "";
     return;
   }
   const base = moduleOf(poseStep);
   $("pose-frame").hidden = !base;
   if (!base) {
-    $("pose-head").innerHTML = `<p class="muted">Pas de plan de pose pour cette étape.</p>`;
+    $("pose-head").innerHTML = `<p class="muted">${t("m.pose.noStep")}</p>`;
     $("pose-links").innerHTML = "";
     return;
   }
@@ -1347,13 +1342,13 @@ function renderPose(): void {
   const m = chosen?.plan ?? base;
   const survey = surveyState(m.machine, REPO_PORTS, currentPorts().local);
   const info = renderModuleInfo(m, anyName, survey, plotOf(player));
-  const surveyText = survey === "depot" ? "ports relevés" : survey === "local" ? "ports relevés dans ce navigateur" : "ports pas encore relevés";
+  const surveyText = t(survey === "depot" ? "m.pose.survey.depot" : survey === "local" ? "m.pose.survey.local" : "m.pose.survey.none");
   const inFactory = fullFactory()?.plan?.boxes.find((b) => b.key === poseStep);
   const factoryLine = inFactory?.mod
-    ? `Dans « Toute l'usine », ce module est recalculé${turnText(inFactory.rot) ? ` et ${turnText(inFactory.rot)}` : ""} (${inFactory.w} × ${inFactory.h} cases) : <button type="button" class="link" data-focus="${esc(poseStep)}">voir sa version dans l'usine</button>`
-    : `<button type="button" class="link" data-focus="${esc(poseStep)}">Voir sa version dans « Toute l'usine »</button> <span class="muted">(recalculée et tournée vers ses voisins${fullFactory()?.plan ? "" : ", calcul en arrière-plan"})</span>`;
-  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))} : ${surveyText} ✎</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
-  $("pose-bar").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${settings.usine.links ? "Une flèche blanche par liaison, dans le sens du flux, et les câbles de chaque poteau vers ses machines." : "Ou clique un tuyau pour voir les liaisons de sa ressource. Clique une machine pour ouvrir sa fiche."}</span></div>`;
+    ? t("m.pose.inFactory.html", { turn: turnText(inFactory.rot) ? t("m.pose.inFactory.turn", { turn: turnText(inFactory.rot) }) : "", w: String(inFactory.w), h: String(inFactory.h), btn: `<button type="button" class="link" data-focus="${esc(poseStep)}">${t("m.pose.seeInFactory")}</button>` })
+    : `<button type="button" class="link" data-focus="${esc(poseStep)}">${t("m.pose.seeFactory")}</button> <span class="muted">${t("m.pose.recalc", { bg: fullFactory()?.plan ? "" : t("m.pose.bg") })}</span>`;
+  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">${t("m.pose.toFlow")}</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))}${colon()}${surveyText} ✎</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
+  $("pose-bar").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t(settings.usine.links ? "m.pose.links.on" : "m.pose.links.off")}</span></div>`;
   $("pose-head").innerHTML = info.head + stepSettingLine(poseStep) + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
   $("pose-legend").innerHTML = info.legend;
   $("pose-details").innerHTML = info.details;
@@ -1384,7 +1379,7 @@ function assemblyOf(key: string): Assembly | null {
   if (kind === "ferme" && r?.farm?.geometry) {
     const farm = designFarm(r.farm.geometry, st.machines, st.energyAvg ?? 0, asmPole.get(key));
     const total = farm.trees.reduce((x, y) => x + y, 0);
-    a = { kind, farm, loadMFps: st.energyAvg ?? 0, perHarvester: r.farm.geometry.perHarvester, width: farm.width, height: farm.height, label: farm.farms > 1 ? `${farm.farms} fermes d'arbres (${total} arbres)` : `Ferme d'arbres (${total} arbres)` };
+    a = { kind, farm, loadMFps: st.energyAvg ?? 0, perHarvester: r.farm.geometry.perHarvester, width: farm.width, height: farm.height, label: farm.farms > 1 ? t("m.asm.farms", { n: String(farm.farms), t: String(total) }) : t("m.asm.farm", { t: String(total) }) };
   } else if (kind === "moteur" && r?.parts) {
     const config = dieselConfigs(REPO_MODULAR, dieselReadings).find((c) => c.id === r.id) ?? null;
     // Moteur à 32 cylindres : nombres de blocs à relever (MOD-14), posés au minimum du wiki.
@@ -1394,7 +1389,7 @@ function assemblyOf(key: string): Assembly | null {
       return sz ? { w: sz.w, h: sz.l } : { w: 2, h: 2 };
     };
     const diesel = designDiesel(r.parts, st.machines, size, currentPorts().machines, todo);
-    a = { kind, diesel, config, todo, width: diesel.width, height: diesel.height, label: `${st.machines} × moteur diesel${config ? ` (${config.cylinders} cylindres)` : ""}` };
+    a = { kind, diesel, config, todo, width: diesel.width, height: diesel.height, label: t("m.asm.engine", { n: String(st.machines), cyl: config ? t("m.asm.cyl", { n: String(config.cylinders) }) : "" }) };
   }
   asmCache.set(k, a);
   return a;
@@ -1409,14 +1404,14 @@ function assemblyView(key: string, a: Assembly): { title: string; head: string; 
       title: a.label,
       ...info,
       svg: renderFarmSvg(a.farm, anyName),
-      bar: `<div class="u-bar">${rangesButton(asmRanges)}<span class="hint">${asmRanges ? "Le cercle de chaque bloc : un bloc est à portée dès que le cercle le touche." : "Ou clique un bloc : son cercle et ce qu'il dessert s'éclairent."}</span></div>`,
+      bar: `<div class="u-bar">${rangesButton(asmRanges)}<span class="hint">${t(asmRanges ? "m.asm.ranges.on" : "m.asm.ranges.off")}</span></div>`,
     };
   }
   const c = a.config;
   const info = renderDieselInfo(a.diesel, {
     name: anyName,
     price,
-    label: c?.label ?? "configuration relevée",
+    label: c?.label ?? t("m.asm.recorded"),
     airFuel: c?.airFuel ?? 0,
     throttle: c?.throttle ?? 0,
     throttleAssumed: c?.throttleAssumed ?? false,
@@ -1426,13 +1421,13 @@ function assemblyView(key: string, a: Assembly): { title: string; head: string; 
     todo: a.todo,
     reading: !!c?.reading,
   });
-  return { title: a.label, ...info, svg: renderDieselSvg(a.diesel, anyName), bar: `<div class="u-bar"><span class="hint">Clique un bloc pour l'éclairer ; la flèche montre l'arrivée du carburant.</span></div>` };
+  return { title: a.label, ...info, svg: renderDieselSvg(a.diesel, anyName), bar: `<div class="u-bar"><span class="hint">${t("m.asm.dsl.hint")}</span></div>` };
 }
 
 /** Plan de pose d'un ensemble modulaire dans l'onglet Plans de pose. */
 function renderAssembly(key: string, a: Assembly): void {
   const v = assemblyView(key, a);
-  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(key)}">Voir cette étape au schéma</button> · <button type="button" class="link" data-focus="${esc(key)}">Voir sa place dans « Toute l'usine »</button></p>${renderStepLinks(viewCtx(), key)}`;
+  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(key)}">${t("m.pose.toFlow")}</button> · <button type="button" class="link" data-focus="${esc(key)}">${t("m.asm.seeInFactory")}</button></p>${renderStepLinks(viewCtx(), key)}`;
   $("pose-bar").innerHTML = v.bar;
   $("pose-head").innerHTML = v.head;
   $("pose-legend").innerHTML = v.legend;
@@ -1444,7 +1439,7 @@ function renderAssembly(key: string, a: Assembly): void {
 /** Réglage à faire sur chaque machine d'une étape (S10), pour le plan de pose et le panneau d'un module. */
 function stepSettingLine(key: string): string {
   const st = plan?.steps.find((s) => s.key === key);
-  const chips = st && !st.parts ? settingChips(settingLines(currentInterfaces().all, msettingsNow(), st.machine, st.recipeId), "à régler sur chaque machine : ") : "";
+  const chips = st && !st.parts ? settingChips(settingLines(currentInterfaces().all, msettingsNow(), st.machine, st.recipeId), t("m.setOnEach")) : "";
   // Valeurs à vérifier de l'étape (S28) : ⚠ cliquables vers la correction.
   const warns = st && plan ? warnChips(viewCtx(), stepWarnings(viewCtx(), st)) : "";
   return (warns ? `<p class="pose-warn">${warns}</p>` : "") + (chips ? `<p class="pose-setting">${chips}</p>` : "");
@@ -1528,7 +1523,7 @@ function startFactory(): void {
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
     { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow() },
   );
-  const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: "Recherche d'un calcul déjà fait", error: null, cancelled: false, flows: null };
+  const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
   factories.set(key, st);
   const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
   const refresh = () => {
@@ -1566,8 +1561,8 @@ function updateFactoryProgress(): void {
   const st = currentFactory();
   if (!el || !st) return;
   el.querySelector<HTMLElement>(".bar i")!.style.width = `${Math.round(st.done * 100)}%`;
-  el.querySelector(".pct")!.textContent = `${Math.round(st.done * 100)} %`;
-  el.querySelector(".lbl")!.textContent = st.label;
+  el.querySelector(".pct")!.textContent = fmtPct(String(Math.round(st.done * 100)));
+  el.querySelector(".lbl")!.textContent = frRaw(st.label);
 }
 
 /** Passages du collecteur central que toute l'usine (recalculée) a gardés pour cette étape (null : pas encore calculée). */
@@ -1601,7 +1596,7 @@ function renderFactory(): void {
       $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
     }
     const pct = Math.round(st.done * 100);
-    const progress = `<div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(st.label)}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${pct} %</span><button type="button" data-usine="cancel">Annuler</button></div>`;
+    const progress = `<div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(frRaw(st.label))}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><button type="button" data-usine="cancel">${t("m.f.cancel")}</button></div>`;
     const busy = $("pose-busy");
     if (keep && !st.error && !st.cancelled) {
       // L'avancement par-dessus l'ancien dessin ; le résumé reste en place jusqu'au nouveau.
@@ -1613,10 +1608,10 @@ function renderFactory(): void {
     busy.innerHTML = "";
     panel.classList.remove("computing");
     $("pose-head").innerHTML = st.error
-      ? `<p class="warn-text">Le calcul de toute l'usine a échoué : ${esc(st.error)}</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
+      ? `<p class="warn-text">${esc(t("m.f.failed", { err: st.error }))}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>`
       : st.cancelled
-        ? `<p class="muted">Calcul de toute l'usine annulé.</p><p><button type="button" data-usine="run">Relancer le calcul</button></p>`
-        : `<p class="mod-sum"><b>Toute l'usine — proposition</b> : calcul en arrière-plan${settings.usine.full ? ", quelques secondes à une minute selon la taille du plan" : ""}. Tu peux continuer à utiliser le site pendant ce temps.</p>${progress}`;
+        ? `<p class="muted">${t("m.f.cancelled")}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>`
+        : `<p class="mod-sum">${t("m.f.computing.html", { long: settings.usine.full ? t("m.f.long") : "" })}</p>${progress}`;
     return;
   }
   $("pose-busy").hidden = true;
@@ -1687,10 +1682,10 @@ function showFocus(key: string | null): void {
     return;
   }
   $("focus-title").textContent = out.title;
-  $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">Clique une machine pour ouvrir sa fiche, un tuyau pour voir ses liaisons.</span></div>`;
+  $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t("m.focus.hint")}</span></div>`;
   // S26 : « Module posé ✓ » dans le panneau aussi (le même réglage que la liste sous l'usine).
   const posed = posedSet().has(key!);
-  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> Module posé ✓</label></p>` + out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">Plan de pose seul de cette étape</button> · <button type="button" class="link" data-flow="${esc(key!)}">Voir au schéma</button></p>`;
+  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> ${t("m.focus.posed")}</label></p>` + out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">${t("m.focus.poseAlone")}</button> · <button type="button" class="link" data-flow="${esc(key!)}">${t("m.focus.toFlow")}</button></p>`;
   $("focus-legend").innerHTML = out.legend;
   $("focus-details").innerHTML = out.details;
   const frame = $("focus-frame");
@@ -1712,7 +1707,7 @@ function showAssemblyFocus(key: string, a: Assembly): void {
   document.body.classList.add("usine-wide");
   $("focus-title").textContent = v.title;
   $("focus-bar-opts").innerHTML = v.bar;
-  $("focus-head").innerHTML = v.head.replace('id="asm-pole"', 'id="asm-pole-focus"').replace('for="asm-pole"', 'for="asm-pole-focus"') + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key)}">Plan de pose seul de cet ensemble</button> · <button type="button" class="link" data-flow="${esc(key)}">Voir au schéma</button></p>`;
+  $("focus-head").innerHTML = v.head.replace('id="asm-pole"', 'id="asm-pole-focus"').replace('for="asm-pole"', 'for="asm-pole-focus"') + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key)}">${t("m.focus.asmAlone")}</button> · <button type="button" class="link" data-flow="${esc(key)}">${t("m.focus.toFlow")}</button></p>`;
   $("focus-legend").innerHTML = v.legend;
   $("focus-details").innerHTML = v.details;
   const frame = $("focus-frame");
@@ -1767,7 +1762,7 @@ function applySel(frame: HTMLElement, sel: string | null, pickId: string | null,
     mark(`.m-pipe[data-item="${CSS.escape(id)}"], .m-flow[data-item="${CSS.escape(id)}"]`);
     // L'info du tuyau cliqué (produit, collecteur, débit, tuyau), sans la ligne « Clique pour… ».
     const tipOf = clicked ?? frame.querySelector<SVGGElement>(`.m-pipe[data-item="${CSS.escape(id)}"]`)?.dataset.tip ?? "";
-    text = tipOf.split("\n").filter((l) => l && !l.startsWith("Clique")).join(" · ") || `${anyName(id)} : liaisons dans le sens du flux`;
+    text = tipOf.split("\n").filter((l) => l && !/^(Clique|Click)\b/.test(l)).join(" · ") || t("m.sel.links", { item: anyName(id) });
   }
   if (pick) pick.innerHTML = `<span>${esc(text)}</span> <button type="button" class="link small" data-unsel>✕</button>`;
 }
@@ -1811,10 +1806,10 @@ function renderRpEstimate(): void {
   const gNow = gameNow(journal.clock, Date.now());
   const last = [...journal.events].reverse().find((e) => e.type === "releve" && e.rp !== null);
   const when = last
-    ? `Relevé ${gNow - last.g < 30_000 ? "sans temps de jeu depuis" : `il y a ${fmtDuration((gNow - last.g) / 1000)} de jeu`} (saisi le ${fmtDate(last.at, { dateStyle: "short", timeStyle: "short" })})`
+    ? t("m.rp.reading", { when: gNow - last.g < 30_000 ? t("m.rp.noPlaytime") : t("m.rp.ago", { t: fmtDuration((gNow - last.g) / 1000) }), date: fmtDate(last.at, { dateStyle: "short", timeStyle: "short" }) })
     : "";
   const same = rp === null || player.rp === null || Math.floor(rp) === Math.floor(player.rp);
-  const est = rp === null || same ? "" : `≈ ${fmtRP(Math.floor(rp))} maintenant`;
+  const est = rp === null || same ? "" : t("m.rp.now", { rp: fmtRP(Math.floor(rp)) });
   const el = $("rp-est");
   el.textContent = [when, est].filter(Boolean).join(" · ");
   el.hidden = !el.textContent;
@@ -1856,10 +1851,10 @@ function renderRpLive(full = false): void {
   const nominal = model.source === "aucune" ? 0 : nominalRate(model.tiers);
   const linear = base && nominal > 0 ? base.rp0 + (nominal * (gNow - base.from)) / 1000 : null;
   $("rs-out").innerHTML = renderResearchOut({ model, rp0: base?.rp0 ?? null, rpAt: base?.from ?? null, rpNow: rpNow(), now: gNow, playing: journal.clock.playing, realNow: now, linearNow: linear, how: false, overSince: overSince(h, model), stepsOpen: !!$("rs-out").querySelector<HTMLDetailsElement>("details.rs-steps-d")?.open });
-  const howKey = JSON.stringify([player.research, player.rpPerSec, model.source]);
+  const howKey = JSON.stringify([player.research, player.rpPerSec, model.source, lang()]);
   if (full || howKey !== rsHowKey) {
     rsHowKey = howKey;
-    $("rs-how").innerHTML = model.source === "aucune" ? "" : `<details class="more"><summary>Comment c'est calculé</summary>${researchHow(model)}</details>`;
+    $("rs-how").innerHTML = model.source === "aucune" ? "" : `<details class="more"><summary>${t("cv.title")}</summary>${researchHow(model)}</details>`;
   }
   if (full) renderHistoryBox();
 }
@@ -1885,9 +1880,9 @@ function renderExisting(): void {
     .map(([id, v]) => {
       const name = itemName(id);
       return `<li><span class="name">${esc(name)}</span>
-        <label class="sr-only" for="ex-${esc(id)}">Débit de ${esc(name)}</label>
+        <label class="sr-only" for="ex-${esc(id)}">${esc(t("m.ex.rate", { item: name }))}</label>
         <input id="ex-${esc(id)}" type="number" min="0.01" step="any" inputmode="decimal" data-existing-rate="${esc(id)}" value="${v}"> /min
-        <button type="button" class="link small" data-existing-del="${esc(id)}" aria-label="Retirer ${esc(name)}">retirer</button></li>`;
+        <button type="button" class="link small" data-existing-del="${esc(id)}" aria-label="${esc(t("m.ex.remove", { item: name }))}">${t("m.ex.removeBtn")}</button></li>`;
     })
     .join("");
 }
@@ -1900,7 +1895,7 @@ let lastLayoutKey = "";
 
 function renderTreePage(focusKey: string | null = null): void {
   const p = toEngineProgress(prog);
-  $("tree-summary").textContent = `${progressSummary(data, p)}. Clique une recherche pour la débloquer (avec ses prérequis si besoin).`;
+  $("tree-summary").textContent = t("m.tree.summary", { summary: progressSummary(data, p) });
   $("tree-view").hidden = ui.view !== "tree";
   $("list-view").hidden = ui.view !== "list";
   for (const b of document.querySelectorAll<HTMLButtonElement>(".seg [data-view]")) b.setAttribute("aria-checked", String(b.dataset.view === ui.view));
@@ -2049,12 +2044,12 @@ function renderHud(): void {
   const p = toEngineProgress(prog);
   const unlocked = prog.unlocked.includes(n.id);
   const missing = unlocked ? [] : missingNodes(data, p, n.id).filter((x) => x !== n.id);
-  $("rs-hud-info").innerHTML = `<b>${esc(fmtRP(n.rp))}</b> <span>${esc(n.name)} · ${unlocked ? "déjà débloquée" : missing.length ? `${missing.length} prérequis manquant(s)` : "disponible"}</span>`;
+  $("rs-hud-info").innerHTML = `<b>${esc(fmtRP(n.rp))}</b> <span>${esc(n.name)} · ${esc(unlocked ? t("m.hud.unlocked") : missing.length ? t("m.hud.missing", { n: String(missing.length) }) : t("m.hud.available"))}</span>`;
   // Bulle ouverte : ses boutons suffisent (pas de doublon dans le coin du cadre).
   btn.hidden = treeBubble && bubbleFor === n.id;
   btn.dataset.id = n.id;
   btn.dataset.unlocked = String(unlocked);
-  btn.textContent = unlocked ? "Retirer" : missing.length ? `Débloquer (+${missing.length})` : "Débloquer";
+  btn.textContent = unlocked ? t("m.hud.remove") : missing.length ? t("m.hud.unlockN", { n: String(missing.length) }) : t("m.hud.unlock");
   btn.classList.toggle("undo", unlocked);
 }
 
@@ -2088,7 +2083,7 @@ function renderData(): void {
   if (tab !== "verifier") return;
   const v = viewCtx();
   const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(goalTitle(settings.goal).toLowerCase())}</a>`;
-  $("verify-context").innerHTML = `Valeurs de la chaîne du dernier calcul : ${esc(planLabel(v))} (${where}).`;
+  $("verify-context").innerHTML = t("m.verify.context", { label: esc(planLabel(v)), where });
   const everything = allVerifyEntries(v);
   $("verify-all-count").textContent = String(new Set(everything.map((x) => `${x.scope}|${x.id}`)).size);
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-vscope]")) b.setAttribute("aria-checked", String((b.dataset.vscope === "all") === verifyAll));
@@ -2107,7 +2102,7 @@ function renderData(): void {
   $("verify-count").textContent = String(v.plan.verify.filter((x) => x.used).length);
   $("corrections").innerHTML = renderCorrections(v);
   $("corrections-count").textContent = String(countCorrections(corrections));
-  $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">Corrections ignorées :<ul>${dataErrors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : "";
+  $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">${t("m.dataErrors")}<ul>${dataErrors.map((e) => `<li>${frText(e)}</li>`).join("")}</ul></div>` : "";
 }
 
 /** Bandeau des valeurs d'une seule recette ou machine (arrivée par un lien ⚠). */
@@ -2115,8 +2110,8 @@ function verifyFocusBanner(vt: NonNullable<Route["verify"]>, count: number): str
   const r = vt.scope === "recette" ? data.recipes.get(vt.id) : undefined;
   const machine = vt.scope === "machine" ? vt.id : r?.machine;
   const name = vt.scope === "machine" ? machineN(viewCtx(), vt.id) : `${machineN(viewCtx(), r?.machine ?? "")} → ${itemN(viewCtx(), Object.keys(r?.outputs ?? {})[0] ?? "")}`;
-  const back = machine ? ` · <a href="${recipeHref("machine", machine)}">fiche de la machine</a>` : "";
-  return `<div class="banner">Valeurs à vérifier de <b>${esc(name)}</b>${count ? "" : " : il n'en reste aucune (déjà corrigée ? voir « Mes corrections » plus bas)"}${back} · <a href="#donnees/verifier">voir toutes les valeurs</a></div>`;
+  const back = machine ? ` · <a href="${recipeHref("machine", machine)}">${t("m.vf.machineCard")}</a>` : "";
+  return `<div class="banner">${t("m.vf.banner", { name: esc(name), none: count ? "" : t("m.vf.none"), back })}</div>`;
 }
 
 // ---------------------------------------------------------------- recettes
@@ -2127,7 +2122,7 @@ function pictureOf(kind: EntryKind, id: string): Picture | null {
   const wiki = WIKI_IMAGES.get(key);
   if (myImages[key]) return { src: myImages[key]!, own: true, fallback: !!wiki };
   if (!wiki) return null;
-  return { src: `${import.meta.env.BASE_URL}${wiki.file}`, own: false, credit: { label: `wiki Miraheze, ${wiki.license}`, url: wiki.url } };
+  return { src: `${import.meta.env.BASE_URL}${wiki.file}`, own: false, credit: { label: t("m.rc.wikiCredit", { license: wiki.license }), url: wiki.url } };
 }
 
 function recipesCtx(): RecipesCtx {
@@ -2157,16 +2152,16 @@ function renderRecettes(ctx?: RecipesCtx): void {
   $("rc-layout").classList.toggle("has-card", !!card || !!standalone);
   $("rc-layout").classList.toggle("rows", rcPrefs.view === "lignes");
   const rejected = dataErrors.filter((e) => /^(added|removed)\//.test(e));
-  const banner = rejected.length ? `<div class="banner bad">Ajouts ou retraits ignorés :<ul>${rejected.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : "";
+  const banner = rejected.length ? `<div class="banner bad">${t("m.rc.rejected")}<ul>${rejected.map((e) => `<li>${frText(e)}</li>`).join("")}</ul></div>` : "";
   $("rc-card").innerHTML =
     banner +
     (standalone
-      ? `<article class="rc-card">${renderItemForm(standalone)}<p class="hint">L'objet s'ajoute à la liste ; sa fiche permet ensuite d'ajouter les crafts qui le donnent ou l'utilisent.</p></article>`
+      ? `<article class="rc-card">${renderItemForm(standalone)}<p class="hint">${t("m.rc.itemFormHint")}</p></article>`
       : card
         ? card.kind === "objet"
           ? renderItemCard(ctx, card.id)
           : renderMachineCard(ctx, card.id)
-        : `<p class="rc-hello panel">Choisis un objet ou une machine dans la liste.</p>`);
+        : `<p class="rc-hello panel">${t("m.rc.hello")}</p>`);
   if (rcFocusPending) {
     rcFocusPending = false;
     const box = $("rc-card");
@@ -2180,9 +2175,14 @@ function renderRecettes(ctx?: RecipesCtx): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-view]")) b.setAttribute("aria-pressed", String(b.dataset.rcView === rcPrefs.view));
   $<HTMLSelectElement>("rc-sort").value = rcPrefs.sort.key;
   $("rc-dir").textContent = rcPrefs.sort.dir === "asc" ? "▲" : "▼";
-  $("rc-dir").title = rcPrefs.sort.dir === "asc" ? "Ordre croissant (cliquer pour inverser)" : "Ordre décroissant (cliquer pour inverser)";
+  $("rc-dir").title = t(rcPrefs.sort.dir === "asc" ? "m.rc.asc" : "m.rc.desc");
   const n = Object.keys(myImages).length;
-  $("rc-imgs").innerHTML = `Images : vignettes du <a href="https://industrialist.miraheze.org/" target="_blank" rel="noopener">wiki Miraheze</a> (CC BY-NC-SA 4.0), sinon une pastille. Mes images (${n}), gardées dans ce navigateur : <button type="button" class="link" id="rc-img-export"${n ? "" : " disabled"}>exporter</button> · <button type="button" class="link" id="rc-img-import-btn">importer</button>${n ? ` · <button type="button" class="link" id="rc-img-clear">tout effacer</button>` : ""}.`;
+  $("rc-imgs").innerHTML = t("m.rc.imgs.html", {
+    n: String(n),
+    export: `<button type="button" class="link" id="rc-img-export"${n ? "" : " disabled"}>${t("m.rc.export")}</button>`,
+    import: `<button type="button" class="link" id="rc-img-import-btn">${t("m.rc.import")}</button>`,
+    clear: n ? ` · <button type="button" class="link" id="rc-img-clear">${t("m.rc.clear")}</button>` : "",
+  });
   renderRcList(ctx);
 }
 
@@ -2192,7 +2192,7 @@ function renderRcList(ctx: RecipesCtx = recipesCtx()): void {
   // Avec une recherche et le tri par nom, les noms qui commencent par la saisie restent devant.
   const list = rcQuery.trim() && rcPrefs.sort.key === "nom" && rcPrefs.sort.dir === "asc" ? found : sortEntries(data, found, rcPrefs.sort);
   const card = route.page === "recettes" && route.card ? `${route.card.kind}/${route.card.id}` : null;
-  $("rc-count").textContent = `${list.length} résultat${list.length > 1 ? "s" : ""}`;
+  $("rc-count").textContent = t("m.rc.count", { n: list.length });
   $("rc-list").innerHTML = rcPrefs.view === "lignes" ? renderEntryRows(ctx, list, card, rcPrefs.sort) : renderEntryList(ctx, list, card);
 }
 
@@ -2324,11 +2324,11 @@ function bindRecettes(): void {
     try {
       const url = await shrinkImage(file);
       const next = { ...myImages, [imgTarget]: url };
-      if (!saveImages(next)) throw new Error("plus de place dans ce navigateur (exporte puis efface des images)");
+      if (!saveImages(next)) throw new Error(t("m.img.full"));
       myImages = next;
       renderRecettes();
     } catch (err) {
-      await ask("Image non enregistrée", `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: "Fermer", primary: true }]);
+      await ask(t("m.img.notSaved"), `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: t("m.close"), primary: true }]);
     }
   });
   $("rc-imgs").addEventListener("click", async (e) => {
@@ -2336,9 +2336,9 @@ function bindRecettes(): void {
     if (id === "rc-img-export") downloadJson(exportImages(myImages), "mes-images.json");
     else if (id === "rc-img-import-btn") $("rc-img-import").click();
     else if (id === "rc-img-clear") {
-      const choice = await ask("Effacer mes images", "<p>Effacer toutes les images que tu as choisies ? Pense à les exporter avant.</p>", [
-        { value: "yes", label: "Tout effacer", primary: true },
-        { value: "", label: "Annuler" },
+      const choice = await ask(t("m.img.clear.title"), t("m.img.clear.html"), [
+        { value: "yes", label: t("m.clearAll"), primary: true },
+        { value: "", label: t("m.cancel") },
       ]);
       if (choice !== "yes") return;
       myImages = {};
@@ -2353,11 +2353,11 @@ function bindRecettes(): void {
     if (!file) return;
     try {
       const next = { ...myImages, ...parseImagesExport(JSON.parse(await file.text())) };
-      if (!saveImages(next)) throw new Error("plus de place dans ce navigateur");
+      if (!saveImages(next)) throw new Error(t("m.img.fullShort"));
       myImages = next;
       renderRecettes();
     } catch (err) {
-      await ask("Import impossible", `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: "Fermer", primary: true }]);
+      await ask(t("m.importFailed"), `<p>${esc((err as Error).message)}.</p>`, [{ value: "", label: t("m.close"), primary: true }]);
     }
   });
   bindRecettesEdit();
@@ -2405,7 +2405,7 @@ function saveFix(input: HTMLInputElement): void {
   const n = readNum(raw);
   const added = scope === "items" ? corrections.added?.items?.[id] : undefined;
   if (added) {
-    if (raw.trim() && (n === null || n < 0)) return void (input.setCustomValidity("nombre ≥ 0, ou vide si inconnu"), input.reportValidity());
+    if (raw.trim() && (n === null || n < 0)) return void (input.setCustomValidity(t("m.num.geq0")), input.reportValidity());
     const { source: _, ...rest } = added;
     return commitCorrections(setAddedItem(corrections, id, { ...rest, [field]: raw.trim() ? n : null }));
   }
@@ -2414,7 +2414,7 @@ function saveFix(input: HTMLInputElement): void {
   if (!raw.trim() || n === null || n < 0) {
     input.value = typeof current === "number" ? String(current) : "";
     if (raw.trim()) {
-      input.setCustomValidity("nombre ≥ 0 attendu");
+      input.setCustomValidity(t("m.num.geq0Expected"));
       input.reportValidity();
     }
     return;
@@ -2439,9 +2439,9 @@ function saveCraftEdit(li: HTMLElement, id: string): void {
     const m = /^(inputs|outputs)\.(.+)$/.exec(field);
     const current = m ? r[m[1] as "inputs" | "outputs"][m[2]!] : r[field as "durationS" | "energyMFps"];
     if (n === null && !el.value.trim() && current === null) continue;
-    const bad = n === null ? "un nombre" : field === "durationS" && n <= 0 ? "une durée > 0" : m && n < 0 ? "une quantité ≥ 0" : null;
+    const bad = n === null ? t("m.bad.number") : field === "durationS" && n <= 0 ? t("m.bad.duration") : m && n < 0 ? t("m.bad.qty") : null;
     if (bad) {
-      err.textContent = `${bad} est attendu pour chaque case (${el.getAttribute("aria-label") ?? field}).`;
+      err.textContent = t("m.bad", { what: bad, field: el.getAttribute("aria-label") ?? field });
       el.focus();
       return;
     }
@@ -2492,8 +2492,8 @@ function saveItemForm(box: HTMLElement): void {
 function bindRecettesEdit(): void {
   $("rc-new-item").addEventListener("click", () => setEdit({ ...(rcEdit ?? EDIT_ON), craft: null, draft: null, newItem: { name: rcQuery.trim(), inDraft: false } }, true));
   $("rc-card").addEventListener("click", async (e) => {
-    const t = e.target as Element;
-    const on = (attr: string) => t.closest<HTMLElement>(`[${attr}]`);
+    const tg = e.target as Element;
+    const on = (attr: string) => tg.closest<HTMLElement>(`[${attr}]`);
     let el: HTMLElement | null;
     if (on("data-rc-edit-on")) return setEdit({ ...EDIT_ON });
     if (on("data-rc-edit-off")) return setEdit(null);
@@ -2526,10 +2526,10 @@ function bindRecettesEdit(): void {
       const id = el.dataset.rcDelItem!;
       const { next, alsoRemoved } = removeAdded(corrections, "items", id);
       const name = data.items.get(id)?.name ?? id;
-      const more = alsoRemoved.length ? ` Les ${alsoRemoved.length} craft${alsoRemoved.length > 1 ? "s" : ""} ajouté${alsoRemoved.length > 1 ? "s" : ""} qui l'utilisent seront effacés aussi.` : "";
-      const choice = await ask("Effacer l'objet ajouté", `<p>Effacer « ${esc(name)} » ?${esc(more)}</p>`, [
-        { value: "yes", label: "Effacer", primary: true },
-        { value: "", label: "Annuler" },
+      const more = alsoRemoved.length ? t("m.delItem.more", { n: alsoRemoved.length }) : "";
+      const choice = await ask(t("m.delItem.title"), t("m.delItem.html", { name: esc(name), more: esc(more) }), [
+        { value: "yes", label: t("m.delete"), primary: true },
+        { value: "", label: t("m.cancel") },
       ]);
       if (choice !== "yes") return;
       corrections = next;
@@ -2606,14 +2606,13 @@ async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}):
     let available = now;
     while (delta.spent > available + 1e-9) {
       const choice = await ask(
-        "Pas assez de RP",
-        `<p>Ce déblocage coûte <b>${esc(fmtRP(delta.spent))}</b> (${delta.added.length} recherche(s)), et le site estime que tu as <b>${esc(fmtRP(available))}</b>.</p>
-         <p>Si tu en as plus en jeu, indique ton montant actuel <i>avant</i> ce déblocage :</p>
-         <label class="ask-field">RP actuels <input id="ask-rp" inputmode="decimal" autocomplete="off" value="${Math.floor(available)}"></label>`,
+        t("m.rp.short.title"),
+        `${t("m.rp.short.html", { cost: esc(fmtRP(delta.spent)), n: String(delta.added.length), have: esc(fmtRP(available)) })}
+         <label class="ask-field">${t("m.rp.current")} <input id="ask-rp" inputmode="decimal" autocomplete="off" value="${Math.floor(available)}"></label>`,
         [
-          { value: "set", label: "Valider ce montant", primary: true },
-          { value: "free", label: "Débloquer sans dépenser" },
-          { value: "", label: "Annuler" },
+          { value: "set", label: t("m.rp.setAmount"), primary: true },
+          { value: "free", label: t("m.rp.free") },
+          { value: "", label: t("m.cancel") },
         ],
       );
       if (!choice) return render();
@@ -2621,10 +2620,10 @@ async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}):
       const v = parseOptional((document.getElementById("ask-rp") as HTMLInputElement | null)?.value ?? "");
       if (typeof v === "number" && v >= 0) available = v;
     }
-    const t = Date.now();
-    if (Math.abs(available - now) > 0.5) setJournal(addEvent(journal, { type: "releve", rp: available, rps: null }, t));
-    setJournal(addEvent(journal, { type: "depense", spent: delta.spent, added: delta.added, removed: delta.removed }, t));
-    player = { ...player, rp: available - delta.spent, rpAt: t };
+    const at = Date.now();
+    if (Math.abs(available - now) > 0.5) setJournal(addEvent(journal, { type: "releve", rp: available, rps: null }, at));
+    setJournal(addEvent(journal, { type: "depense", spent: delta.spent, added: delta.added, removed: delta.removed }, at));
+    player = { ...player, rp: available - delta.spent, rpAt: at };
     savePlayer(player);
   }
   commitProgress(next);
@@ -2661,12 +2660,12 @@ async function toggleNode(id: string, checked: boolean): Promise<void> {
     let add = [id];
     if (missing.length) {
       const choice = await ask(
-        "Prérequis non cochés",
-        `<p><b>${esc(nodeName(id))}</b> demande ${missing.length} recherche(s) que tu n'as pas cochée(s) (${esc(fmtRP(rpCost(data, missing)))}) :</p><ul>${missing.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
+        t("m.prereq.title"),
+        `${t("m.prereq.html", { name: esc(nodeName(id)), n: String(missing.length), rp: esc(fmtRP(rpCost(data, missing))) })}<ul>${missing.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
         [
-          { value: "all", label: "Tout débloquer", primary: true },
-          { value: "one", label: "Seulement celle-ci" },
-          { value: "", label: "Annuler" },
+          { value: "all", label: t("m.prereq.all"), primary: true },
+          { value: "one", label: t("m.only") },
+          { value: "", label: t("m.cancel") },
         ],
       );
       if (!choice) return render();
@@ -2678,12 +2677,12 @@ async function toggleNode(id: string, checked: boolean): Promise<void> {
     let remove = [id];
     if (deps.length) {
       const choice = await ask(
-        "Recherches qui en dépendent",
-        `<p>${deps.length} recherche(s) cochée(s) dépendent de <b>${esc(nodeName(id))}</b> :</p><ul>${deps.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
+        t("m.deps.title"),
+        `${t("m.deps.html", { n: String(deps.length), name: esc(nodeName(id)) })}<ul>${deps.map((x) => `<li>${esc(nodeName(x))}</li>`).join("")}</ul>`,
         [
-          { value: "all", label: "Tout décocher", primary: true },
-          { value: "one", label: "Seulement celle-ci" },
-          { value: "", label: "Annuler" },
+          { value: "all", label: t("m.deps.all"), primary: true },
+          { value: "one", label: t("m.only") },
+          { value: "", label: t("m.cancel") },
         ],
       );
       if (!choice) return render();
@@ -2735,13 +2734,13 @@ function resolveNode(text: string) {
 /** Ajoute (ou met à jour) une production existante. */
 async function askExisting(id: string, perMin: number): Promise<void> {
   const choice = await ask(
-    "Production déjà en place",
-    `<p><b>${esc(itemName(id))}</b> : tu en produis déjà ailleurs ? Indique ton débit, le calcul s'en servira avant de construire du neuf.</p>
-     <label class="ask-field">Débit (/min) <input id="ask-rate" inputmode="decimal" autocomplete="off" value="${esc(String(Math.round(perMin * 100) / 100).replace(".", ","))}"></label>
-     <p class="hint">Tu retrouves tes productions dans Mon usine.</p>`,
+    t("m.existing.title"),
+    `${t("m.existing.html", { item: esc(itemName(id)) })}
+     <label class="ask-field">${t("m.existing.rate")} <input id="ask-rate" inputmode="decimal" autocomplete="off" value="${esc(lang() === "fr" ? String(Math.round(perMin * 100) / 100).replace(".", ",") : String(Math.round(perMin * 100) / 100))}"></label>
+     <p class="hint">${t("m.existing.where")}</p>`,
     [
-      { value: "ok", label: "Ajouter", primary: true },
-      { value: "", label: "Annuler" },
+      { value: "ok", label: t("m.add"), primary: true },
+      { value: "", label: t("m.cancel") },
     ],
   );
   if (choice !== "ok") return;
@@ -3326,22 +3325,22 @@ function bindUsine(): void {
     e.preventDefault();
     const node = resolveNode(input("upto").value);
     if (!node) {
-      $("upto-hint").textContent = "Recherche introuvable : choisis un nom dans la liste.";
+      $("upto-hint").textContent = t("m.upto.notFound");
       return;
     }
     const before = new Set(prog.unlocked);
     const next = unlockUpTo(data, toEngineProgress(prog), node.id);
     const added = [...next].filter((x) => !before.has(x)).length;
-    $("upto-hint").textContent = `${node.name} : ${added} recherche(s) cochée(s).`;
+    $("upto-hint").textContent = t("m.upto.done", { name: node.name, n: String(added) });
     treeView.category = node.category;
     ui.selected = node.id;
     saveUi();
     void setProgress({ ...prog, unlocked: [...next] });
   });
   $("progress-reset").addEventListener("click", async () => {
-    const choice = await ask("Réinitialiser la progression", "<p>Décocher toutes les recherches et toutes les machines possédées ?</p>", [
-      { value: "yes", label: "Réinitialiser", primary: true },
-      { value: "", label: "Annuler" },
+    const choice = await ask(t("m.reset.title"), t("m.reset.html"), [
+      { value: "yes", label: t("m.reset"), primary: true },
+      { value: "", label: t("m.cancel") },
     ]);
     if (choice === "yes") void setProgress({ unlocked: [], reqItemsDone: [], owned: [] }, { spend: false });
   });
@@ -3350,7 +3349,7 @@ function bindUsine(): void {
   $("progress-export").addEventListener("click", () => {
     const file = exportProgress(prog, player, new Date(), journal);
     downloadJson(file, `progression-industrialist-${file.exportedAt.slice(0, 10)}.json`);
-    $("progress-io-hint").textContent = "Fichier exporté.";
+    $("progress-io-hint").textContent = t("m.exported");
   });
   $("progress-import").addEventListener("change", async (e) => {
     const box = e.target as HTMLInputElement;
@@ -3361,21 +3360,21 @@ function bindUsine(): void {
     try {
       parsed = parseProgressExport(data, JSON.parse(await file.text()));
     } catch {
-      parsed = { ok: false, error: "fichier illisible (JSON attendu)" };
+      parsed = { ok: false, error: t("m.import.unreadable") };
     }
     if (!parsed.ok) {
-      $("progress-io-hint").textContent = `Import impossible : ${parsed.error}.`;
+      $("progress-io-hint").textContent = t("m.import.failed", { err: parsed.error });
       return;
     }
-    const when = parsed.exportedAt ? ` (exporté le ${fmtDate(new Date(parsed.exportedAt).getTime())})` : "";
+    const when = parsed.exportedAt ? t("m.import.when", { date: fmtDate(new Date(parsed.exportedAt).getTime()) }) : "";
     const choice = await ask(
-      "Importer une partie",
-      `<p>Remplacer ta progression actuelle (${prog.unlocked.length} recherche(s) cochée(s)) par celle du fichier${esc(when)} : <b>${parsed.progress.unlocked.length}</b> recherche(s), ${parsed.progress.owned.length} machine(s) possédée(s), et tes ressources ?</p>${
-        parsed.dropped ? `<p class="hint">${parsed.dropped} élément(s) inconnu(s) des données actuelles seront ignorés.</p>` : ""
+      t("m.import.title"),
+      `${t("m.import.html", { cur: String(prog.unlocked.length), when: esc(when), n: String(parsed.progress.unlocked.length), owned: String(parsed.progress.owned.length) })}${
+        parsed.dropped ? `<p class="hint">${t("m.import.dropped", { n: String(parsed.dropped) })}</p>` : ""
       }`,
       [
-        { value: "yes", label: "Remplacer", primary: true },
-        { value: "", label: "Annuler" },
+        { value: "yes", label: t("m.replace"), primary: true },
+        { value: "", label: t("m.cancel") },
       ],
     );
     if (choice !== "yes") return;
@@ -3385,7 +3384,7 @@ function bindUsine(): void {
     void setProgress(parsed.progress, { spend: false });
     // S29 : le même compte que l'en-tête (les recherches acquises d'office comprises).
     const n = [...data.nodes.values()].filter((x) => !x.isRoot && (x.startUnlocked || parsed.progress.unlocked.includes(x.id))).length;
-    $("progress-io-hint").textContent = `Partie importée : ${n}/${researchTotal()} recherches débloquées.`;
+    $("progress-io-hint").textContent = t("m.imported", { n: String(n), total: String(researchTotal()) });
   });
 
   const playerFields: [string, keyof PlayerInfo][] = [
@@ -3400,7 +3399,7 @@ function bindUsine(): void {
     $(id).addEventListener("input", (e) => {
       const v = parseOptional((e.target as HTMLInputElement).value);
       $(id).setAttribute("aria-invalid", String(v === "invalide"));
-      $(key === "plotW" || key === "plotH" ? "plot-hint" : key === "rp" || key === "rpPerSec" ? "rp-hint" : "player-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+      $(key === "plotW" || key === "plotH" ? "plot-hint" : key === "rp" || key === "rpPerSec" ? "rp-hint" : "player-hint").textContent = v === "invalide" ? t("m.numOrEmpty") : "";
       if (v === "invalide") return;
       if (key === "rp" || key === "rpPerSec") {
         const t = Date.now();
@@ -3429,10 +3428,10 @@ function bindUsine(): void {
     const form = e.target as HTMLFormElement;
     const name = (form.elements.namedItem("item") as HTMLInputElement).value;
     const id = resolveItem(name);
-    const v = parseFloat((form.elements.namedItem("rate") as HTMLInputElement).value.replace(",", "."));
-    if (!id) return void ($("existing-hint").textContent = "Objet introuvable : choisis un nom dans la liste.");
-    if (!(v > 0)) return void ($("existing-hint").textContent = "Indique un débit positif, par minute.");
-    $("existing-hint").textContent = `${itemName(id)} : ${fmt(v, 2)}/min ajoutés.`;
+    const v = parseNum((form.elements.namedItem("rate") as HTMLInputElement).value);
+    if (!id) return void ($("existing-hint").textContent = t("m.ex.notFound"));
+    if (!(v > 0)) return void ($("existing-hint").textContent = t("m.ex.positive"));
+    $("existing-hint").textContent = t("m.ex.added", { item: itemName(id), r: fmt(v, 2) });
     form.reset();
     settings.existing = { ...settings.existing, [id]: v };
     update();
@@ -3647,14 +3646,14 @@ function bindData(): void {
       rebuildData();
       update();
     } catch (err) {
-      $("data-errors").innerHTML = `<div class="banner bad">Import impossible : ${esc((err as Error).message)}</div>`;
+      $("data-errors").innerHTML = `<div class="banner bad">${esc(t("m.cor.importFailed", { err: (err as Error).message }))}</div>`;
     }
   });
   $("clear-corrections").addEventListener("click", async () => {
     if (!countCorrections(corrections)) return;
-    const choice = await ask("Effacer mes corrections", "<p>Effacer toutes tes corrections locales ? Pense à les exporter avant.</p>", [
-      { value: "yes", label: "Tout effacer", primary: true },
-      { value: "", label: "Annuler" },
+    const choice = await ask(t("m.cor.clear.title"), t("m.cor.clear.html"), [
+      { value: "yes", label: t("m.clearAll"), primary: true },
+      { value: "", label: t("m.cancel") },
     ]);
     if (choice !== "yes") return;
     corrections = {};
@@ -3693,7 +3692,7 @@ function bindResearchBox(): void {
     if (numeric === undefined) return;
     const v = parseOptional(el.value);
     el.setAttribute("aria-invalid", String(v === "invalide"));
-    $("rp-hint").textContent = v === "invalide" ? "Nombre attendu (ou laisse vide)." : "";
+    $("rp-hint").textContent = v === "invalide" ? t("m.numOrEmpty") : "";
     if (v === "invalide") return;
     updateResearch((s) => {
       if (d.rsp) {
@@ -3727,7 +3726,7 @@ function bindResearchBox(): void {
     }
     const id = el.value.trim() ? resolveItem(el.value) : "";
     el.setAttribute("aria-invalid", String(id === null));
-    $("rp-hint").textContent = id === null ? `« ${el.value} » : objet inconnu, choisis-le dans la liste.` : "";
+    $("rp-hint").textContent = id === null ? t("m.rs.unknownItem", { v: el.value }) : "";
     if (id === null) return;
     if (id) el.value = itemName(id);
     updateResearch((s) => {
@@ -3831,6 +3830,7 @@ function bindLang(): void {
     applyLang();
     setDocTitle();
     render();
+    buildings.refresh();
   });
 }
 

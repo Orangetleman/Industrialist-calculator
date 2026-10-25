@@ -258,7 +258,8 @@ Pourquoi cet ordre :
   la page, et le choix est gardé. Un navigateur en anglais arrive en anglais. Une clé absente de
   `en.ts` fait échouer `npm run typecheck`. Tests verts.
 - **S31** : le test « rien d'oublié » passe sur toutes les vues de `vocabulaire.test.ts`, en
-  anglais, et la visite est jouée en entier en anglais. Tests verts.
+  anglais, et la visite est jouée en entier en anglais. Tests verts. **Fait le 2026-10-25** (catalogues par écran dans
+  `src/i18n/vues/`, test `src/ui/traduction.test.ts`, bilan au § 6 du plan d'action).
 - **S32** : aucun message du moteur n'est écrit en dur. Les empreintes des 8 plans sont identiques
   (S27 bis) et l'ordre de pose est rangé comme avant (test de S26). Chaque note des données
   affichée a sa traduction, sinon la marque « (FR) » est comptée par un test. Tests verts.

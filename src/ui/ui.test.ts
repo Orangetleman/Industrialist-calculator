@@ -229,10 +229,10 @@ describe("vue d'un plan : réponse, liste de construction, schéma, détails", (
     const rows = buildRows(v);
     const steps = rows.filter((r) => !r.key.includes(":"));
     expect(steps.map((r) => r.key).sort()).toEqual(plan.steps.map((s) => s.key).sort());
-    const order = ["Extraction", "Transformation", "Produit final"];
+    const order = ["extraction", "transformation", "final"];
     const stages = rows.map((r) => order.indexOf(r.stage)).filter((i) => i >= 0);
     expect(stages).toEqual([...stages].sort((a, b) => a - b));
-    expect(rows.at(-1)).toMatchObject({ key: "crankshaft", stage: "Produit final" });
+    expect(rows.at(-1)).toMatchObject({ key: "crankshaft", stage: "final" });
     const machines = rows.reduce((s, r) => s + (r.countText.startsWith("≈") ? 0 : r.count), 0);
     expect(machines).toBe(plan.totals.machines);
   });

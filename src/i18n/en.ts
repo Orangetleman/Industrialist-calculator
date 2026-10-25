@@ -3,6 +3,14 @@
 // tiles, 1 tile = 2 cells), parcelle = build area, outils Build / Wire / Pipe / Delete, pollution en %/h.
 
 import type { fr, Msg } from "./fr.ts";
+import { planEn } from "./vues/plan.en.ts";
+import { communEn } from "./vues/commun.en.ts";
+import { contribEn } from "./vues/contrib.en.ts";
+import { usineEn } from "./vues/usine.en.ts";
+import { recettesEn } from "./vues/recettes.en.ts";
+import { arbreEn } from "./vues/arbre.en.ts";
+import { visiteEn } from "./vues/visite.en.ts";
+import { pagesEn } from "./vues/pages.en.ts";
 
 export const en: { [K in keyof typeof fr]: Msg } = {
   // ------------------------------------------------------------ commun
@@ -365,4 +373,14 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "pose.tier3.hint": "(faster, more expensive)",
   "pose.proposal.html": "<b>This is a suggestion.</b> Use it as a base to build, then improve it as you like: the game often allows better than an automatic plan.",
   "pose.hint": "One module per step, machines in one or two rows (or in stacked blocks), one manifold per resource. Buildings not yet surveyed have assumed ports.",
+
+  // ------------------------------------------------------------ vues (S31), un fichier par écran
+  ...planEn,
+  ...communEn,
+  ...contribEn,
+  ...usineEn,
+  ...recettesEn,
+  ...arbreEn,
+  ...visiteEn,
+  ...pagesEn,
 };

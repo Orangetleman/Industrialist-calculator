@@ -5,32 +5,35 @@
 
 import type { AsmBlock, DieselPlan, FarmSet } from "../engine/build/assembly.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
-import { esc, fmt, fmtMoney } from "./format.ts";
+import { esc, fmt, fmtMoney, fmtPct, frText } from "./format.ts";
+import { t, type Key } from "../i18n/i18n.ts";
 
 const C = 16; // unités SVG par case
 
-const FARM: Record<string, { color: string; one: string; many: string; short: string }> = {
-  tree: { color: "#3f8f4f", one: "arbre", many: "arbres", short: "" },
-  sprinkler: { color: "#4f8fd6", one: "arroseur", many: "arroseurs", short: "A" },
-  tank: { color: "#5fd4d4", one: "réservoir", many: "réservoirs", short: "Eau" },
-  harvester: { color: "#f0913a", one: "récolteur", many: "récolteurs", short: "" },
-  output: { color: "#d77fd0", one: "sortie", many: "sorties", short: "S" },
-  controller: { color: "#ff6b5f", one: "contrôleur", many: "contrôleurs", short: "C" },
+/** Blocs de la ferme : couleur, et lettre sur le bloc (clé « as.short.… » ; vide pour l'arbre et le récolteur). */
+const FARM: Record<string, { color: string; short: Key | null }> = {
+  tree: { color: "#3f8f4f", short: null },
+  sprinkler: { color: "#4f8fd6", short: "as.short.sprinkler" },
+  tank: { color: "#5fd4d4", short: "as.short.tank" },
+  harvester: { color: "#f0913a", short: null },
+  output: { color: "#d77fd0", short: "as.short.output" },
+  controller: { color: "#ff6b5f", short: "as.short.controller" },
 };
-const ENGINE: Record<string, { color: string; short: string }> = {
-  controller: { color: "#ff6b5f", short: "Ctrl" },
-  crankshaft: { color: "#9aa7b4", short: "Vil" },
-  generator: { color: "#6cc792", short: "Gén" },
-  cylinder: { color: "#e3b25a", short: "Cyl" },
-  "air-input": { color: "#5fd4d4", short: "Air" },
-  exhaust: { color: "#8a8a8a", short: "Éch" },
-  "fuel-input": { color: "#d77fd0", short: "Carb" },
-  "info-panel": { color: "#8fb8d6", short: "Pan" },
-  decoration: { color: "#55606b", short: "Déco" },
-  flywheel: { color: "#b48a6e", short: "Vol" },
+const ENGINE: Record<string, { color: string; short: Key }> = {
+  controller: { color: "#ff6b5f", short: "as.short.controllerE" },
+  crankshaft: { color: "#9aa7b4", short: "as.short.crankshaft" },
+  generator: { color: "#6cc792", short: "as.short.generator" },
+  cylinder: { color: "#e3b25a", short: "as.short.cylinder" },
+  "air-input": { color: "#5fd4d4", short: "as.short.air-input" },
+  exhaust: { color: "#8a8a8a", short: "as.short.exhaust" },
+  "fuel-input": { color: "#d77fd0", short: "as.short.fuel-input" },
+  "info-panel": { color: "#8fb8d6", short: "as.short.info-panel" },
+  decoration: { color: "#55606b", short: "as.short.decoration" },
+  flywheel: { color: "#b48a6e", short: "as.short.flywheel" },
 };
 
-const plural = (n: number, one: string, many: string) => `${fmt(n, 0)} ${n > 1 ? many : one}`;
+/** « 3 arbres » (nombre, pluriel accordé) : `kind` est tree, sprinkler, tank, harvester, output, controller ou cell. */
+const count = (kind: string, n: number) => t(`as.n.${kind}` as Key, { n: Math.round(n) });
 
 /** Petite flèche au bord d'une case de port, dans le sens du tuyau. */
 function portArrow(p: { x: number; y: number; facing: Dir }, color: string, ox: number, oy: number): string {
@@ -64,7 +67,7 @@ export function renderFarmSvg(f: FarmSet, name: (id: string) => string): { svg: 
   const oy = C;
   const W = (f.width + 2) * C;
   const H = (f.height + 2) * C;
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="module asm" role="img" aria-label="Plan de pose de la ferme d'arbres, vue de dessus">`;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="module asm" role="img" aria-label="${esc(t("as.farm.aria"))}">`;
   s += `<g class="mg">`;
   for (let x = 0; x <= f.width; x += 4) s += `<line x1="${ox + x * C}" y1="${oy}" x2="${ox + x * C}" y2="${oy + f.height * C}"/>`;
   for (let y = 0; y <= f.height; y += 4) s += `<line x1="${ox}" y1="${oy + y * C}" x2="${ox + f.width * C}" y2="${oy + y * C}"/>`;
@@ -75,7 +78,7 @@ export function renderFarmSvg(f: FarmSet, name: (id: string) => string): { svg: 
     const x1 = ox + (c.x + 0.5) * C;
     const y1 = oy + (c.y + 0.5) * C;
     const water = f.blocks.find((b) => b.id === c.block)?.kind === "tank";
-    s += `<line class="a-lane" x1="${x1}" y1="${y1}" x2="${x1 + d.x * (c.len - 0.5) * C}" y2="${y1 + d.y * (c.len - 0.5) * C}" stroke="${water ? "#5fd4d4" : "#d77fd0"}"><title>${esc(water ? "Passage du tuyau d'eau vers le réservoir" : "Passage du tuyau des Oak Logs depuis la sortie")}</title></line>`;
+    s += `<line class="a-lane" x1="${x1}" y1="${y1}" x2="${x1 + d.x * (c.len - 0.5) * C}" y2="${y1 + d.y * (c.len - 0.5) * C}" stroke="${water ? "#5fd4d4" : "#d77fd0"}"><title>${esc(t(water ? "as.lane.water" : "as.lane.logs"))}</title></line>`;
   }
   // Portées (cachées tant que « Afficher les portées » est éteint ou que le bloc n'est pas choisi).
   for (const b of f.blocks)
@@ -85,27 +88,27 @@ export function renderFarmSvg(f: FarmSet, name: (id: string) => string): { svg: 
   const order = ["tree", "sprinkler", "harvester", "output", "tank", "controller"];
   for (const b of [...f.blocks].sort((p, q) => order.indexOf(p.kind) - order.indexOf(q.kind))) {
     const k = FARM[b.kind]!;
-    const farm = f.farms > 1 ? ` (ferme ${b.unit})` : "";
+    const farm = f.farms > 1 ? t("as.farmN", { n: String(b.unit) }) : "";
     const nTrees = b.serves?.filter((id) => id.includes(":t")).length ?? 0;
     const tip =
       b.kind === "tree"
-        ? `Arbre${farm}`
+        ? t("as.tip.tree", { farm })
         : b.kind === "harvester"
-          ? `Récolteur${farm} : coupe ${plural(nTrees, "arbre", "arbres")} à sa portée et les dépose dans sa sortie · clique pour voir sa portée`
+          ? t("as.tip.harvester", { farm, trees: count("tree", nTrees) })
           : b.kind === "sprinkler"
-            ? `Arroseur${farm} : arrose ${plural(nTrees, "arbre", "arbres")} · clique pour voir sa portée`
+            ? t("as.tip.sprinkler", { farm, trees: count("tree", nTrees) })
             : b.kind === "tank"
-              ? `Réservoir${farm} : alimente ${plural(b.serves?.length ?? 0, "arroseur", "arroseurs")} ; arrivée d'eau au bout du passage`
+              ? t("as.tip.tank", { farm, spr: count("sprinkler", b.serves?.length ?? 0) })
               : b.kind === "output"
-                ? `Sortie${farm} : les Oak Logs en partent par tuyau, le long du passage`
-                : `Contrôleur${farm} : tout bloc de sa ferme doit toucher son cercle, aucun bloc d'une autre ferme · prise électrique`;
+                ? t("as.tip.output", { farm })
+                : t("as.tip.controller", { farm });
     let extra = "";
     if (b.port) extra += portArrow(b.port, "#fff", ox, oy);
     if (b.plug) extra += `<circle class="plug" cx="${ox + b.plug.x * C}" cy="${oy + b.plug.y * C}" r="3.5"/>`;
-    s += blockG(b, ox, oy, k.color, b.kind === "harvester" ? (b.tag ?? "") : k.short, `${tip} — ${name(b.machine)}`, extra);
+    s += blockG(b, ox, oy, k.color, b.kind === "harvester" ? (b.tag ?? "") : k.short ? t(k.short) : "", `${tip} — ${name(b.machine)}`, extra);
   }
   for (const p of f.poles)
-    s += `<g class="pole${p.used ? "" : " a-free"}" data-tip="${esc(p.used ? `${name(p.pole)} : relie la prise du contrôleur au réseau` : "Place gardée pour un poteau (inutile avec ce poteau-ci)")}"><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${p.w * C}" height="${p.h * C}" rx="4"/>${p.used ? `<text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text>` : ""}</g>`;
+    s += `<g class="pole${p.used ? "" : " a-free"}" data-tip="${esc(p.used ? t("as.pole.used", { p: name(p.pole) }) : t("as.pole.free"))}"><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${p.w * C}" height="${p.h * C}" rx="4"/>${p.used ? `<text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text>` : ""}</g>`;
   return { svg: s + "</svg>", width: W, height: H };
 }
 
@@ -129,21 +132,20 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
   const unknown = parts.filter((p) => unit(p.id) === null).length;
   const cost = parts.reduce((s, p) => s + (unit(p.id) ?? 0) * p.count, 0);
   const total = f.trees.reduce((a, b) => a + b, 0);
-  const what = [plural(c(ids.sprinkler), "arroseur", "arroseurs"), plural(c(ids.tank), "réservoir", "réservoirs"), plural(c(ids.harvester), "récolteur", "récolteurs"), plural(c(ids.output), "sortie", "sorties"), plural(c(ids.controller), "contrôleur", "contrôleurs")].join(", ");
-  const title = f.farms > 1 ? `${f.farms} fermes d'arbres (${f.trees.join(" + ")} arbres)` : `Ferme d'arbres de ${plural(total, "arbre", "arbres")}`;
-  let head = `<p class="mod-sum"><b>${esc(title)}</b> : ${esc(what)} — ${f.width} × ${f.height} cases, ${esc(fmtMoney(cost))}${unknown ? " (prix incomplets)" : ""}.</p>`;
-  if (f.farms > 1)
-    head += `<p class="mod-other">Une ferme tient au plus ${plural(ctx.capacity ?? f.capacity, "arbre", "arbres")} : au-delà, tout ne touche plus la portée du contrôleur. Les fermes sont écartées de ${plural(f.gap ?? 0, "case", "cases")}, pour que le cercle d'un contrôleur ne touche aucun bloc de l'autre ferme (sinon les deux s'arrêtent).</p>`;
-  else if (ctx.capacity) head += `<p class="mod-other">Une ferme tient au plus ${plural(ctx.capacity, "arbre", "arbres")} (portée du contrôleur).</p>`;
+  const what = [count("sprinkler", c(ids.sprinkler)), count("tank", c(ids.tank)), count("harvester", c(ids.harvester)), count("output", c(ids.output)), count("controller", c(ids.controller))].join(", ");
+  const title = f.farms > 1 ? t("as.farms", { n: String(f.farms), list: f.trees.join(" + ") }) : t("as.farm", { trees: count("tree", total) });
+  let head = `<p class="mod-sum">${t("as.sum.html", { title: esc(title), what: esc(what), w: String(f.width), h: String(f.height), cost: esc(fmtMoney(cost)), unknown: unknown ? t("mv.sum.unknown") : "" })}</p>`;
+  if (f.farms > 1) head += `<p class="mod-other">${t("as.capacity.many", { trees: count("tree", ctx.capacity ?? f.capacity), cells: count("cell", f.gap ?? 0) })}</p>`;
+  else if (ctx.capacity) head += `<p class="mod-other">${t("as.capacity", { trees: count("tree", ctx.capacity) })}</p>`;
   // Poteaux : celui du plan, et ceux qui conviennent aussi.
   if (f.pole) {
-    const opts = f.poleOptions.map((p) => `<option value="${esc(p.id)}"${p.id === f.pole!.id ? " selected" : ""}>${esc(`${p.name} — portée ${fmt(p.rangeCells, 0)} cases, ${p.price === null ? "prix ?" : fmtMoney(p.price)}`)}</option>`).join("");
+    const opts = f.poleOptions.map((p) => `<option value="${esc(p.id)}"${p.id === f.pole!.id ? " selected" : ""}>${esc(t("as.pole.opt", { name: p.name, r: fmt(p.rangeCells, 0), price: p.price === null ? t("as.price.unknown") : fmtMoney(p.price) }))}</option>`).join("");
     const used = Object.values(f.poleCounts).reduce((a, b) => a + b, 0);
-    head += `<div class="pose-via"><label class="pose-pick" for="asm-pole">Poteaux jusqu'au contrôleur <select id="asm-pole">${opts}</select></label><p class="hint">La ferme consomme ${esc(fmt(ctx.loadMFps / 1000, 1))} kMF/s. ${plural(used, "poteau relie", "poteaux relient")} la prise du contrôleur au bord de la ferme ; les places sont gardées pour le poteau le moins cher qui porte la ferme. Un poteau de plus grande portée, si tu l'as débloqué, en laisse libres. Le poteau HV n'est pas proposé : il lui faut un transformateur.</p></div>`;
+    head += `<div class="pose-via"><label class="pose-pick" for="asm-pole">${t("as.poles.label")} <select id="asm-pole">${opts}</select></label><p class="hint">${t("as.poles.hint", { kmf: esc(fmt(ctx.loadMFps / 1000, 1)), used: t("as.poles.link", { n: used }) })}</p></div>`;
   }
-  if (f.problems.length) head += `<ul class="notices">${f.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
+  if (f.problems.length) head += `<ul class="notices">${f.problems.map((p) => `<li>${frText(p)}</li>`).join("")}</ul>`;
   const sw = (kind: string) => `<i style="background:${FARM[kind]!.color}"></i>`;
-  const legend = `<ul class="mod-legend"><li>${sw("tree")}Arbre</li><li>${sw("sprinkler")}Arroseur</li><li>${sw("harvester")}Récolteur (arbres qu'il suit)</li><li>${sw("output")}Sortie</li><li>${sw("tank")}Réservoir</li><li>${sw("controller")}Contrôleur</li><li><i class="sw-plug"></i>Prise électrique</li><li><i class="sw-pole"></i>Poteau</li><li><i class="sw-cable"></i>Câble</li><li><i class="sw-lane"></i>Passage d'un tuyau</li></ul>`;
+  const legend = `<ul class="mod-legend"><li>${sw("tree")}${t("as.lg.tree")}</li><li>${sw("sprinkler")}${t("as.lg.sprinkler")}</li><li>${sw("harvester")}${t("as.lg.harvester")}</li><li>${sw("output")}${t("as.lg.output")}</li><li>${sw("tank")}${t("as.lg.tank")}</li><li>${sw("controller")}${t("as.lg.controller")}</li><li><i class="sw-plug"></i>${t("mv.lg.plug")}</li><li><i class="sw-pole"></i>${t("mv.lg.pole")}</li><li><i class="sw-cable"></i>${t("as.lg.cable")}</li><li><i class="sw-lane"></i>${t("as.lg.lane")}</li></ul>`;
   const rows = parts
     .map((p) => {
       const u = unit(p.id);
@@ -151,23 +153,23 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
     })
     .join("");
   const steps = [
-    `Pose ${f.farms > 1 ? "chaque contrôleur" : "le contrôleur"} (rouge, « C ») : il définit la ferme ; chaque bloc de sa ferme doit toucher son cercle.`,
-    `Pose les poteaux (« P ») du bord de la ferme jusqu'à la prise du contrôleur, et relie-les à ton réseau.`,
-    `Pose ${c(ids.tank) > 1 ? "les réservoirs" : "le réservoir"} et amène l'eau par ${c(ids.tank) > 1 ? "leur" : "son"} passage (un réservoir pour trois arroseurs, chacun alimenté).`,
-    `Pose les arroseurs (« A ») puis les arbres autour : chaque arbre doit toucher le cercle d'un arroseur.`,
-    `Pose les récolteurs dans les trous des coins (le chiffre : arbres qu'il suit, ${fmt(ctx.perHarvester, 0)} au plus), puis les sorties (« S ») à leur portée.`,
-    `Tire le tuyau des Oak Logs de chaque sortie le long de son passage : garde-le libre.`,
+    t("as.step.controller", { which: t(f.farms > 1 ? "as.step.controller.each" : "as.step.controller.one") }),
+    t("as.step.poles"),
+    t(c(ids.tank) > 1 ? "as.step.tanks" : "as.step.tank"),
+    t("as.step.sprinklers"),
+    t("as.step.harvesters", { n: fmt(ctx.perHarvester, 0) }),
+    t("as.step.logs"),
   ];
   const assumptions = [
-    `${fmt(ctx.perHarvester, 0)} arbres au plus par récolteur : chiffre du guide Miraheze ; le maximum réel est à relever en jeu.`,
-    "Portées relevées en jeu depuis le bord du bloc ; un bloc est à portée dès que le cercle le touche.",
-    "Les passages sont tracés en ligne droite jusqu'au bord de la ferme ; un passage qui traverse le bois prend la place d'arbres, replacés ailleurs.",
-    "Les câbles électriques ne sont pas gênés par les obstacles (relevé du 2026-10-12).",
-    "La liste de construction et le prix comptent les blocs de ce plan.",
+    t("as.hyp.harvester", { n: fmt(ctx.perHarvester, 0) }),
+    t("as.hyp.ranges"),
+    t("as.hyp.lanes"),
+    t("as.hyp.cables"),
+    t("as.hyp.list"),
   ];
-  const details = `<details class="more" open><summary>Ordre de pose</summary><ol class="steps-list">${steps.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
-    <details class="more"><summary>Pièces à acheter (${parts.reduce((s, p) => s + p.count, 0)})</summary><div class="tablewrap"><table class="mini"><thead><tr><th>Pièce</th><th>Nombre</th><th>Prix</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></details>
-    <details class="more"><summary>Hypothèses à vérifier en jeu (${assumptions.length})</summary><ul class="notes">${assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+  const details = `<details class="more" open><summary>${t("mv.order")}</summary><ol class="steps-list">${steps.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
+    <details class="more"><summary>${t("mv.parts", { n: parts.reduce((s, p) => s + p.count, 0) })}</summary><div class="tablewrap"><table class="mini"><thead><tr><th>${t("mv.th.piece")}</th><th>${t("mv.th.n")}</th><th>${t("mv.th.price")}</th><th>${t("mv.th.total")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+    <details class="more"><summary>${t("mv.assumptions", { n: assumptions.length })}</summary><ul class="notes">${assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
   return { head, legend, details };
 }
 
@@ -179,16 +181,16 @@ export function renderDieselSvg(p: DieselPlan, name: (id: string) => string): { 
   const oy = C;
   const W = (p.width + 4) * C;
   const H = (p.height + 2) * C;
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="module asm" role="img" aria-label="Plan de pose du moteur diesel modulaire, vue de dessus">`;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="module asm" role="img" aria-label="${esc(t("as.dsl.aria"))}">`;
   s += `<g class="mg">`;
   for (let x = 0; x <= p.width; x += 2) s += `<line x1="${ox + x * C}" y1="${oy}" x2="${ox + x * C}" y2="${oy + p.height * C}"/>`;
   for (let y = 0; y <= p.height; y += 2) s += `<line x1="${ox}" y1="${oy + y * C}" x2="${ox + p.width * C}" y2="${oy + y * C}"/>`;
   s += `</g>`;
   for (const b of p.blocks) {
-    const k = ENGINE[b.kind] ?? { color: "#9aa7b4", short: "" };
-    const unit = p.units > 1 ? ` (moteur ${b.unit})` : "";
-    const tip = `${name(b.machine)}${unit}${b.todo ? " — nombre à relever en jeu : au moins un" : ""}${b.port ? " · arrivée du carburant par ce côté" : ""}`;
-    s += blockG(b, ox, oy, k.color, k.short, tip, b.port ? portArrow(b.port, "#d77fd0", ox, oy) : "");
+    const k = ENGINE[b.kind];
+    const unit = p.units > 1 ? t("as.engineN", { n: String(b.unit) }) : "";
+    const tip = `${name(b.machine)}${unit}${b.todo ? t("as.dsl.todo") : ""}${b.port ? t("as.dsl.port") : ""}`;
+    s += blockG(b, ox, oy, k?.color ?? "#9aa7b4", k ? t(k.short) : "", tip, b.port ? portArrow(b.port, "#d77fd0", ox, oy) : "");
   }
   return { svg: s + "</svg>", width: W, height: H };
 }
@@ -210,7 +212,7 @@ export type DieselInfoCtx = {
 
 /** Réglages à faire dans le panneau du contrôleur du moteur diesel (S18). */
 export function controllerPanel(airFuel: number, throttle: number, assumed: boolean): string {
-  return `<span class="iset" title="À régler dans le panneau du contrôleur, sur chaque moteur.">⚙ Panneau du contrôleur : rapport air/carburant ${esc(fmt(airFuel, 0))} · accélérateur ${esc(fmt(throttle, 0))} %${assumed ? " (supposé)" : ""}</span>`;
+  return `<span class="iset" title="${esc(t("as.panel.title"))}">${esc(t("as.panel", { a: fmt(airFuel, 0), t: fmtPct(fmt(throttle, 0)), assumed: assumed ? t("as.assumed") : "" }))}</span>`;
 }
 
 export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: string; legend: string; details: string } {
@@ -219,42 +221,42 @@ export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: str
   per.sort((a, b) => ((order.indexOf(a.id) + 99) % 99) - ((order.indexOf(b.id) + 99) % 99));
   const unknown = per.filter((q) => ctx.price(q.id) === null).length;
   const cost = per.reduce((s, q) => s + (ctx.price(q.id) ?? 0) * q.count, 0) * p.units;
-  const title = `${p.units > 1 ? `${p.units} moteurs diesel modulaires` : "Moteur diesel modulaire"}, ${ctx.label}`;
-  let head = `<p class="mod-sum"><b>${esc(title)}</b> : ${p.units > 1 ? "par moteur " : ""}${esc(per.map((q) => `${q.count} ${ctx.name(q.id)}`).join(", "))} — ${p.width} × ${p.height} cases, ${ctx.todo.length ? "au moins " : ""}${esc(fmtMoney(cost))}${unknown ? " (prix incomplets)" : ""}.</p>`;
-  head += `<p class="mod-other">${esc(fmt(ctx.powerMFps / 1e6, 2))} MMF/s et ${esc(fmt(ctx.fuelLps, 3))} L/s de ${esc(ctx.name(ctx.fuel))} par moteur. Le moins de vilebrequins possible : un bloc de côté par côté, contrôleur compris (la longueur ne change pas la puissance).${p.freeSides ? ` ${plural(p.freeSides, "place de côté reste libre", "places de côté restent libres")} par moteur : une décoration (facultative) peut la cacher.` : ""}${p.units > 1 ? " Les moteurs sont côte à côte, sans toucher la ligne du voisin : leurs deux côtés restent libres." : ""}</p>`;
+  const title = p.units > 1 ? t("as.dsl.units", { n: String(p.units), label: frText(ctx.label) }) : t("as.dsl.unit", { label: frText(ctx.label) });
+  let head = `<p class="mod-sum">${t("as.dsl.sum.html", { title, per: p.units > 1 ? t("as.dsl.perEngine") : "", list: esc(per.map((q) => `${q.count} ${ctx.name(q.id)}`).join(", ")), w: String(p.width), h: String(p.height), min: ctx.todo.length ? t("as.dsl.atLeast") : "", cost: esc(fmtMoney(cost)), unknown: unknown ? t("mv.sum.unknown") : "" })}</p>`;
+  head += `<p class="mod-other">${esc(t("as.dsl.power", { p: fmt(ctx.powerMFps / 1e6, 2), l: fmt(ctx.fuelLps, 3), fuel: ctx.name(ctx.fuel), free: p.freeSides ? t("as.dsl.free", { n: p.freeSides }) : "", units: p.units > 1 ? t("as.dsl.sideBySide") : "" }))}</p>`;
   head += `<p class="mod-other">${controllerPanel(ctx.airFuel, ctx.throttle, ctx.throttleAssumed)}</p>`;
   const notes: string[] = [];
-  if (ctx.todo.length) notes.push(`${ctx.todo.map((id) => ctx.name(id)).join(", ")} : nombre à relever en jeu ; le plan en pose un de chaque, le minimum du wiki (en pointillés).`);
-  notes.push("Prise électrique du générateur : place à relever en jeu ; relie-le au réseau.");
+  if (ctx.todo.length) notes.push(t("as.dsl.todoNote", { list: ctx.todo.map((id) => ctx.name(id)).join(", ") }));
+  notes.push(t("as.dsl.plug"));
   head += `<ul class="notices">${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`;
   const sw = (kind: string) => `<i style="background:${ENGINE[kind]!.color}"></i>`;
-  const legend = `<ul class="mod-legend"><li>${sw("controller")}Contrôleur</li><li>${sw("crankshaft")}Vilebrequin</li><li>${sw("generator")}Générateur</li>${p.counts["diesel-engine-flywheel"] ? `<li>${sw("flywheel")}Volant</li>` : ""}<li>${sw("cylinder")}Cylindre</li><li>${sw("air-input")}Entrée d'air</li><li>${sw("exhaust")}Échappement</li><li>${sw("fuel-input")}Entrée de carburant</li>${ctx.todo.length ? `<li><i class="sw-todo"></i>À relever</li>` : ""}</ul>`;
+  const legend = `<ul class="mod-legend"><li>${sw("controller")}${t("as.lg.controller")}</li><li>${sw("crankshaft")}${t("as.lg.crankshaft")}</li><li>${sw("generator")}${t("as.lg.generator")}</li>${p.counts["diesel-engine-flywheel"] ? `<li>${sw("flywheel")}${t("as.lg.flywheel")}</li>` : ""}<li>${sw("cylinder")}${t("as.lg.cylinder")}</li><li>${sw("air-input")}${t("as.lg.air")}</li><li>${sw("exhaust")}${t("as.lg.exhaust")}</li><li>${sw("fuel-input")}${t("as.lg.fuel")}</li>${ctx.todo.length ? `<li><i class="sw-todo"></i>${t("as.lg.todo")}</li>` : ""}</ul>`;
   const rows = per
     .map((q) => {
       const u = ctx.price(q.id);
       const n = q.count * p.units;
-      return `<tr><td>${esc(ctx.name(q.id))}${ctx.todo.includes(q.id) ? " <span class=\"warn-text\">(au moins)</span>" : ""}</td><td class="num">${n}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u))}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u * n))}</td></tr>`;
+      return `<tr><td>${esc(ctx.name(q.id))}${ctx.todo.includes(q.id) ? ` <span class="warn-text">${t("as.atLeast")}</span>` : ""}</td><td class="num">${n}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u))}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u * n))}</td></tr>`;
     })
     .join("");
   const steps = [
-    "Pose le contrôleur au bout du moteur.",
-    `Pose ${p.cranks} vilebrequin${p.cranks > 1 ? "s" : ""} en ligne droite devant lui, puis le générateur au bout de la ligne.`,
-    "Pose les blocs de côté contre les côtés du contrôleur et des vilebrequins, au-dessus et au-dessous de la ligne : un bloc par côté (le sens des blocs ne compte pas).",
-    `Règle le contrôleur : rapport air/carburant ${ctx.airFuel}, accélérateur ${ctx.throttle} %${ctx.throttleAssumed ? " (supposé : le tableau du wiki ne l'écrit pas)" : ""}.`,
-    `Amène le ${ctx.name(ctx.fuel)} à l'entrée de carburant (flèche), et relie le générateur au réseau.`,
+    t("as.dsl.s1"),
+    t("as.dsl.s2", { n: p.cranks }),
+    t("as.dsl.s3"),
+    t("as.dsl.s4", { a: String(ctx.airFuel), t: fmtPct(String(ctx.throttle)), assumed: ctx.throttleAssumed ? t("as.dsl.s4.assumed") : "" }),
+    t("as.dsl.s5", { fuel: ctx.name(ctx.fuel) }),
   ];
   const assumptions = [
-    ctx.reading ? "Configuration relevée en jeu (Info Panel) ; aucune formule connue." : "Configuration relevée sur le wiki (aucune formule connue) ; ajoute les tiennes dans l'éditeur de bâtiments (Diesel Engine Controller, « Relevé de configuration »).",
-    "La longueur du moteur ne change pas la puissance (réponse du 2026-10-18).",
-    "Deux moteurs voisins peuvent se coller : ici, leurs rangées de côté se touchent, pas leurs lignes.",
+    t(ctx.reading ? "as.dsl.h.reading" : "as.dsl.h.wiki"),
+    t("as.dsl.h.length"),
+    t("as.dsl.h.neighbors"),
   ];
-  const details = `<details class="more" open><summary>Ordre de pose${p.units > 1 ? " (par moteur)" : ""}</summary><ol class="steps-list">${steps.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
-    <details class="more"><summary>Pièces à acheter (${per.reduce((s, q) => s + q.count, 0) * p.units})</summary><div class="tablewrap"><table class="mini"><thead><tr><th>Pièce</th><th>Nombre</th><th>Prix</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></details>
-    <details class="more"><summary>Hypothèses à vérifier en jeu (${assumptions.length})</summary><ul class="notes">${assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+  const details = `<details class="more" open><summary>${t("mv.order")}${p.units > 1 ? t("as.perEngine") : ""}</summary><ol class="steps-list">${steps.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
+    <details class="more"><summary>${t("mv.parts", { n: per.reduce((s, q) => s + q.count, 0) * p.units })}</summary><div class="tablewrap"><table class="mini"><thead><tr><th>${t("mv.th.piece")}</th><th>${t("mv.th.n")}</th><th>${t("mv.th.price")}</th><th>${t("mv.th.total")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+    <details class="more"><summary>${t("mv.assumptions", { n: assumptions.length })}</summary><ul class="notes">${assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
   return { head, legend, details };
 }
 
 /** Bouton « Afficher les portées » de la ferme. */
 export function rangesButton(on: boolean): string {
-  return `<button type="button" class="u-links-btn" data-asm="ranges" aria-pressed="${on}">◯ ${on ? "Portées affichées" : "Afficher les portées"}</button>`;
+  return `<button type="button" class="u-links-btn" data-asm="ranges" aria-pressed="${on}">◯ ${t(on ? "as.ranges.on" : "as.ranges.off")}</button>`;
 }

@@ -2,10 +2,20 @@
 // exactement les mêmes (son type est celui de ce fichier : une clé oubliée ne compile pas).
 // Une valeur est un texte, ou { one, other } pour un pluriel (accordé sur {n}). Les clés en « .html »
 // contiennent des balises : elles sont insérées telles quelles (textes du site, jamais de saisie).
-// S31 ajoute les autres vues, S32 les messages du moteur.
+// S31 : les autres vues, un catalogue par écran dans vues/ (même règle : vues/x.en.ts a le type de vues/x.fr.ts).
+// S32 : les messages du moteur et les notes des données.
 
 /** Un texte, ou ses formes du pluriel (Intl.PluralRules : « one », « other »…). */
 export type Msg = string | { one: string; other: string; few?: string; many?: string };
+
+import { planFr } from "./vues/plan.fr.ts";
+import { communFr } from "./vues/commun.fr.ts";
+import { contribFr } from "./vues/contrib.fr.ts";
+import { usineFr } from "./vues/usine.fr.ts";
+import { recettesFr } from "./vues/recettes.fr.ts";
+import { arbreFr } from "./vues/arbre.fr.ts";
+import { visiteFr } from "./vues/visite.fr.ts";
+import { pagesFr } from "./vues/pages.fr.ts";
 
 export const fr = {
   // ------------------------------------------------------------ commun
@@ -368,4 +378,14 @@ export const fr = {
   "pose.tier3.hint": "(plus rapides, plus chers)",
   "pose.proposal.html": "<b>C'est une proposition.</b> Sers-t'en comme base pour construire, puis optimise-la comme tu le souhaites : le jeu permet souvent mieux qu'un calcul automatique.",
   "pose.hint": "Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.",
+
+  // ------------------------------------------------------------ vues (S31), un fichier par écran
+  ...planFr,
+  ...communFr,
+  ...contribFr,
+  ...usineFr,
+  ...recettesFr,
+  ...arbreFr,
+  ...visiteFr,
+  ...pagesFr,
 } satisfies Record<string, Msg>;

@@ -4,6 +4,7 @@
 import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
 import { EDGES, type Edge, FACES, type FaceKey, type FacesInfo, type ModularEdit, type ModularEdits, type SideSplit } from "../engine/modular.ts";
 import type { Source } from "../engine/types.ts";
+import { t } from "../i18n/i18n.ts";
 
 export const CELL = 30; // pixels par case dans le SVG (la vue est ensuite mise à l'échelle)
 
@@ -70,22 +71,22 @@ export function applyTool(ports: Port[], tool: Tool, place: Pick<Port, "side" | 
 /** Contrôles du relevé : renvoie la liste des problèmes (vide = relevé complet). */
 export function checkEntry(e: PortsEntry): string[] {
   const out: string[] = [];
-  if (!e.footprint || !(e.footprint.w > 0) || !(e.footprint.h > 0)) out.push("empreinte manquante");
+  if (!e.footprint || !(e.footprint.w > 0) || !(e.footprint.h > 0)) out.push(t("bm.noFootprint"));
   const flowPorts = e.ports.filter((p) => p.type !== "énergie").length;
-  if (!e.ports.length && !e.noPorts) out.push("aucun port : pose-les, ou coche « Sans port » si le bâtiment n'en a pas");
-  if (flowPorts && e.noPorts) out.push("« Sans port » est coché alors qu'un port est posé");
+  if (!e.ports.length && !e.noPorts) out.push(t("bm.noPorts"));
+  if (flowPorts && e.noPorts) out.push(t("bm.noPortsButPort"));
   const hasPower = e.ports.some((p) => p.type === "énergie");
-  if (!hasPower && !e.noPower) out.push("pas de prise électrique : pose-la, ou coche « Sans prise électrique » si le bâtiment n'en a pas");
-  if (hasPower && e.noPower) out.push("« Sans prise électrique » est coché alors qu'une prise est posée");
+  if (!hasPower && !e.noPower) out.push(t("bm.noPower"));
+  if (hasPower && e.noPower) out.push(t("bm.noPowerButSocket"));
   const w = e.footprint?.w ?? 0;
   const h = e.footprint?.h ?? 0;
   for (const p of e.ports) {
     if (p.side === "dessus") {
       const [x, y] = p.cell as [number, number];
-      if (x < 1 || y < 1 || x > w || y > h) out.push(`prise hors de l'empreinte (${x}, ${y})`);
+      if (x < 1 || y < 1 || x > w || y > h) out.push(t("bm.socketOut", { x: String(x), y: String(y) }));
     } else {
       const len = p.side === "haut" || p.side === "bas" ? w : h;
-      if ((p.cell as number) < 1 || (p.cell as number) > len) out.push(`port ${p.side} ${p.cell} hors du bord`);
+      if ((p.cell as number) < 1 || (p.cell as number) > len) out.push(t("bm.portOut", { side: t(`side.${p.side as "haut"}`), cell: String(p.cell) }));
     }
   }
   return out;
@@ -231,7 +232,8 @@ export function splitSides(draft: ModularEdit, on: boolean): ModularEdit {
 // ---------------------------------------------------------------- interfaces (S10)
 
 export const INTERFACE_KINDS: InterfaceKind[] = ["fenêtre", "levier", "choix direct", "bouton"];
-export const KIND_LABEL: Record<InterfaceKind, string> = { fenêtre: "fenêtre de réglages", levier: "levier", "choix direct": "choix direct sur la machine", bouton: "bouton" };
+/** Libellé d'un genre d'interface, dans la langue choisie. */
+export const kindLabel = (k: InterfaceKind): string => t(`kind.${k}`);
 const SCALES = ["entrées", "sorties", "énergie"] as const;
 
 /** Identifiant d'un nouveau réglage, unique dans l'interface. */

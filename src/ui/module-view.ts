@@ -6,11 +6,13 @@ import { passageWhere, type ModulePlan, type PassageOption, type PlacedPiece, ty
 import { moduleFlows, type FlowArrow } from "../engine/build/flow.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { SurveyState } from "./buildings-model.ts";
-import { esc, fmt, fmtMoney } from "./format.ts";
+import { colon, esc, fmt, fmtMoney, frRaw, frText } from "./format.ts";
+import { t, type Key } from "../i18n/i18n.ts";
 import { fitsPlot } from "./progress.ts";
 
 const C = 16; // unités SVG par case
-const CRIT_NAME: Record<PoseCriterion, string> = { place: "Place au sol", forme: "Forme ramassée", prix: "Prix", pieces: "Pièces à poser" };
+/** Nom d'une priorité de disposition, dans la langue choisie. */
+const critName = (c: PoseCriterion): string => t(`mv.crit.${c}`);
 /** Couleurs des ressources, lisibles sur le fond sombre du cadre. */
 const PALETTE = ["#f0913a", "#6cc792", "#8fb8d6", "#e3b25a", "#d77fd0", "#5fd4d4", "#ff8a80", "#c5d86d"];
 
@@ -59,7 +61,7 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
   const wide = opts.wide ?? ((net: string) => tier.get(net) === 3);
   const cx = (x: number) => ox + x * C + C / 2;
   const cy = (y: number) => oy + y * C + C / 2;
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="module" role="img" aria-label="Plan de pose vu de dessus : ${m.count} ${esc(name(m.machine))}">`;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="module" role="img" aria-label="${esc(t("mv.svg.aria", { n: String(m.count), m: name(m.machine) }))}">`;
   s += `<defs><marker id="mfa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#fff"/></marker><marker id="mfb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd54a"/></marker></defs>`;
   // Grille légère (une case = un Short Pipe).
   s += `<g class="mg">`;
@@ -68,10 +70,11 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
   s += `</g>`;
   // Machines : un clic ouvre la fiche de la machine. Infobulles en `data-tip` (la bulle du cadre, au survol et au clic).
   for (const mm of m.machines) {
-    s += `<g class="mm" data-machine="${esc(m.machine)}" data-tip="${esc(`${name(m.machine)} n° ${mm.id.slice(1)}\nClique pour ouvrir sa fiche`)}"><rect x="${ox + mm.x * C}" y="${oy + mm.y * C}" width="${mm.w * C}" height="${mm.h * C}" rx="3"/>`;
-    const label = mm.w * C >= 70 ? name(m.machine) : `n° ${mm.id.slice(1)}`;
-    s += `<text x="${ox + (mm.x + mm.w / 2) * C}" y="${oy + (mm.y + mm.h / 2) * C + 4}" text-anchor="middle">${esc(label.length * 6.5 > mm.w * C - 6 ? `n° ${mm.id.slice(1)}` : label)}</text>`;
-    for (const p of mm.power) s += `<circle class="plug" cx="${ox + p.x * C}" cy="${oy + p.y * C}" r="3.5" data-tip="Prise électrique de la machine n° ${mm.id.slice(1)}"/>`;
+    s += `<g class="mm" data-machine="${esc(m.machine)}" data-tip="${esc(t("mv.machine.tip", { m: name(m.machine), n: mm.id.slice(1) }))}"><rect x="${ox + mm.x * C}" y="${oy + mm.y * C}" width="${mm.w * C}" height="${mm.h * C}" rx="3"/>`;
+    const no = t("mv.no", { n: mm.id.slice(1) });
+    const label = mm.w * C >= 70 ? name(m.machine) : no;
+    s += `<text x="${ox + (mm.x + mm.w / 2) * C}" y="${oy + (mm.y + mm.h / 2) * C + 4}" text-anchor="middle">${esc(label.length * 6.5 > mm.w * C - 6 ? no : label)}</text>`;
+    for (const p of mm.power) s += `<circle class="plug" cx="${ox + p.x * C}" cy="${oy + p.y * C}" r="3.5" data-tip="${esc(t("mv.plug.tip", { n: mm.id.slice(1) }))}"/>`;
     s += `</g>`;
   }
   // Tuyaux : un trait du centre de la case vers chaque liaison ; croisement : le second réseau passe dessus.
@@ -84,15 +87,16 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
     if (own) return own;
     const n = m.nets.find((x) => x.id === net);
     if (!n) return res(net);
-    return `${name(n.item)}${n.line ? ` (n° ${n.line})` : ""} — collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"}, ${fmt(n.perSec, 2)}/s${n.pipe ? ` · tuyau tier ${n.pipe.tier === 1 ? "I" : "III"} (jusqu'à ${n.pipe.flowPerSec}/s)` : " · aucun tuyau assez rapide"}`;
+    return `${name(n.item)}${n.line ? ` (${t("mv.no", { n: String(n.line) })})` : ""} — ${t(n.role === "entrée" ? "mv.net.in" : "mv.net.out")}, ${fmt(n.perSec, 2)}/s${n.pipe ? t("mv.net.pipe", { t: n.pipe.tier === 1 ? "I" : "III", f: String(n.pipe.flowPerSec) }) : t("mv.net.noPipe")}`;
   };
-  const PIECE: Record<string, string> = { droit: "tuyau droit", coude: "coude", té: "té", croix: "croix", croisement: "croisement", bout: "bout" };
+  const PIECES = ["droit", "coude", "té", "croix", "croisement", "bout"];
+  const piece = (role: string) => (PIECES.includes(role) ? t(`mv.piece.${role}` as Key) : role);
   for (const p of opts.pieces ?? m.pieces) {
     const tip =
       p.role === "croisement"
-        ? `Croisement (les deux tuyaux se croisent sans se mélanger)\n${netTip(p.net)}\n${netTip(p.crossNet ?? "")}`
-        : `${netTip(p.net)}\nPièce : ${PIECE[p.role] ?? p.role}`;
-    s += `<g class="m-pipe" data-item="${esc(itemOf(p.net))}" data-tip="${esc(`${tip}\nClique pour voir les liaisons de ce produit`)}">`;
+        ? `${t("mv.crossing.tip")}\n${netTip(p.net)}\n${netTip(p.crossNet ?? "")}`
+        : `${netTip(p.net)}\n${t("mv.piece.tip", { p: piece(p.role) })}`;
+    s += `<g class="m-pipe" data-item="${esc(itemOf(p.net))}" data-tip="${esc(`${tip}\n${t("mv.pipe.click")}`)}">`;
     for (const d of p.links) s += seg(p.x, p.y, d, color(p.net), wide(p.net));
     if (p.crossNet) for (const d of p.crossLinks ?? []) s += seg(p.x, p.y, d, color(p.crossNet), wide(p.crossNet), true);
     if (p.role === "té" || p.role === "croix") s += `<circle cx="${cx(p.x)}" cy="${cy(p.y)}" r="3.2" fill="${color(p.net)}"/>`;
@@ -112,7 +116,7 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
       const bx = out ? ex : ex - 7 * f.x;
       const by = out ? ey : ey - 7 * f.y;
       const pts = [[bx - 5 * f.y, by + 5 * f.x], [bx + 7 * f.x, by + 7 * f.y], [bx + 5 * f.y, by - 5 * f.x]].map(([a, b]) => `${a},${b}`).join(" L");
-      s += `<g class="end" data-tip="${esc(`${n.role === "entrée" ? "Arrivée" : "Départ"} : ${name(n.item)}, ${fmt(n.perSec, 2)}/s`)}"><path d="M${pts} z" fill="${color(n.id)}"/></g>`;
+      s += `<g class="end" data-tip="${esc(t(n.role === "entrée" ? "mv.end.in" : "mv.end.out", { item: name(n.item), r: fmt(n.perSec, 2) }))}"><path d="M${pts} z" fill="${color(n.id)}"/></g>`;
     }
   // Vecteurs des liaisons, par ressource : de 12 % à 88 % du trajet, pour qu'ils se suivent comme une chaîne.
   const byItem = new Map<string, string>();
@@ -129,19 +133,19 @@ export function renderModuleSvg(m: ModulePlan, name: (id: string) => string, opt
     const [px, py] = [ox + (p.x + p.w / 2) * C, oy + (p.y + p.h / 2) * C];
     for (const id of p.covers) for (const q of plugs.get(id) ?? []) s += `<line class="m-plug" x1="${px}" y1="${py}" x2="${ox + q.x * C}" y2="${oy + q.y * C}" marker-end="url(#mfb)"/>`;
   }
-  for (const p of m.poles) s += `<g class="pole" data-tip="${esc(`${name(p.pole)}${p.covers.length ? ` — alimente les machines ${p.covers.map((c) => c.slice(1)).join(", ")}` : " — relais"}`)}"><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${C * p.w}" height="${C * p.h}" rx="4"/><text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text></g>`;
+  for (const p of m.poles) s += `<g class="pole" data-tip="${esc(`${name(p.pole)}${p.covers.length ? t("mv.pole.feeds", { list: p.covers.map((c) => c.slice(1)).join(", ") }) : t("mv.pole.relay")}`)}"><rect x="${ox + p.x * C}" y="${oy + p.y * C}" width="${C * p.w}" height="${C * p.h}" rx="4"/><text x="${ox + (p.x + p.w / 2) * C}" y="${oy + (p.y + p.h / 2) * C + 4}" text-anchor="middle">P</text></g>`;
   return { svg: s + "</svg>", width: W, height: H };
 }
 
 /** Le module tient-il sur la parcelle du joueur ? Sinon, l'autre choix tiendrait-il ? */
 function plotLine(m: ModulePlan, plot: { w: number; h: number } | null): string {
-  if (!plot) return `<p class="mod-other">Indique la taille de ta parcelle dans <a href="#usine">Mon usine</a> pour vérifier que ce plan tient sur ton terrain.</p>`;
+  if (!plot) return `<p class="mod-other">${t("mv.plot.none.html")}</p>`;
   const fit = fitsPlot(m.width, m.height, plot);
-  const size = `${plot.w} × ${plot.h} cases`;
-  if (fit === "oui") return `<p class="mod-fit ok-text">Tient sur ta parcelle (${size}).</p>`;
-  if (fit === "tourné") return `<p class="mod-fit ok-text">Tient sur ta parcelle (${size}) en le tournant d'un quart de tour.</p>`;
-  const alt = m.other && fitsPlot(m.other.width, m.other.height, plot) !== "non" ? ` Avec « ${esc(CRIT_NAME[m.other.first])} » en premier, il tiendrait.` : "";
-  return `<p class="mod-fit warn-text">Ne tient pas sur ta parcelle (${size}) : ${m.width} × ${m.height} cases.${alt}</p>`;
+  const size = t("mv.plot.size", { w: String(plot.w), h: String(plot.h) });
+  if (fit === "oui") return `<p class="mod-fit ok-text">${t("mv.plot.fits", { size })}</p>`;
+  if (fit === "tourné") return `<p class="mod-fit ok-text">${t("mv.plot.turned", { size })}</p>`;
+  const alt = m.other && fitsPlot(m.other.width, m.other.height, plot) !== "non" ? t("mv.plot.other", { c: esc(critName(m.other.first)) }) : "";
+  return `<p class="mod-fit warn-text">${t("mv.plot.no", { size, w: String(m.width), h: String(m.height), alt })}</p>`;
 }
 
 /**
@@ -153,29 +157,29 @@ function plotLine(m: ModulePlan, plot: { w: number; h: number } | null): string 
 export function renderPassagePick(base: ModulePlan, options: PassageOption[], chosen: string, name: (id: string) => string, advised: string[] | null = null): string {
   if (!options.length) return "";
   const key = (o: PassageOption) => `${o.item}|${o.passage.row}|${o.passage.after}`;
-  const size = (o: PassageOption) => `${o.plan.width} × ${o.plan.height} cases`;
+  const size = (o: PassageOption) => t("mv.plot.size", { w: String(o.plan.width), h: String(o.plan.height) });
   const good = (o: PassageOption) => !!advised?.includes(key(o));
   const opt = (o: PassageOption) =>
-    `<option value="${esc(key(o))}"${key(o) === chosen ? " selected" : ""}>${good(o) ? "★ " : ""}${esc(`${name(o.item)} : ${passageWhere(o.passage, base.count)} · ${size(o)}`)}${good(o) ? " · vers les voisins" : ""}</option>`;
+    `<option value="${esc(key(o))}"${key(o) === chosen ? " selected" : ""}>${good(o) ? "★ " : ""}${esc(`${name(o.item)}${colon()}${frRaw(passageWhere(o.passage, base.count))} · ${size(o)}`)}${good(o) ? t("mv.via.good") : ""}</option>`;
   const first = (list: PassageOption[]) => [...list.filter(good), ...list.filter((o) => !good(o))];
   const keep = first(options.filter((o) => !o.widens));
   const wide = first(options.filter((o) => o.widens));
-  const tips = options.filter(good).map((o) => `${name(o.item)} ${passageWhere(o.passage, base.count)}`);
+  const tips = options.filter(good).map((o) => `${name(o.item)} ${frRaw(passageWhere(o.passage, base.count))}`);
   const advice =
     advised === null
-      ? `Pour savoir quel passage va vers les modules voisins, <button type="button" class="link small" data-usine="open">calcule « Toute l'usine »</button> (en arrière-plan).`
+      ? t("mv.via.compute.html")
       : tips.length
-        ? `★ D'après « Toute l'usine », vers les modules voisins : ${esc(tips.join(" ; "))}.`
-        : `D'après « Toute l'usine », aucun passage ne raccourcit les tuyaux vers les voisins de ce module : les bouts suffisent.`;
-  return `<div class="pose-via"><label class="pose-pick" for="pose-via">Sortie d'un collecteur central
-    <select id="pose-via"><option value="">Par les bouts des collecteurs · ${base.width} × ${base.height} cases</option>${
-      keep.length ? `<optgroup label="Par un passage entre deux machines">${keep.map(opt).join("")}</optgroup>` : ""
-    }${wide.length ? `<optgroup label="Par un passage, en élargissant le module (option)">${wide.map(opt).join("")}</optgroup>` : ""}</select></label>
-    <p class="hint">Double rangée : un collecteur peut sortir à angle droit entre deux machines voisines, pour rejoindre plus court un module voisin. ${advice}</p></div>`;
+        ? esc(t("mv.via.tips", { list: tips.join(" ; ") }))
+        : t("mv.via.none");
+  return `<div class="pose-via"><label class="pose-pick" for="pose-via">${t("mv.via.label")}
+    <select id="pose-via"><option value="">${esc(t("mv.via.ends", { w: String(base.width), h: String(base.height) }))}</option>${
+      keep.length ? `<optgroup label="${esc(t("mv.via.passage"))}">${keep.map(opt).join("")}</optgroup>` : ""
+    }${wide.length ? `<optgroup label="${esc(t("mv.via.widen"))}">${wide.map(opt).join("")}</optgroup>` : ""}</select></label>
+    <p class="hint">${t("mv.via.hint", { advice })}</p></div>`;
 }
 
 /** « double rangée », ou « 3 blocs empilés (double rangée) » pour des rangées repliées. */
-const layoutName = (m: { template: string; folds: number }) => (m.folds > 1 ? `${m.folds} blocs empilés (${m.template})` : m.template);
+const layoutName = (m: { template: string; folds: number }) => (m.folds > 1 ? t("mv.layout.folds", { n: String(m.folds), t: frRaw(m.template) }) : frRaw(m.template));
 
 /** Texte autour du dessin : résumé, problèmes, ressources, pièces, ordre de pose, hypothèses. */
 // ---------------------------------------------------------------- ordre de pose du joueur (S26)
@@ -186,10 +190,10 @@ const layoutName = (m: { template: string; folds: number }) => (m.folds > 1 ? `$
  * 1 « & » bâtiments, 2 « é » câbles électriques et logiques, 3 « " » tuyaux, en AZERTY).
  */
 export const POSE_PHASES = [
-  { key: "batiments", title: "Bâtiments", touche: "1", azerty: "&" },
-  { key: "tuyaux", title: "Tuyaux", touche: "3", azerty: '"' },
-  { key: "electricite", title: "Électricité", touche: "2", azerty: "é" },
-  { key: "logique", title: "Logique", touche: "2", azerty: "é" },
+  { key: "batiments", touche: "1", azerty: "&" },
+  { key: "tuyaux", touche: "3", azerty: '"' },
+  { key: "electricite", touche: "2", azerty: "é" },
+  { key: "logique", touche: "2", azerty: "é" },
 ] as const;
 export type PosePhase = (typeof POSE_PHASES)[number]["key"];
 
@@ -243,17 +247,17 @@ export function phasedOrder(order: readonly string[], rot = 0): { phase: (typeof
     phase,
     lines: order
       .filter((o) => phaseOf(o) === phase.key)
-      .map((o) => turnOrderText(o, rot).replace("dans l'onglet 3 du mode construction", `en mode tuyaux (touche 3, « ${'"'} » en AZERTY)`)),
+      .map((o) => frRaw(turnOrderText(o, rot).replace("dans l'onglet 3 du mode construction", `en mode tuyaux (touche 3, « ${'"'} » en AZERTY)`))),
   })).filter((p) => p.lines.length);
 }
 
 /** « Ordre de pose » d'un module : par étape du joueur, avec la touche du jeu, dans le sens de l'usine. */
 export function renderOrder(order: readonly string[], rot = 0, open = true): string {
   const phases = phasedOrder(order, rot);
-  return `<details class="more pose-order"${open ? " open" : ""}><summary>Ordre de pose${rot % 4 ? " <span class=\"hint\">(dans le sens du module dans l'usine)</span>" : ""}</summary>${phases
+  return `<details class="more pose-order"${open ? " open" : ""}><summary>${t("mv.order")}${rot % 4 ? ` <span class="hint">${t("mv.order.turned")}</span>` : ""}</summary>${phases
     .map(
       ({ phase, lines }) =>
-        `<h4 class="pose-phase">${esc(phase.title)} <span class="key">${phase.touche}</span> <span class="hint">(« ${esc(phase.azerty)} » en AZERTY)</span></h4><ol class="steps-list">${lines.map((o) => `<li>${esc(o)}</li>`).join("")}</ol>`,
+        `<h4 class="pose-phase">${t(`mv.phase.${phase.key}`)} <span class="key">${phase.touche}</span> <span class="hint">${esc(t("mv.azerty", { k: phase.azerty }))}</span></h4><ol class="steps-list">${lines.map((o) => `<li>${esc(o)}</li>`).join("")}</ol>`,
     )
     .join("")}</details>`;
 }
@@ -262,32 +266,30 @@ export function renderModuleInfo(m: ModulePlan, name: (id: string) => string, su
   const color = netColors(m);
   const crossings = m.parts.filter((p) => /intersection/i.test(p.id));
   const crossCost = crossings.reduce((s, p) => s + (p.unitPrice ?? 0) * p.count, 0);
-  const head = `<p class="mod-sum"><b>${m.count} × ${esc(name(m.machine))}</b> en ${esc(layoutName(m))} : ${m.width} × ${m.height} cases, ${esc(fmtMoney(m.cost))}${m.costUnknown ? " (prix incomplets)" : ""}${
-    crossCost ? `, dont ${esc(fmtMoney(crossCost))} de croisements` : ""
-  }.${
+  const head = `<p class="mod-sum">${t("mv.sum.html", { n: String(m.count), m: esc(name(m.machine)), layout: esc(layoutName(m)), w: String(m.width), h: String(m.height), cost: esc(fmtMoney(m.cost)), unknown: m.costUnknown ? t("mv.sum.unknown") : "", cross: crossCost ? t("mv.sum.cross", { x: esc(fmtMoney(crossCost)) }) : "" })}${
     !m.portsKnown
-      ? ` <span class="warn-text">Ports supposés : ce bâtiment n'est pas encore relevé.</span>`
+      ? ` <span class="warn-text">${t("mv.ports.assumed")}</span>`
       : survey === "local"
-        ? ` <span class="muted">Ports d'après ton relevé local (dans ce navigateur, pas encore envoyé).</span>`
+        ? ` <span class="muted">${t("mv.ports.local")}</span>`
         : ""
   }</p>${plotLine(m, plot)}${
     m.other
-      ? `<p class="mod-other">Avec « ${esc(CRIT_NAME[m.other.first])} » en premier : ${esc(layoutName(m.other))} de ${m.other.width} × ${m.other.height} cases, ${esc(fmtMoney(m.other.cost))}, ${m.other.pieces} pièces à poser dont ${m.other.crossings} croisement${m.other.crossings > 1 ? "s" : ""}. <button type="button" class="link small" data-first="${m.other.first}">le mettre en premier</button></p>`
+      ? `<p class="mod-other">${esc(t("mv.other", { c: critName(m.other.first), layout: layoutName(m.other), w: String(m.other.width), h: String(m.other.height), cost: fmtMoney(m.other.cost), p: String(m.other.pieces), n: m.other.crossings }))} <button type="button" class="link small" data-first="${m.other.first}">${t("mv.other.btn")}</button></p>`
       : ""
   }${
-    m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${esc(p.message)}</li>`).join("")}</ul>` : ""
+    m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${frText(p.message)}</li>`).join("")}</ul>` : ""
   }`;
   const legend = `<ul class="mod-legend">${m.nets
     .map(
       (n) =>
-        `<li><i style="background:${color.get(n.id)}"></i>${esc(name(n.item))}${n.line ? ` n° ${n.line}` : ""} <span class="muted">· ${n.role === "entrée" ? "entre" : "sort"} ${esc(fmt(n.perSec, 2))}/s · ${n.pipe ? `tier ${n.pipe.tier === 1 ? "I" : "III"} (${n.pipe.flowPerSec}/s)` : "aucun tuyau assez rapide"}</span></li>`,
+        `<li><i style="background:${color.get(n.id)}"></i>${esc(name(n.item))}${n.line ? ` ${t("mv.no", { n: String(n.line) })}` : ""} <span class="muted">· ${t(n.role === "entrée" ? "mv.lg.in" : "mv.lg.out")} ${esc(fmt(n.perSec, 2))}/s · ${n.pipe ? t("mv.lg.tier", { t: n.pipe.tier === 1 ? "I" : "III", f: String(n.pipe.flowPerSec) }) : t("mv.lg.noPipe")}</span></li>`,
     )
-    .join("")}<li><i class="sw-plug"></i>Prise électrique</li>${m.poles.length ? `<li><i class="sw-pole"></i>Poteau</li>` : ""}</ul>`;
+    .join("")}<li><i class="sw-plug"></i>${t("mv.lg.plug")}</li>${m.poles.length ? `<li><i class="sw-pole"></i>${t("mv.lg.pole")}</li>` : ""}</ul>`;
   const rows = m.parts
-    .map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${p.count}</td><td class="num">${p.unitPrice === null ? "?" : esc(fmtMoney(p.unitPrice))}</td><td class="num">${p.unitPrice === null ? "?" : esc(fmtMoney(p.unitPrice * p.count))}</td></tr>`)
+    .map((p) => `<tr><td>${frText(p.name)}</td><td class="num">${p.count}</td><td class="num">${p.unitPrice === null ? "?" : esc(fmtMoney(p.unitPrice))}</td><td class="num">${p.unitPrice === null ? "?" : esc(fmtMoney(p.unitPrice * p.count))}</td></tr>`)
     .join("");
   const details = `${renderOrder(m.order, rot)}
-    <details class="more"><summary>Pièces à acheter (${m.parts.reduce((s, p) => s + p.count, 0)})</summary><div class="tablewrap"><table class="mini"><thead><tr><th>Pièce</th><th>Nombre</th><th>Prix</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></details>
-    <details class="more"><summary>Hypothèses à vérifier en jeu (${m.assumptions.length})</summary><ul class="notes">${m.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+    <details class="more"><summary>${t("mv.parts", { n: m.parts.reduce((s, p) => s + p.count, 0) })}</summary><div class="tablewrap"><table class="mini"><thead><tr><th>${t("mv.th.piece")}</th><th>${t("mv.th.n")}</th><th>${t("mv.th.price")}</th><th>${t("mv.th.total")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+    <details class="more"><summary>${t("mv.assumptions", { n: m.assumptions.length })}</summary><ul class="notes">${m.assumptions.map((a) => `<li>${frText(a)}</li>`).join("")}</ul></details>`;
   return { head, legend, details };
 }

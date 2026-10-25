@@ -2,6 +2,7 @@
 // avancement et annulation. Un calcul à la fois : en lancer un autre annule le précédent.
 
 import type { FactoryInput, FactoryPlan } from "../engine/build/factory.ts";
+import { t } from "../i18n/i18n.ts";
 
 export type FactoryMessage = { kind: "progress"; done: number; label: string } | { kind: "done"; plan: FactoryPlan; ms: number } | { kind: "error"; message: string };
 
@@ -27,7 +28,7 @@ export function runFactory(input: FactoryInput, on: { progress: (done: number, l
   worker.onerror = (e) => {
     if (over) return;
     stop();
-    on.error(e.message || "le calcul s'est arrêté");
+    on.error(e.message || t("job.stopped"));
   };
   worker.postMessage({ input });
   return { cancel: stop };

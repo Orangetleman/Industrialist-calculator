@@ -4,7 +4,8 @@
 
 import type { MachineInterface } from "../engine/extension-types.ts";
 import { choicesFor, choiceText, factorsFor, type Interfaces, type MachineSettings, numberSettings, settingValue } from "../engine/interfaces.ts";
-import { esc, fmt } from "./format.ts";
+import { esc, fmt, frRaw, parseNum } from "./format.ts";
+import { t } from "../i18n/i18n.ts";
 
 export type SettingLine = { text: string; once: boolean; doubt?: string; screen: boolean };
 
@@ -14,7 +15,7 @@ export const factorText = (x: number) => fmt(x, 3);
 /** « entrées × 1,67 · sorties × 2 · énergie × 4 » (seulement ce qui n'est pas à 1×). */
 export function screenText(i: MachineInterface | undefined, values: Record<string, number> | undefined): string {
   const f = factorsFor(i, values);
-  const parts = [f.inputs !== 1 ? `entrées × ${factorText(f.inputs)}` : "", f.outputs !== 1 ? `sorties × ${factorText(f.outputs)}` : "", f.energy !== 1 ? `énergie × ${factorText(f.energy)}` : ""].filter(Boolean);
+  const parts = [f.inputs !== 1 ? t("if.inputs", { x: factorText(f.inputs) }) : "", f.outputs !== 1 ? t("if.outputs", { x: factorText(f.outputs) }) : "", f.energy !== 1 ? t("if.energy", { x: factorText(f.energy) }) : ""].filter(Boolean);
   return parts.join(" · ");
 }
 
@@ -25,19 +26,17 @@ export function screenText(i: MachineInterface | undefined, values: Record<strin
 export function settingLines(ifaces: Interfaces | undefined, values: MachineSettings | undefined, machine: string, recipeId: string): SettingLine[] {
   const i = ifaces?.[machine];
   if (!i) return [];
-  const out: SettingLine[] = choicesFor(i, recipeId).map(({ setting, choice }) => ({ text: choiceText(i, setting, choice), once: !!i.once, doubt: choice.doubt, screen: false }));
+  const out: SettingLine[] = choicesFor(i, recipeId).map(({ setting, choice }) => ({ text: frRaw(choiceText(i, setting, choice)), once: !!i.once, doubt: choice.doubt && frRaw(choice.doubt), screen: false }));
   const screen = screenText(i, values?.[machine]);
-  if (screen) out.push({ text: `écran : ${screen}`, once: false, screen: true });
+  if (screen) out.push({ text: t("if.screen", { x: screen }), once: false, screen: true });
   return out;
 }
-
-const ONCE_TITLE = "Choisis-le au moment de poser la machine : il ne se change plus ensuite.";
 
 /** Pastilles « ⚙ … » ; `prefix` : « à régler sur chaque machine : » dans le plan de pose. */
 export function settingChips(lines: SettingLine[], prefix = ""): string {
   return lines
     .map((l) => {
-      const title = [l.once ? ONCE_TITLE : "", l.doubt ? `⚠ ${l.doubt}` : "", l.screen ? "Réglage de l'écran que tu as saisi pour ce plan." : "Réglage de la machine pour ce craft."].filter(Boolean).join(" ");
+      const title = [l.once ? t("if.once") : "", l.doubt ? `⚠ ${l.doubt}` : "", t(l.screen ? "if.typed" : "if.forRecipe")].filter(Boolean).join(" ");
       return `<span class="iset${l.once ? " once" : ""}" title="${esc(title)}">⚙ ${esc(prefix)}${esc(l.text)}${l.doubt ? " ⚠" : ""}</span>`;
     })
     .join(" ");
@@ -52,14 +51,14 @@ export function renderScreenInputs(i: MachineInterface | undefined, machine: str
   if (!list.length) return "";
   const changed = list.some((s) => settingValue(s, values) !== s.number!.default);
   const fields = list
-    .map((s) => `${esc(s.name)} × <input type="text" inputmode="decimal" data-iset-input data-machine="${esc(machine)}" data-setting="${esc(s.id)}" value="${esc(factorText(settingValue(s, values)))}" aria-label="${esc(`${s.name} (${machineName})`)}" title="${esc(s.note ?? "")}">`)
+    .map((s) => `${esc(frRaw(s.name))} × <input type="text" inputmode="decimal" data-iset-input data-machine="${esc(machine)}" data-setting="${esc(s.id)}" value="${esc(factorText(settingValue(s, values)))}" aria-label="${esc(`${frRaw(s.name)} (${machineName})`)}" title="${esc(frRaw(s.note ?? ""))}">`)
     .join(" ");
-  const title = `Les multiplicateurs que l'écran de la machine affiche. Valent pour toutes les ${machineName} de ce plan.`;
-  return `<span class="mset${changed ? " on" : ""}" title="${esc(title)}">⚙ Écran : ${fields}</span>${changed ? `<button type="button" class="flow-hud-btn" data-iset-reset="${esc(machine)}" title="Remettre l'écran à 1× (réglage d'usine)">↺ 1×</button>` : ""}`;
+  const title = t("if.screen.title", { m: machineName });
+  return `<span class="mset${changed ? " on" : ""}" title="${esc(title)}">${t("if.screen.label")} ${fields}</span>${changed ? `<button type="button" class="flow-hud-btn" data-iset-reset="${esc(machine)}" title="${esc(t("if.reset.title"))}">↺ 1×</button>` : ""}`;
 }
 
-/** Lit un nombre tapé (« 1,67 » ou « 1.67 ») ; null si vide ou invalide. */
+/** Lit un nombre tapé (« 1,67 » ou « 1.67 » en français) ; null si vide ou invalide. */
 export function parseFactor(raw: string): number | null {
-  const v = Number(raw.trim().replace(",", "."));
+  const v = parseNum(raw);
   return raw.trim() && v > 0 && Number.isFinite(v) ? v : null;
 }

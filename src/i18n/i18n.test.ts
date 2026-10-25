@@ -1,7 +1,7 @@
 // S30 : catalogue, t(), langue de départ, nombres et dates selon la langue, clés d'index.html.
 import { afterEach, describe, expect, it } from "vitest";
 import html from "../../index.html?raw";
-import { fmt, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtShort } from "../ui/format.ts";
+import { fmt, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtShort, parseEnergy, parseInput, parseNum } from "../ui/format.ts";
 import { goalTitle, parseRoute, routeTitle } from "../ui/route.ts";
 import { en } from "./en.ts";
 import { fr } from "./fr.ts";
@@ -75,6 +75,29 @@ describe("nombres et dates", () => {
     expect(fmtShort(12_400)).toBe("12.4k");
     expect(fmtPct("96")).toBe("96%");
     expect(fmtDuration(2 * 86400 + 4 * 3600)).toBe("2 d 4 h");
+  });
+});
+
+describe("saisie des nombres (S31)", () => {
+  it("français : virgule décimale (le point aussi), espaces des milliers", () => {
+    expect(parseNum("1 234,5")).toBe(1234.5);
+    expect(parseNum("1.5")).toBe(1.5);
+    expect(parseNum("1,234")).toBe(1.234);
+    expect(parseInput("durationS", "17,2")).toEqual({ ok: true, value: 17.2 });
+    expect(parseEnergy("4,5 k")).toBe(4500);
+  });
+  it("anglais : « 1,234 » vaut 1234, le point est décimal, « 1,5 » n'est pas un nombre", () => {
+    setLang("en");
+    expect(parseNum("1,234")).toBe(1234);
+    expect(parseNum("1,234.5")).toBe(1234.5);
+    expect(parseNum("12,000,000")).toBe(12_000_000);
+    expect(parseNum("1.5")).toBe(1.5);
+    expect(parseNum("1,5")).toBeNaN();
+    expect(parseInput("durationS", "1,234")).toEqual({ ok: true, value: 1234 });
+    expect(parseInput("durationS", "abc")).toEqual({ ok: false, error: "number expected" });
+    expect(parseInput("size", "8x8")).toEqual({ ok: true, value: { w: 8, l: 8 } });
+    expect(parseEnergy("4.5k")).toBe(4500);
+    expect(parseEnergy("4,500 MF/s")).toBe(4500);
   });
 });
 

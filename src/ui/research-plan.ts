@@ -4,7 +4,8 @@
 
 import type { AddProposal, RpModel } from "../engine/research-balance.ts";
 import type { RpCandidate, RpResult, StationKind, TimelineEntry } from "../engine/research-points.ts";
-import { esc, fmt, fmtDuration, fmtMoney, fmtRP } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMoney, fmtRP, frText } from "./format.ts";
+import { t } from "../i18n/i18n.ts";
 import { itemN, type Ctx } from "./render.ts";
 import { researchHow } from "./research-mine.ts";
 
@@ -29,52 +30,52 @@ export const STATION_KIND: Record<string, string> = { rs1: "Research Station 1",
 export function designLine(ctx: Pick<Ctx, "data">, c: RpCandidate): string {
   const d = c.design;
   const items = d.items.length ? ` · ${d.items.map((i) => esc(itemN(ctx, i))).join(" + ")}` : "";
-  const sat = d.satellites ? ` · ${d.satellites.controllers} contrôleur(s) de paraboles` : "";
-  return `${d.stations} × ${esc(STATION_KIND[d.kind]!)}${items}${d.logic ? " · mini-jeu Logic" : ""}${sat}`;
+  const sat = d.satellites ? t("rp.dishCtrl", { n: d.satellites.controllers }) : "";
+  return `${d.stations} × ${esc(STATION_KIND[d.kind]!)}${items}${d.logic ? t("rp.logic") : ""}${sat}`;
 }
 
 /** Explication de l'installation : d'où viennent les RP/s, ce qu'il faut fournir. */
 export function researchExplain(ctx: Pick<Ctx, "data">, c: RpCandidate): string {
   const d = c.design;
   const name = (id: string) => esc(itemN(ctx, id));
-  const parts: string[] = [`<b>Installation :</b> ${designLine(ctx, c)}.`];
+  const parts: string[] = [t("rp.setup.html", { line: designLine(ctx, c) })];
   parts.push(
-    `Vitesse : ${fmt(d.baseRate, 2)} RP/s des stations${d.boostRate ? `, + ${fmt(d.boostRate, 2)} des paraboles` : ""}${d.circuitRate ? `, + ${fmt(d.circuitRate, 2)} des circuits Logic (tant que tes RP sont sous le plafond)` : ""}.`,
+    t("rp.speed", { base: fmt(d.baseRate, 2), boost: d.boostRate ? t("rp.speed.boost", { x: fmt(d.boostRate, 2) }) : "", circuit: d.circuitRate ? t("rp.speed.circuit", { x: fmt(d.circuitRate, 2) }) : "" }),
   );
-  if (Object.keys(d.consumption).length) parts.push(`À fournir : ${Object.entries(d.consumption).map(([i, q]) => `${fmt(q, 2)} ${name(i)}/min`).join(", ")}.`);
+  if (Object.keys(d.consumption).length) parts.push(t("rp.feed", { list: Object.entries(d.consumption).map(([i, q]) => `${fmt(q, 2)} ${name(i)}/min`).join(", ") }));
   if (d.satellites) {
     parts.push(
-      `Paraboles : ${d.satellites.controllers} Satellite Dish Controller(s) avec ${name(d.satellites.fluid)} (valeur ${fmt(d.satellites.fluidValue, 2)}) et ${d.satellites.dishes} Satellite Dish(es) pour 100 % d'efficacité. Le wiki écrit « log » sans préciser la base : logarithme décimal, d'après un joueur.`,
+      t("rp.dishes", { c: String(d.satellites.controllers), fluid: name(d.satellites.fluid), v: fmt(d.satellites.fluidValue, 2), d: String(d.satellites.dishes) }),
     );
   }
-  if (d.kind === "rs4") parts.push("Une paire RS3 + RS4 consomme 5 MMF/s en tout (« increases power consumption to 5 MMF/s »).");
+  if (d.kind === "rs4") parts.push(t("rp.rs4"));
   return `<p>${parts.join(" ")}</p>`;
 }
 
 /** L'installation neuve s'ajoute à mes stations du même tier : la vitesse affichée est le gain. */
 export function researchMergeNote(v: ResearchView): string {
-  const t = v.mergedTier ? v.model?.tiers.find((x) => x.kind === v.mergedTier) : null;
-  if (!t || !v.best) return "";
-  return `<p class="hint">Tes ${t.stations !== null ? `${t.stations} ` : ""}stations du tier ${t.kind.slice(2)} et les nouvelles forment un seul tier : vitesse et seuil se recalculent sur toutes les stations du tier (deux groupes ne s'additionnent pas). La vitesse affichée est le gain réel, le seuil celui du tier entier (${esc(fmtRP(v.best.design.cap))}, au lieu de ${esc(fmtRP(t.cap))}).</p>`;
+  const tier = v.mergedTier ? v.model?.tiers.find((x) => x.kind === v.mergedTier) : null;
+  if (!tier || !v.best) return "";
+  return `<p class="hint">${t("rp.merge", { n: tier.stations !== null ? `${tier.stations} ` : "", tier: tier.kind.slice(2), cap: esc(fmtRP(v.best.design.cap)), before: esc(fmtRP(tier.cap)) })}</p>`;
 }
 
 /** « Ajoute N stations aux tiennes » (S20). */
 export function researchAddBlock(ctx: Pick<Ctx, "data">, v: ResearchView): string {
   const a = v.add;
   if (!a) return "";
-  if ("reason" in a) return `<p class="hint">${esc(a.reason)}</p>`;
+  if ("reason" in a) return `<p class="hint">${frText(a.reason)}</p>`;
   const name = (id: string) => esc(itemN(ctx, id));
-  const items = a.group.items.length ? ` avec ${a.group.items.map(name).join(" + ")}` : "";
+  const items = a.group.items.length ? t("rp.add.with", { list: a.group.items.map(name).join(" + ") }) : "";
   const kind = STATION_KIND[a.kind]!;
-  const boost = a.after.boostRate > 0.005 ? ` (+ ${esc(fmt(a.after.boostRate, 2))} des paraboles)` : "";
-  const feed = Object.keys(a.consumption).length ? ` ; à fournir en plus : ${Object.entries(a.consumption).map(([i, q]) => `${esc(fmt(q, 1))} ${name(i)}/min`).join(", ")}` : "";
-  return `<p><b>+ ${a.added} ${esc(kind)}</b>${items} (comme les tiennes) → ${a.after.stations} stations au tier ${a.kind.slice(2)} : <b>${esc(fmt(a.after.stationsRate, 2))} RP/s</b>${boost}, seuil <b>${esc(fmtRP(a.after.cap))}</b> (au lieu de ${esc(fmtRP(a.before.cap))}). Stations : ${esc(fmtMoney(a.buildingCost))}${feed}.</p>
-  <p class="hint">Le plus petit nombre de stations qui atteint la vitesse visée (${esc(fmt(v.targetRate + (v.currentRate ?? 0), 2))} RP/s) avec un seuil d'au moins ${esc(fmtRP(v.capNeeded))}.</p>`;
+  const boost = a.after.boostRate > 0.005 ? t("rp.add.boost", { x: esc(fmt(a.after.boostRate, 2)) }) : "";
+  const feed = Object.keys(a.consumption).length ? t("rp.add.feed", { list: Object.entries(a.consumption).map(([i, q]) => `${esc(fmt(q, 1))} ${name(i)}/min`).join(", ") }) : "";
+  return `<p>${t("rp.add.html", { n: String(a.added), kind: esc(kind), items, total: String(a.after.stations), tier: a.kind.slice(2), rate: esc(fmt(a.after.stationsRate, 2)), boost, cap: esc(fmtRP(a.after.cap)), before: esc(fmtRP(a.before.cap)), cost: esc(fmtMoney(a.buildingCost)), feed })}</p>
+  <p class="hint">${t("rp.add.hint", { rate: esc(fmt(v.targetRate + (v.currentRate ?? 0), 2)), cap: esc(fmtRP(v.capNeeded)) })}</p>`;
 }
 
 /** « Comment c'est calculé » : vitesse et seuil de mes stations. */
 export function researchHowBlock(v: ResearchView): string {
-  if (!v.model) return `<p class="hint">Ta production actuelle ne compte pas (option « Compter ma production actuelle de RP »), ou « Ma recherche » est vide dans Mon usine.</p>`;
+  if (!v.model) return `<p class="hint">${t("rp.how.none")}</p>`;
   return researchHow(v.model);
 }
 
@@ -84,33 +85,33 @@ export function researchTimeline(v: ResearchView, nodeName: (id: string) => stri
   if (!base?.length) return "";
   const col = (list: TimelineEntry[] | null | undefined) => {
     if (!list) return null;
-    const m = new Map(list.map((t) => [t.node, t.at]));
+    const m = new Map(list.map((x) => [x.node, x.at]));
     return (id: string) => `<td class="num">${m.has(id) ? esc(fmtDuration(m.get(id)!)) : "—"}</td>`;
   };
   const now = col(v.timelineNow);
   const add = v.add && "added" in v.add ? col(v.add.timeline) : null;
   const inst = col(v.timeline);
-  const cap = v.model ? Math.min(...v.model.tiers.map((t) => t.cap)) : null;
-  const tag = (t: TimelineEntry) =>
-    cap !== null ? (t.rp > cap ? ` <span class="tag warn">au-delà de ton seuil</span>` : "") : t.overCap ? ` <span class="tag warn">au-delà du plafond</span>` : "";
+  const cap = v.model ? Math.min(...v.model.tiers.map((x) => x.cap)) : null;
+  const tag = (e: TimelineEntry) =>
+    cap !== null ? (e.rp > cap ? ` <span class="tag warn">${t("rp.overThreshold")}</span>` : "") : e.overCap ? ` <span class="tag warn">${t("rp.overCap")}</span>` : "";
   const rows = base
-    .map((t) => `<tr><td>${esc(nodeName(t.node))}${tag(t)}</td><td class="num">${esc(fmtRP(t.rp))}</td>${now ? now(t.node) : ""}${add ? add(t.node) : ""}${inst ? inst(t.node) : ""}</tr>`)
+    .map((e) => `<tr><td>${esc(nodeName(e.node))}${tag(e)}</td><td class="num">${esc(fmtRP(e.rp))}</td>${now ? now(e.node) : ""}${add ? add(e.node) : ""}${inst ? inst(e.node) : ""}</tr>`)
     .join("");
-  const addHead = v.add && "added" in v.add ? `<th>+ ${v.add.added} station${v.add.added > 1 ? "s" : ""} aux tiennes</th>` : "";
+  const addHead = v.add && "added" in v.add ? `<th>${t("rp.addCol", { n: v.add.added })}</th>` : "";
   const capText =
     cap !== null && Number.isFinite(cap)
-      ? ` À ton rythme, la vitesse baisse au-delà de ton seuil (${esc(fmtRP(cap))}) : dépense tes RP pour la retrouver.`
+      ? t("rp.cap.text", { cap: esc(fmtRP(cap)) })
       : v.model?.source === "rps"
-        ? " « À ton rythme actuel » compte en ligne droite : recopie ton seuil dans Mon usine (Ma recherche)."
+        ? t("rp.cap.rps")
         : "";
-  return `<div class="tablewrap"><table class="mini"><thead><tr><th>Recherche</th><th>RP</th>${now ? "<th>À ton rythme actuel</th>" : ""}${addHead}${inst ? "<th>Avec l'installation neuve</th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="hint">Depuis tes RP actuels, en <b>temps de jeu</b> (les RP ne montent que quand tu es connecté) ; chaque déblocage dépense son coût. Au-delà du seuil, la vitesse chute.${capText}</p>`;
+  return `<div class="tablewrap"><table class="mini"><thead><tr><th>${t("rp.col.research")}</th><th>RP</th>${now ? `<th>${t("rp.col.now")}</th>` : ""}${addHead}${inst ? `<th>${t("rp.col.new")}</th>` : ""}</tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="hint">${t("rp.timeline.hint.html", { cap: capText })}</p>`;
 }
 
 /** Autres installations comparées. */
 export function researchAlternatives(ctx: Pick<Ctx, "data">, v: ResearchView): string {
   if (!v.others.length) return "";
   return `<ul class="notes">${v.others
-    .map((o) => `<li>${designLine(ctx, o)} — ${fmt(o.design.rate, 1)} RP/s, plafond ${esc(fmtRP(o.design.cap))}, ${esc(fmtMoney(o.design.buildingCost + o.plan.totals.buildCost))}</li>`)
+    .map((o) => `<li>${t("rp.alt", { line: designLine(ctx, o), rate: fmt(o.design.rate, 1), cap: esc(fmtRP(o.design.cap)), cost: esc(fmtMoney(o.design.buildingCost + o.plan.totals.buildCost)) })}</li>`)
     .join("")}</ul>`;
 }

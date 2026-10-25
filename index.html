@@ -243,72 +243,72 @@
 
   <!-- ====================================================== MON USINE -->
   <section class="page" id="page-usine" aria-labelledby="h-usine" hidden>
-    <h1 id="h-usine">Mon usine</h1>
+    <h1 id="h-usine" data-i18n="page.usine">Mon usine</h1>
     <!-- S29 : deux onglets. « Ma partie » : ce qui change les plans, dans l'ordre d'importance ; « Ma recherche » : S20 et S21. -->
-    <div class="rtabs" role="tablist" aria-label="Mon usine">
-      <button type="button" role="tab" id="utab-partie" data-utab="partie" aria-controls="upanel-partie">Ma partie</button>
-      <button type="button" role="tab" id="utab-recherche" data-utab="recherche" aria-controls="upanel-recherche">Ma recherche</button>
+    <div class="rtabs" role="tablist" aria-label="Mon usine" data-i18n-attr="aria-label=us.tabs.aria">
+      <button type="button" role="tab" id="utab-partie" data-utab="partie" aria-controls="upanel-partie" data-i18n="us.tab.partie">Ma partie</button>
+      <button type="button" role="tab" id="utab-recherche" data-utab="recherche" aria-controls="upanel-recherche" data-i18n="us.tab.recherche">Ma recherche</button>
     </div>
     <div class="rpanel" role="tabpanel" id="upanel-partie" aria-labelledby="utab-partie">
-      <p class="lead">Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.</p>
+      <p class="lead" data-i18n="us.lead">Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.</p>
       <div class="grid2">
         <div class="box">
-          <h2>Recherches débloquées</h2>
+          <h2 data-i18n="us.unlocked">Recherches débloquées</h2>
           <p class="big" id="progress-summary"></p>
           <div class="meter" aria-hidden="true"><i id="progress-meter"></i></div>
-          <div class="row"><a class="btn" href="#arbre">Ouvrir l'arbre de recherche</a></div>
+          <div class="row"><a class="btn" href="#arbre" data-i18n="us.openTree">Ouvrir l'arbre de recherche</a></div>
           <form class="upto" id="upto-form">
-            <label for="upto">Tout débloquer jusqu'à
-              <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche">
+            <label for="upto"><span data-i18n="us.upto">Tout débloquer jusqu'à</span>
+              <input id="upto" list="node-list" autocomplete="off" placeholder="nom d'une recherche" data-i18n-attr="placeholder=us.upto.ph">
             </label>
-            <button type="submit">Débloquer avec ses prérequis</button>
+            <button type="submit" data-i18n="us.upto.btn">Débloquer avec ses prérequis</button>
             <span class="hint" id="upto-hint" role="status"></span>
           </form>
           <datalist id="node-list"></datalist>
-          <div class="checks"><label><input type="checkbox" id="p-spend"> Débloquer une recherche sur le site dépense ses RP (la retirer les rend)</label></div>
-          <button type="button" id="progress-reset" class="link small">Réinitialiser la progression</button>
+          <div class="checks"><label><input type="checkbox" id="p-spend"> <span data-i18n="us.spend">Débloquer une recherche sur le site dépense ses RP (la retirer les rend)</span></label></div>
+          <button type="button" id="progress-reset" class="link small" data-i18n="us.reset">Réinitialiser la progression</button>
         </div>
 
         <div class="box">
-          <h2>Machines spéciales possédées</h2>
-          <p class="hint">Éditions « Limited » et variantes : elles ne se débloquent pas dans l'arbre de recherche, et les plans ne s'en servent que si tu les possèdes.</p>
+          <h2 data-i18n="us.owned">Machines spéciales possédées</h2>
+          <p class="hint" data-i18n="us.owned.hint">Éditions « Limited » et variantes : elles ne se débloquent pas dans l'arbre de recherche, et les plans ne s'en servent que si tu les possèdes.</p>
           <div id="owned"></div>
-          <div class="checks"><label><input type="checkbox" id="p-gamepass"> J'ai le passe du jeu <span class="hint">(compteurs de débit Item Rate Meter et Fluid Rate Meter ; le site ne s'en sert pas encore)</span></label></div>
+          <div class="checks"><label><input type="checkbox" id="p-gamepass"> <span data-i18n="us.gamepass">J'ai le passe du jeu</span> <span class="hint" data-i18n="us.gamepass.hint">(compteurs de débit Item Rate Meter et Fluid Rate Meter ; le site ne s'en sert pas encore)</span></label></div>
         </div>
 
         <div class="box">
-          <h2>Ressources et parcelle</h2>
+          <h2 data-i18n="us.res">Ressources et parcelle</h2>
           <div class="row fields4">
-            <label for="p-money">Argent ($)<input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000"></label>
-            <label for="p-pollution">Pollution (%)<input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12"></label>
+            <label for="p-money"><span data-i18n="us.money">Argent ($)</span><input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000" data-i18n-attr="placeholder=us.money.ph"></label>
+            <label for="p-pollution"><span data-i18n="us.pollution">Pollution (%)</span><input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12" data-i18n-attr="placeholder=us.pollution.ph"></label>
           </div>
           <p class="hint" id="player-hint" role="status"></p>
           <div class="row fields4">
-            <label for="p-plotw">Largeur de la parcelle (cases)<input id="p-plotw" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
-            <label for="p-ploth">Profondeur (cases)<input id="p-ploth" inputmode="numeric" autocomplete="off" placeholder="ex. 120"></label>
+            <label for="p-plotw"><span data-i18n="us.plotw">Largeur de la parcelle (cases)</span><input id="p-plotw" inputmode="numeric" autocomplete="off" placeholder="ex. 120" data-i18n-attr="placeholder=us.plot.ph"></label>
+            <label for="p-ploth"><span data-i18n="us.ploth">Profondeur (cases)</span><input id="p-ploth" inputmode="numeric" autocomplete="off" placeholder="ex. 120" data-i18n-attr="placeholder=us.plot.ph"></label>
           </div>
           <p class="hint" id="plot-hint" role="status"></p>
-          <p class="hint">La pollution ralentit la pousse des arbres ; l'argent dit ce qui manque pour construire. La parcelle (1 case = 1 Short Pipe, 1 tuile = 2 cases) sert à vérifier que l'usine tient sur ton terrain, telle quelle ou tournée d'un quart de tour. Tes RP sont dans <a href="#usine/recherche">Ma recherche</a>.</p>
+          <p class="hint" data-i18n-html="us.res.hint.html">La pollution ralentit la pousse des arbres ; l'argent dit ce qui manque pour construire. La parcelle (1 case = 1 Short Pipe, 1 tuile = 2 cases) sert à vérifier que l'usine tient sur ton terrain, telle quelle ou tournée d'un quart de tour. Tes RP sont dans <a href="#usine/recherche">Ma recherche</a>.</p>
         </div>
 
         <div class="box">
-          <h2>Production déjà en place <span class="pill" id="existing-count"></span></h2>
-          <p class="hint">Ce que tes usines produisent déjà (ex. du plastique avec ton industrie pétrochimique) : les calculs s'en servent avant de construire du neuf. Tu peux aussi l'ajouter depuis une liste des machines (« je l'ai déjà »).</p>
+          <h2><span data-i18n="us.existing">Production déjà en place</span> <span class="pill" id="existing-count"></span></h2>
+          <p class="hint" data-i18n="us.existing.hint">Ce que tes usines produisent déjà (ex. du plastique avec ton industrie pétrochimique) : les calculs s'en servent avant de construire du neuf. Tu peux aussi l'ajouter depuis une liste des machines (« je l'ai déjà »).</p>
           <ul id="existing-list" class="existing-list"></ul>
           <form id="existing-add" class="existing-add">
-            <label>Objet <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets"></label>
-            <label>Débit (/min) <input name="rate" type="number" min="0.01" step="any" inputmode="decimal"></label>
-            <button type="submit">Ajouter</button>
+            <label><span data-i18n="us.existing.item">Objet</span> <input name="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Plastic Pellets" data-i18n-attr="placeholder=us.existing.item.ph"></label>
+            <label><span data-i18n="us.existing.rate">Débit (/min)</span> <input name="rate" type="number" min="0.01" step="any" inputmode="decimal"></label>
+            <button type="submit" data-i18n="us.existing.add">Ajouter</button>
           </form>
           <p class="hint" id="existing-hint" role="status"></p>
         </div>
 
         <div class="box span2">
-          <h2>Transférer ma partie</h2>
-          <p class="hint">Tout est gardé dans ce navigateur, pour cette adresse. Pour le retrouver ailleurs, exporte ici puis importe le fichier là-bas.</p>
+          <h2 data-i18n="us.transfer">Transférer ma partie</h2>
+          <p class="hint" data-i18n="us.transfer.hint">Tout est gardé dans ce navigateur, pour cette adresse. Pour le retrouver ailleurs, exporte ici puis importe le fichier là-bas.</p>
           <div class="row">
-            <button type="button" id="progress-export">Exporter ma partie</button>
-            <label class="button">Importer…<input type="file" id="progress-import" accept="application/json,.json" hidden></label>
+            <button type="button" id="progress-export" data-i18n="us.export">Exporter ma partie</button>
+            <label class="button"><span data-i18n="us.import">Importer…</span><input type="file" id="progress-import" accept="application/json,.json" hidden></label>
           </div>
           <p class="hint" id="progress-io-hint" role="status"></p>
         </div>
@@ -319,21 +319,21 @@
       <div class="box" id="rs-box">
         <div id="rs-play"></div>
         <div class="row rs-top-row">
-          <div class="seg" role="radiogroup" aria-label="Saisie de ma recherche">
-            <button type="button" role="radio" data-rsmode="rapide" aria-checked="true" title="Je recopie le Research Tracking Panel">Rapide : le panneau</button>
-            <button type="button" role="radio" data-rsmode="detaille" aria-checked="false">Détaillé : mes stations</button>
+          <div class="seg" role="radiogroup" aria-label="Saisie de ma recherche" data-i18n-attr="aria-label=us.rs.mode.aria">
+            <button type="button" role="radio" data-rsmode="rapide" aria-checked="true" title="Je recopie le Research Tracking Panel" data-i18n="us.rs.quick" data-i18n-attr="title=us.rs.quick.title">Rapide : le panneau</button>
+            <button type="button" role="radio" data-rsmode="detaille" aria-checked="false" data-i18n="us.rs.detail">Détaillé : mes stations</button>
           </div>
-          <span class="hint">Tout se lit sur le Research Tracking Panel (Build › Misc).</span>
+          <span class="hint" data-i18n="us.rs.where">Tout se lit sur le Research Tracking Panel (Build › Misc).</span>
         </div>
         <div class="row fields4">
-          <label for="p-rp">RP relevés (1ʳᵉ ligne)<input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000"></label>
-          <label for="p-rps">RP/s (1ʳᵉ ligne)<input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5"></label>
+          <label for="p-rp"><span data-i18n="us.rs.rp">RP relevés (1ʳᵉ ligne)</span><input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000" data-i18n-attr="placeholder=us.rs.rp.ph"></label>
+          <label for="p-rps"><span data-i18n="us.rs.rps">RP/s (1ʳᵉ ligne)</span><input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5" data-i18n-attr="placeholder=us.rs.rps.ph"></label>
           <p class="rp-est" id="rp-est" aria-live="off"></p>
         </div>
         <p class="hint" id="rp-hint" role="status"></p>
         <div id="rs-form"></div>
         <div id="rs-out" aria-live="off"></div>
-        <h3 class="rh-title">Historique, en temps de jeu</h3>
+        <h3 class="rh-title" data-i18n="us.rs.history">Historique, en temps de jeu</h3>
         <div class="rh" id="rs-hist"></div>
         <div id="rs-how"></div>
       </div>
@@ -344,55 +344,55 @@
   <section class="page" id="page-arbre" aria-labelledby="h-progress" hidden>
     <div class="rs-top">
       <div>
-        <h1 id="h-progress">Arbre de recherche</h1>
+        <h1 id="h-progress" data-i18n="page.arbre">Arbre de recherche</h1>
         <p class="hint" id="tree-summary"></p>
       </div>
-      <div class="seg" role="radiogroup" aria-label="Affichage">
-        <button type="button" role="radio" data-view="tree" aria-checked="true">Arbre (comme en jeu)</button>
-        <button type="button" role="radio" data-view="list" aria-checked="false">Liste</button>
+      <div class="seg" role="radiogroup" aria-label="Affichage" data-i18n-attr="aria-label=tr.view.aria">
+        <button type="button" role="radio" data-view="tree" aria-checked="true" data-i18n="tr.view.tree">Arbre (comme en jeu)</button>
+        <button type="button" role="radio" data-view="list" aria-checked="false" data-i18n="tr.view.list">Liste</button>
       </div>
     </div>
     <div class="tree-tools">
-      <div class="tabs" role="tablist" aria-label="Catégories de recherche">
+      <div class="tabs" role="tablist" aria-label="Catégories de recherche" data-i18n-attr="aria-label=tr.cats.aria">
         <button type="button" role="tab" data-cat="Production" aria-selected="true">Production</button>
         <button type="button" role="tab" data-cat="Energy" aria-selected="false">Energy</button>
         <button type="button" role="tab" data-cat="Utility" aria-selected="false">Utility</button>
       </div>
-      <label class="tree-filter" for="tree-filter"><span class="sr-only">Chercher une recherche ou une machine</span>
-        <input id="tree-filter" type="search" placeholder="Chercher (recherche ou machine)…" autocomplete="off">
+      <label class="tree-filter" for="tree-filter"><span class="sr-only" data-i18n="tr.filter">Chercher une recherche ou une machine</span>
+        <input id="tree-filter" type="search" placeholder="Chercher (recherche ou machine)…" autocomplete="off" data-i18n-attr="placeholder=tr.filter.ph">
       </label>
       <!-- S29 : débloquer dans une bulle près de la recherche (option, comme « Pose : Bulle » de l'éditeur de bâtiments). -->
-      <span class="tree-unlockmode"><span class="hint">Débloquer</span><span class="seg" role="radiogroup" aria-label="Où débloquer une recherche">
-        <button type="button" role="radio" data-unlockmode="panneau" aria-checked="true" title="Clique une recherche, puis le bouton du cadre ou du panneau">Panneau</button>
-        <button type="button" role="radio" data-unlockmode="bulle" aria-checked="false" title="Clique une recherche : une bulle s'ouvre à côté, avec le bouton pour la débloquer">Bulle</button>
+      <span class="tree-unlockmode"><span class="hint" data-i18n="tr.unlock">Débloquer</span><span class="seg" role="radiogroup" aria-label="Où débloquer une recherche" data-i18n-attr="aria-label=tr.unlock.aria">
+        <button type="button" role="radio" data-unlockmode="panneau" aria-checked="true" title="Clique une recherche, puis le bouton du cadre ou du panneau" data-i18n="tr.unlock.panel" data-i18n-attr="title=tr.unlock.panel.title">Panneau</button>
+        <button type="button" role="radio" data-unlockmode="bulle" aria-checked="false" title="Clique une recherche : une bulle s'ouvre à côté, avec le bouton pour la débloquer" data-i18n="tr.unlock.bubble" data-i18n-attr="title=tr.unlock.bubble.title">Bulle</button>
       </span></span>
     </div>
 
     <div id="tree-view">
       <div class="rs-legend legend">
-        <span><i class="sw rs-sw done"></i>Débloquée</span>
-        <span><i class="sw rs-sw available"></i>Disponible</span>
-        <span><i class="sw rs-sw expensive"></i>Disponible, RP insuffisants</span>
-        <span><i class="sw rs-sw locked"></i>Prérequis manquants</span>
+        <span><i class="sw rs-sw done"></i><span data-i18n="tr.lg.done">Débloquée</span></span>
+        <span><i class="sw rs-sw available"></i><span data-i18n="tr.lg.available">Disponible</span></span>
+        <span><i class="sw rs-sw expensive"></i><span data-i18n="tr.lg.expensive">Disponible, RP insuffisants</span></span>
+        <span><i class="sw rs-sw locked"></i><span data-i18n="tr.lg.locked">Prérequis manquants</span></span>
       </div>
       <div class="rs-workspace">
-        <div class="rs-frame" id="rs-frame" tabindex="0" aria-label="Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début">
+        <div class="rs-frame" id="rs-frame" tabindex="0" aria-label="Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début" data-i18n-attr="aria-label=tr.frame.aria">
           <div id="rs-canvas"></div>
-          <p class="rs-help">Glisse pour te déplacer · molette pour zoomer · clique une recherche</p>
+          <p class="rs-help" data-i18n="tr.help">Glisse pour te déplacer · molette pour zoomer · clique une recherche</p>
           <div class="rs-zoom">
-            <button type="button" data-zoom="in" aria-label="Zoomer">+</button>
-            <button type="button" data-zoom="out" aria-label="Dézoomer">−</button>
-            <button type="button" data-zoom="fit" aria-label="Tout voir">⤢</button>
-            <button type="button" data-zoom="reset" aria-label="Revenir au début">⌂</button>
+            <button type="button" data-zoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
+            <button type="button" data-zoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
+            <button type="button" data-zoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit">⤢</button>
+            <button type="button" data-zoom="reset" aria-label="Revenir au début" data-i18n-attr="aria-label=tr.zoom.reset">⌂</button>
           </div>
           <!-- Comme en jeu : coût en bas à gauche, bouton « Research » en bas à droite. -->
           <div class="rs-hud">
             <div class="rs-hud-info" id="rs-hud-info" aria-live="polite"></div>
             <button type="button" class="rs-hud-action" id="rs-hud-action" hidden></button>
           </div>
-          <div class="rs-bubble" id="rs-bubble" role="dialog" aria-label="Recherche choisie" hidden></div>
+          <div class="rs-bubble" id="rs-bubble" role="dialog" aria-label="Recherche choisie" data-i18n-attr="aria-label=tr.bubble.aria" hidden></div>
         </div>
-        <aside class="panel rs-side" id="rs-detail" aria-live="polite" aria-label="Recherche sélectionnée"></aside>
+        <aside class="panel rs-side" id="rs-detail" aria-live="polite" aria-label="Recherche sélectionnée" data-i18n-attr="aria-label=tr.detail.aria"></aside>
       </div>
     </div>
 
@@ -403,41 +403,41 @@
 
   <!-- ====================================================== RECETTES (comme l'onglet « Recipes » du jeu) -->
   <section class="page" id="page-recettes" aria-labelledby="h-rc" hidden>
-    <h1 id="h-rc">Recettes</h1>
-    <p class="lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche. Une valeur fausse, un craft qui n'existe pas ou qui manque : « ✎ Corriger » sur la fiche (un ⚠ y mène directement).</p>
+    <h1 id="h-rc" data-i18n="page.recettes">Recettes</h1>
+    <p class="lead" data-i18n="rcp.lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche. Une valeur fausse, un craft qui n'existe pas ou qui manque : « ✎ Corriger » sur la fiche (un ⚠ y mène directement).</p>
     <div class="rc-layout" id="rc-layout">
       <div class="rc-listcol">
         <div class="rc-search">
-          <label class="sr-only" for="rc-q">Rechercher un objet ou une machine</label>
-          <input id="rc-q" type="search" placeholder="Rechercher (ex. steel plate)" autocomplete="off" spellcheck="false">
+          <label class="sr-only" for="rc-q" data-i18n="rcp.q">Rechercher un objet ou une machine</label>
+          <input id="rc-q" type="search" placeholder="Rechercher (ex. steel plate)" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder=rcp.q.ph">
           <div class="rc-viewbar">
-            <div class="tabs" role="group" aria-label="Afficher">
-              <button type="button" data-rc-filter="tout" aria-pressed="true">Tout</button>
-              <button type="button" data-rc-filter="objets" aria-pressed="false">Objets</button>
-              <button type="button" data-rc-filter="machines" aria-pressed="false">Machines</button>
+            <div class="tabs" role="group" aria-label="Afficher" data-i18n-attr="aria-label=rcp.show">
+              <button type="button" data-rc-filter="tout" aria-pressed="true" data-i18n="rcp.all">Tout</button>
+              <button type="button" data-rc-filter="objets" aria-pressed="false" data-i18n="rcp.items">Objets</button>
+              <button type="button" data-rc-filter="machines" aria-pressed="false" data-i18n="rcp.machines">Machines</button>
             </div>
-            <div class="tabs" role="group" aria-label="Présentation">
-              <button type="button" data-rc-view="tuiles" aria-pressed="true" title="Tuiles, comme en jeu">▦ Tuiles</button>
-              <button type="button" data-rc-view="lignes" aria-pressed="false" title="Lignes triables : nom, valeur, RP">☰ Lignes</button>
+            <div class="tabs" role="group" aria-label="Présentation" data-i18n-attr="aria-label=rcp.layout">
+              <button type="button" data-rc-view="tuiles" aria-pressed="true" title="Tuiles, comme en jeu" data-i18n="rcp.tiles" data-i18n-attr="title=rcp.tiles.title">▦ Tuiles</button>
+              <button type="button" data-rc-view="lignes" aria-pressed="false" title="Lignes triables : nom, valeur, RP" data-i18n="rcp.rows" data-i18n-attr="title=rcp.rows.title">☰ Lignes</button>
             </div>
           </div>
           <div class="rc-viewbar">
-            <label class="rc-sortpick" for="rc-sort">Trier par
+            <label class="rc-sortpick" for="rc-sort"><span data-i18n="rcp.sort">Trier par</span>
               <select id="rc-sort">
-                <option value="nom">nom</option>
-                <option value="valeur">valeur ($)</option>
-                <option value="rp">RP rapportés</option>
+                <option value="nom" data-i18n="rcp.sort.nom">nom</option>
+                <option value="valeur" data-i18n="rcp.sort.valeur">valeur ($)</option>
+                <option value="rp" data-i18n="rcp.sort.rp">RP rapportés</option>
               </select>
-              <button type="button" class="small" id="rc-dir" title="Inverser l'ordre">▲</button>
+              <button type="button" class="small" id="rc-dir" title="Inverser l'ordre" data-i18n-attr="title=rcp.dir">▲</button>
             </label>
             <span class="rc-count" id="rc-count" role="status"></span>
           </div>
-          <div class="rc-viewbar"><button type="button" class="small" id="rc-new-item" title="Un objet du jeu absent de cette liste (relevé en jeu)">+ Objet manquant</button></div>
+          <div class="rc-viewbar"><button type="button" class="small" id="rc-new-item" title="Un objet du jeu absent de cette liste (relevé en jeu)" data-i18n="rcp.newItem" data-i18n-attr="title=rcp.newItem.title">+ Objet manquant</button></div>
         </div>
         <div class="rc-scroll" id="rc-list"></div>
       </div>
       <div class="rc-cardcol">
-        <a class="btn small rc-backlist" href="#recettes">‹ Tous les objets</a>
+        <a class="btn small rc-backlist" href="#recettes" data-i18n="rcp.back">‹ Tous les objets</a>
         <div id="rc-card"></div>
       </div>
     </div>
@@ -448,36 +448,36 @@
 
   <!-- ====================================================== DONNÉES -->
   <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
-    <h1 id="h-data">Contribuer</h1>
-    <p class="lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
-    <div class="rtabs" role="tablist" aria-label="Outils">
-      <button type="button" role="tab" id="dtab-verifier" data-dtab="verifier" aria-controls="dpanel-verifier">Valeurs à vérifier <span class="pill" id="verify-count"></span></button>
-      <button type="button" role="tab" id="dtab-batiments" data-dtab="batiments" aria-controls="dpanel-batiments">Éditeur de bâtiments</button>
+    <h1 id="h-data" data-i18n="page.donnees">Contribuer</h1>
+    <p class="lead" data-i18n="dn.lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
+    <div class="rtabs" role="tablist" aria-label="Outils" data-i18n-attr="aria-label=dn.tabs.aria">
+      <button type="button" role="tab" id="dtab-verifier" data-dtab="verifier" aria-controls="dpanel-verifier"><span data-i18n="dn.tab.verify">Valeurs à vérifier</span> <span class="pill" id="verify-count"></span></button>
+      <button type="button" role="tab" id="dtab-batiments" data-dtab="batiments" aria-controls="dpanel-batiments" data-i18n="dn.tab.editor">Éditeur de bâtiments</button>
     </div>
     <div class="rpanel" role="tabpanel" id="dpanel-verifier" aria-labelledby="dtab-verifier">
       <div class="verify-tools">
-        <div class="seg" role="radiogroup" aria-label="Valeurs affichées">
-          <button type="button" role="radio" data-vscope="plan" aria-checked="true">Celles du dernier calcul</button>
-          <button type="button" role="radio" data-vscope="all" aria-checked="false">Toutes <span class="pill" id="verify-all-count"></span></button>
+        <div class="seg" role="radiogroup" aria-label="Valeurs affichées" data-i18n-attr="aria-label=dn.scope.aria">
+          <button type="button" role="radio" data-vscope="plan" aria-checked="true" data-i18n="dn.scope.plan">Celles du dernier calcul</button>
+          <button type="button" role="radio" data-vscope="all" aria-checked="false"><span data-i18n="dn.scope.all">Toutes</span> <span class="pill" id="verify-all-count"></span></button>
         </div>
-        <label class="tree-filter" for="verify-filter"><span class="sr-only">Filtrer les valeurs à vérifier</span>
-          <input id="verify-filter" type="search" placeholder="Filtrer (recette, machine, objet)…" autocomplete="off">
+        <label class="tree-filter" for="verify-filter"><span class="sr-only" data-i18n="dn.filter">Filtrer les valeurs à vérifier</span>
+          <input id="verify-filter" type="search" placeholder="Filtrer (recette, machine, objet)…" autocomplete="off" data-i18n-attr="placeholder=dn.filter.ph">
         </label>
       </div>
       <p class="hint" id="verify-context"></p>
       <div id="verify-focus"></div>
-      <p>Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : les calculs en tiennent compte aussitôt et la correction est gardée dans ce navigateur. Si une valeur seule ne suffit pas, laisse plutôt une note : elle part avec l'export.</p>
+      <p data-i18n="dn.intro">Valeurs manquantes, variables ou contradictoires entre les wikis. Si tu relèves la vraie valeur en jeu (Recipe Book), saisis-la : les calculs en tiennent compte aussitôt et la correction est gardée dans ce navigateur. Si une valeur seule ne suffit pas, laisse plutôt une note : elle part avec l'export.</p>
       <div id="verify"></div>
       <div class="corrections-panel">
-        <h2>Mes corrections <span class="pill" id="corrections-count">0</span></h2>
+        <h2><span data-i18n="dn.mine">Mes corrections</span> <span class="pill" id="corrections-count">0</span></h2>
         <div id="data-errors"></div>
         <div id="corrections"></div>
         <div class="row">
-          <button type="button" id="export">Exporter mes corrections</button>
-          <label class="button">Importer…<input type="file" id="import" accept="application/json,.json" hidden></label>
-          <button type="button" id="clear-corrections" class="link">Tout effacer</button>
+          <button type="button" id="export" data-i18n="dn.export">Exporter mes corrections</button>
+          <label class="button"><span data-i18n="us.import">Importer…</span><input type="file" id="import" accept="application/json,.json" hidden></label>
+          <button type="button" id="clear-corrections" class="link" data-i18n="dn.clear">Tout effacer</button>
         </div>
-        <p class="hint">Tes corrections servent tout de suite à tes plans, dans ce navigateur. L'export en fait un fichier (celles du site et les tiennes), à partager pour que le site les intègre.</p>
+        <p class="hint" data-i18n="dn.hint">Tes corrections servent tout de suite à tes plans, dans ce navigateur. L'export en fait un fichier (celles du site et les tiennes), à partager pour que le site les intègre.</p>
       </div>
     </div>
     <div class="rpanel" role="tabpanel" id="dpanel-batiments" aria-labelledby="dtab-batiments" hidden>

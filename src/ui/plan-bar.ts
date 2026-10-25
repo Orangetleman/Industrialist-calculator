@@ -8,7 +8,7 @@ import type { Step, VerifyEntry } from "../engine/solve.ts";
 import type { VerifyFlag } from "../engine/types.ts";
 import { DEFAULT_DIESEL, type DieselChoice } from "./diesel.ts";
 import { lang, t, type Key } from "../i18n/i18n.ts";
-import { doubtText, esc, fmt, fmtMF } from "./format.ts";
+import { colon, doubtText, esc, fmt, fmtMF } from "./format.ts";
 import { screenText } from "./iface-view.ts";
 import { filterSummary } from "./mfilter-view.ts";
 import { itemN, machineN, type Ctx } from "./render.ts";
@@ -49,7 +49,6 @@ export function warnButton(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {
 }
 
 /** « : » avec l'espace du français, « : » collé en anglais. */
-const colon = () => (lang() === "fr" ? " : " : ": ");
 
 /** Pastilles ⚠ de la barre du bloc : chaque valeur douteuse, en clair, avec « corriger ▸ ». */
 export function warnChips(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {

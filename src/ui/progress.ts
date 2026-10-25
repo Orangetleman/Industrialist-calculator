@@ -6,7 +6,8 @@ import { balanceAfter, parseResearchSetup, type ResearchSetup, type RpTier } fro
 import { parseJournal, type RpJournal } from "../engine/rp-history.ts";
 import type { ResearchCategory } from "../engine/types.ts";
 import { isNodeUnlocked, nodeDepths, type Progress } from "../engine/unlock.ts";
-import { esc, fmt } from "./format.ts";
+import { esc, fmt, parseNum } from "./format.ts";
+import { t } from "../i18n/i18n.ts";
 
 // ---------------------------------------------------------------- état
 
@@ -166,10 +167,10 @@ export function parseProgressExport(
   data: GameData,
   raw: unknown,
 ): { ok: true; progress: ProgressState; player: PlayerInfo; history: RpJournal | null; dropped: number; exportedAt: string | null } | { ok: false; error: string } {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "ce n'est pas un fichier de progression" };
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: t("prog.notFile") };
   const r = raw as Record<string, unknown>;
-  if (r.format !== PROGRESS_FORMAT) return { ok: false, error: "ce fichier n'a pas été exporté par le calculateur (format inconnu)" };
-  if (r.version !== 1) return { ok: false, error: `version de fichier non prise en charge (${String(r.version)})` };
+  if (r.format !== PROGRESS_FORMAT) return { ok: false, error: t("prog.unknownFormat") };
+  if (r.version !== 1) return { ok: false, error: t("prog.badVersion", { v: String(r.version) }) };
   const p = (r.progress ?? {}) as Record<string, unknown>;
   const pl = (r.player ?? {}) as Record<string, unknown>;
   const read: ProgressState = { unlocked: strings(p.unlocked), reqItemsDone: strings(p.reqItemsDone), owned: strings(p.owned) };
@@ -185,11 +186,10 @@ export function parseProgressExport(
   };
 }
 
-/** Saisie facultative : vide → null ; virgule décimale acceptée. */
+/** Saisie facultative : vide → null ; nombre selon la langue (parseNum). */
 export function parseOptional(raw: string): number | null | "invalide" {
-  const t = raw.trim().replace(/\s/g, "").replace(",", ".");
-  if (!t) return null;
-  const n = Number(t);
+  if (!raw.trim()) return null;
+  const n = parseNum(raw);
   return Number.isFinite(n) ? n : "invalide";
 }
 
@@ -201,7 +201,7 @@ export function progressSummary(data: GameData, p: Progress): string {
   const nodes = [...data.nodes.values()].filter((n) => !n.isRoot);
   const done = nodes.filter((n) => p.unlocked.has(n.id) || n.startUnlocked);
   const rp = done.reduce((s, n) => s + n.rp, 0);
-  return `${done.length} / ${nodes.length} recherches débloquées · ${fmt(rp, 0)} RP investis`;
+  return t("prog.summary", { done: done.length, total: nodes.length, rp: fmt(rp, 0) });
 }
 
 export function renderTree(data: GameData, p: Progress, view: TreeView): string {
@@ -214,7 +214,7 @@ export function renderTree(data: GameData, p: Progress, view: TreeView): string 
     .filter((n) => n.category === view.category && !n.isRoot)
     .filter((n) => !q || n.name.toLowerCase().includes(q) || n.unlocksMachines.some((m) => machineName(m).toLowerCase().includes(q)))
     .sort((a, b) => depth.get(a.id)! - depth.get(b.id)! || a.name.localeCompare(b.name));
-  if (!nodes.length) return `<p class="muted">Aucune recherche ne correspond.</p>`;
+  if (!nodes.length) return `<p class="muted">${t("prog.noMatch")}</p>`;
 
   const levels = new Map<number, string[]>();
   for (const n of nodes) {
@@ -222,31 +222,29 @@ export function renderTree(data: GameData, p: Progress, view: TreeView): string 
     const parentsOk = n.requires === "any" ? n.parents.some((x) => isNodeUnlocked(data, p, x)) : n.parents.every((x) => isNodeUnlocked(data, p, x));
     const missingParents = n.parents.filter((x) => !isNodeUnlocked(data, p, x));
     const state = unlocked ? (parentsOk ? "done" : "incoherent") : parentsOk ? "available" : "locked";
-    const stateLabel = { done: "débloquée", incoherent: "cochée, mais un prérequis ne l'est pas", available: "disponible", locked: "verrouillée" }[state];
+    const stateLabel = t(`prog.state.${state}`);
     const machines = n.unlocksMachines.map(machineName);
     const parentsText = n.parents.length
-      ? `Requiert ${n.requires === "any" && n.parents.length > 1 ? "l'un de" : ""} : ${n.parents
-          .map((x) => `<span class="${missingParents.includes(x) ? "miss" : ""}">${esc(nodeName(x))}</span>`)
-          .join(n.requires === "any" ? " ou " : " + ")}`
+      ? t(n.requires === "any" && n.parents.length > 1 ? "prog.requires.any" : "prog.requires", {
+          list: n.parents.map((x) => `<span class="${missingParents.includes(x) ? "miss" : ""}">${esc(nodeName(x))}</span>`).join(n.requires === "any" ? ` ${t("common.or")} ` : " + "),
+        })
       : "";
     const req = n.reqItems.length
-      ? `<label class="req"><input type="checkbox" data-req="${esc(n.id)}"${p.reqItemsDone?.has(n.id) ? " checked" : ""}> Vendre ${n.reqItems
-          .map((r) => `${r.amount} ${esc(itemName(r.item))}`)
-          .join(" + ")}</label>`
+      ? `<label class="req"><input type="checkbox" data-req="${esc(n.id)}"${p.reqItemsDone?.has(n.id) ? " checked" : ""}> ${t("prog.sell", { list: n.reqItems.map((r) => `${r.amount} ${esc(itemName(r.item))}`).join(" + ") })}</label>`
       : "";
     const row = `<li class="node ${state}">
       <label class="node-main"><input type="checkbox" data-node="${esc(n.id)}"${unlocked ? " checked" : ""} aria-describedby="nd-${esc(n.id)}">
         <span class="node-name">${esc(n.name)}</span><span class="node-rp num">${fmt(n.rp, 0)} RP</span></label>
-      <div class="node-meta" id="nd-${esc(n.id)}"><span class="sr-only">${stateLabel}. </span>${n.description ? `<span class="node-desc">${esc(n.description.length > 140 ? `${n.description.slice(0, 139)}…` : n.description)}</span>` : ""}${machines.length ? `<span>Débloque : ${esc(machines.join(", "))}</span>` : ""}${
+      <div class="node-meta" id="nd-${esc(n.id)}"><span class="sr-only">${stateLabel}. </span>${n.description ? `<span class="node-desc">${esc(n.description.length > 140 ? `${n.description.slice(0, 139)}…` : n.description)}</span>` : ""}${machines.length ? `<span>${esc(t("prog.unlocks", { list: machines.join(", ") }))}</span>` : ""}${
         n.unlocksOther.length ? `<span class="muted">${esc(n.unlocksOther.join(", "))}</span>` : ""
-      }${parentsText ? `<span>${parentsText}</span>` : ""}${state === "incoherent" ? `<span class="warn-text">⚠ prérequis non coché</span>` : ""}</div>
+      }${parentsText ? `<span>${parentsText}</span>` : ""}${state === "incoherent" ? `<span class="warn-text">${t("prog.unticked")}</span>` : ""}</div>
       ${req}</li>`;
     const d = depth.get(n.id)!;
     if (!levels.has(d)) levels.set(d, []);
     levels.get(d)!.push(row);
   }
   return [...levels]
-    .map(([d, rows]) => `<div class="level"><h4 class="eyebrow">Palier ${d}</h4><ul class="nodes">${rows.join("")}</ul></div>`)
+    .map(([d, rows]) => `<div class="level"><h4 class="eyebrow">${t("prog.tier", { n: d })}</h4><ul class="nodes">${rows.join("")}</ul></div>`)
     .join("");
 }
 
@@ -256,10 +254,10 @@ export function renderOwned(data: GameData, p: Progress, open = false): string {
   const list = [...data.machines.values()].filter((m) => m.unlockedBy === null).sort((a, b) => a.name.localeCompare(b.name));
   if (!list.length) return "";
   const n = list.filter((m) => p.owned?.has(m.id)).length;
-  return `<details class="more owned-d"${open ? " open" : ""}><summary>Coche celles que tu possèdes (${n} sur ${list.length})</summary><ul class="owned">${list
+  return `<details class="more owned-d"${open ? " open" : ""}><summary>${t("prog.owned", { n, total: list.length })}</summary><ul class="owned">${list
     .map(
       (m) => `<li><label><input type="checkbox" data-owned="${esc(m.id)}"${p.owned?.has(m.id) ? " checked" : ""}> ${esc(m.name)}${
-        m.variantOf ? ` <span class="muted">(variante de ${esc(data.machines.get(m.variantOf)?.name ?? m.variantOf)})</span>` : ""
+        m.variantOf ? ` <span class="muted">${esc(t("prog.variant", { m: data.machines.get(m.variantOf)?.name ?? m.variantOf }))}</span>` : ""
       }${m.limited ? ` <span class="muted">· Limited</span>` : ""}</label></li>`,
     )
     .join("")}</ul></details>`;

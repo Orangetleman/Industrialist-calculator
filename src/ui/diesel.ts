@@ -3,6 +3,7 @@
 // dans la barre du bas du schéma. Fonctions pures pour le HTML.
 
 import { esc, fmt } from "./format.ts";
+import { t } from "../i18n/i18n.ts";
 import { DIESEL_FUELS, dieselFuelName, dieselLitersPerMMF, dieselPick, parseDieselReading, type DieselConfig, type DieselPickMode, type DieselReading } from "../engine/modular-calc.ts";
 import { controllerPanel } from "./assembly-view.ts";
 
@@ -50,14 +51,14 @@ export function dieselRecipeFor(configs: DieselConfig[], choice: DieselChoice, m
 export function renderDieselHud(configs: DieselConfig[], choice: DieselChoice, current: DieselConfig | null): string {
   const fuels = DIESEL_FUELS.map((f) => {
     const n = configs.filter((c) => c.fuel === f).length;
-    return `<option value="${f}"${f === choice.fuel ? " selected" : ""}${n ? "" : " disabled"}>${esc(dieselFuelName(f))}${n ? (f === "refined-diesel" ? "" : ` (relevé : ${n})`) : " — à relever"}</option>`;
+    return `<option value="${f}"${f === choice.fuel ? " selected" : ""}${n ? "" : " disabled"}>${esc(dieselFuelName(f))}${n ? (f === "refined-diesel" ? "" : t("dsl.recorded", { n })) : t("dsl.toRecord")}</option>`;
   }).join("");
-  const modes: [DieselPickMode, string][] = [["carburant", "meilleur rapport production/consommation"], ["place", "moins de place"], ["puissance", "meilleure production énergétique"]];
-  const radios = modes.map(([m, t]) => `<label><input type="radio" name="dsl-mode" data-dsl-mode="${m}"${!choice.config && choice.mode === m ? " checked" : ""}> ${t}</label>`).join(" ");
+  const modes: DieselPickMode[] = ["carburant", "place", "puissance"];
+  const radios = modes.map((m) => `<label><input type="radio" name="dsl-mode" data-dsl-mode="${m}"${!choice.config && choice.mode === m ? " checked" : ""}> ${t(`dsl.mode.${m}`)}</label>`).join(" ");
   const opts = configs
     .filter((c) => c.fuel === choice.fuel)
     .map((c) => `<option value="${esc(c.id)}"${choice.config === c.id ? " selected" : ""}>${esc(c.label)} · ${esc(fmt(dieselLitersPerMMF(c), 3))} L/MMF</option>`)
     .join("");
   const panel = current ? controllerPanel(current.airFuel, current.throttle, current.throttleAssumed) : "";
-  return `<span class="mset dsl">Carburant : <select data-dsl-fuel aria-label="Carburant du moteur">${fuels}</select> Choisir : ${radios} <select data-dsl-config aria-label="Configuration imposée"><option value="">ou cette configuration…</option>${opts}</select></span>${panel}`;
+  return `<span class="mset dsl">${t("dsl.fuel")} <select data-dsl-fuel aria-label="${esc(t("dsl.fuel.aria"))}">${fuels}</select> ${t("dsl.pick")} ${radios} <select data-dsl-config aria-label="${esc(t("dsl.config.aria"))}"><option value="">${t("dsl.config.or")}</option>${opts}</select></span>${panel}`;
 }

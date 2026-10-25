@@ -9,10 +9,10 @@ import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
 import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP } from "./format.ts";
+import { colon, esc, frRaw, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, frText } from "./format.ts";
 import { joinList, t, type Key } from "../i18n/i18n.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
-import { accessButton, itemN, LEAF_TEXT, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
+import { accessButton, itemN, leafText, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
 import { planKey, planMachines, type Goal } from "./state.ts";
 import { verifyHref } from "./recipes-view.ts";
 import type { Interfaces, MachineSettings } from "../engine/interfaces.ts";
@@ -43,16 +43,13 @@ export function criterionHint(goal: Goal, c: Criterion): string {
 
 /** « 3 machines » : nombre arrondi, pluriel accordé selon la langue. */
 const plural = (key: Key, n: number) => t(key, { n: Math.round(n) });
-// Vues pas encore traduites (liste, schéma, détails : S31) : leurs textes restent en français ici.
-const pluralFr = (n: number, one: string, many: string) => `${fmt(n, 0)} ${n > 1 ? many : one}`;
-/** « a », « a et b », « a, b et c ». */
-const joinFr = (list: string[]) => (list.length < 2 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} et ${list.at(-1)}`);
+const pctText = (x: number, d = 0) => fmtPct(fmt(x * 100, d));
 const fmtRate = (x: number) => fmt(x, x >= 100 ? 0 : x >= 10 ? 1 : 2);
 const trunc = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-/** Pollution lisible : « 33 %/h », « 1,1 %/h », « 0,17 %/h » (fourchette si elle varie). */
+/** Pollution lisible : « 33 %/h », « 1,1 %/h », « 0,17 %/h » (fourchette si elle varie ; « 33%/h » en anglais). */
 function fmtPol(p: [number, number]): string {
   const f = (x: number) => fmt(x, Math.abs(x) >= 10 ? 0 : Math.abs(x) >= 1 ? 1 : 2);
-  return p[0] === p[1] || f(p[0]) === f(p[1]) ? `${f(p[0])} %/h` : `${f(p[0])} – ${f(p[1])} %/h`;
+  return `${fmtPct(p[0] === p[1] || f(p[0]) === f(p[1]) ? f(p[0]) : `${f(p[0])} – ${f(p[1])}`)}/h`;
 }
 
 /** Avertissements qui empêchent ou faussent le plan : affichés dans la réponse. */
@@ -82,7 +79,7 @@ const finalSteps = (p: Plan) => p.steps.filter((s) => p.finals.includes(s.key));
 /** Nom court d'une installation composée : « Centrale Firebox (coal) » (le détail des bâtiments est à part). */
 function plantName(v: Pick<ViewCtx, "data">, s: Step, word = true): string {
   const r = v.data.recipes.get(s.recipeId);
-  const name = (r?.setupName ?? machineN(v, s.machine)).split(" + ")[0]!;
+  const name = r?.setupName ? frRaw(r.setupName.split(" + ")[0]!) : machineN(v, s.machine);
   // Ferme d'arbres et moteur diesel modulaire (S13) : leur nom se suffit.
   return r?.farm || r?.wholeUnits || !word ? name : t("ans.plant", { name });
 }
@@ -91,7 +88,7 @@ function removedPollution(s: Step): string {
   const p = s.pollutionPerHour;
   if (p === null) return "";
   const r: [number, number] = typeof p === "number" ? [-p, -p] : [-p[1], -p[0]];
-  return `retire ${fmtPol(r)}`;
+  return t("pv.removes", { x: fmtPol(r) });
 }
 
 // ---------------------------------------------------------------- la réponse
@@ -137,7 +134,7 @@ function researchHeadline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "ba
   const pace = last && Number.isFinite(last.at) && last.at > 0 ? t("ans.rp.pace", { t: esc(fmtDuration(last.at)) }) : "";
   if (!r.best) {
     const done = r.warnings.some((w) => /déjà|suffit/.test(w));
-    return { text: pace + esc(r.warnings[0] ?? t("ans.rp.none")), tone: done ? "ok" : "bad" };
+    return { text: pace + (r.warnings[0] ? frText(r.warnings[0]) : t("ans.rp.none")), tone: done ? "ok" : "bad" };
   }
   const d = r.best.design;
   const chain = r.best.plan.totals.machines + r.best.plan.totals.farms;
@@ -198,11 +195,10 @@ function kpis(v: ViewCtx): [string, string][] {
 
 /** La pollution du plan, pour Détails (S23 : retirée des chiffres de la réponse, sauf pour l'énergie). */
 function pollutionLine(v: ViewCtx): string {
-  const t = v.plan.totals;
-  const removes = t.pollutionPerHour[1] < 0;
-  return `<p class="hint">Pollution ${removes ? "retirée (les Scrubbers en retirent plus qu'il n'en est ajouté)" : "ajoutée"} : <b>${esc(fmtPol(t.pollutionPerHour))}</b>${
-    t.pollutionUnknownSteps ? ` (${t.pollutionUnknownSteps} étape(s) inconnue(s))` : ""
-  } · elle ralentit la pousse des arbres.</p>`;
+  const tt = v.plan.totals;
+  const removes = tt.pollutionPerHour[1] < 0;
+  const unknown = tt.pollutionUnknownSteps ? plural("pv.pollution.unknown", tt.pollutionUnknownSteps) : "";
+  return `<p class="hint">${t("pv.pollution.html", { what: t(removes ? "pv.pollution.removed" : "pv.pollution.added"), x: esc(fmtPol(tt.pollutionPerHour)), unknown })}</p>`;
 }
 
 function chipLine(label: string, chips: string[]): string {
@@ -246,7 +242,7 @@ function missingNotes(v: ViewCtx): string[] {
   }
   const unres = p.unresolved.filter((u) => !u.loopShortfall && u.reason !== "machine écartée");
   if (unres.length) {
-    const why = unres.map((u) => `<b>${esc(itemN(v, u.item))}</b> (${esc(u.unlock ? lockText(v, u.unlock) : (LEAF_TEXT[u.reason] ?? u.reason))})`);
+    const why = unres.map((u) => `<b>${esc(itemN(v, u.item))}</b> (${esc(u.unlock ? lockText(v, u.unlock) : (leafText(u.reason)))})`);
     out.push(`<li class="bad">${t("ans.unresolved", { list: why.join(" ; ") })}</li>`);
   }
   if (e.nodesToUnlock.length) {
@@ -292,9 +288,9 @@ export function renderAnswer(v: ViewCtx): string {
   ].join("");
   const notes = [
     v.fresh ? `<li>${t("ans.fresh.html")}</li>` : "",
-    ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${esc(w.message)}</li>`),
+    ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${frText(w.message)}</li>`),
     ...missingNotes(v),
-    ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${esc(x)}</li>`),
+    ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${frText(x)}</li>`),
     tierSuggestion(v),
   ].filter(Boolean);
   return `<div class="answer ${h.tone}" role="status"><h2>${h.text}</h2>${stats}${lines}${notes.length ? `<ul class="notices">${notes.join("")}</ul>` : ""}</div>`;
@@ -304,7 +300,7 @@ export function renderAnswer(v: ViewCtx): string {
 
 export type BuildRow = {
   key: string;
-  stage: string;
+  stage: Stage;
   /** Machines à poser (0 : rien à construire). */
   count: number;
   countText: string;
@@ -328,15 +324,17 @@ export type BuildRow = {
   warn?: string;
 };
 
-const STAGES = ["Extraction", "Transformation", "Produit final", "Vente", "Centrales électriques", "Énergie", "Dépollution", "Stations de recherche", "Réseau électrique", "Déjà en place", "Non produit"] as const;
+/** Étages de la liste, dans l'ordre d'affichage (libellés : clés « stage.… » du catalogue). */
+const STAGES = ["extraction", "transformation", "final", "vente", "centrales", "energie", "depollution", "stations", "reseau", "existant", "manque"] as const;
+export type Stage = (typeof STAGES)[number];
 
-function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
+function stepRow(v: ViewCtx, s: Step, stage: Stage): BuildRow {
   const p = v.plan;
   const r = v.data.recipes.get(s.recipeId);
   const farm = s.machineKind === "farm";
   const gen = s.item === ENERGY;
   const feeds = [...new Set(s.consumers.map((f) => itemN(v, f.item)))];
-  const occupied = s.utilization < 0.95 && !farm ? `occupée${s.machines > 1 ? "s" : ""} à ${fmt(s.utilization * 100, 0)} %` : "";
+  const occupied = s.utilization < 0.95 && !farm ? t("pv.busy", { n: s.machines, pct: pctText(s.utilization) }) : "";
   const locked = s.access.available ? "" : `${esc(lockText(v, s.access))} ${accessButton(s.access)}`;
   return {
     key: s.key,
@@ -347,12 +345,12 @@ function stepRow(v: ViewCtx, s: Step, stage: string): BuildRow {
     countText: s.parts ? "" : `${farm ? "≈ " : ""}${fmt(s.machines, 0)}`,
     machine: s.parts ? plantName(v, s) : machineN(v, s.machine),
     parts: s.parts ? s.parts.map((q) => `${q.count} × ${machineN(v, q.machine)}`).join(" + ") : undefined,
-    product: gen ? "Énergie" : itemN(v, s.item),
+    product: gen ? t("common.energy") : itemN(v, s.item),
     rate: gen ? fmtMF(-(s.energyAvg ?? 0)) : s.item === POLLUTION ? removedPollution(s) : `${fmtRate(s.demandPerMin)}/min`,
     feeds: p.finals.includes(s.key) && !feeds.length ? "" : feeds.join(", "),
     // Ferme d'arbres (S13) : l'électricité des récolteurs, par la prise du contrôleur.
     energy: gen || (farm && !s.parts) ? "—" : fmtMF(s.energyAvg),
-    note: [occupied, farm && s.growth ? "nombre indicatif (pousse)" : "", locked].filter(Boolean).join(" · "),
+    note: [occupied, farm && s.growth ? t("pv.farm.indicative") : "", locked].filter(Boolean).join(" · "),
     buildable: true,
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
     pose: isPosable(s) ? s.key : undefined,
@@ -375,85 +373,85 @@ export function buildRows(v: ViewCtx): BuildRow[] {
   const isFinal = (s: Step) => p.finals.includes(s.key);
   const deepFirst = (a: Step, b: Step) => b.depth - a.depth || a.item.localeCompare(b.item);
   const steps = [...p.steps].sort(deepFirst);
-  const finalStage = v.goal === "argent" ? "Vente" : v.goal === "énergie" ? "Centrales électriques" : "Produit final";
+  const finalStage: Stage = v.goal === "argent" ? "vente" : v.goal === "énergie" ? "centrales" : "final";
   for (const s of steps) {
     if (isFinal(s)) continue;
-    if (s.item === ENERGY) rows.push(stepRow(v, s, "Énergie"));
-    else if (s.item === POLLUTION) rows.push(stepRow(v, s, "Dépollution"));
-    else rows.push(stepRow(v, s, s.isRaw || !s.inputs.length ? "Extraction" : "Transformation"));
+    if (s.item === ENERGY) rows.push(stepRow(v, s, "energie"));
+    else if (s.item === POLLUTION) rows.push(stepRow(v, s, "depollution"));
+    else rows.push(stepRow(v, s, s.isRaw || !s.inputs.length ? "extraction" : "transformation"));
   }
   for (const s of steps.filter(isFinal)) rows.push(stepRow(v, s, finalStage));
   for (const d of p.depots) {
     rows.push({
       key: `dépôt:${d.id}`,
-      stage: "Vente",
+      stage: "vente",
       count: d.machines,
       countText: fmt(d.machines, 0),
       machine: d.name,
-      product: "vente",
-      rate: `${fmtRate(d.itemsPerMin)} objets/min chacun`,
+      product: t("pv.sale"),
+      rate: t("pv.depot.rate", { x: fmtRate(d.itemsPerMin) }),
       feeds: "",
       energy: "—",
-      note: d.machinesExact < d.machines - 0.05 ? `occupé${d.machines > 1 ? "s" : ""} à ${fmt((d.machinesExact / d.machines) * 100, 0)} %` : "",
+      note: d.machinesExact < d.machines - 0.05 ? t("pv.depot.busy", { n: d.machines, pct: pctText(d.machinesExact / d.machines) }) : "",
       buildable: true,
     });
   }
   const rs = v.goal === "recherche" ? v.research?.best?.design : undefined;
   for (const b of rs?.buildings ?? []) {
-    rows.push({ key: `rs:${b.machine}`, stage: "Stations de recherche", count: b.count, countText: fmt(b.count, 0), machine: machineN(v, b.machine), product: "RP", rate: "", feeds: "", energy: "—", note: "", buildable: true });
+    rows.push({ key: `rs:${b.machine}`, stage: "stations", count: b.count, countText: fmt(b.count, 0), machine: machineN(v, b.machine), product: "RP", rate: "", feeds: "", energy: "—", note: "", buildable: true });
   }
   const net = p.distribution;
   const pole = net && net.distanceTiles !== null ? net.options.find((o) => o.poles !== null) : undefined;
   if (net && pole) {
     rows.push({
       key: `réseau:${pole.id}`,
-      stage: "Réseau électrique",
+      stage: "reseau",
       count: pole.poles!,
       countText: fmt(pole.poles!, 0),
       machine: pole.name,
       product: fmtMF(net.mfps),
-      rate: `sur ${fmt(net.distanceTiles! * 2, 0)} cases`,
+      rate: t("pv.net.over", { x: fmt(net.distanceTiles! * 2, 0) }),
       feeds: "",
       energy: "—",
-      note: `${pluralFr(pole.lines, "ligne", "lignes")} de ${pole.polesPerLine} poteaux${pole.cost !== null ? ` · ${fmtMoney(pole.cost)}` : ""} (autres poteaux : Détails)`,
+      note: `${t("pv.net.lines", { n: pole.lines, p: pole.polesPerLine ?? 0 })}${pole.cost !== null ? ` · ${fmtMoney(pole.cost)}` : ""}${t("pv.net.others")}`,
       buildable: true,
     });
   }
   for (const x of p.existing) {
     rows.push({
       key: `existant:${x.item}`,
-      stage: "Déjà en place",
+      stage: "existant",
       count: 0,
       countText: "",
-      machine: "Rien à construire",
+      machine: t("pv.nothing"),
       product: itemN(v, x.item),
-      rate: `${fmtRate(x.used)}/min utilisés`,
+      rate: t("pv.used", { x: fmtRate(x.used) }),
       feeds: "",
       energy: "—",
-      note: x.used < x.available - 1e-9 ? `il t'en reste ${fmtRate(x.available - x.used)}/min` : "",
+      note: x.used < x.available - 1e-9 ? t("pv.left", { x: fmtRate(x.available - x.used) }) : "",
       buildable: false,
     });
   }
   for (const u of p.unresolved) rows.push(unresolvedRow(v, u));
   // Dans l'ordre d'affichage : par étage (tri stable, l'ordre de construction est gardé dans chaque étage).
-  const rank = (r: BuildRow) => (STAGES as readonly string[]).indexOf(r.stage);
+  const rank = (r: BuildRow) => STAGES.indexOf(r.stage);
   return rows.sort((x, y) => rank(x) - rank(y));
 }
 
 function unresolvedRow(v: ViewCtx, u: Unresolved): BuildRow {
   return {
     key: `manque:${u.item}`,
-    stage: "Non produit",
+    stage: "manque",
     count: 0,
     countText: "",
-    machine: u.loopShortfall ? "Marge à prévoir" : "Impossible pour l'instant",
+    machine: u.loopShortfall ? t("pv.loop.margin") : t("pv.impossible"),
     product: itemN(v, u.item),
     rate: u.perMin ? `${fmtRate(u.perMin)}/min` : "",
     feeds: "",
     energy: "—",
     note: u.loopShortfall
-      ? "la chaîne en consomme aussi pour s'alimenter elle-même (boucle) : prévois de la marge"
-      : `${u.unlock && u.reason !== "machine écartée" ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(LEAF_TEXT[u.reason] ?? u.reason)}`,
+      ? t("pv.loop.note")
+      : `${u.unlock && u.reason !== "machine écartée" ? `${esc(lockText(v, u.unlock))} ${accessButton(u.unlock)}` : esc(leafText(u.reason))}`,
     buildable: false,
     have: { item: u.item, perMin: u.perMin },
   };
@@ -471,7 +469,7 @@ export function buildSignature(goal: Goal, rows: BuildRow[]): string {
 }
 
 export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>): string {
-  if (!rows.length) return `<p class="muted">Rien à construire.</p>`;
+  if (!rows.length) return `<p class="muted">${t("pv.list.empty")}</p>`;
   const buildable = rows.filter((r) => r.buildable);
   const done = buildable.filter((r) => built.has(r.key)).length;
   const pct = buildable.length ? Math.round((done / buildable.length) * 100) : 0;
@@ -480,28 +478,28 @@ export function renderBuildList(v: ViewCtx, rows: BuildRow[], built: Set<string>
     const list = rows.filter((r) => r.stage === stage);
     if (!list.length) continue;
     const machines = list.reduce((s, r) => s + r.count, 0);
-    body += `<tr class="stage"><td colspan="5">${esc(stage)}${machines && stage !== "Réseau électrique" ? ` <span>· ${fmt(machines, 0)}</span>` : ""}</td></tr>`;
+    body += `<tr class="stage"><td colspan="5">${esc(t(`stage.${stage}`))}${machines && stage !== "reseau" ? ` <span>· ${fmt(machines, 0)}</span>` : ""}</td></tr>`;
     for (const r of list) {
       const on = built.has(r.key);
       const box = r.buildable
-        ? `<input type="checkbox" data-built="${esc(r.key)}"${on ? " checked" : ""} aria-label="${esc(`${r.countText} ${r.machine} : construit`)}">`
+        ? `<input type="checkbox" data-built="${esc(r.key)}"${on ? " checked" : ""} aria-label="${esc(t("pv.list.built.aria", { what: `${r.countText} ${r.machine}`.trim() }))}">`
         : "";
       const have = r.have
-        ? ` <button type="button" class="link small have" data-have="${esc(r.have.item)}" data-amount="${Math.round(r.have.perMin * 100) / 100}" title="Tu produis déjà cet objet ailleurs : le calcul s'en servira au lieu de construire.">je l'ai déjà</button>`
+        ? ` <button type="button" class="link small have" data-have="${esc(r.have.item)}" data-amount="${Math.round(r.have.perMin * 100) / 100}" title="${esc(t("pv.have.title"))}">${t("pv.have")}</button>`
         : "";
       body += `<tr class="${[on ? "done" : "", r.buildable ? "" : "info"].filter(Boolean).join(" ")}"><td class="chk">${box}</td>
-        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.warn ? ` ${r.warn}` : ""}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="Comment poser ces machines : disposition, tuyaux, poteaux">plan de pose</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.setting ? `<div class="sub">${r.setting}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
+        <td class="what">${r.countText ? `<span class="count">${esc(r.countText)} ×</span> ` : ""}${esc(r.machine)}${r.warn ? ` ${r.warn}` : ""}${r.pose ? ` <button type="button" class="link small" data-pose="${esc(r.pose)}" title="${esc(t("pv.pose.title"))}">${t("pv.pose")}</button>` : ""}${r.parts ? `<div class="sub">${esc(r.parts)}</div>` : ""}${r.setting ? `<div class="sub">${r.setting}</div>` : ""}${r.note ? `<div class="sub">${r.note}</div>` : ""}</td>
         <td class="prod">${esc(r.product)}${r.rate ? ` <span class="sub num">${esc(r.rate)}</span>` : ""}${have}</td>
-        <td class="feeds">${r.feeds ? `<span class="sub-k">alimente</span> ${esc(r.feeds)}` : ""}</td>
+        <td class="feeds">${r.feeds ? `<span class="sub-k">${t("pv.feeds")}</span> ${esc(r.feeds)}` : ""}</td>
         <td class="num energy">${esc(r.energy)}</td></tr>`;
     }
   }
-  const bar = `<div class="progress"><span>${done} ligne${done > 1 ? "s" : ""} construite${done > 1 ? "s" : ""} sur ${buildable.length}</span><span class="bar"><i style="width:${pct}%"></i></span>${
-    done ? `<button type="button" class="link small" data-built-reset>tout décocher</button>` : ""
+  const bar = `<div class="progress"><span>${t("pv.progress", { n: done, total: buildable.length })}</span><span class="bar"><i style="width:${pct}%"></i></span>${
+    done ? `<button type="button" class="link small" data-built-reset>${t("pv.uncheck")}</button>` : ""
   }</div>`;
   return `${buildable.length ? bar : ""}
-    <table class="build"><thead><tr><th><span class="sr-only">Construit</span></th><th>Construire</th><th>Pour produire</th><th>Alimente</th><th>Énergie</th></tr></thead><tbody>${body}</tbody></table>
-    <p class="hint">Coche au fur et à mesure : de l'extraction vers l'objet final, dans l'ordre où l'on pose les machines. Les cases restent cochées pour ce plan, dans ce navigateur.</p>`;
+    <table class="build"><thead><tr><th><span class="sr-only">${t("pv.th.built")}</span></th><th>${t("pv.th.build")}</th><th>${t("pv.th.make")}</th><th>${t("pv.th.feeds")}</th><th>${t("common.energy")}</th></tr></thead><tbody>${body}</tbody></table>
+    <p class="hint">${t("pv.list.hint")}</p>`;
 }
 
 // ---------------------------------------------------------------- schéma
@@ -521,13 +519,13 @@ export function nodeText(v: ViewCtx, key: string): { text: string; step: Step | 
     return { text: `${what} (${itemN(v, st.item)})`, step: st };
   }
   const ex = v.plan.existing.find((x) => x.key === key);
-  if (ex) return { text: `ta production déjà en place (${itemN(v, ex.item)})`, step: null };
-  return { text: `non produit dans ce plan : à apporter`, step: null };
+  if (ex) return { text: t("pv.node.existing", { item: itemN(v, ex.item) }), step: null };
+  return { text: t("pv.node.missing"), step: null };
 }
 
 /** Boutons vers une autre étape : son plan de pose, sa place dans le schéma. */
 function nodeButtons(st: Step | null, key: string): string {
-  return `${st && isPosable(st) ? `<button type="button" class="link small" data-pose="${esc(key)}">son plan de pose</button> ` : ""}<button type="button" class="link small" data-flow="${esc(key)}">au schéma</button>`;
+  return `${st && isPosable(st) ? `<button type="button" class="link small" data-pose="${esc(key)}">${t("pv.node.pose")}</button> ` : ""}<button type="button" class="link small" data-flow="${esc(key)}">${t("pv.node.flow")}</button>`;
 }
 
 /**
@@ -538,7 +536,7 @@ export function renderStepLinks(v: ViewCtx, key: string): string {
   const p = v.plan;
   const st = p.steps.find((s) => s.key === key);
   if (!st) return "";
-  const loopTag = `<span class="tag" title="flux qui remonte la chaîne : il revient vers une étape en amont">boucle</span>`;
+  const loopTag = `<span class="tag" title="${esc(t("pv.loop.title"))}">${t("pv.loop")}</span>`;
   const ins = p.edges
     .filter((e) => e.to === key)
     .map((e) => {
@@ -555,21 +553,21 @@ export function renderStepLinks(v: ViewCtx, key: string): string {
     const sale = p.sales.find((x) => x.item === st.item);
     // Ce qui reste pour l'objectif, une fois servies les autres étapes de la chaîne.
     const kept = st.demandPerMin - p.edges.filter((e) => e.from === key && e.item === st.item).reduce((t, e) => t + e.perMin, 0);
-    outs.unshift(`<li><b>${esc(itemN(v, st.item))}</b> <span class="num">${esc(fmtRate(sale?.perMin ?? kept))}/min</span> → ${sale ? "à vendre (objectif)" : "objectif du plan"}</li>`);
+    outs.unshift(`<li><b>${esc(itemN(v, st.item))}</b> <span class="num">${esc(fmtRate(sale?.perMin ?? kept))}/min</span> → ${t(sale ? "pv.out.sell" : "pv.out.goal")}</li>`);
   }
   for (const x of p.surplus.filter((x) => x.from.includes(st.recipeId))) {
-    outs.push(`<li><b>${esc(itemN(v, x.item))}</b> <span class="num">${esc(fmtRate(x.perMin))}/min</span> → surplus${x.from.length > 1 ? " du plan (toutes étapes)" : ""} : à stocker, vendre ou détruire</li>`);
+    outs.push(`<li><b>${esc(itemN(v, x.item))}</b> <span class="num">${esc(fmtRate(x.perMin))}/min</span> → ${t("pv.out.surplus", { all: x.from.length > 1 ? t("pv.out.surplus.all") : "" })}</li>`);
   }
   const list = (title: string, items: string[], none: string) => `<div><h4>${title}</h4>${items.length ? `<ul class="links-list">${items.join("")}</ul>` : `<p class="muted">${none}</p>`}</div>`;
-  return `<div class="step-links">${list("Entrées : d'où elles viennent", ins, "Aucune entrée (extraction).")}${list("Sorties : où elles partent", outs, "Rien ne part de cette étape.")}</div>`;
+  return `<div class="step-links">${list(t("pv.ins"), ins, t("pv.ins.none"))}${list(t("pv.outs"), outs, t("pv.outs.none"))}</div>`;
 }
 
 /** Barre du bas du schéma pour une flèche sélectionnée : ce qui passe, d'où, vers où. */
 export function renderEdgeHud(v: ViewCtx, e: { from: string; to: string; item: string; perMin: number; loop: boolean }): string {
   const a = nodeText(v, e.from);
   const b = nodeText(v, e.to);
-  const info = `<b>${esc(itemN(v, e.item))} · ${esc(flowLabel(e.perMin))}</b><span>de ${esc(a.text)} vers ${esc(b.text)}${e.loop ? " · boucle : remonte la chaîne" : ""}</span>`;
-  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">◂ Départ</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">Arrivée ▸</button><button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div></div>`;
+  const info = `<b>${esc(itemN(v, e.item))} · ${esc(flowLabel(e.perMin))}</b><span>${esc(t("pv.edge.fromTo", { a: a.text, b: b.text }))}${e.loop ? t("pv.edge.loop") : ""}</span>`;
+  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">${t("pv.edge.from")}</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">${t("pv.edge.to")}</button><button type="button" class="flow-hud-x" data-flow-close aria-label="${t("common.close")}">×</button></div></div>`;
 }
 
 /** Barre du bas du schéma pour le bloc sélectionné : ce qu'il est, et où aller. */
@@ -580,7 +578,7 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   const outs = v.plan.edges.filter((e) => e.from === key).length + (v.plan.finals.includes(key) ? 1 : 0);
   const name = st ? itemN(v, st.item) : itemN(v, v.plan.existing.find((x) => x.key === key)?.item ?? key);
   const fx = v.plan.fixed?.steps.find((s) => s.key === key);
-  const info = `<b>${esc(name)}</b><span>${esc(st ? n.text.replace(/ \([^)]*\)$/, "") : n.text)}${fx ? " (fixé)" : ""}${st ? ` · reçoit ${ins} flux · en envoie ${outs}` : ""}</span>`;
+  const info = `<b>${esc(name)}</b><span>${esc(st ? n.text.replace(/ \([^)]*\)$/, "") : n.text)}${fx ? t("pv.hud.fixed") : ""}${st ? t("pv.hud.flows", { a: ins, b: outs }) : ""}</span>`;
   // S28 : ce qui est douteux (⚠ → la correction) et la position à mettre en jeu (S10), à côté du nom.
   const notes: string[] = [];
   if (st) notes.push(warnChips(v, stepWarnings(v, st)));
@@ -591,13 +589,13 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   // Nombre de machines réglable (S8) : boutons, molette ou clavier ; pas pour une installation composée.
   if (st && !st.parts && planGoal) {
     sets.push(
-      `<span class="mset${fx ? " on" : ""}" title="Molette sur le nombre : une de plus ou de moins. Entrée pour appliquer un nombre tapé.">Machines : <button type="button" data-mset="-1" aria-label="Une machine de moins">−</button><input type="text" inputmode="numeric" data-mset-input data-key="${esc(key)}" value="${st.machines}" aria-label="Nombre de machines (${esc(name)})"><button type="button" data-mset="1" aria-label="Une machine de plus">+</button>${fx && fx.planMachines !== fx.machines ? ` <small>plan : ${fx.planMachines}</small>` : ""}</span>`,
+      `<span class="mset${fx ? " on" : ""}" title="${esc(t("pv.mset.title"))}">${t("pv.mset")} <button type="button" data-mset="-1" aria-label="${esc(t("pv.mset.less"))}">−</button><input type="text" inputmode="numeric" data-mset-input data-key="${esc(key)}" value="${st.machines}" aria-label="${esc(t("pv.mset.input", { name }))}"><button type="button" data-mset="1" aria-label="${esc(t("pv.mset.more"))}">+</button>${fx && fx.planMachines !== fx.machines ? ` <small>${t("pv.mset.plan", { n: fx.planMachines })}</small>` : ""}</span>`,
     );
   }
   // Recette de l'objet (comme dans Détails) : automatique ou choisie à la main.
   if (st && planGoal && st.item !== ENERGY && st.item !== POLLUTION) {
     const choose = recipeSelect(v, st.item, st.recipeId, st.alternatives);
-    if (choose) sets.push(`<span class="mset hud-recipe">Recette : ${choose}</span>`);
+    if (choose) sets.push(`<span class="mset hud-recipe">${t("pv.recipe")} ${choose}</span>`);
   }
   // Écran chiffré de la machine (S10), réglable pour le plan.
   if (st && !st.parts && planGoal) sets.push(renderScreenInputs(v.ifaces?.[st.machine], st.machine, machineN(v, st.machine), v.msettings?.[st.machine]));
@@ -605,20 +603,20 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   if (st && st.machine === "diesel-engine-controller" && v.diesel && planGoal) sets.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === st.recipeId) ?? null));
   // Filtre de machines (S9) : écarter la machine de ce plan, d'un clic.
   if (st && !st.parts && planGoal) {
-    sets.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="Écarter ${esc(machineN(v, st.machine))} de ce plan (réglage « Machines »)">Ne plus utiliser ${esc(machineN(v, st.machine))} ⊘</button>`);
+    sets.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="${esc(t("pv.ban.title", { m: machineN(v, st.machine) }))}">${esc(t("pv.ban", { m: machineN(v, st.machine) }))}</button>`);
   }
   const acts: string[] = [];
   // Le module de cette étape, à sa place dans l'usine (S25) ; « Plan de pose seul » reste dans son panneau.
-  if (st && isPosable(st) && v.goal !== "recherche") acts.push(`<button type="button" class="flow-hud-btn primary" data-focus="${esc(key)}">Voir le module dans l'usine ▸</button>`);
-  else if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">Plan de pose ▸</button>`);
+  if (st && isPosable(st) && v.goal !== "recherche") acts.push(`<button type="button" class="flow-hud-btn primary" data-focus="${esc(key)}">${t("pv.focus")}</button>`);
+  else if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">${t("pv.pose.btn")}</button>`);
   if (st && !st.parts) {
     const state = survey(st.machine);
-    const label = state === "depot" ? "ports relevés" : state === "local" ? "relevé local, à envoyer" : "ports pas encore relevés";
-    acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="Ouvrir ${esc(machineN(v, st.machine))} dans l'éditeur de bâtiments">Bâtiment : ${esc(label)} ✎</button>`);
+    const label = t(state === "depot" ? "pv.survey.depot" : state === "local" ? "pv.survey.local" : "pv.survey.none");
+    acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="${esc(t("pv.edit.title", { m: machineN(v, st.machine) }))}">${esc(t("pv.edit", { label }))}</button>`);
   }
   const noteRow = notes.filter(Boolean).join(" ");
-  const setRow = sets.filter(Boolean).length ? `<div class="flow-hud-sets"><span class="flow-hud-k">Tu peux régler :</span>${sets.filter(Boolean).join("")}</div>` : "";
-  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="Fermer">×</button></div></div>${noteRow ? `<div class="flow-hud-notes">${noteRow}</div>` : ""}${setRow}`;
+  const setRow = sets.filter(Boolean).length ? `<div class="flow-hud-sets"><span class="flow-hud-k">${t("pv.sets")}</span>${sets.filter(Boolean).join("")}</div>` : "";
+  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="${t("common.close")}">×</button></div></div>${noteRow ? `<div class="flow-hud-notes">${noteRow}</div>` : ""}${setRow}`;
 }
 
 /**
@@ -670,14 +668,14 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
   const steps = new Map(p.steps.map((s) => [s.key, s]));
   const unres = new Map(p.unresolved.map((u) => [u.item, u]));
   const existing = new Map(p.existing.map((x) => [x.key, x]));
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="Schéma des flux, des matières premières (à gauche) vers l'objectif (à droite)">
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="${esc(t("pv.flow.aria"))}">
 <defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="fa"/></marker></defs>`;
   L.edges.forEach((e, i) => {
     s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" marker-end="url(#fa)"/>`;
   });
   // Zones de survol larges et invisibles : une flèche fine se survole et se sélectionne facilement.
   L.edges.forEach((e, i) => {
-    const tip = `${itemN(v, e.item)} : ${flowLabel(e.perMin)}${e.loop ? " (boucle : sous-produit qui remonte la chaîne)" : ""}`;
+    const tip = `${itemN(v, e.item)}${colon()}${flowLabel(e.perMin)}${e.loop ? t("pv.flow.loopTip") : ""}`;
     s += `<path d="${e.d}" class="fe-hit" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" data-item="${esc(e.item)}" data-rate="${e.perMin}"${e.loop ? ' data-loop="1"' : ""}><title>${esc(tip)}</title></path>`;
   });
   for (const n of L.nodes) {
@@ -687,36 +685,37 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
     const name = itemN(v, st?.item ?? ex?.item ?? n.id);
     const final = n.kind === "final";
     let sub: string;
-    if (ex) sub = `déjà en place · ${fmtRate(ex.used)}/min`;
+    if (ex) sub = t("pv.flow.existing", { x: fmtRate(ex.used) });
     else if (st?.machineKind === "farm") sub = `≈ ${st.machines} × ${machineN(v, st.machine)}`;
     else if (st?.parts) sub = st.parts.map((q) => `${q.count} ${machineN(v, q.machine)}`).join(" + ");
     else if (st) sub = `${st.machines} × ${machineN(v, st.machine)}`;
-    else sub = u?.loopShortfall ? "boucle : marge à prévoir" : "non produit";
+    else sub = t(u?.loopShortfall ? "pv.flow.loopMargin" : "pv.flow.missing");
     const rate = final && st ? (st.item === ENERGY ? fmtMF(-(st.energyAvg ?? 0)) : `${fmtRate(st.demandPerMin)}/min`) : "";
     const tip = st
       ? `${name} — ${st.parts ? sub : `${st.machines} × ${machineN(v, st.machine)}`}, ${st.item === ENERGY ? fmtMF(-(st.energyAvg ?? 0)) : `${fmtRate(st.demandPerMin)}/min`}${st.energyAvg !== null && st.energyAvg > 0 ? `, ${fmtMF(st.energyAvg)}` : ""}`
       : ex
-        ? `${name} — ta production existante : ${fmtRate(ex.used)} sur ${fmtRate(ex.available)} par min`
-        : `${name} — ${u ? (LEAF_TEXT[u.reason] ?? u.reason) : ""}`;
+        ? t("pv.flow.existingTip", { name, used: fmtRate(ex.used), available: fmtRate(ex.available) })
+        : `${name} — ${u ? (leafText(u.reason)) : ""}`;
     // Machines fixées (S8) : cadre en tirets ; celle qui limite en orange, les autres avec leur utilisation.
     const fx = p.fixed?.steps.find((x) => x.key === n.id);
     const limit = !!fx && p.fixed!.limit === n.id;
-    if (fx) sub += " · fixé";
-    const tag = fx ? (limit ? "limite" : `${fmt(fx.utilization * 100, 0)} %`) : "";
+    const fixedText = t("pv.flow.fixed");
+    if (fx) sub += fixedText;
+    const tag = fx ? (limit ? t("pv.flow.limit") : pctText(fx.utilization)) : "";
     // Valeur à vérifier (S28) : un ⚠ cliquable qui ouvre la correction de la première.
     const doubts = st ? stepWarnings(v, st) : [];
     const warn = doubts.length
-      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(`Valeur à vérifier : corriger (${name})`)}"><title>${esc(`À vérifier : ${doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(" ; ")} — clique pour corriger`)}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/><text x="${n.x + FW - 17}" y="${n.y + 45}" text-anchor="middle">⚠</text></g>`
+      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(t("pv.flow.warn.aria", { name }))}"><title>${esc(t("pv.flow.warn.title", { list: doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(" ; ") }))}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/><text x="${n.x + FW - 17}" y="${n.y + 45}" text-anchor="middle">⚠</text></g>`
       : "";
-    const fixTip = fx ? ` — ${fx.machines} fixée${fx.machines > 1 ? "s" : ""}${limit ? ", c'est l'étape qui limite" : `, utilisée${fx.machines > 1 ? "s" : ""} à ${fmt(fx.utilization * 100, 1)} %`}` : "";
+    const fixTip = fx ? `${t("pv.flow.fixTip", { n: fx.machines })}${limit ? t("pv.flow.isLimit") : t("pv.flow.usedAt", { n: fx.machines, pct: pctText(fx.utilization, 1) })}` : "";
     s += `<g class="fn ${n.kind}${fx ? " fixed" : ""}${limit ? " limit" : ""}" data-key="${esc(n.id)}"><title>${esc(tip + fixTip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
 <g class="fn-near"><text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate || tag ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : tag ? `<text class="fn-tag${limit ? " limit" : ""}" x="${n.x + FW - 10}" y="${n.y + 21}" text-anchor="end">${esc(tag)}</text>` : ""}
 <text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, doubts.length ? 22 : 26))}</text></g>
-<g class="fn-far" aria-hidden="true"><text class="fn-fname" x="${n.x + 9}" y="${n.y + 27}">${esc(trunc(name, 12))}</text><text class="fn-fsub" x="${n.x + 9}" y="${n.y + 50}">${esc(trunc(rate || sub.replace(/ · fixé$/, " ·fixé"), doubts.length ? 12 : 15))}</text></g>${warn}</g>`;
+<g class="fn-far" aria-hidden="true"><text class="fn-fname" x="${n.x + 9}" y="${n.y + 27}">${esc(trunc(name, 12))}</text><text class="fn-fsub" x="${n.x + 9}" y="${n.y + 50}">${esc(trunc(rate || (fx && sub.endsWith(fixedText) ? sub.slice(0, -fixedText.length) + fixedText.replace(" · ", " ·") : sub), doubts.length ? 12 : 15))}</text></g>${warn}</g>`;
   }
   for (const [i, e] of L.edges.entries()) {
     // Étiquette sur deux lignes : le produit, puis son débit (nom entier au survol).
-    s += `<g class="fl" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><title>${esc(`${itemN(v, e.item)} : ${flowLabel(e.perMin)}`)}</title><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text class="fl-name" x="${e.lx.toFixed(1)}" y="${(e.ly - 2).toFixed(1)}" text-anchor="middle">${esc(e.name)}</text><text x="${e.lx.toFixed(1)}" y="${(e.ly + 10).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
+    s += `<g class="fl" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><title>${esc(`${itemN(v, e.item)}${colon()}${flowLabel(e.perMin)}`)}</title><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text class="fl-name" x="${e.lx.toFixed(1)}" y="${(e.ly - 2).toFixed(1)}" text-anchor="middle">${esc(e.name)}</text><text x="${e.lx.toFixed(1)}" y="${(e.ly + 10).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
   }
   return { svg: s + "</svg>", width: L.width, height: L.height };
 }
@@ -728,34 +727,34 @@ function warningsBlock(v: ViewCtx): { html: string; count: number } {
   const reused = w.filter((x) => x.code === "sous-produit-réutilisé");
   const rest = w.filter((x) => x.code !== "sous-produit-réutilisé");
   const items = [
-    ...rest.filter(isBlocking).map((x) => `<li class="bad">${esc(x.message)}</li>`),
-    ...rest.filter((x) => !isBlocking(x)).map((x) => `<li>${esc(x.message)}</li>`),
+    ...rest.filter(isBlocking).map((x) => `<li class="bad">${frText(x.message)}</li>`),
+    ...rest.filter((x) => !isBlocking(x)).map((x) => `<li>${frText(x.message)}</li>`),
     reused.length
-      ? `<li>Sous-produits réutilisés dans la chaîne (rien à évacuer pour eux) : ${esc(joinFr([...new Set(reused.flatMap((x) => x.items ?? []))].map((i) => itemN(v, i))))}.</li>`
+      ? `<li>${esc(t("pv.reused", { list: joinList([...new Set(reused.flatMap((x) => x.items ?? []))].map((i) => itemN(v, i))) }))}</li>`
       : "",
   ].filter(Boolean);
-  return { html: items.length ? `<ul class="notes">${items.join("")}</ul>` : `<p class="muted">Rien à signaler.</p>`, count: items.length };
+  return { html: items.length ? `<ul class="notes">${items.join("")}</ul>` : `<p class="muted">${t("pv.nothingToReport")}</p>`, count: items.length };
 }
 
 function recipesBlock(v: ViewCtx): string {
   const p = v.plan;
   const rows = p.steps.map((s) => {
     const r = v.data.recipes.get(s.recipeId)!;
-    const flags = r.verify.length ? ` <a class="tag warn" href="${verifyHref("recette", r.id, r.verify[0]!.field)}" title="Aller à la valeur à corriger">⚠ à vérifier</a>` : "";
+    const flags = r.verify.length ? ` <a class="tag warn" href="${verifyHref("recette", r.id, r.verify[0]!.field)}" title="${esc(t("pv.rec.goFix"))}">${t("pv.rec.verify")}</a>` : "";
     const body = s.parts
-      ? `${esc(r.setupName ?? "")}${Object.keys(r.inputs).length ? ` · consomme par seconde : ${esc(Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + "))}` : ""}${r.setupNote ? `<br><span class="muted">${esc(r.setupNote)}</span>` : ""}`
+      ? `${frText(r.setupName ?? "")}${Object.keys(r.inputs).length ? esc(t("pv.rec.consumes", { list: Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + ") })) : ""}${r.setupNote ? `<br><span class="muted">${frText(r.setupNote)}</span>` : ""}`
       : esc(recipeText(v, r, s.durationS));
     const choose = s.item === ENERGY || s.item === POLLUTION ? "" : recipeSelect(v, s.item, s.recipeId, s.alternatives);
-    return `<li id="rec-${esc(s.key)}"><div class="rec-head"><b>${esc(itemN(v, s.item))}</b> <span class="muted">${esc(machineN(v, r.machine))}${s.forced ? " · choisie à la main" : ""}</span>${flags}</div>
+    return `<li id="rec-${esc(s.key)}"><div class="rec-head"><b>${esc(itemN(v, s.item))}</b> <span class="muted">${esc(machineN(v, r.machine))}${s.forced ? t("pv.rec.forced") : ""}</span>${flags}</div>
       <div class="rec-text">${body}</div><div class="src">${r.sources.map(sourceLink).join(" · ")}</div>${choose}</li>`;
   });
   for (const u of p.unresolved) {
     const choose = recipeSelect(v, u.item, null, u.candidates);
-    if (choose) rows.push(`<li><div class="rec-head"><b>${esc(itemN(v, u.item))}</b> <span class="muted">non produit</span></div>${choose}</li>`);
+    if (choose) rows.push(`<li><div class="rec-head"><b>${esc(itemN(v, u.item))}</b> <span class="muted">${t("pv.flow.missing")}</span></div>${choose}</li>`);
   }
   const forced = Object.keys(v.settings.forced).length;
-  return `<p class="hint">Le menu de chaque objet permet d'imposer une recette au lieu du choix automatique.${
-    forced ? ` <button type="button" class="link" data-forced-reset>Annuler les ${forced} choix à la main</button>` : ""
+  return `<p class="hint">${t("pv.rec.hint")}${
+    forced ? ` <button type="button" class="link" data-forced-reset>${t("pv.rec.reset", { n: forced })}</button>` : ""
   }</p><ul class="recs">${rows.join("")}</ul>`;
 }
 
@@ -766,21 +765,21 @@ export function renderDetails(v: ViewCtx): string {
   const parts: string[] = [];
   const nodeName = (id: string) => nodeN(v, id);
   if (v.goal === "recherche" && v.research) {
-    if (v.research.best) parts.push(more("Installation de recherche", researchExplain(v, v.research.best) + researchMergeNote(v.research), true));
-    parts.push(more("Chronologie : quand chaque recherche sera débloquée", researchTimeline(v.research, nodeName), true));
-    parts.push(more("Ajouter des stations aux tiennes", researchAddBlock(v, v.research), true));
-    if (v.research.best) parts.push(more(`Autres installations comparées (${v.research.others.length})`, researchAlternatives(v, v.research)));
-    parts.push(more("Comment c'est calculé : vitesse et seuil", researchHowBlock(v.research)));
+    if (v.research.best) parts.push(more(t("pv.d.rs"), researchExplain(v, v.research.best) + researchMergeNote(v.research), true));
+    parts.push(more(t("pv.d.timeline"), researchTimeline(v.research, nodeName), true));
+    parts.push(more(t("pv.d.add"), researchAddBlock(v, v.research), true));
+    if (v.research.best) parts.push(more(t("pv.d.others", { n: v.research.others.length }), researchAlternatives(v, v.research)));
+    parts.push(more(t("pv.d.how.rp"), researchHowBlock(v.research)));
   }
   const warn = warningsBlock(v);
-  parts.push(more(`Remarques sur le calcul (${warn.count})`, warn.html));
-  if (p.steps.length || p.unresolved.length) parts.push(more(`Recettes, sources et choix à la main (${p.steps.length})`, recipesBlock(v)));
+  parts.push(more(t("pv.d.notes", { n: warn.count }), warn.html));
+  if (p.steps.length || p.unresolved.length) parts.push(more(t("pv.d.recipes", { n: p.steps.length }), recipesBlock(v)));
   if (p.tiers.length > 1) {
     parts.push(
       more(
-        "Débits « ronds » (machines bien remplies)",
+        t("pv.d.tiers"),
         `<p class="chips">${p.tiers.filter((t) => !t.current).map((t) => tierButton(v, t, true)).join(" ")}</p>
-        <p class="hint">Un clic adopte ce débit. Le pourcentage est l'occupation moyenne des machines ; ● : chaque étape tombe juste.</p>`,
+        <p class="hint">${t("pv.d.tiers.hint")}</p>`,
       ),
     );
   }
@@ -788,28 +787,28 @@ export function renderDetails(v: ViewCtx): string {
     const d = p.distribution;
     parts.push(
       more(
-        "Réseau électrique (poteaux)",
-        `<p>${esc(fmtMF(d.mfps))} à transporter${d.distanceTiles !== null ? ` sur ${fmt(d.distanceTiles * 2, 0)} cases (${fmt(d.distanceTiles, 1)} tuiles de portée)` : " — indique la distance dans les options pour compter les poteaux"}.</p><ul class="notes">${d.options
-          .map((o) => `<li>${esc(o.name)} : ${pluralFr(o.lines, "ligne", "lignes")}${o.poles !== null ? `, ${o.poles} poteaux${o.cost !== null ? `, ${esc(fmtMoney(o.cost))}` : ""}` : ""}</li>`)
+        t("pv.d.grid"),
+        `<p>${esc(t("pv.d.grid.text", { x: fmtMF(d.mfps), dist: d.distanceTiles !== null ? t("pv.d.grid.dist", { cells: fmt(d.distanceTiles * 2, 0), tiles: fmt(d.distanceTiles, 1) }) : t("pv.d.grid.noDist") }))}</p><ul class="notes">${d.options
+          .map((o) => `<li>${esc(o.name)}${colon()}${t("pv.lines", { n: o.lines })}${o.poles !== null ? `${t("pv.d.grid.poles", { n: o.poles })}${o.cost !== null ? `, ${esc(fmtMoney(o.cost))}` : ""}` : ""}</li>`)
           .join("")}</ul>`,
       ),
     );
   }
   const used = p.verify.filter((x) => x.used).length;
-  if (used) parts.push(more(`Valeurs à vérifier en jeu (${used})`, `<p>${pluralFr(used, "valeur utilisée par ce plan est douteuse", "valeurs utilisées par ce plan sont douteuses")} (manquante, variable ou contradictoire entre les wikis). <a href="#donnees">Les voir et les corriger</a>.</p>`));
+  if (used) parts.push(more(t("pv.d.verify", { n: used }), `<p>${t("pv.d.verify.html", { n: used })}</p>`));
   if (v.goal !== "recherche") {
-    const how = p.engine === "simplexe" ? "optimisation exacte (simplexe)" : "choix heuristique, une recette par objet";
-    parts.push(more("Comment ce plan est calculé", `<p>Priorité : ${esc(criterionText(p.criterion).label.toLowerCase())} ; ${esc(how)}. Les machines sont arrondies à l'unité supérieure, d'où l'occupation affichée quand elle n'est pas pleine.</p>`));
+    const how = t(p.engine === "simplexe" ? "pv.d.how.simplex" : "pv.d.how.heur");
+    parts.push(more(t("pv.d.how"), `<p>${esc(t("pv.d.how.text", { crit: criterionText(p.criterion).label.toLowerCase(), how }))}</p>`));
   }
   if (v.goal === "objet" || v.goal === "argent") parts.unshift(pollutionLine(v));
-  return parts.join("") || `<p class="muted">Rien de plus.</p>`;
+  return parts.join("") || `<p class="muted">${t("pv.d.nothing")}</p>`;
 }
 
 /** Ligne courte pour l'en-tête des autres pages (« Données ») : de quel calcul parle-t-on ? */
 export function planLabel(v: ViewCtx): string {
-  const t = v.plan.target;
-  if (v.goal === "recherche") return v.research?.best ? designLine(v, v.research.best) : "objectif recherche";
-  if (v.goal === "argent") return `${fmtMoney(t.ratePerMin)}/min de ventes`;
-  if (v.goal === "énergie") return fmtMF(t.ratePerMin);
-  return `${fmtRate(t.ratePerMin)} ${itemN(v, t.item)}/min`;
+  const tg = v.plan.target;
+  if (v.goal === "recherche") return v.research?.best ? designLine(v, v.research.best) : t("pv.label.rp");
+  if (v.goal === "argent") return t("pv.label.money", { x: fmtMoney(tg.ratePerMin) });
+  if (v.goal === "énergie") return fmtMF(tg.ratePerMin);
+  return `${fmtRate(tg.ratePerMin)} ${itemN(v, tg.item)}/min`;
 }

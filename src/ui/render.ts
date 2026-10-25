@@ -5,12 +5,13 @@ import type { GameData } from "../engine/data.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, VerifyEntry } from "../engine/solve.ts";
 import type { OverridesFile, Recipe, Source } from "../engine/types.ts";
-import { esc, fieldLabel, fmt, fmtMF, fmtRP, isEditableField, REASON_LABEL } from "./format.ts";
+import { colon, esc, fieldLabel, fmt, fmtMF, fmtRP, frText, isEditableField, reasonLabel } from "./format.ts";
+import { t, type Key } from "../i18n/i18n.ts";
 import { noteKey, type Notes, type Settings } from "./state.ts";
 
 export type Ctx = { data: GameData; plan: Plan; settings: Settings; corrections: OverridesFile };
 
-export const itemN = (ctx: Pick<Ctx, "data">, id: string) => (id === ENERGY ? "Énergie" : id === POLLUTION ? "Dépollution (Scrubbers)" : (ctx.data.items.get(id)?.name ?? id));
+export const itemN = (ctx: Pick<Ctx, "data">, id: string) => (id === ENERGY ? t("common.energy") : id === POLLUTION ? t("rd.pollution") : (ctx.data.items.get(id)?.name ?? id));
 export const machineN = (ctx: Pick<Ctx, "data">, id: string) => ctx.data.machines.get(id)?.name ?? id;
 export const nodeN = (ctx: Pick<Ctx, "data">, id: string) => ctx.data.nodes.get(id)?.name ?? id;
 
@@ -21,12 +22,12 @@ export function recipeText(ctx: Ctx, r: Recipe, durationS?: number): string {
       .join(" + ");
   const ins = side(r.inputs);
   const d = durationS ?? r.durationS;
-  return `${ins ? `${ins} → ` : "→ "}${side(r.outputs)} · ${d === null ? "durée ?" : `${fmt(d, 2)} s`}`;
+  return `${ins ? `${ins} → ` : "→ "}${side(r.outputs)} · ${d === null ? t("rd.duration.unknown") : `${fmt(d, 2)} s`}`;
 }
 
 export function sourceLink(s: Source | undefined): string {
   if (!s) return "—";
-  const label = { miraheze: "Miraheze", fandom: "Fandom", desmos: "Desmos", jeu: "relevé en jeu", saisie: "ta saisie" }[s.wiki];
+  const label = { miraheze: "Miraheze", fandom: "Fandom", desmos: "Desmos", jeu: t("rd.src.jeu"), saisie: t("rd.src.saisie") }[s.wiki];
   const date = s.fetchedAt.slice(0, 10);
   return s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(label)}</a> <span class="muted">${esc(date)}</span>` : `${esc(label)} <span class="muted">${esc(date)}</span>`;
 }
@@ -42,13 +43,13 @@ export function recipeSelect(ctx: Ctx, item: string, current: string | null, alt
   const opts = recipes
     .map((r) => {
       const st = status.get(r.id);
-      const flag = st && st !== "ok" && st !== "forcée" ? ` — ${st}` : r.verify.length ? " — ⚠" : "";
-      const label = `${machineN(ctx, r.machine)} · ${recipeText(ctx, r)}${flag}${r.id === current && !forced ? " (choisie)" : ""}`;
+      const flag = st && st !== "ok" && st !== "forcée" ? ` — ${t(`cand.${st}`)}` : r.verify.length ? " — ⚠" : "";
+      const label = `${machineN(ctx, r.machine)} · ${recipeText(ctx, r)}${flag}${r.id === current && !forced ? t("rd.chosen") : ""}`;
       return `<option value="${esc(r.id)}"${r.id === forced ? " selected" : ""}>${esc(label)}</option>`;
     })
     .join("");
-  return `<label class="force"><span class="sr-only">Recette pour ${esc(itemN(ctx, item))}</span>
-    <select data-force="${esc(item)}"><option value=""${forced ? "" : " selected"}>Automatique (selon la priorité)</option>${opts}</select></label>`;
+  return `<label class="force"><span class="sr-only">${esc(t("rd.recipeFor", { item: itemN(ctx, item) }))}</span>
+    <select data-force="${esc(item)}"><option value=""${forced ? "" : " selected"}>${t("rd.auto")}</option>${opts}</select></label>`;
 }
 
 /** Boutons qui mettent à jour la progression depuis le plan (gérés par main.ts). */
@@ -56,27 +57,23 @@ export function unlockButton(nodes: string[], label: string): string {
   return nodes.length ? `<button type="button" class="link" data-unlock="${esc(nodes.join(","))}">${esc(label)}</button>` : "";
 }
 export function ownButton(machines: string[]): string {
-  return machines.length ? `<button type="button" class="link" data-own="${esc(machines.join(","))}">Je la possède</button>` : "";
+  return machines.length ? `<button type="button" class="link" data-own="${esc(machines.join(","))}">${t("rd.own")}</button>` : "";
 }
 export function accessButton(a: Step["access"]): string {
   if (a.available) return "";
-  return a.needsOwnership ? ownButton([a.machine]) : unlockButton(a.missingNodes, "Je les ai débloquées");
+  return a.needsOwnership ? ownButton([a.machine]) : unlockButton(a.missingNodes, t("rd.unlocked"));
 }
 
 export function lockText(ctx: Ctx, a: Step["access"]): string {
   if (a.available) return "";
-  if (a.needsOwnership) return `Il faut posséder la machine ${machineN(ctx, a.machine)} (elle ne se débloque pas par la recherche).`;
-  return `Recherche manquante pour ${machineN(ctx, a.machine)} : ${a.missingNodes.map((n) => nodeN(ctx, n)).join(" → ")} (${fmtRP(a.rpCost)})${a.reqItems.length ? ` et vendre ${a.reqItems.map((r) => `${r.amount} ${itemN(ctx, r.item)}`).join(", ")}` : ""}.`;
+  if (a.needsOwnership) return t("rd.mustOwn", { m: machineN(ctx, a.machine) });
+  const sell = a.reqItems.length ? t("rd.missing.sell", { list: a.reqItems.map((r) => `${r.amount} ${itemN(ctx, r.item)}`).join(", ") }) : "";
+  return t("rd.missing", { m: machineN(ctx, a.machine), list: a.missingNodes.map((n) => nodeN(ctx, n)).join(" → "), rp: fmtRP(a.rpCost), sell });
 }
 
-export const LEAF_TEXT: Record<string, string> = {
-  verrouillé: "Recherche manquante pour toutes les recettes.",
-  "aucune recette": "Aucune recette connue dans les données (source inconnue).",
-  "seulement à vérifier": "Seules des recettes « à vérifier » existent : active l'option « utiliser aussi les valeurs à vérifier », ou corrige-les dans Données.",
-  incalculable: "Les recettes connues ont des valeurs manquantes : complète-les dans Données.",
-  boucle: "Boucle de dépendance : cet item dépend de lui-même.",
-  "machine écartée": "Aucune machine permise ne le fabrique : ses machines sont écartées par le filtre « Machines ».",
-};
+const LEAVES = ["verrouillé", "aucune recette", "seulement à vérifier", "incalculable", "boucle", "machine écartée"];
+/** Pourquoi un objet n'est pas produit (motif du moteur), en phrase de joueur. */
+export const leafText = (reason: string): string => (LEAVES.includes(reason) ? t(`leaf.${reason}` as Key) : reason);
 
 // ---------------------------------------------------------------- à vérifier
 
@@ -130,39 +127,39 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
     const head = list[0]!;
     const isRecipe = head.scope === "recette";
     const entity = isRecipe ? ctx.data.recipes.get(head.id) : ctx.data.machines.get(head.id);
-    const title = isRecipe ? `Craft : ${esc(machineN(ctx, (entity as Recipe | undefined)?.machine ?? ""))} → ${esc(itemN(ctx, head.item))}` : `Machine ${esc(machineN(ctx, head.id))}`;
+    const title = esc(isRecipe ? t("vf.craft", { m: machineN(ctx, (entity as Recipe | undefined)?.machine ?? ""), item: itemN(ctx, head.item) }) : t("vf.machine", { m: machineN(ctx, head.id) }));
     const primary = entity?.sources[0];
     const rows = list
       .map((v) => {
         const editable = isEditableField(head.scope, v.flag.field);
         const scopeKey = isRecipe ? "recipes" : "machines";
         const fid = `fix-${v.id}-${v.flag.field}`;
-        const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value, v.flag.field))}</b> selon ${sourceLink(a.source)}`).join(" ; ");
+        const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value, v.flag.field))}</b> ${t("vf.according", { src: sourceLink(a.source) })}`).join(" ; ");
         // Pour une contradiction, le détail répète les valeurs : on le remplace par « retenu / autre ».
-        const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${esc(v.flag.detail)}</div>`;
+        const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${frText(v.flag.detail)}</div>`;
         const nk = noteKey(scopeKey, v.id, v.flag.field);
         const note = notes[nk];
-        const noteBox = `<details class="vnote"${note ? " open" : ""}><summary>${note ? "Ta note" : "Laisser une note plutôt qu'une valeur"}</summary>
-            <form class="note-form" data-note="${esc(nk)}"><label class="sr-only" for="note-${esc(nk)}">Note</label>
-            <textarea id="note-${esc(nk)}" name="note" rows="2" maxlength="1000" placeholder="ex. deux ports d'entrée : l'un pour l'eau chaude, l'autre pour l'eau à convertir">${esc(note?.text ?? "")}</textarea>
-            <div class="row"><button type="submit">Enregistrer la note</button>${note ? `<button type="button" class="link" data-note-del="${esc(nk)}">effacer</button> <span class="muted small">${esc(note.at.slice(0, 10))}</span>` : ""}</div></form></details>`;
+        const noteBox = `<details class="vnote"${note ? " open" : ""}><summary>${t(note ? "vf.note.mine" : "vf.note.leave")}</summary>
+            <form class="note-form" data-note="${esc(nk)}"><label class="sr-only" for="note-${esc(nk)}">${t("vf.note")}</label>
+            <textarea id="note-${esc(nk)}" name="note" rows="2" maxlength="1000" placeholder="${esc(t("vf.note.ph"))}">${esc(note?.text ?? "")}</textarea>
+            <div class="row"><button type="submit">${t("vf.note.save")}</button>${note ? `<button type="button" class="link" data-note-del="${esc(nk)}">${t("vf.note.del")}</button> <span class="muted small">${esc(note.at.slice(0, 10))}</span>` : ""}</div></form></details>`;
         const input = editable
           ? `<form class="fix" data-scope="${scopeKey}" data-id="${esc(v.id)}" data-field="${esc(v.flag.field)}">
-              <label for="${esc(fid)}">Valeur relevée en jeu</label>
-              <input id="${esc(fid)}" name="value" inputmode="decimal" placeholder="${v.flag.field === "size" ? "ex. 8x8" : v.flag.field === "energyMFps" ? `actuel : ${esc(showValue(currentValue(ctx, v), v.flag.field))} (ex. 4,5 k)` : `actuel : ${esc(showValue(currentValue(ctx, v)))}`}" autocomplete="off">
-              <button type="submit">Appliquer</button><span class="fix-error" role="alert"></span></form>`
-          : `<p class="muted vdetail">Ce champ ne se corrige pas ici : laisse une note.</p>`;
+              <label for="${esc(fid)}">${t("vf.value")}</label>
+              <input id="${esc(fid)}" name="value" inputmode="decimal" placeholder="${esc(v.flag.field === "size" ? t("vf.ph.size") : v.flag.field === "energyMFps" ? t("vf.ph.energy", { x: showValue(currentValue(ctx, v), v.flag.field) }) : t("vf.ph.current", { x: showValue(currentValue(ctx, v)) }))}" autocomplete="off">
+              <button type="submit">${t("vf.apply")}</button><span class="fix-error" role="alert"></span></form>`
+          : `<p class="muted vdetail">${t("vf.noFix")}</p>`;
         return `<li class="vrow"><div class="vhead"><span class="vfield">${esc(fieldLabel(v.flag.field, (id) => itemN(ctx, id)))}</span>
-            <span class="badge ${esc(v.flag.reason)}">${esc(REASON_LABEL[v.flag.reason] ?? v.flag.reason)}</span></div>
-          <div class="vvals">Retenu : <b class="num">${esc(showValue(currentValue(ctx, v), v.flag.field))}</b>${primary ? ` selon ${sourceLink(primary)}` : ""}${alts ? ` · Autre : ${alts}` : ""}</div>
+            <span class="badge ${esc(v.flag.reason)}">${esc(reasonLabel(v.flag.reason))}</span></div>
+          <div class="vvals">${t("vf.kept", { x: `<b class="num">${esc(showValue(currentValue(ctx, v), v.flag.field))}</b>` })}${primary ? ` ${t("vf.according", { src: sourceLink(primary) })}` : ""}${alts ? t("vf.other", { list: alts }) : ""}</div>
           ${detail}${input}${noteBox}</li>`;
       })
       .join("");
     return `<div class="verify-group panel${head.used ? "" : " unused"}"><h3>${title}</h3>
-      <p class="vstate">${head.used ? "Utilisée dans le calcul" : opts.all ? "Pas utilisée par le dernier calcul" : "Recette écartée (elle pourrait être meilleure une fois vérifiée)"}</p>
+      <p class="vstate">${t(head.used ? "vf.used" : opts.all ? "vf.unusedAll" : "vf.unused")}</p>
       <ul class="vrows">${rows}</ul></div>`;
   });
-  if (!blocks.length) return `<p class="muted">${opts.all ? "Aucune valeur ne correspond." : "Aucune valeur douteuse dans cette chaîne."}</p>`;
+  if (!blocks.length) return `<p class="muted">${t(opts.all ? "vf.none.all" : "vf.none")}</p>`;
   return blocks.join("");
 }
 
@@ -172,35 +169,35 @@ export function renderCorrections(ctx: Ctx): string {
   const what = (scope: "recipes" | "machines" | "items" | "research", id: string) => {
     if (scope === "recipes") {
       const r = ctx.data.recipes.get(id);
-      return r ? `Craft : ${machineN(ctx, r.machine)} → ${Object.keys(r.outputs).map((i) => itemN(ctx, i)).join(", ")}` : "Craft retiré des données";
+      return r ? t("vf.craft", { m: machineN(ctx, r.machine), item: Object.keys(r.outputs).map((i) => itemN(ctx, i)).join(", ") }) : t("cor.craftGone");
     }
-    return scope === "machines" ? `Machine ${machineN(ctx, id)}` : scope === "items" ? `Objet ${itemN(ctx, id)}` : `Recherche ${nodeN(ctx, id)}`;
+    return scope === "machines" ? t("vf.machine", { m: machineN(ctx, id) }) : scope === "items" ? t("cor.item", { item: itemN(ctx, id) }) : t("cor.research", { r: nodeN(ctx, id) });
   };
   for (const scope of ["recipes", "machines", "items", "research"] as const) {
     for (const [id, fields] of Object.entries(ctx.corrections[scope] ?? {})) {
       for (const [field, entry] of Object.entries(fields)) {
         rows.push(`<li>${esc(what(scope, id))} · ${esc(fieldLabel(field, (x) => itemN(ctx, x)))} = <b>${esc(field === "machine" && typeof entry.value === "string" ? machineN(ctx, entry.value) : showValue(entry.value, field))}</b> <span class="muted">(${esc(entry.source.fetchedAt.slice(0, 10))})</span>
-          <button type="button" class="link" data-remove="${esc(scope)}|${esc(id)}|${esc(field)}">retirer</button></li>`);
+          <button type="button" class="link" data-remove="${esc(scope)}|${esc(id)}|${esc(field)}">${t("cor.remove")}</button></li>`);
       }
     }
   }
   // Crafts et objets ajoutés, crafts retirés (page Recettes, S6).
   const craft = (r: { machine: string; inputs: Record<string, number | null>; outputs: Record<string, number | null> }) => {
-    const side = (s: Record<string, number | null>) => Object.entries(s).map(([i, q]) => `${q === null ? "?" : fmt(q, 3)} ${itemN(ctx, i)}`).join(" + ") || "rien";
-    return `${machineN(ctx, r.machine)} : ${side(r.inputs)} → ${side(r.outputs)}`;
+    const side = (s: Record<string, number | null>) => Object.entries(s).map(([i, q]) => `${q === null ? "?" : fmt(q, 3)} ${itemN(ctx, i)}`).join(" + ") || t("rc.nothing");
+    return `${machineN(ctx, r.machine)}${colon()}${side(r.inputs)} → ${side(r.outputs)}`;
   };
   const day = (s: Source) => esc(s.fetchedAt.slice(0, 10));
-  const card = (kind: "objet" | "machine", id: string) => `<a href="#recettes/${kind}/${encodeURIComponent(id)}">fiche</a>`;
+  const card = (kind: "objet" | "machine", id: string) => `<a href="#recettes/${kind}/${encodeURIComponent(id)}">${t("cor.card")}</a>`;
   for (const [id, it] of Object.entries(ctx.corrections.added?.items ?? {})) {
-    rows.push(`<li><span class="rc-tag add">objet ajouté</span> ${esc(it.name)} <span class="muted">(${day(it.source)})</span> ${card("objet", id)} · <button type="button" class="link" data-remove="added|items|${esc(id)}">effacer</button></li>`);
+    rows.push(`<li><span class="rc-tag add">${t("cor.itemAdded")}</span> ${esc(it.name)} <span class="muted">(${day(it.source)})</span> ${card("objet", id)} · <button type="button" class="link" data-remove="added|items|${esc(id)}">${t("vf.note.del")}</button></li>`);
   }
   for (const [id, r] of Object.entries(ctx.corrections.added?.recipes ?? {})) {
     const first = Object.keys(r.outputs)[0];
-    rows.push(`<li><span class="rc-tag add">craft ajouté</span> ${esc(craft(r))} <span class="muted">(${day(r.source)})</span>${first ? ` ${card("objet", first)}` : ""} · <button type="button" class="link" data-remove="added|recipes|${esc(id)}">effacer</button></li>`);
+    rows.push(`<li><span class="rc-tag add">${t("cor.craftAdded")}</span> ${esc(craft(r))} <span class="muted">(${day(r.source)})</span>${first ? ` ${card("objet", first)}` : ""} · <button type="button" class="link" data-remove="added|recipes|${esc(id)}">${t("vf.note.del")}</button></li>`);
   }
   for (const [id, x] of Object.entries(ctx.corrections.removed?.recipes ?? {})) {
     const r = ctx.data.removed.get(id)?.recipe;
-    rows.push(`<li><span class="rc-tag del">craft retiré</span> ${esc(r ? craft(r) : id)} <span class="muted">(${day(x.source)})</span>${r ? ` ${card("machine", r.machine)}` : ""} · <button type="button" class="link" data-remove="removed|recipes|${esc(id)}">rétablir</button></li>`);
+    rows.push(`<li><span class="rc-tag del">${t("cor.craftRemoved")}</span> ${esc(r ? craft(r) : id)} <span class="muted">(${day(x.source)})</span>${r ? ` ${card("machine", r.machine)}` : ""} · <button type="button" class="link" data-remove="removed|recipes|${esc(id)}">${t("cor.restore")}</button></li>`);
   }
-  return rows.length ? `<ul class="corrections">${rows.join("")}</ul>` : `<p class="muted">Aucune correction locale pour l'instant.</p>`;
+  return rows.length ? `<ul class="corrections">${rows.join("")}</ul>` : `<p class="muted">${t("cor.none")}</p>`;
 }

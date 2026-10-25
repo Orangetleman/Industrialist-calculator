@@ -8,14 +8,18 @@
 // décrit), la page ne défile plus sous la visite, le projecteur part de la bulle pour guider l'œil,
 // la bulle est fixe en bas ou suit le projecteur (choix gardé), et un calcul en cours s'affiche
 // dans la bulle.
+// S31 : les textes sont des clés du catalogue, lues dans la langue choisie.
 
+import { t, type Key } from "../i18n/i18n.ts";
+
+/** Les textes d'une étape sont des clés du catalogue (S31), lues dans la langue choisie à chaque affichage. */
 export type TourStep = {
   /** Étape de l'essentiel (première visite) ; les autres forment la visite détaillée. */
   core?: boolean;
-  part: string;
-  title: string;
+  part: Key;
+  title: Key;
   /** HTML simple (<b>) écrit par le site, jamais par le joueur. */
-  text: string;
+  text: Key;
   /** Carte centrée, sans projecteur (bienvenue, fin). */
   center?: boolean;
   /** Adresse à ouvrir avant d'éclairer la cible (« #objet/schema »…). */
@@ -26,7 +30,7 @@ export type TourStep = {
   play?: boolean;
   /** Sélecteur d'une barre d'avancement : tant qu'elle existe, la bulle montre le calcul en cours. */
   wait?: string;
-  next?: string;
+  next?: Key;
 };
 
 export type TourMode = "core" | "detail" | "full";
@@ -42,26 +46,23 @@ export function tourSeq(steps: readonly TourStep[], mode: TourMode): number[] {
 
 /** Les étapes de la visite du calculateur. L'exemple affiché pendant la visite : 60 Crankshaft/min. */
 export const SITE_TOUR: TourStep[] = [
-  {
-    core: true, part: "Bienvenue", center: true, hash: "#objet", title: "Bienvenue sur le calculateur", next: "Commencer ▶",
-    text: "Dis ce que tu veux produire dans <b>Industrialist</b> : le site donne <b>toute la chaîne</b> (les machines, l'énergie, la place au sol, les plans de pose), avec <b>seulement ce que tu as débloqué</b>. Pendant la visite, l'exemple montre <b>60 Crankshaft/min avec toutes les recherches</b> ; ta partie revient telle quelle à la fin.",
-  },
-  { core: true, part: "Ta partie", hash: "#objet", target: "#me", title: "D'abord : où tu en es", text: "En haut à droite, ces puces résument <b>ta partie</b> : recherches débloquées, RP, argent. Un clic ouvre <b>Mon usine</b>, où tu la renseignes (ou l'<b>importes</b> d'un autre appareil). Tout reste dans ton navigateur." },
-  { core: true, part: "Planifier", hash: "#objet", target: "#query", title: "L'objet à produire", text: "Tape le nom de l'objet <b>comme dans le Recipe Book</b> du jeu, puis la quantité par minute (ou le nombre de machines finales). Ici : <b>Crankshaft, 60</b>." },
-  { core: true, part: "Planifier", hash: "#objet", target: "#answer", title: "La réponse", text: "En une ligne : combien de machines, puis la <b>place au sol</b>, l'énergie et le prix. Si une recherche manque, le site te dit laquelle." },
-  { core: true, part: "Planifier", hash: "#objet", target: "#rtabs-result", play: true, title: "Tes vues de travail", text: "L'<b>Usine</b> dessine le plan de pose de toute l'usine, module par module, comme tu la construis en jeu ; le <b>schéma</b> montre la chaîne ; la liste des machines et les détails donnent le reste. La visite détaillée les ouvre pour toi." },
-  { core: true, part: "Le reste du site", hash: "#objet", target: "[data-nav=arbre]", title: "L'arbre de recherche", text: "Comme en jeu. Pour une recherche pas encore débloquée : ce qui te manque, et <b>dans combien de temps de jeu</b> tu l'auras à ton rythme." },
-  { core: true, part: "Le reste du site", hash: "#objet", target: "[data-nav=recettes]", title: "Recettes et Contribuer", text: "<b>Recettes</b> : tous les crafts, comme l'onglet du jeu. À côté, <b>Contribuer</b> : corriger une valeur ⚠ qui ne colle pas au jeu, relever les ports d'un bâtiment." },
-  { core: true, part: "Fin", hash: "#objet", target: "#help", title: "Revoir la visite", text: "Ce bouton <b>?</b> rejoue la visite quand tu veux, en entier." },
+  { core: true, part: "tour.part.welcome", center: true, hash: "#objet", title: "tour.welcome.title", next: "tour.welcome.next", text: "tour.welcome.html" },
+  { core: true, part: "tour.part.game", hash: "#objet", target: "#me", title: "tour.game.title", text: "tour.game.html" },
+  { core: true, part: "tour.part.plan", hash: "#objet", target: "#query", title: "tour.item.title", text: "tour.item.html" },
+  { core: true, part: "tour.part.plan", hash: "#objet", target: "#answer", title: "tour.answer.title", text: "tour.answer.html" },
+  { core: true, part: "tour.part.plan", hash: "#objet", target: "#rtabs-result", play: true, title: "tour.views.title", text: "tour.views.html" },
+  { core: true, part: "tour.part.rest", hash: "#objet", target: "[data-nav=arbre]", title: "tour.tree.title", text: "tour.tree.html" },
+  { core: true, part: "tour.part.rest", hash: "#objet", target: "[data-nav=recettes]", title: "tour.recipes.title", text: "tour.recipes.html" },
+  { core: true, part: "tour.part.end", hash: "#objet", target: "#help", title: "tour.help.title", text: "tour.help.html" },
   // Visite détaillée : elle entre dans les vues (au minimum le schéma et l'usine complète, Q25), et on y touche.
-  { part: "Le schéma", hash: "#objet/schema", target: "#flow-frame", play: true, title: "Le graphe de la chaîne", text: "Toute la chaîne, de l'extraction à l'objet. <b>Essaie</b> : glisse pour te déplacer, molette pour zoomer, <b>clique un bloc</b> (son nombre de machines, « Comment c'est calculé » apparaissent dessous)." },
-  { part: "L'usine", hash: "#objet/pose/usine-entiere", target: "#pose-frame", play: true, wait: "#usine-progress", title: "L'usine complète", text: "Le plan de toute l'usine vue de dessus : modules, tuyaux, poteaux. <b>Essaie</b> : glisse, zoome, <b>survole un module</b> pour voir ce qu'il produit, clique-le pour ouvrir son plan. Sous le dessin, coche un module « posé » quand il est construit en jeu." },
-  { part: "Régler le plan", hash: "#objet", target: "#criteria", play: true, title: "Les priorités", text: "Quand un objet se fabrique de plusieurs façons, la <b>première priorité</b> décide (par défaut : le moins de place). <b>Essaie</b> : ouvre la liste et change l'ordre (la visite ne garde rien)." },
-  { part: "Régler le plan", hash: "#objet", target: "#mfilter", play: true, title: "Les machines", text: "Écarte une machine que tu ne veux pas, ou n'utilise <b>que</b> celles que tu as déjà posées." },
-  { part: "Ma recherche", hash: "#usine/recherche", target: "#rs-box", title: "Ma recherche et « Je joue »", text: "Recopie ton <b>Research Tracking Panel</b> : le site estime tes RP et leur baisse au-delà du seuil. Les RP ne montent qu'en jeu : clique <b>▶ Je joue</b> en lançant le jeu." },
-  { part: "L'arbre", hash: "#arbre", target: ".rs-workspace", play: true, title: "L'arbre, comme en jeu", text: "<b>Essaie</b> : glisse l'arbre et <b>clique une recherche</b>. À droite : ce qu'elle débloque, son prix, et le temps de jeu qu'il te faut pour l'avoir." },
-  { part: "Recettes", hash: "#recettes", target: "#rc-layout", play: true, title: "Les recettes", text: "<b>Essaie</b> : cherche un objet (« steel ») et clique-le : ses crafts, d'où il vient, à quoi il sert. Une valeur fausse se corrige depuis sa fiche (« ✎ Corriger »)." },
-  { part: "Fin", center: true, hash: "#objet", title: "C'est parti", text: "Tout plan est une <b>proposition</b> : sers-t'en comme base et optimise en jeu. Bonne construction !", next: "Terminer" },
+  { part: "tour.part.flow", hash: "#objet/schema", target: "#flow-frame", play: true, title: "tour.flow.title", text: "tour.flow.html" },
+  { part: "tour.part.factory", hash: "#objet/pose/usine-entiere", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.factory.title", text: "tour.factory.html" },
+  { part: "tour.part.settings", hash: "#objet", target: "#criteria", play: true, title: "tour.prio.title", text: "tour.prio.html" },
+  { part: "tour.part.settings", hash: "#objet", target: "#mfilter", play: true, title: "tour.machines.title", text: "tour.machines.html" },
+  { part: "tour.part.research", hash: "#usine/recherche", target: "#rs-box", title: "tour.research.title", text: "tour.research.html" },
+  { part: "tour.part.tree", hash: "#arbre", target: ".rs-workspace", play: true, title: "tour.arbre.title", text: "tour.arbre.html" },
+  { part: "tour.part.recipes", hash: "#recettes", target: "#rc-layout", play: true, title: "tour.recettes.title", text: "tour.recettes.html" },
+  { part: "tour.part.end", center: true, hash: "#objet", title: "tour.end.title", text: "tour.end.html", next: "tour.finish" },
 ];
 
 export type TourHooks = {
@@ -192,7 +193,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     hooks.onEnd();
   }
   const toggle = () =>
-    `<button type="button" class="tour-pin" data-tour="bubble" title="${st.bubble === "fixe" ? "La bulle suit le projecteur" : "La bulle reste en bas de l'écran"}">${st.bubble === "fixe" ? "Bulle fixe ⇅" : "Bulle qui suit ⇅"}</button>`;
+    `<button type="button" class="tour-pin" data-tour="bubble" title="${t(st.bubble === "fixe" ? "tour.bubble.toFollow" : "tour.bubble.toFixed")}">${t(st.bubble === "fixe" ? "tour.bubble.fixed" : "tour.bubble.follows")}</button>`;
   function decide(): void {
     stopTimers();
     st.decision = true;
@@ -202,9 +203,9 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     spot.style.display = "none";
     bubble.style.display = "block";
     bubble.classList.remove("near");
-    bubble.innerHTML = `${toggle()}<div class="tour-part">L'essentiel est vu</div><div class="tour-title">Tu sais t'orienter 👍</div>
-      <div class="tour-text">Tu veux la <b>visite détaillée</b> ? Elle ouvre le <b>schéma</b> et l'<b>usine complète</b> (tu peux y toucher), les réglages du plan, Ma recherche, l'arbre et les recettes. Le bouton <b>?</b> la rejoue quand tu veux.</div>
-      <div class="tour-decision"><button type="button" class="tour-btn next" data-tour="detail">Oui, le détail ▶</button><button type="button" class="tour-link" data-tour="end">Non merci, j'ai compris</button></div>`;
+    bubble.innerHTML = `${toggle()}<div class="tour-part">${t("tour.decide.part")}</div><div class="tour-title">${t("tour.decide.title")}</div>
+      <div class="tour-text">${t("tour.decide.html")}</div>
+      <div class="tour-decision"><button type="button" class="tour-btn next" data-tour="detail">${t("tour.decide.yes")}</button><button type="button" class="tour-link" data-tour="end">${t("tour.decide.no")}</button></div>`;
     bubble.style.removeProperty("top");
     bubble.style.removeProperty("left");
   }
@@ -215,12 +216,12 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     if (navigate && step.hash && location.hash !== step.hash) hooks.go(step.hash);
     bubble.style.display = "block";
     const last = p === s.length - 1;
-    const label = step.next ?? (last ? (st.mode === "core" ? "Continuer ▶" : "Terminer") : "Suivant ▶");
-    bubble.innerHTML = `${toggle()}<div class="tour-part">${step.part}</div><div class="tour-title">${step.title}</div><div class="tour-text">${step.text}</div>
+    const label = t(step.next ?? (last ? (st.mode === "core" ? "tour.continue" : "tour.finish") : "tour.next"));
+    bubble.innerHTML = `${toggle()}<div class="tour-part">${t(step.part)}</div><div class="tour-title">${t(step.title)}</div><div class="tour-text">${t(step.text)}</div>
       <div class="tour-wait" hidden></div>
       <div class="tour-dots">${s.map((_, j) => `<span class="tour-dot${j < p ? " done" : j === p ? " cur" : ""}"></span>`).join("")}</div>
-      <div class="tour-ctrl">${p > 0 ? `<button type="button" class="tour-btn" data-tour="prev">◀ Précédent</button>` : ""}<button type="button" class="tour-btn next" data-tour="next">${label}</button>
-      <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${p === 0 ? "Passer la visite" : "Tout passer"}</button>`}</span></div>`;
+      <div class="tour-ctrl">${p > 0 ? `<button type="button" class="tour-btn" data-tour="prev">${t("tour.prev")}</button>` : ""}<button type="button" class="tour-btn next" data-tour="next">${label}</button>
+      <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${t(p === 0 ? "tour.skip" : "tour.skipAll")}</button>`}</span></div>`;
     bubble.querySelector<HTMLButtonElement>("[data-tour=next]")?.focus({ preventScroll: true });
     // On regarde : la page est figée. On essaie (play) : la page défile, le projecteur suit sa cible.
     document.documentElement.classList.toggle("touring", !step.play);
@@ -239,7 +240,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     const bar = document.querySelector<HTMLElement>(step.wait!);
     if (!box) return;
     if (bar) {
-      const label = bar.querySelector(".lbl")?.textContent ?? "Calcul en cours";
+      const label = bar.querySelector(".lbl")?.textContent ?? t("tour.waiting");
       const pct = bar.querySelector(".pct")?.textContent ?? "";
       box.hidden = false;
       box.innerHTML = `<span>⏳ ${label} ${pct}</span><span class="bar"><i style="width:${parseFloat(pct) || 0}%"></i></span>`;
