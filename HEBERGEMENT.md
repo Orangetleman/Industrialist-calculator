@@ -101,7 +101,26 @@ npm run remarques:discord
 
 (`npm run remarques:discord -- -Retirer` supprime le webhook : plus de message.)
 
-Relire les dernières remarques en attendant le tableau de bord (S36) :
+**Tableau de bord (S36)** : `https://industrialist.myprisme.fr/tableau/` (aucun lien du site n'y mène), avec le mot
+de passe ci-dessus. Il sert les remarques (lire, marquer, ranger par sujet, répondre), les sujets (publier dans la
+page Propositions), les corrections (JSON à télécharger) et l'export de tout. C'est une page du build, servie par nginx
+comme le reste du site : pas de réglage nginx nouveau.
+
+**Traduction automatique (S36)** : le bouton 🌐 du tableau de bord passe par l'API **DeepL API Free** (500 000
+caractères par mois gratuits). L'utilisateur crée un compte DeepL API Free (une carte est demandée pour vérifier
+l'identité, sans être débitée), copie sa clé, puis la colle lui-même, masquée, sur le PC ; elle part vers le Pi par
+l'entrée standard de ssh et est rangée dans `/etc/industrialist-remarques/deepl` (root et le service seulement),
+relue à chaque traduction : pas de redémarrage. Seuls partent vers DeepL les textes que l'utilisateur fait traduire
+d'un clic ; un visiteur ne déclenche jamais de traduction.
+
+```bash
+npm run remarques:traducteur
+```
+
+(`npm run remarques:traducteur -- -Retirer` supprime la clé. En local sans clé, un traducteur d'essai écrit
+« [EN] texte » sans rien envoyer dehors.)
+
+Relire les dernières remarques sans le tableau de bord :
 
 ```bash
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/relire-remarques.ps1
@@ -120,8 +139,8 @@ moins de 1 Mo par version.
 
 **Sauvegardes** : le site n'a rien à sauvegarder sur le Pi. Le code est dans git sur le PC, et la
 progression comme les corrections de chacun restent dans son navigateur. Seules les remarques des joueurs
-vivent sur le Pi (`/var/lib/industrialist-remarques/`, avec ses 7 copies de la nuit). Le tableau de bord pourra
-tout exporter en JSON (S36).
+vivent sur le Pi (`/var/lib/industrialist-remarques/`, avec ses 7 copies de la nuit). Le tableau de bord exporte
+tout en JSON (« Exporter tout »).
 
 **Mises à jour de sécurité** : nginx est un paquet Debian, mis à jour par `unattended-upgrades`
 comme le reste du système.

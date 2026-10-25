@@ -3,8 +3,11 @@
  *
  * Tables :
  * - `remarques` : ce qu'envoient les joueurs. Aucune adresse ni empreinte n'y est gardée.
- * - `sujets` : le rangement de l'auteur ; seuls les sujets `publie = 1` sont visibles (Propositions).
- * - `plus1` : un +1 par visiteur et par sujet. L'empreinte est effacée au bout de 24 h, le +1 reste compté.
+ * - `sujets` : le rangement de l'auteur ; seuls les sujets `publie = 1` sont visibles (Propositions). Textes publics en
+ *   français et en anglais (S36) ; `auto` liste les champs traduits automatiquement et pas encore relus.
+ * - `votes` (S36, remplace `plus1`) : ▲ (+1) ou ▼ (−1), un par votant et par sujet, comme sur Reddit. Le votant est
+ *   l'empreinte d'un identifiant tiré au hasard par le navigateur (rien de personnel), pour changer d'avis plus tard.
+ *   L'empreinte d'adresse (un vote par adresse et par sujet) est effacée au bout de 24 h, le vote reste compté.
  * - `traces` : envois et essais de connexion récents (limites par visiteur), effacés au bout de 24 h.
  * - `reglages` : le sel des empreintes.
  */
@@ -48,12 +51,15 @@ export function ouvrirBase(chemin: string): DatabaseSync {
       repondu INTEGER,
       sujet INTEGER REFERENCES sujets(id) ON DELETE SET NULL
     );
-    CREATE TABLE IF NOT EXISTS plus1 (
+    CREATE TABLE IF NOT EXISTS votes (
       sujet INTEGER NOT NULL REFERENCES sujets(id) ON DELETE CASCADE,
+      votant TEXT NOT NULL,
+      valeur INTEGER NOT NULL,
       empreinte TEXT,
       instant INTEGER NOT NULL
     );
-    CREATE UNIQUE INDEX IF NOT EXISTS plus1_unique ON plus1(sujet, empreinte);
+    CREATE UNIQUE INDEX IF NOT EXISTS votes_unique ON votes(sujet, votant);
+    CREATE INDEX IF NOT EXISTS votes_empreinte ON votes(sujet, empreinte);
     CREATE TABLE IF NOT EXISTS traces (
       genre TEXT NOT NULL,
       empreinte TEXT NOT NULL,
@@ -62,7 +68,28 @@ export function ouvrirBase(chemin: string): DatabaseSync {
     CREATE INDEX IF NOT EXISTS traces_recherche ON traces(genre, empreinte, instant);
     CREATE TABLE IF NOT EXISTS reglages (cle TEXT PRIMARY KEY, valeur TEXT NOT NULL);
   `);
+  migrer(base);
   return base;
+}
+
+/** Colonnes ajoutées après S34 : une base déjà en place les gagne à l'ouverture, sans rien perdre. */
+const AJOUTS: Record<string, string[]> = {
+  sujets: ["titre_en TEXT", "description TEXT", "description_en TEXT", "reponse_en TEXT", "auto TEXT", "maj INTEGER"],
+  remarques: ["traduction TEXT"],
+};
+
+function migrer(base: DatabaseSync): void {
+  for (const [table, colonnes] of Object.entries(AJOUTS)) {
+    const presentes = new Set((base.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name));
+    for (const colonne of colonnes) if (!presentes.has(colonne.split(" ")[0]!)) base.exec(`ALTER TABLE ${table} ADD COLUMN ${colonne}`);
+  }
+  // S36 : les +1 de S34-S35 deviennent des votes ▲ (un votant inconnu chacun : ils restent comptés).
+  if (base.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'plus1'").get()) {
+    base.exec(`
+      INSERT OR IGNORE INTO votes (sujet, votant, valeur, empreinte, instant) SELECT sujet, 'ancien-' || rowid, 1, empreinte, instant FROM plus1;
+      DROP TABLE plus1;
+    `);
+  }
 }
 
 /** Le sel des empreintes, tiré au hasard à la première ouverture. */
@@ -74,11 +101,11 @@ export function selDesEmpreintes(base: DatabaseSync): string {
   return sel;
 }
 
-/** Efface les empreintes de plus de 24 h (traces des limites, et celles des +1, dont le compte reste). */
+/** Efface les empreintes de plus de 24 h (traces des limites, et celles des votes, qui restent comptés). */
 export function purgerEmpreintes(base: DatabaseSync, maintenant: number): void {
   const limite = maintenant - GARDE_EMPREINTE;
   base.prepare("DELETE FROM traces WHERE instant <= ?").run(limite);
-  base.prepare("UPDATE plus1 SET empreinte = NULL WHERE empreinte IS NOT NULL AND instant <= ?").run(limite);
+  base.prepare("UPDATE votes SET empreinte = NULL WHERE empreinte IS NOT NULL AND instant <= ?").run(limite);
 }
 
 /**
@@ -92,7 +119,7 @@ export function sauvegarder(base: DatabaseSync, dossier: string, maintenant: num
   base.prepare("VACUUM INTO ?").run(chemin);
   const copie = new DatabaseSync(chemin);
   try {
-    copie.exec("PRAGMA secure_delete = ON; DELETE FROM traces; UPDATE plus1 SET empreinte = NULL; DELETE FROM reglages WHERE cle = 'sel'; VACUUM;");
+    copie.exec("PRAGMA secure_delete = ON; DELETE FROM traces; UPDATE votes SET empreinte = NULL; DELETE FROM reglages WHERE cle = 'sel'; VACUUM;");
   } finally {
     copie.close();
   }

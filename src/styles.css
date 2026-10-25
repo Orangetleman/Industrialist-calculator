@@ -148,6 +148,38 @@ dialog.rm-dialog { width: min(500px, calc(100vw - 32px)); max-width: none; max-h
 .rm-it .tx { overflow-wrap: anywhere; }
 .rm-it .ans { border-left: 3px solid var(--accent); padding-left: 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .foot-remark button.link { font-size: inherit; color: var(--ink); padding: 0; min-height: 24px; }
+.foot-remark a { color: var(--ink); min-height: 24px; display: inline-block; line-height: 24px; }
+.rm-pseudo select { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); min-height: 32px; }
+.rm-actions .rm-props { margin-right: auto; color: var(--ink); font-size: .86rem; min-height: 24px; line-height: 24px; }
+
+/* Propositions (S36, maquettes public.html écran 3 et tableau.html écran 5) */
+.pr-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pr-tools .pr-q { flex: 1 1 220px; }
+.pr-tools .pr-q input { width: 100%; }
+.pr-tools select, .pr-tools button { min-height: 32px; }
+.pr-list { display: grid; gap: 10px; }
+.pr { display: grid; grid-template-columns: 52px 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.pr-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pr-vote button { width: 40px; min-height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--muted); font-size: .9rem; cursor: pointer; padding: 0; }
+.pr-vote button:hover { border-color: var(--accent); color: var(--ink); }
+.pr-vote button[data-pr-vote="1"][aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 700; }
+.pr-vote button[data-pr-vote="-1"][aria-pressed="true"] { border-color: var(--steel); background: var(--steel-soft); color: var(--ink); font-weight: 700; }
+.pr-vote .n { font: 700 1rem var(--f-mono); }
+.pr-body { min-width: 0; }
+.pr h3 { font: 700 1rem var(--f-display); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; overflow-wrap: anywhere; }
+.pr .st { font-weight: 600; font-size: .72rem; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--line); white-space: nowrap; }
+.pr .st.prevu { border-color: var(--steel); background: var(--steel-soft); }
+.pr .st.fait { border-color: var(--ok); }
+.pr .st.refuse { color: var(--muted); }
+.pr .st.propose { border-color: var(--accent); }
+.pr p { font-size: .88rem; margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pr .rep { margin-top: 8px; font-size: .86rem; border-left: 3px solid var(--accent); padding-left: 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pr .rep b { font-weight: 600; }
+.pr .meta { font-size: .76rem; color: var(--muted); margin-top: 6px; }
+.pr-auto { font-size: .74rem; color: var(--muted); font-weight: 400; white-space: normal; }
+.pr-auto button.link { font-size: inherit; color: var(--ink); padding: 0; min-height: 24px; }
+.pr-orig { display: block; font-size: .82rem; color: var(--muted); border-left: 2px solid var(--line); padding-left: 8px; margin-top: 4px; font-weight: 400; }
+.pr-empty { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; font-size: .9rem; }
 /* S24 bis : quatre volets autour du projecteur (le trou reste utilisable), page figée pendant la visite. */
 html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête collant décroche */
 .tour-shade { position: fixed; z-index: 1300; display: none; }

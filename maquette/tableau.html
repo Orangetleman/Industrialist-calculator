@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S36 — Tableau de bord et Propositions</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement. Reprend les écrans 3 et 4 de la maquette S16 (public.html), déjà validés ; ne montre que ce qu'ils ne couvraient pas. */
+body { background: var(--bg); }
+.mq-bar { max-width: 1120px; margin: 10px auto; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .86rem; background: var(--warn-soft); border-radius: 8px; }
+.mq-sec { max-width: 1120px; margin: 26px auto 0; padding: 0 16px; }
+.mq-sec > h2 { font: 700 1.1rem var(--f-display); margin-bottom: 4px; }
+.mq-sec > p.mq-note { font-size: .86rem; color: var(--muted); margin-bottom: 10px; max-width: 780px; }
+.mq-q { max-width: 1120px; margin: 30px auto 60px; padding: 10px 16px; background: var(--warn-soft); border-radius: 8px; font-size: .9rem; }
+.mq-q ol { margin: 6px 0 0; padding-left: 22px; }
+.mq-q li { margin: 7px 0; }
+.mq-screen { border: 1px dashed var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); }
+.mq-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.mq-row > div { flex: 1 1 340px; }
+.mq-cap { font-size: .78rem; color: var(--muted); margin: 6px 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.phone { width: 375px; max-width: 100%; border: 1px dashed var(--line); border-radius: 18px; overflow: hidden; background: var(--surface); }
+
+.login { max-width: 360px; margin: 40px auto; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.login h3 { font: 700 1.05rem var(--f-display); }
+.login input { min-height: 36px; }
+.err { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 8px 10px; font-size: .86rem; }
+
+.tb { display: grid; grid-template-columns: 340px 1fr; background: var(--surface); }
+.tb-head { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tb-head b { font: 700 1rem var(--f-display); }
+.tb-head .right { margin-left: auto; font-size: .8rem; color: var(--muted); }
+.tb-list { border-right: 1px solid var(--line); }
+.tb-filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.tb-it { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: .86rem; }
+.tb-it.sel { background: var(--accent-soft); }
+.tb-it .h { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; font-size: .74rem; color: var(--muted); }
+.tb-it .h .new { color: var(--accent); font-weight: 700; }
+.tb-det { padding: 14px 18px; display: grid; gap: 12px; align-content: start; }
+.tb-det .quote { background: var(--bg); border-radius: 8px; padding: 10px 12px; font-size: .9rem; white-space: pre-wrap; }
+.tb-det .ctx { font-size: .8rem; color: var(--muted); display: flex; gap: 6px 14px; flex-wrap: wrap; }
+.tb-det label { font-size: .84rem; font-weight: 600; display: grid; gap: 4px; }
+.tb-det textarea { min-height: 64px; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.acts .del { margin-left: auto; color: var(--warn); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; min-height: 30px; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); font-weight: 700; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.two .en { opacity: .92; }
+.count { font: 700 1.6rem var(--f-mono); }
+.subrem { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: .84rem; display: flex; gap: 8px; align-items: baseline; }
+.subrem .x { margin-left: auto; }
+.back { font-size: .86rem; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+
+.pr { display: grid; grid-template-columns: 58px 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.pr-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pr-vote button { width: 44px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-weight: 700; }
+.pr-vote button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.pr-vote .n { font: 700 1rem var(--f-mono); }
+.pr-vote small { font-size: .68rem; color: var(--muted); text-align: center; line-height: 1.2; }
+.pr h3 { font: 700 1rem var(--f-display); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pr .st { font: 600 .72rem inherit; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--line); }
+.pr .rep { margin-top: 8px; font-size: .86rem; border-left: 3px solid var(--accent); padding-left: 8px; }
+.pr .meta { font-size: .76rem; color: var(--muted); margin-top: 6px; }
+.empty { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; font-size: .9rem; }
+@media (max-width: 760px) { .tb { grid-template-columns: 1fr; } .tb-list { border-right: 0; } .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="mq-bar">
+  <span><b>Maquette S36</b> — tableau de bord et page Propositions. La boîte de réception, la liste des sujets, les corrections et la page Propositions sont déjà validées (maquette S16, <code>public.html</code>, écrans 3 et 4) : ici seulement ce qu'elles ne montraient pas. Textes et nombres d'exemple.</span>
+  <span>Langue de la page Propositions :</span>
+  <span class="lang-sw" role="group" aria-label="Langue"><button type="button" data-l="fr" aria-pressed="true">FR</button><button type="button" data-l="en" aria-pressed="false">EN</button></span>
+</div>
+
+<!-- ============================================================ 1. CONNEXION -->
+<section class="mq-sec">
+  <h2>1. Entrer dans le tableau de bord</h2>
+  <p class="mq-note">Adresse <code>/tableau/</code>, une page à part (le site ne la charge jamais, aucun lien n'y mène). Le mot de passe est celui que tu as choisi en S34 ; la session dure 12 h (cookie invisible au JavaScript). 10 essais par heure au plus. Si le service est arrêté, la page le dit.</p>
+  <div class="mq-row">
+    <div class="mq-screen"><div class="login">
+      <h3>📥 Remarques — Planificateur Industrialist</h3>
+      <label>Mot de passe <input type="password" autocomplete="current-password"></label>
+      <button type="button" class="primary">Entrer</button>
+      <p class="hint">Réservé à l'auteur du site.</p>
+    </div></div>
+    <div class="mq-screen"><div class="login">
+      <h3>📥 Remarques — Planificateur Industrialist</h3>
+      <label>Mot de passe <input type="password" value="xxxxxxxx"></label>
+      <div class="err" role="alert">Mot de passe incorrect. (Trop d'essais : « Réessaie dans une heure. » · Service arrêté : « Le service des remarques ne répond pas. »)</div>
+      <button type="button" class="primary">Entrer</button>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============================================================ 2. UNE REMARQUE -->
+<section class="mq-sec">
+  <h2>2. Une remarque : la lire, la marquer, la ranger, répondre</h2>
+  <p class="mq-note">Ce qui s'ajoute à l'écran 4 de S16. <b>Ouvrir une remarque nouvelle la marque « Lue »</b> (le joueur voit « Lue » dans « Mes remarques »). Trois boutons d'état : Nouvelle · Lue · Traitée. Filtre d'état : <i>À traiter</i> (nouvelles et lues, par défaut), Nouvelles, Non rangées, Traitées, Toutes. Le lien « Ouvrir dans le tableau de bord » du message Discord (<code>/tableau/#14</code>) ouvre directement la remarque n° 14. La réponse s'enregistre par son bouton ; une réponse déjà écrite se modifie ou s'efface.</p>
+  <div class="mq-screen"><div class="tb">
+    <div class="tb-head"><b>📥 Remarques</b>
+      <span class="tabs" role="tablist"><button type="button" class="btn" aria-selected="true">Boîte de réception <span class="chip">2 nouvelles</span></button> <button type="button" class="btn">Sujets (3)</button> <button type="button" class="btn">Corrections (1)</button></span>
+      <span class="right"><a href="#">Exporter tout (JSON)</a> · <a href="#">Se déconnecter</a></span></div>
+    <div class="tb-list">
+      <div class="tb-filters"><select aria-label="Type"><option>Tous les types</option></select><select aria-label="État"><option>À traiter</option><option>Nouvelles</option><option>Non rangées</option><option>Traitées</option><option>Toutes</option></select><select aria-label="Langue"><option>FR + EN</option><option>FR</option><option>EN</option></select></div>
+      <div class="tb-it"><div class="h"><span class="new">● nouvelle</span> n° 16 · 🐞 Bogue · EN · il y a 4 min</div><div>The factory tab is blank on my phone.</div></div>
+      <div class="tb-it sel"><div class="h">n° 14 · 💡 Idée · EN · il y a 2 h · Lue</div><div>Would love to share a plan with a link…</div></div>
+      <div class="tb-it"><div class="h">n° 13 · 💡 Idée · FR · hier · Lue · 📁 Partager un plan</div><div>Pouvoir envoyer mon plan à un ami.</div></div>
+    </div>
+    <div class="tb-det">
+      <div class="acts"><b>n° 14 · 💡 Idée</b> <span class="seg" role="group" aria-label="État"><button type="button" aria-pressed="false">Nouvelle</button><button type="button" aria-pressed="true">Lue</button><button type="button" aria-pressed="false">Traitée ✓</button></span></div>
+      <div class="quote">Would love to share a plan with a link so my friend can build the same factory.</div>
+      <div class="ctx"><span>Pseudo : <b>steelworker_42</b></span><span>Page : <a href="#">Plan › Factory ▸</a></span><span>Plan : objet · 60 Gearbox/min</span><span>EN</span><span>version 2026-10-25 a1b2c3d</span><span>reçue le 25/10 à 18:06</span></div>
+      <div class="acts"><button type="button" class="small">🌐 Traduire en français</button><span class="hint">→ « J'aimerais partager un plan par un lien pour que mon ami construise la même usine. » <i>(traduction automatique)</i></span></div>
+      <label>Ranger dans un sujet
+        <select><option>— aucun —</option><option>Partager un plan par un lien (score 4)</option><option>+ Nouveau sujet…</option></select></label>
+      <label>Répondre au joueur (il le lit dans « Mes remarques »)
+        <textarea>Thanks! It's planned, it will come with the sandbox.</textarea></label>
+      <div class="acts"><button type="button" class="primary">Enregistrer la réponse</button><button type="button">Enregistrer et créer un sujet…</button><span class="hint">Réponse envoyée le 25/10 à 20:12</span><button type="button" class="btn del">Supprimer (abus)…</button></div>
+      <p class="hint" style="margin-top:-6px">« Enregistrer et créer un sujet… » (seulement si la remarque n'a pas de sujet) : enregistre la réponse, puis ouvre le petit formulaire ci-dessous, la remarque déjà rangée dedans.</p>
+      <div class="panel" style="display:grid;gap:8px">
+        <b>Nouveau sujet (avec la remarque n° 14)</b>
+        <div class="two">
+          <label>Titre (français)<input type="text" value="Partager un plan par un lien"></label>
+          <label class="en">Titre (anglais)<input type="text" value="Share a plan with a link"></label>
+        </div>
+        <div class="acts"><button type="button" class="small">🌐 Traduire automatiquement</button><span class="hint">remplit le champ vide depuis celui que tu as écrit (FR → EN ou EN → FR) ; tu corriges ensuite si besoin</span></div>
+        <div class="acts"><button type="button" class="primary">Créer le sujet</button><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox"> Publier tout de suite</label><button type="button">Annuler</button></div>
+      </div>
+    </div>
+  </div></div>
+  <p class="mq-cap" style="margin-top:14px">Supprimer : une confirmation, puis c'est définitif</p>
+  <div class="panel" style="max-width:420px"><b>Supprimer la remarque n° 14 ?</b><p class="hint">Elle disparaît de la base et de « Mes remarques » du joueur (« Supprimée par l'auteur »). On ne peut pas revenir en arrière.</p><div class="acts" style="margin-top:8px"><button type="button">Annuler</button><button type="button" class="primary">Supprimer</button></div></div>
+</section>
+
+<!-- ============================================================ 3. UN SUJET -->
+<section class="mq-sec">
+  <h2>3. Un sujet : titre, texte public, état, réponse, publication</h2>
+  <p class="mq-note">Un clic sur un sujet de l'onglet « Sujets » l'ouvre. Le <b>score</b> = remarques rangées + votes ▲ − votes ▼ de la page Propositions ; « N joueurs l'ont demandé » = remarques + ▲. Ce qui est public a deux champs, <b>français</b> et <b>anglais</b>. « 🌐 Traduire automatiquement » remplit les champs vides depuis ceux que tu as écrits ; un champ traduit garde la marque « traduction automatique » (montrée aux visiteurs) jusqu'à ce que tu le modifies. Rien n'est public tant que « Publié » n'est pas coché. Option : envoyer la même réponse à chaque joueur du sujet (elle arrive dans leurs « Mes remarques », dans leur langue).</p>
+  <div class="mq-screen"><div class="tb" style="grid-template-columns: 1fr">
+    <div class="back"><a href="#">← Sujets</a></div>
+    <div class="tb-det">
+      <div class="acts"><span class="count">4</span><span>score · 5 joueurs l'ont demandé<br><small class="hint">2 remarques + 3 ▲ − 1 ▼</small></span>
+        <label style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" checked> Publié dans Propositions</label></div>
+      <div class="acts"><button type="button" class="small">🌐 Traduire automatiquement</button><span class="hint">les champs anglais vides sont remplis ; « Description (anglais) » : traduction automatique, pas encore relue</span></div>
+      <div class="two">
+        <label>Titre (français)<input type="text" value="Partager un plan par un lien"></label>
+        <label class="en">Titre (anglais, facultatif)<input type="text" value="Share a plan with a link"></label>
+        <label>Description publique (français)<textarea>Envoyer à un ami le plan affiché (objet, quantité, réglages) sans exporter sa partie.</textarea></label>
+        <label class="en">Description publique (anglais)<textarea>Send a friend the plan on screen (item, amount, settings) without exporting your save.</textarea></label>
+      </div>
+      <div class="acts"><b style="font-size:.84rem">État</b> <span class="seg" role="group" aria-label="État du sujet"><button type="button" aria-pressed="false">Proposé</button><button type="button" aria-pressed="true">Prévu</button><button type="button" aria-pressed="false">Fait ✓</button><button type="button" aria-pressed="false">Refusé</button></span></div>
+      <div class="two">
+        <label>Ta réponse publique (français)<textarea>Bonne idée, ça viendra avec le bac à sable.</textarea></label>
+        <label class="en">Ta réponse publique (anglais)<textarea>Good idea, it will come with the sandbox.</textarea></label>
+      </div>
+      <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox"> Envoyer aussi cette réponse aux 2 joueurs du sujet (dans leur langue, sans écraser une réponse déjà écrite)</label>
+      <div class="acts"><button type="button" class="primary">Enregistrer</button><span class="hint">Enregistré ✓</span><button type="button" class="btn del">Supprimer le sujet…</button></div>
+      <p class="mq-cap">Remarques rangées ici</p>
+      <div class="subrem"><b>n° 14</b> EN · steelworker_42 · « Would love to share a plan with a link… » <a class="x" href="#">Retirer du sujet</a></div>
+      <div class="subrem"><b>n° 13</b> FR · « Pouvoir envoyer mon plan à un ami. » <a class="x" href="#">Retirer du sujet</a></div>
+      <p class="hint">Supprimer un sujet ne supprime pas ses remarques : elles redeviennent « non rangées ». Ses votes sont perdus.</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============================================================ 4. TÉLÉPHONE -->
+<section class="mq-sec">
+  <h2>4. Au téléphone</h2>
+  <p class="mq-note">Une colonne : la liste, puis la remarque choisie en plein écran avec « ← Liste ». Onglets sur une ligne qui défile. Cibles de 24 px au moins. Au clavier : Tab parcourt la liste, Entrée ouvre, Échap revient à la liste.</p>
+  <div class="mq-row">
+    <div class="phone">
+      <div class="tb-head" style="padding:8px 10px"><b>📥 Remarques</b><span class="right"><a href="#">Sortir</a></span></div>
+      <div class="tb-head" style="padding:6px 10px;overflow-x:auto;flex-wrap:nowrap"><button type="button" class="btn" aria-selected="true">Boîte (2)</button><button type="button" class="btn">Sujets (3)</button><button type="button" class="btn">Corrections (1)</button></div>
+      <div class="tb-filters"><select><option>Tous les types</option></select><select><option>À traiter</option></select></div>
+      <div class="tb-it"><div class="h"><span class="new">● nouvelle</span> n° 16 · 🐞 · EN · 4 min</div><div>The factory tab is blank on my phone.</div></div>
+      <div class="tb-it"><div class="h">n° 14 · 💡 · EN · 2 h · Lue</div><div>Would love to share a plan with a link…</div></div>
+    </div>
+    <div class="phone">
+      <div class="back"><a href="#">← Liste</a></div>
+      <div class="tb-det" style="padding:10px 12px">
+        <div class="acts"><b>n° 16 · 🐞 Bogue</b></div>
+        <span class="seg" role="group"><button type="button" aria-pressed="false">Nouvelle</button><button type="button" aria-pressed="true">Lue</button><button type="button" aria-pressed="false">Traitée ✓</button></span>
+        <div class="quote">The factory tab is blank on my phone.</div>
+        <div class="ctx"><span>Page : <a href="#">Plan › Factory ▸</a></span><span>EN</span></div>
+        <label>Ranger dans un sujet<select><option>— aucun —</option></select></label>
+        <label>Répondre au joueur<textarea></textarea></label>
+        <button type="button" class="primary">Enregistrer la réponse</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 5. PROPOSITIONS -->
+<section class="mq-sec">
+  <h2 data-fr="5. Propositions : votes comme sur Reddit, traduction automatique" data-en="5. Suggestions: Reddit-style votes, machine translation">5. Propositions : votes comme sur Reddit, traduction automatique</h2>
+  <p class="mq-note">Le « +1 » devient un <b>vote ▲ / ▼ comme sur Reddit</b> : ▲ « je le veux aussi », ▼ « pas utile pour moi » ; un 2ᵉ clic sur le même retire le vote, un clic sur l'autre le change. Le nombre au milieu est le <b>score</b> (remarques + ▲ − ▼), qui sert au tri « Les plus demandées ». En dessous, « N joueurs l'ont demandé » (remarques + ▲). Chaque navigateur a un identifiant de vote tiré au hasard (rien de personnel), qui lui permet de changer d'avis à tout moment ; contre les abus, le service refuse aussi un 2ᵉ vote sur un sujet depuis la même adresse pendant 24 h (empreinte, jamais en clair), et 60 votes par heure et par visiteur au plus. Un texte traduit automatiquement et pas encore relu porte la mention <i>« Traduit automatiquement »</i>, avec « Voir l'original ». Les visiteurs ne déclenchent jamais de traduction : elle est faite une fois, depuis ton tableau de bord, et gardée.</p>
+  <div class="mq-row">
+    <div>
+      <p class="mq-cap" data-fr="Après un vote ▲" data-en="After an ▲ vote">Après un vote ▲</p>
+      <article class="pr">
+        <div class="pr-vote"><button type="button" aria-pressed="true" aria-label="Vote pour">▲</button><span class="n">5</span><button type="button" aria-pressed="false" aria-label="Vote contre">▼</button></div>
+        <div><h3><span data-fr="Partager un plan par un lien" data-en="Share a plan with a link">Partager un plan par un lien</span> <span class="st" data-fr="Prévu" data-en="Planned">Prévu</span></h3>
+          <p data-fr="Envoyer à un ami le plan affiché (objet, quantité, réglages) sans exporter sa partie." data-en="Send a friend the plan on screen (item, amount, settings) without exporting your save. &lt;small class=&quot;hint&quot;&gt;· &lt;i&gt;Machine-translated&lt;/i&gt; · &lt;a href=&quot;#&quot;&gt;See original&lt;/a&gt;&lt;/small&gt;">Envoyer à un ami le plan affiché (objet, quantité, réglages) sans exporter sa partie.</p>
+          <div class="rep"><b>Orangentleman :</b> <span data-fr="Bonne idée, ça viendra avec le bac à sable." data-en="Good idea, it will come with the sandbox.">Bonne idée, ça viendra avec le bac à sable.</span></div>
+          <div class="meta" role="status" data-fr="Tu as voté ▲ · 6 joueurs l'ont demandé (2 remarques, 4 ▲) · 1 ▼" data-en="You voted ▲ · 6 players asked for it (2 requests, 4 ▲) · 1 ▼">Tu as voté ▲ · 6 joueurs l'ont demandé (2 remarques, 4 ▲) · 1 ▼</div></div>
+      </article>
+      <p class="mq-cap" data-fr="Sans vote" data-en="No vote">Sans vote</p>
+      <article class="pr">
+        <div class="pr-vote"><button type="button" aria-pressed="false" aria-label="Vote pour">▲</button><span class="n">3</span><button type="button" aria-pressed="false" aria-label="Vote contre">▼</button></div>
+        <div><h3><span data-fr="Turbine modulaire dans le calcul" data-en="Modular turbine in the planner">Turbine modulaire dans le calcul</span> <span class="st" data-fr="Proposé" data-en="Suggested">Proposé</span></h3>
+          <div class="meta" data-fr="3 joueurs l'ont demandé (3 remarques)" data-en="3 players asked for it (3 requests)">3 joueurs l'ont demandé (3 remarques)</div></div>
+      </article>
+    </div>
+    <div>
+      <p class="mq-cap" data-fr="Rien de publié encore" data-en="Nothing published yet">Rien de publié encore</p>
+      <div class="empty" data-fr="Aucune proposition publiée pour l'instant. Une idée ? « 💬 Remarque » l'envoie à l'auteur ; les demandes qui reviennent souvent apparaîtront ici." data-en="No suggestions published yet. Got an idea? “💬 Feedback” sends it to the author; popular requests will show up here.">Aucune proposition publiée pour l'instant. Une idée ? « 💬 Remarque » l'envoie à l'auteur ; les demandes qui reviennent souvent apparaîtront ici.</div>
+      <p class="mq-cap" style="margin-top:14px" data-fr="Service arrêté" data-en="Service down">Service arrêté</p>
+      <div class="err" data-fr="Les propositions ne se chargent pas (le service ne répond pas). Réessaie plus tard." data-en="Suggestions can't be loaded (the service isn't responding). Try again later.">Les propositions ne se chargent pas (le service ne répond pas). Réessaie plus tard.</div>
+      <p class="mq-cap" style="margin-top:14px" data-fr="Pied de page" data-en="Footer">Pied de page</p>
+      <p class="hint"><a href="#" data-fr="💬 Envoyer une remarque" data-en="💬 Send feedback">💬 Envoyer une remarque</a> <span data-fr="· une valeur fausse, un bogue, une idée, une traduction ·" data-en="· a wrong value, a bug, an idea, a translation ·">· une valeur fausse, un bogue, une idée, une traduction ·</span> <a href="#" data-fr="Propositions des joueurs" data-en="Player suggestions">Propositions des joueurs</a></p>
+      <p class="mq-cap" style="margin-top:14px" data-fr="Fenêtre Remarque (correction de ton pseudo)" data-en="Feedback window (your username fixed)">Fenêtre Remarque (correction de ton pseudo)</p>
+      <p class="hint" data-fr="Tu peux aussi écrire sur le Discord du jeu, en mentionnant &lt;b&gt;@orangentleman&lt;/b&gt;." data-en="You can also write on the game's Discord and mention &lt;b&gt;@orangentleman&lt;/b&gt;.">Tu peux aussi écrire sur le Discord du jeu, en mentionnant <b>@orangentleman</b>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 6. TRADUCTEUR -->
+<section class="mq-sec">
+  <h2>6. Le traducteur automatique</h2>
+  <p class="mq-note">Le service du Pi appelle l'API du traducteur (le navigateur ne la voit jamais, ta clé non plus). Ne partent vers le traducteur que les textes que tu fais traduire d'un clic : tes titres, descriptions et réponses, et une remarque quand tu cliques « Traduire en français ». Rien n'est traduit tout seul. Le résultat est gardé dans la base ; il ne coûte qu'une fois.</p>
+  <table class="gl" style="width:100%;border-collapse:collapse;font-size:.86rem;background:var(--surface)">
+    <thead><tr><th style="text-align:left;padding:6px 10px">Traducteur</th><th style="text-align:left;padding:6px 10px">Ce qu'il faut</th><th style="text-align:left;padding:6px 10px">Pour</th><th style="text-align:left;padding:6px 10px">Contre</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:6px 10px"><b>DeepL API Free</b> (proposé)</td><td style="padding:6px 10px">un compte DeepL API Free (carte demandée pour vérifier l'identité, non débitée) et sa clé, que tu colles toi-même sur le Pi (<code>npm run remarques:traducteur</code>, comme le webhook)</td><td style="padding:6px 10px">le meilleur en français ↔ anglais ; 500 000 caractères par mois gratuits (des centaines de sujets)</td><td style="padding:6px 10px">un compte à créer ; les textes passent par DeepL</td></tr>
+      <tr><td style="padding:6px 10px">MyMemory</td><td style="padding:6px 10px">rien (sans compte)</td><td style="padding:6px 10px">tout de suite</td><td style="padding:6px 10px">qualité moindre ; limite par jour faible ; textes chez un tiers</td></tr>
+    </tbody>
+  </table>
+  <p class="hint" style="margin-top:6px">Sources : documentation DeepL (developers.deepl.com, « Usage and limits ») et aide DeepL (« DeepL API Free ») ; à revérifier au moment de créer le compte. Sans clé posée, les boutons 🌐 disent « Traducteur pas encore réglé » et tout le reste marche.</p>
+</section>
+
+<div class="mq-q">
+  <b>Questions (S36, 2ᵉ tour)</b> — tes réponses du 1ᵉʳ tour sont prises : 1 tableau de bord en français ; 3 états « Lue » à l'ouverture, « À traiter » ; 5 remarques d'essai gardées ; 6 mise à jour du service d'accord. Pseudo corrigé en <b>@orangentleman</b>.
+  <ol>
+    <li><b>Votes ▲ / ▼</b> (écran 5) : score = remarques + ▲ − ▼, tri par score, « N joueurs l'ont demandé » = remarques + ▲, vote modifiable et retirable à tout moment. D'accord ?</li>
+    <li><b>Traduction</b> (écrans 2, 3, 6) : bouton 🌐 qui remplit les champs vides, mention « Traduit automatiquement » montrée aux visiteurs jusqu'à ta relecture, « Traduire en français » sur une remarque en anglais. D'accord ?</li>
+    <li><b>Traducteur</b> (écran 6) : DeepL API Free, avec une clé que tu crées et colles toi-même ? (sinon MyMemory, sans compte)</li>
+    <li><b>Sujet depuis la réponse</b> (écran 2) : « Enregistrer et créer un sujet… » pour une remarque sans sujet. D'accord ?</li>
+  </ol>
+</div>
+
+<script>
+// Maquette seulement : bascule de langue.
+function setLang(l) {
+  document.documentElement.lang = l;
+  for (const b of document.querySelectorAll('[data-l]')) b.setAttribute('aria-pressed', String(b.dataset.l === l));
+  for (const e of document.querySelectorAll('[data-fr]')) e.innerHTML = e.dataset[l] ?? e.dataset.fr;
+}
+for (const b of document.querySelectorAll('[data-l]')) b.addEventListener('click', () => setLang(b.dataset.l));
+</script>
+</body>
+</html>

@@ -58,6 +58,8 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
   let texte = draft?.texte ?? "";
   let fixText = "";
   let pseudo = loadPseudo();
+  /** Langue déclarée de la remarque (S36) : celle du site à l'ouverture, modifiable dans la fenêtre. */
+  let remarkLang: "fr" | "en" = lang();
   let status: { kind: "ok" | "err" | "busy"; html: string } | null = null;
   let offline = false;
   let opener: HTMLElement | null = null;
@@ -94,11 +96,12 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
       <textarea id="rm-text" maxlength="${TEXT_MAX + 500}" placeholder="${esc(ph)}" aria-describedby="rm-count rm-status">${esc(value)}</textarea>
       <div class="hint rm-count${len > TEXT_MAX ? " over" : ""}" id="rm-count">${esc(t("rm.count", { n: len, max: TEXT_MAX }))}</div>
       <label class="rm-pseudo"><span>${esc(t("rm.pseudo"))}</span><input type="text" id="rm-pseudo" maxlength="40" autocomplete="nickname" placeholder="${esc(t("rm.pseudo.ph"))}" value="${esc(pseudo)}"></label>
+      <label class="rm-pseudo"><span>${esc(t("rm.lang"))}</span><select id="rm-lang">${(["fr", "en"] as const).map((l) => `<option value="${l}"${l === remarkLang ? " selected" : ""}>${esc(t(`rm.lang.${l}`))}</option>`).join("")}</select></label>
       <input type="text" class="rm-hp" id="rm-hp" name="siteWeb" tabindex="-1" autocomplete="off" aria-hidden="true">
       <p class="rm-meta">${t(fix ? "rm.meta.fix.html" : "rm.meta.html", { page: esc(c.label) })}</p>
       <div id="rm-status" role="status">${status?.kind === "err" ? `<div class="rm-err">${status.html}</div>` : ""}</div>
       <p class="rm-meta">${t("rm.discord.html", { url: GAME_DISCORD })}</p>
-      <div class="rm-actions"><button type="button" data-rm="close">${esc(t("rm.cancel"))}</button><button type="button" class="primary" data-rm="send"${busy ? " disabled" : ""}>${esc(busy ? t("rm.sending") : t("rm.send"))}</button></div>`;
+      <div class="rm-actions"><a class="rm-props" href="#propositions" data-rm="props">${esc(t("rm.props"))}</a><button type="button" data-rm="close">${esc(t("rm.cancel"))}</button><button type="button" class="primary" data-rm="send"${busy ? " disabled" : ""}>${esc(busy ? t("rm.sending") : t("rm.send"))}</button></div>`;
   }
 
   function mineItem(r: MyRemark): string {
@@ -167,7 +170,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
     const c = ctx();
     const value = fix ? fixText : texte;
     const hp = (dlg.querySelector<HTMLInputElement>("#rm-hp")?.value ?? "").trim();
-    const out = { type: fix ? ("correction" as const) : type, texte: value, pseudo, page: `${c.label} (${c.hash})`, plan: c.plan, langue: lang(), version: VERSION, piece: fix?.piece, siteWeb: hp };
+    const out = { type: fix ? ("correction" as const) : type, texte: value, pseudo, page: `${c.label} (${c.hash})`, plan: c.plan, langue: remarkLang, version: VERSION, piece: fix?.piece, siteWeb: hp };
     const before = checkOutgoing(out);
     if (before) {
       status = { kind: "err", html: errorHtml(before.code === "piece" ? "piece-trop-longue" : before.code) };
@@ -200,6 +203,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
   function open(req: FixRequest | null = null, from: HTMLElement | null = null): void {
     fix = req;
     tab = "write";
+    remarkLang = lang();
     status = null;
     opener = from ?? (document.activeElement as HTMLElement | null);
     render();
@@ -220,6 +224,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
       count.textContent = t("rm.count", { n: len, max: TEXT_MAX });
       count.classList.toggle("over", len > TEXT_MAX);
     } else if (el.id === "rm-pseudo") pseudo = el.value;
+    else if (el.id === "rm-lang") remarkLang = el.value === "en" ? "en" : "fr";
   });
   dlg.addEventListener("change", (e) => {
     const el = e.target as HTMLInputElement;
@@ -231,7 +236,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
   dlg.addEventListener("click", (e) => {
     const el = e.target as HTMLElement;
     const act = el.closest<HTMLElement>("[data-rm]")?.dataset.rm;
-    if (act === "close") return dlg.close();
+    if (act === "close" || act === "props") return dlg.close();
     if (act === "send") return void send();
     if (act === "again") {
       fix = null;

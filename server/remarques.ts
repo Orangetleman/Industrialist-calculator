@@ -10,6 +10,9 @@
  *   REMARQUES_DISCORD      fichier de l'adresse du webhook du salon réservé (/etc/industrialist-remarques/discord,
  *                          posé par `npm run remarques:discord`) ; relu à chaque remarque, absent = pas de message
  *   REMARQUES_TABLEAU      adresse du tableau de bord citée dans le message (https://industrialist.myprisme.fr/tableau/)
+ *   REMARQUES_DEEPL        fichier de la clé DeepL de l'auteur (/etc/industrialist-remarques/deepl, posé par
+ *                          `npm run remarques:traducteur`, S36) ; relu à chaque traduction, absent = pas de traduction
+ *   REMARQUES_TRADUCTEUR=essai  traducteur d'essai (« [EN] texte »), sans rien envoyer dehors (d'office en local sans clé)
  *
  * En local (`npm run remarques`, option --local) : base de test dans `.remarques-local/`, origines du serveur de
  * développement, et un mot de passe d'essai (`essai-local`, voir HEBERGEMENT.md) haché à la première fois.
@@ -19,28 +22,36 @@ import { join, resolve } from "node:path";
 import { ouvrirBase, purgerEmpreintes, sauvegarder } from "./base.ts";
 import { messageDiscord, posterDiscord } from "./discord.ts";
 import { hacherMotDePasse } from "./securite.ts";
+import { traducteurDeepL, traducteurEssai } from "./traducteur.ts";
 import { creerService } from "./service.ts";
 
 const local = process.argv.includes("--local");
 const env = process.env;
 const donnees = resolve(env.REMARQUES_DONNEES ?? (local ? ".remarques-local" : "/var/lib/industrialist-remarques"));
 const fichierMotDePasse = env.REMARQUES_MOT_DE_PASSE ?? (local ? join(donnees, "mot-de-passe") : "/etc/industrialist-remarques/mot-de-passe");
-const origines = (env.REMARQUES_ORIGINES ?? (local ? "http://localhost:5173,http://127.0.0.1:5173" : "https://industrialist.myprisme.fr"))
+// En local, le serveur de développement prend le port suivant si 5173 est pris (jusqu'à 5179).
+const portsLocaux = [5173, 5174, 5175, 5176, 5177, 5178, 5179].flatMap((p) => [`http://localhost:${p}`, `http://127.0.0.1:${p}`]).join(",");
+const origines = (env.REMARQUES_ORIGINES ?? (local ? portsLocaux : "https://industrialist.myprisme.fr"))
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
 const port = Number(env.REMARQUES_PORT ?? 8091);
 const fichierDiscord = env.REMARQUES_DISCORD ?? (local ? join(donnees, "discord") : "/etc/industrialist-remarques/discord");
+const fichierDeepL = env.REMARQUES_DEEPL ?? (local ? join(donnees, "deepl") : "/etc/industrialist-remarques/deepl");
+// En local sans clé DeepL, le traducteur d'essai : rien ne part dehors.
+const essai = env.REMARQUES_TRADUCTEUR === "essai" || (local && !existsSync(fichierDeepL));
 const tableau = env.REMARQUES_TABLEAU ?? (local ? "http://localhost:5173/tableau/" : "https://industrialist.myprisme.fr/tableau/");
 
-/** L'adresse du webhook, relue à chaque remarque (elle peut être posée ou changée sans redémarrer). */
-function lireWebhook(): string | null {
+/** Un fichier de réglage d'une ligne (webhook, clé DeepL), relu à chaque usage : posé ou changé sans redémarrer. */
+function lireLigne(fichier: string): string | null {
   try {
-    return readFileSync(fichierDiscord, "utf8").trim() || null;
+    return readFileSync(fichier, "utf8").trim() || null;
   } catch {
     return null;
   }
 }
+const lireWebhook = () => lireLigne(fichierDiscord);
+const lireCleDeepL = () => lireLigne(fichierDeepL);
 
 mkdirSync(donnees, { recursive: true });
 if (local && !existsSync(fichierMotDePasse)) writeFileSync(fichierMotDePasse, hacherMotDePasse("essai-local") + "\n", { mode: 0o600 });
@@ -50,6 +61,8 @@ const service = creerService({
   base,
   origines,
   fermees: env.REMARQUES_FERMEES === "1",
+  traduire: essai ? traducteurEssai : traducteurDeepL(lireCleDeepL),
+  traducteurPret: () => essai || lireCleDeepL() !== null,
   annoncer: (remarque) => {
     const webhook = lireWebhook();
     if (webhook) void posterDiscord(webhook, messageDiscord(remarque, tableau));

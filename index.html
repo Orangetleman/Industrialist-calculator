@@ -453,6 +453,20 @@
   </section>
 
   <!-- ====================================================== DONNÉES -->
+  <!-- S36 : page publique « Propositions » (maquettes public.html écran 3, tableau.html écran 5), hors du menu. -->
+  <section class="page" id="page-propositions" aria-labelledby="h-pr" hidden>
+    <h1 id="h-pr" data-i18n="page.propositions">Propositions des joueurs</h1>
+    <p class="lead" data-i18n="pr.lead">Les demandes envoyées par « 💬 Remarque » et publiées par l'auteur. Vote ▲ si tu le veux aussi, ▼ si ce n'est pas utile pour toi ; un 2ᵉ clic retire ton vote.</p>
+    <div class="pr-tools">
+      <label class="pr-q" for="pr-q"><span class="sr-only" data-i18n="pr.search">Chercher une proposition</span>
+        <input id="pr-q" type="search" placeholder="Chercher une proposition…" autocomplete="off" data-i18n-attr="placeholder=pr.search.ph"></label>
+      <select id="pr-state" aria-label="État" data-i18n-attr="aria-label=pr.state.aria"></select>
+      <select id="pr-sort" aria-label="Tri" data-i18n-attr="aria-label=pr.sort.aria"></select>
+      <button type="button" data-pr="feedback" aria-haspopup="dialog" data-i18n="pr.feedback">💬 Proposer une idée</button>
+    </div>
+    <div id="pr-list" class="pr-list"></div>
+  </section>
+
   <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
     <h1 id="h-data" data-i18n="page.donnees">Contribuer</h1>
     <p class="lead" data-i18n="dn.lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
@@ -505,11 +519,11 @@
   </form>
 </dialog>
 
-<!-- S33 : pied de page public (maquette S16, écran 1) ; S35 : la ligne « Remarque » (Propositions viendra en S36). -->
+<!-- S33 : pied de page public (maquette S16, écran 1) ; S35 : la ligne « Remarque » ; S36 : le lien vers Propositions. -->
 <footer class="src">
   <p data-i18n-html="footer.who.html">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</p>
   <p data-i18n-html="footer.data.html">Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</p>
-  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">💬 Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span></p>
+  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">💬 Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a></p>
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>

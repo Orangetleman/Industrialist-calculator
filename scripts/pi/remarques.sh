@@ -106,6 +106,24 @@ echo "Webhook Discord enregistré."
 EOF
 chmod 750 /usr/local/sbin/$NOM-discord
 
+# S36 : la clé DeepL de l'auteur (traduction automatique du tableau de bord), collée sur le PC
+# (scripts/pi/traducteur.ps1) et reçue ici sur l'entrée standard. Relue à chaque traduction : pas de redémarrage.
+cat >/usr/local/sbin/$NOM-traducteur <<EOF
+#!/usr/bin/env bash
+# Range la clé DeepL (une ligne sur l'entrée standard) ; --retirer la supprime.
+set -euo pipefail
+[[ \$EUID -eq 0 ]] || { echo "À lancer avec sudo." >&2; exit 1; }
+if [[ \${1:-} == --retirer ]]; then rm -f $REGLAGES/deepl; echo "Clé retirée : plus de traduction automatique."; exit 0; fi
+read -r ligne; ligne=\${ligne%\$'\r'}
+[[ \$ligne =~ ^[A-Za-z0-9-]{20,80}(:fx)?\$ ]] || { echo "Ce n'est pas une clé DeepL : rien n'a changé." >&2; exit 1; }
+umask 027
+printf '%s\n' "\$ligne" >$REGLAGES/deepl.tmp
+chown root:$NOM $REGLAGES/deepl.tmp
+mv -f $REGLAGES/deepl.tmp $REGLAGES/deepl
+echo "Clé DeepL enregistrée."
+EOF
+chmod 750 /usr/local/sbin/$NOM-traducteur
+
 echo "== unité systemd"
 cat >/etc/systemd/system/$NOM.service <<EOF
 [Unit]
@@ -119,6 +137,7 @@ Environment=REMARQUES_DONNEES=$DONNEES
 Environment=REMARQUES_MOT_DE_PASSE=$REGLAGES/mot-de-passe
 Environment=REMARQUES_PORT=$PORT
 Environment=REMARQUES_DISCORD=$REGLAGES/discord
+Environment=REMARQUES_DEEPL=$REGLAGES/deepl
 EnvironmentFile=-$REGLAGES/reglages.env
 ExecStart=$NODE --disable-warning=ExperimentalWarning --max-old-space-size=32 $CODE/remarques.ts
 StateDirectory=$NOM

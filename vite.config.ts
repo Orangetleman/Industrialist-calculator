@@ -42,6 +42,8 @@ export default defineConfig({
     // Les données du wiki (data/*.json) sont intégrées à la page : ~550 kB, 78 kB compressés.
     // Pour un outil local, c'est attendu : on relève le seuil d'avertissement.
     chunkSizeWarningLimit: 1000,
+    // S36 : le tableau de bord de l'auteur est une page à part (/tableau/), servie par nginx comme un fichier du site.
+    rolldownOptions: { input: { main: "index.html", tableau: "tableau/index.html" } },
   },
   test: {
     include: ["src/**/*.test.ts", "tests/**/*.test.ts", "scripts/**/*.test.ts", "server/**/*.test.ts"],

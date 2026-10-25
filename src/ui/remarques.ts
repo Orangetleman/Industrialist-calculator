@@ -9,7 +9,7 @@ export const PLAYER_TYPES: RemarkType[] = ["valeur", "bogue", "idee", "traductio
 export const TEXT_MAX = 2000;
 /** Limite de la pièce jointe (server/service.ts, PIECE_MAX : JSON.stringify de la pièce). */
 export const PIECE_MAX = 200_000;
-/** Discord du jeu, où l'on peut aussi écrire (en mentionnant @orange, réponse de l'utilisateur du 2026-10-25). */
+/** Discord du jeu, où l'on peut aussi écrire (en mentionnant @orangentleman, réponses de l'utilisateur du 2026-10-25). */
 export const GAME_DISCORD = "https://discord.com/invite/SWERdzfdNF";
 const API = "/api/remarques";
 

@@ -152,6 +152,7 @@ import {
 } from "./state.ts";
 import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
+import { initPropositions } from "./propositions-view.ts";
 import { loadSent, type Piece } from "./remarques.ts";
 import type { Message, Text } from "../engine/message.ts";
 
@@ -549,6 +550,7 @@ function showPage(): void {
   document.body.classList.remove("usine-wide");
   render();
   if (page === "donnees" && route.machine) buildings.show(route.machine);
+  if (page === "propositions") props.show();
   // Retour : la vue reprend où on l'avait laissée ; nouvelle page : en haut.
   if (wentBack && scrollOf.has(location.hash)) window.scrollTo(0, scrollOf.get(location.hash)!);
   else if (page !== lastPage || page === "recettes") window.scrollTo(0, 0);
@@ -837,6 +839,7 @@ function render(): void {
   else if (page === "usine") renderUsine();
   else if (page === "arbre") renderTreePage();
   else if (page === "recettes") renderRecettes();
+  else if (page === "propositions") props.refresh();
   else renderData();
 }
 
@@ -3853,6 +3856,8 @@ const remarks = initRemarks(remarkContext, () => {
   if (route.page === "recettes") renderRecettes();
   buildings.refresh();
 });
+// S36 : la page Propositions (son bouton « 💬 Proposer une idée » ouvre la fenêtre Remarque).
+const props = initPropositions($("page-propositions"), (from) => remarks.open(null, from));
 window.addEventListener("hashchange", showPage);
 showPage();
 // Visite d'orientation (S24) : seule à la toute première visite, puis par le bouton « ? ».
@@ -3933,6 +3938,7 @@ function bindLang(): void {
     render();
     buildings.refresh();
     remarks.refresh();
+    props.refresh();
   });
 }
 
