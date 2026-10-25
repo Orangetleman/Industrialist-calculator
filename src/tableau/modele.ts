@@ -113,7 +113,7 @@ export const ERREURS: Record<string, string> = {
   "mot-de-passe-absent": "Aucun mot de passe n'est encore choisi sur le Pi (npm run remarques:mot-de-passe).",
   "non-connecte": "La session a expiré : entre à nouveau ton mot de passe.",
   reseau: "Le service des remarques ne répond pas.",
-  "traducteur-absent": "Traducteur pas encore réglé : crée une clé DeepL API Free, puis lance npm run remarques:traducteur.",
+  "traducteur-absent": "Traducteur pas encore réglé : crée une clé gratuite DeepL (offre « Developer »), puis lance npm run remarques:traducteur.",
   "traducteur-cle": "DeepL refuse la clé : vérifie-la, puis relance npm run remarques:traducteur.",
   "traducteur-quota": "Le quota DeepL du mois est épuisé.",
   traducteur: "DeepL ne répond pas : réessaie dans un moment.",

@@ -281,7 +281,9 @@ Pourquoi cet ordre :
   `maquette/remarques.html`, `src/ui/remarques*.ts`, `server/discord.ts`, bilan au § 6 du plan d'action).
 - **S36** : depuis le tableau de bord, on range 3 remarques dans un sujet, on répond, on publie ;
   le sujet apparaît sur Propositions avec « 3 joueurs l'ont demandé ». Un +1 compte une fois par
-  visiteur. Sans mot de passe, `/api/admin/` refuse tout. Tests verts.
+  visiteur. Sans mot de passe, `/api/admin/` refuse tout. Tests verts. **Fait le 2026-10-26** (maquette
+  `maquette/tableau.html` ; le +1 devient un vote ▲ / ▼ comme sur Reddit, décision S36 Remarques ; `src/tableau/`,
+  `src/ui/propositions*.ts`, `server/traducteur.ts`, bilan au § 6 du plan d'action).
 - **S37** : les remarques de l'utilisateur sur l'anglais sont corrigées. Les parcours A à E passent
   en anglais sans texte français ni identifiant. Une remarque fait le tour complet : envoi, Discord,
   sujet, réponse, publication. L'utilisateur donne le feu vert pour poster le lien.

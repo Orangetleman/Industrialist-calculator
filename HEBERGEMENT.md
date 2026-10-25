@@ -106,9 +106,10 @@ de passe ci-dessus. Il sert les remarques (lire, marquer, ranger par sujet, rép
 page Propositions), les corrections (JSON à télécharger) et l'export de tout. C'est une page du build, servie par nginx
 comme le reste du site : pas de réglage nginx nouveau.
 
-**Traduction automatique (S36)** : le bouton 🌐 du tableau de bord passe par l'API **DeepL API Free** (500 000
-caractères par mois gratuits). L'utilisateur crée un compte DeepL API Free (une carte est demandée pour vérifier
-l'identité, sans être débitée), copie sa clé, puis la colle lui-même, masquée, sur le PC ; elle part vers le Pi par
+**Traduction automatique (S36)** : le bouton 🌐 du tableau de bord passe par l'API de DeepL, offre gratuite
+**« Developer »** (1 million de caractères en tout, page des offres de DeepL lue le 2026-10-26 ; l'ancienne « API Free »
+de 500 000 caractères par mois n'est plus proposée). L'utilisateur s'inscrit à l'offre Developer (deepl.com › API ›
+« Sign up for free »), copie sa clé (onglet « API Keys & Limits »), puis la colle lui-même, masquée, sur le PC ; elle part vers le Pi par
 l'entrée standard de ssh et est rangée dans `/etc/industrialist-remarques/deepl` (root et le service seulement),
 relue à chaque traduction : pas de redémarrage. Seuls partent vers DeepL les textes que l'utilisateur fait traduire
 d'un clic ; un visiteur ne déclenche jamais de traduction.

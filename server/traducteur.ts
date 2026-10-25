@@ -1,12 +1,13 @@
 /**
- * Service des remarques (S36) : la traduction automatique, par l'API de DeepL (décision S36 : DeepL API Free).
+ * Service des remarques (S36) : la traduction automatique, par l'API de DeepL (décision S36 : l'offre gratuite de l'API DeepL).
  *
  * - Appelée seulement depuis le tableau de bord, d'un clic de l'auteur (« 🌐 Traduire ») : un visiteur ne déclenche
  *   jamais de traduction, et le résultat est gardé dans la base.
  * - La clé est créée par l'auteur sur son compte DeepL et collée par lui sur le Pi (`npm run remarques:traducteur`) ;
  *   elle est relue à chaque appel et n'est jamais renvoyée au navigateur.
- * - Une clé « Free » finit par « :fx » et passe par api-free.deepl.com, une autre par api.deepl.com
- *   (documentation DeepL, « Usage and limits » : 500 000 caractères par mois avec l'offre gratuite).
+ * - Une clé gratuite finit par « :fx » et passe par api-free.deepl.com, une autre par api.deepl.com.
+ * - L'offre gratuite s'appelle « Developer » depuis 2026 : 1 million de caractères en tout (page des offres de DeepL,
+ *   lue le 2026-10-26) ; l'ancienne « API Free » parlait de 500 000 par mois.
  */
 
 export type Langue = "fr" | "en";
