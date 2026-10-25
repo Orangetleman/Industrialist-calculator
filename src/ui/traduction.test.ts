@@ -1,8 +1,8 @@
 // S31 : test « rien d'oublié ». Deux contrôles :
 //  1. le code des vues (src/ui) n'écrit plus de texte français en dur : chaque texte passe par t() ;
 //  2. en anglais, les vues rendues avec les vraies données (comme vocabulaire.test.ts) ne montrent ni
-//     lettre accentuée ni mot français courant. Les noms du jeu sont retirés avant, et les textes du
-//     moteur et des données, marqués <span lang="fr"> (traduits en S32), aussi.
+//     lettre accentuée ni mot français courant. Les noms du jeu sont retirés avant. S32 : les textes du
+//     moteur et les notes des données sont traduits et contrôlés comme le reste.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import energyJson from "../../data/energy.json";
 import itemsJson from "../../data/items.json";
@@ -17,7 +17,6 @@ import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import { setLang } from "../i18n/i18n.ts";
-import { FR_CLOSE, FR_OPEN } from "./format.ts";
 import { renderStepCalc } from "./calc-view.ts";
 import { buildRows, renderAnswer, renderBuildList, renderDetails, renderFlow, renderFlowHud, renderStepLinks, type ViewCtx } from "./plan-view.ts";
 import { renderItemCard, renderMachineCard } from "./recipes-view.ts";
@@ -163,24 +162,22 @@ function isFrenchText(raw: string, part = false): boolean {
 }
 
 /**
- * Textes français permis dans le code des vues, par fichier : identifiants internes à plusieurs mots
- * (codes du moteur et des données, gardés tels quels), et lectures des phrases du moteur (S32).
+ * Textes français permis dans le code des vues, par fichier (S32 : les lectures des phrases du moteur ont disparu) :
+ * identifiants internes à plusieurs mots (codes du moteur et des données, gardés tels quels), et notes écrites dans
+ * les fichiers exportés ou gardées avec une correction (traduites à l'affichage par data/i18n/en.json, section « site »).
  */
 const ALLOWED: Record<string, (string | RegExp)[]> = {
   // Fichiers exportés et sources gardées avec une correction : restent en français (PLAN-PUBLIC.md § 2).
   "buildings-model.ts": [/^Relevés de bâtiments faits dans l'éditeur/, "relevé dans l'éditeur de bâtiments du calculateur"],
   "buildings.ts": ["correction notée dans l'éditeur de bâtiments du calculateur", "interface notée dans l'éditeur de bâtiments du calculateur"],
   "recipes-store.ts": [/^Images choisies dans la page Recettes/],
-  // Lecture et retournement des phrases de l'ordre de pose, écrites par le moteur (S32 : passage aux codes).
-  "module-view.ts": [/^(en|à|par|vers) (haut|bas|droite|gauche|le haut|le bas|la droite|la gauche)$/, "à gauche et à droite", "au-dessus et au-dessous", "les uns à côté des autres", "les uns sous les autres", "dans l'onglet 3 du mode construction", "en mode tuyaux (touche 3, « ", " » en AZERTY)"],
-  "modcalc-view.ts": ["deux contrôleurs", "bloc manquant"],
-  "plan-view.ts": ["dépôt:", "réseau:"],
-  // Signature d'un objectif, gabarit d'un module (codes) ; sources gardées avec une correction.
-  "main.ts": ["énergie|", "double rangée", "description recopiée du jeu", "relevé en jeu (page Recettes)"],
+  "main.ts": ["description recopiée du jeu", "relevé en jeu (page Recettes)"],
   "state.ts": ["saisie dans le calculateur (relevé en jeu)", "n'existe pas en jeu (relevé du joueur)", "craft manquant, relevé en jeu par le joueur", "objet manquant, relevé en jeu par le joueur"],
+  // Clés internes : signature d'un objectif, nœud d'un dépôt ou du réseau dans le schéma.
+  "plan-view.ts": ["dépôt:", "réseau:"],
 };
 /** Codes du moteur et des données, permis partout. */
-const ALL_ALLOWED: (string | RegExp)[] = ["machine écartée", "seulement à vérifier", "aucune recette", "les deux"];
+const ALL_ALLOWED: (string | RegExp)[] = ["machine écartée", "seulement à vérifier", "aucune recette", "les deux", "double rangée", "deux contrôleurs", "bloc manquant", "énergie|"];
 
 /** Le code des vues (src/ui), sans les tests. */
 const SOURCES = import.meta.glob<string>(["./*.ts", "!./*.test.ts"], { query: "?raw", import: "default", eager: true });
@@ -252,16 +249,17 @@ const GAME_NAMES = [
   ...[...data.items.values()].map((x) => x.name),
   ...[...data.machines.values()].map((x) => x.name),
   ...[...data.nodes.values()].map((x) => x.name),
-  ...[...data.recipes.values()].map((x) => x.setupName ?? ""),
+  ...[...data.recipes.values()].map((x) => (typeof x.setupName === "string" ? x.setupName : "")),
 ]
   .filter((n) => n.length > 2)
   .sort((a, b) => b.length - a.length);
 
-/** Ce que lit un joueur anglais, sans les textes du moteur et des données (S32) ni les noms du jeu. */
+/**
+ * Ce que lit un joueur anglais, sans les noms du jeu. S32 : les textes du moteur et les notes des données sont
+ * traduits, et comptent donc aussi (une note sans traduction, marquée « (FR) », ferait échouer le test).
+ */
 function visibleEn(html: string): string {
-  const noFr = html
-    .replace(/<span[^>]*aria-hidden="true"[^>]*>[^<]*<\/span>/g, " ") // pastilles d'initiales (« Ce » pour Cement…)
-    .replace(/<(\w+)[^>]*\blang="fr"[^>]*>[\s\S]*?<\/\1>/g, " ").replace(new RegExp(`${FR_OPEN}[^${FR_CLOSE}]*${FR_CLOSE}`, "g"), " ");
+  const noFr = html.replace(/<span[^>]*aria-hidden="true"[^>]*>[^<]*<\/span>/g, " "); // pastilles d'initiales (« Ce » pour Cement…)
   const tips = [...noFr.matchAll(/(?:title|data-tip|aria-label|placeholder)="([^"]*)"/g)].map((m) => m[1]!);
   const svgTitles = [...noFr.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1]!);
   let text = [noFr.replace(/<[^>]+>/g, " "), ...tips, ...svgTitles].join(" ").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
@@ -295,7 +293,9 @@ describe("rien d'oublié (S31) : les vues en anglais", () => {
 
   it("le test reconnaît du français et laisse passer l'anglais", () => {
     expect(frenchBits(visibleEn(`<p>Pour 60 Gear/min : 3 machines</p>`))).toHaveLength(1);
-    expect(frenchBits(visibleEn(`<p>For 60 Gear/min: 3 machines</p><span lang="fr">note du moteur à traduire</span>`))).toEqual([]);
+    expect(frenchBits(visibleEn(`<p>For 60 Gear/min: 3 machines</p>`))).toEqual([]);
+    // Une note des données sans traduction (marquée « (FR) ») compte comme du français.
+    expect(frenchBits(visibleEn(`<p>For 60 Gear/min: 3 machines</p> (FR) <span lang="fr">note pas encore traduite</span>`))).toHaveLength(1);
   });
 
   it("plans Crankshaft, Light Oil, Steel Plate (réponse, liste, schéma, détails, panneau de chaque bloc)", () => {

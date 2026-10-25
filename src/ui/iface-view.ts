@@ -4,8 +4,9 @@
 
 import type { MachineInterface } from "../engine/extension-types.ts";
 import { choicesFor, choiceText, factorsFor, type Interfaces, type MachineSettings, numberSettings, settingValue } from "../engine/interfaces.ts";
-import { esc, fmt, frRaw, parseNum } from "./format.ts";
+import { esc, fmt, parseNum } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
+import { txt } from "./engine-text.ts";
 
 export type SettingLine = { text: string; once: boolean; doubt?: string; screen: boolean };
 
@@ -26,7 +27,7 @@ export function screenText(i: MachineInterface | undefined, values: Record<strin
 export function settingLines(ifaces: Interfaces | undefined, values: MachineSettings | undefined, machine: string, recipeId: string): SettingLine[] {
   const i = ifaces?.[machine];
   if (!i) return [];
-  const out: SettingLine[] = choicesFor(i, recipeId).map(({ setting, choice }) => ({ text: frRaw(choiceText(i, setting, choice)), once: !!i.once, doubt: choice.doubt && frRaw(choice.doubt), screen: false }));
+  const out: SettingLine[] = choicesFor(i, recipeId).map(({ setting, choice }) => ({ text: txt(choiceText(i, setting, choice)), once: !!i.once, doubt: choice.doubt && txt(choice.doubt), screen: false }));
   const screen = screenText(i, values?.[machine]);
   if (screen) out.push({ text: t("if.screen", { x: screen }), once: false, screen: true });
   return out;
@@ -51,7 +52,7 @@ export function renderScreenInputs(i: MachineInterface | undefined, machine: str
   if (!list.length) return "";
   const changed = list.some((s) => settingValue(s, values) !== s.number!.default);
   const fields = list
-    .map((s) => `${esc(frRaw(s.name))} × <input type="text" inputmode="decimal" data-iset-input data-machine="${esc(machine)}" data-setting="${esc(s.id)}" value="${esc(factorText(settingValue(s, values)))}" aria-label="${esc(`${frRaw(s.name)} (${machineName})`)}" title="${esc(frRaw(s.note ?? ""))}">`)
+    .map((s) => `${esc(txt(s.name))} × <input type="text" inputmode="decimal" data-iset-input data-machine="${esc(machine)}" data-setting="${esc(s.id)}" value="${esc(factorText(settingValue(s, values)))}" aria-label="${esc(`${txt(s.name)} (${machineName})`)}" title="${esc(txt(s.note ?? ""))}">`)
     .join(" ");
   const title = t("if.screen.title", { m: machineName });
   return `<span class="mset${changed ? " on" : ""}" title="${esc(title)}">${t("if.screen.label")} ${fields}</span>${changed ? `<button type="button" class="flow-hud-btn" data-iset-reset="${esc(machine)}" title="${esc(t("if.reset.title"))}">↺ 1×</button>` : ""}`;

@@ -4,10 +4,12 @@
 
 import type { AddProposal, RpModel } from "../engine/research-balance.ts";
 import type { RpCandidate, RpResult, StationKind, TimelineEntry } from "../engine/research-points.ts";
-import { esc, fmt, fmtDuration, fmtMoney, fmtRP, frText } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMoney, fmtRP } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
 import { itemN, type Ctx } from "./render.ts";
 import { researchHow } from "./research-mine.ts";
+import { txtHtml } from "./engine-text.ts";
+import type { Message } from "../engine/message.ts";
 
 export type ResearchView = RpResult & {
   nodes: string[];
@@ -19,7 +21,9 @@ export type ResearchView = RpResult & {
   /** Ma recherche (S20) : mes stations, si elles comptent (« Compter ma production actuelle »). */
   model?: RpModel | null;
   /** « Ajoute N stations aux tiennes » (niveau détaillé), ou pourquoi ce n'est pas possible. */
-  add?: (AddProposal & { buildingCost: number; consumption: Record<string, number>; timeline: TimelineEntry[] | null }) | { reason: string } | null;
+  add?: (AddProposal & { buildingCost: number; consumption: Record<string, number>; timeline: TimelineEntry[] | null }) | { reason: Message } | null;
+  /** Rien à calculer (objectif atteint, vitesse non saisie…) : la phrase du site, et si l'objectif est déjà atteint. */
+  idle?: { text: string; done: boolean };
   /** L'installation neuve est du même tier que mes stations : elle s'y ajoute. */
   mergedTier?: StationKind | null;
 };
@@ -63,7 +67,7 @@ export function researchMergeNote(v: ResearchView): string {
 export function researchAddBlock(ctx: Pick<Ctx, "data">, v: ResearchView): string {
   const a = v.add;
   if (!a) return "";
-  if ("reason" in a) return `<p class="hint">${frText(a.reason)}</p>`;
+  if ("reason" in a) return `<p class="hint">${txtHtml(a.reason)}</p>`;
   const name = (id: string) => esc(itemN(ctx, id));
   const items = a.group.items.length ? t("rp.add.with", { list: a.group.items.map(name).join(" + ") }) : "";
   const kind = STATION_KIND[a.kind]!;

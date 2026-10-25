@@ -42,6 +42,7 @@ import type {
   TreeGrowthFormula,
   VerifyFlag,
 } from "../src/engine/types.ts";
+import type { Text } from "../src/engine/message.ts";
 
 const CACHE = ".cache/wiki";
 const OUT = "data";
@@ -574,7 +575,8 @@ const notes =
   previous.includes(NOTES_START) && previous.includes(NOTES_END)
     ? previous.slice(previous.indexOf(NOTES_START) + NOTES_START.length, previous.indexOf(NOTES_END)).trim()
     : "_Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à chaque régénération._";
-const esc = (s: string) => s.replace(/\|/g, "\\|");
+/** Texte pour un tableau Markdown ; les scripts n'écrivent que des notes (les messages du moteur, S32, n'y passent pas). */
+const esc = (s: Text) => (typeof s === "string" ? s : JSON.stringify(s)).replace(/\|/g, "\\|");
 const srcLink = (s: Source | undefined) => (s?.url ? `[${s.wiki}](${s.url})` : (s?.wiki ?? "—"));
 const altText = (f: VerifyFlag) => (f.alternatives?.length ? f.alternatives.map((a) => `${fmt(a.value)} (${srcLink(a.source)})`).join(", ") : "");
 const name = (id: string) => items.find((i) => i.id === id)?.name ?? id;

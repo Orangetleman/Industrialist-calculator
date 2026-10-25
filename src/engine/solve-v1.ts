@@ -8,6 +8,7 @@ import type { VerifyFlag } from "./types.ts";
 import { excludedMachines, excludedMessage } from "./machine-filter.ts";
 import type { PlayerState, SolveRequest } from "./solve.ts";
 import { machineAccess, orderByDepth, rpCost, type MachineAccess, type ReqItem } from "./unlock.ts";
+import { msg, type Message } from "./message.ts";
 
 type Flow = { item: string; perMin: number };
 type Edge = { from: string; to: string; perMin: number };
@@ -64,7 +65,7 @@ type Unresolved = {
 
 type Surplus = { item: string; perMin: number; from: string[]; alsoDemanded: boolean };
 
-type Warning = { code: string; message: string; items?: string[] };
+type Warning = { code: string; message: Message; items?: string[] };
 
 type VerifyEntry = {
   scope: "recette" | "machine";
@@ -135,7 +136,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   });
   const name = (id: string) => itemName(data, id);
   const warnings: Warning[] = [];
-  if (!data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: `Item inconnu : « ${req.item} ».`, items: [req.item] });
+  if (!data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: msg("plan.unknownItem", { item: req.item }), items: [req.item] });
 
   // 1. Graphe des recettes retenues, depuis la cible.
   const choices = new Map<string, Choice>();
@@ -154,7 +155,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
         if (s === "gris") {
           cutEdges.add(`${item}>${input}`);
           const cyc = [...path.slice(path.indexOf(input)), item, input];
-          warnings.push({ code: "boucle", message: `Boucle de dépendance : ${cyc.map(name).join(" → ")}. Cette entrée n'est pas développée.`, items: cyc });
+          warnings.push({ code: "boucle", message: msg("v1.loop", { list: { join: cyc.map(name), by: "flèche" } }), items: cyc });
           continue;
         }
         if (!consumersOf.has(input)) consumersOf.set(input, new Set());
@@ -174,7 +175,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   let ratePerMin = req.ratePerMin ?? 0;
   if (req.finalMachines !== undefined) {
     if (targetRate !== null) ratePerMin = req.finalMachines * targetRate;
-    else warnings.push({ code: "machines-finales", message: `Impossible de convertir ${req.finalMachines} machines en débit : ${name(req.item)} n'a pas de recette utilisable.` });
+    else warnings.push({ code: "machines-finales", message: msg("plan.finalMachines", { n: req.finalMachines, item: name(req.item) }) });
   }
 
   // 3. Demande agrégée par item AVANT arrondi.
@@ -284,13 +285,13 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
     }
     if (c.forced && !access.available) {
-      warnings.push({ code: "forcée-verrouillée", message: `Recette forcée pour ${name(item)} : la machine ${m?.name ?? r.machine} n'est pas débloquée.`, items: [item] });
+      warnings.push({ code: "forcée-verrouillée", message: msg("plan.forcedLocked", { item: name(item), m: m?.name ?? r.machine }), items: [item] });
     }
     if (step.usesUnverified) {
-      warnings.push({ code: "à-vérifier", message: `${name(item)} utilise une recette à vérifier (${r.id}) : ${eff.blocking.map((f) => f.detail).join(" ; ")}.`, items: [item] });
+      warnings.push({ code: "à-vérifier", message: msg("plan.unverified", { item: name(item), r: r.id, list: { join: eff.blocking.map((f) => ({ note: f.detail })), by: "point-virgule" } }), items: [item] });
     }
     if (eff.growth) {
-      warnings.push({ code: "arbres", message: `Pousse des arbres : ${eff.growth.detail} (${eff.growth.seconds.toFixed(1).replace(".", ",")} s). Le nombre d'arbres est indicatif.`, items: [item] });
+      warnings.push({ code: "arbres", message: msg("plan.trees", { detail: eff.growth.detail, s: Math.round(eff.growth.seconds * 10) / 10 }), items: [item] });
     }
   }
   steps.sort((a, b) => a.depth - b.depth || topo.indexOf(a.item) - topo.indexOf(b.item));
@@ -316,24 +317,13 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     }
   }
   for (const u of unresolved) {
-    const label =
-      u.reason === "verrouillé"
-        ? u.unlock?.needsOwnership
-          ? `il faut posséder la machine ${data.machines.get(u.unlock.machine)?.name ?? u.unlock.machine}`
-          : `recherche manquante : ${(u.unlock?.missingNodes ?? []).map((n) => data.nodes.get(n)?.name ?? n).join(", ")}`
-        : u.reason === "aucune recette"
-          ? "aucune recette connue (source inconnue)"
-          : u.reason === "seulement à vérifier"
-            ? "seules des recettes « à vérifier » existent (active l'option pour les utiliser)"
-            : u.reason === "incalculable"
-              ? "les recettes connues ont des valeurs manquantes"
-              : "boucle de dépendance";
+    const label = unresolvedWhy(data, u.reason, u.unlock);
     warnings.push(
       u.loopShortfall
-        ? { code: "boucle", message: `${name(u.item)} : ${fmtNum(u.perMin)}/min supplémentaires seraient nécessaires pour alimenter une boucle de la chaîne ; cette quantité n'est pas comptée.`, items: [u.item] }
+        ? { code: "boucle", message: msg("v1.loopShortfall", { item: name(u.item), r: fmtNum(u.perMin) }), items: [u.item] }
         : u.reason === "machine écartée"
           ? { code: "non-résolu:machine écartée", message: excludedMessage(data, u.item, u.perMin, u.excluded ?? []), items: [u.item] }
-          : { code: `non-résolu:${u.reason}`, message: `${name(u.item)} (${fmtNum(u.perMin)}/min) n'est pas produit : ${label}.`, items: [u.item] },
+          : { code: `non-résolu:${u.reason}`, message: msg("plan.unresolved", { item: name(u.item), r: fmtNum(u.perMin), why: label }), items: [u.item] },
     );
   }
 
@@ -343,17 +333,17 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   surplus.sort((a, b) => b.perMin - a.perMin);
   for (const s of surplus) {
     if (s.alsoDemanded) {
-      warnings.push({ code: "surplus-réutilisable", message: `${name(s.item)} est produit en surplus (${fmtNum(s.perMin)}/min) et aussi consommé dans la chaîne : il pourrait être réutilisé (non pris en compte dans le calcul).`, items: [s.item] });
+      warnings.push({ code: "surplus-réutilisable", message: msg("v1.surplus", { item: name(s.item), r: fmtNum(s.perMin) }), items: [s.item] });
     }
   }
 
   // 8. Avertissements de choix.
-  for (const f of chooser.invalidForced) warnings.push({ code: "forcée-invalide", message: `Recette forcée ignorée pour ${name(f.item)} (${f.recipeId}) : ${f.reason}.`, items: [f.item] });
+  for (const f of chooser.invalidForced) warnings.push({ code: "forcée-invalide", message: msg("plan.forcedIgnored", { item: name(f.item), r: f.recipeId, why: f.reason }), items: [f.item] });
   for (const cyc of chooser.brokenLoops) {
-    warnings.push({ code: "boucle-écartée", message: `Recettes en boucle écartées : ${[...cyc, cyc[0]!].map(name).join(" → ")}. Une autre source a été choisie.`, items: cyc });
+    warnings.push({ code: "boucle-écartée", message: msg("v1.brokenLoop", { list: { join: [...cyc, cyc[0]!].map(name), by: "flèche" } }), items: cyc });
   }
   if (chooser.notConverged.length) {
-    warnings.push({ code: "convergence", message: "Le choix des recettes n'a pas convergé (boucle qui s'auto-alimente) : le résultat peut ne pas être optimal." });
+    warnings.push({ code: "convergence", message: msg("v1.notConverged") });
   }
 
   // 9. Totaux.
@@ -392,7 +382,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     }
   }
   if (totals.energyUnknownSteps) {
-    warnings.push({ code: "énergie-inconnue", message: `Énergie inconnue pour ${totals.energyUnknownSteps} étape(s) : le total affiché est un minimum.` });
+    warnings.push({ code: "énergie-inconnue", message: msg("plan.energyUnknown", { n: totals.energyUnknownSteps }) });
   }
 
   // 10. Économie et recherche.
@@ -459,8 +449,21 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   };
 }
 
-function fmtNum(x: number): string {
-  return (Math.round(x * 100) / 100).toString();
+/** Nombre pour les messages : deux décimales au plus. */
+function fmtNum(x: number): number {
+  return Math.round(x * 100) / 100;
+}
+
+/** Pourquoi un objet n'est pas produit (raison du choix des recettes), pour le message. */
+export function unresolvedWhy(data: GameData, reason: LeafReason, unlock: { needsOwnership: boolean; machine: string; missingNodes: string[] } | undefined): Message {
+  if (reason === "verrouillé")
+    return unlock?.needsOwnership
+      ? msg("why.own", { m: data.machines.get(unlock.machine)?.name ?? unlock.machine })
+      : msg("why.research", { list: { join: (unlock?.missingNodes ?? []).map((n) => data.nodes.get(n)?.name ?? n), by: "virgule" } });
+  if (reason === "aucune recette") return msg("why.none");
+  if (reason === "seulement à vérifier") return msg("why.unverified");
+  if (reason === "incalculable") return msg("why.incomplete");
+  return msg("why.loop");
 }
 
 

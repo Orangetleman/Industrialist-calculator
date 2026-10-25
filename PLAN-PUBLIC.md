@@ -262,7 +262,9 @@ Pourquoi cet ordre :
   `src/i18n/vues/`, test `src/ui/traduction.test.ts`, bilan au § 6 du plan d'action).
 - **S32** : aucun message du moteur n'est écrit en dur. Les empreintes des 8 plans sont identiques
   (S27 bis) et l'ordre de pose est rangé comme avant (test de S26). Chaque note des données
-  affichée a sa traduction, sinon la marque « (FR) » est comptée par un test. Tests verts.
+  affichée a sa traduction, sinon la marque « (FR) » est comptée par un test. Tests verts. **Fait le
+  2026-10-25** (codes `{ code, valeurs }`, `src/ui/engine-text.ts`, `data/i18n/en.json`, test
+  `src/i18n/data-notes.test.ts`, bilan au § 6 du plan d'action).
 - **S33** : tous les critères du § 3 sont mesurés sur les six pages, dans les deux tailles, les deux
   thèmes et les deux langues, et notés dans le bilan. L'aperçu est vu dans le salon réservé. Tests
   verts.

@@ -31,6 +31,7 @@ import {
 import { designResearch, evaluateStations, rpParams, softCapFactor, tierSumFromPanel, unlockTimeline } from "../src/engine/research-points.ts";
 import type { OverridesFile } from "../src/engine/types.ts";
 import { progress } from "./engine-helpers.ts";
+import { say } from "../src/ui/engine-text.ts";
 
 const p = rpParams(stationsJson as unknown as ResearchStationsFile)!;
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
@@ -79,7 +80,7 @@ describe("capture du 2026-10-18 refaite par le moteur", () => {
   it("« Max RP before RP/s is nearly zero » : 3 × seuil = 230 626, affiché > 231 000", () => {
     expect(nearlyZero(m.tiers)!).toBeCloseTo(230626.3, 0);
     expect(m.checks.every((c) => c.ok)).toBe(true);
-    expect(m.checks.map((c) => c.label)).toEqual(["Tier 3 : RP/s", "Tier 3 : seuil", "Paraboles : RP/s", "Max RP before RP/s is nearly zero", "1ʳᵉ ligne : RP/s"]);
+    expect(m.checks.map((c) => say(c.label))).toEqual(["Tier 3 : RP/s", "Tier 3 : seuil", "Paraboles : RP/s", "Max RP before RP/s is nearly zero", "1ʳᵉ ligne : RP/s"]);
   });
 
   it("niveau rapide : les mêmes tiers, retrouvés depuis le panneau", () => {
@@ -96,7 +97,7 @@ describe("capture du 2026-10-18 refaite par le moteur", () => {
   it("une capture qui ne colle pas est signalée", () => {
     const s = detailed();
     s.panel.rs3.cap = 80000;
-    const bad = researchModel(p, data, s, 50.4, RP0).checks.find((c) => c.label === "Tier 3 : seuil")!;
+    const bad = researchModel(p, data, s, 50.4, RP0).checks.find((c) => say(c.label) === "Tier 3 : seuil")!;
     expect(bad.ok).toBe(false);
   });
 

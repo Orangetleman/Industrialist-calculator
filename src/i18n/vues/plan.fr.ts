@@ -258,6 +258,8 @@ export const planFr = {
   "cv.raw": "Matière première : extraite sur place, sans entrée.",
   "cv.growth.tag": "durée : pousse, {how}",
   "cv.growth.approx": "approximative",
+  "cv.growth.table": "tableau",
+  "cv.growth.default": "défaut",
   "cv.duration": "durée",
   "cv.output": "sortie",
   "cv.rate": "Débit d'une machine",

@@ -11,6 +11,7 @@ import { recettesEn } from "./vues/recettes.en.ts";
 import { arbreEn } from "./vues/arbre.en.ts";
 import { visiteEn } from "./vues/visite.en.ts";
 import { pagesEn } from "./vues/pages.en.ts";
+import { moteurEn } from "./vues/moteur.en.ts";
 
 export const en: { [K in keyof typeof fr]: Msg } = {
   // ------------------------------------------------------------ commun
@@ -383,4 +384,5 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   ...arbreEn,
   ...visiteEn,
   ...pagesEn,
+  ...moteurEn,
 };

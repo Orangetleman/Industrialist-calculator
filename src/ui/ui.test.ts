@@ -9,7 +9,10 @@ import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { balanceTimeline, emptySetup } from "../engine/research-balance.ts";
 import { missingNodes } from "../engine/unlock.ts";
 import { SITE_TOUR, tourSeq } from "./tour.ts";
-import { phasedOrder, renderOrder, turnOrderText } from "./module-view.ts";
+import { phasedOrder, renderOrder } from "./module-view.ts";
+import { say, turnMessage } from "./engine-text.ts";
+import { msg, type Message } from "../engine/message.ts";
+import { setLang } from "../i18n/i18n.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
@@ -410,16 +413,28 @@ describe("arbre de recherche « comme en jeu »", () => {
 });
 
 describe("S26 : ordre de pose du joueur", () => {
-  // Phrases telles que les écrit le moteur des plans de pose (module.ts).
+  // Messages tels que les écrit le moteur des plans de pose (module.ts, S32 : des codes, plus des phrases).
+  const inBlock = (o: Message) => msg("ord.eachBlock", { o: { lc: o } });
   const order = [
-    "Poser 2 blocs de 8 Craft Assembler en double rangée, les uns sous les autres (le dernier n'en a que 7).",
-    "Tuyau principal d'entrée : Steel Rod, tier I (2 par seconde), à gauche, par le haut, avec un embranchement vers chaque bloc.",
-    "Dans chaque bloc : collecteur d'entrée : Gear, tuyaux tier I (2,13 par seconde).",
-    "Dans chaque bloc : le collecteur de Gear sort à angle droit vers le haut, entre les machines n° 2 et n° 3.",
-    "Dans chaque bloc : 13 croisement(s) sont collés à un port : ses deux tuyaux se relient à la machine ; dans l'onglet 3 du mode construction, dirige chaque vecteur vers la bonne entrée ou sortie.",
-    "Dans chaque bloc : poser 1 MV Pole le long du module, et relier chaque prise.",
-    "Poser 3 MV Pole au-dessus et au-dessous du module, et relier chaque prise.",
+    msg("ord.blocks", { k: 2, n: 8, m: "Craft Assembler", tpl: msg("tpl.double"), stack: msg("d.stacked"), last: msg("ord.blocks.last", { n: 7 }) }),
+    msg("ord.trunk", { dir: msg("w.in"), item: "Steel Rod", t: "I", r: 2, side: msg("d.a.W"), by: msg("d.par.N") }),
+    inBlock(msg("ord.collector", { dir: msg("w.in"), item: "Gear", pipe: msg("ord.pipeTier", { t: "I" }), r: 2.13 })),
+    inBlock(msg("ord.passage", { p: msg("pass.text", { item: "Gear", where: msg("pass.between", { to: msg("d.vers.N"), a: 2, b: 3 }) }) })),
+    inBlock(msg("ord.crossAtPort", { n: 13 })),
+    inBlock(msg("ord.poles", { n: 1, pole: "MV Pole", where: msg("ord.along") })),
+    msg("ord.poles", { n: 3, pole: "MV Pole", where: msg("d.updown") }),
   ];
+  it("les phrases du moteur, en français comme avant S32", () => {
+    expect(order.map(say)).toEqual([
+      "Poser 2 blocs de 8 Craft Assembler en double rangée, les uns sous les autres (le dernier n'en a que 7).",
+      "Tuyau principal d'entrée : Steel Rod, tier I (2 par seconde), à gauche, par le haut, avec un embranchement vers chaque bloc.",
+      "Dans chaque bloc : collecteur d'entrée : Gear, tuyaux tier I (2,13 par seconde).",
+      "Dans chaque bloc : le collecteur de Gear sort à angle droit vers le haut, entre les machines n° 2 et n° 3.",
+      `Dans chaque bloc : 13 croisements sont collés à un port : leurs deux tuyaux se relient à la machine ; en mode tuyaux (touche 3, « " » en AZERTY), dirige chaque vecteur vers la bonne entrée ou sortie.`,
+      "Dans chaque bloc : poser 1 MV Pole le long du module, et relier chaque prise.",
+      "Poser 3 MV Pole au-dessus et au-dessous du module, et relier chaque prise.",
+    ]);
+  });
   it("bâtiments, puis tuyaux, puis électricité, avec la touche du jeu", () => {
     const p = phasedOrder(order);
     expect(p.map((x) => x.phase.key)).toEqual(["batiments", "tuyaux", "electricite"]);
@@ -430,12 +445,20 @@ describe("S26 : ordre de pose du joueur", () => {
     expect(html.indexOf("Tuyaux")).toBeLessThan(html.indexOf("Électricité"));
   });
   it("dans le sens de l'usine : les directions tournent avec le module (sens horaire)", () => {
-    const t = "à gauche, par le haut, vers le haut, au-dessus et au-dessous, les uns sous les autres";
-    expect(turnOrderText(t, 0)).toBe(t);
-    expect(turnOrderText(t, 1)).toBe("en haut, par la droite, vers la droite, à gauche et à droite, les uns à côté des autres");
-    expect(turnOrderText(t, 2)).toBe("à droite, par le bas, vers le bas, au-dessus et au-dessous, les uns sous les autres");
-    expect(turnOrderText("à droite, par le bas", 3)).toBe("en haut, par la droite");
-    expect(turnOrderText(turnOrderText(t, 1), 3)).toBe(t); // un tour complet revient au départ
+    const m = msg("ord.eachBlock", { o: { join: [msg("d.a.W"), msg("d.par.N"), msg("d.vers.N"), msg("d.updown"), msg("d.stacked")], by: "virgule" } });
+    const text = (x: Message) => say(x).replace("Dans chaque bloc : ", "");
+    expect(text(turnMessage(m, 0))).toBe("à gauche, par le haut, vers le haut, au-dessus et au-dessous, les uns sous les autres");
+    expect(text(turnMessage(m, 1))).toBe("en haut, par la droite, vers la droite, à gauche et à droite, les uns à côté des autres");
+    expect(text(turnMessage(m, 2))).toBe("à droite, par le bas, vers le bas, au-dessus et au-dessous, les uns sous les autres");
+    expect(say(turnMessage(msg("ord.eachBlock", { o: { join: [msg("d.a.E"), msg("d.par.S")], by: "virgule" } }), 3))).toBe("Dans chaque bloc : en haut, par la droite");
+    expect(turnMessage(turnMessage(m, 1), 3)).toEqual(m); // un tour complet revient au départ
+    // Le passage d'une double rangée tourne aussi, et l'anglais suit.
+    setLang("en");
+    try {
+      expect(say(turnMessage(order[3]!, 1))).toBe("In each block: the Gear manifold leaves at a right angle to the right, between machines no. 2 and no. 3.");
+    } finally {
+      setLang("fr");
+    }
   });
 });
 
@@ -499,7 +522,7 @@ describe("description des recherches (recopiée du jeu)", () => {
     expect(html).toContain(text);
     expect(html).toContain("Recopiée du jeu le 2026-10-12");
     expect(html).toContain('data-rs-desc="plastics"');
-    expect(buildGameData(files, [{ research: { plastics: { description: { value: "  ", source: src } } } }]).errors[0]).toMatch(/1 à 2000/);
+    expect(say(buildGameData(files, [{ research: { plastics: { description: { value: "  ", source: src } } } }]).errors[0]!)).toMatch(/1 à 2000/);
     // Sans saisie : le formulaire invite à la recopier.
     expect(renderNodeDetail(data, { unlocked: new Set() }, "plastics", null)).toContain("Recopier la description du jeu");
   });

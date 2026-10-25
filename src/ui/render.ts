@@ -5,9 +5,10 @@ import type { GameData } from "../engine/data.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, VerifyEntry } from "../engine/solve.ts";
 import type { OverridesFile, Recipe, Source } from "../engine/types.ts";
-import { colon, esc, fieldLabel, fmt, fmtMF, fmtRP, frText, isEditableField, reasonLabel } from "./format.ts";
+import { colon, esc, fieldLabel, fmt, fmtMF, fmtRP, isEditableField, reasonLabel } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { noteKey, type Notes, type Settings } from "./state.ts";
+import { txtHtml } from "./engine-text.ts";
 
 export type Ctx = { data: GameData; plan: Plan; settings: Settings; corrections: OverridesFile };
 
@@ -136,7 +137,7 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
         const fid = `fix-${v.id}-${v.flag.field}`;
         const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value, v.flag.field))}</b> ${t("vf.according", { src: sourceLink(a.source) })}`).join(" ; ");
         // Pour une contradiction, le détail répète les valeurs : on le remplace par « retenu / autre ».
-        const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${frText(v.flag.detail)}</div>`;
+        const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${txtHtml(v.flag.detail)}</div>`;
         const nk = noteKey(scopeKey, v.id, v.flag.field);
         const note = notes[nk];
         const noteBox = `<details class="vnote"${note ? " open" : ""}><summary>${t(note ? "vf.note.mine" : "vf.note.leave")}</summary>

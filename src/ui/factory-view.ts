@@ -11,10 +11,11 @@ import { factoryFits, type EvacSide, type FactoryPlan } from "../engine/build/fa
 import type { FactoryArrow } from "../engine/build/flow.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { PlacedPiece } from "../engine/build/module.ts";
-import { colon, esc, fmt, fmtMF, fmtMoney, frRaw, frText } from "./format.ts";
+import { colon, esc, fmt, fmtMF, fmtMoney } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
 import { pieceRole, renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import type { UsineView } from "./state.ts";
+import { say, txt, txtHtml } from "./engine-text.ts";
 
 const C = 10; // unités SVG par case
 /** Couleurs des ressources (les mêmes que la maquette), lisibles sur le fond sombre du cadre. */
@@ -99,7 +100,7 @@ function moduleTip(f: FactoryPlan, b: Box, name: Name): string {
     t("uf.tip.cost", { cost: fmtMoney(b.mod.cost), p: fmtMF(b.power), ports: b.mod.portsKnown ? "" : t("uf.tip.assumed") }),
     ...(ins.length ? [t("uf.tip.gets", { list: ins.join(", ") })] : []),
     ...(outs.length ? [t("uf.tip.sends", { list: outs.join(", ") })] : []),
-    ...(passage ? [frRaw(passage.text)] : []),
+    ...(passage ? [txt(passage.text)] : []),
     t("uf.tip.open"),
   ].join("\n");
 }
@@ -258,7 +259,7 @@ export function incompleteMachines(f: FactoryPlan): { box: Box; reasons: string[
     else {
       if (!b.mod.portsKnown) reasons.push(t("uf.why.ports"));
       if (b.mod.costUnknown) reasons.push(t("uf.why.price", { n: b.mod.costUnknown }));
-      for (const p of b.mod.problems) reasons.push(frRaw(p.message));
+      for (const p of b.mod.problems) reasons.push(txt(p.message));
     }
     if (reasons.length) out.push({ box: b, reasons, survey: !!b.mod && !b.mod.portsKnown });
   }
@@ -274,13 +275,10 @@ function unlinked(f: FactoryPlan, name: Name, sub: (key: string) => string): str
   const reserved = new Set(f.boxes.filter((b) => !b.mod).map((b) => b.key));
   let expected = true;
   const text = f.problems.map((p) => {
-    const m = /^(.*?) : (\S+) → (\S+)$/.exec(p);
-    if (!m) {
-      expected = false;
-      return frRaw(p);
-    }
-    if (!reserved.has(m[3]!) && !reserved.has(m[2]!)) expected = false;
-    return `${frRaw(m[1]!)}${colon()}${sub(m[2]!)} → ${sub(m[3]!)}`;
+    const from = String(p.from ?? "");
+    const to = p.code === "fac.unrouted" ? String(p.to ?? "") : "";
+    if (p.code !== "fac.unrouted" || (!reserved.has(to) && !reserved.has(from))) expected = false;
+    return say({ ...p, from: sub(from), ...(to ? { to: sub(to) } : {}) });
   });
   return expected
     ? `<p class="mod-other hint">${esc(t("uf.unlinked.manual", { n: f.problems.length, list: text.join(" ; ") }))}</p>`
@@ -327,7 +325,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
       return `<tr data-sel="n:${esc(n.id)}"><td><i class="sw" style="background:${color.get(n.item)}"></i>${esc(name(n.item))}</td><td>${esc(sub(n.from))}</td><td>${esc(n.to.map(sub).join(", "))}</td><td class="num">${esc(fmt(n.perMin, 0))}/min</td><td class="num">${f.netCells[n.id] ?? 0}</td><td>${tier ? t("uf.tier", { t: tier === 1 ? "I" : "III" }) : "—"}</td></tr>`;
     })
     .join("");
-  const passages = [...f.passagesKept].map(([k, p]) => `<li><b>${esc(sub(k))}</b>${colon()}${frText(p.text)}</li>`).join("");
+  const passages = [...f.passagesKept].map(([k, p]) => `<li><b>${esc(sub(k))}</b>${colon()}${txtHtml(p.text)}</li>`).join("");
   const machines = missing
     .map(
       ({ box: b, reasons, survey }) =>
@@ -411,10 +409,10 @@ export function renderFactoryModule(
   const passage = f.passagesKept.get(key);
   const turn = turnText(b.rot);
   const head = `<p class="mod-sum">${t("uf.mod.sum.html", { title: `${esc(b.label)} — ${esc(b.sub)}`, w: String(b.w), h: String(b.h), cost: esc(fmtMoney(m.cost)), unknown: m.costUnknown ? t("mv.sum.unknown") : "", p: esc(fmtMF(b.power)) })}${m.portsKnown ? "" : ` <span class="warn-text">${t("mv.ports.assumed")}</span>`}</p>
-    <p class="mod-other">${t("uf.mod.version", { how: t(f.full ? "uf.mod.full" : "uf.mod.alone"), turn: turn ? t("uf.mod.turn", { turn }) : "", passage: passage ? ` ${frText(passage.text)}.` : "" })}</p>
+    <p class="mod-other">${t("uf.mod.version", { how: t(f.full ? "uf.mod.full" : "uf.mod.alone"), turn: turn ? t("uf.mod.turn", { turn }) : "", passage: passage ? ` ${txtHtml(passage.text)}.` : "" })}</p>
     ${ins.length ? `<p class="mod-other">${t("uf.mod.gets", { list: ins.map((n) => `${esc(name(n.item))} <span class="muted">${esc(t("uf.mod.from", { m: sub(n.from) }))}</span>`).join(", ") })}</p>` : ""}
     ${outs.length ? `<p class="mod-other">${t("uf.mod.sends", { list: outs.map((n) => `${esc(name(n.item))} ${esc(fmt(n.perMin, 0))}/min <span class="muted">${esc(t("uf.mod.to", { list: n.to.map(sub).join(and()) }))}</span>`).join(", ") })}</p>` : ""}
-    ${m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${frText(p.message)}</li>`).join("")}</ul>` : ""}`;
+    ${m.problems.length ? `<ul class="notices">${m.problems.map((p) => `<li${p.level === "erreur" ? ' class="bad"' : ""}>${txtHtml(p.message)}</li>`).join("")}</ul>` : ""}`;
   const items = [...new Set(m.nets.map((n) => n.item))];
   const legend = `<ul class="mod-legend">${items.map((it) => `<li><i style="background:${color.get(it) ?? "#9aa7b4"}"></i>${esc(name(it))}</li>`).join("")}<li><i class="sw-plug"></i>${t("mv.lg.plug")}</li>${m.poles.length ? `<li><i class="sw-pole"></i>${t("mv.lg.pole")}</li>` : ""}<li><i class="sw-flow"></i>${t("uf.lg.flow")}</li></ul>`;
   const details = info.details.replace('<details class="more pose-order" open>', '<details class="more pose-order">');

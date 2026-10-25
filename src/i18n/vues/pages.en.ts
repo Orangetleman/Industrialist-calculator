@@ -148,6 +148,7 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   "m.asm.seeInFactory": "See its place in the “Whole factory”",
   "m.setOnEach": "to set on each machine: ",
   "m.f.lookup": "Looking for a previous calculation",
+  "m.f.start": "Starting",
   "m.f.cancel": "Cancel",
   "m.f.failed": "The whole factory calculation failed: {err}",
   "m.f.rerun": "Run the calculation again",

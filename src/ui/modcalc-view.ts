@@ -6,8 +6,9 @@ import type { GameData } from "../engine/data.ts";
 import { DIESEL_FUELS, dieselConfigs, dieselFuelName, dieselLitersPerMMF, dieselLookup, parseDieselReading, type DieselConfig, type DieselReading, farmBlocks, farmOutput, farmRates, turbineReliability, type FarmBlocks } from "../engine/modular-calc.ts";
 import type { ModAssembly, ModularFile } from "../engine/modular.ts";
 import { treeGrowthSeconds } from "../engine/pollution.ts";
-import { esc, fmt, fmtMoney, fmtPct, frText, parseNum } from "./format.ts";
+import { esc, fmt, fmtMoney, fmtPct, parseNum } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
+import { txtHtml } from "./engine-text.ts";
 
 export type ModCalcState = {
   farm: FarmBlocks & { pollution: number };
@@ -43,14 +44,14 @@ export function farmResultHtml(file: ModularFile, data: GameData, st: ModCalcSta
     `<li>${esc(t("mc.limit", { x: limitText(r.limit) }))}</li>`,
     `<li>${t("mc.water.html", { l: fmt(r.waterLpm, 1), n: r.activeSprinklers, c: String(rates.waterCycle.litersPerCycle), p: fmt(rates.waterCycle.periodS, 2) })}</li>`,
     `<li>${t("mc.power.html", { e: mfps(r.energyMFps), n: fmt(r.harvested, 0), k: fmt(rates.energyPerCutMF.value / 1000, 0), g: fmt(g.seconds, 1) })}</li>`,
-    ...r.problems.map((p) => `<li class="must unk">⚠ ${frText(p)}</li>`),
+    ...r.problems.map((p) => `<li class="must unk">⚠ ${txtHtml(p)}</li>`),
   ];
   const hint = short.length
     ? `<p class="hint">${t("mc.fit", { n: fmt(st.farm.trees, 0), s: String(fit.sprinklers), t: String(fit.tanks), h: String(fit.harvesters) })}</p>`
     : "";
   const q = rates.treesPerHarvester.question ? ` <span class="must unk" data-ref="${esc(rates.treesPerHarvester.question)}" title="${esc(t("mc.toRecord.title"))}">${t("mc.toRecord")}</span>` : "";
   const slots = rates.controllerSlots ? t("mc.slots", { n: String(rates.controllerSlots) }) : "";
-  return `<ul class="mc-out">${lines.join("")}</ul>${hint}<p class="hint">${t("mc.growth", { detail: frText(g.detail), n: String(rates.treesPerHarvester.value), q, s: String(rates.treesPerSprinkler.value), p: String(rates.sprinklersPerTank.value), slots })}</p>`;
+  return `<ul class="mc-out">${lines.join("")}</ul>${hint}<p class="hint">${t("mc.growth", { detail: txtHtml(g.detail), n: String(rates.treesPerHarvester.value), q, s: String(rates.treesPerSprinkler.value), p: String(rates.sprinklersPerTank.value), slots })}</p>`;
 }
 
 /** Résultat du moteur diesel : la configuration relevée qui correspond, sinon « à relever » ; puis le tableau des configurations connues. */
@@ -141,7 +142,7 @@ export function modCalcHtml(file: ModularFile, data: GameData, a: ModAssembly, s
   }
   if (a.id === "modular-turbine") {
     const tb = turbineReliability(file);
-    return tb ? `<section class="mcalc" aria-label="${esc(t("mc.turbine.aria"))}"><h5>${t("mc.turbine.title.html")}</h5><p class="hint">${frText(tb.text)}</p></section>` : "";
+    return tb ? `<section class="mcalc" aria-label="${esc(t("mc.turbine.aria"))}"><h5>${t("mc.turbine.title.html")}</h5><p class="hint">${txtHtml(tb.text)}</p></section>` : "";
   }
   return "";
 }

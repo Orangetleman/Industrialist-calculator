@@ -10,6 +10,7 @@ import type { Catalog } from "./catalog.ts";
 import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
 import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
 import { Grid, route, type Occupant } from "./route.ts";
+import { msg, type Message } from "../message.ts";
 
 // Sens en nombres pour le chercheur des liaisons (S27 bis) : 0 nord, 1 est, 2 sud, 3 ouest (pair : vertical).
 const DIRS: Dir[] = ["N", "E", "S", "W"];
@@ -79,7 +80,7 @@ export type FactoryInput = {
   options?: FactoryOptions;
 };
 /** Avancement : part faite (0 à 1) et étape en cours, en mots de joueur. */
-export type FactoryProgress = (done: number, label: string) => void;
+export type FactoryProgress = (done: number, label: Message) => void;
 
 type Pole = Catalog["poles"][number];
 type Pt = { x: number; y: number };
@@ -92,7 +93,7 @@ export type FactoryNet = { id: string; item: string; perMin: number; from: strin
  * Passage du collecteur central gardé pour un module : le texte, les choix (ressource, rangée, machine) et si
  * le module en devient plus grand qu'avant (seulement avec l'option `widen`).
  */
-export type FactoryPassage = { text: string; choices: { item: string; passage: Passage }[]; wider: boolean };
+export type FactoryPassage = { text: Message; choices: { item: string; passage: Passage }[]; wider: boolean };
 
 export type FactoryPlan = {
   W: number;
@@ -105,8 +106,8 @@ export type FactoryPlan = {
   netCells: Record<string, number>;
   /** Liaisons collées (« fournisseur>client »), sans tuyau. */
   glued: string[];
-  /** Liaisons non tracées. */
-  problems: string[];
+  /** Liaisons non tracées (« objet : fournisseur → client »). */
+  problems: Message[];
   /** Tuyaux des produits à évacuer, jusqu'au bord de l'usine (S27). */
   evacs: FactoryEvac[];
   poleNodes: FactoryPole[];
@@ -233,7 +234,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     }
   };
 
-  progress(0, "Plans de pose des modules");
+  progress(0, msg("fac.step.plans"));
   const maxD = Math.max(0, ...input.steps.map((s) => s.depth));
   const boxes: Box[] = input.steps.map((s) => {
     const mod = s.req ? designModule(s.req, s.entry, s.size, cat, name) : null;
@@ -505,7 +506,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   let glued: string[] = [];
   let grid = new Grid();
   let nets: FactoryNet[] = [];
-  let problems: string[] = [];
+  let problems: Message[] = [];
   let W = 0;
   let H = 0;
   let CLRused = 0;
@@ -792,7 +793,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       const from = c.mod ? collector(c, e.item, "entrée", id) : new Set<string>();
       const path = from.size && target.size ? connect(id, from, target, bounds) : null;
       if (!path) {
-        problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
+        problems.push(msg("fac.unrouted", { item: name(e.item), from: e.from, to: e.to }));
         failedEdges.push(k0(e));
         continue;
       }
@@ -860,7 +861,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       const inn = endOf(c, e.item, "entrée");
       const start = inn ? anchorAbs(c, inn) : { x: c.x - 1, y: c.y + Math.floor(c.h / 2) };
       const target = { x: p.x + p.w, y: p.y + p.h / 2 };
-      if (!route(grid, id, start, inn ? OPPOSITE[inn.dir] : "E", bounds, (q) => Math.abs(q.x - target.x) + Math.abs(q.y - target.y))) problems.push(`${name(e.item)} : ${e.from} → ${e.to}`);
+      if (!route(grid, id, start, inn ? OPPOSITE[inn.dir] : "E", bounds, (q) => Math.abs(q.x - target.x) + Math.abs(q.y - target.y))) problems.push(msg("fac.unrouted", { item: name(e.item), from: e.from, to: e.to }));
     }
   };
   const routeBetween = (): void => {
@@ -901,7 +902,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   for (const CLR of [2, 3]) for (const wDist of [3, 8, 15, 30]) for (const bySize of [false, true]) settings.push([CLR, wDist, bySize]);
   const share = full ? 0.3 : 0.9;
   for (const [i, [CLR, wDist, bySize]] of settings.entries()) {
-    progress((share * i) / settings.length, `Placement des modules (essai ${i + 1} sur ${settings.length})`);
+    progress((share * i) / settings.length, msg("fac.step.place", { i: i + 1, n: settings.length }));
     tries.push({ ...attempt(CLR, wDist, bySize), CLR, wDist, bySize });
   }
   // Une case de tuyau compte comme 10 cases de surface : un peu plus de place plutôt que des détours.
@@ -993,7 +994,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     b.mod = b.variants[b.rot]!;
   };
   if (full) {
-    progress(0.32, "Collecteurs des modules recalculés pour l'usine");
+    progress(0.32, msg("fac.step.collectors"));
     for (const b of boxes) {
       if (!b.mod || !b.req) continue;
       const base = b.variants[0]!;
@@ -1062,7 +1063,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     };
     // Les modules se replacent (position et rotation) en sachant où sont leurs collecteurs.
     for (let k = 0; k < 3; k++) {
-      progress(0.36 + 0.04 * k, "Modules tournés vers leurs voisins");
+      progress(0.36 + 0.04 * k, msg("fac.step.turn"));
       sideTrunks();
       chooseAlts();
       improve(CLRused, []);
@@ -1113,7 +1114,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       let bestState = snap();
       const N = 80_000;
       for (let it = 0; it < N; it++) {
-        if (it % 4000 === 0) progress(0.48 + (0.27 * it) / N, "Modules rapprochés de leurs voisins");
+        if (it % 4000 === 0) progress(0.48 + (0.27 * it) / N, msg("fac.step.closer"));
         const T = 300 * Math.pow(1 / 300, it / N);
         const b = boxes[Math.floor(rand() * boxes.length)]!;
         const st = snap();
@@ -1147,7 +1148,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     }
     margin();
     through = true;
-    progress(0.76, "Tuyaux entre les modules");
+    progress(0.76, msg("fac.step.pipes"));
     routeBetween();
     // Double rangée : le collecteur central peut sortir par un passage entre deux machines. À placement égal
     // (l'usine ne grandit pas), chaque passage est essayé, seul ou avec un second passage dans le même module ;
@@ -1161,12 +1162,12 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     type Opt = ReturnType<typeof passageOptions>[number];
     const doubles = boxes.filter((b) => b.mod && b.req && b.variants[0]!.folds <= 1 && b.variants[0]!.template === "double rangée");
     for (const [i, b] of doubles.entries()) {
-      progress(0.8 + (0.15 * i) / doubles.length, `Passages entre les machines (module ${i + 1} sur ${doubles.length})`);
+      progress(0.8 + (0.15 * i) / doubles.length, msg("fac.step.passages", { i: i + 1, n: doubles.length }));
       const req = b.req!;
       const ends = Object.fromEntries(b.variants[0]!.nets.map((n) => [n.item, "milieu" as const]));
       const size = { w: b.variants[0]!.width, h: b.variants[0]!.height };
       const keep = { variants: b.variants, mod: b.mod, w: b.w, h: b.h };
-      const label = (os: Opt[], wider: boolean) => os.map((o) => passageText(o.passage, req.count, name(o.item))).join(" ; ") + (wider ? " (module élargi)" : "");
+      const label = (os: Opt[], wider: boolean) => msg("fac.passages", { list: { join: os.map((o) => passageText(o.passage, req.count, name(o.item))), by: "point-virgule" }, wider: wider ? msg("fac.wider") : undefined });
       // Essai d'un module avec passage(s) à la place du module actuel : null s'il ne tient pas ou s'il élargit sans l'option.
       const trial = (os: Opt[]) => {
         const p = os.at(-1)!.plan;
@@ -1177,7 +1178,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
         const fits = b.x + b.w <= W - 3 && b.y + b.h <= H - 3 && boxes.every((q) => q === b || b.x + b.w + CLRused <= q.x || q.x + q.w + CLRused <= b.x || b.y + b.h + CLRused <= q.y || q.y + q.h + CLRused <= b.y);
         if (fits) routeBetween();
         const r = fits ? tally() : null;
-        passLog.push(`${b.key} ${label(os, wider)} ${p.width}x${p.height} rot${b.rot} ${JSON.stringify(r)} actuel ${JSON.stringify(cur)}`);
+        passLog.push(`${b.key} ${JSON.stringify(label(os, wider))} ${p.width}x${p.height} rot${b.rot} ${JSON.stringify(r)} actuel ${JSON.stringify(cur)}`);
         Object.assign(b, keep);
         return r && r.ok ? { os, r, wider } : null;
       };
@@ -1272,12 +1273,12 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
         break;
       }
     }
-    if (!done) problems.push(`${name(ev.item)} : ${ev.from} → bord`);
+    if (!done) problems.push(msg("fac.evacUnrouted", { item: name(ev.item), from: ev.from }));
     const cells = [...joined, ...[...grid.cells.keys()].filter((k) => !before.has(k))];
     const fallback = options[0]?.t ?? { x: b.x, y: b.y };
     evacs.push({ ...ev, id: done?.id ?? options[0]?.id ?? `${b.key}:${ev.item}`, side: done?.side ?? ev.side ?? "droite", at: done?.at ?? fallback, cells, ok: !!done });
   }
-  progress(0.95, "Réseau électrique");
+  progress(0.95, msg("fac.step.power"));
   const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
   const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
   const interIds = new Set(nets.map((n) => n.id));
@@ -1457,7 +1458,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     const r = internal ? { n: 0, type: p.type } : relaysFor(d, sub.get(p.id)!);
     links.push({ from: nodeById.get(a)!, to: p, d, relays: r.n, relayType: r.type, load: sub.get(p.id)!, lines: Math.max(1, Math.ceil(sub.get(p.id)! / strongest.capacityMFps - 1e-9)), internal });
   }
-  progress(1, "Terminé");
+  progress(1, msg("fac.step.done"));
   return {
     W,
     H,

@@ -6,6 +6,7 @@ import { esc, fmt } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
 import { DIESEL_FUELS, dieselFuelName, dieselLitersPerMMF, dieselPick, parseDieselReading, type DieselConfig, type DieselPickMode, type DieselReading } from "../engine/modular-calc.ts";
 import { controllerPanel } from "./assembly-view.ts";
+import { say } from "./engine-text.ts";
 
 const KEY = "ind-calc:v1:diesel";
 
@@ -57,7 +58,7 @@ export function renderDieselHud(configs: DieselConfig[], choice: DieselChoice, c
   const radios = modes.map((m) => `<label><input type="radio" name="dsl-mode" data-dsl-mode="${m}"${!choice.config && choice.mode === m ? " checked" : ""}> ${t(`dsl.mode.${m}`)}</label>`).join(" ");
   const opts = configs
     .filter((c) => c.fuel === choice.fuel)
-    .map((c) => `<option value="${esc(c.id)}"${choice.config === c.id ? " selected" : ""}>${esc(c.label)} · ${esc(fmt(dieselLitersPerMMF(c), 3))} L/MMF</option>`)
+    .map((c) => `<option value="${esc(c.id)}"${choice.config === c.id ? " selected" : ""}>${esc(say(c.label))} · ${esc(fmt(dieselLitersPerMMF(c), 3))} L/MMF</option>`)
     .join("");
   const panel = current ? controllerPanel(current.airFuel, current.throttle, current.throttleAssumed) : "";
   return `<span class="mset dsl">${t("dsl.fuel")} <select data-dsl-fuel aria-label="${esc(t("dsl.fuel.aria"))}">${fuels}</select> ${t("dsl.pick")} ${radios} <select data-dsl-config aria-label="${esc(t("dsl.config.aria"))}"><option value="">${t("dsl.config.or")}</option>${opts}</select></span>${panel}`;

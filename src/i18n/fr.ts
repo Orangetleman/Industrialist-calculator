@@ -16,6 +16,7 @@ import { recettesFr } from "./vues/recettes.fr.ts";
 import { arbreFr } from "./vues/arbre.fr.ts";
 import { visiteFr } from "./vues/visite.fr.ts";
 import { pagesFr } from "./vues/pages.fr.ts";
+import { moteurFr } from "./vues/moteur.fr.ts";
 
 export const fr = {
   // ------------------------------------------------------------ commun
@@ -388,4 +389,6 @@ export const fr = {
   ...arbreFr,
   ...visiteFr,
   ...pagesFr,
+  // S32 : messages du moteur
+  ...moteurFr,
 } satisfies Record<string, Msg>;

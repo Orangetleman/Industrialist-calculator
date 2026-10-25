@@ -9,7 +9,7 @@ import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
 import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { colon, esc, frRaw, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, frText } from "./format.ts";
+import { colon, esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP } from "./format.ts";
 import { joinList, t, type Key } from "../i18n/i18n.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, leafText, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
@@ -18,6 +18,7 @@ import { verifyHref } from "./recipes-view.ts";
 import type { Interfaces, MachineSettings } from "../engine/interfaces.ts";
 import { renderScreenInputs, settingChips, settingLines } from "./iface-view.ts";
 import { doubtText, fieldWord, fixAttr, stepWarnings, warnButton, warnChips } from "./plan-bar.ts";
+import { txt, txtHtml } from "./engine-text.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
@@ -79,7 +80,7 @@ const finalSteps = (p: Plan) => p.steps.filter((s) => p.finals.includes(s.key));
 /** Nom court d'une installation composée : « Centrale Firebox (coal) » (le détail des bâtiments est à part). */
 function plantName(v: Pick<ViewCtx, "data">, s: Step, word = true): string {
   const r = v.data.recipes.get(s.recipeId);
-  const name = r?.setupName ? frRaw(r.setupName.split(" + ")[0]!) : machineN(v, s.machine);
+  const name = r?.setupName ? txt(typeof r.setupName === "string" ? r.setupName.split(" + ")[0]! : r.setupName) : machineN(v, s.machine);
   // Ferme d'arbres et moteur diesel modulaire (S13) : leur nom se suffit.
   return r?.farm || r?.wholeUnits || !word ? name : t("ans.plant", { name });
 }
@@ -133,8 +134,8 @@ function researchHeadline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "ba
   const last = v.settings.rpMode !== "rate" ? r.timelineNow?.[r.timelineNow.length - 1] : undefined;
   const pace = last && Number.isFinite(last.at) && last.at > 0 ? t("ans.rp.pace", { t: esc(fmtDuration(last.at)) }) : "";
   if (!r.best) {
-    const done = r.warnings.some((w) => /déjà|suffit/.test(w));
-    return { text: pace + (r.warnings[0] ? frText(r.warnings[0]) : t("ans.rp.none")), tone: done ? "ok" : "bad" };
+    const text = r.idle ? esc(r.idle.text) : r.warnings[0] ? txtHtml(r.warnings[0]) : t("ans.rp.none");
+    return { text: pace + text, tone: r.idle?.done ? "ok" : "bad" };
   }
   const d = r.best.design;
   const chain = r.best.plan.totals.machines + r.best.plan.totals.farms;
@@ -288,9 +289,9 @@ export function renderAnswer(v: ViewCtx): string {
   ].join("");
   const notes = [
     v.fresh ? `<li>${t("ans.fresh.html")}</li>` : "",
-    ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${frText(w.message)}</li>`),
+    ...p.warnings.filter(isBlocking).map((w) => `<li class="bad">${txtHtml(w.message)}</li>`),
     ...missingNotes(v),
-    ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${frText(x)}</li>`),
+    ...[...new Set(p.steps.map((s) => v.data.recipes.get(s.recipeId)?.setupObserved).filter((x): x is string => !!x))].map((x) => `<li class="bad">${txtHtml(x)}</li>`),
     tierSuggestion(v),
   ].filter(Boolean);
   return `<div class="answer ${h.tone}" role="status"><h2>${h.text}</h2>${stats}${lines}${notes.length ? `<ul class="notices">${notes.join("")}</ul>` : ""}</div>`;
@@ -727,8 +728,8 @@ function warningsBlock(v: ViewCtx): { html: string; count: number } {
   const reused = w.filter((x) => x.code === "sous-produit-réutilisé");
   const rest = w.filter((x) => x.code !== "sous-produit-réutilisé");
   const items = [
-    ...rest.filter(isBlocking).map((x) => `<li class="bad">${frText(x.message)}</li>`),
-    ...rest.filter((x) => !isBlocking(x)).map((x) => `<li>${frText(x.message)}</li>`),
+    ...rest.filter(isBlocking).map((x) => `<li class="bad">${txtHtml(x.message)}</li>`),
+    ...rest.filter((x) => !isBlocking(x)).map((x) => `<li>${txtHtml(x.message)}</li>`),
     reused.length
       ? `<li>${esc(t("pv.reused", { list: joinList([...new Set(reused.flatMap((x) => x.items ?? []))].map((i) => itemN(v, i))) }))}</li>`
       : "",
@@ -742,7 +743,7 @@ function recipesBlock(v: ViewCtx): string {
     const r = v.data.recipes.get(s.recipeId)!;
     const flags = r.verify.length ? ` <a class="tag warn" href="${verifyHref("recette", r.id, r.verify[0]!.field)}" title="${esc(t("pv.rec.goFix"))}">${t("pv.rec.verify")}</a>` : "";
     const body = s.parts
-      ? `${frText(r.setupName ?? "")}${Object.keys(r.inputs).length ? esc(t("pv.rec.consumes", { list: Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + ") })) : ""}${r.setupNote ? `<br><span class="muted">${frText(r.setupNote)}</span>` : ""}`
+      ? `${txtHtml(r.setupName ?? "")}${Object.keys(r.inputs).length ? esc(t("pv.rec.consumes", { list: Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + ") })) : ""}${r.setupNote ? `<br><span class="muted">${txtHtml(r.setupNote)}</span>` : ""}`
       : esc(recipeText(v, r, s.durationS));
     const choose = s.item === ENERGY || s.item === POLLUTION ? "" : recipeSelect(v, s.item, s.recipeId, s.alternatives);
     return `<li id="rec-${esc(s.key)}"><div class="rec-head"><b>${esc(itemN(v, s.item))}</b> <span class="muted">${esc(machineN(v, r.machine))}${s.forced ? t("pv.rec.forced") : ""}</span>${flags}</div>

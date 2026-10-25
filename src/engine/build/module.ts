@@ -7,6 +7,7 @@ import type { Port, PortsEntry } from "../extension-types.ts";
 import { pipeFor, type Catalog, type PieceRole, type PipeKind, type PipeSet } from "./catalog.ts";
 import { OPPOSITE, place, type Cell, type Dir, type Placed, type Rot } from "./geometry.ts";
 import { Grid, route, type Bounds } from "./route.ts";
+import { messageKey, msg, type Message } from "../message.ts";
 
 export type Flow = { item: string; perMin: number; fluid: boolean };
 
@@ -72,7 +73,7 @@ export type Net = {
 /** Une pièce de tuyau par case ; un croisement porte deux réseaux (`links` pour `net`, `crossLinks` pour `crossNet`). */
 export type PlacedPiece = { x: number; y: number; net: string; role: PieceRole; links: Dir[]; pieceId: string | null; crossNet?: string; crossLinks?: Dir[] };
 export type PlacedPole = { x: number; y: number; w: number; h: number; pole: string; covers: string[] };
-export type Problem = { level: "erreur" | "attention"; message: string };
+export type Problem = { level: "erreur" | "attention"; message: Message };
 
 export type ModulePlan = {
   machine: string;
@@ -95,8 +96,9 @@ export type ModulePlan = {
   cost: number;
   costUnknown: number;
   problems: Problem[];
-  assumptions: string[];
-  order: string[];
+  assumptions: Message[];
+  /** Ordre de pose : une phrase par geste du joueur (S26 : rangées par étape selon leur code). */
+  order: Message[];
   /** Disposition retenue (rangée simple ou double), pour `redesign`. */
   config?: FlatConfig;
   /** Ordre des critères qui a choisi ce module, et ce que donnerait le 2e critère mis en premier. */
@@ -104,8 +106,9 @@ export type ModulePlan = {
   other: { first: PoseCriterion; width: number; height: number; cost: number; pieces: number; crossings: number; template: ModulePlan["template"]; folds: number } | null;
 };
 
-/** Nombre pour les messages : deux décimales au plus, virgule décimale. */
-const num = (x: number) => String(Math.round(x * 100) / 100).replace(".", ",");
+/** Nombre pour les messages : deux décimales au plus. */
+const num = (x: number) => Math.round(x * 100) / 100;
+const dirOf = (role: "entrée" | "sortie") => msg(role === "entrée" ? "w.in" : "w.out");
 
 type Assign = { port: number; item: string; role: "entrée" | "sortie"; kind: PipeKind };
 
@@ -160,7 +163,7 @@ export function assignPorts(entry: Pick<PortsEntry, "ports">, req: Pick<ModuleRe
     const dir: Port["direction"] = role === "entrée" ? "entrée" : "sortie";
     const i = entry.ports.findIndex((p, j) => !used.has(j) && p.type === kind && (p.direction === dir || p.direction === "les deux"));
     if (i < 0) {
-      problems.push({ level: "erreur", message: `Aucun port ${role === "entrée" ? "d'entrée" : "de sortie"} ${kind === "fluide" ? "de fluide" : "d'objet"} libre pour ${name(f.item)} dans le relevé de ce bâtiment.` });
+      problems.push({ level: "erreur", message: msg("mod.noPort", { dir: dirOf(role), kind: msg(kind === "fluide" ? "w.fluid" : "w.item"), item: name(f.item) }) });
       return;
     }
     used.add(i);
@@ -288,7 +291,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const k = linesOf.get(it)!;
     const share = k > 1 ? allPorts.filter((q) => q.net === id && q.a.item === it).length / allPorts.filter((q) => q.a.item === it).length : 1;
     const pipe = pipeFor(cat, a.kind, perSec * share, req.tier3Only);
-    if (!pipe) problems.push({ level: "erreur", message: `${name(it)} : ${num(perSec * share)} par seconde pour une seule machine, au-delà du tuyau le plus rapide.` });
+    if (!pipe) problems.push({ level: "erreur", message: msg("mod.tooFast", { item: name(it), r: num(perSec * share) }) });
     return { id, item: it, line: k > 1 ? Number(id.split("#")[1]) : null, kind: a.kind, role: a.role, perSec: perSec * share, pipe, lane: null, end: null };
   });
   for (const it of items) {
@@ -297,9 +300,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const { a, perSec } = flowOf.get(it)!;
     problems.push({
       level: "attention",
-      message: `${name(it)} : ${num(perSec)} par seconde, plus qu'un seul tuyau : ${k} collecteurs en parallèle.${
-        a.kind === "fluide" ? " Pour l'amener jusqu'au module, un gros tuyau de tier IV (Large Fluid Pipe) puis une Large Fluid Pipe Conversion par collecteur : ce sera dans l'usine assemblée." : ""
-      }`,
+      message: msg("mod.parallel", { item: name(it), r: num(perSec), k, fluid: a.kind === "fluide" ? msg("mod.parallel.fluid") : undefined }),
     });
   }
   // Collecteurs droits : les entrées arrivent par la gauche (colonne 0), les sorties partent à droite.
@@ -385,7 +386,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const lane = nets.find((n) => n.id === net)!.lane!;
     const h = (c: Cell) => Math.abs(c.y - lane.y) + Math.max(0, lane.x0 - c.x, c.x - lane.x1);
     if (!route(grid, net, p.cell, OPPOSITE[p.facing], bounds, h)) {
-      problems.push({ level: "erreur", message: `Machine ${m.id.slice(1)} : impossible de raccorder le port ${a.role === "entrée" ? "d'entrée" : "de sortie"} (${name(a.item)}) à son collecteur.` });
+      problems.push({ level: "erreur", message: msg("mod.unconnected", { m: m.id.slice(1), dir: dirOf(a.role), item: name(a.item) }) });
       return { grid, machines, nets, problems, bounds, template: double ? "double rangée" : "rangée", rot };
     }
   }
@@ -414,7 +415,7 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
   if (!plugs.length) return { poles: [], problems: [], pole: null };
   const each = req.powerMFps ?? 0;
   const types = cat.poles.filter((p) => p.capacityMFps >= each);
-  if (!types.length) return { poles: [], problems: [{ level: "attention", message: "Aucun poteau connu ne porte la consommation d'une machine." }], pole: null };
+  if (!types.length) return { poles: [], problems: [{ level: "attention", message: msg("mod.noPole") }], pole: null };
   // Une seule file (au-dessus ou au-dessous) quand elle atteint toutes les prises : deux rangées de moins.
   const pick = (use: FileUse) => {
     const tries = types.map((pole) => ({ pole, ...polesWith(l, plugs, pole, each, use) }));
@@ -430,7 +431,7 @@ function placePoles(l: Layout, req: ModuleRequest, cat: Catalog, name: Namer): {
     if (f.feeds > 1)
       problems.push({
         level: "attention",
-        message: `File de poteaux ${f.label} : ${Math.round(f.load).toLocaleString("fr-FR")} MF/s, plus que ce que porte un ${name(best.pole.id)} (${best.pole.capacityMFps.toLocaleString("fr-FR")} MF/s, tous ses nœuds) : alimente-la par ${f.feeds} lignes séparées.`,
+        message: msg("mod.poleFeeds", { file: f.label, load: Math.round(f.load), pole: name(best.pole.id), cap: best.pole.capacityMFps, n: f.feeds }),
       });
   }
   return { poles: best.poles, problems, pole: best.pole };
@@ -467,7 +468,7 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
   const xLo = ext.minX + pole.size.w / 2;
   const xHi = ext.maxX + 1 - pole.size.w / 2;
   const poles: PlacedPole[] = [];
-  const files: { label: string; load: number; feeds: number }[] = [];
+  const files: { label: Message; load: number; feeds: number }[] = [];
   let outOfRange = false;
   // Colonnes des passages (double rangée) : aucun poteau de la file de leur côté ne s'y pose.
   const avoid = (ri: number) => l.nets.filter((n) => n.via && (n.via.row === "haut") === (ri === 0)).map((n) => n.via!.x);
@@ -484,7 +485,7 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
     });
     for (const s of spans.filter((s) => !s.ok)) {
       outOfRange = true;
-      problems.push({ level: "attention", message: `Machine ${s.m.slice(1)} : prise à plus de ${num(R)} cases de la file de poteaux.` });
+      problems.push({ level: "attention", message: msg("mod.plugFar", { m: s.m.slice(1), r: num(R) }) });
     }
     const todo = spans.filter((s) => s.ok).sort((a, b) => a.hi - b.hi);
     const covered = new Set<number>();
@@ -519,10 +520,10 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
     }
     poles.push(...row);
     const load = new Set(mine.map((p) => p.m)).size * each;
-    files.push({ label: ri === 0 ? "du haut" : "du bas", load, feeds: Math.max(1, Math.ceil(load / pole.capacityMFps - 1e-9)) });
+    files.push({ label: msg(ri === 0 ? "w.fileTop" : "w.fileBottom"), load, feeds: Math.max(1, Math.ceil(load / pole.capacityMFps - 1e-9)) });
   });
   if (files.length === 2 && rows[1]! - rows[0]! > R) {
-    problems.push({ level: "attention", message: `Les deux files de poteaux sont à ${rows[1]! - rows[0]!} cases l'une de l'autre, plus que la portée (${num(R)}) : relie-les par un poteau sur le côté du module.` });
+    problems.push({ level: "attention", message: msg("mod.filesFar", { d: rows[1]! - rows[0]!, r: num(R) }) });
   }
   return { poles, problems, files, cost: poles.length * (pole.price ?? 0), outOfRange };
 }
@@ -555,7 +556,7 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       last = finish(l, r, portsKnown, cat, [...c.problems, ...l.problems], name);
       last.config = { assign: c.assign, double: c.double, rot: c.rot, sides: c.sides, hug: c.hug, extra };
       // Plus d'espace entre les machines n'aide que si un raccord n'a pas trouvé de chemin.
-      if (!l.problems.some((p) => p.level === "erreur" && p.message.includes("impossible de raccorder"))) break;
+      if (!l.problems.some((p) => p.level === "erreur" && p.message.code === "mod.unconnected")) break;
     }
     return last;
   };
@@ -651,7 +652,7 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       parts: [],
       cost: 0,
       costUnknown: 0,
-      problems: [...fallback.problems, { level: "erreur", message: "Aucune disposition trouvée." }],
+      problems: [...fallback.problems, { level: "erreur", message: msg("mod.noLayout") }],
       assumptions: cat.assumptions,
       order: [],
       priority: normalPriority(req.priority),
@@ -770,7 +771,7 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
     const perSec = blocks.reduce((s, b) => s + (b.nets.find((x) => x.id === id)?.perSec ?? 0), 0);
     return { ...n, perSec, pipe: trunkPipe.get(id)!, lane: null, end: low(id) ? { x: col.get(id)!, y: H - 1, dir: "S" } : { x: col.get(id)!, y: 0, dir: "N" } };
   });
-  const problems: Problem[] = [...blocks.flatMap((b) => b.problems).filter((p, i, a) => a.findIndex((q) => q.message === p.message) === i)];
+  const problems: Problem[] = [...blocks.flatMap((b) => b.problems).filter((p, i, a) => a.findIndex((q) => messageKey(q.message) === messageKey(p.message)) === i)];
   const tally = countParts(req, pieces, poles, cat, name, problems);
   const crossings = pieces.filter((pc) => pc.role === "croisement").length;
   return {
@@ -787,10 +788,12 @@ export function foldModule(blocks: ModulePlan[], req: ModuleRequest, cat: Catalo
     ...tally,
     problems,
     order: [
-      `Poser ${blocks.length} blocs de ${first.count} ${name(req.machine)} en ${first.template}, les uns sous les autres${blocks.at(-1)!.count !== first.count ? ` (le dernier n'en a que ${blocks.at(-1)!.count})` : ""}.`,
-      ...nets.map((n) => `Tuyau principal ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, tier ${n.pipe!.tier === 1 ? "I" : "III"} (${num(n.perSec)} par seconde), ${right(n.id) ? "à droite" : "à gauche"}, par ${low(n.id) ? "le bas" : "le haut"}, avec un embranchement vers chaque bloc.`),
-      ...first.order.slice(1).map((o) => `Dans chaque bloc : ${o.charAt(0).toLowerCase()}${o.slice(1)}`),
-      ...(crossings ? [`En tout, ${crossings} croisement(s).`] : []),
+      msg("ord.blocks", { k: blocks.length, n: first.count, m: name(req.machine), tpl: tplMsg(first.template), stack: msg("d.stacked"), last: blocks.at(-1)!.count !== first.count ? msg("ord.blocks.last", { n: blocks.at(-1)!.count }) : undefined }),
+      ...nets.map((n) =>
+        msg("ord.trunk", { dir: dirOf(n.role), item: name(n.item), line: n.line ? msg("ord.line", { n: n.line }) : undefined, t: n.pipe!.tier === 1 ? "I" : "III", r: num(n.perSec), side: msg(right(n.id) ? "d.a.E" : "d.a.W"), by: msg(low(n.id) ? "d.par.S" : "d.par.N") }),
+      ),
+      ...first.order.slice(1).map((o) => msg("ord.eachBlock", { o: { lc: o } })),
+      ...(crossings ? [msg("ord.total", { n: crossings })] : []),
     ],
     other: null,
   };
@@ -870,7 +873,7 @@ function countParts(req: ModuleRequest, pieces: PlacedPiece[], poles: PlacedPole
   for (const pc of pieces) {
     const def = allPieces.find((x) => x.id === pc.pieceId);
     if (def) addPart(def.id, def.name, def.price);
-    else problems.push({ level: "erreur", message: `Pièce inconnue pour un ${pc.role} de ${name(pc.net.replace(/#\d+$/, ""))}.` });
+    else problems.push({ level: "erreur", message: msg("mod.unknownPiece", { role: msg(`piece.${pc.role}`), item: name(pc.net.replace(/#\d+$/, "")) }) });
   }
   for (const q of poles) {
     const def = cat.poles.find((x) => x.id === q.pole);
@@ -909,22 +912,26 @@ export function withPieces(m: ModulePlan, pieces: { x: number; y: number; net: s
     const role = ROLE_OF(new Set(links));
     out.push({ x: p.x, y: p.y, net, role, links, pieceId: setOf.get(net)?.pieces[role === "croisement" ? "droit" : role].id ?? before?.pieceId ?? null });
   }
-  const problems = m.problems.filter((p) => !p.message.startsWith("Pièce inconnue"));
+  const problems = m.problems.filter((p) => p.message.code !== "mod.unknownPiece");
   const { parts, cost, costUnknown } = countParts(req, out, m.poles, cat, name, problems);
   return { ...m, pieces: out, parts, cost, costUnknown, problems };
 }
 
 /** « vers le haut, entre les machines n° 2 et n° 3 » (machines numérotées rangée par rangée, la première d'abord). */
-export function passageWhere(v: Passage, count: number): string {
+export function passageWhere(v: Passage, count: number): Message {
   const first = v.row === "haut" ? 0 : Math.ceil(count / 2);
   const last = v.row === "haut" ? Math.ceil(count / 2) : count - first;
-  return `vers le ${v.row}, ${v.after < last ? `entre les machines n° ${first + v.after} et n° ${first + v.after + 1}` : `après la machine n° ${first + v.after}`}`;
+  const to = msg(v.row === "haut" ? "d.vers.N" : "d.vers.S");
+  return v.after < last ? msg("pass.between", { to, a: first + v.after, b: first + v.after + 1 }) : msg("pass.after", { to, a: first + v.after });
 }
 
 /** « Le collecteur de X sort à angle droit vers le haut, entre les machines n° 2 et n° 3 ». */
-export function passageText(v: Passage & { widened?: boolean }, count: number, item: string): string {
-  return `Le collecteur de ${item} sort à angle droit ${passageWhere(v, count)}${v.widened ? " (écartées d'une case pour ouvrir le passage)" : ""}`;
+export function passageText(v: Passage & { widened?: boolean }, count: number, item: string): Message {
+  return msg("pass.text", { item, where: passageWhere(v, count), widened: v.widened ? msg("pass.widened") : undefined });
 }
+
+/** Nom d'un gabarit de module (« rangée », « double rangée »), à écrire dans la langue choisie. */
+export const tplMsg = (t: ModulePlan["template"]): Message => msg(t === "rangée" ? "tpl.rangée" : "tpl.double");
 
 export type PassageOption = { item: string; passage: Passage; widens: boolean; plan: ModulePlan };
 
@@ -981,7 +988,7 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
       const x = n.end.x;
       const [a, b] = [Math.min(n.end.y, to), Math.max(n.end.y, to)];
       if (power.poles.some((p) => x >= p.x && x < p.x + p.w && p.y <= b && p.y + p.h - 1 >= a)) {
-        problems.push({ level: "erreur", message: `Le passage de ${name(n.item)} est bouché par un poteau.` });
+        problems.push({ level: "erreur", message: msg("mod.passageBlocked", { item: name(n.item) }) });
         continue;
       }
       l.grid.straight(n.end, { x, y: to }, n.id);
@@ -1026,16 +1033,16 @@ function finish(l: Layout, req: ModuleRequest, portsKnown: boolean, cat: Catalog
   const portCells = new Set(l.machines.flatMap((m) => m.ports.map((p) => `${p.cell.x},${p.cell.y}`)));
   const atPorts = pieces.filter((p) => p.role === "croisement" && portCells.has(`${p.x},${p.y}`)).length;
   const assumptions = [...cat.assumptions];
-  if (!portsKnown) assumptions.unshift("Ports supposés (bâtiment pas encore relevé) : entrées à gauche, sorties à droite. Relève-le dans Données → Éditeur de bâtiments.");
-  const order = [
-    `Poser les ${req.count} ${name(req.machine)} en ${l.template}${l.template === "double rangée" ? " (la seconde tournée d'un demi-tour, ports face à face)" : ""}.`,
-    ...nets.map((n) => `Collecteur ${n.role === "entrée" ? "d'entrée" : "de sortie"} : ${name(n.item)}${n.line ? ` (n° ${n.line})` : ""}, ${n.pipe ? `tuyaux tier ${n.pipe.tier === 1 ? "I" : "III"}` : "tuyau à choisir"} (${num(n.perSec)} par seconde).`),
-    ...nets.filter((n) => n.via).map((n) => `${passageText(n.via!, req.count, name(n.item))}.`),
-    `Raccorder chaque port à son collecteur${crossings ? `, avec ${crossings} croisement(s)` : ""}.`,
-    ...(atPorts
-      ? [`${atPorts} croisement(s) sont collés à un port : ses deux tuyaux se relient à la machine ; dans l'onglet 3 du mode construction, dirige chaque vecteur vers la bonne entrée ou sortie.`]
-      : []),
-    ...(power.poles.length ? [`Poser ${power.poles.length} ${power.pole!.name} ${new Set(power.poles.map((p) => p.y)).size > 1 ? "au-dessus et au-dessous" : "le long"} du module, et relier chaque prise.`] : []),
+  if (!portsKnown) assumptions.unshift(msg("mod.assumedPorts"));
+  const order: Message[] = [
+    msg("ord.place", { n: req.count, m: name(req.machine), tpl: tplMsg(l.template), turned: l.template === "double rangée" ? msg("ord.place.turned") : undefined }),
+    ...nets.map((n) =>
+      msg("ord.collector", { dir: dirOf(n.role), item: name(n.item), line: n.line ? msg("ord.line", { n: n.line }) : undefined, pipe: n.pipe ? msg("ord.pipeTier", { t: n.pipe.tier === 1 ? "I" : "III" }) : msg("ord.pipeNone"), r: num(n.perSec) }),
+    ),
+    ...nets.filter((n) => n.via).map((n) => msg("ord.passage", { p: passageText(n.via!, req.count, name(n.item)) })),
+    msg("ord.connect", { cross: crossings ? msg("ord.connect.cross", { n: crossings }) : undefined }),
+    ...(atPorts ? [msg("ord.crossAtPort", { n: atPorts })] : []),
+    ...(power.poles.length ? [msg("ord.poles", { n: power.poles.length, pole: power.pole!.name, where: msg(new Set(power.poles.map((p) => p.y)).size > 1 ? "d.updown" : "ord.along") })] : []),
   ];
   return {
     machine: req.machine,

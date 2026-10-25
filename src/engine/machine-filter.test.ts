@@ -10,6 +10,7 @@ import { buildGameData, type RawFiles } from "./data.ts";
 import { isExtractor, machineAllowed, type MachineFilter } from "./machine-filter.ts";
 import { solve } from "./solve.ts";
 import type { OverridesFile } from "./types.ts";
+import { say } from "../ui/engine-text.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
 const { data } = buildGameData(files, [overridesJson as unknown as OverridesFile]);
@@ -56,19 +57,19 @@ describe("exclure", () => {
     expect(u.reason).toBe("machine écartée");
     expect(u.excluded?.sort()).toEqual(["blast-furnace", "blast-furnace-mk2"]);
     const w = p.warnings.find((x) => x.code === "non-résolu:machine écartée")!;
-    expect(w.message).toContain("Aucune machine permise ne fabrique Steel Ingot");
-    expect(w.message).toContain("Blast Furnace, Blast Furnace MK2 sont écartées");
+    expect(say(w.message)).toContain("Aucune machine permise ne fabrique Steel Ingot");
+    expect(say(w.message)).toContain("Blast Furnace, Blast Furnace MK2 sont écartées");
   });
   it("l'objectif lui-même : plan impossible, avec la raison", () => {
     const p = crankshaft({ mode: "exclure", ids: ["craft-assembler", "advanced-assembler"] });
     expect(p.status).toBe("impossible");
-    expect(p.warnings.some((w) => w.message.startsWith("Aucune machine permise ne fabrique Crankshaft"))).toBe(true);
+    expect(p.warnings.some((w) => say(w.message).startsWith("Aucune machine permise ne fabrique Crankshaft"))).toBe(true);
   });
   it("une recette forcée dont la machine est écartée est ignorée, avec la raison", () => {
     const rid = crankshaft().steps.find((s) => s.item === "steel-ingot")!.recipeId;
     const p = crankshaft({ mode: "exclure", ids: ["blast-furnace"] }, { forced: { "steel-ingot": rid } });
     expect(machinesOf(p).has("blast-furnace")).toBe(false);
-    expect(p.warnings.find((w) => w.code === "forcée-invalide")?.message).toContain("sa machine est écartée par le filtre de machines");
+    expect(say(p.warnings.find((w) => w.code === "forcée-invalide")!.message)).toContain("sa machine est écartée par le filtre de machines");
   });
   it("le filtre vaut aussi pour les machines fixées dans le schéma (S8)", () => {
     const p = crankshaft({ mode: "exclure", ids: ["blast-furnace"] }, { fixedMachines: { crankshaft: 10 } });

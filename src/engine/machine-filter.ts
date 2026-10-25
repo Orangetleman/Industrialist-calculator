@@ -4,6 +4,7 @@
 import type { Candidate } from "./choose.ts";
 import { itemName, type GameData } from "./data.ts";
 import type { Machine, Recipe } from "./types.ts";
+import { msg, type Message } from "./message.ts";
 
 export type MachineFilter = {
   /** « exclure » : `ids` sont écartées ; « seulement » : `ids` sont les seules permises (avec l'extraction). */
@@ -58,8 +59,8 @@ export function excludedMachines(candidates: Candidate[]): string[] {
 }
 
 /** « Aucune machine permise ne fabrique X » : le message d'un objet que le filtre rend impossible. */
-export function excludedMessage(data: GameData, item: string, perMin: number, excluded: string[]): string {
+export function excludedMessage(data: GameData, item: string, perMin: number, excluded: string[]): Message {
   const names = excluded.map((m) => data.machines.get(m)?.name ?? m);
-  const rate = (Math.round(perMin * 100) / 100).toString().replace(".", ",");
-  return `Aucune machine permise ne fabrique ${itemName(data, item)} (${rate}/min manquent) : ${names.join(", ")} ${names.length > 1 ? "sont écartées" : "est écartée"} par le filtre de machines.`;
+  const r = Math.round(perMin * 100) / 100;
+  return msg("plan.excluded", { item: itemName(data, item), r, list: { join: names, by: "virgule" }, verb: msg(names.length > 1 ? "plan.excluded.many" : "plan.excluded.one") });
 }

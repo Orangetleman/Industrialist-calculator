@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { makeData, progress, SRC, type R } from "../../tests/engine-helpers.ts";
 import { ENERGY, type DepotSpec } from "./resources.ts";
 import { solve } from "./solve.ts";
+import { say } from "../ui/engine-text.ts";
 
 const all = progress();
 const step = (plan: ReturnType<typeof solve>, item: string) => plan.steps.find((s) => s.item === item)!;
@@ -70,14 +71,14 @@ describe("pollution et budget", () => {
     const only = makeData({ machines, recipes: [recipes[0]!] });
     const plan = solve(only, all, { item: "x", ratePerMin: 6, maxPollution: 0.5 });
     const w = plan.warnings.find((x) => x.code === "contrainte-pollution");
-    expect(w?.message).toMatch(/au mieux 1 %\/h/);
+    expect(say(w!.message)).toMatch(/au mieux 1 %\/h/);
     expect(plan.steps.length).toBe(1); // plan calculé sans la limite
   });
 
   it("budget : la chaîne la moins chère qui tient, ou le minimum nécessaire", () => {
     expect(step(solve(d, all, { item: "x", ratePerMin: 6, criterion: "pollution", budget: 500 }), "x").recipeId).toBe("r-dirty");
     const plan = solve(d, all, { item: "x", ratePerMin: 6, budget: 50 });
-    expect(plan.warnings.find((x) => x.code === "contrainte-budget")?.message).toMatch(/au moins 100 \$/);
+    expect(say(plan.warnings.find((x) => x.code === "contrainte-budget")!.message)).toMatch(/au moins 100 \$/);
   });
 });
 

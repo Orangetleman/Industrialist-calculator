@@ -23,6 +23,7 @@ import { resolveScreenFlags } from "./interfaces.ts";
 import type { FarmPole } from "./build/assembly.ts";
 import { applyModular, type DieselReading } from "./modular-calc.ts";
 import type { ModularFile } from "./modular.ts";
+import { msg, type Message } from "./message.ts";
 
 export type GameData = {
   items: Map<string, Item>;
@@ -45,7 +46,7 @@ export type GameData = {
  */
 export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile; modular?: ModularFile; /** Poteaux qui peuvent alimenter une ferme d'arbres (catalogue des plans de pose, S14). */ farmPoles?: FarmPole[]; /** Relevés de configuration du moteur diesel notés dans ce navigateur (S18). */ dieselReadings?: DieselReading[] };
 
-export type OverrideResult = { data: GameData; errors: string[]; applied: number };
+export type OverrideResult = { data: GameData; errors: Message[]; applied: number };
 
 /** Construit l'index. Les fichiers d'entrée ne sont jamais modifiés (copie profonde). */
 export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []): OverrideResult {
@@ -53,7 +54,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   const machines = new Map(structuredClone(files.machines.machines).map((x) => [x.id, x]));
   const recipes = new Map(structuredClone(files.recipes.recipes).map((x) => [x.id, x]));
   const nodes = new Map(structuredClone(files.research.nodes).map((x) => [x.id, x]));
-  const errors: string[] = [];
+  const errors: Message[] = [];
   let applied = 0;
   addEnergy(recipes, machines, files.energy);
   if (files.modular) applyModular(recipes, machines, files.modular, files.farmPoles ?? [], files.dieselReadings ?? []);
@@ -67,8 +68,8 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   for (const o of overrides) {
     for (const [id, entry] of Object.entries(o.removed?.recipes ?? {})) {
       const r = recipes.get(id) ?? removed.get(id)?.recipe;
-      if (!r) errors.push(`removed/recipes/${id} : craft inconnu`);
-      else if (!entry?.source?.fetchedAt) errors.push(`removed/recipes/${id} : il faut { source: { wiki, fetchedAt } }`);
+      if (!r) errors.push(err(`removed/recipes/${id}`, msg("data.unknownRecipe")));
+      else if (!entry?.source?.fetchedAt) errors.push(err(`removed/recipes/${id}`, msg("data.needSource")));
       else {
         recipes.delete(id);
         removed.set(id, { recipe: r, source: entry.source });
@@ -94,7 +95,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
     const p = m.pollutionPerHour;
     if (!Array.isArray(p)) continue;
     m.pollutionPerHour = Math.max(p[0], p[1]);
-    for (const f of m.verify) if (f.field === "pollutionPerHour") f.detail = `${f.detail} : la plus forte (${String(m.pollutionPerHour).replace(".", ",")} %/h) est retenue, par prudence`;
+    for (const f of m.verify) if (f.field === "pollutionPerHour") f.detail = msg("data.pollutionMax", { detail: { note: f.detail }, p: m.pollutionPerHour });
   }
   if (files.interfaces) resolveScreenFlags(recipes, files.interfaces.machines);
   // S29 : « Water Pump2 », « Research Station4 »… (nom du wiki et du jeu, chiffre collé) s'affichent
@@ -161,54 +162,56 @@ type Maps = Pick<GameData, "items" | "machines" | "recipes" | "nodes">;
 type Entity = { verify: VerifyFlag[]; sources: Source[]; corrections?: Correction[] };
 
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+/** Erreur d'un fichier de corrections : le chemin de l'entrée (« recipes/x.durationS ») et ce qui ne va pas. */
+const err = (path: string, e: Message): Message => msg("data.err", { path, e });
 
 /** Champs corrigeables et leur validation. Renvoie la valeur normalisée ou une erreur. */
-const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: string, v: unknown, e: any, maps: Maps) => { ok: true; value: unknown } | { ok: false; error: string }> = {
+const FIELDS: Record<"recipes" | "machines" | "items" | "research", (field: string, v: unknown, e: any, maps: Maps) => { ok: true; value: unknown } | { ok: false; error: Message }> = {
   recipes(field, v, r: Recipe, maps) {
-    if (field === "machine") return typeof v === "string" && maps.machines.has(v) ? { ok: true, value: v } : { ok: false, error: "machine inconnue" };
-    if (field === "durationS") return isNum(v) && v > 0 ? { ok: true, value: v } : { ok: false, error: "durée > 0 attendue" };
-    if (field === "energyMFps") return isNum(v) ? { ok: true, value: v } : { ok: false, error: "nombre attendu" };
+    if (field === "machine") return typeof v === "string" && maps.machines.has(v) ? { ok: true, value: v } : { ok: false, error: msg("data.unknownMachine") };
+    if (field === "durationS") return isNum(v) && v > 0 ? { ok: true, value: v } : { ok: false, error: msg("data.duration") };
+    if (field === "energyMFps") return isNum(v) ? { ok: true, value: v } : { ok: false, error: msg("data.number") };
     const m = /^(inputs|outputs)\.(.+)$/.exec(field);
     if (m) {
-      if (!Object.hasOwn(r[m[1] as "inputs" | "outputs"], m[2]!)) return { ok: false, error: `${m[2]} n'est pas dans ${m[1]}` };
-      return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: "quantité ≥ 0 attendue" };
+      if (!Object.hasOwn(r[m[1] as "inputs" | "outputs"], m[2]!)) return { ok: false, error: msg("data.notInSide", { item: m[2]!, side: m[1]! }) };
+      return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: msg("data.quantity") };
     }
-    return { ok: false, error: "champ non corrigeable" };
+    return { ok: false, error: msg("data.notEditable") };
   },
   machines(field, v) {
-    if (field === "cost" || field === "tier") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: "nombre ≥ 0 attendu" };
-    if (field === "pollutionPerHour") return isNum(v) ? { ok: true, value: v } : { ok: false, error: "nombre attendu" };
+    if (field === "cost" || field === "tier") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: msg("data.positive") };
+    if (field === "pollutionPerHour") return isNum(v) ? { ok: true, value: v } : { ok: false, error: msg("data.number") };
     if (field === "size") {
       if (typeof v === "string") {
         const m = /^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*$/i.exec(v);
-        return m ? { ok: true, value: { w: Number(m[1]), l: Number(m[2]) } } : { ok: false, error: "taille « LxL » attendue" };
+        return m ? { ok: true, value: { w: Number(m[1]), l: Number(m[2]) } } : { ok: false, error: msg("data.size") };
       }
       const s = v as { w?: unknown; l?: unknown };
-      return isNum(s?.w) && isNum(s?.l) && s.w > 0 && s.l > 0 ? { ok: true, value: { w: s.w, l: s.l } } : { ok: false, error: "taille { w, l } attendue" };
+      return isNum(s?.w) && isNum(s?.l) && s.w > 0 && s.l > 0 ? { ok: true, value: { w: s.w, l: s.l } } : { ok: false, error: msg("data.sizeObj") };
     }
-    if (field === "unlockedBy") return v === null || typeof v === "string" ? { ok: true, value: v } : { ok: false, error: "id de nœud ou null attendu" };
-    return { ok: false, error: "champ non corrigeable" };
+    if (field === "unlockedBy") return v === null || typeof v === "string" ? { ok: true, value: v } : { ok: false, error: msg("data.node") };
+    return { ok: false, error: msg("data.notEditable") };
   },
   items(field, v) {
-    if (field === "sellValue") return isNum(v) ? { ok: true, value: v } : { ok: false, error: "nombre attendu" };
-    if (field === "researchValue") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: "nombre ≥ 0 attendu" };
-    if (field === "isFluid") return typeof v === "boolean" ? { ok: true, value: v } : { ok: false, error: "booléen attendu" };
+    if (field === "sellValue") return isNum(v) ? { ok: true, value: v } : { ok: false, error: msg("data.number") };
+    if (field === "researchValue") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: msg("data.positive") };
+    if (field === "isFluid") return typeof v === "boolean" ? { ok: true, value: v } : { ok: false, error: msg("data.bool") };
     // Description en jeu : absente des wikis pour la plupart des objets, recopiée par le joueur.
     if (field === "description") {
       const t = typeof v === "string" ? v.trim() : "";
-      return t && t.length <= 2000 ? { ok: true, value: t } : { ok: false, error: "texte de 1 à 2000 caractères attendu" };
+      return t && t.length <= 2000 ? { ok: true, value: t } : { ok: false, error: msg("data.text") };
     }
-    return { ok: false, error: "champ non corrigeable" };
+    return { ok: false, error: msg("data.notEditable") };
   },
   research(field, v) {
-    if (field === "requires") return v === "all" || v === "any" ? { ok: true, value: v } : { ok: false, error: "« all » ou « any » attendu" };
-    if (field === "rp") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: "nombre ≥ 0 attendu" };
+    if (field === "requires") return v === "all" || v === "any" ? { ok: true, value: v } : { ok: false, error: msg("data.requires") };
+    if (field === "rp") return isNum(v) && v >= 0 ? { ok: true, value: v } : { ok: false, error: msg("data.positive") };
     // Description en jeu : absente des wikis, recopiée par le joueur.
     if (field === "description") {
       const t = typeof v === "string" ? v.trim() : "";
-      return t && t.length <= 2000 ? { ok: true, value: t } : { ok: false, error: "texte de 1 à 2000 caractères attendu" };
+      return t && t.length <= 2000 ? { ok: true, value: t } : { ok: false, error: msg("data.text") };
     }
-    return { ok: false, error: "champ non corrigeable" };
+    return { ok: false, error: msg("data.notEditable") };
   },
 };
 
@@ -223,23 +226,23 @@ function setPath(e: any, field: string, v: unknown): void {
 }
 
 /** Applique un fichier de corrections sur les maps (modifiées en place). */
-export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]; applied: number } {
-  const errors: string[] = [];
+export function applyOverrides(maps: Maps, o: OverridesFile): { errors: Message[]; applied: number } {
+  const errors: Message[] = [];
   let applied = 0;
   // Ajouts d'abord (objets, puis crafts qui peuvent les utiliser) : les corrections peuvent les viser.
   for (const [id, a] of Object.entries(o.added?.items ?? {})) {
-    const err = checkAddedItem(maps, id, a);
-    if (err) {
-      errors.push(`added/items/${id} : ${err}`);
+    const e = checkAddedItem(maps, id, a);
+    if (e) {
+      errors.push(err(`added/items/${id}`, e));
       continue;
     }
     maps.items.set(id, { id, name: a.name.trim(), isFluid: a.isFluid ?? null, sellValue: a.sellValue ?? null, researchValue: a.researchValue ?? null, sources: [a.source], verify: [], added: a.source });
     applied++;
   }
   for (const [id, a] of Object.entries(o.added?.recipes ?? {})) {
-    const err = checkAddedRecipe(maps, id, a);
-    if (err) {
-      errors.push(`added/recipes/${id} : ${err}`);
+    const e = checkAddedRecipe(maps, id, a);
+    if (e) {
+      errors.push(err(`added/recipes/${id}`, e));
       continue;
     }
     maps.recipes.set(id, {
@@ -266,17 +269,17 @@ export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]
     for (const [id, fields] of Object.entries(o[kind] ?? {})) {
       const entity = map.get(id);
       if (!entity) {
-        errors.push(`${kind}/${id} : objet inconnu`);
+        errors.push(err(`${kind}/${id}`, msg("data.unknownEntity")));
         continue;
       }
       for (const [field, entry] of Object.entries(fields ?? {})) {
         if (!entry || typeof entry !== "object" || !("value" in entry) || !entry.source?.fetchedAt) {
-          errors.push(`${kind}/${id}.${field} : il faut { value, source: { wiki, fetchedAt } }`);
+          errors.push(err(`${kind}/${id}.${field}`, msg("data.needValue")));
           continue;
         }
         const check = FIELDS[kind](field, entry.value, entity, maps);
         if (!check.ok) {
-          errors.push(`${kind}/${id}.${field} : ${check.error}`);
+          errors.push(err(`${kind}/${id}.${field}`, check.error));
           continue;
         }
         const resolvedFlags = entity.verify.filter((f) => f.field === field);
@@ -297,33 +300,33 @@ export function applyOverrides(maps: Maps, o: OverridesFile): { errors: string[]
 const ID = /^[a-z0-9][\w.-]{0,79}$/i;
 
 /** Objet manquant : identifiant libre, nom, valeurs connues ou null. Renvoie l'erreur, ou null. */
-function checkAddedItem(maps: Maps, id: string, a: AddedItem): string | null {
-  if (!ID.test(id)) return "identifiant invalide";
-  if (maps.items.has(id)) return "cet objet existe déjà";
-  if (!a || typeof a !== "object" || !a.source?.fetchedAt) return "il faut { name, …, source: { wiki, fetchedAt } }";
-  if (typeof a.name !== "string" || !a.name.trim() || a.name.length > 100) return "nom de 1 à 100 caractères attendu";
-  if (a.isFluid !== null && a.isFluid !== undefined && typeof a.isFluid !== "boolean") return "fluide : oui, non ou inconnu";
-  for (const k of ["sellValue", "researchValue"] as const) if (a[k] !== null && a[k] !== undefined && !(isNum(a[k]) && a[k] >= 0)) return `${k} : nombre ≥ 0 ou inconnu attendu`;
+function checkAddedItem(maps: Maps, id: string, a: AddedItem): Message | null {
+  if (!ID.test(id)) return msg("data.badId");
+  if (maps.items.has(id)) return msg("data.itemExists");
+  if (!a || typeof a !== "object" || !a.source?.fetchedAt) return msg("data.itemShape");
+  if (typeof a.name !== "string" || !a.name.trim() || a.name.length > 100) return msg("data.name");
+  if (a.isFluid !== null && a.isFluid !== undefined && typeof a.isFluid !== "boolean") return msg("data.fluid");
+  for (const k of ["sellValue", "researchValue"] as const) if (a[k] !== null && a[k] !== undefined && !(isNum(a[k]) && a[k] >= 0)) return msg("data.optNumber", { k });
   return null;
 }
 
 /** Craft manquant : machine connue, au moins une sortie, objets connus, quantités > 0, durée > 0. */
-function checkAddedRecipe(maps: Maps, id: string, a: AddedRecipe): string | null {
-  if (!ID.test(id)) return "identifiant invalide";
-  if (maps.recipes.has(id)) return "ce craft existe déjà";
-  if (!a || typeof a !== "object" || !a.source?.fetchedAt) return "il faut { machine, …, source: { wiki, fetchedAt } }";
-  if (typeof a.machine !== "string" || !maps.machines.has(a.machine)) return `machine inconnue (${String(a.machine)})`;
-  if (!(isNum(a.durationS) && a.durationS > 0)) return "durée > 0 attendue";
-  if (!isNum(a.energyMFps)) return "énergie (MF/s) attendue";
+function checkAddedRecipe(maps: Maps, id: string, a: AddedRecipe): Message | null {
+  if (!ID.test(id)) return msg("data.badId");
+  if (maps.recipes.has(id)) return msg("data.recipeExists");
+  if (!a || typeof a !== "object" || !a.source?.fetchedAt) return msg("data.recipeShape");
+  if (typeof a.machine !== "string" || !maps.machines.has(a.machine)) return msg("data.unknownMachineId", { id: String(a.machine) });
+  if (!(isNum(a.durationS) && a.durationS > 0)) return msg("data.duration");
+  if (!isNum(a.energyMFps)) return msg("data.energy");
   for (const k of ["inputs", "outputs"] as const) {
     const side = a[k];
-    if (!side || typeof side !== "object" || Array.isArray(side)) return `${k} : { objet: quantité } attendu`;
+    if (!side || typeof side !== "object" || Array.isArray(side)) return msg("data.sideShape", { k });
     for (const [item, q] of Object.entries(side)) {
-      if (!maps.items.has(item)) return `objet inconnu dans ${k} (${item})`;
-      if (!(isNum(q) && q > 0)) return `quantité > 0 attendue (${item})`;
+      if (!maps.items.has(item)) return msg("data.unknownItemIn", { k, item });
+      if (!(isNum(q) && q > 0)) return msg("data.quantityPos", { item });
     }
   }
-  if (!Object.keys(a.outputs).length) return "au moins une sortie attendue";
+  if (!Object.keys(a.outputs).length) return msg("data.noOutput");
   return null;
 }
 

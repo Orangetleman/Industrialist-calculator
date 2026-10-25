@@ -3,6 +3,7 @@
 // drapeau `verify` ; une valeur contestée garde les alternatives et leurs sources.
 
 import type { FarmGeometry } from "./build/assembly.ts";
+import type { Text } from "./message.ts";
 
 export type SourceKind = "miraheze" | "fandom" | "desmos" | "jeu" | "saisie";
 
@@ -32,7 +33,8 @@ export type VerifyFlag = {
   /** Chemin du champ : "durationS", "energyMFps", "inputs.steel-ingot", "cost", "size"… */
   field: string;
   reason: VerifyReason;
-  detail: string;
+  /** Note des données (en français, traduite par data/i18n/en.json) ou message du moteur (S32). */
+  detail: Text;
   /** Mode du wiki pour une valeur variable (ex. "plant_speed_efficency"). */
   mode?: string;
   alternatives?: Alternative[];
@@ -114,8 +116,8 @@ export type Recipe = {
   /** Installation qui ne se pose qu'entière (moteur diesel modulaire) : ses pièces suivent le nombre d'installations arrondi. */
   wholeUnits?: boolean;
   /** Nom lisible d'une installation composée, et sa note (hypothèses, conseils). */
-  setupName?: string;
-  setupNote?: string;
+  setupName?: Text;
+  setupNote?: Text;
   /** Écart observé en jeu (ex. vapeur moins chaude que le wiki) : à afficher avec le plan. */
   setupObserved?: string;
   /** Pollution propre à la recette (%/h par machine), si elle diffère de celle de la machine (Scrubber). */

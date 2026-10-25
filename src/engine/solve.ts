@@ -12,10 +12,11 @@ import { optimize } from "./optimize.ts";
 import type { TreeGrowthResult } from "./pollution.ts";
 import { excludedMachines, excludedMessage, type MachineFilter } from "./machine-filter.ts";
 import { buildFlowModel, ENERGY, POLLUTION, type DepotSpec, type FlowModel, type RecipeProc } from "./resources.ts";
-import { solveV1, type PlanV1 } from "./solve-v1.ts";
+import { solveV1, unresolvedWhy, type PlanV1 } from "./solve-v1.ts";
 import { roundTiers, type Tier } from "./tiers.ts";
 import type { VerifyFlag } from "./types.ts";
 import { machineAccess, orderByDepth, rpCost, type MachineAccess, type Progress, type ReqItem } from "./unlock.ts";
+import { msg, type Message } from "./message.ts";
 
 export type PlayerState = Progress & {
   pollutionPct?: number | null;
@@ -136,7 +137,8 @@ export type Unresolved = {
 
 export type Surplus = { item: string; perMin: number; from: string[]; alsoDemanded: boolean };
 
-export type Warning = { code: string; message: string; items?: string[] };
+/** Avertissement du calcul : `code` le range (bloquant ou non…), `message` se traduit (S32). */
+export type Warning = { code: string; message: Message; items?: string[] };
 
 export type VerifyEntry = {
   scope: "recette" | "machine";
@@ -245,9 +247,8 @@ export type FixedResult = {
 
 const ceilTol = (x: number) => Math.ceil(x - 1e-9);
 /** Nombre pour les messages : deux décimales au plus, virgule décimale. */
-const fmtNum = (x: number) => (Math.round(x * 100) / 100).toString().replace(".", ",");
-/** Puissance pour les messages, avec préfixe comme en jeu : « 2 MMF/s », « 455,2 kMF/s ». */
-const fmtPower = (w: number) => (Math.abs(w) >= 1e6 ? `${fmtNum(w / 1e6)} MMF/s` : Math.abs(w) >= 1e3 ? `${fmtNum(w / 1e3)} kMF/s` : `${fmtNum(w)} MF/s`);
+/** Nombre pour les messages : deux décimales au plus. */
+const fmtNum = (x: number) => Math.round(x * 100) / 100;
 
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
   const fixed = Object.entries(req.fixedMachines ?? {}).filter(([, n]) => Number.isFinite(n) && n >= 1);
@@ -318,7 +319,7 @@ function solveFixed(data: GameData, player: PlayerState, req: SolveRequest, want
     guess = gHi !== null && i % 3 !== 2 ? lo + ((hi - lo) * -gLo) / (gHi - gLo) : (lo + hi) / 2;
     if (!(guess > lo && guess < hi)) guess = (lo + hi) / 2;
   }
-  if (!best) return none({ ...base, warnings: [...base.warnings, { code: "machines-fixées", message: "Aucun débit possible avec ces machines fixées." }] });
+  if (!best) return none({ ...base, warnings: [...base.warnings, { code: "machines-fixées", message: msg("plan.fixedNone") }] });
   const plan: Plan = best;
   const steps: FixedStep[] = fixable.map((f) => {
     const exact = exactOf(plan, f.recipeId);
@@ -350,7 +351,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   });
   const name = (id: string) => (id === ENERGY ? "Énergie" : itemName(data, id));
   const warnings: Warning[] = [];
-  if (!noItem && !data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: `Item inconnu : « ${req.item} ».`, items: [req.item] });
+  if (!noItem && !data.items.has(req.item)) warnings.push({ code: "item-inconnu", message: msg("plan.unknownItem", { item: req.item }), items: [req.item] });
 
   // Critère « moins d'étapes » : ce n'est pas une quantité linéaire ; l'heuristique choisit une
   // recette par item, le simplexe calcule ensuite les quantités (sous-produits compris).
@@ -407,7 +408,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     const unit = run(1);
     const perUnit = unit.status === "ok" ? [...unit.machines].filter(([id]) => (model.recipes.find((p) => p.id === id)?.perMin[req.item] ?? 0) > 0).reduce((s, [, x]) => s + x, 0) : 0;
     if (perUnit > 0) ratePerMin = req.finalMachines / perUnit;
-    else warnings.push({ code: "machines-finales", message: `Impossible de convertir ${req.finalMachines} machines en débit : ${name(req.item)} n'a pas de recette utilisable.` });
+    else warnings.push({ code: "machines-finales", message: msg("plan.finalMachines", { n: req.finalMachines, item: name(req.item) }) });
   }
   let depotUnlock: Extract<MachineAccess, { available: false }> | null = null;
   if (moneyMode && !model.depots.length) {
@@ -417,15 +418,15 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       const a = machineAccess(data, player, d.id);
       if (!a.available && !a.needsOwnership && (!depotUnlock || a.rpCost < depotUnlock.rpCost)) depotUnlock = a;
     }
-    const how = depotUnlock ? ` Débloque : ${depotUnlock.missingNodes.map((n) => data.nodes.get(n)?.name ?? n).join(" → ")}.` : "";
-    warnings.push({ code: "dépôt", message: `Aucun dépôt de vente utilisable (débloqué, avec un débit connu) : impossible de vendre.${how}` });
+    const how = depotUnlock ? msg("plan.noDepot.how", { list: { join: depotUnlock.missingNodes.map((n) => data.nodes.get(n)?.name ?? n), by: "flèche" } }) : undefined;
+    warnings.push({ code: "dépôt", message: msg("plan.noDepot", { how }) });
   }
   const res = run(ratePerMin);
   if (res.status !== "ok") {
-    if (energyMode) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti : aucune source d'énergie utilisable avec ta progression et ces options." }], player, data);
-    if (multi) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: "Le calcul de la chaîne n'a pas abouti." }], player, data);
+    if (energyMode) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: msg("plan.noEnergy") }], player, data);
+    if (multi) return emptyPlan(req, criterion, ratePerMin, [...warnings, { code: "simplexe", message: msg("plan.failed") }], player, data);
     if (!moneyMode) return fromV1(solveV1(data, player, { ...req, criterion: criterion === "pollution" || criterion === "cost" || criterion === "area" ? "machines" : criterion }), req);
-    return emptyPlan(req, criterion, ratePerMin, model.depots.length ? [...warnings, { code: "simplexe", message: "Le calcul n'a pas abouti (aucune vente possible avec ta progression)." }] : warnings, player, data, depotUnlock?.missingNodes ?? []);
+    return emptyPlan(req, criterion, ratePerMin, model.depots.length ? [...warnings, { code: "simplexe", message: msg("plan.noSale") }] : warnings, player, data, depotUnlock?.missingNodes ?? []);
   }
 
   // ---------------------------------------------------------------- étapes
@@ -610,20 +611,20 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
       for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item: main, flag: f, used: false });
     }
     if (isForced && !access.available) {
-      warnings.push({ code: "forcée-verrouillée", message: `Recette forcée pour ${name(main)} : la machine ${m?.name ?? r.machine} n'est pas débloquée.`, items: [main] });
+      warnings.push({ code: "forcée-verrouillée", message: msg("plan.forcedLocked", { item: name(main), m: m?.name ?? r.machine }), items: [main] });
     }
     if (step.usesUnverified) {
-      warnings.push({ code: "à-vérifier", message: `${name(main)} utilise une recette à vérifier (${r.id}) : ${eff.blocking.map((f) => f.detail).join(" ; ")}.`, items: [main] });
+      warnings.push({ code: "à-vérifier", message: msg("plan.unverified", { item: name(main), r: r.id, list: { join: eff.blocking.map((f) => ({ note: f.detail })), by: "point-virgule" } }), items: [main] });
     }
     if (eff.growth) {
-      warnings.push({ code: "arbres", message: `Pousse des arbres : ${eff.growth.detail} (${eff.growth.seconds.toFixed(1).replace(".", ",")} s). Le nombre d'arbres est indicatif.`, items: [main] });
+      warnings.push({ code: "arbres", message: msg("plan.trees", { detail: eff.growth.detail, s: Math.round(eff.growth.seconds * 10) / 10 }), items: [main] });
     }
   }
   steps.sort((a, b) => a.depth - b.depth || a.key.localeCompare(b.key));
   for (const { p } of used) {
     const reused = Object.entries(p.perMin).filter(([k, v]) => v > 0 && k !== mainOf.get(p.id) && (consOf.get(k) ?? []).some((c) => c.id !== p.id));
     for (const [k] of reused) {
-      warnings.push({ code: "sous-produit-réutilisé", message: `${name(k)}, sous-produit de ${p.id}, est réutilisé dans la chaîne.`, items: [k] });
+      warnings.push({ code: "sous-produit-réutilisé", message: msg("plan.reused", { item: name(k), r: p.id }), items: [k] });
     }
   }
 
@@ -647,40 +648,29 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
         for (const f of cand.flags ?? []) verify.push({ scope: "recette", id: cand.recipeId, item, flag: f, used: false });
       }
     }
-    const label =
-      reason === "verrouillé"
-        ? unlock?.needsOwnership
-          ? `il faut posséder la machine ${data.machines.get(unlock.machine)?.name ?? unlock.machine}`
-          : `recherche manquante : ${(unlock?.missingNodes ?? []).map((n) => data.nodes.get(n)?.name ?? n).join(", ")}`
-        : reason === "aucune recette"
-          ? "aucune recette connue (source inconnue)"
-          : reason === "seulement à vérifier"
-            ? "seules des recettes « à vérifier » existent (active l'option pour les utiliser)"
-            : reason === "incalculable"
-              ? "les recettes connues ont des valeurs manquantes"
-              : "boucle de dépendance";
+    const label = unresolvedWhy(data, reason, unlock);
     if (reason === "machine écartée") {
       warnings.push({ code: "non-résolu:machine écartée", message: excludedMessage(data, item, perMin, excluded), items: [item] });
     } else if (reason === "boucle") {
       const cyc = findCycle(model, item);
       warnings.push({
         code: "boucle",
-        message: `Boucle de dépendance${cyc.length > 1 ? ` : ${[...cyc, cyc[0]!].map(name).join(" → ")}` : ""}. Il manque une source extérieure : ${fmtNum(perMin)}/min de ${name(item)} ne sont pas produits.`,
+        message: msg("plan.loop", { cycle: cyc.length > 1 ? msg("plan.loop.cycle", { list: { join: [...cyc, cyc[0]!].map(name), by: "flèche" } }) : undefined, r: fmtNum(perMin), item: name(item) }),
         items: cyc.length ? cyc : [item],
       });
-    } else warnings.push({ code: `non-résolu:${reason}`, message: `${name(item)} (${fmtNum(perMin)}/min) n'est pas produit : ${label}.`, items: [item] });
+    } else warnings.push({ code: `non-résolu:${reason}`, message: msg("plan.unresolved", { item: name(item), r: fmtNum(perMin), why: label }), items: [item] });
   }
   if (res.energyImport > 0) {
-    warnings.push({ code: "énergie-non-couverte", message: `Il manque ${fmtPower(res.energyImport)} : aucun générateur utilisable (débloqué, avec un combustible productible) ne couvre la consommation.` });
+    warnings.push({ code: "énergie-non-couverte", message: msg("plan.energyMissing", { p: { mf: res.energyImport } }) });
   }
   if (res.impossible.pollution !== undefined) {
     warnings.push({
       code: "contrainte-pollution",
-      message: `Pollution maximale de ${fmtNum(req.maxPollution!)} %/h impossible à tenir : au mieux ${fmtNum(res.impossible.pollution)} %/h avec ta progression. Plan calculé sans cette limite.`,
+      message: msg("plan.pollutionLimit", { max: fmtNum(req.maxPollution!), best: fmtNum(res.impossible.pollution) }),
     });
   }
   if (res.impossible.budget !== undefined) {
-    warnings.push({ code: "contrainte-budget", message: `Budget de ${fmtNum(req.budget!)} $ insuffisant : il faut au moins ${fmtNum(res.impossible.budget)} $. Plan calculé sans cette limite.` });
+    warnings.push({ code: "contrainte-budget", message: msg("plan.budgetLimit", { max: fmtNum(req.budget!), min: fmtNum(res.impossible.budget) }) });
   }
 
   // ---------------------------------------------------------------- surplus
@@ -693,7 +683,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   }
   surplus.sort((a, b) => b.perMin - a.perMin);
 
-  for (const f of chooser.invalidForced) warnings.push({ code: "forcée-invalide", message: `Recette forcée ignorée pour ${name(f.item)} (${f.recipeId}) : ${f.reason}.`, items: [f.item] });
+  for (const f of chooser.invalidForced) warnings.push({ code: "forcée-invalide", message: msg("plan.forcedIgnored", { item: name(f.item), r: f.recipeId, why: f.reason }), items: [f.item] });
 
   // ---------------------------------------------------------------- ventes et dépôts
   const sales: Sale[] = [...res.sells].map(([item, perMin]) => ({ item, perMin, price: model.sellable.get(item)!, revenuePerMin: perMin * model.sellable.get(item)! }));
@@ -751,7 +741,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
   totals.energyAvg += extraLoad;
   totals.energyPeak += extraLoad;
   if (totals.energyUnknownSteps) {
-    warnings.push({ code: "énergie-inconnue", message: `Énergie inconnue pour ${totals.energyUnknownSteps} étape(s) : le total affiché est un minimum.` });
+    warnings.push({ code: "énergie-inconnue", message: msg("plan.energyUnknown", { n: totals.energyUnknownSteps }) });
   }
   if (req.maxPollution != null && res.impossible.pollution === undefined && totals.pollutionPerHour[1] > req.maxPollution * (1 + 1e-9)) {
     const exact = steps.reduce((s, x) => {
@@ -760,11 +750,11 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     }, 0);
     warnings.push({
       code: "pollution-arrondi",
-      message: `La limite de ${fmtNum(req.maxPollution)} %/h est tenue avec les machines exactes (${fmtNum(exact)} %/h) ; une fois arrondies à l'unité, elles en produisent jusqu'à ${fmtNum(totals.pollutionPerHour[1])} %/h si toutes tournent en continu.`,
+      message: msg("plan.pollutionRounded", { max: fmtNum(req.maxPollution), exact: fmtNum(exact), rounded: fmtNum(totals.pollutionPerHour[1]) }),
     });
   }
   if (req.budget != null && res.impossible.budget === undefined && totals.buildCost > req.budget) {
-    warnings.push({ code: "budget-arrondi", message: `Une fois les machines arrondies à l'unité, la construction coûte ${fmtNum(totals.buildCost)} $, au-delà du budget de ${fmtNum(req.budget)} $.` });
+    warnings.push({ code: "budget-arrondi", message: msg("plan.budgetRounded", { cost: fmtNum(totals.buildCost), max: fmtNum(req.budget) }) });
   }
 
   const economy = economyOf(data, player, req, steps, unresolved, totals, nested);
@@ -926,7 +916,7 @@ function fromV1(p: PlanV1, req: SolveRequest): Plan {
     distribution: null,
     totals: { ...p.totals, depots: 0, energyProduced: 0, revenuePerMin: 0 },
     constraints: { maxPollution: req.maxPollution ?? null, budget: req.budget ?? null, selfPowered: !!req.selfPowered },
-    warnings: [...p.warnings, { code: "simplexe", message: "Le simplexe n'a pas abouti : choix des recettes par l'heuristique (moteur v1), sans réutilisation des sous-produits." }],
+    warnings: [...p.warnings, { code: "simplexe", message: msg("plan.v1") }],
     tiers: [],
   };
 }

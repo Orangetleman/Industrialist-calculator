@@ -60,8 +60,9 @@ import {
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
 import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
-import { esc, fmt, fmtMF, fmtPct, frRaw, frText, parseNum, quote } from "./format.ts";
+import { esc, fmt, fmtMF, fmtPct, parseNum, quote } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
+import { txt, txtHtml } from "./engine-text.ts";
 
 type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: number; natH: number };
 /** Ce que fait la souris sur la grille. */
@@ -422,7 +423,7 @@ export function initBuildings(
     const asm = assemblyOf.get(id);
     const fp = entry!.footprint!;
     const wiki = sameSize(fp, m.size) ? "" : ` <span class="must unk" title="${esc(t("bld.wiki.title"))}">${esc(t("bld.wiki", { w: String(m.size!.w), h: String(m.size!.l) }))}</span>`;
-    const mod = asm ? `<span class="bld-badge mod" title="${esc(frRaw(findBlock(repoModular, id)?.block.role ?? ""))}">⬡ ${esc(asm.name)} · Tier ${TIER[asm.tier] ?? asm.tier}</span>` : "";
+    const mod = asm ? `<span class="bld-badge mod" title="${esc(txt(findBlock(repoModular, id)?.block.role ?? ""))}">⬡ ${esc(asm.name)} · Tier ${TIER[asm.tier] ?? asm.tier}</span>` : "";
     const fix = localMod[id] ? `<span class="bld-badge local" title="${esc(t("bld.localFix.title"))}">${t("bld.localFix")}</span>` : "";
     $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3>${stateBadge(surveyState(id, repo, local))}${mod}${fix}<span class="bld-size">${esc(t("bld.size", { w: String(fp.w), h: String(fp.h) }))} <button type="button" class="link small" id="bld-size" aria-expanded="${sizeOpen}" title="${esc(t("bld.size.change"))}">✎</button>${wiki}</span>`;
   }
@@ -544,7 +545,7 @@ export function initBuildings(
     const rows = st.choices
       .map(
         (c, j) =>
-          `<tr><td><input type="text" data-if="label" data-s="${k}" data-c="${j}" value="${esc(c.label)}" placeholder="${esc(t("if.pos.ph"))}">${c.doubt ? `<div class="hint">⚠ ${frText(c.doubt)}</div>` : ""}</td><td>${crafts(j, c)}</td><td><button type="button" class="link small" data-if-del-choice data-s="${k}" data-c="${j}">${t("if.remove")}</button></td></tr>`,
+          `<tr><td><input type="text" data-if="label" data-s="${k}" data-c="${j}" value="${esc(c.label)}" placeholder="${esc(t("if.pos.ph"))}">${c.doubt ? `<div class="hint">⚠ ${txtHtml(c.doubt)}</div>` : ""}</td><td>${crafts(j, c)}</td><td><button type="button" class="link small" data-if-del-choice data-s="${k}" data-c="${j}">${t("if.remove")}</button></td></tr>`,
       )
       .join("");
     return `<table><thead><tr><th>${t("if.th.pos")}</th><th>${t("if.th.crafts")}</th><th></th></tr></thead><tbody>${rows}</tbody></table><button type="button" class="link small" data-if-add-choice data-s="${k}">${t("if.addPos")}</button>`;
@@ -571,15 +572,15 @@ export function initBuildings(
         const opt = (v: string, label: string) => `<option value="${v}"${sort === v ? " selected" : ""}>${label}</option>`;
         body += `<div class="set"><div class="row"><label>${t("if.setting")} <input type="text" data-if="name" data-s="${k}" value="${esc(st.name)}" placeholder="${esc(t("if.setting.ph"))}"></label>
           <label>${t("if.sort")} <select data-if="sort" data-s="${k}">${opt("positions", t("if.sort.positions"))}${opt("nombre", t("if.sort.nombre"))}${opt("aucun", t("if.sort.aucun"))}</select></label>
-          <button type="button" class="link small" data-if-del-setting data-s="${k}">${t("if.delSetting")}</button></div>${st.note ? `<p class="hint">${frText(st.note)}</p>` : ""}${settingDetail(st, k, recs)}</div>`;
+          <button type="button" class="link small" data-if-del-setting data-s="${k}">${t("if.delSetting")}</button></div>${st.note ? `<p class="hint">${txtHtml(st.note)}</p>` : ""}${settingDetail(st, k, recs)}</div>`;
       });
       body += `<div class="row"><button type="button" class="link small" data-if-add-setting>${t("if.addSetting")}</button></div>
         <label class="bld-notes">${t("if.effect")} <input type="text" data-if="effect" value="${esc(i.effect ?? "")}" placeholder="${esc(t("if.effect.ph"))}"></label>`;
-      if (i.notes) body += `<p class="hint">${frText(i.notes)}</p>`;
-      const src = i.sources.map((x) => (x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.page ?? x.wiki)}</a>` : frText(x.note ?? x.wiki))).join(" · ");
+      if (i.notes) body += `<p class="hint">${txtHtml(i.notes)}</p>`;
+      const src = i.sources.map((x) => (x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(txt(x.page ?? x.wiki))}</a>` : txtHtml(x.note ?? x.wiki))).join(" · ");
       if (src) body += `<p class="hint">${t("if.sources", { list: src })}</p>`;
       const problems = checkInterface(i, recs.map((r) => r.id));
-      if (problems.length) body += `<ul class="bld-problems">${problems.map((p) => `<li>${frText(p)}</li>`).join("")}</ul>`;
+      if (problems.length) body += `<ul class="bld-problems">${problems.map((p) => `<li>${txtHtml(p)}</li>`).join("")}</ul>`;
     }
     box.innerHTML = `<div class="bld-iface"><p class="hint">${t("if.intro")}</p>
       <div class="row"><label>${t("bld.type")} ${kinds}</label></div>${body}</div>`;
@@ -632,12 +633,12 @@ export function initBuildings(
     return [...new Set(ids)]
       .map((id) => repoModular.sources[id])
       .filter((s): s is NonNullable<typeof s> => !!s)
-      .map((s) => `${s.wiki === "miraheze" ? "Miraheze" : s.wiki === "fandom" ? "Fandom" : s.wiki === "jeu" ? t("bld.src.game") : t("bld.src.mine")}${s.page ? ` (${s.page})` : ""}`)
+      .map((s) => `${s.wiki === "miraheze" ? "Miraheze" : s.wiki === "fandom" ? "Fandom" : s.wiki === "jeu" ? t("bld.src.game") : t("bld.src.mine")}${s.page ? ` (${txt(s.page)})` : ""}`)
       .filter((x, i, all) => all.indexOf(x) === i)
       .join(" · ");
   }
   /** ⚠ sur une question encore ouverte (le détail au survol). */
-  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" data-ref="${esc(f!.question!)}" title="${esc(t("bld.open.title", { text: frRaw(f!.text) }))}">${t("bld.toRecord")}</span>` : "");
+  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" data-ref="${esc(f!.question!)}" title="${esc(t("bld.open.title", { text: txt(f!.text) }))}">${t("bld.toRecord")}</span>` : "");
 
   /** Les quatre cases autour de la grille (blocs par contact) ; cachées pour les autres bâtiments. */
   function renderFaces(): void {
@@ -653,7 +654,7 @@ export function initBuildings(
     const info = blockFaces(b, modDraft ?? localMod[b.id]);
     const boxes = faceBoxes(info);
     const texts = [info.facesFact, info.requiredFact].filter((f): f is ModFact => !!f);
-    const title = `${frRaw(texts.map((f) => f.text).join(" "))}${texts.length ? t("bld.faces.sources", { list: srcText(texts.flatMap((f) => f.sources)) }) : ""}${info.local ? t("bld.faces.yours") : ""}${t("bld.faces.click")}`;
+    const title = `${texts.map((f) => txt(f.text)).join(" ")}${texts.length ? t("bld.faces.sources", { list: srcText(texts.flatMap((f) => f.sources)) }) : ""}${info.local ? t("bld.faces.yours") : ""}${t("bld.faces.click")}`;
     const split = !!(modDraft ?? localMod[b.id])?.sides;
     for (const el of buttons) {
       const box = el.dataset.box as FaceBox;
@@ -695,7 +696,7 @@ export function initBuildings(
       .map((x) => `<label class="mchip${f.blocks.includes(x.id) ? "" : " off"}"><input type="checkbox" data-fp="block" data-id="${esc(x.id)}"${f.blocks.includes(x.id) ? " checked" : ""}> ${esc(shortName(a, x.id))}</label>`)
       .join("");
     const texts = [info.facesFact, info.requiredFact].filter((x): x is ModFact => !!x);
-    const src = texts.length ? `<p class="hint">${texts.map((x) => `${frText(x.text)} ${openMark(x)}`).join(" ")} <span title="${esc(srcText(texts.flatMap((x) => x.sources)))}">${t("bld.facepop.srcHover")}</span></p>` : "";
+    const src = texts.length ? `<p class="hint">${texts.map((x) => `${txtHtml(x.text)} ${openMark(x)}`).join(" ")} <span title="${esc(srcText(texts.flatMap((x) => x.sources)))}">${t("bld.facepop.srcHover")}</span></p>` : "";
     box.innerHTML = `<div class="bld-facepop"><div class="row"><b>${label}</b><span class="hint">${t("bld.facepop.what")}</span></div>
       <div class="row">${chips}</div>
       <div class="row"><label class="bld-check"><input type="checkbox" data-fp="req"${f.required ? " checked" : ""}> ${t("bld.facepop.req")}</label>
@@ -731,7 +732,7 @@ export function initBuildings(
       parts.push(`<span><b>${t("bld.serves")}</b> ${others.map((x) => `<label class="mchip${r.serves.includes(x.id) ? "" : " off"}"><input type="checkbox" data-mod="serve" data-id="${esc(x.id)}"${r.serves.includes(x.id) ? " checked" : ""}> ${esc(shortName(a, x.id))}</label>`).join("")}</span>`);
       parts.push(`<span><button type="button" data-range-done>${t("bld.close")}</button> <button type="button" class="link small" data-mod-cancel>${t("bld.cancel")}</button></span>`);
     } else {
-      const src = r.rangeFact ? ` title="${esc(`${frRaw(r.rangeFact.text)}${t("bld.faces.sources", { list: srcText(r.rangeFact.sources) })}`)}"` : "";
+      const src = r.rangeFact ? ` title="${esc(`${txt(r.rangeFact.text)}${t("bld.faces.sources", { list: srcText(r.rangeFact.sources) })}`)}"` : "";
       const tiles =
         r.tiles === null ? `<span class="hint">${t("bld.range.none")}</span>` : r.tiles === "infinie" ? t("bld.range.infinite") : esc(t("bld.range.text", { r: fmt(r.tiles, 2), c: r.fromCenter !== null ? t("bld.range.center", { c: fmt(r.fromCenter, 2) }) : "" }));
       parts.push(`<span${src}><b>${t("bld.range.label")}</b> ${tiles} ${openMark(r.rangeFact)}</span>`);
@@ -760,7 +761,7 @@ export function initBuildings(
     let body = "";
     if (a.assembly !== "contact") {
       const notes = RANGE_NOTES.map((k) => fact(b, k)).filter((f): f is ModFact => !!f);
-      if (notes.length) body += `<h5>${t("bld.know")}</h5><ul class="bld-know">${notes.map((f) => `<li title="${esc(srcText(f.sources))}">${frText(f.text)} ${openMark(f)}</li>`).join("")}</ul>`;
+      if (notes.length) body += `<h5>${t("bld.know")}</h5><ul class="bld-know">${notes.map((f) => `<li title="${esc(srcText(f.sources))}">${txtHtml(f.text)} ${openMark(f)}</li>`).join("")}</ul>`;
     }
     body += modCalcHtml(repoModular, data, a, mcState, diesel.get(), mcMsg);
     const what = t(a.id === "diesel-engine" ? "bld.mod.what.dsl" : a.id === "tree-farm" ? "bld.mod.what.farm" : "bld.mod.what");

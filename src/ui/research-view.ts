@@ -4,9 +4,10 @@
 import type { GameData } from "../engine/data.ts";
 import type { Machine, ResearchNode } from "../engine/types.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, type Progress } from "../engine/unlock.ts";
-import { esc, fmt, fmtDuration, fmtMoney, fmtPollution, fmtRP, frText } from "./format.ts";
+import { esc, fmt, fmtDuration, fmtMoney, fmtPollution, fmtRP } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
 import { RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
+import { txtHtml } from "./engine-text.ts";
 
 export type NodeState = "done" | "available" | "expensive" | "locked" | "incoherent";
 
@@ -66,7 +67,7 @@ function machineCard(m: Machine, data: GameData): string {
   const src = m.sources[0];
   return `<li class="bcard">
     <div class="bhead"><b>${esc(m.name)}</b>${src?.url ? ` <a href="${esc(src.url)}" target="_blank" rel="noopener" class="muted">wiki ↗</a>` : ""}</div>
-    ${m.description ? `<p class="bdesc">${esc(m.description).replace(/\n/g, "<br>")}</p>` : `<p class="bdesc muted">${src?.note ? frText(src.note) : t("rs.noDesc.wiki")}</p>`}
+    ${m.description ? `<p class="bdesc">${esc(m.description).replace(/\n/g, "<br>")}</p>` : `<p class="bdesc muted">${src?.note ? txtHtml(src.note) : t("rs.noDesc.wiki")}</p>`}
     ${facts.length ? `<div class="meta">${facts.join("")}</div>` : ""}
     ${outputs.length ? `<div class="meta"><span>${esc(t("rs.makes", { list: outputs.slice(0, 12).join(", ") }))}${outputs.length > 12 ? "…" : ""}</span></div>` : ""}
   </li>`;

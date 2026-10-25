@@ -13,6 +13,7 @@ import { dieselConfigs, dieselLitersPerMMF, dieselLookup, dieselPick, farmBlocks
 import type { ModularFile } from "./modular.ts";
 import { solve } from "./solve.ts";
 import type { OverridesFile } from "./types.ts";
+import { say } from "../ui/engine-text.ts";
 
 const file = modularJson as unknown as ModularFile;
 const base = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
@@ -53,7 +54,7 @@ describe("ferme d'arbres", () => {
     expect(farmOutput(rates, { ...b, sprinklers: 1 }, 363)).toMatchObject({ limit: "arroseurs", watered: 44 });
     const tanks = farmOutput(rates, { ...b, trees: 200, sprinklers: 4, harvesters: 10 }, 363);
     expect(tanks).toMatchObject({ limit: "réservoirs", activeSprinklers: 3, watered: 132 });
-    expect(tanks.problems[0]).toContain("1 arroseur(s) sans réservoir");
+    expect(say(tanks.problems[0]!)).toContain("1 arroseur sans réservoir");
     expect(farmOutput(rates, { ...b, outputs: 0 }, 363)).toMatchObject({ limit: "bloc manquant", logsPerMin: 0 });
     expect(farmOutput(rates, { ...b, controllers: 2 }, 363)).toMatchObject({ limit: "deux contrôleurs", logsPerMin: 0 });
   });

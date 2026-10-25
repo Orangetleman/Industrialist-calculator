@@ -3,12 +3,13 @@
 
 import type { FactoryInput, FactoryPlan } from "../engine/build/factory.ts";
 import { t } from "../i18n/i18n.ts";
+import type { Message } from "../engine/message.ts";
 
-export type FactoryMessage = { kind: "progress"; done: number; label: string } | { kind: "done"; plan: FactoryPlan; ms: number } | { kind: "error"; message: string };
+export type FactoryMessage = { kind: "progress"; done: number; label: Message } | { kind: "done"; plan: FactoryPlan; ms: number } | { kind: "error"; message: string };
 
 export type FactoryJob = { cancel: () => void };
 
-export function runFactory(input: FactoryInput, on: { progress: (done: number, label: string) => void; done: (plan: FactoryPlan, ms: number) => void; error: (message: string) => void }): FactoryJob {
+export function runFactory(input: FactoryInput, on: { progress: (done: number, label: Message) => void; done: (plan: FactoryPlan, ms: number) => void; error: (message: string) => void }): FactoryJob {
   const worker = new Worker(new URL("./factory.worker.ts", import.meta.url), { type: "module" });
   let over = false;
   const stop = () => {

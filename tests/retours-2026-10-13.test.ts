@@ -12,6 +12,7 @@ import { solve } from "../src/engine/solve.ts";
 import type { OverridesFile } from "../src/engine/types.ts";
 import { allVerifyEntries, renderVerify } from "../src/ui/render.ts";
 import { cleanNotes, DEFAULT_SETTINGS, noteKey } from "../src/ui/state.ts";
+import { txt } from "../src/ui/engine-text.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
 const { data, errors } = buildGameData(files, [overridesJson as unknown as OverridesFile]);
@@ -39,7 +40,7 @@ describe("prudence et corrections", () => {
   it("une pollution en plage compte pour sa borne la plus forte", () => {
     const m = data.machines.get("large-diesel-engine")!;
     expect(m.pollutionPerHour).toBe(0.648);
-    expect(m.verify.find((f) => f.field === "pollutionPerHour")?.detail).toMatch(/par prudence/);
+    expect(txt(m.verify.find((f) => f.field === "pollutionPerHour")!.detail)).toMatch(/par prudence/);
   });
 
   it("Scrubber : pollution donnée recette par recette (page du wiki), plus de doute sur la machine", () => {

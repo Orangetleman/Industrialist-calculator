@@ -3,6 +3,7 @@
 
 import type { VerifyFlag } from "../engine/types.ts";
 import { lang, locale, t, type Key } from "../i18n/i18n.ts";
+import { txt } from "./engine-text.ts";
 
 const nf = (d: number) => new Intl.NumberFormat(locale(), { minimumFractionDigits: 0, maximumFractionDigits: d });
 const cache = new Map<string, Intl.NumberFormat>();
@@ -63,8 +64,8 @@ export function parseEnergy(raw: string): number | null {
 
 /** Le doute du wiki, avec ses unités : « 15 s (Miraheze) ou 17,2 s (Fandom) » ; sinon le texte relevé (S28). */
 export function doubtText(f: Pick<VerifyFlag, "field" | "detail"> & Partial<VerifyFlag>): string {
-  const pairs = [...f.detail.matchAll(/(Miraheze|Fandom|wiki|jeu)\s*:\s*(-?[\d.]+)/gi)].map((m) => ({ src: m[1]!, n: Number(m[2]) }));
-  if (pairs.length < 2 || pairs.some((p) => !Number.isFinite(p.n))) return frRaw(f.detail);
+  const pairs = typeof f.detail === "string" ? [...f.detail.matchAll(/(Miraheze|Fandom|wiki|jeu)\s*:\s*(-?[\d.]+)/gi)].map((m) => ({ src: m[1]!, n: Number(m[2]) })) : [];
+  if (pairs.length < 2 || pairs.some((p) => !Number.isFinite(p.n))) return txt(f.detail);
   const unit = (n: number) => (f.field === "durationS" ? `${fmt(n, 2)} s` : f.field === "energyMFps" ? fmtMF(n) : fmt(n, 3));
   return pairs.map((p) => `${unit(p.n)} (${p.src})`).join(` ${t("common.or")} `);
 }
@@ -135,17 +136,6 @@ export function fmtPollution(p: [number, number] | number | null): string {
 export function esc(s: unknown): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
-
-/**
- * Texte du moteur ou des données, encore en français (traduit en S32) : échappé, et marqué lang="fr" quand
- * le site est en anglais (pour les lecteurs d'écran ; le test « rien d'oublié » le met de côté).
- */
-export const frText = (s: string): string => (en() && s ? `<span lang="fr">${esc(s)}</span>` : esc(s));
-/** Isolement (U+2068 … U+2069, invisibles) d'un texte du moteur ou des données dans un attribut ou un texte brut. */
-export const FR_OPEN = String.fromCharCode(0x2068);
-export const FR_CLOSE = String.fromCharCode(0x2069);
-/** Même chose que frText pour un attribut (title…) ou un texte brut : isolé par FR_OPEN … FR_CLOSE quand le site est en anglais. */
-export const frRaw = (s: string): string => (en() && s ? FR_OPEN + s + FR_CLOSE : s);
 
 const REASONS = ["manquant", "contradiction", "non-sourcé", "approximatif", "variable"];
 /** Libellé du motif d'une valeur à vérifier (codes des données : manquant, contradiction…). */

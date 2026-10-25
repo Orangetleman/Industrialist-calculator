@@ -17,12 +17,13 @@ import type { MachineInterface } from "../engine/extension-types.ts";
 import { choicesFor, factorsFor, numberSettings } from "../engine/interfaces.ts";
 import { factorText, screenText } from "./iface-view.ts";
 import { controllerPanel } from "./assembly-view.ts";
-import { colon, esc, fmt, fmtPct, frRaw, frText } from "./format.ts";
+import { colon, esc, fmt, fmtPct } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
 import { kindLabel } from "./buildings-model.ts";
 import { nodeText, type ViewCtx } from "./plan-view.ts";
 import { craftHref, fixableHere, fixKey, renderCraft, verifyHref, type RecipesCtx } from "./recipes-view.ts";
 import { accessButton, itemN, leafText, lockText, machineN } from "./render.ts";
+import { txt, txtHtml } from "./engine-text.ts";
 
 /** Nombre d'un calcul : assez de décimales pour le refaire à la main, pas plus. */
 export function num(x: number): string {
@@ -53,12 +54,12 @@ export function sourceTag(r: Recipe, field: string, label = ""): string {
   const c = r.corrections?.find((x) => x.field === field);
   if (c) {
     const mine = c.source.wiki === "saisie";
-    const tip = t("cv.fix.title", { who: t(mine ? "cv.fix.mine" : "cv.fix.game"), date: c.source.fetchedAt.slice(0, 10), before: String(c.previous ?? "—"), note: c.source.note ? ` — ${frRaw(c.source.note)}` : "" });
+    const tip = t("cv.fix.title", { who: t(mine ? "cv.fix.mine" : "cv.fix.game"), date: c.source.fetchedAt.slice(0, 10), before: String(c.previous ?? "—"), note: c.source.note ? ` — ${txt(c.source.note)}` : "" });
     return `<span class="src-tag ${mine ? "fix" : "jeu"}" title="${esc(tip)}">${esc(pre)}${srcLabel(mine ? "saisie" : "jeu")}</span>`;
   }
   const f = r.verify.find((x) => x.field === field);
   if (f) {
-    const text = `${pre}${t("cv.verify", { d: frRaw(f.detail) })}`;
+    const text = `${pre}${t("cv.verify", { d: txt(f.detail) })}`;
     return fixableHere("recipes", field)
       ? `<button type="button" class="src-tag warn" data-rc-focus="${esc(fixKey("recipes", r.id, field))}" title="${esc(t("cv.fix.here"))}">${esc(text)}</button>`
       : `<a class="src-tag warn" href="${verifyHref("recette", r.id, field)}" title="${esc(t("cv.fix.data"))}">${esc(text)}</a>`;
@@ -67,7 +68,7 @@ export function sourceTag(r: Recipe, field: string, label = ""): string {
   const s = r.sources[0];
   if (!s) return `<span class="src-tag warn">${esc(pre)}${t("cv.noSource")}</span>`;
   const name = { miraheze: "Miraheze", fandom: "Fandom", desmos: "Desmos", jeu: t("cv.src.jeu"), saisie: t("cv.src.saisie.name") }[s.wiki];
-  const tip = t("cv.src.title", { name, date: s.fetchedAt.slice(0, 10), note: s.note ? ` — ${frRaw(s.note)}` : "" });
+  const tip = t("cv.src.title", { name, date: s.fetchedAt.slice(0, 10), note: s.note ? ` — ${txt(s.note)}` : "" });
   const cls = s.wiki === "jeu" ? "jeu" : s.wiki === "saisie" ? "fix" : "wiki";
   const text = `${pre}${srcLabel(s.wiki)}`;
   return s.url
@@ -111,7 +112,7 @@ function ifaceSources(i: MachineInterface): string {
     .map(([label, list]) => {
       const k = list[0]!.wiki;
       const cls = k === "jeu" ? "jeu" : k === "saisie" ? "fix" : "wiki";
-      const tip = list.map((x) => `${x.page ?? label}, ${x.fetchedAt.slice(0, 10)}${x.note ? ` — ${frRaw(x.note)}` : ""}`).join("\n");
+      const tip = list.map((x) => `${x.page ? txt(x.page) : label}, ${x.fetchedAt.slice(0, 10)}${x.note ? ` — ${txt(x.note)}` : ""}`).join("\n");
       const url = list.find((x) => x.url)?.url;
       const text = esc(label);
       return url ? `<a class="src-tag ${cls}" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(tip)}">${text}</a>` : `<span class="src-tag ${cls}" title="${esc(tip)}">${text}</span>`;
@@ -126,9 +127,9 @@ function settingRows(v: ViewCtx, s: Step, r: Recipe): Row[] {
   const rows: Row[] = [];
   const kind = kindLabel(i.kind);
   for (const { setting, choice } of choicesFor(i, r.id)) {
-    const where = i.where ? ` (${frText(i.where)})` : "";
+    const where = i.where ? ` (${txtHtml(i.where)})` : "";
     const once = i.once ? t("cv.setting.once") : "";
-    rows.push({ label: t("cv.setting"), formula: t("cv.setting.formula", { kind: esc(kind), where, name: frText(setting.name), pos: frText(choice.label), once, doubt: choice.doubt ? ` (⚠ ${frText(choice.doubt)})` : "" }), result: frRaw(choice.label), src: ifaceSources(i) });
+    rows.push({ label: t("cv.setting"), formula: t("cv.setting.formula", { kind: esc(kind), where, name: txtHtml(setting.name), pos: txtHtml(choice.label), once, doubt: choice.doubt ? ` (⚠ ${txtHtml(choice.doubt)})` : "" }), result: txt(choice.label), src: ifaceSources(i) });
   }
   const nums = numberSettings(i);
   if (nums.length) {
@@ -140,7 +141,7 @@ function settingRows(v: ViewCtx, s: Step, r: Recipe): Row[] {
     rows.push(
       text
         ? { label: t("cv.screen"), formula: t("cv.screen.formula", { text: esc(text), m: esc(machineN(v, s.machine)), ex }), result: t("cv.screen.byYou"), src: `${ifaceSources(i)} ${t("cv.screen.base")}` }
-        : { label: t("cv.screen"), formula: t("cv.screen.default", { list: nums.map((x) => frText(x.name)).join(", ") }), result: "1×", src: ifaceSources(i) },
+        : { label: t("cv.screen"), formula: t("cv.screen.default", { list: nums.map((x) => txtHtml(x.name)).join(", ") }), result: "1×", src: ifaceSources(i) },
     );
   }
   return rows;
@@ -206,7 +207,7 @@ function countRows(v: ViewCtx, s: Step, r: Recipe, formula: string): Row[] {
 function farmSrc(r: Recipe, page: string): string {
   const s = r.sources.find((x) => x.page?.includes(page));
   if (!s) return "";
-  const t = `${s.page}, ${s.fetchedAt.slice(0, 10)}`;
+  const t = `${txt(s.page!)}, ${s.fetchedAt.slice(0, 10)}`;
   return s.url ? `<a class="src-tag wiki" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(t)}">wiki</a>` : `<span class="src-tag wiki" title="${esc(t)}">wiki</span>`;
 }
 
@@ -283,7 +284,7 @@ function stepNote(v: ViewCtx, s: Step): string {
   }
   if (s.growth)
     notes.push(
-      t("cv.growth.html", { detail: frText(s.growth.detail), src: s.growth.sourceUrl ? ` (<a href="${esc(s.growth.sourceUrl)}" target="_blank" rel="noopener">${t("cv.growth.src")}</a>)` : "" }),
+      t("cv.growth.html", { detail: txtHtml(s.growth.detail), src: s.growth.sourceUrl ? ` (<a href="${esc(s.growth.sourceUrl)}" target="_blank" rel="noopener">${t("cv.growth.src")}</a>)` : "" }),
     );
   else if (s.isRaw && s.item !== ENERGY && s.item !== POLLUTION) notes.push(t("cv.raw"));
   if (!s.access.available) notes.push(`${esc(lockText(v, s.access))} ${accessButton(s.access)}`);
@@ -295,7 +296,7 @@ function rateRow(s: Step, r: Recipe, name: string): Row {
   const gross = r.outputs[s.item] ?? 0;
   const back = r.inputs[s.item] ?? 0;
   const out = back ? `(${qty(gross)} − ${qty(back)})` : qty(s.outputPerCycle);
-  const duration = s.growth ? `<span class="src-tag warn" title="${esc(frRaw(s.growth.detail))}">${t("cv.growth.tag", { how: s.growth.method === "formule" ? t("cv.growth.approx") : frRaw(s.growth.method) })}</span>` : sourceTag(r, "durationS", t("cv.duration"));
+  const duration = s.growth ? `<span class="src-tag warn" title="${esc(txt(s.growth.detail))}">${t("cv.growth.tag", { how: t(s.growth.method === "formule" ? "cv.growth.approx" : s.growth.method === "tableau" ? "cv.growth.table" : "cv.growth.default") })}</span>` : sourceTag(r, "durationS", t("cv.duration"));
   return {
     label: t("cv.rate"),
     formula: `${out} ${esc(name)} × 60 ÷ ${num(s.durationS)} s`,

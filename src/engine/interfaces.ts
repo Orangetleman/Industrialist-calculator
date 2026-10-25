@@ -8,6 +8,7 @@
 import { type GameData, indexProducers } from "./data.ts";
 import type { InterfaceChoice, InterfaceSetting, MachineInterface } from "./extension-types.ts";
 import type { Recipe } from "./types.ts";
+import { msg, type Message } from "./message.ts";
 
 export type Interfaces = Record<string, MachineInterface>;
 /** Réglages chiffrés d'un plan : machine → réglage → valeur. */
@@ -36,8 +37,8 @@ export function choicesFor(i: MachineInterface | undefined, recipeId: string): {
 }
 
 /** « levier sur « container » », « Écran à l'avant : « Soil & Clay » ». */
-export function choiceText(i: MachineInterface, setting: InterfaceSetting, choice: InterfaceChoice): string {
-  return i.kind === "levier" ? `${setting.name.toLowerCase()} sur « ${choice.label} »` : `${setting.name} : « ${choice.label} »`;
+export function choiceText(i: MachineInterface, setting: InterfaceSetting, choice: InterfaceChoice): Message {
+  return i.kind === "levier" ? msg("if.lever", { setting: { note: setting.name, lower: true }, choice: { note: choice.label } }) : msg("if.screen", { setting: { note: setting.name }, choice: { note: choice.label } });
 }
 
 /** Valeur d'un réglage chiffré pour le plan (sa valeur par défaut s'il n'est pas réglé). */
@@ -108,26 +109,27 @@ export function resolveScreenFlags(recipes: Map<string, Recipe>, ifaces: Interfa
 }
 
 /** Contrôles d'une interface notée dans l'éditeur : liste des problèmes (vide = complète). */
-export function checkInterface(i: MachineInterface, machineRecipes: string[]): string[] {
-  const out: string[] = [];
-  if (!i.settings.length) out.push("aucun réglage noté");
+export function checkInterface(i: MachineInterface, machineRecipes: string[]): Message[] {
+  const out: Message[] = [];
+  if (!i.settings.length) out.push(msg("if.none"));
   const ids = new Set<string>();
   const used = new Map<string, string>();
   for (const s of i.settings) {
-    if (!s.name.trim()) out.push("un réglage n'a pas de nom");
-    if (ids.has(s.id)) out.push(`réglage « ${s.name} » en double`);
+    const name = { note: s.name };
+    if (!s.name.trim()) out.push(msg("if.noName"));
+    if (ids.has(s.id)) out.push(msg("if.twice", { s: name }));
     ids.add(s.id);
-    if (s.choices && s.number) out.push(`« ${s.name} » : des positions ou un nombre, pas les deux`);
+    if (s.choices && s.number) out.push(msg("if.both", { s: name }));
     for (const c of s.choices ?? []) {
-      if (!c.label.trim()) out.push(`« ${s.name} » : une position sans texte`);
+      if (!c.label.trim()) out.push(msg("if.noLabel", { s: name }));
       for (const r of c.recipes) {
-        if (!machineRecipes.includes(r)) out.push(`« ${s.name} » : craft ${r} inconnu pour cette machine`);
+        if (!machineRecipes.includes(r)) out.push(msg("if.unknownCraft", { s: name, r }));
         const prev = used.get(`${s.id}|${r}`);
-        if (prev) out.push(`« ${s.name} » : le craft ${r} est dans deux positions (${prev}, ${c.label})`);
+        if (prev) out.push(msg("if.craftTwice", { s: name, r, a: { note: prev }, b: { note: c.label } }));
         used.set(`${s.id}|${r}`, c.label);
       }
     }
-    if (s.number && !(s.number.default > 0)) out.push(`« ${s.name} » : valeur par défaut manquante`);
+    if (s.number && !(s.number.default > 0)) out.push(msg("if.noDefault", { s: name }));
   }
   return out;
 }

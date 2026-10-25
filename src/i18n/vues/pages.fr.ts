@@ -147,6 +147,7 @@ export const pagesFr = {
   "m.asm.seeInFactory": "Voir sa place dans « Toute l'usine »",
   "m.setOnEach": "à régler sur chaque machine : ",
   "m.f.lookup": "Recherche d'un calcul déjà fait",
+  "m.f.start": "Démarrage",
   "m.f.cancel": "Annuler",
   "m.f.failed": "Le calcul de toute l'usine a échoué : {err}",
   "m.f.rerun": "Relancer le calcul",

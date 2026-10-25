@@ -18,6 +18,7 @@ import { buildCatalog, pipeFor } from "./catalog.ts";
 import { add, key, OPPOSITE, place, rotateCell, rotatePoint, type Dir } from "./geometry.ts";
 import { alternatives, designModule, normalPriority, passageOptions, portAssignments, redesign, type ModulePlan, type ModuleRequest, type PoseCriterion } from "./module.ts";
 import { Grid, route } from "./route.ts";
+import { say } from "../../ui/engine-text.ts";
 
 const PORTS = (portsJson as unknown as PortsFile).machines;
 const cat = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, (relevesJson as { poleRangeTiles: Record<string, number> }).poleRangeTiles);
@@ -326,7 +327,7 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
       const pc = o.plan.pieces.find((p) => p.x === n.via!.x && p.y === y);
       expect(pc?.net === n.id || pc?.crossNet === n.id, `${what} : case ${n.via!.x},${y}`).toBe(true);
     }
-    expect(o.plan.order.some((t) => t.includes("sort à angle droit"))).toBe(true);
+    expect(o.plan.order.some((t) => say(t).includes("sort à angle droit"))).toBe(true);
   }
 
   it("double rangée : le collecteur central sort à angle droit par un passage entre deux machines", () => {
@@ -350,7 +351,7 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
     expect(wide).toBeDefined();
     checkPassage(wide!, req);
     expect(wide!.plan.width * wide!.plan.height).toBeGreaterThan(mod.width * mod.height);
-    expect(wide!.plan.order.some((t) => t.includes("écartées d'une case"))).toBe(true);
+    expect(wide!.plan.order.some((t) => say(t).includes("écartées d'une case"))).toBe(true);
     // Deux passages à la fois, pour deux ressources.
     const [a, b] = req.inputs.concat(req.outputs).map((f) => f.item);
     const two = redesign(mod, { ...req, passages: { [a!]: { row: "haut", after: 1 }, [b!]: { row: "bas", after: 2 } } }, PORTS["roller"]!, null, cat);
@@ -385,7 +386,7 @@ describe("module d'une étape (chaîne du Crankshaft, 60/min)", () => {
   it("bâtiment non relevé : ports supposés, et le plan le dit", () => {
     const { mod } = moduleFor("liquid-iron");
     expect(mod.portsKnown).toBe(false);
-    expect(mod.assumptions[0]).toMatch(/Ports supposés/);
+    expect(say(mod.assumptions[0]!)).toMatch(/Ports supposés/);
   });
 });
 

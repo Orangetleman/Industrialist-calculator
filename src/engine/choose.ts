@@ -6,6 +6,7 @@ import { machineAllowed, recipeAllowed, type AllowedFn, type MachineFilter } fro
 import { treeGrowthSeconds, type TreeGrowthResult } from "./pollution.ts";
 import type { Machine, Recipe, VerifyFlag } from "./types.ts";
 import { machineAccess, type MachineAccess, type Progress } from "./unlock.ts";
+import { msg, type Message } from "./message.ts";
 
 /** Critères d’optimisation. « pollution » et « cost » ne sont traités que par le simplexe (moteur v2). */
 export type Criterion = "machines" | "energy" | "raw" | "steps" | "pollution" | "cost" | "area";
@@ -189,7 +190,7 @@ export class Chooser {
   private readonly choices = new Map<string, Choice>();
   private readonly effMemo = new Map<string, EffRecipe>();
   private readonly preMemo = new Map<string, Pre>();
-  readonly invalidForced: { item: string; recipeId: string; reason: string }[] = [];
+  readonly invalidForced: { item: string; recipeId: string; reason: Message }[] = [];
   readonly notConverged: string[] = [];
   /** Boucles détectées dans les choix et cassées en écartant une recette. */
   readonly brokenLoops: string[][] = [];
@@ -249,9 +250,9 @@ export class Chooser {
     const forcedId = this.opts.forced[item];
     const forcedRecipe = forcedId ? this.data.recipes.get(forcedId) : undefined;
     if (forcedId && (!forcedRecipe || !recipes.includes(forcedRecipe))) {
-      this.invalidForced.push({ item, recipeId: forcedId, reason: forcedRecipe ? "cette recette ne produit pas l'item" : "recette inconnue" });
+      this.invalidForced.push({ item, recipeId: forcedId, reason: msg(forcedRecipe ? "forced.notProducing" : "forced.unknown") });
     } else if (forcedRecipe && !this.allowedRecipe(forcedRecipe)) {
-      this.invalidForced.push({ item, recipeId: forcedId!, reason: "sa machine est écartée par le filtre de machines" });
+      this.invalidForced.push({ item, recipeId: forcedId!, reason: msg("forced.excluded") });
     }
     const forcedValid = !!forcedRecipe && recipes.includes(forcedRecipe) && this.allowedRecipe(forcedRecipe);
     const usable: Usable[] = [];

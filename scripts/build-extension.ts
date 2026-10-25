@@ -142,7 +142,7 @@ if (releves) {
     e.sources = [...e.sources, releves.source];
   }
 }
-for (const e of powerEntries) for (const f of e.verify) flagLines.push(`| ${e.name} | énergie · ${f.field} | ${f.reason} | ${f.detail.replace(/\|/g, "\\|")} |`);
+for (const e of powerEntries) for (const f of e.verify) flagLines.push(`| ${e.name} | énergie · ${f.field} | ${f.reason} | ${String(f.detail).replace(/\|/g, "\\|")} |`);
 
 // ---------------------------------------------------------------- logistique
 const pipesPage = pageOf("Pipes");

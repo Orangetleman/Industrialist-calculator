@@ -13,6 +13,7 @@ import type { InterfacesFile } from "./extension-types.ts";
 import { applyMachineSettings, checkInterface, choicesFor, choiceText, factorsFor, hasEffect, type MachineSettings } from "./interfaces.ts";
 import { solve } from "./solve.ts";
 import type { OverridesFile } from "./types.ts";
+import { say } from "../ui/engine-text.ts";
 
 const ifaces = (interfacesJson as unknown as InterfacesFile).machines;
 const base = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles;
@@ -22,7 +23,7 @@ const all = { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 };
 const plan = (item: string, settings: MachineSettings = {}, extra = {}) =>
   solve(applyMachineSettings(data, ifaces, settings), all, { item, ratePerMin: 60, criterion: "energy", then: ["machines", "cost", "pollution", "area", "raw", "steps"], tiers: false, ...extra });
 const stepOf = (p: ReturnType<typeof plan>, machine: string) => p.steps.find((s) => s.machine === machine);
-const settingOf = (machine: string, recipeId: string) => choicesFor(ifaces[machine], recipeId).map((x) => choiceText(ifaces[machine]!, x.setting, x.choice));
+const settingOf = (machine: string, recipeId: string) => choicesFor(ifaces[machine], recipeId).map((x) => say(choiceText(ifaces[machine]!, x.setting, x.choice)));
 
 describe("données des interfaces", () => {
   it("machines connues, crafts de la bonne machine, chaque interface sourcée et vérifiée", () => {

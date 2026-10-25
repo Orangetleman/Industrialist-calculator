@@ -13,6 +13,7 @@
 
 import type { PortsEntry } from "../extension-types.ts";
 import { place, STEP, type Dir, type Rot } from "./geometry.ts";
+import { msg, type Message } from "../message.ts";
 
 export type Rect = { x0: number; y0: number; x1: number; y1: number };
 export type PortSpec = { side: "haut" | "bas" | "gauche" | "droite"; cell: number };
@@ -96,7 +97,7 @@ export type FarmSet = {
   height: number;
   /** Écart laissé entre deux fermes (cases), pour les portées des contrôleurs. */
   gap: number | null;
-  problems: string[];
+  problems: Message[];
 };
 
 // ---------------------------------------------------------------- outils
@@ -574,7 +575,7 @@ const farmMemo = (g: FarmGeometry, n: number, reach: number | null) => memo(`far
 export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pole?: string): FarmSet {
   const T = g.tree;
   const N = Math.max(0, Math.ceil(trees - 1e-9));
-  const problems: string[] = [];
+  const problems: Message[] = [];
   const empty: FarmSet = { farms: 0, trees: [], capacity: 0, reserveReach: null, blocks: [], corridors: [], poles: [], cables: [], counts: {}, poleCounts: {}, pole: null, poleOptions: [], width: 0, height: 0, gap: null, problems };
   if (!N) return empty;
   // Poteau : d'abord pour une seule ferme, puis pour la part de chacune.
@@ -594,7 +595,7 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
       reach = def ? def.rangeCells : null;
     }
   }
-  if (g.poles.length && !def) problems.push("Aucun poteau connu ne porte l'électricité d'une ferme : le contrôleur n'est pas alimenté dans ce plan.");
+  if (g.poles.length && !def) problems.push(msg("asm.farmNoPole"));
   // Parts égales ; une ferme de plus si l'une d'elles ne se place pas.
   let sizes: number[] = [];
   let layouts: Farm[] = [];
@@ -606,7 +607,7 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
     if (layouts.every((f) => f.ok)) break;
     farms++;
   }
-  for (const f of layouts) if (!f.ok) problems.push(`Une ferme de ${f.N} arbres ne se place pas en entier (${f.lost} arbre${f.lost > 1 ? "s" : ""} sans récolteur, sortie ou réservoir).`);
+  for (const f of layouts) if (!f.ok) problems.push(msg("asm.farmLost", { trees: f.N, n: f.lost }));
   // Écart entre deux fermes : le cercle d'un contrôleur ne touche aucun bloc de l'autre.
   const rectsOf = (f: Farm): Rect[] => [...f.trees.map((t) => t.r), ...f.spr.map((s) => s.r), ...f.harv.map((h) => h.r), ...f.outs.map((o) => o.r), ...f.tanks.map((t) => t.r), f.ctrl.r];
   const big = layouts[0]!;
@@ -715,8 +716,8 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
   const poleCounts: Record<string, number> = {};
   for (const p of poles) if (p.used) poleCounts[p.pole] = (poleCounts[p.pole] ?? 0) + 1;
   const poleOptions = def ? g.poles.filter((p) => p.capacityMFps >= def!.capacityMFps - 1e-9 && p.rangeCells >= def!.rangeCells) : [];
-  if (!g.ports.output) problems.push("Port de la sortie non relevé : pas de passage réservé pour le tuyau des Oak Logs.");
-  if (!g.ports.tank) problems.push("Entrée d'eau du réservoir non relevée : pas de passage réservé pour l'eau.");
+  if (!g.ports.output) problems.push(msg("asm.noOutputPort"));
+  if (!g.ports.tank) problems.push(msg("asm.noTankPort"));
   return { farms: layouts.length, trees: sizes, capacity: cap, reserveReach: reach, blocks, corridors, poles, cables, counts, poleCounts, pole: pick, poleOptions, width, height, gap: layouts.length > 1 ? dx - (fb.x1 - fb.x0) : null, problems };
 }
 

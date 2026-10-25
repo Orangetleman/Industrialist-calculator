@@ -1,6 +1,7 @@
 // Fabrique de jeux de données factices pour les tests du moteur.
 import { buildGameData, type GameData } from "../src/engine/data.ts";
 import type { Item, Machine, OverridesFile, Recipe, ResearchNode, Source, TreeGrowth, VerifyFlag } from "../src/engine/types.ts";
+import { say } from "../src/ui/engine-text.ts";
 
 export const SRC: Source = { wiki: "jeu", fetchedAt: "2026-10-11T00:00:00Z", note: "test" };
 
@@ -99,7 +100,7 @@ export function makeData(spec: { recipes: R[]; machines?: M[]; nodes?: N[]; tree
     },
     spec.overrides ?? [],
   );
-  if (errors.length) throw new Error(errors.join("\n"));
+  if (errors.length) throw new Error(errors.map(say).join("\n"));
   return data;
 }
 

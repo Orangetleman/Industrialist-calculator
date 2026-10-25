@@ -2,12 +2,13 @@
 // 1) Formule du calculateur Desmos (si présente dans les données) ;
 // 2) sinon, tableau « Tree Growth » du wiki, borne haute (pessimiste) pour une plage.
 
+import { msg, type Message } from "./message.ts";
 import type { GrowthBand, TreeGrowth, TreeGrowthFormula } from "./types.ts";
 
 export type TreeGrowthResult = {
   seconds: number;
   method: "formule" | "tableau" | "défaut";
-  detail: string;
+  detail: Message;
   sourceUrl?: string;
 };
 
@@ -59,7 +60,7 @@ export function treeGrowthSeconds(tg: TreeGrowth, pollutionPct: number | null | 
     return {
       seconds: formulaSeconds(tg.formula, p),
       method: "formule",
-      detail: `pollution ${p} % → formule du calculateur des arbres (moyenne, valeur approximative)`,
+      detail: msg("growth.formula", { p }),
       sourceUrl: tg.formula.source.url,
     };
   }
@@ -69,9 +70,9 @@ export function treeGrowthSeconds(tg: TreeGrowth, pollutionPct: number | null | 
     return {
       seconds: hi,
       method: "tableau",
-      detail: lo === hi ? `pollution ${p} % → ~${hi} s (tableau du wiki)` : `pollution ${p} % → entre ~${lo} et ~${hi} s ; borne haute retenue (pessimiste)`,
+      detail: lo === hi ? msg("growth.band", { p, s: hi }) : msg("growth.range", { p, lo, hi }),
       sourceUrl: tg.source.url,
     };
   }
-  return { seconds: NaN, method: "défaut", detail: "aucune donnée de pousse des arbres" };
+  return { seconds: NaN, method: "défaut", detail: msg("growth.none") };
 }

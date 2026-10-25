@@ -5,8 +5,10 @@
 
 import type { AsmBlock, DieselPlan, FarmSet } from "../engine/build/assembly.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
-import { esc, fmt, fmtMoney, fmtPct, frText } from "./format.ts";
+import { esc, fmt, fmtMoney, fmtPct } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
+import { txtHtml } from "./engine-text.ts";
+import type { Text } from "../engine/message.ts";
 
 const C = 16; // unités SVG par case
 
@@ -143,7 +145,7 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
     const used = Object.values(f.poleCounts).reduce((a, b) => a + b, 0);
     head += `<div class="pose-via"><label class="pose-pick" for="asm-pole">${t("as.poles.label")} <select id="asm-pole">${opts}</select></label><p class="hint">${t("as.poles.hint", { kmf: esc(fmt(ctx.loadMFps / 1000, 1)), used: t("as.poles.link", { n: used }) })}</p></div>`;
   }
-  if (f.problems.length) head += `<ul class="notices">${f.problems.map((p) => `<li>${frText(p)}</li>`).join("")}</ul>`;
+  if (f.problems.length) head += `<ul class="notices">${f.problems.map((p) => `<li>${txtHtml(p)}</li>`).join("")}</ul>`;
   const sw = (kind: string) => `<i style="background:${FARM[kind]!.color}"></i>`;
   const legend = `<ul class="mod-legend"><li>${sw("tree")}${t("as.lg.tree")}</li><li>${sw("sprinkler")}${t("as.lg.sprinkler")}</li><li>${sw("harvester")}${t("as.lg.harvester")}</li><li>${sw("output")}${t("as.lg.output")}</li><li>${sw("tank")}${t("as.lg.tank")}</li><li>${sw("controller")}${t("as.lg.controller")}</li><li><i class="sw-plug"></i>${t("mv.lg.plug")}</li><li><i class="sw-pole"></i>${t("mv.lg.pole")}</li><li><i class="sw-cable"></i>${t("as.lg.cable")}</li><li><i class="sw-lane"></i>${t("as.lg.lane")}</li></ul>`;
   const rows = parts
@@ -198,7 +200,7 @@ export function renderDieselSvg(p: DieselPlan, name: (id: string) => string): { 
 export type DieselInfoCtx = {
   name: (id: string) => string;
   price: (id: string) => number | null;
-  label: string;
+  label: Text;
   airFuel: number;
   throttle: number;
   throttleAssumed: boolean;
@@ -221,7 +223,7 @@ export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: str
   per.sort((a, b) => ((order.indexOf(a.id) + 99) % 99) - ((order.indexOf(b.id) + 99) % 99));
   const unknown = per.filter((q) => ctx.price(q.id) === null).length;
   const cost = per.reduce((s, q) => s + (ctx.price(q.id) ?? 0) * q.count, 0) * p.units;
-  const title = p.units > 1 ? t("as.dsl.units", { n: String(p.units), label: frText(ctx.label) }) : t("as.dsl.unit", { label: frText(ctx.label) });
+  const title = p.units > 1 ? t("as.dsl.units", { n: String(p.units), label: txtHtml(ctx.label) }) : t("as.dsl.unit", { label: txtHtml(ctx.label) });
   let head = `<p class="mod-sum">${t("as.dsl.sum.html", { title, per: p.units > 1 ? t("as.dsl.perEngine") : "", list: esc(per.map((q) => `${q.count} ${ctx.name(q.id)}`).join(", ")), w: String(p.width), h: String(p.height), min: ctx.todo.length ? t("as.dsl.atLeast") : "", cost: esc(fmtMoney(cost)), unknown: unknown ? t("mv.sum.unknown") : "" })}</p>`;
   head += `<p class="mod-other">${esc(t("as.dsl.power", { p: fmt(ctx.powerMFps / 1e6, 2), l: fmt(ctx.fuelLps, 3), fuel: ctx.name(ctx.fuel), free: p.freeSides ? t("as.dsl.free", { n: p.freeSides }) : "", units: p.units > 1 ? t("as.dsl.sideBySide") : "" }))}</p>`;
   head += `<p class="mod-other">${controllerPanel(ctx.airFuel, ctx.throttle, ctx.throttleAssumed)}</p>`;

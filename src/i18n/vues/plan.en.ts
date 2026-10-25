@@ -259,6 +259,8 @@ export const planEn: { [K in keyof typeof planFr]: Msg } = {
   "cv.raw": "Raw material: extracted on site, with no input.",
   "cv.growth.tag": "time: growth, {how}",
   "cv.growth.approx": "approximate",
+  "cv.growth.table": "wiki table",
+  "cv.growth.default": "no data",
   "cv.duration": "time",
   "cv.output": "output",
   "cv.rate": "Rate of one machine",

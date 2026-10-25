@@ -2,6 +2,7 @@
 // power.json. Pur, sans DOM. Ce que les wikis ne disent pas est marqué comme hypothèse.
 
 import type { LogisticsFile, PowerFile } from "../extension-types.ts";
+import type { Message } from "../message.ts";
 
 export type PipeKind = "objet" | "fluide";
 export type PipeTier = 1 | 3;
@@ -18,7 +19,7 @@ export type Catalog = {
   /** Portée en tuiles (unité du wiki) et en cases : relevé en jeu, une tuile = deux cases. */
   poles: { id: string; name: string; perNodeMFps: number; nodes: number; /** Capacité du poteau : la somme de ses nœuds (relevé du 2026-10-13 : on compte le poteau comme si tous ses nœuds étaient reliés). */ capacityMFps: number; rangeTiles: number; rangeCells: number; size: { w: number; h: number }; price: number | null }[];
   /** Hypothèses faites faute de donnée, à confirmer en jeu (affichées avec chaque plan). */
-  assumptions: string[];
+  assumptions: Message[];
 };
 
 /** Pièces de chaque jeu de tuyaux (ids du wiki). Seules les pièces d'une case sont utilisées. */

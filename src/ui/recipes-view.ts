@@ -10,8 +10,9 @@
 
 import type { GameData } from "../engine/data.ts";
 import type { AddedRecipe, Correction, OverridesFile, Recipe, Source, VerifyFlag } from "../engine/types.ts";
-import { colon, doubtText, energyInputText, esc, fieldLabel, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPollution, frRaw, frText, parseEnergy, parseNum } from "./format.ts";
+import { colon, doubtText, energyInputText, esc, fieldLabel, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPollution, parseEnergy, parseNum } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
+import { txt } from "./engine-text.ts";
 
 export type EntryKind = "objet" | "machine";
 export type Entry = { kind: EntryKind; id: string; name: string };
@@ -199,7 +200,7 @@ function doubt(e: Flagged, field: string): string {
   if (!f) return "";
   const d = doubtText(f);
   const show = (x: unknown) => (typeof x === "number" ? (field === "energyMFps" ? fmtMF(x) : fmt(x, 3)) : String(x));
-  const alts = f.alternatives?.length && d === frRaw(f.detail) ? esc(t("rc.alts", { list: f.alternatives.map((a) => show(a.value)).join(", ") })) : "";
+  const alts = f.alternatives?.length && d === txt(f.detail) ? esc(t("rc.alts", { list: f.alternatives.map((a) => show(a.value)).join(", ") })) : "";
   return `<span class="rc-doubt">⚠ ${esc(d)}${alts}</span>`;
 }
 
@@ -235,7 +236,7 @@ export function renderCraft(ctx: RecipesCtx, r: Recipe, showMachine = true): str
   const m = ctx.data.machines.get(r.machine);
   // La ferme d'arbres (S13) garde le craft de l'arbre : sa durée de pousse, et l'électricité d'une coupe.
   // Nom d'installation écrit par le moteur (S32) : marqué comme texte français.
-  const setup = r.parts?.length && !r.farm && r.setupName ? frRaw(r.setupName) : null;
+  const setup = r.parts?.length && !r.farm && r.setupName ? txt(r.setupName) : null;
   const top = setup ? t("rc.perSecond") : duration(r.durationS);
   const e = r.energyMFps;
   const bottom = r.farm ? t("rc.perCut", { x: fmt(r.farm.energyPerCutMF / 1000, 0) }) : e === null ? "? MF/s" : e < 0 ? t("rc.produces", { x: fmtMF(-e) }) : e === 0 ? t("rc.noEnergy") : fmtMF(e);
@@ -610,7 +611,7 @@ export function renderMachineCard(ctx: RecipesCtx, id: string): string {
       <h2 id="rc-title">${esc(m.name)}</h2>
       ${price}
       ${facts.length ? `<p class="rc-facts">${facts.join(" · ")}</p>` : ""}
-      ${others.length ? `<p class="rc-facts">${t("rc.alsoVerify", { list: others.map((f) => `<a class="rc-flag warn" href="${verifyHref("machine", id, f.field)}" title="${esc(frRaw(f.detail))}">⚠ ${esc(fieldLabel(f.field, (x) => ctx.data.items.get(x)?.name ?? x))}</a>`).join(", ") })}</p>` : ""}
+      ${others.length ? `<p class="rc-facts">${t("rc.alsoVerify", { list: others.map((f) => `<a class="rc-flag warn" href="${verifyHref("machine", id, f.field)}" title="${esc(txt(f.detail))}">⚠ ${esc(fieldLabel(f.field, (x) => ctx.data.items.get(x)?.name ?? x))}</a>`).join(", ") })}</p>` : ""}
       ${ctx.edit ? `<p class="hint">${t("rc.machine.hint.html", { id: encodeURIComponent(id) })}</p>` : ""}
     </div>
     ${tools(ctx, "machine", id, picture)}

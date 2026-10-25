@@ -5,8 +5,9 @@
 import type { GameData } from "../engine/data.ts";
 import { itemsPerStation, nearlyZero, nominalRate, rateAt, TIERS, timeToReach, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
 import type { StationKind } from "../engine/research-points.ts";
-import { esc, fmt, fmtDate, fmtDuration, fmtPct, fmtRP, frText } from "./format.ts";
+import { esc, fmt, fmtDate, fmtDuration, fmtPct, fmtRP } from "./format.ts";
 import { lang, t } from "../i18n/i18n.ts";
+import { txtHtml } from "./engine-text.ts";
 
 const TIER_N: Record<StationKind, string> = { rs1: "1", rs2: "2", rs3: "3", rs4: "4" };
 const STATION_N: Record<StationKind, string> = { rs1: "Research Station 1", rs2: "Research Station 2", rs3: "Research Station 3", rs4: "Research Station 3 + Research Station 4" };
@@ -107,8 +108,8 @@ export function renderResearchOut(a: ResearchOutArgs): string {
       `<ul class="rs-checks">${m.checks
         .map((c) =>
           c.ok
-            ? `<li class="okc">${t("rm.check.ok", { label: frText(c.label), x: esc(fmt(c.computed, c.digits)) })}</li>`
-            : `<li class="warn-text">${t("rm.check.bad", { label: frText(c.label), a: esc(fmt(c.computed, c.digits)), b: esc(fmt(c.panel, c.digits)), d: esc(fmtPct(fmt(((c.computed - c.panel) / c.panel) * 100, 1))) })}</li>`,
+            ? `<li class="okc">${t("rm.check.ok", { label: txtHtml(c.label), x: esc(fmt(c.computed, c.digits)) })}</li>`
+            : `<li class="warn-text">${t("rm.check.bad", { label: txtHtml(c.label), a: esc(fmt(c.computed, c.digits)), b: esc(fmt(c.panel, c.digits)), d: esc(fmtPct(fmt(((c.computed - c.panel) / c.panel) * 100, 1))) })}</li>`,
         )
         .join("")}</ul>`,
     );

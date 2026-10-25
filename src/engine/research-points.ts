@@ -18,6 +18,7 @@ import type { GameData } from "./data.ts";
 import type { ResearchStationsFile } from "./extension-types.ts";
 import { solve, type Plan, type PlayerState, type SolveRequest } from "./solve.ts";
 import { machineAccess } from "./unlock.ts";
+import { msg, type Message } from "./message.ts";
 
 export type StationKind = "rs1" | "rs2" | "rs3" | "rs4";
 
@@ -168,7 +169,7 @@ export type RpRequest = {
 };
 
 export type RpCandidate = { design: RpDesign; plan: Plan; score: number };
-export type RpResult = { best: RpCandidate | null; others: RpCandidate[]; warnings: string[] };
+export type RpResult = { best: RpCandidate | null; others: RpCandidate[]; warnings: Message[] };
 
 const STATION: Record<StationKind, string[]> = {
   rs1: ["research-station1"],
@@ -273,11 +274,11 @@ function designFor(p: RpParams, data: GameData, kind: StationKind, items: string
  * meilleures installations sont ensuite calculées exactement par le simplexe.
  */
 export function designResearch(data: GameData, player: PlayerState, p: RpParams, req: RpRequest): RpResult {
-  const warnings: string[] = [];
+  const warnings: Message[] = [];
   const chooser = new Chooser(data, player, { criterion: req.criterion, then: req.then, forced: {}, useUnverified: !!req.useUnverified, pollutionPct: player.pollutionPct ?? null });
   const available = (kind: StationKind) => STATION[kind].every((m) => machineAccess(data, player, m).available);
   const kinds = (req.kinds ?? (["rs1", "rs2", "rs3", "rs4"] as StationKind[])).filter(available);
-  if (!kinds.length) return { best: null, others: [], warnings: ["Aucune station de recherche débloquée."] };
+  if (!kinds.length) return { best: null, others: [], warnings: [msg("rs.noStation")] };
 
   // Coût estimé d'une unité/min de chaque item productible (heuristique, rapide).
   const unitCost = new Map<string, number>();
@@ -333,7 +334,7 @@ export function designResearch(data: GameData, player: PlayerState, p: RpParams,
   if (req.satellites && fluid && machineAccess(data, player, "satellite-dish-controller").available && machineAccess(data, player, "satellite-dish").available) {
     const r = researchValue(data, fluid)!;
     for (const S of [1, 2, 3, 4]) satOptions.push({ controllers: S, fluid, fluidValue: r, dishes: dishesNeeded(S, S * r) });
-  } else if (req.satellites) warnings.push("Paraboles : contrôleur, paraboles ou liquide de valeur de recherche non disponibles.");
+  } else if (req.satellites) warnings.push(msg("rs.noDish"));
 
   // Items candidats : les meilleurs rapports valeur / coût, et les plus chers (plafond des RS3/RS4).
   const byValue = [...solids].sort((a, b) => (costOf(a)! + 0.01) / researchValue(data, a)! - (costOf(b)! + 0.01) / researchValue(data, b)!).slice(0, 10);
@@ -354,7 +355,7 @@ export function designResearch(data: GameData, player: PlayerState, p: RpParams,
       }
     }
   }
-  if (!candidates.length) return { best: null, others: [], warnings: [...warnings, "Aucune installation n'atteint cette vitesse et ce plafond avec ta progression."] };
+  if (!candidates.length) return { best: null, others: [], warnings: [...warnings, msg("rs.none")] };
 
   // Calcul exact des meilleures installations estimées.
   candidates.sort((a, b) => proxy(a) - proxy(b));

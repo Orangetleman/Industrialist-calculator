@@ -42,7 +42,7 @@ import { renderResearchForm, renderResearchOut, researchHow } from "./research-m
 import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, frRaw, frText, parseEnergy, parseInput, parseNum } from "./format.ts";
+import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { applyStatic } from "../i18n/dom.ts";
 import { KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
 import {
@@ -150,6 +150,8 @@ import {
   type Scope,
   type Settings,
 } from "./state.ts";
+import { txt, txtHtml } from "./engine-text.ts";
+import type { Message, Text } from "../engine/message.ts";
 
 // Langue (S30) : le choix gardé, sinon celle du navigateur ; avant tout rendu.
 setLang(
@@ -222,7 +224,7 @@ if (prunedCorrections.dropped) saveCorrections(corrections);
 let dieselReadings: DieselReading[] = loadDieselReadings();
 (files as RawFiles).dieselReadings = dieselReadings;
 let data: GameData = buildGameData(files, []).data;
-let dataErrors: string[] = [];
+let dataErrors: Message[] = [];
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
 
@@ -593,7 +595,17 @@ function computeResearch(): ResearchView | null {
   const noRate = settings.rpMode === "rate" && settings.rpRate === null;
   const wanted = settings.rpMode === "rate" ? (settings.rpRate ?? 0) : Math.max(0, total - rp0) / (settings.rpMinutes * 60);
   const targetRate = Math.max(0, wanted - current);
-  const result: RpResult =
+  // Rien à calculer : la phrase du site, et si l'objectif est déjà atteint (S32 : plus de lecture des phrases).
+  const idle: ResearchView["idle"] = noRate
+    ? { text: t("m.rp.noRate"), done: false }
+    : settings.rpMode === "node" && !settings.rpNode
+      ? { text: t("m.rp.pickNode"), done: false }
+      : !nodes.length
+        ? { text: t("m.rp.nothing"), done: true }
+        : total <= rp0
+          ? { text: t("m.rp.enough"), done: true }
+          : { text: t("m.rp.fastEnough"), done: true };
+  const result: RpResult & Pick<ResearchView, "idle"> =
     !noRate && (targetRate > 0 || settings.rpMode === "rate")
       ? designResearch(data, ps, RP_PARAMS, {
           targetRate: Math.max(targetRate, 1e-6),
@@ -606,21 +618,7 @@ function computeResearch(): ResearchView | null {
           existing: settings.useExisting ? settings.existing : {},
           base,
         })
-      : {
-          best: null,
-          others: [],
-          warnings: [
-            noRate
-              ? t("m.rp.noRate")
-              : settings.rpMode === "node" && !settings.rpNode
-              ? t("m.rp.pickNode")
-              : !nodes.length
-                ? t("m.rp.nothing")
-                : total <= rp0
-                  ? t("m.rp.enough")
-                  : t("m.rp.fastEnough"),
-          ],
-        };
+      : { best: null, others: [], warnings: [], idle };
   const d = result.best?.design;
   // Avec l'installation : du même tier que mes stations, elle s'y ajoute (tier recalculé en entier).
   let withDesign: RpTier[] | null = null;
@@ -1188,7 +1186,7 @@ let poseFitAll = false;
  * Calculs de toute l'usine, en arrière-plan (Web Worker) : un par réglage de calcul (recalculée, module par
  * module, collée), gardé tant que le plan, les priorités, les relevés et la parcelle ne changent pas.
  */
-type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: string; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean };
+type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean };
 const factories = new Map<string, FactoryState>();
 /** Module ouvert dans le panneau à côté de l'usine (adresse #…/pose/usine-entiere/<étape>). */
 let poseFocus: string | null = null;
@@ -1537,7 +1535,7 @@ function startFactory(): void {
       [st.plan, st.ms, st.cached] = [hit.plan, hit.ms, true];
       return refresh();
     }
-    st.label = "Démarrage";
+    st.label = t("m.f.start");
     st.job = runFactory(input, {
       progress: (done, label) => {
         [st.done, st.label] = [done, label];
@@ -1562,7 +1560,7 @@ function updateFactoryProgress(): void {
   if (!el || !st) return;
   el.querySelector<HTMLElement>(".bar i")!.style.width = `${Math.round(st.done * 100)}%`;
   el.querySelector(".pct")!.textContent = fmtPct(String(Math.round(st.done * 100)));
-  el.querySelector(".lbl")!.textContent = frRaw(st.label);
+  el.querySelector(".lbl")!.textContent = txt(st.label);
 }
 
 /** Passages du collecteur central que toute l'usine (recalculée) a gardés pour cette étape (null : pas encore calculée). */
@@ -1596,7 +1594,7 @@ function renderFactory(): void {
       $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
     }
     const pct = Math.round(st.done * 100);
-    const progress = `<div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(frRaw(st.label))}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><button type="button" data-usine="cancel">${t("m.f.cancel")}</button></div>`;
+    const progress = `<div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(txt(st.label))}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><button type="button" data-usine="cancel">${t("m.f.cancel")}</button></div>`;
     const busy = $("pose-busy");
     if (keep && !st.error && !st.cancelled) {
       // L'avancement par-dessus l'ancien dessin ; le résumé reste en place jusqu'au nouveau.
@@ -2102,7 +2100,7 @@ function renderData(): void {
   $("verify-count").textContent = String(v.plan.verify.filter((x) => x.used).length);
   $("corrections").innerHTML = renderCorrections(v);
   $("corrections-count").textContent = String(countCorrections(corrections));
-  $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">${t("m.dataErrors")}<ul>${dataErrors.map((e) => `<li>${frText(e)}</li>`).join("")}</ul></div>` : "";
+  $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">${t("m.dataErrors")}<ul>${dataErrors.map((e) => `<li>${txtHtml(e)}</li>`).join("")}</ul></div>` : "";
 }
 
 /** Bandeau des valeurs d'une seule recette ou machine (arrivée par un lien ⚠). */
@@ -2151,8 +2149,8 @@ function renderRecettes(ctx?: RecipesCtx): void {
   const standalone = rcEdit?.newItem && !rcEdit.newItem.inDraft ? rcEdit.newItem : null;
   $("rc-layout").classList.toggle("has-card", !!card || !!standalone);
   $("rc-layout").classList.toggle("rows", rcPrefs.view === "lignes");
-  const rejected = dataErrors.filter((e) => /^(added|removed)\//.test(e));
-  const banner = rejected.length ? `<div class="banner bad">${t("m.rc.rejected")}<ul>${rejected.map((e) => `<li>${frText(e)}</li>`).join("")}</ul></div>` : "";
+  const rejected = dataErrors.filter((e) => /^(added|removed)\//.test(String(e.path)));
+  const banner = rejected.length ? `<div class="banner bad">${t("m.rc.rejected")}<ul>${rejected.map((e) => `<li>${txtHtml(e)}</li>`).join("")}</ul></div>` : "";
   $("rc-card").innerHTML =
     banner +
     (standalone

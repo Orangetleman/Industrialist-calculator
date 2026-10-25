@@ -12,7 +12,8 @@ function factoryVersion(): string {
   const files = (dir: string, ext: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name), ext) : e.name.endsWith(ext) && !e.name.endsWith(".test.ts") ? [join(dir, e.name)] : []));
   const h = createHash("sha256");
-  for (const f of [...files("src/engine", ".ts"), ...files("data", ".json")].sort()) h.update(f).update(readFileSync(f));
+  // Les traductions des notes (data/i18n, S32) ne changent pas le calcul : un résultat gardé reste valable.
+  for (const f of [...files("src/engine", ".ts"), ...files("data", ".json").filter((p) => !/[\\/]i18n[\\/]/.test(p))].sort()) h.update(f).update(readFileSync(f));
   return h.digest("hex").slice(0, 16);
 }
 

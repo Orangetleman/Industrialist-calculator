@@ -8,6 +8,7 @@
 import { crankshaftsFor, DIESEL_IDS, FARM_IDS, type FarmGeometry, type FarmPole, type PortSpec } from "./build/assembly.ts";
 import { fact, rule, treeGrid, type ModAssembly, type ModFact, type ModularFile } from "./modular.ts";
 import type { Machine, Recipe, Source, VerifyFlag } from "./types.ts";
+import { msg, type Message } from "./message.ts";
 
 const asNum = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -159,19 +160,19 @@ export type FarmResult = {
   /** Ce qui limite le bois : les arbres eux-mêmes si rien d'autre. */
   limit: FarmLimit;
   /** Blocs qui manquent pour que la ferme marche, ou en trop. */
-  problems: string[];
+  problems: Message[];
 };
 
 /** Production d'une ferme posée (nombres de blocs donnés) à la durée de pousse `growthS`. */
 export function farmOutput(rates: FarmRates, b: FarmBlocks, growthS: number): FarmResult {
-  const problems: string[] = [];
-  if (b.controllers < 1) problems.push("il faut un contrôleur");
-  if (b.controllers > 1) problems.push("un seul contrôleur par ferme : deux contrôleurs cassent la ferme");
-  if (b.tanks < 1) problems.push("il faut un réservoir");
-  if (b.sprinklers < 1) problems.push("il faut un arroseur");
-  if (b.harvesters < 1) problems.push("il faut un récolteur");
-  if (b.outputs < 1) problems.push("il faut une sortie");
-  if (b.trees < 1) problems.push("il faut des arbres");
+  const problems: Message[] = [];
+  if (b.controllers < 1) problems.push(msg("farm.needController"));
+  if (b.controllers > 1) problems.push(msg("farm.twoControllers"));
+  if (b.tanks < 1) problems.push(msg("farm.needTank"));
+  if (b.sprinklers < 1) problems.push(msg("farm.needSprinkler"));
+  if (b.harvesters < 1) problems.push(msg("farm.needHarvester"));
+  if (b.outputs < 1) problems.push(msg("farm.needOutput"));
+  if (b.trees < 1) problems.push(msg("farm.needTrees"));
   const broken = problems.length > 0;
   const activeSprinklers = broken ? 0 : Math.min(b.sprinklers, b.tanks * rates.sprinklersPerTank.value);
   const watered = Math.min(b.trees, activeSprinklers * rates.treesPerSprinkler.value);
@@ -180,7 +181,7 @@ export function farmOutput(rates: FarmRates, b: FarmBlocks, growthS: number): Fa
   if (broken) limit = b.controllers > 1 ? "deux contrôleurs" : "bloc manquant";
   else if (harvested < watered) limit = "récolteurs";
   else if (watered < b.trees) limit = activeSprinklers < b.sprinklers ? "réservoirs" : "arroseurs";
-  if (!broken && activeSprinklers < b.sprinklers) problems.push(`${b.sprinklers - activeSprinklers} arroseur(s) sans réservoir (${rates.sprinklersPerTank.value} par réservoir)`);
+  if (!broken && activeSprinklers < b.sprinklers) problems.push(msg("farm.dry", { n: b.sprinklers - activeSprinklers, k: rates.sprinklersPerTank.value }));
   const g = growthS > 0 ? growthS : Infinity;
   return {
     watered,
@@ -198,7 +199,7 @@ export function farmOutput(rates: FarmRates, b: FarmBlocks, growthS: number): Fa
 
 export type DieselConfig = {
   id: string;
-  label: string;
+  label: Message;
   cylinders: number;
   airFuel: number;
   throttle: number;
@@ -212,7 +213,7 @@ export type DieselConfig = {
   parts: { machine: string; count: number }[];
   partsComplete: boolean;
   sources: string[];
-  note: string;
+  note: Message;
   /** Relevé de configuration (éditeur, S18) : id du relevé. */
   reading?: string;
 };
@@ -294,7 +295,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
       const af = row[col("airFuel")]!;
       out.push({
         id: `moteur:6cyl-af${af}`,
-        label: `6 cylindres, rapport ${af}`,
+        label: msg("diesel.label.table", { af }),
         cylinders: 6,
         airFuel: af,
         throttle: 100,
@@ -306,7 +307,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
         parts: toParts(easy.parts),
         partsComplete: true,
         sources: [...table.sources, ...easy.sources.filter((s) => !table.sources.includes(s))],
-        note: "Tableau du contrôleur (Miraheze), Refined Diesel. Blocs du montage simple du wiki, posés au plus court (blocs de côté des deux côtés, contrôleur compris : moins de vilebrequins ; la longueur ne change pas la puissance). Accélérateur non écrit : supposé à 100 % (la ligne du rapport 16 est celle du montage simple à 100 %).",
+        note: msg("diesel.note.table"),
       });
     }
   }
@@ -314,7 +315,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
     const v = big.value;
     out.push({
       id: `moteur:${v.cylinders}cyl-af${v.airFuel}-t${v.throttle}`,
-      label: `${v.cylinders} cylindres, rapport ${v.airFuel}, accélérateur ${v.throttle} %`,
+      label: msg("diesel.label.big", { c: v.cylinders!, af: v.airFuel!, th: v.throttle! }),
       cylinders: v.cylinders!,
       airFuel: v.airFuel!,
       throttle: v.throttle!,
@@ -326,7 +327,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
       parts: toParts(big.parts),
       partsComplete: big.partsComplete !== false,
       sources: big.sources,
-      note: "Configuration la plus connue (Miraheze), Refined Diesel. Une entrée d'air, un échappement et une entrée de carburant (le minimum du wiki) : leur nombre réel est à relever en jeu. Vilebrequins d'après le plan de pose (un bloc de côté par côté).",
+      note: msg("diesel.note.big"),
     });
   }
   // Relevés de configuration (S18) : ceux du dépôt, puis ceux du navigateur ; un relevé remplace la
@@ -339,7 +340,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
     for (const k of Object.keys(p)) if (!p[k]) delete p[k];
     out.push({
       id: `moteur:releve:${r.id}`,
-      label: `${r.cylinders} cylindres, rapport ${r.airFuel}, accélérateur ${r.throttle} %, ${dieselFuelName(r.fuel)}`,
+      label: msg("diesel.label.reading", { c: r.cylinders, af: r.airFuel, th: r.throttle, fuel: dieselFuelName(r.fuel) }),
       cylinders: r.cylinders,
       airFuel: r.airFuel,
       throttle: r.throttle,
@@ -351,7 +352,7 @@ export function dieselConfigs(file: ModularFile, local: DieselReading[] = []): D
       parts: toParts(p),
       partsComplete: true,
       sources: [],
-      note: `Relevé en jeu${r.date ? ` du ${r.date}` : ""} (Info Panel) : puissance et consommation affichées, blocs posés comptés. Vilebrequins d'après le plan de pose (un bloc de côté par côté).`,
+      note: msg("diesel.note.reading", { date: r.date ? msg("diesel.note.date", { d: r.date }) : undefined }),
       reading: r.id,
     });
   }
@@ -390,9 +391,9 @@ export function dieselLookup(configs: DieselConfig[], cylinders: number, airFuel
 // ---------------------------------------------------------------- turbine
 
 /** La turbine modulaire n'entre pas dans le calcul : ses chiffres ne sont pas fiables (décision de l'utilisateur). */
-export function turbineReliability(file: ModularFile): { reliable: false; text: string } | null {
+export function turbineReliability(file: ModularFile): { reliable: false; text: Message } | null {
   const r = rule(assembly(file, "modular-turbine") ?? ({ rules: [] } as unknown as ModAssembly), "reliability");
-  return r ? { reliable: false, text: "Turbine modulaire : chiffres de production non fiables (pas de formule connue, seulement les tableaux du développeur) ; elle n'entre pas dans le calcul." } : null;
+  return r ? { reliable: false, text: msg("turbine.unreliable") } : null;
 }
 
 // ---------------------------------------------------------------- recettes du solveur
@@ -435,22 +436,21 @@ export function applyModular(recipes: Map<string, Recipe>, machines: Map<string,
       ];
       if (parts.some((p) => !machines.has(p.machine))) continue;
       r.parts = parts;
-      r.setupName = "Ferme d'arbres";
-      r.setupNote = geometry
-        ? `Blocs comptés d'après le plan de pose de la ferme : ${perSpr} arbres au plus par arroseur, ${perTank} arroseurs par réservoir, ${perHarv} arbres au plus par récolteur (guide Miraheze), une sortie à portée de chaque récolteur, un contrôleur par ferme (plusieurs fermes au-delà de ce que touche sa portée). Eau : ${rates.waterCycle.litersPerCycle} L toutes les ${String(rates.waterCycle.periodS).replace(".", ",")} s par arroseur ; électricité : ${rates.energyPerCutMF.value / 1000} kMF par arbre coupé.`
-        : `Par arbre : 1/${perSpr} d'arroseur, 1/${perSpr * perTank} de réservoir, 1/${perHarv} de récolteur (guide Miraheze) ; 1 contrôleur et 1 sortie par ferme. Eau : ${rates.waterCycle.litersPerCycle} L toutes les ${String(rates.waterCycle.periodS).replace(".", ",")} s par arroseur ; électricité : ${rates.energyPerCutMF.value / 1000} kMF par arbre coupé.`;
+      r.setupName = msg("farm.setup");
+      const water = { l: rates.waterCycle.litersPerCycle, s: rates.waterCycle.periodS, k: rates.energyPerCutMF.value / 1000 };
+      r.setupNote = geometry ? msg("farm.note.plan", { spr: perSpr, tank: perTank, harv: perHarv, ...water }) : msg("farm.note.share", { spr: perSpr, tankShare: perSpr * perTank, harv: perHarv, ...water });
       r.farm = { waterItem: "water", waterLpsPerTree: rates.waterLpsPerSprinkler.value / perSpr, energyPerCutMF: rates.energyPerCutMF.value, ...(geometry ? { geometry } : {}) };
       r.sources = [...r.sources, ...src];
       if (rates.treesPerHarvester.question) {
-        r.verify = [...r.verify, { field: "parts", reason: "approximatif", detail: `${perHarv} arbres par récolteur d'après le guide Miraheze ; le maximum réel est à relever en jeu` }];
+        r.verify = [...r.verify, { field: "parts", reason: "approximatif", detail: msg("farm.harvesters", { n: perHarv }) }];
       }
     }
   }
   for (const c of dieselConfigs(file, readings)) {
     if (!c.parts.every((p) => machines.has(p.machine))) continue;
-    const verify: VerifyFlag[] = [{ field: "pollutionPerHour", reason: "manquant", detail: "pollution de l'échappement selon la configuration inconnue" }];
-    if (c.throttleAssumed) verify.push({ field: "energyMFps", reason: "approximatif", detail: "accélérateur non écrit par le tableau du contrôleur : supposé à 100 %" });
-    if (!c.partsComplete) verify.push({ field: "parts", reason: "manquant", detail: "blocs autres que contrôleur, cylindres et générateur à relever en jeu : liste et prix incomplets" });
+    const verify: VerifyFlag[] = [{ field: "pollutionPerHour", reason: "manquant", detail: msg("diesel.pollution") }];
+    if (c.throttleAssumed) verify.push({ field: "energyMFps", reason: "approximatif", detail: msg("diesel.throttle") });
+    if (!c.partsComplete) verify.push({ field: "parts", reason: "manquant", detail: msg("diesel.parts") });
     recipes.set(c.id, {
       id: c.id,
       machine: "diesel-engine-controller",
@@ -460,7 +460,7 @@ export function applyModular(recipes: Map<string, Recipe>, machines: Map<string,
       energyMFps: -c.powerMFps,
       research: null,
       parts: c.parts.map((p) => ({ ...p })),
-      setupName: `Moteur diesel modulaire — ${c.label}`,
+      setupName: msg("diesel.setup", { label: c.label }),
       setupNote: c.note,
       energyGuaranteed: true,
       wholeUnits: true,

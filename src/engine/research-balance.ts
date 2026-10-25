@@ -25,6 +25,7 @@ import {
   type StationKind,
   type TierSum,
 } from "./research-points.ts";
+import { msg, type Message } from "./message.ts";
 
 export const TIERS: StationKind[] = ["rs1", "rs2", "rs3", "rs4"];
 
@@ -226,7 +227,7 @@ export type TierModel = RpTier & {
   capMissing: boolean;
 };
 
-export type Check = { label: string; computed: number; panel: number; ok: boolean; digits: number };
+export type Check = { label: Message; computed: number; panel: number; ok: boolean; digits: number };
 
 export type RpModel = {
   /** D'où viennent les nombres : le panneau, les stations, ou seulement les RP/s de la 1ʳᵉ ligne. */
@@ -332,19 +333,19 @@ export function researchModel(p: RpParams, data: GameData | null, setup: Researc
   if (source === "stations") {
     for (const t of tiers) {
       const row = s.panel[t.kind];
-      if (row.rate !== null) checks.push({ label: `Tier ${t.kind.slice(2)} : RP/s`, computed: t.stationsRate, panel: row.rate, ok: close(t.stationsRate, row.rate, 2), digits: 2 });
-      if (row.cap !== null) checks.push({ label: `Tier ${t.kind.slice(2)} : seuil`, computed: t.cap, panel: row.cap, ok: close(t.cap, row.cap, 0), digits: 0 });
+      if (row.rate !== null) checks.push({ label: msg("rs.check.rate", { t: t.kind.slice(2) }), computed: t.stationsRate, panel: row.rate, ok: close(t.stationsRate, row.rate, 2), digits: 2 });
+      if (row.cap !== null) checks.push({ label: msg("rs.check.cap", { t: t.kind.slice(2) }), computed: t.cap, panel: row.cap, ok: close(t.cap, row.cap, 0), digits: 0 });
     }
     const dishRate = tiers.reduce((a, t) => a + t.boostRate, 0);
-    if (s.dish.rate !== null) checks.push({ label: "Paraboles : RP/s", computed: dishRate, panel: s.dish.rate, ok: close(dishRate, s.dish.rate, 2), digits: 2 });
+    if (s.dish.rate !== null) checks.push({ label: msg("rs.check.dish"), computed: dishRate, panel: s.dish.rate, ok: close(dishRate, s.dish.rate, 2), digits: 2 });
   }
   if (source === "stations" || source === "panneau") {
     const nz = nearlyZero(tiers);
     // Le panneau écrit « > 231 000 » : le site arrondit au millier supérieur (supposé, RP-06).
-    if (nz !== null && s.maxRp !== null) checks.push({ label: "Max RP before RP/s is nearly zero", computed: nz, panel: s.maxRp, ok: Math.ceil(nz / 1000) * 1000 === s.maxRp || close(nz, s.maxRp, 0), digits: 0 });
+    if (nz !== null && s.maxRp !== null) checks.push({ label: msg("rs.check.maxRp"), computed: nz, panel: s.maxRp, ok: Math.ceil(nz / 1000) * 1000 === s.maxRp || close(nz, s.maxRp, 0), digits: 0 });
     if (rpPerSec !== null && rpNow !== null) {
       const expected = rateAt(tiers, rpNow);
-      checks.push({ label: "1ʳᵉ ligne : RP/s", computed: expected, panel: rpPerSec, ok: close(expected, rpPerSec, 2), digits: 2 });
+      checks.push({ label: msg("rs.check.first"), computed: expected, panel: rpPerSec, ok: close(expected, rpPerSec, 2), digits: 2 });
     }
   }
   return { source, tiers, boost, liquids, dishesFor100, efficiency, efficiencyAssumed, checks };
@@ -387,12 +388,12 @@ export type AddProposal = {
  * tier le plus haut (niveau détaillé) pour atteindre `targetRate` RP/s nominaux en tout et un seuil
  * ≥ `capNeeded`. Null si le joueur n'a pas décrit ses stations, ou si rien n'y suffit (≤ `max`).
  */
-export function proposeAddStations(p: RpParams, data: GameData, setup: ResearchSetup | null, model: RpModel, targetRate: number, capNeeded: number, max = 200): AddProposal | { reason: string } | null {
+export function proposeAddStations(p: RpParams, data: GameData, setup: ResearchSetup | null, model: RpModel, targetRate: number, capNeeded: number, max = 200): AddProposal | { reason: Message } | null {
   if (!setup || model.source !== "stations") return null;
   const tier = [...model.tiers].reverse().find((t) => setup.groups[t.kind].some((g) => g.count > 0));
   if (!tier) return null;
   const group = [...setup.groups[tier.kind]].filter((g) => g.count > 0).sort((a, b) => b.count - a.count)[0]!;
-  if (group.items.filter(Boolean).length < itemsPerStation(tier.kind)) return { reason: "Indique les items de tes stations pour savoir quoi ajouter." };
+  if (group.items.filter(Boolean).length < itemsPerStation(tier.kind)) return { reason: msg("rs.needItems") };
   const tiersFor = (n: number) => withAddedStations(p, model, tier.kind, groupSum(p, tier.kind, n, group.items, data, !!group.logic), { logic: group.logic ? n : 0 });
   const ok = (n: number) => {
     const ts = tiersFor(n);
@@ -402,7 +403,7 @@ export function proposeAddStations(p: RpParams, data: GameData, setup: ResearchS
   if (ok(0)) return null;
   let n = 1;
   while (n <= max && !ok(n)) n++;
-  if (n > max) return { reason: `Même ${max} stations de plus ne suffisent pas : vise une installation neuve, ou un objectif plus proche.` };
+  if (n > max) return { reason: msg("rs.tooMany", { n: max }) };
   const ts = tiersFor(n);
   const after = ts.find((x) => x.kind === tier.kind)!;
   const stationsRate = (after.rate) / (1 + model.boost);
