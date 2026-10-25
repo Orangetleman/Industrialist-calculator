@@ -277,7 +277,8 @@ Pourquoi cet ordre :
   du plan d'action).
 - **S35** : depuis le site en ligne, une remarque de chaque type et une correction arrivent, avec
   leur page. Le message apparaît dans le salon Discord. La réponse se lit dans « Mes remarques ». Si
-  le service est arrêté, le site le dit et garde le texte. Tests verts.
+  le service est arrêté, le site le dit et garde le texte. Tests verts. **Fait le 2026-10-25** (maquette
+  `maquette/remarques.html`, `src/ui/remarques*.ts`, `server/discord.ts`, bilan au § 6 du plan d'action).
 - **S36** : depuis le tableau de bord, on range 3 remarques dans un sujet, on répond, on publie ;
   le sujet apparaît sur Propositions avec « 3 joueurs l'ont demandé ». Un +1 compte une fois par
   visiteur. Sans mot de passe, `/api/admin/` refuse tout. Tests verts.
