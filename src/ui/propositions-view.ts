@@ -54,7 +54,7 @@ export function initPropositions(root: HTMLElement, openFeedback: (from: HTMLEle
     const mine = s.monVote === 1 ? t("pr.mine.up") : s.monVote === -1 ? t("pr.mine.down") : "";
     const meta = [
       mine,
-      `${t("pr.asked", { n: askedBy(s) })} (${t("pr.asked.detail", { remarks: s.demandes, up: s.pour })})`,
+      `${t("pr.asked", { n: askedBy(s) })} (${t("pr.asked.detail", { remarks: t("pr.remarks", { n: s.demandes }), up: s.pour })})`,
       s.contre ? t("pr.down.n", { n: s.contre }) : "",
       s.maj ? t("pr.updated", { date: fmtDate(s.maj, { day: "numeric", month: "short", year: "numeric" }) }) : "",
     ].filter(Boolean);

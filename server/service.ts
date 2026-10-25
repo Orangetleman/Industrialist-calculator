@@ -16,7 +16,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
-import { purgerEmpreintes, selDesEmpreintes } from "./base.ts";
+import { prochainNumero, purgerEmpreintes, selDesEmpreintes } from "./base.ts";
 import { empreinte, jeton, verifierMotDePasse } from "./securite.ts";
 import { CARACTERES_MAX, ErreurTraduction, TEXTES_MAX, type Traduire } from "./traducteur.ts";
 
@@ -215,9 +215,11 @@ export function creerService(options: OptionsService): Service {
     const pseudo = texte(corps.pseudo, PSEUDO_MAX, "pseudo-trop-long");
     const page = texte(corps.page, COURT_MAX, "page-trop-longue");
     const version = texte(corps.version, COURT_MAX, "version-trop-longue");
-    const { lastInsertRowid } = base
-      .prepare("INSERT INTO remarques (numero, cree, type, texte, pseudo, page, langue, version, plan, piece) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    const id = prochainNumero(base, "remarques");
+    base
+      .prepare("INSERT INTO remarques (id, numero, cree, type, texte, pseudo, page, langue, version, plan, piece) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .run(
+        id,
         numero,
         maintenant(),
         type,
@@ -230,7 +232,6 @@ export function creerService(options: OptionsService): Service {
         piece,
       );
     tracer("envoi", qui);
-    const id = Number(lastInsertRowid);
     if (options.annoncer) {
       try {
         options.annoncer({ id, type, texte: contenu ?? "", pseudo, page, langue, version, piece: piece === null ? null : corps.piece });
@@ -364,10 +365,10 @@ export function creerService(options: OptionsService): Service {
     if (!valeurs[0] && !valeurs[1]) throw new Refus(400, "titre");
     const remarque = corps.remarque === undefined || corps.remarque === null ? null : Number(corps.remarque);
     if (remarque !== null && !base.prepare("SELECT id FROM remarques WHERE id = ?").get(remarque)) throw new Refus(400, "remarque");
-    const { lastInsertRowid } = base
-      .prepare(`INSERT INTO sujets (cree, maj, ${CHAMPS_SUJET.join(", ")}, auto, publie) VALUES (?, ?, ${CHAMPS_SUJET.map(() => "?").join(", ")}, ?, ?)`)
-      .run(maintenant(), maintenant(), valeurs[0] ?? "", ...valeurs.slice(1), ecrireAuto(corps.auto ?? []), corps.publie ? 1 : 0);
-    const id = Number(lastInsertRowid);
+    const id = prochainNumero(base, "sujets");
+    base
+      .prepare(`INSERT INTO sujets (id, cree, maj, ${CHAMPS_SUJET.join(", ")}, auto, publie) VALUES (?, ?, ?, ${CHAMPS_SUJET.map(() => "?").join(", ")}, ?, ?)`)
+      .run(id, maintenant(), maintenant(), valeurs[0] ?? "", ...valeurs.slice(1), ecrireAuto(corps.auto ?? []), corps.publie ? 1 : 0);
     if (remarque !== null) base.prepare("UPDATE remarques SET sujet = ? WHERE id = ?").run(id, remarque);
     return [201, sujet(id)];
   }

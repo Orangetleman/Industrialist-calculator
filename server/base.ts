@@ -101,6 +101,20 @@ export function selDesEmpreintes(base: DatabaseSync): string {
   return sel;
 }
 
+/**
+ * Le numéro de la prochaine remarque ou du prochain sujet : jamais un numéro déjà donné, même supprimé (S36 : sans
+ * cela SQLite redonne le plus grand numéro libéré, et un ancien lien `/tableau/#n°` ou « Mes remarques » d'un joueur
+ * désignerait une autre remarque). Le dernier numéro donné est gardé dans `reglages`.
+ */
+export function prochainNumero(base: DatabaseSync, table: "remarques" | "sujets"): number {
+  const cle = `dernier-${table}`;
+  const garde = base.prepare("SELECT valeur FROM reglages WHERE cle = ?").get(cle) as { valeur: string } | undefined;
+  const { max } = base.prepare(`SELECT COALESCE(MAX(id), 0) AS max FROM ${table}`).get() as { max: number };
+  const n = Math.max(Number(garde?.valeur ?? 0), max) + 1;
+  base.prepare("INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur").run(cle, String(n));
+  return n;
+}
+
 /** Efface les empreintes de plus de 24 h (traces des limites, et celles des votes, qui restent comptés). */
 export function purgerEmpreintes(base: DatabaseSync, maintenant: number): void {
   const limite = maintenant - GARDE_EMPREINTE;

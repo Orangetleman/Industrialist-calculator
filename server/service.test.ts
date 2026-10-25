@@ -441,3 +441,18 @@ describe("base d'avant S36", () => {
     }
   });
 });
+
+describe("numéros jamais redonnés (S36)", () => {
+  it("une remarque ou un sujet supprimé ne laisse pas son numéro au suivant", async () => {
+    const cookie = await seConnecter();
+    const envoyer = async (ip: string) => (await appel("/api/remarques", { methode: "POST", corps: remarque(), ip })).corps.id as number;
+    const a = await envoyer("198.51.100.1");
+    const b = await envoyer("198.51.100.2");
+    await appel(`/api/admin/remarques/${b}`, { methode: "DELETE", cookie });
+    expect(await envoyer("198.51.100.3")).toBe(b + 1);
+    expect(a).toBe(1);
+    const s1 = (await appel("/api/admin/sujets", { methode: "POST", corps: { titre: "Un" }, cookie })).corps.id as number;
+    await appel(`/api/admin/sujets/${s1}`, { methode: "DELETE", cookie });
+    expect((await appel("/api/admin/sujets", { methode: "POST", corps: { titre: "Deux" }, cookie })).corps.id).toBe(s1 + 1);
+  });
+});
