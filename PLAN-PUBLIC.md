@@ -268,7 +268,7 @@ Pourquoi cet ordre :
 - **S33** : tous les critères du § 3 sont mesurés sur les six pages, dans les deux tailles, les deux
   thèmes et les deux langues, et notés dans le bilan. L'aperçu est vu dans le salon réservé. Tests
   verts. **Fait le 2026-10-25** (maquette `maquette/forme.html`, test `src/ui/contraste.test.ts`,
-  bilan au § 6 du plan d'action ; l'aperçu reste à voir dans le salon).
+  bilan au § 6 du plan d'action ; aperçu vu dans le salon, jugé bon).
 - **S34** : en local, une remarque envoyée est relue par l'accès réservé, la 6ᵉ dans l'heure est
   refusée, et l'empreinte d'IP est effacée au bout de 24 h (test, horloge simulée). Sur le Pi, la
   même chose passe par `https://industrialist.myprisme.fr/api/`, et les unités de MyPrism sont
