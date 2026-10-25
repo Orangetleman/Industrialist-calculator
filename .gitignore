@@ -3,3 +3,4 @@ dist/
 .cache/
 *.log
 .claude/
+.remarques-local/

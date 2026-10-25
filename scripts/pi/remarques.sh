@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# Installe (ou met à jour) le service des remarques sur le Pi, à côté de MyPrism, sans y toucher.
+# Relançable sans risque. Ne démarre, ne redémarre et ne recharge RIEN : les commandes à lancer, après accord,
+# sont affichées à la fin.
+#
+#   sudo bash remarques.sh <dossier-contenant-server/>
+#
+# - compte système industrialist-remarques, sans connexion possible ;
+# - code en lecture seule dans /opt/industrialist-remarques, données dans /var/lib/industrialist-remarques ;
+# - unité systemd industrialist-remarques (MemoryMax=64M, droits réduits), sur 127.0.0.1:8091 ;
+# - nginx de l'Industrialist (et seulement lui) : /api/ passé au service ;
+# - /usr/local/sbin/industrialist-remarques-mot-de-passe : l'utilisateur y tape lui-même le mot de passe.
+set -euo pipefail
+
+NOM=industrialist-remarques
+PORT=8091
+CODE=/opt/$NOM
+DONNEES=/var/lib/$NOM
+REGLAGES=/etc/$NOM
+SITE=/etc/nginx/sites-available/industrialist
+SNIPPET=/etc/nginx/snippets/industrialist-api.conf
+
+[[ $EUID -eq 0 ]] || { echo "À lancer avec sudo." >&2; exit 1; }
+SOURCE=${1:-}
+[[ -f $SOURCE/server/remarques.ts ]] || { echo "Usage : sudo bash remarques.sh <dossier contenant server/remarques.ts>" >&2; exit 1; }
+NODE=$(command -v node) || { echo "node introuvable." >&2; exit 1; }
+[[ $("$NODE" -p 'process.versions.node.split(".")[0]') -ge 24 ]] || { echo "Node 24 ou plus est nécessaire." >&2; exit 1; }
+[[ -f $SITE ]] || { echo "$SITE absent : lancer d'abord installer.sh." >&2; exit 1; }
+
+echo "== compte du service"
+id -u $NOM >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin $NOM
+
+echo "== code ($CODE)"
+install -d -m 755 -o root -g root "$CODE"
+for f in "$SOURCE"/server/*.ts; do
+  [[ $f == *.test.ts ]] && continue
+  install -m 644 -o root -g root "$f" "$CODE/"
+done
+
+echo "== réglages ($REGLAGES)"
+install -d -m 750 -o root -g $NOM "$REGLAGES"
+if [[ ! -f $REGLAGES/reglages.env ]]; then
+  cat >"$REGLAGES/reglages.env" <<EOF
+# Réglages du service des remarques. Après une modification : sudo systemctl restart $NOM
+REMARQUES_ORIGINES=https://industrialist.myprisme.fr,http://myprism.local:8090
+# REMARQUES_FERMEES=1
+EOF
+  chown root:$NOM "$REGLAGES/reglages.env"
+  chmod 640 "$REGLAGES/reglages.env"
+fi
+
+cat >/usr/local/sbin/$NOM-mot-de-passe <<EOF
+#!/usr/bin/env bash
+# Choisit le mot de passe du tableau de bord (tapé deux fois, jamais affiché, gardé haché par scrypt).
+# Pris en compte à la connexion suivante, sans redémarrage.
+set -euo pipefail
+[[ \$EUID -eq 0 ]] || { echo "À lancer avec sudo." >&2; exit 1; }
+read -rsp "Mot de passe du tableau de bord (10 caractères au moins) : " un; echo
+read -rsp "Encore une fois : " deux; echo
+[[ "\$un" == "\$deux" ]] || { echo "Les deux ne sont pas identiques : rien n'a changé." >&2; exit 1; }
+ligne=\$(printf '%s' "\$un" | $NODE --disable-warning=ExperimentalWarning $CODE/hacher.ts)
+unset un deux
+umask 027
+printf '%s\n' "\$ligne" >$REGLAGES/mot-de-passe.tmp
+chown root:$NOM $REGLAGES/mot-de-passe.tmp
+mv -f $REGLAGES/mot-de-passe.tmp $REGLAGES/mot-de-passe
+echo "Mot de passe enregistré (haché)."
+EOF
+chmod 750 /usr/local/sbin/$NOM-mot-de-passe
+
+echo "== unité systemd"
+cat >/etc/systemd/system/$NOM.service <<EOF
+[Unit]
+Description=Service des remarques du calculateur Industrialist (127.0.0.1:$PORT)
+After=network.target
+
+[Service]
+User=$NOM
+Group=$NOM
+Environment=REMARQUES_DONNEES=$DONNEES
+Environment=REMARQUES_MOT_DE_PASSE=$REGLAGES/mot-de-passe
+Environment=REMARQUES_PORT=$PORT
+EnvironmentFile=-$REGLAGES/reglages.env
+ExecStart=$NODE --disable-warning=ExperimentalWarning --max-old-space-size=32 $CODE/remarques.ts
+StateDirectory=$NOM
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=5
+Nice=5
+MemoryMax=64M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable $NOM.service
+
+echo "== nginx de l'Industrialist : /api/"
+cat >"$SNIPPET" <<EOF
+# Service des remarques (scripts/pi/remarques.sh) : /api/ passé à 127.0.0.1:$PORT.
+location /api/ {
+    proxy_pass http://127.0.0.1:$PORT;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header Connection "";
+    client_max_body_size 300k;
+    proxy_read_timeout 15s;
+}
+EOF
+if ! grep -q 'industrialist-api' "$SITE"; then
+  cp -p "$SITE" "$SITE.avant-remarques"
+  sed -i 's|^    location / {|    include snippets/industrialist-api*.conf;  # /api/ (service des remarques)\n    location / {|' "$SITE"
+fi
+grep -q 'industrialist-api' "$SITE" || { echo "Impossible d'ajouter /api/ à $SITE." >&2; exit 1; }
+nginx -t
+
+echo "== terminé (rien n'a été démarré ni rechargé)"
+cat <<EOF
+À lancer après accord :
+  sudo $NOM-mot-de-passe              # l'utilisateur tape lui-même le mot de passe
+  sudo systemctl restart $NOM         # (re)démarre le service
+  sudo systemctl reload nginx         # une seule fois, pour /api/
+EOF

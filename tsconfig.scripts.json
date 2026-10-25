@@ -4,6 +4,6 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["scripts", "src/engine"],
+  "include": ["scripts", "src/engine", "server"],
   "exclude": ["**/*.test.ts"]
 }

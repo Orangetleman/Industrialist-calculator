@@ -5,10 +5,12 @@
 .EXAMPLE
   .\scripts\pi\deployer.ps1                 # build + envoi + mise en ligne (sans redémarrer de service)
   .\scripts\pi\deployer.ps1 -Retour         # revient à la version précédente sur le Pi
+  .\scripts\pi\deployer.ps1 -Remarques      # installe ou met à jour le service des remarques (sans le redémarrer)
   .\scripts\pi\deployer.ps1 -Installer -TunnelId <id>   # (re)installe nginx + le tunnel, puis publie
 #>
 param(
   [switch]$Retour,
+  [switch]$Remarques,
   [switch]$Installer,
   [string]$TunnelId,
   [string]$Pi = "myprism@myprism.local"
@@ -37,8 +39,22 @@ if ($Retour) {
 Push-Location $racine
 try {
   Lancer "Tests" { npm test --silent }
-  Lancer "Build" { npm run build --silent }
+  if (-not $Remarques) { Lancer "Build" { npm run build --silent } }
 } finally { Pop-Location }
+
+if ($Remarques) {
+  # Service des remarques (S34) : code et unité mis en place, mais rien n'est démarré ni rechargé (voir la fin).
+  $code = Get-ChildItem (Join-Path $racine "server\*.ts") | Where-Object { $_.Name -notlike "*.test.ts" } | ForEach-Object { $_.FullName }
+  Lancer "Envoi du service des remarques" {
+    ssh $Pi "rm -rf $envoi-remarques && mkdir -p $envoi-remarques/server"
+    if ($LASTEXITCODE -ne 0) { return }
+    scp -q $code "${Pi}:$envoi-remarques/server/"
+    if ($LASTEXITCODE -ne 0) { return }
+    scp -q (Join-Path $racine "scripts\pi\remarques.sh") (Join-Path $racine "scripts\pi\controle-myprism.sh") "${Pi}:$envoi-remarques/"
+  }
+  Lancer "Installation du service des remarques" { ssh $Pi "sudo bash $envoi-remarques/remarques.sh $envoi-remarques" }
+  return
+}
 
 Lancer "Envoi vers le Pi" {
   ssh $Pi "rm -rf $envoi && mkdir -p $envoi"

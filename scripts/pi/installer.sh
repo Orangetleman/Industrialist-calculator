@@ -74,6 +74,7 @@ server {
         include snippets/$NOM-entetes.conf;
         add_header Cache-Control "no-cache";
     }
+    include snippets/$NOM-api*.conf;  # /api/ (service des remarques, s'il est installé : remarques.sh)
     location / {
         include snippets/$NOM-entetes.conf;
         add_header Cache-Control "no-cache";
