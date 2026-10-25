@@ -34,6 +34,8 @@ export const contribFr = {
   "vf.apply": "Appliquer",
   "vf.noFix": "Ce champ ne se corrige pas ici : laisse une note.",
   "vf.kept": "Retenu : {x}",
+  "vf.part": "{n} × {m}",
+  "vf.part.farm": "{n} × {m} par ferme",
   "vf.other": " · Autre : {list}",
   "vf.craft": "Craft : {m} → {item}",
   "vf.machine": "Machine {m}",

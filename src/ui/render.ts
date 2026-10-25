@@ -100,12 +100,22 @@ export function allVerifyEntries(ctx: Pick<Ctx, "data" | "plan">): VerifyEntry[]
   return out;
 }
 
-/** Valeur lisible ; l'énergie avec son préfixe comme ailleurs (« 4 kMF/s », S29). */
-function showValue(v: unknown, field = ""): string {
+/** Nombre d'un bâtiment par unité d'une installation : « 1/44 » plutôt que 0,0227 quand c'est une fraction simple. */
+function partCount(n: number): string {
+  const inv = 1 / n;
+  return n < 1 && Math.abs(inv - Math.round(inv)) < 1e-6 ? `1/${Math.round(inv)}` : fmt(n, 4);
+}
+
+/** Valeur lisible ; l'énergie avec son préfixe comme ailleurs (« 4 kMF/s », S29) ; les bâtiments d'une installation avec leur nom. */
+function showValue(v: unknown, field = "", name: (id: string) => string = (id) => id): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "number") return field === "energyMFps" ? fmtMF(v) : fmt(v, 4);
   if (typeof v === "object" && v && "w" in v && "l" in v) return `${(v as { w: number }).w}×${(v as { l: number }).l}`;
-  if (Array.isArray(v)) return v.map((x) => showValue(x, field)).join(" – ");
+  if (typeof v === "object" && v && "machine" in v && "count" in v) {
+    const p = v as { machine: string; count: number; perFarm?: boolean };
+    return t(p.perFarm ? "vf.part.farm" : "vf.part", { n: partCount(p.count), m: name(p.machine) });
+  }
+  if (Array.isArray(v)) return v.map((x) => showValue(x, field, name)).join(field === "parts" ? " + " : " – ");
   const s = String(v);
   return s.length > 80 ? `${s.slice(0, 79)}…` : s;
 }
@@ -135,7 +145,7 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
         const editable = isEditableField(head.scope, v.flag.field);
         const scopeKey = isRecipe ? "recipes" : "machines";
         const fid = `fix-${v.id}-${v.flag.field}`;
-        const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value, v.flag.field))}</b> ${t("vf.according", { src: sourceLink(a.source) })}`).join(" ; ");
+        const alts = (v.flag.alternatives ?? []).map((a) => `<b class="num">${esc(showValue(a.value, v.flag.field, (id) => machineN(ctx, id)))}</b> ${t("vf.according", { src: sourceLink(a.source) })}`).join(" ; ");
         // Pour une contradiction, le détail répète les valeurs : on le remplace par « retenu / autre ».
         const detail = v.flag.reason === "contradiction" && alts ? "" : `<div class="vdetail">${txtHtml(v.flag.detail)}</div>`;
         const nk = noteKey(scopeKey, v.id, v.flag.field);
@@ -152,7 +162,7 @@ export function renderVerify(ctx: Ctx, opts: { entries?: VerifyEntry[]; notes?: 
           : `<p class="muted vdetail">${t("vf.noFix")}</p>`;
         return `<li class="vrow"><div class="vhead"><span class="vfield">${esc(fieldLabel(v.flag.field, (id) => itemN(ctx, id)))}</span>
             <span class="badge ${esc(v.flag.reason)}">${esc(reasonLabel(v.flag.reason))}</span></div>
-          <div class="vvals">${t("vf.kept", { x: `<b class="num">${esc(showValue(currentValue(ctx, v), v.flag.field))}</b>` })}${primary ? ` ${t("vf.according", { src: sourceLink(primary) })}` : ""}${alts ? t("vf.other", { list: alts }) : ""}</div>
+          <div class="vvals">${t("vf.kept", { x: `<b class="num">${esc(showValue(currentValue(ctx, v), v.flag.field, (id) => machineN(ctx, id)))}</b>` })}${primary ? ` ${t("vf.according", { src: sourceLink(primary) })}` : ""}${alts ? t("vf.other", { list: alts }) : ""}</div>
           ${detail}${input}${noteBox}</li>`;
       })
       .join("");

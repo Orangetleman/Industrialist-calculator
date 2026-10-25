@@ -314,6 +314,9 @@ describe("rien d'oublié (S31) : les vues en anglais", () => {
     const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "area", tiers: false });
     const ctx = { data, plan, settings: DEFAULT_SETTINGS, corrections: {} };
     const html = [renderVerify(ctx, { entries: allVerifyEntries(ctx), all: true })];
+    // Une valeur composée (bâtiments d'une installation, « parts ») s'écrit avec ses noms, jamais « [object Object] ».
+    expect(html[0]).not.toContain("[object");
+    expect(html[0]).toContain("1/44 × Tree Farm Sprinkler");
     for (const id of ["crankshaft", "gear", "oak-log", "light-oil", "water"]) html.push(renderItemCard({ data }, id));
     for (const id of ["blast-furnace", "water-pump2", "coal-generator", "craft-assembler"]) html.push(renderMachineCard({ data }, id));
     const p = { unlocked: new Set<string>() };

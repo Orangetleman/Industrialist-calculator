@@ -35,6 +35,8 @@ export const contribEn: { [K in keyof typeof contribFr]: Msg } = {
   "vf.apply": "Apply",
   "vf.noFix": "This field can't be fixed here: leave a note.",
   "vf.kept": "Used: {x}",
+  "vf.part": "{n} × {m}",
+  "vf.part.farm": "{n} × {m} per farm",
   "vf.other": " · Other: {list}",
   "vf.craft": "Recipe: {m} → {item}",
   "vf.machine": "Machine {m}",
