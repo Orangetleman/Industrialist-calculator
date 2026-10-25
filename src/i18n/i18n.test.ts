@@ -50,7 +50,7 @@ describe("t()", () => {
   });
   it("titres des vues traduits, adresses inchangées", () => {
     setLang("en");
-    expect(goalTitle("objet")).toBe("Make an item");
+    expect(goalTitle("objet")).toBe("What do you want to make?");
     expect(routeTitle(parseRoute("#objet/schema/x"))).toBe("Chart");
     expect(routeTitle(parseRoute("#usine/recherche"))).toBe("My research");
     expect(parseRoute("#energie")).toEqual({ page: "plan", goal: "énergie" });

@@ -3,22 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Calculateur de production</title>
-  <meta name="description" content="Calculateur de chaînes de production pour le jeu Roblox Industrialist, selon ta progression dans l'arbre de recherche.">
+  <title>Planificateur Industrialist</title>
+  <meta name="description" content="Planificateur de chaînes de production pour le jeu Roblox Industrialist (outil de fan, non officiel), selon ta progression dans l'arbre de recherche.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#1f3d52">
-  <!-- Aperçu des liens partagés (Discord, réseaux…) -->
+  <!-- Aperçu des liens partagés (Discord, réseaux…) : en anglais, la langue de la communauté du jeu (S33, décision S16 Public).
+       L'image vient de scripts/og-image.html. -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Calculateur de production — Industrialist">
-  <meta property="og:title" content="Calculateur de production — Industrialist (Roblox)">
-  <meta property="og:description" content="Chaînes de production complètes, nombre de machines, énergie et matières premières, selon ta progression dans l'arbre de recherche.">
+  <meta property="og:site_name" content="Industrialist Production Planner">
+  <meta property="og:title" content="Industrialist Production Planner (unofficial)">
+  <meta property="og:description" content="Full production chains for Roblox Industrialist: machines, power, floor space and a build plan for every module, based on what you have unlocked.">
   <meta property="og:url" content="https://industrialist.myprisme.fr/">
   <meta property="og:image" content="https://industrialist.myprisme.fr/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:locale" content="fr_FR">
+  <meta property="og:image:alt" content="Industrialist Production Planner, an unofficial fan tool for Roblox Industrialist">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="fr_FR">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -30,7 +33,8 @@
      S30 : les textes fixes portent leur clé du catalogue (data-i18n…, src/i18n), traduits au chargement. -->
 <header class="top">
   <div class="top-in">
-    <a class="brand" href="#objet"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span data-i18n-html="site.brand.html">Calculateur<span class="long"> Industrialist</span></span></a>
+    <a class="brand" href="#objet"><img src="/favicon.svg" alt="" width="28" height="28" class="brand-logo"><span data-i18n-html="site.brand.html">Planificateur<span class="long"> Industrialist</span></span></a>
+    <span class="unofficial" data-i18n="header.unofficial" title="Outil de fan, non officiel : il n'est pas fait par les auteurs du jeu." data-i18n-attr="title=header.unofficial.title">Non officiel</span>
     <!-- S23 : Planifier d'abord (plus d'onglet Accueil), les outils de contribution en dernier. -->
     <nav class="mainnav" aria-label="Sections" data-i18n-attr="aria-label=nav.aria">
       <a href="#objet" data-nav="plan" id="nav-plan" data-i18n="nav.plan">Planifier</a>
@@ -63,7 +67,7 @@
       <a href="#rp" data-goal="recherche" data-i18n="plan.goal.recherche">Des RP</a>
       <a href="#argent" data-goal="argent" data-i18n="plan.goal.argent">De l'argent</a>
     </nav>
-    <h1 id="plan-title">Produire un objet</h1>
+    <h1 id="plan-title">Que veux-tu produire ?</h1>
 
     <form class="query" id="query" novalidate>
       <!-- objet -->
@@ -494,10 +498,10 @@
   </form>
 </dialog>
 
-<footer class="src" data-i18n-html="footer.html">
-  Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, source principale ;
-  <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, contrôle), contenus sous licence CC BY-NC-SA 4.0 (Miraheze, images comprises) et CC BY-SA (Fandom), et relevés en jeu.
-  Pousse des arbres : calculateur communautaire lié depuis la page Tree. Les recettes changent avec les mises à jour du jeu : en cas d'écart, le Recipe Book fait foi.
+<!-- S33 : pied de page public (maquette S16, écran 1) ; la ligne « Remarque · Propositions » viendra en S35 et S36. -->
+<footer class="src">
+  <p data-i18n-html="footer.who.html">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</p>
+  <p data-i18n-html="footer.data.html">Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</p>
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>

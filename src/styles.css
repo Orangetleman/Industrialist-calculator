@@ -3,7 +3,8 @@
 :root {
   --bg: #eef1f4; --surface: #ffffff; --ink: #17212b; --muted: #5b6876; --line: #c9d1da;
   --accent: #b4530a; --accent-soft: #f6e3d3; --steel: #2f5d7c; --steel-soft: #e1eaf1;
-  --ok: #2e7d4f; --ok-soft: #ddf0e4; --warn: #a86a00; --bad: #b3261e; --bad-soft: #fbe3e1; --warn-soft: #fbf0d9;
+  --ok: #2e7d4f; --ok-soft: #ddf0e4; --warn: #8a5700; --bad: #b3261e; --bad-soft: #fbe3e1; --warn-soft: #fbf0d9;
+  --on-accent: #ffffff; /* texte posé sur --accent (S33 : 4,5:1 au moins, test dans contraste.test.ts) */
   --rp-pred: #2a6db3; --rp-meas: #b4530a; /* graphiques des RP (S21), palette contrôlée : daltonisme, contraste */
   --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -14,7 +15,7 @@
   :root:not([data-theme="light"]) {
     --bg: #12171c; --surface: #1b222a; --ink: #e6ebf0; --muted: #9aa7b4; --line: #34404c;
     --accent: #f0913a; --accent-soft: #3a2614; --steel: #8fb8d6; --steel-soft: #1f2d39;
-    --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --bad: #ff8a80; --bad-soft: #3a1c1a; --warn-soft: #362b14;
+    --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --bad: #ff8a80; --bad-soft: #3a1c1a; --warn-soft: #362b14; --on-accent: #17212b;
     --rp-pred: #3987e5; --rp-meas: #d95926;
     color-scheme: dark;
   }
@@ -22,7 +23,7 @@
 :root[data-theme="dark"] {
   --bg: #12171c; --surface: #1b222a; --ink: #e6ebf0; --muted: #9aa7b4; --line: #34404c;
   --accent: #f0913a; --accent-soft: #3a2614; --steel: #8fb8d6; --steel-soft: #1f2d39;
-  --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --bad: #ff8a80; --bad-soft: #3a1c1a; --warn-soft: #362b14;
+  --ok: #6cc792; --ok-soft: #173326; --warn: #e3b25a; --bad: #ff8a80; --bad-soft: #3a1c1a; --warn-soft: #362b14; --on-accent: #17212b;
     --rp-pred: #3987e5; --rp-meas: #d95926;
   color-scheme: dark;
 }
@@ -54,7 +55,7 @@ button, .button, .btn {
   background: var(--bg); color: var(--ink); cursor: pointer; display: inline-block; text-decoration: none; line-height: 1.4;
 }
 button:hover, .button:hover, .btn:hover { border-color: var(--steel); }
-button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 button.link { border: none; background: none; padding: 0; color: var(--steel); text-decoration: underline; cursor: pointer; font-size: inherit; }
 button.link.small, .small { font-size: .8rem; }
 :is(button, input, select, a, .button, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -70,6 +71,8 @@ input, select, textarea { font: inherit; color: var(--ink); }
 body.wide .top-in, body.wide main { max-width: 1480px; }
 .brand { display: flex; align-items: center; gap: 8px; font: 700 1.05rem var(--f-display); letter-spacing: .01em; color: var(--ink); text-decoration: none; white-space: nowrap; }
 .brand-logo { border-radius: 7px; flex: none; }
+/* S33 : « Non officiel » à côté du nom (maquette S16, écran 1). */
+.unofficial { font: 600 .64rem var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; white-space: nowrap; flex: none; cursor: help; }
 /* Rappel « Tu jouais encore ? » (S23) : bandeau sous l'en-tête. */
 .recall-bar { max-width: 1280px; margin: 0 auto; padding: 6px 16px 8px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .86rem; border-top: 1px solid var(--line); }
 .recall-bar[hidden] { display: none; }
@@ -135,7 +138,7 @@ html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête 
 .tour-skip { margin-left: auto; }
 .tour-link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: .78rem; padding: 4px 2px; }
 .tour-btn { border-radius: 8px; padding: 6px 12px; font-size: .84rem; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-.tour-btn.next { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 600; }
+.tour-btn.next { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .tour-decision { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .mainnav { display: flex; gap: 2px; }
 .mainnav a { text-decoration: none; padding: 6px 11px; border-radius: 8px; color: var(--muted); font-weight: 500; white-space: nowrap; }
@@ -149,7 +152,9 @@ html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête 
 main { max-width: 1120px; margin: 0 auto; padding: 22px 16px 40px; display: block; }
 main:focus { outline: none; }
 .page { display: flex; flex-direction: column; gap: 16px; }
-footer.src { max-width: 1120px; margin: 0 auto; padding: 14px 16px 40px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+footer.src { max-width: 1120px; margin: 0 auto; padding: 14px 16px 40px; border-top: 1px solid var(--line); font-size: .8rem; color: var(--muted); display: grid; gap: 4px; }
+footer.src p { margin: 0; }
+footer.src a { color: var(--muted); }
 
 /* ---------------------------------------------------------------- accueil */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 4px; }
@@ -242,6 +247,10 @@ button.link.have:hover { color: var(--steel); }
 .progress .bar { flex: 1 1 120px; height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; }
 .progress .bar i { display: block; height: 100%; background: var(--ok); }
 @media (prefers-reduced-motion: no-preference) { .progress .bar i { transition: width .2s; } }
+/* S33 : l'attente d'un calcul long (maquette S33, écran 4). */
+.btn-stop { border-color: var(--bad); color: var(--bad); background: var(--surface); font-weight: 600; }
+.btn-stop:hover { background: var(--bad-soft); }
+.long-tip { font-size: .86rem; color: var(--ink); border-left: 3px solid var(--steel); padding: 4px 10px; margin-top: 8px; background: var(--steel-soft); border-radius: 0 8px 8px 0; display: flex; gap: 6px 10px; align-items: center; flex-wrap: wrap; }
 
 /* Schéma : cadre sombre navigable, comme l'arbre de recherche */
 .flow-frame { position: relative; height: 420px; border-radius: 12px; border: 1px solid var(--line); background: #1d2126; overflow: hidden; touch-action: none; cursor: grab; }
@@ -653,7 +662,7 @@ details.fold > summary { cursor: pointer; }
 .rs-node { cursor: pointer; }
 .rs-node rect { stroke: #0006; stroke-width: 1.5; }
 .rs-node .rs-name { font-family: var(--f-display); font-weight: 600; font-size: 13px; }
-.rs-node .rs-rp { font-family: var(--f-mono); font-size: 11px; font-weight: 500; fill: #22c8cf !important; paint-order: stroke; stroke: #000c; stroke-width: 2.4px; }
+.rs-node .rs-rp { font-family: var(--f-mono); font-size: 11px; font-weight: 500; fill: #22c8cf !important; paint-order: stroke; stroke: #000; stroke-width: 3.4px; stroke-linejoin: round; } /* S33 : contour plus épais, lisible sur les cases vertes */
 .rs-node .rs-req { font-family: var(--f-mono); font-size: 9.5px; opacity: .8; }
 .rs-node.done rect { fill: var(--rs-done); } .rs-node.done text { fill: var(--rs-done-ink); }
 .rs-node.available rect { fill: var(--rs-avail); } .rs-node.available text { fill: var(--rs-avail-ink); }
@@ -946,9 +955,24 @@ button.must { cursor: pointer; }
 
 /* ---------------------------------------------------------------- téléphone */
 @media (max-width: 760px) {
-  .top-in { gap: 4px 8px; padding: 6px 12px; }
-  .mainnav { order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; }
-  .mainnav a { padding: 5px 8px; font-size: .88rem; }
+  /* S33 (maquette S33, écran 1) : ligne 1 nom, « Non officiel », FR / EN, ? ; ligne 2 le menu entier ; ligne 3 mon usine. */
+  .top-in { gap: 4px 8px; padding: 6px 12px 0; }
+  .lang-sw { margin-left: auto; }
+  .brand { font-size: .98rem; gap: 6px; }
+  .unofficial { font-size: .56rem; padding: 1px 5px; letter-spacing: .04em; }
+  .lang-sw button { min-width: 30px; padding: 0 4px; }
+  .mainnav { order: 3; width: 100%; justify-content: space-between; gap: 0; margin: 0 -4px; width: calc(100% + 8px); }
+  .mainnav a { padding: 8px 4px; font-size: .84rem; border-radius: 0; border-bottom: 3px solid transparent; }
+  .mainnav a[aria-current="page"] { background: none; border-bottom-color: var(--accent); }
+  .me, .me-play { order: 4; margin-left: 0; }
+  .me { padding-bottom: 6px; }
+  .me-play { margin-bottom: 6px; }
+  .me-chip { min-height: 24px; display: inline-flex; align-items: center; }
+  /* S33 : au téléphone, aucune cible sous 24 px (hors liens dans une phrase). */
+  :is(button, select, .button, .btn, summary, .tour-pin) { min-height: 24px; }
+  :is(button.link, .tour-pin, .btn, .button) { display: inline-flex; align-items: center; }
+  summary { display: list-item; padding-block: 2px; }
+  label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
   .long { display: none; }
   /* L'état du joueur se résume à une pastille. */
   .me-chip:not(:first-child) { display: none; }
@@ -993,6 +1017,7 @@ button.must { cursor: pointer; }
 .rc-search { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .rc-search input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .rc-count { font-size: .8rem; color: var(--muted); }
+.rc-more { width: 100%; margin-top: 10px; min-height: 40px; }
 .rc-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .rc-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); text-decoration: none; color: var(--ink); height: 100%; }
 .rc-tile:hover { border-color: var(--steel); }

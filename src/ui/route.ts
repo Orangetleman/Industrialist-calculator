@@ -42,8 +42,10 @@ export const USINE_STEP = "usine-entiere";
 export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
-/** Titre de la page d'un objectif (« Produire un objet »), dans la langue choisie (S30). */
+/** Titre de la page d'un objectif (« Que veux-tu produire ? »), dans la langue choisie (S30). */
 export const goalTitle = (g: Goal): string => t(`goal.title.${g}`);
+/** Nom court d'un objectif (« Produire un objet »), pour « Revenir à » et les liens dans une phrase (S33). */
+export const goalName = (g: Goal): string => t(`goal.name.${g}`);
 const TABS: ResultTab[] = ["liste", "schema", "pose", "details"];
 const tabTitle = (tab: ResultTab): string => t(`tab.${tab}`);
 const pageTitle = (p: Page): string => t(`page.${p}`);
@@ -115,7 +117,7 @@ export function routeHash(r: Route): string {
 /** Nom court d'une vue, pour le bouton « Retour » (« Revenir à : Schéma »). */
 export function routeTitle(r: Route): string {
   if (r.page === "plan" && r.tab === "pose" && (r.step === USINE_STEP || !r.step)) return t(r.focus ? "route.module" : "tab.usine");
-  if (r.page === "plan") return r.tab ? tabTitle(r.tab) : goalTitle(r.goal ?? "objet");
+  if (r.page === "plan") return r.tab ? tabTitle(r.tab) : goalName(r.goal ?? "objet");
   if (r.page === "recettes") return r.card ? t(r.card.kind === "objet" ? "route.itemCard" : "route.machineCard") : pageTitle("recettes");
   if (r.page === "donnees") return r.dataTab === "batiments" ? t("route.editor") : r.dataTab === "verifier" ? t("route.verify") : pageTitle("donnees");
   if (r.page === "usine" && r.usineTab === "recherche") return t("page.recherche");

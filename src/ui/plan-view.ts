@@ -154,7 +154,7 @@ function researchHeadline(v: ViewCtx): { text: string; tone: "ok" | "warn" | "ba
   };
 }
 
-function kpis(v: ViewCtx): [string, string][] {
+function kpis(v: ViewCtx): [string, string, string?][] {
   const p = v.plan;
   const tt = p.totals;
   const e = p.economy;
@@ -162,9 +162,11 @@ function kpis(v: ViewCtx): [string, string][] {
   const costLabel = e.money === null ? t("kpi.cost") : e.moneyMissing ? t("kpi.cost.missing", { x: fmtMoneyShort(e.moneyMissing) }) : t("kpi.cost.ok", { x: fmtMoneyShort(e.money) });
   const cost: [string, string] = [fmtMoneyShort(e.buildCost) + unk(e.buildCostUnknown), costLabel];
   const removes = tt.pollutionPerHour[1] < 0;
-  const pollution: [string, string] = [
+  // S33 (F4) : l'unité du jeu (%/h) reste, la bulle dit ce qu'elle est.
+  const pollution: [string, string, string] = [
     fmtPol(tt.pollutionPerHour),
     `${t(removes ? "kpi.pollution.removes" : "kpi.pollution.adds")}${tt.pollutionUnknownSteps ? t("kpi.pollution.unknown", { n: String(tt.pollutionUnknownSteps) }) : ""}`,
+    t("kpi.pollution.title"),
   ];
   // Surface des machines seules (sans tuyaux ni poteaux) : si elle dépasse la parcelle, rien ne tiendra.
   const plotArea = v.plot ? v.plot.w * v.plot.h : null;
@@ -263,7 +265,7 @@ export function renderAnswer(v: ViewCtx): string {
   const stats = empty
     ? ""
     : `<div class="kpis">${kpis(v)
-        .map(([val, k]) => `<div class="kpi"><b>${esc(val)}</b><span>${esc(k)}</span></div>`)
+        .map(([val, k, why]) => `<div class="kpi"${why ? ` title="${esc(why)}"` : ""}><b>${esc(val)}</b><span>${esc(k)}${why ? ` <abbr class="kpi-why" aria-label="${esc(why)}">ⓘ</abbr>` : ""}</span></div>`)
         .join("")}</div>`;
   const plants = p.steps.filter((s) => s.item === ENERGY);
   const lines = [

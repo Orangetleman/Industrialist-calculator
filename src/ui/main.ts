@@ -69,7 +69,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioList, focusItem, renderPrioItems } from "./prio-list.ts";
-import { GOAL_ROUTE, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
+import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
@@ -278,6 +278,9 @@ const treeView: TreeView = { category: "Production", filter: "" };
 /** Page Recettes : présentation de la liste, recherche, images choisies par le joueur. */
 let rcPrefs = loadPrefs();
 let rcQuery = "";
+// S33 : sur un écran étroit (liste sans colonne à elle), les tuiles s'affichent par 48 (« Afficher 48 de plus »).
+const RC_STEP = 48;
+let rcShown = { key: "", n: RC_STEP };
 let rcEntries: Entry[] | null = null;
 let myImages: MyImages = loadImages();
 /** Mode « ✎ Corriger » de la fiche ouverte (null = lecture), la fiche qu'il concerne, et une case à rendre active. */
@@ -1186,7 +1189,7 @@ let poseFitAll = false;
  * Calculs de toute l'usine, en arrière-plan (Web Worker) : un par réglage de calcul (recalculée, module par
  * module, collée), gardé tant que le plan, les priorités, les relevés et la parcelle ne changent pas.
  */
-type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean };
+type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean; since?: number };
 const factories = new Map<string, FactoryState>();
 /** Module ouvert dans le panneau à côté de l'usine (adresse #…/pose/usine-entiere/<étape>). */
 let poseFocus: string | null = null;
@@ -1536,6 +1539,7 @@ function startFactory(): void {
       return refresh();
     }
     st.label = t("m.f.start");
+    st.since = Date.now();
     st.job = runFactory(input, {
       progress: (done, label) => {
         [st.done, st.label] = [done, label];
@@ -1561,7 +1565,22 @@ function updateFactoryProgress(): void {
   el.querySelector<HTMLElement>(".bar i")!.style.width = `${Math.round(st.done * 100)}%`;
   el.querySelector(".pct")!.textContent = fmtPct(String(Math.round(st.done * 100)));
   el.querySelector(".lbl")!.textContent = txt(st.label);
+  el.querySelector(".since")!.textContent = sinceText(st);
 }
+
+/** Temps écoulé depuis le début du calcul (S33), « depuis 1 min 12 s ». */
+function sinceText(st: FactoryState): string {
+  if (!st.since) return "";
+  const s = Math.max(0, Math.round((Date.now() - st.since) / 1000));
+  return t("m.f.since", { d: s >= 60 ? t("m.f.minsec", { m: Math.floor(s / 60), s: s % 60 }) : t("m.f.sec", { s }) });
+}
+// Le temps écoulé avance même quand le calcul n'envoie pas d'avancement.
+setInterval(() => {
+  if (currentFactory()?.job) updateFactoryProgress();
+}, 1000);
+
+/** S33 : pendant (ou après l'arrêt d') un calcul « recalculé pour l'usine entière », proposer le module par module. */
+const byModuleTip = () => (settings.usine.full ? `<div class="long-tip">⏱ ${t("m.f.tip")} <button type="button" class="small" data-usine="bymodule">${t("m.f.byModule")}</button></div>` : "");
 
 /** Passages du collecteur central que toute l'usine (recalculée) a gardés pour cette étape (null : pas encore calculée). */
 function advisedPassages(step: string): string[] | null {
@@ -1594,7 +1613,8 @@ function renderFactory(): void {
       $("pose-legend").innerHTML = $("pose-details").innerHTML = "";
     }
     const pct = Math.round(st.done * 100);
-    const progress = `<div class="progress" id="usine-progress" role="status" aria-live="polite"><span class="lbl">${esc(txt(st.label))}</span><span class="bar"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><button type="button" data-usine="cancel">${t("m.f.cancel")}</button></div>`;
+    // S33 : le temps écoulé hors de la zone annoncée (il change chaque seconde), « Arrêter » bien visible.
+    const progress = `<div class="progress" id="usine-progress"><span class="lbl" role="status" aria-live="polite">${esc(txt(st.label))}</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><span class="since hint">${esc(sinceText(st))}</span><button type="button" class="btn-stop" data-usine="cancel">${t("m.f.cancel")}</button></div>${byModuleTip()}`;
     const busy = $("pose-busy");
     if (keep && !st.error && !st.cancelled) {
       // L'avancement par-dessus l'ancien dessin ; le résumé reste en place jusqu'au nouveau.
@@ -1608,7 +1628,7 @@ function renderFactory(): void {
     $("pose-head").innerHTML = st.error
       ? `<p class="warn-text">${esc(t("m.f.failed", { err: st.error }))}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>`
       : st.cancelled
-        ? `<p class="muted">${t("m.f.cancelled")}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>`
+        ? `<p class="muted">${t("m.f.cancelled")}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>${byModuleTip()}`
         : `<p class="mod-sum">${t("m.f.computing.html", { long: settings.usine.full ? t("m.f.long") : "" })}</p>${progress}`;
     return;
   }
@@ -2080,7 +2100,7 @@ function renderData(): void {
   document.body.classList.toggle("wide", tab === "batiments");
   if (tab !== "verifier") return;
   const v = viewCtx();
-  const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(goalTitle(settings.goal).toLowerCase())}</a>`;
+  const where = `<a href="#${GOAL_ROUTE[settings.goal]}">${esc(goalName(settings.goal).toLowerCase())}</a>`;
   $("verify-context").innerHTML = t("m.verify.context", { label: esc(planLabel(v)), where });
   const everything = allVerifyEntries(v);
   $("verify-all-count").textContent = String(new Set(everything.map((x) => `${x.scope}|${x.id}`)).size);
@@ -2191,7 +2211,19 @@ function renderRcList(ctx: RecipesCtx = recipesCtx()): void {
   const list = rcQuery.trim() && rcPrefs.sort.key === "nom" && rcPrefs.sort.dir === "asc" ? found : sortEntries(data, found, rcPrefs.sort);
   const card = route.page === "recettes" && route.card ? `${route.card.kind}/${route.card.id}` : null;
   $("rc-count").textContent = t("m.rc.count", { n: list.length });
-  $("rc-list").innerHTML = rcPrefs.view === "lignes" ? renderEntryRows(ctx, list, card, rcPrefs.sort) : renderEntryList(ctx, list, card);
+  const key = `${rcQuery}|${rcPrefs.filter}|${rcPrefs.view}|${rcPrefs.sort.key}|${rcPrefs.sort.dir}`;
+  if (rcShown.key !== key) rcShown = { key, n: RC_STEP };
+  let shown = list;
+  if (matchMedia("(max-width: 899px)").matches && list.length > rcShown.n) {
+    shown = list.slice(0, rcShown.n);
+    // L'objet ouvert reste dans la liste (décision S5).
+    const open = card ? list.find((e) => `${e.kind}/${e.id}` === card) : undefined;
+    if (open && !shown.includes(open)) shown.push(open);
+  }
+  const rest = list.length - shown.length;
+  $("rc-list").innerHTML =
+    (rcPrefs.view === "lignes" ? renderEntryRows(ctx, shown, card, rcPrefs.sort) : renderEntryList(ctx, shown, card)) +
+    (rest > 0 ? `<button type="button" class="rc-more" data-rc-more>${t("m.rc.more", { n: Math.min(RC_STEP, rest), rest })}</button>` : "");
 }
 
 /** La liste défile jusqu'à l'objet ouvert (sinon, sur ordinateur, on ne le voit pas). */
@@ -2245,6 +2277,14 @@ function bindRecettes(): void {
     renderRecettes();
     revealRcCurrent();
   };
+  $("rc-list").addEventListener("click", (e) => {
+    if (!(e.target as Element).closest("[data-rc-more]")) return;
+    const before = $("rc-list").querySelectorAll("li, tbody tr").length;
+    rcShown = { ...rcShown, n: rcShown.n + RC_STEP };
+    renderRcList();
+    // Le focus passe à la première tuile ajoutée.
+    $("rc-list").querySelectorAll<HTMLElement>("li, tbody tr")[before]?.querySelector<HTMLElement>("a, button")?.focus();
+  });
   input("rc-q").addEventListener("input", (e) => {
     rcQuery = (e.target as HTMLInputElement).value;
     renderRcList();
@@ -2906,16 +2946,31 @@ function bindPlan(): void {
     $("details").querySelector<HTMLSelectElement>(`select[data-force="${CSS.escape(item)}"]`)?.focus();
   });
   // « Le mettre en premier » (sous le résumé du plan).
+  // Toute l'usine : arrêter ou relancer le calcul, passer au module par module (S33) ; l'ouvrir (depuis le choix d'un
+  // passage). Les mêmes boutons sont dans la boîte posée sur l'ancienne usine pendant un recalcul (#pose-busy).
+  const onUsine = (u: HTMLElement) => {
+    const st = currentFactory();
+    if (u.dataset.usine === "cancel" && st) {
+      st.job?.cancel();
+      Object.assign(st, { job: null, cancelled: true });
+      renderPose();
+      $("pose-head").querySelector<HTMLElement>("[data-usine]")?.focus();
+    } else if (u.dataset.usine === "bymodule") {
+      settings.usine = { ...settings.usine, full: false };
+      saveSettings(settings);
+      renderPose();
+    } else return false;
+    return true;
+  };
+  $("pose-busy").addEventListener("click", (e) => {
+    const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
+    if (u) onUsine(u);
+  });
   $("pose-head").addEventListener("click", (e) => {
-    // Toute l'usine : annuler ou relancer le calcul ; l'ouvrir (depuis le choix d'un passage).
     const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
     if (u) {
-      const st = currentFactory();
-      if (u.dataset.usine === "cancel" && st) {
-        st.job?.cancel();
-        Object.assign(st, { job: null, cancelled: true });
-        renderPose();
-      } else if (u.dataset.usine === "run") {
+      if (onUsine(u)) return;
+      if (u.dataset.usine === "run") {
         startFactory();
         renderPose();
       } else if (u.dataset.usine === "open") {

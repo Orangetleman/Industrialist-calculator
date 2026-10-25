@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S33 — Forme publique</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement. Ce qui n'est pas déjà dans maquette/public.html (S16, validée). */
+body { background: var(--bg); }
+.mq-bar { max-width: 1120px; margin: 10px auto; padding: 8px 16px; font-size: .88rem; background: var(--warn-soft); border-radius: 8px; }
+.mq-sec { max-width: 1120px; margin: 28px auto 0; padding: 0 16px; }
+.mq-sec > h2 { font: 700 1.1rem var(--f-display); margin-bottom: 4px; }
+.mq-note { font-size: .86rem; color: var(--muted); margin: 0 0 10px; max-width: 780px; }
+.mq-row { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+.mq-cap { font-size: .74rem; color: var(--muted); margin: 0 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.mq-q { max-width: 1120px; margin: 30px auto 60px; padding: 10px 16px; background: var(--warn-soft); border-radius: 8px; font-size: .9rem; }
+.mq-q ol { margin: 6px 0 0; padding-left: 22px; } .mq-q li { margin: 7px 0; }
+.phone { width: 375px; border: 1px dashed var(--line); border-radius: 14px; overflow: hidden; background: var(--bg); flex: none; }
+.phone .body { padding: 12px 16px; font-size: .9rem; color: var(--muted); }
+.bad { outline: 2px solid var(--bad); outline-offset: -2px; }
+
+/* En-tête au téléphone (proposé) */
+.ph-top { background: var(--surface); border-bottom: 1px solid var(--line); padding: 8px 12px 0; }
+.ph-r1 { display: flex; align-items: center; gap: 8px; }
+.ph-r1 .brand { font-size: 1rem; }
+.unofficial { font: 600 .62rem var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 6px; white-space: nowrap; }
+.ph-r1 .tools { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.ph-nav { display: flex; justify-content: space-between; margin: 6px -4px 0; }
+.ph-nav a { text-decoration: none; padding: 8px 4px; font-size: .84rem; color: var(--muted); white-space: nowrap; border-bottom: 3px solid transparent; }
+.ph-nav a[aria-current] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+.ph-me { display: flex; gap: 6px; padding: 6px 0 8px; border-top: 1px solid var(--line); font-size: .8rem; }
+.ph-me .me-chip { min-height: 24px; display: inline-flex; align-items: center; }
+
+/* En-tête d'aujourd'hui (reproduit d'après la capture) */
+.old-top { background: var(--surface); border-bottom: 1px solid var(--line); padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.old-top .mainnav { overflow: hidden; width: 100%; }
+
+/* Pied de page */
+.pub-foot { border-top: 1px solid var(--line); padding: 12px 16px; font-size: .8rem; color: var(--muted); display: grid; gap: 4px; background: var(--bg); }
+.pub-foot a { color: var(--muted); }
+.pub-foot .soon { border: 1px dashed var(--line); border-radius: 6px; padding: 2px 8px; font-style: italic; }
+
+/* Calcul long */
+.long-box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; max-width: 640px; display: grid; gap: 8px; }
+.long-box .progress .bar { flex: 1 1 140px; }
+.long-tip { font-size: .86rem; border-left: 3px solid var(--steel); padding: 4px 10px; background: var(--steel-soft); border-radius: 0 8px 8px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn-stop { border: 1px solid var(--bad); color: var(--bad); background: var(--surface); border-radius: 8px; padding: 4px 12px; min-height: 28px; font-weight: 600; cursor: pointer; }
+
+/* Recettes au téléphone */
+.tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tiles li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; height: 74px; display: grid; place-items: center; font-size: .72rem; color: var(--muted); }
+.more-btn { width: 100%; margin-top: 10px; min-height: 40px; }
+
+/* Contrastes */
+.mq-sw { display: inline-flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; margin-right: 12px; }
+.mq-sw.dark { background: #1b222a; color: #e6ebf0; }
+.mq-sw.light { background: #ffffff; color: #17212b; border: 1px solid #c9d1da; }
+.mq-sw small { font-size: .74rem; opacity: .8; }
+.pbtn { border-radius: 8px; padding: 6px 12px; font-weight: 600; border: 1px solid #f0913a; background: #f0913a; }
+.wchip { border-radius: 6px; padding: 0 6px; font-size: .9rem; background: #fbf0d9; }
+
+/* Aperçu Discord */
+.discord { display: flex; gap: 10px; background: #313338; color: #dbdee1; border-radius: 8px; padding: 10px 12px; font-size: .86rem; max-width: 560px; }
+.discord .av { width: 34px; height: 34px; border-radius: 50%; background: #f0913a; flex: none; display: grid; place-items: center; font-weight: 700; color: #1d2126; }
+.discord .n { color: #f2f3f5; font-weight: 600; }
+.discord .emb { margin-top: 4px; border-left: 4px solid #1f3d52; background: #2b2d31; border-radius: 4px; padding: 8px 10px; }
+.discord a { color: #00a8fc; }
+.discord img { width: 100%; border-radius: 4px; margin-top: 8px; display: block; }
+table.mq { border-collapse: collapse; font-size: .86rem; background: var(--surface); }
+table.mq th, table.mq td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.mq th { background: var(--steel-soft); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="mq-bar"><b>Maquette S33</b> — forme publique : seulement ce que la maquette S16 (<code>maquette/public.html</code>, validée) ne montre pas. Rien n'est branché. Le bouton « 💬 Remarque » et les liens « Remarque » / « Propositions » arrivent en S35 et S36 : ils ne sont pas dans ce lot.</div>
+
+<!-- ============================================================ 1. EN-TÊTE AU TÉLÉPHONE -->
+<section class="mq-sec">
+  <h2>1. L'en-tête au téléphone (375 px)</h2>
+  <p class="mq-note">Aujourd'hui : trois lignes, et le menu défile (« Contribuer » coupé, P6). Proposé : ligne 1 = logo, nom court, « Non officiel », FR / EN, « ? » ; ligne 2 = les cinq entrées du menu, réparties sur toute la largeur, sans défilement ; ligne 3 = ton usine en bref (inchangée). Sur ordinateur, l'en-tête reste sur une ligne, avec « Non officiel » à côté du nom (comme S16).</p>
+  <div class="mq-row">
+    <div>
+      <p class="mq-cap">Aujourd'hui</p>
+      <div class="phone">
+        <div class="old-top">
+          <span class="brand"><img src="../public/favicon.svg" alt="" width="28" height="28" class="brand-logo">Calculateur</span>
+          <span class="me-chip" style="margin-left:auto">146/146 recherches</span>
+          <span class="lang-sw"><button type="button" aria-pressed="true">FR</button><button type="button" aria-pressed="false">EN</button></span>
+          <button type="button" class="help-btn">?</button>
+          <nav class="mainnav bad"><a aria-current="page" href="#">Planifier</a><a href="#">Arbre</a><a href="#">Recettes</a><a href="#">Mon usine</a><a href="#">Contribuer</a></nav>
+        </div>
+        <div class="body">« Contribuer » coupé ; les liens du menu font 22 px de haut.</div>
+      </div>
+    </div>
+    <div>
+      <p class="mq-cap">Proposé — français</p>
+      <div class="phone">
+        <div class="ph-top">
+          <div class="ph-r1"><span class="brand"><img src="../public/favicon.svg" alt="" width="28" height="28" class="brand-logo">Planificateur</span><span class="unofficial">Non officiel</span>
+            <span class="tools"><span class="lang-sw"><button type="button" aria-pressed="true">FR</button><button type="button" aria-pressed="false">EN</button></span><button type="button" class="help-btn">?</button></span></div>
+          <nav class="ph-nav"><a aria-current="page" href="#">Planifier</a><a href="#">Arbre</a><a href="#">Recettes</a><a href="#">Mon usine</a><a href="#">Contribuer</a></nav>
+          <div class="ph-me"><span class="me-chip">146/146 recherches</span><span class="me-chip">12 400 RP</span><span class="me-chip">$2,1 M</span></div>
+        </div>
+        <div class="body">Liens du menu : 36 px de haut. Le nom long (« Planificateur Industrialist ») revient au-delà de 760 px.</div>
+      </div>
+    </div>
+    <div>
+      <p class="mq-cap">Proposé — anglais</p>
+      <div class="phone">
+        <div class="ph-top">
+          <div class="ph-r1"><span class="brand"><img src="../public/favicon.svg" alt="" width="28" height="28" class="brand-logo">Production Planner</span><span class="unofficial">Unofficial</span>
+            <span class="tools"><span class="lang-sw"><button type="button" aria-pressed="false">FR</button><button type="button" aria-pressed="true">EN</button></span><button type="button" class="help-btn">?</button></span></div>
+          <nav class="ph-nav"><a aria-current="page" href="#">Plan</a><a href="#">Research</a><a href="#">Recipes</a><a href="#">My factory</a><a href="#">Contribute</a></nav>
+          <div class="ph-me"><span class="me-chip">146/146 research</span><span class="me-chip">12,400 RP</span><span class="me-chip">$2.1M</span></div>
+        </div>
+        <div class="body">Même disposition ; « Contribute » entier.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2. PIED DE PAGE -->
+<section class="mq-sec">
+  <h2>2. Le pied de page de ce lot</h2>
+  <p class="mq-note">Le texte de la maquette S16, plus deux précisions venues du pied de page actuel, pour ne perdre aucun crédit : Fandom est sous CC BY-SA (pas NC), et la pousse des arbres vient du calculateur communautaire de la page Tree. La 3ᵉ ligne (« Envoyer une remarque », « Propositions des joueurs ») s'ajoutera en S35 et S36, quand le service existera.</p>
+  <div class="pub-foot" style="max-width:900px">
+    <span>Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</span>
+    <span>Données : wiki Industrialist (<a href="#">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="#">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</span>
+    <span class="soon">3ᵉ ligne en S35 / S36 : 💬 Envoyer une remarque · Propositions des joueurs</span>
+  </div>
+  <div class="pub-foot" style="max-width:900px;margin-top:8px" lang="en">
+    <span>Fan-made, <b>unofficial</b> tool by <b>Orangentleman</b> for the Roblox game Industrialist.</span>
+    <span>Data: Industrialist wiki (<a href="#">Miraheze</a>, CC BY-NC-SA 4.0, images included; <a href="#">Fandom</a>, CC BY-SA), in-game readings, and for tree growth the community calculator linked from the Tree page. If they differ, the in-game Recipe Book wins.</span>
+  </div>
+</section>
+
+<!-- ============================================================ 3. APERÇU DISCORD -->
+<section class="mq-sec">
+  <h2>3. L'image de l'aperçu (Discord)</h2>
+  <p class="mq-note">L'image d'aujourd'hui (<code>public/og-image.png</code>) est en français : « Calculateur de production ». Proposé : la même image, en anglais, avec « Unofficial ». Sa source est un fichier du dépôt (<code>scripts/og-image.html</code>), rendu par Chrome sans fenêtre : pas de dépendance. Titre et phrase comme la maquette S16 ; <code>og:locale</code> en_US, fr_FR en variante.</p>
+  <div class="discord">
+    <div class="av">O</div>
+    <div style="min-width:0"><div class="n">Orangentleman</div>
+      <div><a href="#">https://industrialist.myprisme.fr</a></div>
+      <div class="emb"><div style="font-size:.76rem;color:#b5bac1">Industrialist Production Planner</div>
+        <div style="color:#00a8fc;font-weight:600">Industrialist Production Planner (unofficial)</div>
+        <div style="margin-top:2px">Full production chains for Roblox Industrialist: machines, power, floor space and a build plan for every module, based on what you have unlocked.</div>
+        <img src="img/og-image-en.png" alt="Image d'aperçu proposée">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 4. CALCUL LONG -->
+<section class="mq-sec">
+  <h2>4. L'attente d'un calcul long (onglet Usine)</h2>
+  <p class="mq-note">Il y a déjà une barre d'avancement et « Annuler ». Proposé : le temps écoulé, un bouton « Arrêter » bien visible, et — seulement quand le calcul « recalculé pour l'usine entière » est choisi — une phrase qui propose le calcul module par module, plus rapide, en un clic. Si l'ancienne usine reste affichée (estompée) pendant le calcul, la même boîte se pose dessus ; aujourd'hui son bouton « Annuler » ne fait rien (défaut trouvé pendant l'état des lieux), il sera branché.</p>
+  <div class="mq-row">
+    <div class="long-box">
+      <p class="mod-sum" style="margin:0"><b>Toute l'usine — proposition</b> : calcul en arrière-plan. Tu peux continuer à utiliser le site pendant ce temps.</p>
+      <div class="progress" role="status"><span class="lbl">Placement des modules (7 sur 13)</span><span class="bar"><i style="width:46%"></i></span><span class="pct">46 %</span><span class="hint">depuis 1 min 12 s</span><button type="button" class="btn-stop">■ Arrêter</button></div>
+      <div class="long-tip">⏱ Le calcul recalculé pour l'usine entière peut prendre plusieurs minutes sur une grosse chaîne. <button type="button" class="small">Calculer module par module (plus rapide)</button></div>
+    </div>
+    <div class="long-box" lang="en">
+      <p class="mod-sum" style="margin:0"><b>Whole factory — suggestion</b>: computing in the background. You can keep using the site meanwhile.</p>
+      <div class="progress" role="status"><span class="lbl">Placing modules (7 of 13)</span><span class="bar"><i style="width:46%"></i></span><span class="pct">46%</span><span class="hint">for 1 min 12 s</span><button type="button" class="btn-stop">■ Stop</button></div>
+      <div class="long-tip">⏱ Recomputing for the whole factory can take several minutes on a big chain. <button type="button" class="small">Compute module by module (faster)</button></div>
+    </div>
+  </div>
+  <p class="mq-note" style="margin-top:8px">Après « Arrêter » : « Calcul de toute l'usine arrêté. » avec « Relancer le calcul » et le même bouton « module par module ».</p>
+</section>
+
+<!-- ============================================================ 5. RECETTES AU TÉLÉPHONE -->
+<section class="mq-sec">
+  <h2>5. Recettes au téléphone</h2>
+  <p class="mq-note">Aujourd'hui toutes les tuiles s'affichent d'un coup : 10 500 px de page. Proposé, sous 900 px seulement (sur ordinateur la liste a déjà sa propre colonne qui défile) : les 48 premières tuiles, puis « Afficher 48 de plus » ; une recherche ou un filtre repart à 48. L'objet ouvert reste toujours dans la liste (décision S5). Même chose en lignes.</p>
+  <div class="phone">
+    <div class="body" style="padding-top:8px">
+      <ul class="tiles"><li>Aluminum</li><li>Battery</li><li>Bolt</li><li>Cable</li><li>Circuit</li><li>Coal</li><li>…</li><li>…</li><li>(48 tuiles)</li></ul>
+      <button type="button" class="more-btn">Afficher 48 de plus (≈ 300 restantes)</button>
+      <p class="hint" style="margin:6px 0 0">Page : moins de 3 000 px.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 6. CONTRASTES -->
+<section class="mq-sec">
+  <h2>6. Les deux contrastes trop faibles (P5)</h2>
+  <p class="mq-note">Il faut 4,5:1 pour le texte. Seules deux couleurs changent ; le reste mesure déjà 4,5:1 ou plus (relevé dans les deux thèmes au téléphone et sur ordinateur). Un test gardera chaque paire de couleurs.</p>
+  <div class="mq-sw dark"><small>Thème sombre — bouton principal</small>
+    <span><button type="button" class="pbtn" style="color:#fff">Renseigner mon usine</button> aujourd'hui 2,4:1</span>
+    <span><button type="button" class="pbtn" style="color:#17212b">Renseigner mon usine</button> proposé 6,8:1 (texte sombre)</span></div>
+  <div class="mq-sw light"><small>Thème clair — ⚠ de Recettes et du schéma</small>
+    <span><span class="wchip" style="color:#a86a00;border:1px solid #a86a00">⚠</span> aujourd'hui 3,9:1</span>
+    <span><span class="wchip" style="color:#8a5700;border:1px solid #8a5700">⚠</span> proposé 5,4:1 (orange plus sombre)</span></div>
+  <p class="mq-note" style="margin-top:8px">Le schéma, l'usine et l'arbre (SVG) sont contrôlés à l'œil pendant le parcours final, dans les deux thèmes.</p>
+</section>
+
+<!-- ============================================================ 7. SANS CHANGEMENT VISIBLE -->
+<section class="mq-sec">
+  <h2>7. Ce qui change sans maquette</h2>
+  <table class="mq">
+    <tr><th>Point</th><th>Ce qui est fait</th></tr>
+    <tr><td>Cibles ≥ 24 px</td><td>Au téléphone, chaque bouton, case et lien hors d'une phrase fait au moins 24 px de haut (aujourd'hui : 42 cibles trop petites sur Planifier avec l'Usine ouverte, 12 sur Mon usine, 4 sur Contribuer). Les lignes s'espacent un peu, rien ne change de place.</td></tr>
+    <tr><td>Clavier</td><td>Chaque page faite au Tab ; Échap ferme les fenêtres et le focus revient au bouton qui les a ouvertes ; schéma, usine et arbre se déplacent aux flèches et se zooment avec + et − (déjà là, à vérifier partout).</td></tr>
+    <tr><td>Lecteur d'écran</td><td>La réponse recalculée est annoncée (déjà <code>aria-live</code>, à vérifier) ; chaque fenêtre a un titre ; le schéma et l'usine disent qu'ils ont une version lisible : l'onglet « Machines ».</td></tr>
+    <tr><td>Nom</td><td>« Planificateur Industrialist » / « Industrialist Production Planner » partout : en-tête, titre de l'onglet, aperçu, <code>site.webmanifest</code>.</td></tr>
+  </table>
+</section>
+
+<div class="mq-q">
+  <b>Questions (S33)</b> — « ok » suffit si la proposition te va.
+  <ol>
+    <li><b>En-tête au téléphone</b> (écran 1) : nom court, « Non officiel », menu sur toute la largeur, ton usine en bref sur une 3ᵉ ligne : ça te va ?</li>
+    <li><b>Pied de page</b> (écran 2), <b>image d'aperçu</b> en anglais (écran 3) : d'accord ? Après la mise en ligne, il faudra coller le lien dans ton salon réservé pour voir l'aperçu (Discord garde parfois l'ancien quelques heures).</li>
+    <li><b>Calcul long</b> (écran 4) : temps écoulé, « Arrêter », et le bouton « module par module » : d'accord ?</li>
+    <li><b>Recettes au téléphone</b> (écran 5) : 48 tuiles puis « Afficher 48 de plus » : d'accord ?</li>
+    <li><b>Titres de Planifier</b> (reste P11) : la maquette S16 montrait « Que veux-tu produire ? ». Je propose de changer les quatre titres en questions : « Que veux-tu produire ? » / « Combien d'énergie te faut-il ? » / « Que veux-tu rechercher ? » / « Combien veux-tu gagner ? » (en anglais : « What do you want to make? » / « How much power do you need? » / « What do you want to research? » / « How much money do you want to make? »). Ou garder les titres d'aujourd'hui (« Produire un objet »…) ?</li>
+    <li><b>Pollution</b> (reste F4, « %/h » peu parlant) : le jeu l'écrit en %/h (page Pollution du wiki : « 8.64%/h »). Je propose de garder l'unité du jeu et de dire ce qu'elle est : « Pollution ajoutée : +0,8 %/h » avec une bulle « pollution ajoutée au monde par heure, comme sur la page Pollution du wiki ; elle ralentit la pousse des arbres » (ce que le site dit déjà ailleurs). Ça te va, ou tu as un mot du jeu en tête (et ce que le jeu affiche exactement) ?</li>
+  </ol>
+</div>
+</body>
+</html>

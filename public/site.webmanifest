@@ -1,8 +1,8 @@
 {
-  "name": "Calculateur de production — Industrialist",
+  "name": "Industrialist Production Planner",
   "short_name": "Industrialist",
-  "description": "Chaînes de production du jeu Roblox Industrialist, selon ta progression.",
-  "lang": "fr",
+  "description": "Unofficial fan tool: production chains for the Roblox game Industrialist, based on what you have unlocked.",
+  "lang": "en",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#12171c",
