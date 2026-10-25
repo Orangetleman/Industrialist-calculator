@@ -63,10 +63,14 @@ Rien n'a été modifié dans `~/myprism`, `/etc/cloudflared` ni dans les unités
 | `/etc/industrialist-remarques/` | `reglages.env` (origines admises, `REMARQUES_FERMEES=1` pour fermer les envois) et `mot-de-passe` (haché par scrypt, lisible seulement par root et le service). |
 | nginx | `/etc/nginx/snippets/industrialist-api.conf` (`/api/` → 127.0.0.1:8091), inclus par le site de l'Industrialist seulement. L'ancienne version du site est gardée dans `industrialist.avant-remarques`. |
 
-**Attention : le noyau du Pi désactive le contrôle de la mémoire** (`cgroup_disable=memory` dans
-`/proc/cmdline`, réglage par défaut des Raspberry Pi). Les `MemoryMax` (ce service, le tunnel) ne sont donc
-**pas appliqués**. Mesuré au démarrage : 38 Mo de mémoire propre au processus, plus 54 Mo de fichiers partagés
-(le programme Node). Le plafond réel est celui du tas (`--max-old-space-size=32`).
+**Contrôle de la mémoire** : le noyau des Raspberry Pi le désactive par défaut (`cgroup_disable=memory`), et
+les `MemoryMax` restaient alors sans effet. Le 2026-10-25, avec l'accord de l'utilisateur, `cgroup_enable=memory`
+a été ajouté à la fin de `/boot/firmware/cmdline.txt` (ancienne version : `cmdline.txt.avant-memoire`), puis le Pi
+a été redémarré. Les limites sont maintenant appliquées. Les unités de MyPrism n'en ont aucune, donc rien ne change
+pour elles. Mesuré après le redémarrage : remarques 63 Mo sur 64 (30 Mo de mémoire propre, 30 Mo de fichiers en
+cache que le noyau reprend au besoin ; aucun arrêt pour manque de mémoire, réponses en 2 ms), tunnel de
+l'Industrialist 43 Mo sur 150. Si `memory.events` du service montrait un jour des `oom_kill`, il faudrait relever
+`MemoryMax` (par exemple à 96M).
 
 Mettre à jour le service (code, unité, nginx), **sans rien redémarrer ni recharger** :
 
