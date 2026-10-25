@@ -466,7 +466,9 @@ describe("S24 : visite d'orientation", () => {
   it("l'essentiel, puis un détail qui entre dans le schéma et l'usine complète (Q25)", () => {
     const core = tourSeq(SITE_TOUR, "core");
     const detail = tourSeq(SITE_TOUR, "detail");
-    expect(core).toHaveLength(8);
+    // S35 : 9 étapes, celle des remarques (« 💬 ») juste avant la dernière.
+    expect(core).toHaveLength(9);
+    expect(SITE_TOUR[core.at(-2)!]!.target).toBe("#remark-btn");
     expect([...core, ...detail].sort((a, b) => a - b)).toEqual(tourSeq(SITE_TOUR, "full"));
     const hashes = detail.map((k) => SITE_TOUR[k]!.hash);
     expect(hashes).toContain("#objet/schema");

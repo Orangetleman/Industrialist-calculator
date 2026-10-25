@@ -29,6 +29,8 @@ export const visiteFr = {
   "tour.tree.html": `Comme en jeu. Pour une recherche pas encore débloquée : ce qui te manque, et <b>dans combien de temps de jeu</b> tu l'auras à ton rythme.`,
   "tour.recipes.title": "Recettes et Contribuer",
   "tour.recipes.html": `<b>Recettes</b> : tous les crafts, comme l'onglet du jeu. À côté, <b>Contribuer</b> : corriger une valeur ⚠ qui ne colle pas au jeu, relever les ports d'un bâtiment.`,
+  "tour.remark.title": "Une remarque ? C'est ici",
+  "tour.remark.html": `Une valeur fausse, un bogue, une idée : <b>💬 Remarque</b> l'envoie à l'auteur, avec la page où tu es. La réponse arrive dans « Mes remarques ».`,
   "tour.help.title": "Revoir la visite",
   "tour.help.html": `Ce bouton <b>?</b> rejoue la visite quand tu veux, en entier.`,
   "tour.flow.title": "Le graphe de la chaîne",

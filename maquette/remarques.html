@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S35 — Remarques côté joueur</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement. Reprend la fenêtre de la maquette S16 (public.html, écran 2) ; ne montre que ce qu'elle ne couvrait pas. */
+body { background: var(--bg); }
+.mq-bar { max-width: 1120px; margin: 10px auto; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .86rem; background: var(--warn-soft); border-radius: 8px; }
+.mq-sec { max-width: 1120px; margin: 26px auto 0; padding: 0 16px; }
+.mq-sec > h2 { font: 700 1.1rem var(--f-display); margin-bottom: 4px; }
+.mq-sec > p.mq-note { font-size: .86rem; color: var(--muted); margin-bottom: 10px; max-width: 760px; }
+.mq-q { max-width: 1120px; margin: 30px auto 60px; padding: 10px 16px; background: var(--warn-soft); border-radius: 8px; font-size: .9rem; }
+.mq-q ol { margin: 6px 0 0; padding-left: 22px; }
+.mq-q li { margin: 7px 0; }
+.mq-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.mq-row > div { flex: 1 1 340px; }
+.mq-cap { font-size: .78rem; color: var(--muted); margin: 6px 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.lang-sw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.lang-sw button { border: 0; background: var(--surface); color: var(--muted); font-size: .8rem; font-weight: 600; min-width: 34px; min-height: 28px; cursor: pointer; }
+.lang-sw button[aria-pressed="true"] { background: var(--steel-soft); color: var(--ink); }
+
+.rm-win { max-width: 480px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+.rm-win h3 { font: 700 1.05rem var(--f-display); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.rm-win h3 .x { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 1.1rem; min-width: 28px; min-height: 28px; }
+.rm-types { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.rm-types label { border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; font-size: .84rem; min-height: 28px; display: inline-flex; align-items: center; gap: 5px; }
+.rm-types label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.rm-win textarea { width: 100%; min-height: 90px; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.rm-win input[type=text] { width: 100%; }
+.rm-meta { font-size: .78rem; color: var(--muted); margin: 8px 0; line-height: 1.45; }
+.rm-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.rm-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.rm-tabs button { border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 8px; padding: 4px 10px; font-size: .84rem; min-height: 28px; }
+.rm-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.rm-piece { border: 1px solid var(--steel); background: var(--steel-soft); border-radius: 8px; padding: 8px 10px; font-size: .86rem; margin-bottom: 8px; }
+.rm-piece ul { margin: 4px 0 0 18px; font-size: .82rem; }
+.rm-mine { display: grid; gap: 8px; }
+.rm-mine .it { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .86rem; }
+.rm-mine .it .h { display: flex; gap: 8px; align-items: baseline; font-size: .78rem; color: var(--muted); flex-wrap: wrap; }
+.rm-mine .it .h .st { margin-left: auto; }
+.rm-mine .it .ans { margin-top: 6px; border-left: 3px solid var(--accent); padding-left: 8px; }
+.rm-mine .it.new { border-color: var(--accent); }
+.rm-mine .forget { font-size: .76rem; }
+.rm-ok { border: 1px solid var(--ok); border-radius: 8px; padding: 10px; font-size: .88rem; }
+.rm-err { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 10px; font-size: .88rem; margin-top: 8px; }
+.count.over { color: var(--warn); font-weight: 700; }
+.dot { display: inline-block; min-width: 16px; height: 16px; border-radius: 8px; background: var(--accent); color: var(--on-accent, #1d2126); font: 700 .66rem/16px var(--f-mono); text-align: center; padding: 0 4px; margin-left: 4px; }
+.remark-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; min-height: 28px; padding: 0 10px; font-size: .84rem; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.editbar { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 10px; font-size: .84rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.editbar .grow { flex: 1 1 260px; }
+.phone { width: 375px; max-width: 100%; border: 1px dashed var(--line); border-radius: 16px; overflow: hidden; background: var(--bg); position: relative; height: 640px; }
+.phone .top-line { display: flex; gap: 6px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: .84rem; }
+.phone .top-line .grow { flex: 1; font-weight: 700; }
+.phone .sheet { position: absolute; inset: auto 0 0 0; top: 54px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 14px; overflow: auto; }
+.discord { display: flex; gap: 10px; background: #313338; color: #dbdee1; border-radius: 8px; padding: 10px 12px; font-size: .86rem; max-width: 520px; margin-bottom: 8px; }
+.discord .av { width: 34px; height: 34px; border-radius: 50%; background: #f0913a; flex: none; display: grid; place-items: center; font-weight: 700; color: #1d2126; }
+.discord .n { color: #f2f3f5; font-weight: 600; }
+.discord .n small { color: #949ba4; font-weight: 400; margin-left: 6px; font-size: .74rem; }
+.discord .emb { margin-top: 4px; border-left: 4px solid #f0913a; background: #2b2d31; border-radius: 4px; padding: 8px 10px; }
+.discord .emb.corr { border-left-color: #5b8def; }
+.discord small.f { color: #949ba4; }
+.discord a { color: #00a8fc; }
+.foot { border-top: 1px solid var(--line); padding: 12px 16px; font-size: .8rem; color: var(--muted); display: grid; gap: 4px; background: var(--surface); border-radius: 0 0 12px 12px; }
+.foot a { color: var(--ink); min-height: 24px; display: inline-block; line-height: 24px; }
+</style>
+</head>
+<body>
+
+<div class="mq-bar">
+  <span><b>Maquette S35</b> — remarques côté joueur. La fenêtre « Remarque » (écrire, « Mes remarques », après l'envoi, service arrêté) est déjà validée dans la maquette S16 (<code>public.html</code>, écran 2) : ici seulement ce qu'elle ne montrait pas.</span>
+  <span>Langue :</span>
+  <span class="lang-sw" role="group" aria-label="Langue"><button type="button" data-l="fr" aria-pressed="true">FR</button><button type="button" data-l="en" aria-pressed="false">EN</button></span>
+</div>
+
+<!-- ============================================================ 1. CORRECTIONS -->
+<section class="mq-sec">
+  <h2>1. « Envoyer mes corrections » : où, et ce qui part</h2>
+  <p class="mq-note">Trois boutons, une seule fenêtre. Le bouton ouvre la fenêtre « Remarque » sur le type <b>📤 Correction</b> (fixé), avec le fichier joint résumé ; un mot est facultatif. Le fichier joint est <b>exactement celui de l'export d'aujourd'hui</b> (<code>overrides.json</code>, ou le fichier des relevés de bâtiments) : tu l'intègres par « Importer… » comme maintenant. L'export reste à côté. Les corrections restent aussi dans le navigateur. Le bouton n'apparaît que s'il y a quelque chose à envoyer.</p>
+  <div class="mq-row">
+    <div>
+      <p class="mq-cap">Contribuer › Valeurs à vérifier › Mes corrections</p>
+      <div class="panel">
+        <b data-fr="Mes corrections" data-en="My fixes">Mes corrections</b> <span class="pill">3</span>
+        <div class="row" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="primary" data-fr="📤 Envoyer mes corrections" data-en="📤 Send my fixes">📤 Envoyer mes corrections</button>
+          <button type="button" data-fr="Exporter mes corrections" data-en="Export my fixes">Exporter mes corrections</button>
+          <button type="button" data-fr="Importer…" data-en="Import…">Importer…</button>
+        </div>
+        <p class="hint" style="margin-top:6px" data-fr="Elles servent déjà à tes plans. Envoie-les à l'auteur pour qu'elles servent à tout le monde. · Envoyées le 25/10 (n° 12)." data-en="They already apply to your plans. Send them to the author so everyone gets them. · Sent on Oct 25 (#12).">Elles servent déjà à tes plans. Envoie-les à l'auteur pour qu'elles servent à tout le monde. · Envoyées le 25/10 (n° 12).</p>
+      </div>
+      <p class="mq-cap" style="margin-top:14px">Recettes, en mode « ✎ Corriger » (barre du haut de la fiche)</p>
+      <div class="editbar"><span class="grow" data-fr="&lt;b&gt;Mode correction&lt;/b&gt; · chaque valeur enregistrée compte comme un relevé en jeu, daté du jour." data-en="&lt;b&gt;Fix mode&lt;/b&gt; · every saved value counts as an in-game reading, dated today."><b>Mode correction</b> · chaque valeur enregistrée compte comme un relevé en jeu, daté du jour.</span>
+        <button type="button" class="small" data-fr="📤 Envoyer mes corrections (3)" data-en="📤 Send my fixes (3)">📤 Envoyer mes corrections (3)</button>
+        <button type="button" class="small" data-fr="Terminé" data-en="Done">Terminé</button></div>
+      <p class="mq-cap" style="margin-top:14px">Éditeur de bâtiments (sous la liste)</p>
+      <div class="panel" style="max-width:300px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="primary" data-fr="📤 Envoyer mes relevés" data-en="📤 Send my readings">📤 Envoyer mes relevés</button>
+          <button type="button" data-fr="Exporter mes relevés" data-en="Export my readings">Exporter mes relevés</button>
+          <button type="button" data-fr="Importer…" data-en="Import…">Importer…</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="mq-cap">La fenêtre, ouverte par l'un de ces boutons</p>
+      <div class="rm-win" role="dialog">
+        <h3><span data-fr="📤 Envoyer mes corrections" data-en="📤 Send my fixes">📤 Envoyer mes corrections</span><button type="button" class="x" aria-label="Fermer">✕</button></h3>
+        <div class="rm-piece"><b data-fr="Fichier joint : overrides.json" data-en="Attached file: overrides.json">Fichier joint : overrides.json</b>
+          <ul><li data-fr="3 corrections de valeur (Gear, Coal Generator, Smelter)" data-en="3 value fixes (Gear, Coal Generator, Smelter)">3 corrections de valeur (Gear, Coal Generator, Smelter)</li><li data-fr="1 note" data-en="1 note">1 note</li></ul></div>
+        <textarea data-fr-ph="Un mot sur ces corrections (facultatif) : où tu les as relevées, ce qui t'a surpris…" data-en-ph="A word about these fixes (optional): where you read them, what surprised you…" placeholder="Un mot sur ces corrections (facultatif) : où tu les as relevées, ce qui t'a surpris…"></textarea>
+        <div class="hint" style="text-align:right">0 / 2 000</div>
+        <label style="font-size:.86rem;display:grid;gap:4px;margin-top:6px"><span data-fr="Pseudo Discord (facultatif, pour te répondre)" data-en="Discord name (optional, so I can reply)">Pseudo Discord (facultatif, pour te répondre)</span><input type="text" value="steelworker_42"></label>
+        <p class="rm-meta" data-fr="Part avec : le fichier ci-dessus, la page, la langue et la version du site. Ni ta partie, ni ton adresse." data-en="Sent along: the file above, the page, language and site version. Not your save, not your address.">Part avec : le fichier ci-dessus, la page, la langue et la version du site. Ni ta partie, ni ton adresse.</p>
+        <div class="rm-actions"><button type="button" data-fr="Annuler" data-en="Cancel">Annuler</button><button type="button" class="primary" data-fr="Envoyer" data-en="Send">Envoyer</button></div>
+      </div>
+      <p class="hint" style="margin-top:8px">Le pseudo tapé une fois est proposé les fois suivantes (gardé dans le navigateur). Dans « Mes remarques », un envoi de corrections s'affiche « 📤 Correction · 3 corrections ».</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2. ÉTATS DE L'ENVOI -->
+<section class="mq-sec">
+  <h2>2. Les cas que l'écran 2 de S16 ne montrait pas</h2>
+  <p class="mq-note">Dans tous les cas d'échec, le texte reste dans la fenêtre (et dans le navigateur si on la ferme), et « Envoyer » redevient cliquable. Le message est annoncé au lecteur d'écran.</p>
+  <div class="mq-row">
+    <div>
+      <p class="mq-cap">Texte trop long</p>
+      <div class="hint count over" style="text-align:right">2 014 / 2 000</div>
+      <div class="rm-err" data-fr="Ton texte dépasse 2 000 caractères : raccourcis-le de 14." data-en="Your text is over 2,000 characters: cut 14.">Ton texte dépasse 2 000 caractères : raccourcis-le de 14.</div>
+      <p class="mq-cap" style="margin-top:12px">Pendant l'envoi</p>
+      <div class="rm-actions" style="justify-content:flex-start"><button type="button" class="primary" disabled data-fr="Envoi…" data-en="Sending…">Envoi…</button></div>
+    </div>
+    <div>
+      <p class="mq-cap">Plus de 5 remarques dans l'heure</p>
+      <div class="rm-err" data-fr="Tu as déjà envoyé 5 remarques cette heure-ci. Ton texte est gardé : réessaie un peu plus tard." data-en="You've already sent 5 messages this hour. Your text is kept: try again a bit later.">Tu as déjà envoyé 5 remarques cette heure-ci. Ton texte est gardé : réessaie un peu plus tard.</div>
+      <p class="mq-cap" style="margin-top:12px">Envois fermés par l'auteur</p>
+      <div class="rm-err" data-fr="Les remarques sont fermées pour le moment. Ton texte est gardé." data-en="Feedback is closed for now. Your text is kept.">Les remarques sont fermées pour le moment. Ton texte est gardé.</div>
+    </div>
+    <div>
+      <p class="mq-cap">Rien d'écrit</p>
+      <div class="rm-err" data-fr="Écris d'abord ta remarque." data-en="Write your message first.">Écris d'abord ta remarque.</div>
+      <p class="mq-cap" style="margin-top:12px">Fichier trop gros (rare)</p>
+      <div class="rm-err" data-fr="Le fichier joint est trop gros pour l'envoi (200 ko au plus). Exporte-le plutôt et partage-le sur Discord." data-en="The attached file is too big to send (200 kB max). Export it instead and share it on Discord.">Le fichier joint est trop gros pour l'envoi (200 ko au plus). Exporte-le plutôt et partage-le sur Discord.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 3. MES REMARQUES -->
+<section class="mq-sec">
+  <h2>3. « Mes remarques » : l'état, et une réponse nouvelle</h2>
+  <p class="mq-note">La liste vient du navigateur (numéros secrets des remarques envoyées d'ici) ; l'état et ta réponse sont relus au service à l'ouverture de l'onglet, et une fois par jour au chargement du site. Une réponse pas encore lue met une pastille sur « 💬 » et sur l'onglet. « Oublier » retire la ligne de ce navigateur seulement. Le n° est le numéro court que tu vois dans le tableau de bord et dans Discord.</p>
+  <div class="mq-row">
+    <div>
+      <p class="mq-cap">En-tête quand une réponse est arrivée</p>
+      <button type="button" class="remark-btn" aria-label="Remarque, 1 réponse nouvelle">💬 <span data-fr="Remarque" data-en="Feedback">Remarque</span><span class="dot">1</span></button>
+    </div>
+    <div>
+      <div class="rm-win">
+        <div class="rm-tabs"><button type="button" aria-selected="false" data-fr="Écrire" data-en="Write">Écrire</button><button type="button" aria-selected="true" data-fr="Mes remarques (3) &lt;span class=&quot;dot&quot;&gt;1&lt;/span&gt;" data-en="My feedback (3) &lt;span class=&quot;dot&quot;&gt;1&lt;/span&gt;">Mes remarques (3) <span class="dot">1</span></button></div>
+        <div class="rm-mine">
+          <div class="it new"><div class="h"><b>n° 9</b> · <span data-fr="⚠ Valeur fausse · il y a 2 jours" data-en="⚠ Wrong value · 2 days ago">⚠ Valeur fausse · il y a 2 jours</span><span class="st" data-fr="Traitée · réponse nouvelle" data-en="Done · new reply">Traitée · réponse nouvelle</span></div>
+            <div data-fr="Le Gear sort 20 par craft, pas 10." data-en="The Gear outputs 20 per craft, not 10.">Le Gear sort 20 par craft, pas 10.</div>
+            <div class="ans"><b>Orangentleman :</b> <span data-fr="Merci, corrigé (relevé en jeu)." data-en="Thanks, fixed (checked in game).">Merci, corrigé (relevé en jeu).</span></div></div>
+          <div class="it"><div class="h"><b>n° 12</b> · <span data-fr="📤 Correction · 3 corrections · aujourd'hui" data-en="📤 Fix · 3 fixes · today">📤 Correction · 3 corrections · aujourd'hui</span><span class="st" data-fr="Lue" data-en="Read">Lue</span></div>
+            <div class="hint" data-fr="Pas encore de réponse." data-en="No reply yet.">Pas encore de réponse.</div></div>
+          <div class="it"><div class="h"><b>n° 14</b> · <span data-fr="💡 Idée · aujourd'hui" data-en="💡 Idea · today">💡 Idée · aujourd'hui</span><span class="st" data-fr="Pas encore lue" data-en="Not read yet">Pas encore lue</span></div>
+            <div data-fr="Pouvoir partager un plan par un lien." data-en="Share a plan with a link.">Pouvoir partager un plan par un lien.</div>
+            <button type="button" class="link forget" data-fr="Oublier" data-en="Forget">Oublier</button></div>
+        </div>
+        <p class="hint" style="margin-top:8px" data-fr="Gardées dans ce navigateur seulement. Si le service ne répond pas, la liste s'affiche sans l'état." data-en="Kept in this browser only. If the service is down, the list shows without status.">Gardées dans ce navigateur seulement. Si le service ne répond pas, la liste s'affiche sans l'état.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 4. TÉLÉPHONE -->
+<section class="mq-sec">
+  <h2>4. Au téléphone</h2>
+  <p class="mq-note">« 💬 » rejoint la première ligne de l'en-tête (S33), entre FR / EN et « ? », sans son mot. La fenêtre prend tout l'écran sous l'en-tête, comme une feuille ; le clavier du téléphone ne cache pas « Envoyer » (la feuille défile). Cibles ≥ 24 px.</p>
+  <div class="phone">
+    <div class="top-line"><span class="grow" data-fr="Planificateur" data-en="Production Planner">Planificateur</span><span class="hint">NON OFFICIEL</span><span class="lang-sw"><button type="button" aria-pressed="true">FR</button><button type="button" aria-pressed="false">EN</button></span><button type="button" class="remark-btn" aria-label="Remarque">💬</button><button type="button" class="remark-btn" aria-label="Visite">?</button></div>
+    <div class="sheet">
+      <h3 style="font:700 1.05rem var(--f-display);display:flex"><span data-fr="💬 Une remarque ?" data-en="💬 Feedback">💬 Une remarque ?</span><button type="button" style="margin-left:auto;border:0;background:none;min-width:28px;min-height:28px">✕</button></h3>
+      <div class="rm-types" style="margin-top:8px">
+        <label><input type="radio" name="p" checked> <span data-fr="⚠ Valeur fausse" data-en="⚠ Wrong value">⚠ Valeur fausse</span></label>
+        <label><input type="radio" name="p"> <span data-fr="🐞 Bogue" data-en="🐞 Bug">🐞 Bogue</span></label>
+        <label><input type="radio" name="p"> <span data-fr="💡 Idée" data-en="💡 Idea">💡 Idée</span></label>
+        <label><input type="radio" name="p"> <span data-fr="🌐 Traduction" data-en="🌐 Translation">🌐 Traduction</span></label>
+      </div>
+      <textarea style="width:100%;min-height:120px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px"></textarea>
+      <div class="rm-actions"><button type="button" data-fr="Annuler" data-en="Cancel">Annuler</button><button type="button" class="primary" data-fr="Envoyer" data-en="Send">Envoyer</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 5. PIED DE PAGE ET VISITE -->
+<section class="mq-sec">
+  <h2>5. Pied de page et visite</h2>
+  <p class="mq-note">Le pied de page S33 gagne une troisième ligne (le lien « Propositions des joueurs » viendra avec la page, en S36). La visite gagne l'étape de l'écran 2 de S16, éclairant « 💬 », juste avant la dernière (« ? ») : l'essentiel passe de 8 à 9 étapes.</p>
+  <div class="foot">
+    <span data-fr="Outil de fan, &lt;b&gt;non officiel&lt;/b&gt;, fait par &lt;b&gt;Orangentleman&lt;/b&gt; pour le jeu Roblox Industrialist." data-en="Fan-made, &lt;b&gt;unofficial&lt;/b&gt; tool by &lt;b&gt;Orangentleman&lt;/b&gt; for the Roblox game Industrialist.">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</span>
+    <span>Données : wiki Industrialist (…) — ligne inchangée.</span>
+    <span><a href="#" data-fr="💬 Envoyer une remarque" data-en="💬 Send feedback">💬 Envoyer une remarque</a> <span data-fr="· une valeur fausse, un bogue, une idée, une traduction" data-en="· a wrong value, a bug, an idea, a translation">· une valeur fausse, un bogue, une idée, une traduction</span></span>
+  </div>
+</section>
+
+<!-- ============================================================ 6. DISCORD -->
+<section class="mq-sec">
+  <h2>6. Le message dans ton salon Discord réservé</h2>
+  <p class="mq-note">Posté par le service sur le Pi (jamais par le navigateur du joueur), par un <b>webhook du salon</b> : rien ne change au bot de MyPrism. Le message ne mentionne jamais personne (un « @everyone » écrit par un joueur reste du texte). Texte coupé à 300 caractères. Si Discord ne répond pas, la remarque est quand même gardée. Le lien « Ouvrir » mène au tableau de bord (il marchera à partir de S36).</p>
+  <div class="discord">
+    <div class="av">R</div>
+    <div><div class="n">Remarques Industrialist <small>APP · aujourd'hui à 18:06</small></div>
+      <div class="emb"><b>💡 Idée · n° 14 · EN</b><br>Would love to share a plan with a link so my friend can build the same factory.<br><small class="f">Plan › 60 Gearbox/min › Factory · steelworker_42 · version 2026-10-25 a1b2c3d</small><br><a href="#">Ouvrir dans le tableau de bord</a></div>
+    </div>
+  </div>
+  <div class="discord">
+    <div class="av">R</div>
+    <div><div class="n">Remarques Industrialist <small>APP · aujourd'hui à 18:09</small></div>
+      <div class="emb corr"><b>📤 Correction · n° 15 · FR</b><br>Relevé sur mon serveur ce soir.<br><small class="f">Fichier : overrides.json (3 corrections, 1 note) · Contribuer › Valeurs à vérifier · sans pseudo</small><br><a href="#">Ouvrir dans le tableau de bord</a></div>
+    </div>
+  </div>
+</section>
+
+<div class="mq-q">
+  <b>Questions (S35)</b>
+  <ol>
+    <li><b>Corrections</b> (écran 1) : trois boutons « 📤 Envoyer… » (Contribuer, barre « ✎ Corriger » de Recettes, éditeur de bâtiments) qui ouvrent la fenêtre en type « Correction », avec le fichier de l'export joint. Ça te va ?</li>
+    <li><b>Mes remarques</b> (écran 3) : état « pas encore lue / lue / traitée », pastille quand une réponse arrive, « Oublier ». Le n° montré est le numéro court (1, 2, 3…) : le numéro secret qui permet de relire la réponse reste caché. D'accord ?</li>
+    <li><b>Téléphone et visite</b> (écrans 4 et 5) : 💬 sur la première ligne, fenêtre en feuille plein écran ; étape 8 / 9 sur 💬. D'accord ?</li>
+    <li><b>Discord</b> (écran 6) : il faut que <b>tu crées le webhook</b> dans les réglages du salon réservé (Modifier le salon › Intégrations › Webhooks › Nouveau webhook, nom « Remarques Industrialist », puis « Copier l'URL du webhook »). Tu le colleras toi-même dans une commande sur le PC (<code>npm run remarques:discord</code>, saisie masquée comme pour le mot de passe) qui le range sur le Pi, lisible seulement par le service : je ne le vois jamais. D'accord pour cette façon de faire ?</li>
+    <li><b>Redémarrage</b> : le service du Pi change un peu (le message Discord, le numéro court renvoyé au joueur). Il faudra le mettre à jour puis lancer <code>sudo systemctl restart industrialist-remarques</code> (MyPrism n'est pas touché, nginx n'est pas rechargé). Je te demanderai le feu vert au moment de le faire.</li>
+  </ol>
+</div>
+
+<script>
+// Maquette seulement : bascule de langue.
+function setLang(l) {
+  document.documentElement.lang = l;
+  for (const b of document.querySelectorAll('[data-l]')) b.setAttribute('aria-pressed', String(b.dataset.l === l));
+  for (const e of document.querySelectorAll('[data-fr]')) e.innerHTML = e.dataset[l] ?? e.dataset.fr;
+  for (const e of document.querySelectorAll('[data-fr-ph]')) e.placeholder = l === 'en' ? e.dataset.enPh : e.dataset.frPh;
+}
+for (const b of document.querySelectorAll('[data-l]')) b.addEventListener('click', () => setLang(b.dataset.l));
+</script>
+</body>
+</html>

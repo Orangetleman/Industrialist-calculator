@@ -19,6 +19,7 @@
     "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/deployer.ps1",
     "deploy:remarques": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/deployer.ps1 -Remarques",
     "remarques:mot-de-passe": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/mot-de-passe.ps1",
+    "remarques:discord": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/discord.ps1",
     "deploy:retour": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi/deployer.ps1 -Retour"
   },
   "devDependencies": {

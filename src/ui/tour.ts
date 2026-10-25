@@ -53,6 +53,8 @@ export const SITE_TOUR: TourStep[] = [
   { core: true, part: "tour.part.plan", hash: "#objet", target: "#rtabs-result", play: true, title: "tour.views.title", text: "tour.views.html" },
   { core: true, part: "tour.part.rest", hash: "#objet", target: "[data-nav=arbre]", title: "tour.tree.title", text: "tour.tree.html" },
   { core: true, part: "tour.part.rest", hash: "#objet", target: "[data-nav=recettes]", title: "tour.recipes.title", text: "tour.recipes.html" },
+  // S35 : l'étape des remarques, juste avant la dernière (maquette S16, écran 2 : « 8 / 9 »).
+  { core: true, part: "tour.part.rest", hash: "#objet", target: "#remark-btn", title: "tour.remark.title", text: "tour.remark.html" },
   { core: true, part: "tour.part.end", hash: "#objet", target: "#help", title: "tour.help.title", text: "tour.help.html" },
   // Visite détaillée : elle entre dans les vues (au minimum le schéma et l'usine complète, Q25), et on y touche.
   { part: "tour.part.flow", hash: "#objet/schema", target: "#flow-frame", play: true, title: "tour.flow.title", text: "tour.flow.html" },

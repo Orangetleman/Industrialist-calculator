@@ -47,6 +47,8 @@
     <button type="button" class="me-play" id="me-play" data-play="on" hidden>▶ Je joue</button>
     <!-- S30 : la langue (maquette S16, écran 1), avant la visite. -->
     <span class="lang-sw" id="lang-sw" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true" title="Français" lang="fr">FR</button><button type="button" data-lang="en" aria-pressed="false" title="English" lang="en">EN</button></span>
+    <!-- S35 : les remarques (maquettes public.html, écran 2, et remarques.html) ; au téléphone, 💬 seul. -->
+    <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog">💬 <span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
     <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
@@ -477,10 +479,12 @@
         <div id="data-errors"></div>
         <div id="corrections"></div>
         <div class="row">
+          <button type="button" id="send-fixes" class="primary" aria-haspopup="dialog" data-i18n="rm.fix.send" hidden>📤 Envoyer mes corrections</button>
           <button type="button" id="export" data-i18n="dn.export">Exporter mes corrections</button>
           <label class="button"><span data-i18n="us.import">Importer…</span><input type="file" id="import" accept="application/json,.json" hidden></label>
           <button type="button" id="clear-corrections" class="link" data-i18n="dn.clear">Tout effacer</button>
         </div>
+        <p class="hint" id="send-fixes-note" role="status"></p>
         <p class="hint" data-i18n="dn.hint">Tes corrections servent tout de suite à tes plans, dans ce navigateur. L'export en fait un fichier (celles du site et les tiennes), à partager pour que le site les intègre.</p>
       </div>
     </div>
@@ -490,6 +494,9 @@
   </section>
 </main>
 
+<!-- S35 : fenêtre « Remarque », remplie par src/ui/remarques-view.ts. -->
+<dialog id="remark" class="rm-dialog" aria-labelledby="rm-title"></dialog>
+
 <dialog id="ask" aria-labelledby="ask-title">
   <form method="dialog">
     <h3 id="ask-title" data-i18n="dialog.confirm">Confirmer</h3>
@@ -498,10 +505,11 @@
   </form>
 </dialog>
 
-<!-- S33 : pied de page public (maquette S16, écran 1) ; la ligne « Remarque · Propositions » viendra en S35 et S36. -->
+<!-- S33 : pied de page public (maquette S16, écran 1) ; S35 : la ligne « Remarque » (Propositions viendra en S36). -->
 <footer class="src">
   <p data-i18n-html="footer.who.html">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</p>
   <p data-i18n-html="footer.data.html">Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</p>
+  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">💬 Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span></p>
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>

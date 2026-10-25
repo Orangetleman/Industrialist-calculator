@@ -17,6 +17,7 @@ import { arbreFr } from "./vues/arbre.fr.ts";
 import { visiteFr } from "./vues/visite.fr.ts";
 import { pagesFr } from "./vues/pages.fr.ts";
 import { moteurFr } from "./vues/moteur.fr.ts";
+import { remarquesFr } from "./vues/remarques.fr.ts";
 
 export const fr = {
   // ------------------------------------------------------------ commun
@@ -398,4 +399,6 @@ export const fr = {
   ...pagesFr,
   // S32 : messages du moteur
   ...moteurFr,
+  // S35 : remarques des joueurs
+  ...remarquesFr,
 } satisfies Record<string, Msg>;

@@ -44,6 +44,20 @@ export interface OptionsService {
   maintenant?: () => number;
   /** REMARQUES_FERMEES=1 : plus aucun envoi, le reste marche. */
   fermees?: boolean;
+  /** Appelé après chaque remarque gardée (S35 : message dans le salon Discord). Une erreur n'empêche pas l'envoi. */
+  annoncer?: (remarque: RemarqueRecue) => void;
+}
+
+/** Une remarque telle qu'elle vient d'être gardée (sans le numéro secret). */
+export interface RemarqueRecue {
+  id: number;
+  type: string;
+  texte: string;
+  pseudo: string | null;
+  page: string | null;
+  langue: string | null;
+  version: string | null;
+  piece: unknown;
 }
 
 export interface Mesures {
@@ -153,7 +167,7 @@ export function creerService(options: OptionsService): Service {
   function envoyerRemarque(corps: Corps, qui: string): [number, unknown] {
     if (options.fermees) throw new Refus(503, "fermees");
     // Le robot qui remplit la case piège croit avoir réussi ; rien n'est gardé.
-    if (typeof corps[CHAMP_PIEGE] === "string" && corps[CHAMP_PIEGE] !== "") return [201, { numero: jeton(12) }];
+    if (typeof corps[CHAMP_PIEGE] === "string" && corps[CHAMP_PIEGE] !== "") return [201, { numero: jeton(12), id: 0 }];
     if (compter("envoi", qui) >= ENVOIS_PAR_HEURE) throw new Refus(429, "trop-de-remarques");
     const type = corps.type;
     if (typeof type !== "string" || !(TYPES as readonly string[]).includes(type)) throw new Refus(400, "type");
@@ -166,22 +180,34 @@ export function creerService(options: OptionsService): Service {
     if (!contenu && !piece) throw new Refus(400, "texte-vide");
     const langue = corps.langue === "fr" || corps.langue === "en" ? corps.langue : null;
     const numero = jeton(12);
-    base
+    const pseudo = texte(corps.pseudo, PSEUDO_MAX, "pseudo-trop-long");
+    const page = texte(corps.page, COURT_MAX, "page-trop-longue");
+    const version = texte(corps.version, COURT_MAX, "version-trop-longue");
+    const { lastInsertRowid } = base
       .prepare("INSERT INTO remarques (numero, cree, type, texte, pseudo, page, langue, version, plan, piece) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .run(
         numero,
         maintenant(),
         type,
         contenu ?? "",
-        texte(corps.pseudo, PSEUDO_MAX, "pseudo-trop-long"),
-        texte(corps.page, COURT_MAX, "page-trop-longue"),
+        pseudo,
+        page,
         langue,
-        texte(corps.version, COURT_MAX, "version-trop-longue"),
+        version,
         texte(corps.plan, PLAN_MAX, "plan-trop-long"),
         piece,
       );
     tracer("envoi", qui);
-    return [201, { numero }];
+    const id = Number(lastInsertRowid);
+    if (options.annoncer) {
+      try {
+        options.annoncer({ id, type, texte: contenu ?? "", pseudo, page, langue, version, piece: piece === null ? null : corps.piece });
+      } catch (e) {
+        console.error("Annonce impossible :", e);
+      }
+    }
+    // Le n° court (id) se montre au joueur et dans le tableau de bord ; le numéro secret seul permet de relire.
+    return [201, { numero, id }];
   }
 
   function propositions(): unknown[] {
@@ -338,7 +364,7 @@ export function creerService(options: OptionsService): Service {
     if (section === "remarques") {
       if (a === undefined && methode === "POST") return envoyerRemarque(corps, qui);
       if (a !== undefined && b === undefined && methode === "GET") {
-        const ligne = base.prepare("SELECT type, cree, etat, reponse, repondu FROM remarques WHERE numero = ?").get(a);
+        const ligne = base.prepare("SELECT id, type, cree, etat, reponse, repondu FROM remarques WHERE numero = ?").get(a);
         if (!ligne) throw new Refus(404, "introuvable");
         return [200, ligne];
       }

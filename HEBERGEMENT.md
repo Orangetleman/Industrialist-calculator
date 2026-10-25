@@ -88,6 +88,19 @@ la ligne hachée part vers le Pi. Il est pris en compte sans redémarrage.
 npm run remarques:mot-de-passe
 ```
 
+**Message Discord (S35)** : chaque remarque gardée poste un message court dans le salon réservé de l'utilisateur,
+par un **webhook du salon** (le bot de MyPrism n'est pas touché). L'utilisateur crée le webhook (Modifier le salon ›
+Intégrations › Webhooks › Nouveau webhook, « Copier l'URL du webhook »), puis le colle lui-même, masqué, sur le PC ;
+l'adresse part vers le Pi par l'entrée standard de ssh et est rangée dans `/etc/industrialist-remarques/discord`
+(root et le service seulement). Le service la relit à chaque remarque : pas de redémarrage. Le message ne mentionne
+personne, coupe le texte à 300 caractères, et un Discord injoignable n'empêche jamais l'envoi.
+
+```bash
+npm run remarques:discord
+```
+
+(`npm run remarques:discord -- -Retirer` supprime le webhook : plus de message.)
+
 Relire les dernières remarques en attendant le tableau de bord (S36) :
 
 ```bash

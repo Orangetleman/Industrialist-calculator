@@ -39,6 +39,8 @@ export type RecipesCtx = {
   mine?: OverridesFile;
   /** Craft mis en évidence sur la fiche (arrivée depuis le schéma, S7). */
   highlight?: string | null;
+  /** Corrections et notes du joueur à envoyer (S35 : « 📤 Envoyer mes corrections » dans le bandeau). */
+  fixCount?: number;
 };
 
 /** Ligne d'un formulaire de craft : nom de l'objet (comme en jeu) et quantité, tels que saisis. */
@@ -522,7 +524,8 @@ function tools(ctx: RecipesCtx, kind: EntryKind, id: string, picture: Picture | 
 /** Bandeau du mode correction. */
 function editBar(ctx: RecipesCtx): string {
   if (!ctx.edit) return "";
-  return `<div class="rc-editbar"><span>${t("rc.editbar.html")}</span><button type="button" class="small" data-rc-edit-off>${t("rc.done")}</button></div>`;
+  const send = ctx.fixCount ? `<button type="button" class="small" data-rc-send aria-haspopup="dialog">${t("rm.fix.sendN", { n: ctx.fixCount })}</button>` : "";
+  return `<div class="rc-editbar"><span>${t("rc.editbar.html")}</span>${send}<button type="button" class="small" data-rc-edit-off>${t("rc.done")}</button></div>`;
 }
 
 /** Étiquette d'un objet ajouté par le joueur, et de quoi l'effacer si l'ajout est à moi. */

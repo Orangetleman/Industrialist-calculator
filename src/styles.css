@@ -111,6 +111,43 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 .lang-sw button { border: 0; background: var(--surface); color: var(--muted); font-size: .8rem; font-weight: 600; min-width: 34px; min-height: 28px; padding: 0 6px; cursor: pointer; }
 .lang-sw button[aria-pressed="true"] { background: var(--steel-soft); color: var(--ink); }
 .lang-sw button:hover { color: var(--accent); }
+/* S35 : remarques des joueurs (maquettes public.html, écran 2, et remarques.html). */
+.remark-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; min-height: 28px; padding: 0 10px; font-size: .84rem; cursor: pointer; flex: none; display: inline-flex; align-items: center; gap: 4px; }
+.remark-btn:hover { border-color: var(--accent); }
+.rm-dot { display: inline-block; min-width: 16px; height: 16px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font: 700 .66rem/16px var(--f-mono); text-align: center; padding: 0 4px; }
+.rm-dot[hidden] { display: none; }
+dialog.rm-dialog { width: min(500px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); overflow: auto; }
+.rm-dialog h3 { font: 700 1.05rem var(--f-display); display: flex; align-items: center; gap: 8px; }
+.rm-dialog .rm-x { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 1.1rem; min-width: 32px; min-height: 32px; cursor: pointer; }
+.rm-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.rm-tabs button { border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 8px; padding: 4px 10px; font-size: .84rem; min-height: 30px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.rm-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.rm-types { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; border: 0; padding: 0; }
+.rm-types label { border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; font-size: .84rem; cursor: pointer; min-height: 30px; display: inline-flex; align-items: center; gap: 5px; }
+.rm-types input { margin: 0; }
+.rm-types label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.rm-types label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rm-dialog textarea { width: 100%; min-height: 110px; resize: vertical; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.rm-count { text-align: right; }
+.rm-count.over { color: var(--bad); font-weight: 700; }
+.rm-pseudo { font-size: .86rem; display: grid; gap: 4px; margin-top: 6px; }
+.rm-pseudo input { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.rm-hp { position: absolute; left: -9999px; width: 1px; height: 1px; }
+.rm-meta { font-size: .78rem; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
+.rm-meta code { font-size: .76rem; }
+.rm-meta a { color: var(--ink); }
+.rm-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.rm-piece { border: 1px solid var(--steel); background: var(--steel-soft); border-radius: 8px; padding: 8px 10px; font-size: .86rem; margin-bottom: 8px; }
+.rm-ok { border: 1px solid var(--ok); background: var(--ok-soft); border-radius: 8px; padding: 10px; font-size: .9rem; }
+.rm-err { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 10px; font-size: .88rem; margin: 8px 0 0; }
+.rm-mine { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.rm-it { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .86rem; display: grid; gap: 4px; justify-items: start; }
+.rm-it.new { border-color: var(--accent); }
+.rm-it .h { display: flex; gap: 4px 8px; align-items: baseline; font-size: .78rem; color: var(--muted); flex-wrap: wrap; width: 100%; }
+.rm-it .h .st { margin-left: auto; }
+.rm-it .tx { overflow-wrap: anywhere; }
+.rm-it .ans { border-left: 3px solid var(--accent); padding-left: 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.foot-remark button.link { font-size: inherit; color: var(--ink); padding: 0; min-height: 24px; }
 /* S24 bis : quatre volets autour du projecteur (le trou reste utilisable), page figée pendant la visite. */
 html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête collant décroche */
 .tour-shade { position: fixed; z-index: 1300; display: none; }
@@ -961,6 +998,12 @@ button.must { cursor: pointer; }
   .brand { font-size: .98rem; gap: 6px; }
   .unofficial { font-size: .56rem; padding: 1px 5px; letter-spacing: .04em; }
   .lang-sw button { min-width: 30px; padding: 0 4px; }
+  /* S35 (maquette remarques.html, écran 4) : 💬 seul sur la 1re ligne ; la fenêtre devient une feuille plein écran. */
+  .top-in { column-gap: 6px; }
+  .lang-sw button { min-width: 28px; }
+  .remark-btn { padding: 0 6px; }
+  .remark-btn .lbl { display: none; }
+  dialog.rm-dialog { width: 100vw; max-height: calc(100dvh - 40px); margin: auto 0 0; border-radius: 14px 14px 0 0; border-bottom: 0; padding: 14px 14px max(14px, env(safe-area-inset-bottom)); }
   .mainnav { order: 3; width: 100%; justify-content: space-between; gap: 0; margin: 0 -4px; width: calc(100% + 8px); }
   .mainnav a { padding: 8px 4px; font-size: .84rem; border-radius: 0; border-bottom: 3px solid transparent; }
   .mainnav a[aria-current="page"] { background: none; border-bottom-color: var(--accent); }
@@ -1206,4 +1249,12 @@ table.rh-log td.num { white-space: nowrap; }
 @media (forced-colors: active) {
   .rh-chart .pred { stroke: CanvasText; }
   .rh-chart .meas { fill: Highlight; }
+}
+
+/* S35 : avec « 💬 », la 1re ligne de l'en-tête (nom, « Non officiel », FR / EN, 💬, ?) tient jusqu'à 360 px dans les
+   deux langues sans le logo et avec des marges plus fines. */
+@media (max-width: 400px) {
+  .brand-logo { display: none; }
+  .brand { min-height: 24px; }
+  .top-in { padding-inline: 8px; }
 }

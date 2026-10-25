@@ -63,6 +63,8 @@ import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInter
 import { esc, fmt, fmtMF, fmtPct, parseNum, quote } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { txt, txtHtml } from "./engine-text.ts";
+import { sentNote } from "./remarques-view.ts";
+import { loadSent, type Piece } from "./remarques.ts";
 
 type Bg = BgPlacement & { url: string; rot: number; opacity: number; natW: number; natH: number };
 /** Ce que fait la souris sur la grille. */
@@ -107,6 +109,8 @@ export function initBuildings(
   repoIfaces: Interfaces = {},
   repoModular: ModularFile = { sources: {}, assemblies: [] },
   diesel: { get(): DieselReading[]; set(list: DieselReading[]): void } = { get: () => [], set: () => {} },
+  /** S35 : « 📤 Envoyer mes relevés » ouvre la fenêtre « Remarque » avec ce fichier joint. */
+  onSend?: (piece: Piece) => void,
 ): { show(id: string): void; refresh(): void } {
   const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
@@ -159,6 +163,7 @@ export function initBuildings(
         <p class="hint bld-states" id="bld-states"></p>
         <ul id="bld-items"></ul>
         <div class="actions">
+          ${onSend ? `<button type="button" id="bld-send" class="primary" aria-haspopup="dialog" data-i18n="rm.surveys.send" hidden>${t("rm.surveys.send")}</button>` : ""}
           <button type="button" id="bld-export" data-i18n="bld.export">${t("bld.export")}</button>
           <label class="button"><span data-i18n="bld.import">${t("bld.import")}</span><input type="file" id="bld-import" accept="application/json,.json" hidden></label>
         </div>
@@ -254,6 +259,7 @@ export function initBuildings(
         return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");
+    renderSend();
   }
 
   function select(id: string): void {
@@ -1187,6 +1193,7 @@ export function initBuildings(
     const item = target.closest<HTMLElement>("[data-bld]");
     if (item) return select(item.dataset.bld!);
     if (target.closest("#bld-export")) return exportFile();
+    if (target.closest("#bld-send")) return onSend?.(surveysPiece());
     if (!entry || !selectedId) return;
     // Bloc « Calcul » (S13) : blocs au plus juste pour les arbres, ou une configuration relevée du moteur.
     if (target.closest("[data-mc-fit]")) {
@@ -1447,6 +1454,26 @@ export function initBuildings(
   /** « 3 relevé(s), 1 interface(s)… » : ce qu'un import ou un export contient. */
   function ioCounts(n: number, nIf: number, nMod: number, nDsl: number): string {
     return `${t("bld.io.records", { n: String(n) })}${nIf ? t("bld.io.ifaces", { n: String(nIf) }) : ""}${nMod ? t("bld.io.mods", { n: String(nMod) }) : ""}${nDsl ? t("bld.io.engines", { n: String(nDsl) }) : ""}`;
+  }
+
+  /** Le fichier des relevés joint à un envoi (S35) : exactement celui de « Exporter mes relevés ». */
+  function surveysPiece(): Piece {
+    const n = Object.keys(local).length;
+    const nIf = Object.keys(localIfaces).length;
+    const nMod = Object.keys(localMod).length;
+    const nDsl = diesel.get().length;
+    return { fichier: "releves-batiments.json", resume: ioCounts(n, nIf, nMod, nDsl), contenu: exportSurveys(local, localIfaces, localMod, diesel.get()) };
+  }
+
+  /** « 📤 Envoyer mes relevés » n'apparaît que s'il y a quelque chose à envoyer, avec « Envoyées le… ». */
+  function renderSend(): void {
+    const btn = root.querySelector<HTMLButtonElement>("#bld-send");
+    if (!btn) return;
+    const has = Object.keys(local).length + Object.keys(localIfaces).length + Object.keys(localMod).length + diesel.get().length > 0;
+    btn.hidden = !has;
+    const note = has ? sentNote(loadSent()["releves-batiments.json"], surveysPiece().contenu) : "";
+    const io = $("#bld-io");
+    if (note && !io.textContent) io.textContent = note;
   }
 
   function exportFile(): void {

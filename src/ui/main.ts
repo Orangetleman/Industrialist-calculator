@@ -44,7 +44,7 @@ import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } 
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { applyStatic } from "../i18n/dom.ts";
-import { KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
+import { joinList, KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
 import {
   exportProgress,
   loadJournal,
@@ -151,6 +151,8 @@ import {
   type Settings,
 } from "./state.ts";
 import { txt, txtHtml } from "./engine-text.ts";
+import { initRemarks, sentNote } from "./remarques-view.ts";
+import { loadSent, type Piece } from "./remarques.ts";
 import type { Message, Text } from "../engine/message.ts";
 
 // Langue (S30) : le choix gardé, sinon celle du navigateur ; avant tout rendu.
@@ -2120,6 +2122,7 @@ function renderData(): void {
   $("verify-count").textContent = String(v.plan.verify.filter((x) => x.used).length);
   $("corrections").innerHTML = renderCorrections(v);
   $("corrections-count").textContent = String(countCorrections(corrections));
+  renderFixSend();
   $("data-errors").innerHTML = dataErrors.length ? `<div class="banner bad">${t("m.dataErrors")}<ul>${dataErrors.map((e) => `<li>${txtHtml(e)}</li>`).join("")}</ul></div>` : "";
 }
 
@@ -2153,6 +2156,7 @@ function recipesCtx(): RecipesCtx {
     locked: (r) => (fresh || !r.research || !data.nodes.has(r.research) || isNodeUnlocked(data, p, r.research) ? null : nodeName(r.research)),
     edit: rcEdit,
     mine: corrections,
+    fixCount: countCorrections(corrections) + Object.keys(notes).length,
     highlight: route.page === "recettes" ? (route.card?.craft ?? null) : null,
   };
 }
@@ -2535,6 +2539,7 @@ function bindRecettesEdit(): void {
     let el: HTMLElement | null;
     if (on("data-rc-edit-on")) return setEdit({ ...EDIT_ON });
     if (on("data-rc-edit-off")) return setEdit(null);
+    if (on("data-rc-send")) return remarks.open({ piece: correctionsPiece(), kind: "fix" });
     if ((el = on("data-rc-focus"))) {
       const key = el.dataset.rcFocus!;
       const [scope, id] = key.split("|") as [FixScope, string];
@@ -3649,6 +3654,7 @@ function bindData(): void {
     rebuildData();
     update();
   });
+  $("send-fixes").addEventListener("click", (e) => remarks.open({ piece: correctionsPiece(), kind: "fix" }, e.currentTarget as HTMLElement));
   $("export").addEventListener("click", () => downloadJson({ ...mergeCorrections(repoOverrides, corrections), _notes: { ...repoNotes, ...notes } }, "overrides.json"));
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-vscope]")) {
     b.addEventListener("click", () => {
@@ -3840,7 +3846,13 @@ bindTree();
 bindData();
 bindRecettes();
 bindLang();
-const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings });
+const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings }, (piece) => remarks.open({ piece, kind: "surveys" }));
+// S35 : la fenêtre « Remarque ». Un envoi de corrections redessine les boutons « 📤 » (« Envoyées le… »).
+const remarks = initRemarks(remarkContext, () => {
+  renderData();
+  if (route.page === "recettes") renderRecettes();
+  buildings.refresh();
+});
 window.addEventListener("hashchange", showPage);
 showPage();
 // Visite d'orientation (S24) : seule à la toute première visite, puis par le bouton « ? ».
@@ -3857,6 +3869,42 @@ if (isFresh()) {
 window.setInterval(tickRp, 5000);
 bindHistory();
 void recallPlaying();
+
+// ---------------------------------------------------------------- remarques (S35)
+
+/** Ce qui part avec une remarque : la vue (« Planifier › Usine ») et son adresse, et le plan affiché en bref. */
+function remarkContext(): { label: string; hash: string; plan: string | null } {
+  const page = currentPage();
+  const top = page === "plan" ? goalName(settings.goal) : t(page === "usine" && route.usineTab === "recherche" ? "page.recherche" : `page.${page}`);
+  const view = routeTitle(route);
+  let plan: string | null = null;
+  if (page === "plan" && settings.entered.includes(settings.goal)) {
+    try {
+      const v = viewCtx();
+      plan = `${settings.goal} · ${planLabel(v)} · ${settings.criteria[settings.goal].join(" > ")}`;
+    } catch {
+      plan = settings.goal;
+    }
+  }
+  return { label: view && view !== top ? `${top} › ${view}` : top, hash: location.hash || "#objet", plan };
+}
+
+/** Le fichier des corrections joint à un envoi : exactement celui de « Exporter mes corrections ». */
+function correctionsPiece(): Piece {
+  const n = countCorrections(corrections);
+  const nNotes = Object.keys(notes).length;
+  const parts = [n ? t("rm.mine.fix", { n }) : "", nNotes ? t("rm.fix.notes", { n: nNotes }) : ""].filter(Boolean);
+  return { fichier: "overrides.json", resume: joinList(parts), contenu: { ...mergeCorrections(repoOverrides, corrections), _notes: { ...repoNotes, ...notes } } };
+}
+/** Il y a quelque chose à envoyer : des corrections ou des notes du joueur. */
+const hasOwnFixes = (): boolean => countCorrections(corrections) + Object.keys(notes).length > 0;
+
+/** Bouton « 📤 Envoyer mes corrections » de Contribuer, et la note « Envoyées le… » (maquette S35, écran 1). */
+function renderFixSend(): void {
+  const btn = $("send-fixes") as HTMLButtonElement;
+  btn.hidden = !hasOwnFixes();
+  $("send-fixes-note").textContent = hasOwnFixes() ? [t("rm.fix.hint"), sentNote(loadSent()["overrides.json"], correctionsPiece().contenu)].filter(Boolean).join(" · ") : "";
+}
 
 // ---------------------------------------------------------------- langue (S30)
 
@@ -3884,6 +3932,7 @@ function bindLang(): void {
     setDocTitle();
     render();
     buildings.refresh();
+    remarks.refresh();
   });
 }
 

@@ -88,6 +88,24 @@ ecrire "\$ligne"
 EOF
 chmod 750 /usr/local/sbin/$NOM-mot-de-passe
 
+# S35 : l'adresse du webhook du salon Discord réservé, collée par l'utilisateur sur le PC (scripts/pi/discord.ps1)
+# et reçue ici sur l'entrée standard (jamais en argument). Relue par le service à chaque remarque : pas de redémarrage.
+cat >/usr/local/sbin/$NOM-discord <<EOF
+#!/usr/bin/env bash
+# Range l'adresse du webhook Discord (une ligne sur l'entrée standard) ; --retirer la supprime.
+set -euo pipefail
+[[ \$EUID -eq 0 ]] || { echo "À lancer avec sudo." >&2; exit 1; }
+if [[ \${1:-} == --retirer ]]; then rm -f $REGLAGES/discord; echo "Webhook retiré : plus de message Discord."; exit 0; fi
+read -r ligne; ligne=\${ligne%\$'\r'}
+[[ \$ligne =~ ^https://(canary\.|ptb\.)?discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+\$ ]] || { echo "Ce n'est pas une adresse de webhook Discord : rien n'a changé." >&2; exit 1; }
+umask 027
+printf '%s\n' "\$ligne" >$REGLAGES/discord.tmp
+chown root:$NOM $REGLAGES/discord.tmp
+mv -f $REGLAGES/discord.tmp $REGLAGES/discord
+echo "Webhook Discord enregistré."
+EOF
+chmod 750 /usr/local/sbin/$NOM-discord
+
 echo "== unité systemd"
 cat >/etc/systemd/system/$NOM.service <<EOF
 [Unit]
@@ -100,6 +118,7 @@ Group=$NOM
 Environment=REMARQUES_DONNEES=$DONNEES
 Environment=REMARQUES_MOT_DE_PASSE=$REGLAGES/mot-de-passe
 Environment=REMARQUES_PORT=$PORT
+Environment=REMARQUES_DISCORD=$REGLAGES/discord
 EnvironmentFile=-$REGLAGES/reglages.env
 ExecStart=$NODE --disable-warning=ExperimentalWarning --max-old-space-size=32 $CODE/remarques.ts
 StateDirectory=$NOM

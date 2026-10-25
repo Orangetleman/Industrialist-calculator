@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -17,9 +18,21 @@ function factoryVersion(): string {
   return h.digest("hex").slice(0, 16);
 }
 
+/** Version du site envoyée avec une remarque (S35) : jour de la construction et dernier commit. */
+function siteVersion(): string {
+  let commit = "local";
+  try {
+    commit = execSync("git rev-parse --short HEAD", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    // pas de git (copie du dossier) : la date suffit
+  }
+  return `${new Date().toISOString().slice(0, 10)} ${commit}`;
+}
+
 export default defineConfig({
   define: {
     __FACTORY_VERSION__: JSON.stringify(factoryVersion()),
+    __SITE_VERSION__: JSON.stringify(siteVersion()),
   },
   server: {
     // Le service des remarques (npm run remarques, S34) : même chemin qu'en ligne, où nginx le passe au service.

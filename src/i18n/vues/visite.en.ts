@@ -30,6 +30,8 @@ export const visiteEn: { [K in keyof typeof visiteFr]: Msg } = {
   "tour.tree.html": `As in game. For a research not unlocked yet: what you're missing, and <b>how much playtime</b> it will take you at your pace.`,
   "tour.recipes.title": "Recipes and Contribute",
   "tour.recipes.html": `<b>Recipes</b>: every recipe, like the game's tab. Next to it, <b>Contribute</b>: fix a ⚠ value that doesn't match the game, record a building's ports.`,
+  "tour.remark.title": "Feedback? Right here",
+  "tour.remark.html": `A wrong value, a bug, an idea: <b>💬 Feedback</b> sends it to the author with the page you're on. The reply shows up in “My feedback”.`,
   "tour.help.title": "Replay the tour",
   "tour.help.html": `This <b>?</b> button replays the whole tour whenever you want.`,
   "tour.flow.title": "The chain graph",
