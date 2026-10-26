@@ -99,7 +99,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S34 | Remarques (1/3) : le service Node sur le Pi (sans dépendance), tests, mise en place après accord | moyenne | maquette S16 (peut aller en parallèle de S31 à S33) | ✅ fait |
 | S35 | Remarques (2/3) : côté joueur (bouton, fenêtre, « Envoyer ma correction », « Mes remarques », visite, Discord) | moyenne | S30, S34 | ✅ fait |
 | S36 | Remarques (3/3) : tableau de bord de l'utilisateur et page publique Propositions (votes ▲ / ▼) | moyenne à grosse | S35 | ✅ fait |
-| S37 | Répétition générale : relecture de l'anglais, parcours A à E en anglais, remarque de bout en bout ; feu vert pour le Discord | moyenne | S30 à S36 | **fait** (2026-10-26, feu vert de l'utilisateur attendu) |
+| S37 | Répétition générale : relecture de l'anglais, parcours A à E en anglais, remarque de bout en bout ; feu vert pour le Discord | moyenne | S30 à S36 | **fait** (2026-10-26, feu vert de l'utilisateur donné : il poste le lien) |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S37 | à faire |
 
 Pourquoi cet ordre :
