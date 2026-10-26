@@ -292,8 +292,27 @@ Un lot par session, maquette d'abord quand l'écran change, feu vert entre deux 
 | **B6** Téléphone | Tout MobileInput : appui long, 🔨, ⬚, ⟳, ✕, file d'attente avec ✓ (à décider), tiroir horizontal. | Parcours à 375 px : poser, tracer, supprimer une zone, copier. |
 | **B7** Électricité et ponts | Poteaux et câbles (F5), énergie produite. Partir d'un plan calculé (module ou usine), le comparer au plan conseillé. | L'usine Crankshaft 60/min ouverte dans le bac à sable redonne ses chiffres. |
 | **B8** Visite, aide, remarques | Visite guidée, aide avec recherche, montage joint aux remarques, anglais relu. | Parcours d'un nouveau venu en anglais, au clavier, comme S37. |
+| **B9** Modulaires | Les ensembles modulaires (ferme d'arbres, moteur diesel, turbine) se posent pièce par pièce, comme en jeu. Le bac à sable reconnaît l'ensemble avec les règles de `modular.json` (faces obligatoires, chaîne, portée) et dessine la portée des arroseurs et des récolteurs. Il calcule la production avec `modular-calc.ts` : arbres servis, configuration relevée du moteur. Une pièce mal placée est signalée, avec la raison. | Une ferme posée à la main redonne les chiffres de `designFarm` ; un moteur à 6 cylindres redonne sa configuration relevée ; un arroseur hors de portée est signalé. |
 
-B1 à B3 suffisent pour un premier usage. Les lots suivants s'ajoutent un par un.
+B1 à B3 suffisent pour un premier usage. **B9** répond à la demande de l'utilisateur du 2026-10-26 de « mieux intégrer les modulaires » : aujourd'hui, le calculateur les traite à part. Dans le bac à sable, ce sont des pièces comme les autres.
+
+**Portées (demande du 2026-10-26, B3 pour la règle, B7 et B9 pour les données)** : comme dans Mindustry,
+la portée d'un bâtiment se dessine **pendant qu'on le place** (elle suit le curseur) et **quand on le
+sélectionne une fois posé**. Cela vaut pour **tout bâtiment qui a une portée connue dans les données**,
+sans liste écrite à la main. Le moteur rassemble toutes les portées du dépôt :
+- `modular.json` : contrôleur, arroseur, récolteur et toute autre pièce modulaire ;
+- `releves.json` → `poleRangeTiles` : les poteaux électriques ;
+- les autres portées du wiki ou des relevés, au fur et à mesure.
+
+Un bâtiment dont la portée manque est listé dans `data/a-verifier.md`. Les bâtiments dans la portée
+sont mis en évidence.
+
+**Ajouts du 2026-10-26 (B3)** :
+- au survol d'un port, le cadre d'infos dit son rôle, son côté et son infobulle relevée ;
+- chaque fiche « ? » mène à l'éditeur du bâtiment (« Modifier », ou « Compléter » quand les ports
+  manquent).
+
+La maquette le fait déjà. Les lots suivants s'ajoutent un par un.
 
 ## 8. Risques
 
