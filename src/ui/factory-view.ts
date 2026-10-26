@@ -11,7 +11,7 @@ import { factoryFits, type EvacSide, type FactoryPlan } from "../engine/build/fa
 import type { FactoryArrow } from "../engine/build/flow.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { PlacedPiece } from "../engine/build/module.ts";
-import { colon, esc, fmt, fmtMF, fmtMoney } from "./format.ts";
+import { colon, esc, fmt, fmtMF, fmtMoney, semi } from "./format.ts";
 import { t } from "../i18n/i18n.ts";
 import { pieceRole, renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import type { UsineView } from "./state.ts";
@@ -281,8 +281,8 @@ function unlinked(f: FactoryPlan, name: Name, sub: (key: string) => string): str
     return say({ ...p, from: sub(from), ...(to ? { to: sub(to) } : {}) });
   });
   return expected
-    ? `<p class="mod-other hint">${esc(t("uf.unlinked.manual", { n: f.problems.length, list: text.join(" ; ") }))}</p>`
-    : `<ul class="notices"><li class="bad">${esc(t("uf.unlinked", { n: String(f.problems.length), list: text.join(" ; ") }))}</li></ul>`;
+    ? `<p class="mod-other hint">${esc(t("uf.unlinked.manual", { n: f.problems.length, list: text.join(semi()) }))}</p>`
+    : `<ul class="notices"><li class="bad">${esc(t("uf.unlinked", { n: String(f.problems.length), list: text.join(semi()) }))}</li></ul>`;
 }
 
 /** Texte autour du dessin : résumé, légende, liaisons, passages et machines à compléter. */
@@ -329,7 +329,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
   const machines = missing
     .map(
       ({ box: b, reasons, survey }) =>
-        `<li><b>${esc(b.sub)}</b> <span class="muted">(${esc(b.label)})</span>${colon()}${esc(reasons.join(" ; "))}.${b.mod ? ` <button type="button" class="link small" data-focus="${esc(b.key)}">${t("uf.seeModule")}</button>` : ""}${survey ? ` · <button type="button" class="link small" data-edit="${esc(b.machine)}">${esc(t("uf.record", { m: name(b.machine) }))}</button>` : ""}</li>`,
+        `<li><b>${esc(b.sub)}</b> <span class="muted">(${esc(b.label)})</span>${colon()}${esc(reasons.join(semi()))}.${b.mod ? ` <button type="button" class="link small" data-focus="${esc(b.key)}">${t("uf.seeModule")}</button>` : ""}${survey ? ` · <button type="button" class="link small" data-edit="${esc(b.machine)}">${esc(t("uf.record", { m: name(b.machine) }))}</button>` : ""}</li>`,
     )
     .join("");
   const details = `<details class="more"><summary>${t("uf.d.links", { n: f.nets.length })}</summary><p class="hint">${t("uf.d.links.hint")}</p><div class="tablewrap"><table class="mini u-rows"><thead><tr><th>${t("uf.th.product")}</th><th>${t("uf.th.from")}</th><th>${t("uf.th.to")}</th><th>${t("uf.th.rate")}</th><th>${t("uf.th.cells")}</th><th>${t("uf.th.pipe")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>

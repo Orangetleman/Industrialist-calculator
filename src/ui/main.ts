@@ -1300,6 +1300,8 @@ function renderPose(): void {
     $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
     $("pose-frame").hidden = true;
     $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
+    // S37 : la liste des modules du plan précédent (l'exemple de la visite…) ne doit pas rester affichée.
+    $("pose-mods").innerHTML = $("pose-more-usine").innerHTML = $("pose-bar").innerHTML = "";
     return;
   }
   // S25 : l'onglet Usine s'ouvre sur toute l'usine ; un module s'ouvre en cliquant dessus (ou par la liste « Vue »).

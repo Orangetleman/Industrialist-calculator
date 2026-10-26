@@ -9,7 +9,7 @@ import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
 import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { colon, esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP } from "./format.ts";
+import { colon, esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, semi } from "./format.ts";
 import { joinList, t, type Key } from "../i18n/i18n.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, leafText, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
@@ -246,7 +246,7 @@ function missingNotes(v: ViewCtx): string[] {
   const unres = p.unresolved.filter((u) => !u.loopShortfall && u.reason !== "machine écartée");
   if (unres.length) {
     const why = unres.map((u) => `<b>${esc(itemN(v, u.item))}</b> (${esc(u.unlock ? lockText(v, u.unlock) : (leafText(u.reason)))})`);
-    out.push(`<li class="bad">${t("ans.unresolved", { list: why.join(" ; ") })}</li>`);
+    out.push(`<li class="bad">${t("ans.unresolved", { list: why.join(semi()) })}</li>`);
   }
   if (e.nodesToUnlock.length) {
     const time = e.rpMissing && e.secondsToRp !== null ? t("ans.unlock.time", { t: esc(fmtDuration(e.secondsToRp)) }) : e.rpMissing ? t("ans.unlock.missing", { rp: esc(fmtRP(e.rpMissing)) }) : "";
@@ -708,7 +708,7 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
     // Valeur à vérifier (S28) : un ⚠ cliquable qui ouvre la correction de la première.
     const doubts = st ? stepWarnings(v, st) : [];
     const warn = doubts.length
-      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(t("pv.flow.warn.aria", { name }))}"><title>${esc(t("pv.flow.warn.title", { list: doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(" ; ") }))}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/><text x="${n.x + FW - 17}" y="${n.y + 45}" text-anchor="middle">⚠</text></g>`
+      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(t("pv.flow.warn.aria", { name }))}"><title>${esc(t("pv.flow.warn.title", { list: doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(semi()) }))}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/><text x="${n.x + FW - 17}" y="${n.y + 45}" text-anchor="middle">⚠</text></g>`
       : "";
     const fixTip = fx ? `${t("pv.flow.fixTip", { n: fx.machines })}${limit ? t("pv.flow.isLimit") : t("pv.flow.usedAt", { n: fx.machines, pct: pctText(fx.utilization, 1) })}` : "";
     s += `<g class="fn ${n.kind}${fx ? " fixed" : ""}${limit ? " limit" : ""}" data-key="${esc(n.id)}"><title>${esc(tip + fixTip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>

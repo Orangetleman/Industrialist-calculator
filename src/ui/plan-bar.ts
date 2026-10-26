@@ -8,7 +8,7 @@ import type { Step, VerifyEntry } from "../engine/solve.ts";
 import type { VerifyFlag } from "../engine/types.ts";
 import { DEFAULT_DIESEL, type DieselChoice } from "./diesel.ts";
 import { lang, t, type Key } from "../i18n/i18n.ts";
-import { colon, doubtText, esc, fmt, fmtMF } from "./format.ts";
+import { colon, doubtText, esc, fmt, fmtMF, semi } from "./format.ts";
 import { screenText } from "./iface-view.ts";
 import { filterSummary } from "./mfilter-view.ts";
 import { itemN, machineN, type Ctx } from "./render.ts";
@@ -44,7 +44,7 @@ export function stepWarnings(v: Pick<Ctx, "plan">, s: Pick<Step, "recipeId" | "m
 /** Petit ⚠ cliquable (ligne, module) : la première valeur à vérifier, les autres au survol. */
 export function warnButton(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {
   if (!list.length) return "";
-  const what = list.map((e) => `${fieldWord(v, e.flag.field)}${colon()}${doubtText(e.flag)}`).join(" ; ");
+  const what = list.map((e) => `${fieldWord(v, e.flag.field)}${colon()}${doubtText(e.flag)}`).join(semi());
   return `<button type="button" class="warn-btn" ${fixAttr(list[0]!)} title="${esc(t("warn.btn.title", { what }))}">⚠<span class="sr-only">${esc(t("warn.btn.sr", { what }))}</span></button>`;
 }
 

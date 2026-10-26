@@ -6,7 +6,7 @@ import { passageWhere, tplMsg, type ModulePlan, type PassageOption, type PlacedP
 import { moduleFlows, type FlowArrow } from "../engine/build/flow.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { SurveyState } from "./buildings-model.ts";
-import { colon, esc, fmt, fmtMoney } from "./format.ts";
+import { colon, esc, fmt, fmtMoney, semi } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { fitsPlot } from "./progress.ts";
 import type { Message } from "../engine/message.ts";
@@ -171,7 +171,7 @@ export function renderPassagePick(base: ModulePlan, options: PassageOption[], ch
     advised === null
       ? t("mv.via.compute.html")
       : tips.length
-        ? esc(t("mv.via.tips", { list: tips.join(" ; ") }))
+        ? esc(t("mv.via.tips", { list: tips.join(semi()) }))
         : t("mv.via.none");
   return `<div class="pose-via"><label class="pose-pick" for="pose-via">${t("mv.via.label")}
     <select id="pose-via"><option value="">${esc(t("mv.via.ends", { w: String(base.width), h: String(base.height) }))}</option>${

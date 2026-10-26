@@ -60,7 +60,7 @@ import {
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
 import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
-import { esc, fmt, fmtMF, fmtPct, parseNum, quote } from "./format.ts";
+import { esc, fmt, fmtMF, fmtPct, parseNum, quote, semi } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { txt, txtHtml } from "./engine-text.ts";
 import { sentNote } from "./remarques-view.ts";
@@ -255,7 +255,7 @@ export function initBuildings(
         const e = local[m.id] ?? repo.machines[m.id];
         const st = surveyState(m.id, repo, local);
         const hasIface = !!(localIfaces[m.id] ?? repoIfaces[m.id]);
-        const badges = `<span class="bld-badges">${modBadge}${hasIface ? `<span class="bld-badge iface" title="${esc(t("bld.iface.title"))}">⚙</span>` : ""}${stateBadge(st)}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(" ; "))}">${t("bld.incomplete")}</span>` : ""}</span>`;
+        const badges = `<span class="bld-badges">${modBadge}${hasIface ? `<span class="bld-badge iface" title="${esc(t("bld.iface.title"))}">⚙</span>` : ""}${stateBadge(st)}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(semi()))}">${t("bld.incomplete")}</span>` : ""}</span>`;
         return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");

@@ -98,6 +98,8 @@ export function fmtMoneyShort(x: number | null): string {
 
 /** Deux-points entre un nom et sa valeur : « Gear : 60/min » en français, « Gear: 60/min » en anglais. */
 export const colon = () => (en() ? ": " : " : ");
+/** Point-virgule entre deux éléments d'une liste : « a ; b » en français, « a; b » en anglais (S37). */
+export const semi = () => (en() ? "; " : " ; ");
 
 /** Citation : « texte » en français, “texte” en anglais. */
 export const quote = (s: string) => (en() ? `“${s}”` : `« ${s} »`);

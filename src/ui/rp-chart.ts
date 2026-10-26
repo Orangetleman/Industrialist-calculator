@@ -7,7 +7,7 @@
 
 import { gameNow, readingGap, realTimeAt, removable, evalPiece, type Mark, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { TIERS, nominalRate, rateAt, type ResearchSetup } from "../engine/research-balance.ts";
-import { esc, fmt, fmtDate, fmtDuration, fmtPct, fmtShort } from "./format.ts";
+import { esc, fmt, fmtDate, fmtDuration, fmtPct, fmtShort, semi } from "./format.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 
 const H = 3_600_000;
@@ -40,7 +40,7 @@ export function describeSetupChange(prev: ResearchSetup | null, next: ResearchSe
     const ca = count(ga);
     const cb = count(gb);
     if (ca !== cb) parts.push(t("rh.nStations", { sign: cb > ca ? "+" : "−", n: Math.abs(cb - ca) }));
-    const items = (gs: typeof ga) => gs.map((g) => g.items.filter(Boolean).map(names.item).join(" + ")).join(" ; ");
+    const items = (gs: typeof ga) => gs.map((g) => g.items.filter(Boolean).map(names.item).join(" + ")).join(semi());
     if (items(ga) !== items(gb)) parts.push(t("rh.items", { list: items(gb) || t("rh.none") }));
     if (ga.filter((g) => g.logic).length !== gb.filter((g) => g.logic).length) parts.push(t("rh.logic"));
     if (parts.length) out.push(t("rh.tier", { n: k.slice(2), list: parts.join(", ") }));
@@ -56,7 +56,7 @@ export function describeSetupChange(prev: ResearchSetup | null, next: ResearchSe
   if (fluids(prev) !== fluids(next)) d.push(t("rh.liquid", { list: fluids(next) || t("rh.none") }));
   if (d.length) out.push(t("rh.dishGroup", { list: d.join(", ") }));
   if (prev.maxRp !== next.maxRp) out.push(`Max RP ${arrow(prev.maxRp, next.maxRp, 0)}`);
-  return out.length ? out.join(" ; ") : t("rh.changed");
+  return out.length ? out.join(semi()) : t("rh.changed");
 }
 
 /** Texte d'un repère (configuration ou dépense). */
