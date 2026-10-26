@@ -175,7 +175,10 @@ const CATS = [
 ];
 const completeLink = (id) => BL[id]?.noEditor
   ? `<span class="muted">${esc(BL[id].name)} n'est pas encore dans l'éditeur de bâtiments (à ajouter).</span>`
-  : `<a href="/#contribuer/batiments/${id}" target="_blank">Compléter ${esc(BL[id].name)} ▸</a>`;
+  : `<a href="/#contribuer/batiments/${id}" target="_blank">${BL[id]?.geo ? "Modifier dans l'éditeur de bâtiments" : "Compléter " + esc(BL[id].name)} ▸</a>`;
+const SIDE_WORD = { N: "haut", S: "bas", W: "gauche", E: "droite" };
+// Port survolé : son rôle, son côté, et ce que dit son infobulle relevée (ce qui y passe, BAS-03).
+const portTxt = (p) => `${p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"}${p.tip ? ` : « ${esc(p.tip)} »` : " (infobulle non relevée)"}`;
 const TIERS = [{ t: 1, l: "I" }, { t: 2, l: "II" }, { t: 3, l: "III" }, { t: 4, l: "IV" }, { t: null, l: "∗" }];
 
 // Familles de tuyaux : un seul bouton par famille dans la grille, les variantes dans le cadre d'infos.
@@ -637,7 +640,7 @@ function head(id, name, sc, q) { return `<div class="i-head">${iconSvg(id, 32)}<
 const recTxt = (r) => `${Object.entries(r.in).map(([i, q]) => fmt(q) + " " + itemName(i)).join(" + ") || "rien"} → ${Object.entries(r.out).map(([i, q]) => fmt(q) + " " + itemName(i)).join(" + ")} (${fmt(r.s)} s)`;
 function renderInfo(force) {
   const t = ui.hoverBtn ? { k: "e", e: EK[ui.hoverBtn] } : ui.sel ? { k: "e", e: ui.sel.e } : ui.hoverU != null && byU.has(ui.hoverU) ? { k: "b", u: ui.hoverU } : ui.pinned != null && byU.has(ui.pinned) ? { k: "b", u: ui.pinned, pin: true } : null;
-  const sig = JSON.stringify([t?.k, t?.e?.key, t?.u, ui.sel?.v, ui.auto, t?.pin]);
+  const sig = JSON.stringify([t?.k, t?.e?.key, t?.u, ui.sel?.v, ui.auto, t?.pin, t?.k === "b" ? ui.cell : null]);
   if (!force && sig === infoSig) return; infoSig = sig;
   if (!t) { infoEl.innerHTML = ""; return; }
   let h = "";
@@ -653,6 +656,7 @@ function renderInfo(force) {
   } else {
     const b = byU.get(t.u), d = BL[b.id];
     h += head(b.id, d.name, null, !b.missing);
+    if (!b.missing && d.geo && !d.pipe) { const ps = geo(b).ports.filter((p) => p.ix === ui.cell[0] && p.iy === ui.cell[1]); for (const p of ps) h += `<div class="i-line"><b>Port</b> (côté ${SIDE_WORD[p.dir]}) : ${portTxt(p)}</div>`; }
     if (d.pipe) {
       if (b.missing) h += `<div class="i-line warn">⚠ Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns">${completeLink(b.id)}</div>`;
       const ls = d.pipe.role === "croisement" ? [0, 1] : [0];
@@ -694,7 +698,7 @@ function blockInfo(id) { // Comme la fiche « ? » de Mindustry
   if (d.pipe) h += `<h3>Tuyau</h3><div class="kv"><div>Débit : ${fmt(d.pipe.flow)}/s au plus</div><div>Pièce : ${d.pipe.role}${d.pipe.role === "droit" ? `, ${d.pipe.len} case${d.pipe.len > 1 ? "s" : ""}` : ""}</div><div>Section du wiki : ${esc(d.pipe.section)}</div>${d.pipe.rusty ? `<div class="warn">Rusty : jamais posé automatiquement.</div>` : ""}</div>`;
   if (d.geo?.ports.length) h += `<h3>Ports</h3><div class="kv">${d.geo.ports.map((p) => `<div>${d.pipe ? "Ouverture" : p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"} : côté ${SIDE_FR[p.s]}, case ${p.c}${p.tip ? ` — <i>« ${esc(p.tip)} »</i>` : ""}</div>`).join("")}</div>`;
   if (d.recipes.length) h += `<h3>Fabrication</h3><table><tr><th>Ressources requises</th><th>Produit</th><th>Durée</th><th>Énergie</th></tr>${d.recipes.map((r) => `<tr><td>${Object.entries(r.in).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>") || "—"}</td><td>${Object.entries(r.out).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>")}</td><td>${fmt(r.s)} s</td><td>${fmt(r.e, 0)} MF/s</td></tr>`).join("")}</table>`;
-  if (!d.geo) h += `<p>${completeLink(id)}</p>`;
+  h += `<p>${completeLink(id)}</p>`; // toujours un accès à l'éditeur du bâtiment
   openDlg(h);
 }
 document.getElementById("b-db").onclick = () => openDlg(`<div class="ttl">📖 Base de données</div>` + CATS.map((c) => { const bs = B.blocks.filter((b) => b.cat === c.id); return bs.length ? `<h3>${c.ic} ${c.name}</h3><div class="db">${bs.map((b) => `<button class="pf-blk ${b.geo ? "" : "locked"}" data-db="${b.id}" title="${esc(b.name)}">${iconSvg(b.id, 34)}</button>`).join("")}</div>` : ""; }).join(""));
