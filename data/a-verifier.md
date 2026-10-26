@@ -810,15 +810,31 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 
 ### Bac à sable (S17)
 
-- **BAS-01** : l'utilisateur veut les machines « triées par chapitre et catégorie comme dans le jeu ».
-  Le dépôt a `tier` (1 à 4) et `category` (Factories, Extractors, Power…) pour chaque machine, mais
-  rien ne dit que le « chapitre » du menu de construction est ce `tier`, ni l'ordre des catégories
-  dans ce menu. À relever en jeu : les onglets du menu de construction, leur ordre, et l'ordre des
-  machines dans chacun. La maquette S17 range provisoirement par `tier`, puis par catégorie.
-- **BAS-02** : règle de raccord d'un tuyau à un port. Les plans de pose supposent qu'un tuyau posé
-  sur la case devant le port s'y raccorde. Reste à vérifier en jeu qu'un tuyau qui passe le long
-  du port, sans s'y diriger, ne s'y raccorde pas.
-- **BAS-03** : quel objet sort par quel port quand une recette a plusieurs sorties du même type.
-  `interfaces.json` (S10) le dit pour certaines machines seulement. Pour les autres, le bac à sable
-  devra marquer la sortie « à vérifier » plutôt que deviner.
+- **BAS-01** (en partie répondu le 2026-10-26) : menu de pose en colonnes, comme Mindustry. La colonne
+  la plus à droite donne le tier, la suivante les catégories du menu de construction d'Industrialist.
+  On ne connaît pas encore les noms ni l'ordre de ces catégories. La maquette prend les catégories du
+  wiki (Extractors, Factories, Power, Storage Silos, Modular, Logic, Miscellaneous), plus « Tuyaux ».
+  Piste : Industrialist Calculator (pages.dev, code MIT) range ses machines en catégories et
+  sous-catégories (Factory / Assembler, Extractor / Item Extractor, Power / Renewable, Modular / Tree
+  Farm, Miscellaneous / Pipes…). Ce n'est pas une source. À confirmer par une capture du menu de
+  construction du jeu.
+- **BAS-02** (répondu le 2026-10-26) : un tuyau se raccorde à un port seulement si son ouverture le
+  regarde. Le sens d'une pièce sans sens propre (droit, coude, té, croix) vient de ses voisins. Té :
+  1 entrée pour 2 sorties, ou 2 entrées pour 1 sortie. Croix : 1 pour 3, 2 pour 2, 3 pour 1. Chaque
+  pièce limite ce qui en sort à son débit. Un croisement a deux voies, et le flux prend celle de son
+  côté d'entrée. Détail : PLAN-BAC-A-SABLE.md, § 4. `ports.json` donne une entrée et une sortie aux
+  tuyaux droits ; le bac à sable ne s'en sert pas.
+- **BAS-03** (ouvert) : quel objet sort par quel port quand une recette a plusieurs sorties du même
+  type. L'utilisateur renvoie à sa réponse sur les raccords (BAS-02). Lecture proposée : les liaisons
+  ne disent pas quel objet sort par quel port. `interfaces.json` (S10) et le texte du relevé (`tip`)
+  le disent pour certaines machines. Pour les autres, la maquette répartit dans l'ordre et le moteur
+  marquera la sortie « à vérifier ». À confirmer.
+- **BAS-04** : Fluid Pipe2 mesure 1 × 1 case dans `ports.json`, mais 4 × 2 studs (2 cases) sur le wiki
+  (page Pipes). Le bac à sable prend Short Fluid Pipe2 (moins chère) pour une case. À relever en jeu.
+- **BAS-05** : la répartition d'un té qui a une entrée et deux sorties. Moitié-moitié ? Le surplus
+  d'une sortie bouchée passe-t-il par l'autre ? Une sortie prioritaire ? La maquette fait un flot
+  maximal (machines d'abord). À voir en jeu.
+- **BAS-06** : Industrialist Calculator a des réglages « mois courant », « pollution globale » et
+  « Satellite buff » (RP). Ce sont des mécaniques du jeu que le site ne modélise pas. Pistes à chercher
+  sur le wiki, sans en reprendre de valeur.
 <!-- notes-manuelles:fin -->

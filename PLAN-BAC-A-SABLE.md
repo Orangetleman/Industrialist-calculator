@@ -1,142 +1,303 @@
 # Bac à sable : construire sa chaîne et voir ses statistiques (S17)
 
-Retour R12. Ce plan ne code rien : il fixe ce qu'on construira, dans quel ordre, et à quoi on saura
-que chaque lot est fini. Maquette : [`maquette/bac-a-sable.html`](maquette/bac-a-sable.html). Elle se
-lance avec `npm run dev` puis `/maquette/bac-a-sable.html`. Ses données sont tirées des fichiers du
-jeu par `maquette/bac-a-sable.gen.mjs`.
+Retour R12. Ce plan ne code rien : il fixe ce qu'on construira, dans quel ordre, et à quoi on saura que
+chaque lot est fini. Maquette : [`maquette/bac-a-sable.html`](maquette/bac-a-sable.html), 2e version. On
+l'ouvre avec `npm run dev` puis `/maquette/bac-a-sable.html` ; le menu « Exemples » propose trois
+montages. Ses données sont tirées des fichiers du jeu par `node maquette/bac-a-sable.gen.mjs`.
 
 Le calculateur part d'un objectif et pose l'usine. Le bac à sable fait l'inverse : le joueur pose ses
-machines et ses tuyaux, et le site lui dit ce que donne son montage.
+machines et ses tuyaux sur la grille, et le site lui dit ce que donne son montage.
 
-## 1. Décisions (Q14, 2026-10-26)
+## 1. Décisions
+
+### Q14, 1er tour (2026-10-26), toujours valables
 
 | # | Décision |
 | --- | --- |
 | 1 | Les statistiques d'abord, sur un plan fidèle au jeu, pour que le montage se refasse en jeu. |
 | 2 | La grille du jeu : mêmes cases et mêmes tuyaux que les plans de pose (1 case = 1 Short Pipe). |
-| 3 | Les machines gardent la taille et les ports relevés. **Une machine dont les ports ne sont pas relevés ne peut pas être posée.** Le panneau dit combien attendent un relevé et renvoie vers Contribuer. |
-| 4 | Partir d'un plan calculé pour le modifier : oui, dans un lot à part (B6). |
-| 5 | Partager : un fichier (export et import) et un lien. Le lien n'est proposé que s'il reste « petit », ce qui se mesure : son adresse compressée fait au plus 2 000 caractères, longueur sûre pour Discord et les navigateurs. La maquette l'affiche (bouton « Lien ») : Press + Roller tiennent en quelques centaines de caractères. Au-delà, seul le fichier est proposé. |
-| 6 | Un bouton ☰ ouvre le panneau des machines, rangées **par chapitre puis par catégorie, comme dans le jeu** (ordre exact à relever : BAS-01). Une recherche en haut. Au téléphone, c'est un tiroir par le bas qui **défile horizontalement**. Le clic droit ne sert qu'à effacer. |
-| 7 | De Mindustry, on reprend les gestes, pas l'aspect. |
-| 8 | **Calcul automatique pendant la pose.** Chaque machine est supposée tourner à plein ; le calcul se refait à chaque changement de disposition. Les tuyaux ne contiennent pas d'objets : ils montrent **ce qu'ils doivent transporter**, déduit de ce qui y est branché. Une machine qui reçoit des liaisons **en déduit sa recette**. Si plusieurs recettes vont avec les mêmes entrées, un indicateur (pastille « ? ») demande de choisir. La recette retenue reste visible sur la machine, sans clic droit. **Le calcul ne doit jamais ralentir le joueur** (§ 4). |
-| 9 | Les liaisons fausses sont refusées au tracé (type de tuyau, port de l'autre type). Un tuyau qui dépasse sa capacité **change de texture** sur le plan (hachures rouge et orange dans la maquette), en plus de la ligne dans les statistiques. |
-| 10 | Les noms : `PLAN-BAC-A-SABLE.md`, `maquette/bac-a-sable.html`, et « Bac à sable » / « Sandbox » dans le menu, à côté de Planifier. |
+| 3 | Les bâtiments gardent leur taille et leurs ports relevés. **Un bâtiment dont les ports ne sont pas relevés ne peut pas être posé.** |
+| 4 | Partir d'un plan calculé pour le modifier : oui, dans un lot à part. |
+| 5 | Partager : un code (comme les schémas de Mindustry), un fichier, et un lien seulement s'il fait au plus 2 000 caractères. La fenêtre des schémas affiche cette longueur. |
+| 8 | Calcul automatique pendant la pose, qui ne doit jamais ralentir le joueur. Les tuyaux montrent ce qu'ils doivent transporter, déduit de ce qui y est branché ; une machine déduit sa recette de ce qui lui arrive ; « ? » quand plusieurs recettes vont ; la recette retenue se voit sur la machine. |
+| 9 | Les liaisons fausses sont refusées au tracé ; un tuyau saturé change de texture (hachures rouge et orange). |
+| 10 | « Bac à sable » / « Sandbox » dans le menu du site. |
 
-## 2. Le modèle Mindustry : ce qu'on garde
+### Retour sur la 1re maquette (2026-10-26) : « ça ne va pas du tout »
 
-Cette partie s'appuie sur ce qu'on sait du jeu et sur sa page de wiki « Conveyor ». Les gestes sont
-à revoir en jouant avant B2.
+L'utilisateur demande de s'inspirer à 100 % de Mindustry. Cela remplace Q14-6 (menu « burger », chapitres)
+et Q14-7 (« les gestes, pas l'aspect »).
 
-| Geste dans Mindustry | Dans le bac à sable | Pourquoi |
+| Demande | Décision |
+| --- | --- |
+| Le menu « burger » et les chapitres | Supprimés. **Menu de pose de Mindustry**, en bas à droite : un cadre d'infos en haut, une grille de blocs, une colonne des catégories du jeu, la **colonne des tiers tout à droite**, et une barre d'outils sous la grille. |
+| Infos sur un bloc | Au survol d'un bouton de la grille, le cadre montre le bloc. Après un clic, il reste affiché et le bloc est en main. Le bouton **?** ouvre la fiche complète (description, caractéristiques, ports, fabrication), comme la fiche Infos de Mindustry. |
+| Bâtiments indisponibles | Montrés grisés à la fin de la grille, jamais cachés. Un clic affiche « Compléter … ▸ », qui ouvre l'éditeur de bâtiments. |
+| Poser plusieurs machines | Maintenir et glisser : une ligne droite sur l'axe le plus long, au pas de la machine, **jamais en diagonale**. |
+| Les tuyaux | Dans le menu, comme le reste : un bouton par famille. Les variantes s'affichent dans le cadre d'infos. Longueur 1 par défaut. Au glisser, la ligne droite et les virages nécessaires sont posés seuls, avec la pièce adaptée aux croisements et des **longueurs automatiques, les plus longues possibles**. Une case « Longueur auto » dans le cadre d'infos désactive ces longueurs. |
+| Tuyau posé sur un tuyau | N'importe quelle pièce peut se poser sur un tuyau du même type, et le reste s'adapte : un long tuyau est remplacé par les pièces plus courtes qu'il faut, et les liaisons sont recalculées. |
+| Supprimer | Une **zone** : clic droit maintenu, un rectangle, supprimé au relâchement (comme dans le jeu). |
+| Se déplacer | **ZQSD** (AZERTY) ou **WASD** (QWERTY), en plus du clic molette. |
+| Les boutons d'outils sur le côté | Supprimés. |
+| Les outils | **Tous ceux de Mindustry**, voir le § 3. Un seul outil en plus : **Liaisons**, qui montre tous les vecteurs de raccord. |
+
+## 2. Mindustry : ce qui a été lu
+
+Sources, lues le 2026-10-26 dans le code source de Mindustry
+(`github.com/Anuken/Mindustry`, branche `master`) :
+- `core/src/mindustry/input/` : `Binding.java`, `DesktopInput.java`, `MobileInput.java`,
+  `InputHandler.java`, `Placement.java` ;
+- `core/src/mindustry/ui/fragments/PlacementFragment.java` ;
+- `core/src/mindustry/world/blocks/distribution/Conveyor.java`.
+
+Côté Industrialist, j'ai lu la page wiki
+[Building System](https://industrialist.miraheze.org/wiki/Building_System) : clic molette = « Quick
+Select », glisser = pose sur un seul axe, Q fait défiler les tuyaux.
+
+**Le menu de pose (`PlacementFragment`).**
+- Il est placé en bas à droite.
+- **Le cadre d'infos** :
+  - il est caché quand il n'a rien à montrer ;
+  - il montre le bloc survolé dans la grille, sinon le bloc en main, sinon le bâtiment survolé sur la carte ;
+  - il affiche l'icône, le nom, le raccourci `[catégorie, bloc]` (au-delà de 9 : « dizaine, unité ») et le bouton **?** ;
+  - **?** ouvre la fiche, seulement pour un bloc débloqué.
+- **La grille** :
+  - 4 colonnes de boutons de 46 px, qui défilent ;
+  - les blocs posables viennent d'abord, les autres en gris à la fin ;
+  - un clic sur le bloc en main le lâche ;
+  - le bloc choisi est retenu par catégorie.
+- **Les catégories** sont des boutons de 50 px ; une catégorie vide est sombre et ne se clique pas.
+- **Sous la grille** : schémas (icône presse-papiers), base de données (livre), arbre de recherche, carte.
+- **Au clavier** :
+  - des chiffres tapés à moins de 400 ms d'écart choisissent la catégorie puis le bloc ;
+  - les flèches parcourent la grille ;
+  - `,` et `.` changent de catégorie ;
+  - F1 ouvre la fiche.
+
+**La pose (`DesktopInput`, `InputHandler`, `Placement`).**
+- **Ligne** : on appuie pour fixer le début et on relâche pour poser. `normalizeLine` garde l'axe le plus long (à égalité, l'axe vertical) et avance au pas de la taille du bloc.
+- **Ctrl** (`diagonal_placement`) passe les convoyeurs en recherche de chemin. `Placement.astar` cherche sur 4 voisins avec ces coûts : 1 par case, +8 par virage, 20 pour un obstacle, au plus 1 000 nœuds.
+- **Rotation** :
+  - la molette tourne le bloc en main, sinon elle zoome ; Ctrl + molette garde le zoom ;
+  - R (`rotateplaced`) tourne un bâtiment déjà posé.
+- **Clic droit** : lâche le bloc ; maintenu et glissé, il trace un rectangle supprimé au relâchement.
+- **Clic molette** (`pick`) : prend le bloc survolé et copie sa configuration.
+- **Schémas** :
+  - F + glisser copie une zone ;
+  - clic pour coller, molette pour tourner, Z / X pour retourner ;
+  - T ouvre la liste des schémas, qu'on partage par un code.
+- **Autres touches** :
+
+  | Touche | Effet |
+  | --- | --- |
+  | Q | vide la file de construction |
+  | E | met la construction en pause |
+  | B | reconstruit |
+  | WASD + Maj | déplacement, plus vite avec Maj |
+  | F5 | lignes électriques |
+  | F6 | pastilles d'état |
+  | C | masque l'interface |
+  | J | arbre de recherche |
+  | M | mini-carte |
+- **Croisements** (`Conveyor.getReplacement`) : une ligne qui traverse un convoyeur perpendiculaire y pose une jonction.
+- **Ponts** (`calculateBridges`) : posés seuls à portée, choisis par programmation dynamique (coûts : convoyeur 3, jonction 30, pont 200).
+- **Remplacement** (`upgradeLine`) : glisser un meilleur convoyeur sur une chaîne la remplace.
+
+**Au téléphone (`MobileInput`).**
+- Un toucher met un bloc en file d'attente, et ✓ valide la file.
+- Appui long puis glisser : une ligne (3 cases au moins) ou une zone.
+- Boutons : 🔨 casser, diagonale, ⟳ tourner, schéma, ✕ annuler.
+- Un doigt déplace la vue, deux doigts zooment, et la vue défile seule près du bord de l'écran.
+
+## 3. Les commandes du bac à sable
+
+Les touches sont lues par leur position sur le clavier (`KeyboardEvent.code`), comme dans les jeux :
+WASD en QWERTY devient ZQSD en AZERTY sans aucun réglage. Les lettres affichées suivent le clavier du
+joueur (`navigator.keyboard.getLayoutMap`, sinon les touches déjà frappées). La maquette a un bouton
+« ⌨ Touches » qui reprend ce tableau.
+
+| Action | Bac à sable | Mindustry |
 | --- | --- | --- |
-| Glisser pour poser une ligne de convoyeurs, le sens suit le geste | Glisser avec l'outil tuyau : une case par case traversée, coudes posés seuls | Le cœur de R12 |
-| La ligne fait un coude en L entre le départ et le pointeur | Pareil : d'abord en x, puis en y (la maquette le fait). Ctrl pendant le glisser pour inverser le coude (B2) | Garde des tracés propres |
-| R tourne la pièce avant de la poser | R tourne la machine portée ou sélectionnée | Même touche que Mindustry |
-| Clic droit glissé : efface ce qu'on survole (ou une zone) | Clic droit glissé : efface tuyaux et machines ; zone au rectangle avec Maj (B3) | Effacer vite |
-| Croisements (junction) et ponts | Un croisement objet × fluide se pose avec la pièce non rusty du jeu, jamais de rusty ([feedback-priorites]) ; refusé au tracé dans la maquette | Les pièces existent et ont un prix |
-| Le sens du convoyeur porte le flux | **Ne s'applique pas** : un tuyau d'Industrialist n'a pas de sens propre, le flux va des sorties vers les entrées (`flow.ts`) | Règle du jeu |
-| Pas de limite de longueur | **Ne s'applique pas tel quel** : la longueur et le débit des tuyaux comptent. Le tuyau de tier I fait 6/s, la valeur du wiki. | Critère validé (§ 0, règle 5) |
-| Schémas (copier une zone, la coller) | Ctrl+C / Ctrl+V d'une sélection (B3) | Répéter un module |
+| Se déplacer | ZQSD / WASD, Maj = vite ; clic molette glissé | move_x/move_y, boost |
+| Zoomer | Molette ; Ctrl + molette quand un bloc est en main | zoom |
+| Choisir un bloc | Menu : tier, catégorie, bloc ; chiffres `[tier, catégorie, bloc]` | block_select_01…10 |
+| Parcourir la grille | Flèches ; `,` / `.` : catégorie | block_select_*, category_prev/next |
+| Infos | Survol, clic (gardé), **?** ou F1 | cadre d'infos, block_info |
+| Poser | Clic ; maintenir et glisser : en ligne, sans diagonale | select, normalizeLine |
+| Tracer un tuyau | Glisser : virages, croisements, longueurs posés seuls ; Ctrl : ligne droite seule | astar, getReplacement, calculateBridges |
+| Variante de tuyau | Q (comme Industrialist), ou clic dans le cadre | « Q cycle » d'Industrialist |
+| Tourner | Molette ou R ; R sur un bâtiment posé le tourne | rotate, rotateplaced |
+| Lâcher | Clic droit, Échap, Q (sans tuyau en main) | deselect, clear_building |
+| Supprimer | Clic droit (une case) ; clic droit glissé (une zone) | break_block |
+| Pipette | Clic molette, recette comprise | pick, Quick Select |
+| Régler un bâtiment | Clic dessus : recette, tourner, supprimer | configuration |
+| Copier, coller | F + glisser ; clic ; molette ou R ; Z / X | schematic_select, flip |
+| Schémas, partage | T ou 📋 : liste, code, lien ≤ 2 000 | schematic_menu |
+| Base de données | 📖 | bouton livre |
+| Liaisons | L ou 🔗 | (ajout de l'utilisateur) |
+| État des machines | F6 : pastille verte, orange (sortie bloquée), rouge (entrée manquante) | toggle_block_status |
+| Masquer l'interface | C | toggle_menus |
+| Arbre de recherche | J ou 🌳 | research |
+| Annuler, rétablir | Ctrl+Z, Ctrl+Y | éditeur de cartes |
+| Téléphone | Un doigt, deux doigts, appui long ; 🔨 ⬚ ⟳ ✕ ↶ | MobileInput |
 
-## 3. Les gestes
+**Sans objet**, et pourquoi :
+- la pause et la file de construction (E, Q de Mindustry), la reconstruction (B) : la pose est immédiate ;
+- les unités, les commandes, le ping, la discussion, la carte des planètes : rien de tel dans le site.
 
-| Action | Ordinateur | Téléphone |
-| --- | --- | --- |
-| Ouvrir les machines | ☰ | ☰, tiroir horizontal |
-| Poser | clic sur une machine du panneau, puis clic sur le plan (Maj : en poser plusieurs) | toucher la machine, puis toucher le plan |
-| Tourner | R, ou le bouton du panneau de la machine | bouton « Tourner » |
-| Déplacer | glisser la machine (outil ⬚) | appui long puis glisser |
-| Copier | Ctrl+C / Ctrl+V | bouton « Copier » de la sélection |
-| Effacer | clic droit glissé, outil ⌫ (E), Suppr | outil ⌫ |
-| Tracer un tuyau | outil objet (O) ou fluide (F), glisser | outil, puis glisser du doigt |
-| Prolonger | repartir d'un bout de tuyau existant | pareil |
-| Couper | gomme sur une case | pareil |
-| Annuler, rétablir | Ctrl+Z, Ctrl+Y | boutons ↶ ↷ |
-| Se déplacer | glisser sur le vide, ou bouton du milieu | un doigt sur le vide |
-| Zoomer | molette, + / − | pincer |
-| Choisir la recette | pastille « ? », puis le menu du panneau | pareil |
+**Prévus plus tard** :
+- la mini-carte (M) et les lignes électriques (F5) : il faut d'abord l'électricité (lot B7) ;
+- la file d'attente avec ✓ au téléphone (lot B6).
 
-## 4. Le calcul d'un montage libre
+## 4. Les tuyaux
 
-Le principe est celui de la maquette (`compute()`, environ 120 lignes). Le moteur le refera proprement
-dans `src/engine/sandbox/`, en module pur et testé.
+**Les pièces** (`data/logistics.json`, `data/ports.json`) :
 
-1. **Réseaux** : des cases de tuyau reliées entre elles. On réutilise le format de `route.ts`
-   (`PipeCell` : réseau et liaisons) et `flowArrows` (`flow.ts`) pour le sens du flux.
-2. **Raccords** : la case devant un port porte un tuyau du même type (règle des plans de pose, à
-   confirmer : BAS-02).
-3. **Ce que porte un tuyau** : les sorties de la recette des machines qui y versent. Le port de chaque
-   sortie vient de `interfaces.json` quand il est connu ; sinon il est marqué « à vérifier » (BAS-03).
-   La maquette, elle, répartit dans l'ordre.
-4. **Recette d'une machine** : les recettes dont les entrées contiennent tout ce qui arrive. Une seule
-   → retenue ; plusieurs → « ? » ; aucune → ⚠. Le choix du joueur est gardé tant qu'il reste possible.
-   Le réglage d'interface (S10) s'applique comme dans le calculateur.
-5. **Débits** : chaque machine tourne à une fraction f entre 0 et 1, freinée par trois choses : une
-   entrée qui manque, une sortie qui déborde, un tuyau trop petit. On calcule un point fixe, en
-   partant de 1. Une entrée non branchée est fournie de l'extérieur et devient une « entrée du
-   montage ». Une sortie non branchée devient une « sortie du montage ». Le moteur calcule le débit
-   **branche par branche** : la maquette prend le total d'un réseau.
-6. **Bilan** : sorties et entrées du montage par minute, énergie (somme de f × MF/s), prix (machines,
-   plus les pièces de tuyau au prix du catalogue), place au sol (rectangle et cases), pollution
-   (`pollution.ts`), machine qui limite et sa raison, tuyaux saturés ou mélangés.
-7. **Liaisons fausses** : un mauvais type ou un port de l'autre type est refusé au tracé, avec un
-   message. Deux objets dans un même tuyau rendent le tuyau rouge et apparaissent dans « Ce qui
-   limite ». Une boucle est permise : le point fixe la calcule, et le flux sans sens est signalé
-   (comme dans `flow.ts`).
+| Famille | Débit | Pièces | Remarque |
+| --- | --- | --- | --- |
+| Tier I, objet et fluide | 6/s | droit (1 case), coude, té, croix | « Longueur auto » ne change rien |
+| Tier III, objet | 120/s | 1, 2 et 4 cases | |
+| Tier III, fluide | 120/s | 1 et 4 cases | le coude, le té et la croix ne sont pas relevés : posés en rouge, « à compléter » |
+| Tier IV (grands tuyaux) | 12 000/s | 2 cases de large | posés comme des blocs pour l'instant |
 
-**Fluidité** (décision 8, exigence de l'utilisateur) :
-- le calcul est **incrémental** : un geste ne recalcule que les réseaux touchés et ce qui en dépend ;
-  le reste est gardé ;
-- pendant un glisser, seul le tracé est redessiné ; les statistiques se recalculent à la fin du geste,
-  ou au plus une fois par image ;
-- au-delà d'un seuil mesuré en B4, le calcul part dans un worker, comme l'usine aujourd'hui
-  (`factory.worker.ts`), et l'écran affiche le dernier résultat ;
-- dessin : on garde le SVG de la maquette tant qu'il tient ; on passe à un canvas (`canvas.ts` existe
-  déjà) si la mesure de B4 le demande ;
-- budget, vérifié par un test de performance : **moins de 16 ms par geste avec 200 machines et
-  2 000 cases de tuyau**, sur l'ordinateur de l'utilisateur.
+**Les croisements posés seuls** sont toujours des pièces non rusty de tier III : Pipe Intersection, Fluid
+Pipe Intersection, Fluid Pipe and Item Intersection. Elles servent aussi au tier I. Les pièces rusty
+restent des variantes qu'on choisit à la main ; elles ne sont jamais posées seules.
 
-## 5. Les ponts avec l'existant
+**Raccord (réponse BAS-02).** Deux ouvertures se raccordent quand elles sont face à face et du même type.
+Un tuyau qui passe le long d'un port sans s'y diriger ne s'y raccorde pas.
 
-- **Depuis le calculateur** (B6) : « Modifier dans le bac à sable » sur un module ou sur toute l'usine
-  copie ses machines, ses recettes et ses tuyaux (`FactoryPlan`) dans un montage.
-- **Comparer** (B6) : en partant d'un plan calculé, le bandeau compare le montage au plan conseillé
-  (débit, énergie, place, prix).
-- **Garder** (B5) : montages enregistrés dans le navigateur (`ind-calc:v1:bac`), export et import en
-  JSON, lien `#bac/…` s'il fait au plus 2 000 caractères (décision 5).
-- **Ma partie** : les machines non débloquées restent posables, marquées 🔒 (le bac à sable sert aussi
-  à préparer la suite). Option « seulement mes machines » (B5).
-- **Remarques** : le montage est joint à une remarque, comme le plan aujourd'hui.
+**Sens (réponse BAS-02).**
+- **Le sens vient des voisins.** Seules les pièces dont la nature l'indique ont un sens propre (vannes,
+  compteurs : à relever). Un tuyau droit, un coude ou un té n'en ont pas : le flux va des sorties des
+  machines vers leurs entrées.
+- **Té** : une entrée se partage sur les deux sorties ; deux entrées donnent une seule sortie.
+- **Croix** : une entrée pour trois sorties, deux pour deux, ou trois pour une.
+- **Limite de débit** : chaque pièce laisse sortir au plus son débit, et freine donc ce qui entre.
+- **Croisement** : il a deux voies indépendantes, ↔ et ↕. Par défaut, un flux prend la voie alignée sur le
+  côté par où il entre et ressort en face ; un voisin du même type posé en face (un virage, par exemple)
+  s'y raccorde. Ce choix automatique pourra être changé à la main (lot B3).
 
-## 6. Les lots
+`ports.json` note une entrée et une sortie pour les tuyaux droits. On ne s'en sert pas, car ces tuyaux
+n'ont pas de sens propre (réponse de l'utilisateur).
+
+**Le tracé**, tel que la maquette le fait (`pipePath`, `pipePlan`, `assemble`, `rest`) :
+1. **Le chemin** : recherche A*, avec +8 par virage comme Mindustry. Ctrl donne une ligne droite seule.
+   - Un tuyau de l'autre type ne se traverse que tout droit et perpendiculairement, de même qu'un
+     croisement.
+   - Les machines bloquent le passage.
+2. **Les ouvertures voulues** case par case : celles du chemin, plus celles vers les ports qui
+   regardent les deux bouts.
+3. **Un tuyau existant sur le chemin** :
+   - du même type, traversé tout droit et perpendiculairement : un croisement ;
+   - de l'autre type, traversé de même : le croisement objet × fluide ;
+   - du même type, dans tout autre cas : il fusionne (coude, té ou croix) ;
+   - de l'autre type, dans tout autre cas : le tracé est refusé.
+4. **Les pièces** :
+   - chaque case qui n'est pas droite reçoit le coude, le té ou la croix tourné comme il faut ;
+   - les cases droites sont regroupées en morceaux, puis découpées du plus long au plus court (à
+     longueur égale, la pièce la moins chère).
+5. **Les cases restantes** d'une pièce remplacée ou coupée gardent leurs ouvertures et sont recomposées
+   de la même façon. Cela vaut aussi pour la gomme et pour une pièce posée d'un clic.
+
+## 5. Le calcul d'un montage libre
+
+La maquette le fait déjà (`compute()`). Le moteur le refera proprement dans `src/engine/sandbox/`, pur et testé.
+1. **Les raccords** : deux ports face à face, du même type, dont au moins un tuyau. Deux entrées ou deux
+   sorties ne se raccordent jamais.
+2. **Les réseaux** : des voies de tuyau reliées. Un croisement compte deux voies.
+3. **Les recettes** : déduites de ce qui arrive. Le joueur choisit quand plusieurs vont, et son choix est
+   gardé tant qu'il reste possible.
+4. **Les débits** :
+   - flot maximal dans chaque réseau ; chaque voie est coupée en deux pour porter la limite de sa pièce ;
+   - les machines sont servies d'abord, puis les bouts ouverts, qui comptent comme sorties du montage ;
+   - chaque machine tourne à une fraction f, recalculée jusqu'à l'équilibre ;
+   - quand tout ne passe pas, toutes les sources ralentissent d'autant ;
+   - la saturation se juge sur ce que les machines voudraient envoyer.
+
+   Exemple 2 de la maquette : 5 Roller (Copper Wire, 1,5/s chacun) sur un tuyau de tier I (6/s).
+   Les 5 tournent à 80 %, et les pièces après le 5e té sont hachurées.
+5. **Le bilan** :
+   - sorties et entrées du montage ;
+   - énergie, pollution, prix (machines et pièces), place au sol, nombre de pièces ;
+   - ce qui limite, avec la raison en mots de joueur.
+
+   À ajouter (idées d'Industrialist Calculator, § 6) :
+   - le **revenu** en $/s, d'après `sellValue` dans `items.json` ;
+   - l'unité au choix : /s, /min, /h ou par cycle ;
+   - un clic sur une ligne de « Ce qui limite » qui centre la vue sur la machine.
+
+**Fluidité** (exigence de l'utilisateur) :
+- le calcul est incrémental : seuls les réseaux touchés par un geste sont recalculés ;
+- pendant un glisser, seul l'aperçu se redessine ;
+- au-delà d'un seuil mesuré, le calcul part dans un worker ;
+- objectif, vérifié par un test : **moins de 16 ms par geste à 200 machines et 2 000 cases**.
+
+## 6. Industrialist Calculator (pages.dev, code MIT)
+
+Site [industrialist-calculator.pages.dev](https://industrialist-calculator.pages.dev/), code sur
+[github.com/Pollywrath/Industrialist-Production-Calculator](https://github.com/Pollywrath/Industrialist-Production-Calculator).
+Je l'ai parcouru le 2026-10-26 : tutoriel Gearbox, aide complète, Compute, arbre de recherche, et la
+structure du dépôt.
+
+**Ce que c'est.**
+- Un planificateur en **graphe**, pas un plan au sol : des nœuds de recettes reliés entre eux.
+- Pixi ou React Flow pour le dessin, un optimiseur SCIP compilé en WebAssembly.
+- Il complète le bac à sable plus qu'il ne le remplace. Son point fort, c'est l'ergonomie.
+
+**Ce qu'on peut reprendre dans le bac à sable** :
+- le tableau de bord : énergie consommée et produite, pollution nette, profit, coût, place, nombre de
+  machines ;
+- les listes « manques » et « surplus », dont chaque ligne centre la vue ;
+- le choix de l'unité de débit ;
+- **un clic sur une entrée ouvre la liste filtrée des producteurs, et le nouveau bloc se raccorde seul**.
+  Dans le bac à sable : un clic sur un port libre ouvrirait la grille filtrée sur les machines qui le
+  fournissent (lot B3) ;
+- une vue compacte quand on dézoome ;
+- une aide avec recherche et un tutoriel pas à pas ;
+- des sauvegardes exportables.
+
+**Pour le reste du site** (hors S17, à décider) :
+- leur optimiseur (SCIP) serait une nouvelle dépendance : non, sauf accord ;
+- leur arbre de recherche montre les RP dans le temps et un « Satellite buff » ;
+- ils ont des réglages « mois courant » et « pollution globale » ;
+- 54 recettes spéciales (chaudières et températures, turbines, ferme, moteur diesel…) sont à comparer
+  avec nos modulaires ;
+- leur gestionnaire de données se compare au wiki, comme notre page Contribuer.
+
+**Règles** :
+- La licence MIT permet de reprendre du code, en gardant leur notice.
+- Leurs données ne sont **pas une source** (§ 0, règle 3 : le wiki d'abord, puis les relevés). Elles
+  servent de contrôle, comme Fandom.
+- Leurs catégories de machines (Factory / Assembler, Extractor / Item Extractor…, Miscellaneous /
+  Pipes) sont une **piste pour BAS-01**, à confirmer par une capture du menu du jeu.
+
+## 7. Les lots
 
 Un lot par session, maquette d'abord quand l'écran change, feu vert entre deux lots.
 
 | Lot | Contenu | Critère de fin |
 | --- | --- | --- |
-| **B1** Moteur du montage | `src/engine/sandbox/` pur : montage (machines, cases, liaisons), réseaux, raccords, recettes déduites, débits (point fixe), bilan. Aucun écran. | Tests : Press + Roller = 30 Iron Coil/min et 15 Iron Ingot/min à fournir ; recette ambiguë → « ? » ; tuyau saturé ; tuyau mélangé ; boucle ; machine sans ports refusée. Les valeurs viennent des fichiers du jeu. |
-| **B2** Le plus petit montage utile | Page « Bac à sable » / « Sandbox » (FR et EN) ; ☰ par chapitre et catégorie ; poser, tourner, effacer ; tracer un tuyau au glisser ; recette sur la machine ; statistiques à droite. | Parcours réel au navigateur : depuis un plan vierge, Press + Roller + un tuyau en moins de 10 gestes, statistiques justes ; téléphone 375 px sans débordement ; contrastes et cibles comme en S33. |
-| **B3** Gestes complets | Déplacer, copier et coller, effacer une zone, prolonger et couper un tuyau, annuler et rétablir, croisement non rusty, inversion du coude, touch (pincer, appui long). | Chaque geste du § 3 fait une fois au navigateur (ordinateur et téléphone) ; Ctrl+Z ramène exactement l'état d'avant (test). |
-| **B4** Fluidité | Calcul incrémental, recalcul en fin de geste, worker au-delà du seuil, canvas si besoin. | Test de performance : moins de 16 ms par geste à 200 machines et 2 000 cases ; aucune image perdue pendant un glisser (mesure au navigateur). |
-| **B5** Garder et partager | Enregistrer plusieurs montages, export et import en fichier, lien ≤ 2 000 caractères, 🔒 et « seulement mes machines ». | Un montage exporté, réimporté puis ouvert par lien donne la même empreinte (test) ; lien refusé au-delà de 2 000 caractères, avec un message. |
-| **B6** Ponts | Depuis un module ou l'usine vers le bac à sable ; comparaison au plan conseillé. | L'usine Crankshaft 60/min ouverte dans le bac à sable redonne ses chiffres (débit, énergie, place, prix) ; une machine retirée change la comparaison comme prévu. |
-| **B7** Visite et remarques | Étapes « Bac à sable » dans la visite ; montage joint aux remarques ; textes anglais relus. | Parcours d'un nouveau venu en anglais, au clavier, comme S37. |
+| **B1** Moteur du montage | `src/engine/sandbox/` pur : bâtiments, ports tournés, raccords face à face, voies et croisements, sens, flot avec limite par pièce, partage égal, recettes déduites, bilan, revenu. | Tests sur les trois exemples de la maquette : 30 Iron Coil/min et 15 Iron Ingot/min ; 5 Roller à 80 % et les pièces saturées ; croisement objet × fluide sans mélange. Plus : recette ambiguë → « ? », tuyau mélangé, pièce non relevée, deux entrées face à face. Toutes les valeurs viennent des fichiers du jeu. |
+| **B2** Tracé des tuyaux | Chemin A*, assemblage des pièces, longueurs auto, croisements non rusty, pose par-dessus, coupe par la gomme. Pur et testé. | Tests : longueurs (20 cases de tier III = 5 Long Pipe2) ; coupe d'un Long Pipe2 en Pipe2 + Short Pipe2 ; té posé seul en arrivant sur un tuyau ; tracé refusé à travers une machine. |
+| **B3** L'écran | Page Bac à sable / Sandbox ; menu de pose, grille, catégories, tiers, outils ; pose en ligne ; rotation ; clic droit ; zone ; ZQSD ; pipette ; cadre d'infos ; fiche « ? » ; statistiques ; Liaisons ; pastilles ; touches selon le clavier ; clic sur un port libre ; voie d'un croisement réglable. | Chaque ligne du § 3 faite une fois au navigateur, en FR et en EN ; Press + Roller en moins de 10 gestes ; contrastes et cibles comme en S33. |
+| **B4** Fluidité | Calcul incrémental, aperçu seul pendant un glisser, worker, vue compacte. | Test : moins de 16 ms par geste à 200 machines et 2 000 cases ; aucune image perdue pendant un glisser. |
+| **B5** Schémas et partage | F, Z / X, T, liste, code, fichier, lien ≤ 2 000 caractères, base de données, mini-carte. | Un schéma copié, enregistré, exporté puis réimporté redonne la même empreinte (test). |
+| **B6** Téléphone | Tout MobileInput : appui long, 🔨, ⬚, ⟳, ✕, file d'attente avec ✓ (à décider), tiroir horizontal. | Parcours à 375 px : poser, tracer, supprimer une zone, copier. |
+| **B7** Électricité et ponts | Poteaux et câbles (F5), énergie produite. Partir d'un plan calculé (module ou usine), le comparer au plan conseillé. | L'usine Crankshaft 60/min ouverte dans le bac à sable redonne ses chiffres. |
+| **B8** Visite, aide, remarques | Visite guidée, aide avec recherche, montage joint aux remarques, anglais relu. | Parcours d'un nouveau venu en anglais, au clavier, comme S37. |
 
-B1 et B2 suffisent pour un premier usage. Les lots suivants s'ajoutent un par un.
+B1 à B3 suffisent pour un premier usage. Les lots suivants s'ajoutent un par un.
 
-## 7. Risques
+## 8. Risques
 
-- **Machines posables** : seules **31 machines** ont leurs ports et des recettes dans le dépôt
-  (`bac-a-sable.gen.mjs`). Toutes les autres sont refusées (décision 3). Le bac à sable vaut donc ce
-  que valent les relevés : il faudra en faire d'autres (Contribuer → Bâtiments).
-- **Règles de jeu mal connues** : le raccord d'un tuyau à un port (BAS-02) ; le port de chaque sortie
-  (BAS-03) ; l'ordre du menu de construction (BAS-01). Ils se demandent, ils ne se supposent pas.
-- **Performance** : traitée en B4, avec une mesure. Elle reste le risque principal au téléphone.
-- **Quantité de code** : environ la taille de l'éditeur de bâtiments, plus un moteur de la taille de
-  `flow.ts`. Le moteur reste séparé de l'écran, et on réutilise `route.ts`, `flow.ts`, `catalog.ts`,
-  `pollution.ts` et `canvas.ts`.
-- **Valeurs corrigées** : la maquette lit les recettes du wiki sans `overrides.json`. Le moteur, lui,
-  passera par `buildGameData`, comme le calculateur.
-- **Ce que la maquette simplifie** : le débit est compté par réseau et non par branche ; les sorties
-  sont réparties dans l'ordre ; pas de croisement ; pas d'électricité. Tout est repris en B1 à B3.
+- **Bâtiments posables** : 55 bâtiments sur 220, et 32 pièces de tuyau sur 43, ont leurs ports
+  relevés. Les autres sont grisés. Le bac à sable vaut ce que valent les relevés.
+- **Règles de jeu encore floues** : la répartition d'un té (BAS-05), quel objet sort par quel port
+  (BAS-03), le menu de construction (BAS-01), la longueur de Fluid Pipe2 (BAS-04). Elles se demandent,
+  elles ne se supposent pas.
+- **Performance** : traitée en B4, avec des mesures. C'est le risque principal au téléphone.
+- **Quantité de code** : la maquette fait environ 930 lignes. Le moteur sera séparé de l'écran et testé
+  à part (B1, B2).
+- **Valeurs corrigées** : la maquette lit les recettes du wiki sans `overrides.json`. Le moteur passera
+  par `buildGameData`, comme le calculateur.

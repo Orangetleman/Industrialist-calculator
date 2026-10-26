@@ -4,468 +4,926 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maquette S17 — Bac à sable</title>
-<link rel="stylesheet" href="../src/styles.css">
 <style>
-/* Maquette seulement (S17). Données : bac-a-sable.data.js, tiré des fichiers du jeu par bac-a-sable.gen.mjs. */
-body { background: var(--bg); margin: 0; }
-.mq-bar { margin: 8px 12px; padding: 8px 14px; font-size: .86rem; background: var(--warn-soft); border-radius: 8px; }
-.bas { display: grid; grid-template-columns: auto 1fr 300px; height: calc(100vh - 70px); min-height: 480px; margin: 0 12px 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
-.bas-tools { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-right: 1px solid var(--line); }
-.bas-tools button { min-width: 44px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 1.05rem; cursor: pointer; position: relative; }
-.bas-tools button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
-.bas-tools button small { position: absolute; right: 3px; bottom: 1px; font-size: .62rem; color: var(--muted); }
-.bas-tools hr { width: 100%; border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
-.bas-view { position: relative; overflow: hidden; touch-action: none; }
-.bas-view svg { width: 100%; height: 100%; display: block; user-select: none; }
-.bas-msg { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 6px 12px; border-radius: 8px; font-size: .85rem; opacity: 0; transition: opacity .2s; pointer-events: none; }
-.bas-msg.on { opacity: .92; }
-.bas-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: .8rem; box-shadow: 0 4px 14px rgba(0,0,0,.2); display: none; max-width: 260px; }
-.bas-side { border-left: 1px solid var(--line); overflow: auto; padding: 10px 12px; font-size: .86rem; }
-.bas-side h3 { font: 700 .95rem var(--f-display); margin: 12px 0 4px; }
-.bas-side h3:first-child { margin-top: 0; }
-.bas-side table { width: 100%; border-collapse: collapse; }
-.bas-side td { padding: 2px 0; vertical-align: top; }
-.bas-side td.n { text-align: right; white-space: nowrap; padding-left: 8px; font-variant-numeric: tabular-nums; }
-.bas-side .warn { color: var(--danger, #c0392b); }
-.bas-side .muted { color: var(--muted); }
-.bas-side select, .bas-side button { min-height: 32px; margin: 2px 0; }
-/* Panneau des machines (« burger ») */
-.bas-pan { position: absolute; left: 0; top: 0; bottom: 0; width: 290px; background: var(--surface); border-right: 1px solid var(--line); box-shadow: 4px 0 18px rgba(0,0,0,.15); overflow: auto; padding: 10px; transform: translateX(-105%); transition: transform .18s; z-index: 2; }
-.bas-pan.open { transform: none; }
-.bas-pan input { width: 100%; min-height: 34px; box-sizing: border-box; margin-bottom: 6px; }
-.bas-pan details { margin: 4px 0; }
-.bas-pan summary { font-weight: 700; cursor: pointer; min-height: 28px; }
-.bas-pan h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 3px; }
-.bas-cards { display: flex; flex-direction: column; gap: 4px; }
-.bas-card { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; background: var(--surface); color: var(--ink); cursor: pointer; text-align: left; min-height: 40px; }
-.bas-card:hover { border-color: var(--accent); }
-.bas-card svg { flex: none; }
-.bas-card small { color: var(--muted); display: block; }
-.bas-pan .note { font-size: .78rem; color: var(--muted); margin-top: 10px; }
+/* Maquette S17, 2e version : manipulation calquée sur Mindustry (code source lu : Binding, DesktopInput,
+   MobileInput, PlacementFragment, Placement, Conveyor). Données : bac-a-sable.data.js (bac-a-sable.gen.mjs). */
+:root { --bg:#161616; --panel:rgba(18,18,18,.94); --line:#454545; --ink:#e8e8e8; --muted:#9a9a9a; --accent:#ffd37f; --red:#e55454; --green:#5ce677; --orange:#f0a040; }
+* { box-sizing:border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:14px/1.35 system-ui, "Segoe UI", sans-serif; overflow:hidden; }
+button { font:inherit; color:inherit; }
+#map { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; user-select:none; cursor:crosshair; }
+.pan { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:4px; }
+.hidden-ui .pan, .hidden-ui #hint { display:none !important; }
+/* Statistiques, en haut à gauche (là où Mindustry met les vagues) */
+#stats { left:8px; top:8px; width:280px; max-height:calc(100vh - 16px); overflow:auto; padding:6px 10px 8px; font-size:13px; }
+#stats summary { cursor:pointer; font-weight:700; color:var(--accent); min-height:26px; display:flex; align-items:center; }
+#stats h4 { margin:8px 0 2px; font-size:12px; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; }
+#stats table { width:100%; border-collapse:collapse; } #stats td { padding:1px 0; vertical-align:top; } #stats td.n { text-align:right; white-space:nowrap; padding-left:8px; font-variant-numeric:tabular-nums; }
+#stats ul { margin:2px 0; padding-left:16px; } .warn { color:var(--red); } .muted { color:var(--muted); }
+/* Barre du haut à droite (maquette) */
+#top { right:8px; top:8px; display:flex; gap:4px; padding:4px; align-items:center; }
+#top button, #top select { min-height:30px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; padding:0 8px; cursor:pointer; color:var(--ink); }
+#top .tag { font-size:12px; color:var(--muted); padding:0 6px; }
+/* Menu de pose, en bas à droite, comme Mindustry : infos, grille de 4, catégories, tiers ; outils sous la grille */
+#pf { right:0; bottom:0; border-radius:4px 0 0 0; display:flex; flex-direction:column; width:max-content; }
+#info { border-bottom:3px solid #3a3a3a; padding:8px; width:100%; max-width:384px; }
+#info:empty { display:none; }
+.i-head { display:flex; gap:8px; align-items:center; }
+.i-head img, .i-head svg { flex:none; }
+.i-head b { display:block; color:var(--accent); font-size:15px; }
+.i-head small { color:var(--muted); }
+.i-q { margin-left:auto; flex:none; width:36px; height:36px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; cursor:pointer; font-weight:700; }
+.i-line { margin-top:5px; font-size:13px; }
+.i-var { display:flex; flex-wrap:wrap; gap:3px; margin-top:6px; }
+.i-var button { width:34px; height:34px; padding:2px; background:#262626; border:1px solid var(--line); border-radius:3px; cursor:pointer; display:grid; place-items:center; }
+.i-var button.on { border-color:var(--accent); background:#3d3522; }
+.i-var button.locked { opacity:.45; }
+.i-chk { display:flex; gap:6px; align-items:center; margin-top:6px; font-size:13px; }
+.i-btns { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+.i-btns button, .i-btns a, .i-sel { min-height:30px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; padding:0 8px; cursor:pointer; color:var(--ink); text-decoration:none; display:inline-flex; align-items:center; }
+.i-sel { max-width:100%; margin-top:5px; }
+.pf-body { display:flex; }
+.pf-left { display:flex; flex-direction:column; border-right:3px solid #3a3a3a; }
+#grid { display:grid; grid-template-columns:repeat(4, 46px); grid-auto-rows:46px; height:276px; overflow-y:auto; align-content:start; padding:2px; }
+.pf-blk { width:46px; height:46px; padding:4px; background:transparent; border:2px solid transparent; border-radius:3px; cursor:pointer; display:grid; place-items:center; }
+.pf-blk:hover { background:#2c2c2c; }
+.pf-blk.on { border-color:var(--accent); background:#3d3522; }
+.pf-blk.locked img, .pf-blk.locked svg { filter:grayscale(1) brightness(.42); }
+.pf-tools { display:flex; border-top:3px solid #3a3a3a; }
+.pf-tools button, .pf-tools a { width:48px; height:44px; background:transparent; border:0; cursor:pointer; font-size:20px; display:grid; place-items:center; text-decoration:none; color:var(--ink); }
+.pf-tools button.on { background:#3d3522; }
+.pf-col { display:flex; flex-direction:column; }
+.pf-col + .pf-col { border-left:3px solid #3a3a3a; }
+.pf-b { width:40px; height:40px; background:transparent; border:2px solid transparent; border-radius:3px; cursor:pointer; font-size:18px; font-weight:700; display:grid; place-items:center; }
+.pf-b.on { border-color:var(--accent); background:#3d3522; color:var(--accent); }
+.pf-b:disabled { opacity:.25; cursor:default; }
+.pf-col.tiers .pf-b { font-size:13px; }
+/* Indications du bas, comme Mindustry */
+#hint { position:fixed; left:50%; bottom:10px; transform:translateX(-50%); max-width:min(760px, calc(100vw - 420px)); text-align:center; font-size:12.5px; color:#ddd; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:3px; pointer-events:none; }
+#hint kbd { font:inherit; color:var(--accent); }
+/* Outils du téléphone (MobileInput) */
+#mob { display:none; left:8px; bottom:8px; padding:4px; gap:4px; flex-direction:column; }
+#mob button { width:48px; height:48px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; font-size:20px; }
+#mob button.on { border-color:var(--accent); background:#3d3522; }
+/* Fenêtres (infos d'un bloc, schémas, base de données, touches) */
+#dlg { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; flex-direction:column; align-items:center; overflow:auto; padding:28px 16px 90px; z-index:5; }
+#dlg[hidden] { display:none; }
+#dlg .in { width:min(760px, 100%); }
+#dlg h3 { color:var(--accent); font-size:13px; text-transform:uppercase; letter-spacing:.05em; margin:14px 0 4px; }
+#dlg .ttl { display:flex; gap:10px; align-items:center; justify-content:center; font-size:19px; color:var(--accent); font-weight:700; }
+#dlg .kv { padding-left:12px; } #dlg .kv div { margin:2px 0; }
+#dlg table { border-collapse:collapse; width:100%; } #dlg td, #dlg th { padding:4px 6px; border-bottom:1px solid #333; text-align:left; vertical-align:top; font-size:13px; }
+#dlg th { color:var(--accent); font-weight:600; }
+#dlg .back { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); min-width:200px; min-height:48px; background:#1d1d1d; border:2px solid #666; border-radius:6px; font-size:16px; cursor:pointer; }
+#dlg .db { display:flex; flex-wrap:wrap; gap:3px; }
+#dlg textarea { width:100%; min-height:70px; background:#111; color:var(--ink); border:1px solid var(--line); }
+#dlg .row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:4px 0; }
+#dlg .row button, #dlg .row input { min-height:30px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; color:var(--ink); padding:0 8px; }
+@media (max-width: 760px), (pointer: coarse) {
+  #mob { display:flex; }
+  #hint { display:none; }
+}
 @media (max-width: 760px) {
-  .bas { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height: auto; }
-  .bas-tools { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-  .bas-tools hr { display: none; }
-  .bas-view { height: 60vh; }
-  .bas-side { border-left: 0; border-top: 1px solid var(--line); max-height: none; }
-  /* Au téléphone : tiroir par le bas, qui défile horizontalement (réponse Q14-6). */
-  .bas-pan { top: auto; width: auto; right: 0; height: 190px; transform: translateY(105%); border-right: 0; border-top: 1px solid var(--line); display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; align-items: flex-start; }
-  .bas-pan.open { transform: none; }
-  .bas-pan > input { position: sticky; left: 0; width: 140px; flex: none; z-index: 1; }
-  .bas-pan details { flex: none; }
-  .bas-pan details[open] { display: flex; gap: 10px; }
-  .bas-pan .grp { flex: none; }
-  .bas-cards { flex-direction: row; }
-  .bas-card { flex: none; width: 150px; }
-  .bas-pan .note { flex: none; width: 200px; }
+  #stats { width:auto; right:8px; max-height:40vh; }
+  #top { top:auto; bottom:calc(var(--pfh, 200px) + 8px); }
+  #pf { left:0; width:auto; }
+  #info { max-width:none; }
+  .pf-body { overflow:hidden; }
+  .pf-left { flex:1; min-width:0; }
+  /* Au téléphone, la grille défile horizontalement (réponse Q14-6) */
+  #grid { grid-template-columns:none; grid-auto-flow:column; grid-template-rows:repeat(2, 46px); grid-auto-columns:46px; height:auto; overflow-x:auto; overflow-y:hidden; }
+  .pf-col { flex-direction:row; flex-wrap:wrap; width:80px; align-content:flex-start; }
+  #mob { bottom:calc(var(--pfh, 200px) + 8px); }
 }
 </style>
 </head>
 <body>
-<div class="mq-bar"><b>Maquette S17, bac à sable.</b> Ce sont les vraies machines dont les ports ont été relevés, avec les recettes et les tuyaux de tier I tirés du wiki. Le calcul est simplifié : c'est une maquette, pas le moteur. Pour essayer : ☰ machines, ▭ tuyau objet (O), ≈ tuyau fluide (F), gomme (E) ou clic droit glissé, R tourne, Ctrl+Z annule, la molette zoome, et glisser sur le vide déplace la vue. Le bouton « Exemple » pose une Press reliée à un Roller.</div>
-<div class="bas">
-  <div class="bas-tools" role="toolbar" aria-label="Outils">
-    <button id="t-pan" title="Machines (☰)" aria-label="Ouvrir la liste des machines">☰</button>
-    <hr>
-    <button data-tool="main" aria-pressed="true" title="Sélectionner, déplacer (V)">⬚<small>V</small></button>
-    <button data-tool="objet" title="Tuyau objet (O)">▭<small>O</small></button>
-    <button data-tool="fluide" title="Tuyau fluide (F)">≈<small>F</small></button>
-    <button data-tool="gomme" title="Effacer (E, ou clic droit glissé)">⌫<small>E</small></button>
-    <hr>
-    <button id="t-undo" title="Annuler (Ctrl+Z)">↶</button>
-    <button id="t-zin" title="Zoomer">+</button>
-    <button id="t-zout" title="Dézoomer">−</button>
-    <button id="t-ex" title="Exemple : Press puis Roller" style="font-size:.7rem">Exemple</button>
-  </div>
-  <div class="bas-view" id="view">
-    <svg id="svg" aria-label="Plan du montage">
-      <defs>
-        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" stroke-opacity=".12"/></pattern>
-        <pattern id="over" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#c0392b"/><rect width="3" height="6" fill="#f5b041"/></pattern>
-      </defs>
-      <g id="world"><rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#grid)" style="color:var(--ink)"/><g id="layer"></g><g id="ghost" opacity=".55"></g></g>
-    </svg>
-    <div class="bas-pan" id="pan" aria-label="Machines"></div>
-    <div class="bas-tip" id="tip"></div>
-    <div class="bas-msg" id="msg"></div>
-  </div>
-  <div class="bas-side" id="side"></div>
+<svg id="map" aria-label="Plan du montage">
+  <defs>
+    <pattern id="grid-p" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M1 0H0V1" fill="none" stroke="#fff" stroke-opacity=".07" stroke-width=".04"/></pattern>
+    <pattern id="over" width=".5" height=".5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".5" height=".5" fill="#c0392b"/><rect width=".25" height=".5" fill="#f5b041"/></pattern>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#fff"/></marker>
+  </defs>
+  <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid-p)"/>
+  <g id="layer"></g><g id="over-l"></g><g id="ghost"></g>
+</svg>
+
+<details id="stats" class="pan" open><summary>📊 Statistiques du montage</summary><div id="stats-in"></div></details>
+
+<div id="top" class="pan">
+  <span class="tag">Maquette S17 · 2e version</span>
+  <select id="ex" aria-label="Exemples"><option value="">Exemples…</option><option value="1">Press → Roller (tier I)</option><option value="2">5 Roller : tuyau saturé</option><option value="3">Tier III : longueurs et croisement</option></select>
+  <button id="b-keys" title="Toutes les commandes">⌨ Touches</button>
+  <button id="b-undo" title="Annuler (Ctrl+Z)">↶</button>
+  <button id="b-redo" title="Rétablir (Ctrl+Y)">↷</button>
+  <button id="b-clear" title="Vider le plan">Vider</button>
 </div>
+
+<div id="pf" class="pan">
+  <div id="info"></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div id="grid"></div>
+      <div class="pf-tools">
+        <button id="b-schem" title="Schémas (T)">📋</button>
+        <button id="b-db" title="Base de données">📖</button>
+        <a href="/#arbre" target="_blank" title="Arbre de recherche (J)">🌳</a>
+        <button id="b-vec" title="Liaisons : sens de chaque raccord (L)">🔗</button>
+      </div>
+    </div>
+    <div id="cats" class="pf-col"></div>
+    <div id="tiers" class="pf-col tiers"></div>
+  </div>
+</div>
+
+<div id="mob" class="pan" aria-label="Outils tactiles">
+  <button id="m-break" title="Casser (zone)">🔨</button>
+  <button id="m-schem" title="Copier une zone">⬚</button>
+  <button id="m-rot" title="Tourner">⟳</button>
+  <button id="m-cancel" title="Lâcher">✕</button>
+  <button id="m-undo" title="Annuler">↶</button>
+</div>
+
+<div id="hint"></div>
+<div id="dlg" hidden><div class="in" id="dlg-in"></div><button class="back" id="dlg-back">← Retour</button></div>
+
 <script src="bac-a-sable.data.js"></script>
 <script>
-const B = window.BAS, C = 20;
-const M = Object.fromEntries(B.machines.map((m) => [m.id, m]));
-const itemName = (i) => B.items[i]?.name ?? i;
-const isFluid = (i) => !!B.items[i]?.fluid;
-const fr = (n, d = 1) => n.toLocaleString("fr-FR", { maximumFractionDigits: d });
-const DIRS = { haut: [0, -1], bas: [0, 1], gauche: [-1, 0], droite: [1, 0] };
+// ======================= Données =======================
+const B = window.BAS;
+const BL = Object.fromEntries(B.blocks.map((b) => [b.id, b]));
+const IT = B.items;
+const ORD = ["N", "E", "S", "W"], DV = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }, OPP = { N: "S", S: "N", E: "W", W: "E" };
+const ROT = (d, r) => ORD[(ORD.indexOf(d) + r) % 4];
+const K = (x, y) => x + "," + y;
+const ROM = { 1: "I", 2: "II", 3: "III", 4: "IV" };
+const fmt = (n, d = 2) => (+n).toLocaleString("fr-FR", { maximumFractionDigits: d });
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const itemName = (i) => IT[i]?.name ?? i;
+const isFluid = (i) => !!IT[i]?.fluid;
 const hue = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
-// État du montage : machines posées et cases de tuyau (liaisons tracées entre cases voisines, comme en jeu).
-let S = { machines: [], pipes: {}, next: 1 };
-let tool = "main", carry = null, view = { x: -40, y: -40, z: 1 }, sel = null, undo = [];
-const key = (x, y) => x + "," + y;
-const snap = () => { undo.push(JSON.stringify(S)); if (undo.length > 100) undo.shift(); };
+// Catégories du wiki d'Industrialist (BAS-01 : noms et ordre du menu du jeu à confirmer) ; tiers à droite.
+const CATS = [
+  { id: "Extractors", name: "Extraction", ic: "⛏" }, { id: "Factories", name: "Usines", ic: "⚙" }, { id: "Pipes", name: "Tuyaux", ic: "═" },
+  { id: "Power", name: "Énergie", ic: "⚡" }, { id: "Storage Silos", name: "Stockage", ic: "▦" }, { id: "Modular", name: "Modulaires", ic: "⬡" },
+  { id: "Logic", name: "Logique", ic: "◇" }, { id: "Miscellaneous", name: "Divers", ic: "✱" },
+];
+const TIERS = [{ t: 1, l: "I" }, { t: 2, l: "II" }, { t: 3, l: "III" }, { t: 4, l: "IV" }, { t: null, l: "∗" }];
 
-// Empreinte et ports d'une machine tournée (r quarts de tour dans le sens horaire).
-function geo(m) {
-  const d = M[m.id]; let w = d.w, h = d.h;
-  let ports = d.ports.map((p) => {
-    const k = p.cell - 1;
-    const inn = { haut: [k, 0], bas: [k, h - 1], gauche: [0, k], droite: [w - 1, k] }[p.side];
-    const v = DIRS[p.side];
-    return { ...p, ix: inn[0], iy: inn[1], ox: inn[0] + v[0], oy: inn[1] + v[1] };
-  });
-  for (let i = 0; i < m.r; i++) {
-    ports = ports.map((p) => ({ ...p, ix: h - 1 - p.iy, iy: p.ix, ox: h - 1 - p.oy, oy: p.ox }));
-    [w, h] = [h, w];
+// Familles de tuyaux : un seul bouton par famille dans la grille, les variantes dans le cadre d'infos.
+const FAMS = { o1: { kind: "o", tier: 1, name: "Tuyaux objet" }, f1: { kind: "f", tier: 1, name: "Tuyaux fluide" }, o3: { kind: "o", tier: 3, name: "Tuyaux objet" }, f3: { kind: "f", tier: 3, name: "Tuyaux fluide" }, f4: { kind: "f", tier: 4, name: "Grands tuyaux fluide", large: true } };
+function famOf(id) {
+  const p = BL[id]?.pipe; if (!p || p.role === "spécial" || p.kind === "m") return null;
+  const t = /^Tier I Pipes/.test(p.section) ? 1 : /^Tier III/.test(p.section) ? 3 : /^Tier IV/.test(p.section) ? 4 : BL[id].tier;
+  return FAMS[p.kind + t] ? p.kind + t : null;
+}
+const isLarge = (id) => famOf(id) === "f4" || !!(BL[id]?.geo && Math.min(BL[id].geo.w, BL[id].geo.h) > 1 && BL[id].pipe);
+const ROLE_ORD = ["droit", "coude", "té", "croix", "croisement"];
+const VAR = {};
+for (const f in FAMS) VAR[f] = B.blocks.filter((b) => b.pipe && (famOf(b.id) === f || (b.pipe.kind === "m" && b.tier === FAMS[f].tier && !FAMS[f].large)))
+  .sort((a, b) => ROLE_ORD.indexOf(a.pipe.role) - ROLE_ORD.indexOf(b.pipe.role) || a.pipe.len - b.pipe.len || a.cost - b.cost).map((b) => b.id);
+// Longueurs droites posables d'une famille, de la plus longue à la plus courte (à longueur égale, la moins chère).
+function droitLens(fam) {
+  const m = new Map();
+  for (const id of VAR[fam]) { const d = BL[id]; if (d.pipe.role !== "droit" || !d.geo || isLarge(id)) continue; const o = m.get(d.pipe.len); if (!o || d.cost < BL[o].cost) m.set(d.pipe.len, id); }
+  return [...m].map(([L, id]) => ({ L, id })).sort((a, b) => b.L - a.L);
+}
+const famRole = (fam, role) => VAR[fam].filter((id) => BL[id].pipe.role === role).sort((a, b) => !!BL[b].geo - !!BL[a].geo)[0];
+// Croisements posés seuls : jamais de pièce rusty (règle des plans de pose) ; le tier III sert aussi au tier I.
+const AUTO_X = { o: "pipe-intersection", f: "fluid-pipe-intersection", m: "fluid-pipe-and-item-intersection" };
+
+const ENTRIES = [];
+for (const b of B.blocks) if (!b.pipe) ENTRIES.push({ key: b.id, cat: b.cat, tier: b.tier, def: b.id });
+for (const f in FAMS) ENTRIES.push({ key: "fam:" + f, cat: "Pipes", tier: FAMS[f].tier, fam: f, def: VAR[f].find((id) => BL[id].pipe.role === "droit") });
+for (const b of B.blocks) if (b.pipe && b.pipe.role === "spécial") ENTRIES.push({ key: b.id, cat: "Pipes", tier: b.tier, def: b.id });
+const EK = Object.fromEntries(ENTRIES.map((e) => [e.key, e]));
+const locked = (id) => !BL[id]?.geo;
+const entryName = (e) => (e.fam ? `${FAMS[e.fam].name} ${ROM[FAMS[e.fam].tier]}` : BL[e.def].name);
+function entriesFor(tier, cat) { return ENTRIES.filter((e) => e.tier === tier && e.cat === cat).sort((a, b) => locked(a.def) - locked(b.def)); }
+function shortcut(e) { // [tier, catégorie, bloc] ; au-delà de 9 : dizaine puis unité, comme Mindustry
+  const ti = TIERS.findIndex((t) => t.t === e.tier) + 1, ci = CATS.findIndex((c) => c.id === e.cat) + 1, n = entriesFor(e.tier, e.cat).indexOf(e) + 1;
+  return `[${ti},${ci},${n < 10 ? n : Math.floor(n / 10) + "," + (n % 10)}]`;
+}
+
+// ======================= État =======================
+let S = { b: [], n: 1 };
+const occ = new Map(), byU = new Map();
+let undo = [], redo = [];
+const ui = { tier: 1, cat: "Factories", sel: null, auto: true, rot: 0, vec: false, status: true, pinned: null, hoverU: null, hoverBtn: null, cell: [0, 0], op: null, clip: null, ctrl: false, choice: null, breakMode: false, schemMode: false };
+const cam = { x: -6, y: -6, z: 30 };
+function reindex() { occ.clear(); byU.clear(); for (const b of S.b) { byU.set(b.u, b); for (const [x, y] of cellsOf(b)) occ.set(K(x, y), b.u); } }
+function snap() { undo.push(JSON.stringify(S)); if (undo.length > 200) undo.shift(); redo = []; }
+function apply(remove, add) {
+  if (!remove.length && !add.length) return;
+  snap(); const rm = new Set(remove);
+  S.b = S.b.filter((b) => !rm.has(b.u));
+  for (const a of add) S.b.push({ ...a, u: S.n++ });
+  if (rm.has(ui.pinned)) ui.pinned = null;
+  changed();
+}
+function changed() { reindex(); compute(); drawAll(); renderInfo(true); }
+
+// ======================= Bâtiments : empreinte, ports, cases =======================
+function dims(id, r) { const g = BL[id]?.geo; if (!g) return [1, 1]; return r % 2 ? [g.h, g.w] : [g.w, g.h]; }
+const geoCache = new Map();
+function geo(b) {
+  const ck = `${b.id}|${b.x}|${b.y}|${b.r}`; if (geoCache.has(ck)) return geoCache.get(ck);
+  const d = BL[b.id], g = d.geo; let w = g.w, h = g.h;
+  // Les tuyaux n'ont pas de sens propre (réponse BAS-02) : leurs ports vont dans les deux sens.
+  let ps = g.ports.map((p) => { const k = p.c - 1; const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k]; return { t: p.t, d: d.pipe ? "l" : p.d, dir: p.s, ix, iy }; });
+  for (let i = 0; i < b.r; i++) { ps = ps.map((p) => ({ ...p, ix: h - 1 - p.iy, iy: p.ix, dir: ROT(p.dir, 1) })); [w, h] = [h, w]; }
+  const out = { w, h, ports: ps.map((p) => ({ ...p, ix: p.ix + b.x, iy: p.iy + b.y, ox: p.ix + b.x + DV[p.dir][0], oy: p.iy + b.y + DV[p.dir][1] })) };
+  geoCache.set(ck, out); return out;
+}
+function cellsOf(b) { if (b.missing) return [[b.x, b.y]]; const [w, h] = dims(b.id, b.r), out = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out.push([b.x + x, b.y + y]); return out; }
+function fitsAt(id, x, y, r, ignore) { const [w, h] = dims(id, r); for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const u = occ.get(K(x + i, y + j)); if (u != null && u !== ignore) return false; } return true; }
+// Ouvertures d'une case de tuyau : ses ports, plus l'axe pour un tuyau droit (il traverse toutes ses cases).
+function cellOpen(b, x, y) {
+  if (b.missing) return new Set(b.open);
+  const d = BL[b.id], s = new Set(); if (!d.geo) return s;
+  for (const p of geo(b).ports) if (p.ix === x && p.iy === y) s.add(p.dir);
+  if (d.pipe?.role === "droit" && !isLarge(b.id)) (b.r % 2 ? ["E", "W"] : ["N", "S"]).forEach((dd) => s.add(dd));
+  return s;
+}
+const anchor = (id, c, r = ui.rot) => { const [w, h] = dims(id, r); return [c[0] - Math.floor((w - 1) / 2), c[1] - Math.floor((h - 1) / 2)]; };
+const dirTo = (x, y, qx, qy) => (qx > x ? "E" : qx < x ? "W" : qy > y ? "S" : "N");
+function portFacing(x, y, d, kind) {
+  const nx = x + DV[d][0], ny = y + DV[d][1], u = occ.get(K(nx, ny)); if (u == null) return null;
+  const b = byU.get(u); if (b.missing || !BL[b.id].geo) return null;
+  return geo(b).ports.find((p) => p.ix === nx && p.iy === ny && p.dir === OPP[d] && p.t === kind) ?? null;
+}
+
+// ======================= Tracé des tuyaux =======================
+// Chemin : A* sur 4 voisins, +8 par virage (Placement.astar de Mindustry) ; un tuyau de l'autre type ou un
+// croisement ne se traverse que tout droit, perpendiculairement. Ctrl : ligne droite seule (Placement.normalizeLine).
+class Heap { constructor() { this.a = []; } get size() { return this.a.length; }
+  push(v) { const a = this.a; a.push(v); let i = a.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (a[p][0] <= a[i][0]) break; [a[p], a[i]] = [a[i], a[p]]; i = p; } }
+  pop() { const a = this.a, top = a[0], last = a.pop(); if (a.length) { a[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < a.length && a[l][0] < a[m][0]) m = l; if (r < a.length && a[r][0] < a[m][0]) m = r; if (m === i) break; [a[m], a[i]] = [a[i], a[m]]; i = m; } } return top; } }
+function stepCost(x, y, d, kind) {
+  const u = occ.get(K(x, y)); if (u == null) return [1, false];
+  const b = byU.get(u), p = BL[b.id].pipe; if (!p || p.role === "spécial" || isLarge(b.id) || b.missing) return null;
+  if (p.role === "croisement") return [6, true];
+  if (p.kind === kind) return [3, false];
+  const ex = [...cellOpen(b, x, y)]; return ex.length === 2 && OPP[ex[0]] === ex[1] && !ex.includes(d) ? [6, true] : null;
+}
+function pipePath(s, t, kind) {
+  const u0 = occ.get(K(...s)); if (u0 != null && BL[byU.get(u0).id].pipe?.kind !== kind) return null;
+  const pad = 30, x0 = Math.min(s[0], t[0]) - pad, y0 = Math.min(s[1], t[1]) - pad, x1 = Math.max(s[0], t[0]) + pad, y1 = Math.max(s[1], t[1]) + pad, W = x1 - x0 + 1;
+  const key = (x, y, d) => ((y - y0) * W + (x - x0)) * 5 + d, hh = (x, y) => Math.abs(x - t[0]) + Math.abs(y - t[1]);
+  const g = new Map(), from = new Map(), heap = new Heap(); const k0 = key(s[0], s[1], 4); g.set(k0, 0); heap.push([hh(...s), 0, s[0], s[1], 4, false]);
+  for (let n = 0; heap.size && n < 20000; n++) {
+    const [, gc, x, y, d, str] = heap.pop(), kc = key(x, y, d); if (gc > g.get(kc)) continue;
+    if (x === t[0] && y === t[1] && !str) { const path = []; for (let k = kc; k !== undefined; k = from.get(k)) { const c = Math.floor(k / 5); path.push([x0 + (c % W), y0 + Math.floor(c / W)]); } return path.reverse(); }
+    for (let nd = 0; nd < 4; nd++) {
+      if (str && nd !== d) continue;
+      const nx = x + DV[ORD[nd]][0], ny = y + DV[ORD[nd]][1]; if (nx < x0 || nx > x1 || ny < y0 || ny > y1) continue;
+      const c = stepCost(nx, ny, ORD[nd], kind); if (!c) continue;
+      const ng = gc + c[0] + (d !== 4 && nd !== d ? 8 : 0), nk = key(nx, ny, nd);
+      if (ng < (g.get(nk) ?? Infinity)) { g.set(nk, ng); from.set(nk, kc); heap.push([ng + hh(nx, ny), ng, nx, ny, nd, c[1]]); }
+    }
   }
-  return { w, h, ports: ports.map((p) => ({ ...p, ix: p.ix + m.x, iy: p.iy + m.y, ox: p.ox + m.x, oy: p.oy + m.y })) };
-}
-function machineAt(x, y, skip) {
-  return S.machines.find((m) => { if (m === skip) return false; const g = geo(m); return x >= m.x && y >= m.y && x < m.x + g.w && y < m.y + g.h; });
-}
-function fits(m) {
-  const g = geo(m);
-  for (let y = m.y; y < m.y + g.h; y++) for (let x = m.x; x < m.x + g.w; x++) if (S.pipes[key(x, y)] || machineAt(x, y, m)) return false;
-  return true;
-}
-function portFacing(x, y) {
-  for (const m of S.machines) for (const p of geo(m).ports) if (p.ox === x && p.oy === y) return { m, p };
   return null;
 }
+function straightPath(s, t) { const ax = Math.abs(t[0] - s[0]) > Math.abs(t[1] - s[1]), dist = ax ? t[0] - s[0] : t[1] - s[1], sg = Math.sign(dist) || 1, out = []; for (let i = 0; i <= Math.abs(dist); i++) out.push(ax ? [s[0] + i * sg, s[1]] : [s[0], s[1] + i * sg]); return out; }
 
-// ---------- Calcul du montage (simplifié pour la maquette) ----------
-let R = null;
+// Les cases restantes des pièces retirées gardent leurs ouvertures : un long tuyau coupé devient des pièces plus courtes.
+function rest(remove, cells, skip) {
+  for (const u of remove) {
+    const b = byU.get(u), f = famOf(b.id); if (!f || isLarge(b.id)) continue;
+    for (const [x, y] of cellsOf(b)) { const k = K(x, y); if (cells.has(k) || (skip && skip(x, y))) continue; cells.set(k, { x, y, fam: f, open: cellOpen(b, x, y), lenMax: Infinity, axis: b.r % 2 ? "H" : "V" }); }
+  }
+}
+// Des ouvertures voulues case par case aux pièces : croisement, coude, té, croix ; les droits regroupés en
+// longueurs les plus longues possibles (ou limitées quand « Longueur auto » est décochée).
+function assemble(cells) {
+  const out = [], straight = new Map(), ax = (d) => (d === "N" || d === "S" ? "V" : "H");
+  for (const [k, c] of cells) {
+    if (c.cross) {
+      const id = c.cross.mixed ? AUTO_X.m : AUTO_X[FAMS[c.fam].kind];
+      const r = c.cross.mixed ? [0, 1, 2, 3].find((rr) => BL[id].geo.ports.every((p) => c.cross.kinds[ROT(p.s, rr)] === p.t)) ?? 0 : 0;
+      out.push({ id, x: c.x, y: c.y, r }); continue;
+    }
+    const o = [...c.open], n = o.length;
+    const axis = n === 0 ? c.axis : n === 1 ? ax(o[0]) : n === 2 && OPP[o[0]] === o[1] ? ax(o[0]) : null;
+    if (axis) { straight.set(k, { ...c, axis }); continue; }
+    const id = famRole(c.fam, n === 2 ? "coude" : n === 3 ? "té" : "croix");
+    const r = BL[id].geo ? [0, 1, 2, 3].find((rr) => sameSet(BL[id].geo.ports.map((p) => ROT(p.s, rr)), o)) : undefined;
+    out.push(r === undefined ? { id, x: c.x, y: c.y, r: 0, missing: true, open: o } : { id, x: c.x, y: c.y, r });
+  }
+  const seen = new Set(), same = (a, c) => a && a.axis === c.axis && a.fam === c.fam && a.lenMax === c.lenMax;
+  for (const [k, c] of straight) {
+    if (seen.has(k)) continue;
+    const [dx, dy] = c.axis === "V" ? [0, 1] : [1, 0]; let sx = c.x, sy = c.y;
+    while (same(straight.get(K(sx - dx, sy - dy)), c) && !seen.has(K(sx - dx, sy - dy))) { sx -= dx; sy -= dy; }
+    const run = []; for (let x = sx, y = sy; same(straight.get(K(x, y)), c) && !seen.has(K(x, y)); x += dx, y += dy) { run.push([x, y]); seen.add(K(x, y)); }
+    const lens = droitLens(c.fam).filter((o) => o.L <= c.lenMax);
+    for (let i = 0; i < run.length; ) {
+      const pick = lens.find((o) => o.L <= run.length - i);
+      if (!pick) { out.push({ id: famRole(c.fam, "droit"), x: run[i][0], y: run[i][1], r: 0, missing: true, open: c.axis === "V" ? ["N", "S"] : ["E", "W"] }); i++; continue; }
+      out.push({ id: pick.id, x: run[i][0], y: run[i][1], r: c.axis === "V" ? 0 : 1 }); i += pick.L;
+    }
+  }
+  return out;
+}
+// Un tracé glissé : ouvertures le long du chemin, raccord aux ports qui regardent les bouts, fusion avec un tuyau
+// du même type (coude, té, croix), croisement quand on le traverse tout droit (Conveyor.getReplacement).
+function pipePlan(path, fam, lenMax) {
+  const kind = FAMS[fam].kind, cells = new Map(), remove = new Set(), onPath = new Set(path.map(([x, y]) => K(x, y)));
+  path.forEach(([x, y], i) => { const open = new Set(); for (const q of [path[i - 1], path[i + 1]]) if (q) open.add(dirTo(x, y, q[0], q[1])); cells.set(K(x, y), { x, y, fam, open, lenMax, axis: ui.rot % 2 ? "H" : "V" }); });
+  for (const i of [0, path.length - 1]) { const [x, y] = path[i], c = cells.get(K(x, y)); for (const d of ORD) { const nx = x + DV[d][0], ny = y + DV[d][1]; if (!onPath.has(K(nx, ny)) && portFacing(x, y, d, kind)) c.open.add(d); } }
+  for (const [k, c] of [...cells]) {
+    const u = occ.get(k); if (u == null) continue;
+    const b = byU.get(u), p = BL[b.id].pipe;
+    if (!p || p.role === "spécial" || isLarge(b.id)) return null;
+    if (p.role === "croisement") { cells.delete(k); continue; }
+    const ex = cellOpen(b, c.x, c.y), e = [...ex], o = [...c.open];
+    const through = o.length === 2 && OPP[o[0]] === o[1], perp = e.length === 2 && OPP[e[0]] === e[1] && !c.open.has(e[0]);
+    if (p.kind === kind) { if (through && perp) c.cross = { mixed: false }; else ex.forEach((d) => c.open.add(d)); }
+    else if (through && perp) { const kinds = {}; o.forEach((d) => (kinds[d] = kind)); e.forEach((d) => (kinds[d] = p.kind)); c.cross = { mixed: true, kinds }; }
+    else return null;
+    remove.add(u);
+  }
+  rest(remove, cells);
+  return { remove: [...remove], add: assemble(cells) };
+}
+// Une pièce posée d'un clic : telle quelle ; posée sur un tuyau du même type, elle le remplace et le reste s'adapte.
+function explicitPlan(id, x, y, r) {
+  const d = BL[id]; if (!d.geo) return null;
+  const nb = { id, x, y, r }, mine = new Set(cellsOf(nb).map(([a, b]) => K(a, b))), remove = new Set();
+  for (const k of mine) { const u = occ.get(k); if (u == null) continue; const b = byU.get(u), p = BL[b.id].pipe; if (!d.pipe || !p || p.kind !== d.pipe.kind || isLarge(b.id) || isLarge(id) || p.role === "spécial") return null; remove.add(u); }
+  const cells = new Map(); rest(remove, cells, (a, b) => mine.has(K(a, b)));
+  return { remove: [...remove], add: [nb, ...assemble(cells)] };
+}
+function rectPlan(x0, y0, x1, y1) {
+  const inR = (x, y) => x >= x0 && x <= x1 && y >= y0 && y <= y1, remove = new Set();
+  for (const b of S.b) if (cellsOf(b).some(([x, y]) => inR(x, y))) remove.add(b.u);
+  const cells = new Map(); rest(remove, cells, inR);
+  return { remove: [...remove], add: assemble(cells) };
+}
+// Machines : maintenir et glisser = une ligne droite sur l'axe le plus long, au pas de la machine (normalizeLine).
+function linePositions(id, s, t) {
+  const [w, h] = dims(id, ui.rot), hor = Math.abs(t[0] - s[0]) > Math.abs(t[1] - s[1]), step = hor ? w : h, dist = hor ? t[0] - s[0] : t[1] - s[1];
+  const n = Math.floor(Math.abs(dist) / step), sg = Math.sign(dist) || 1, a = anchor(id, s), out = [];
+  for (let i = 0; i <= n; i++) out.push({ id, x: a[0] + (hor ? i * step * sg : 0), y: a[1] + (hor ? 0 : i * step * sg), r: ui.rot });
+  return out;
+}
+function planFor(s, c) {
+  const e = ui.sel.e, v = ui.sel.v;
+  if (e.fam && !FAMS[e.fam].large) {
+    if (c[0] === s[0] && c[1] === s[1]) { const a = anchor(v, c); return explicitPlan(v, a[0], a[1], ui.rot) ?? { bad: [c] }; }
+    const kind = FAMS[e.fam].kind, path = (ui.ctrl ? null : pipePath(s, c, kind)) ?? straightPath(s, c);
+    const lenMax = ui.auto ? Infinity : BL[v].pipe.role === "droit" ? BL[v].pipe.len : 1;
+    return pipePlan(path, e.fam, lenMax) ?? { bad: path };
+  }
+  const all = linePositions(v, s, c), ok = all.filter((b) => fitsAt(b.id, b.x, b.y, b.r));
+  return { remove: [], add: ok.map((b) => ({ ...b, choice: ui.choice?.id === v ? ui.choice.c : null })), invalid: all.filter((b) => !ok.includes(b)) };
+}
+
+// ======================= Calcul du montage =======================
+class Flow { constructor(n) { this.g = Array.from({ length: n }, () => []); }
+  add(a, b, c) { const A = { to: b, cap: c, f: 0 }, Bk = { to: a, cap: 0, f: 0 }; A.r = Bk; Bk.r = A; this.g[a].push(A); this.g[b].push(Bk); return A; }
+  run(s, t) { for (;;) { const prev = new Array(this.g.length).fill(null); prev[s] = {}; const q = [s]; while (q.length && !prev[t]) { const v = q.shift(); for (const e of this.g[v]) if (!prev[e.to] && e.cap - e.f > 1e-12) { prev[e.to] = e; q.push(e.to); } } if (!prev[t]) return;
+    let a = Infinity; for (let v = t; v !== s; v = prev[v].r.to) a = Math.min(a, prev[v].cap - prev[v].f); for (let v = t; v !== s; v = prev[v].r.to) { prev[v].f += a; prev[v].r.f -= a; } } } }
+const BIG = 1e12;
+let R = { MI: new Map(), lanes: new Map(), conns: [], terms: [], st: null };
 function compute() {
-  // 1. Réseaux : cases de tuyau reliées par leurs liaisons.
-  const netOf = {}, nets = [];
-  for (const k in S.pipes) {
-    if (netOf[k] != null) continue;
-    const n = { id: nets.length, kind: S.pipes[k].kind, cells: [], src: [], sink: [] };
-    nets.push(n);
-    const st = [k]; netOf[k] = n.id;
-    while (st.length) {
-      const c = st.pop(); n.cells.push(c);
-      for (const l of S.pipes[c].links) if (S.pipes[l] && netOf[l] == null && S.pipes[l].links.includes(c)) { netOf[l] = n.id; st.push(l); }
-    }
+  const G = new Map(); for (const b of S.b) if (!b.missing && BL[b.id].geo) G.set(b.u, geo(b));
+  const portAt = new Map(); for (const [u, g] of G) for (const p of g.ports) portAt.set(`${p.ix},${p.iy},${p.dir}`, { u, p });
+  const pipeOf = (u) => BL[byU.get(u).id].pipe;
+  const laneOf = (u, p) => (pipeOf(u)?.role === "croisement" ? (p.dir === "N" || p.dir === "S" ? 1 : 0) : 0);
+  const par = new Map(), find = (a) => { while (par.get(a) !== a) { par.set(a, par.get(par.get(a))); a = par.get(a); } return a; };
+  const node = (u, l) => { const k = u + ":" + l; if (!par.has(k)) par.set(k, k); return k; };
+  const conns = [], terms = [], linked = new Set(), open = [];
+  // Raccords : deux ports face à face, du même type ; au moins un tuyau ; jamais deux entrées ni deux sorties.
+  for (const [u, g] of G) for (const p of g.ports) {
+    const pa = pipeOf(u); if (pa) node(u, laneOf(u, p));
+    const q = portAt.get(`${p.ox},${p.oy},${OPP[p.dir]}`);
+    if (!q || q.u === u || q.p.t !== p.t) continue;
+    const pb = pipeOf(q.u);
+    if ((!pa && !pb) || (p.d === "e" && q.p.d === "e") || (p.d === "s" && q.p.d === "s")) continue;
+    if (!pa) continue;
+    linked.add(`${u}|${p.ix},${p.iy},${p.dir}`);
+    const a = node(u, laneOf(u, p));
+    if (pb) { const b = node(q.u, laneOf(q.u, q.p)); if (`${u}|${p.ix},${p.iy},${p.dir}` < `${q.u}|${q.p.ix},${q.p.iy},${q.p.dir}`) conns.push({ a, b, ax: p.ix, ay: p.iy, bx: q.p.ix, by: q.p.iy }); par.set(find(a), find(b)); }
+    else if (q.p.d !== "l") terms.push({ u: q.u, p: q.p, lane: a, px: p.ix, py: p.iy });
   }
-  // 2. Ports raccordés : la case devant le port porte un tuyau du même type.
-  const info = new Map();
-  for (const m of S.machines) info.set(m.uid, { m, g: geo(m), inNets: [], outNets: [] });
-  for (const [, I] of info) for (const p of I.g.ports) {
-    const k = key(p.ox, p.oy); const n = netOf[k];
-    if (n == null || nets[n].kind !== p.t) continue;
-    (p.d === "sortie" ? I.outNets : I.inNets).push({ net: nets[n], p });
-    (p.d === "sortie" ? nets[n].src : nets[n].sink).push({ I, p });
-  }
-  // 3. Recettes : déduites de ce qui arrive ; plusieurs possibles → le joueur choisit (Q14-8).
-  //    On part des machines sans entrée raccordée, puis on propage le contenu des tuyaux.
+  for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (!linked.has(`${u}|${p.ix},${p.iy},${p.dir}`)) open.push(node(u, laneOf(u, p)));
+  const comps = new Map(), comp = (l) => { const r = find(l); if (!comps.has(r)) comps.set(r, { lanes: [], src: [], snk: [], open: [], conns: [], items: new Set() }); return comps.get(r); };
+  for (const l of par.keys()) comp(l).lanes.push(l);
+  for (const c of conns) comp(c.a).conns.push(c);
+  for (const t of terms) (t.p.d === "s" ? comp(t.lane).src : comp(t.lane).snk).push(t);
+  for (const l of open) comp(l).open.push(l);
+  // Recettes : déduites de ce qui arrive ; plusieurs possibles → « ? », le joueur choisit (Q14-8).
+  const MI = new Map();
+  for (const [u] of G) { const d = BL[byU.get(u).id]; if (!d.pipe) MI.set(u, { rec: null, cand: d.recipes, f: 0, why: null }); }
+  const outItem = (u, p) => { const mi = MI.get(u); if (!mi?.rec) return null; const outs = Object.keys(mi.rec.out).filter((i) => isFluid(i) === (p.t === "f")); if (!outs.length) return null; const ps = G.get(u).ports.filter((q) => q.d === "s" && q.t === p.t); return outs[ps.indexOf(p) % outs.length]; };
   for (let pass = 0; pass < 8; pass++) {
-    for (const n of nets) {
-      const items = new Set();
-      for (const s of n.src) { const it = outItemOf(s.I, s.p); if (it) items.add(it); }
-      n.items = [...items];
-    }
-    for (const [, I] of info) {
-      const arriving = new Set(I.inNets.flatMap((x) => x.net.items || []));
-      const all = M[I.m.id].recipes;
-      let cand = arriving.size ? all.filter((r) => [...arriving].every((i) => i in r.in)) : all;
-      I.cand = cand; I.arriving = [...arriving];
-      if (cand.length === 1) I.rec = cand[0];
-      else if (I.m.choice && cand.some((r) => r.id === I.m.choice)) I.rec = cand.find((r) => r.id === I.m.choice);
-      else I.rec = null;
+    for (const c of comps.values()) { c.items = new Set(); for (const s of c.src) { const i = outItem(s.u, s.p); if (i) c.items.add(i); } }
+    for (const [u, mi] of MI) {
+      const d = BL[byU.get(u).id], arr = new Set();
+      for (const t of terms) if (t.u === u && t.p.d === "e") for (const i of comp(t.lane).items) arr.add(i);
+      mi.cand = arr.size ? d.recipes.filter((r) => [...arr].every((i) => i in r.in)) : d.recipes;
+      mi.rec = mi.cand.length === 1 ? mi.cand[0] : mi.cand.find((r) => r.id === byU.get(u).choice) ?? null;
     }
   }
-  // 4. Débits : chaque machine tourne à une fraction f ≤ 1, freinée par ce qui manque en entrée,
-  //    par la place en sortie et par la capacité des tuyaux. Point fixe en quelques tours.
-  for (const [, I] of info) I.f = I.rec ? 1 : 0;
-  const rate = (I, it, side) => I.rec ? (I.rec[side][it] || 0) / I.rec.s : 0;
+  // Débits : chaque machine tourne à f ≤ 1 ; flot maximal dans chaque réseau (voies coupées en deux pour porter
+  // la limite de chaque pièce), machines servies d'abord, puis les bouts ouverts (sorties du montage).
+  for (const mi of MI.values()) mi.f = mi.fin = mi.rec ? 1 : 0;
+  const rate = (u, i, side) => { const r = MI.get(u)?.rec; return r && r[side][i] ? r[side][i] / r.s : 0; };
+  const capOf = (l) => pipeOf(+l.split(":")[0]).flow;
+  const cnt = new Map(); // ports raccordés par machine et par objet, pour partager le débit
+  const inc = (k) => cnt.set(k, (cnt.get(k) || 0) + 1);
+  for (const c of comps.values()) { const item = c.items.size === 1 ? [...c.items][0] : null; for (const t of c.src) { const i = outItem(t.u, t.p); if (i) inc(`${t.u}|s|${i}`); } if (item) for (const t of c.snk) inc(`${t.u}|e|${item}`); }
+  let deliv, sent, supp; const lanes = new Map(), cflow = new Map(), tflow = new Map();
   for (let it = 0; it < 40; it++) {
-    for (const n of nets) {
-      n.cap = B.pipes[n.kind].flowPerSec;
-      n.Sfull = 0; n.S = 0; n.D = 0; n.Dfull = 0;
-      for (const s of n.src) { const i = outItemOf(s.I, s.p); if (!i) continue; const r = rate(s.I, i, "out") / portsFor(s.I, i, "sortie"); n.Sfull += r; n.S += r * s.I.f; }
-      for (const s of n.sink) for (const i of n.items) { const r = rate(s.I, i, "in") / portsFor(s.I, i, "entrée"); n.Dfull += r; n.D += r * s.I.f; }
-      n.flow = Math.min(n.S, n.cap, n.sink.length ? n.Dfull : Infinity);
-      n.over = n.S > n.cap + 1e-9;
-      n.mixed = n.items.length > 1;
-    }
-    for (const [, I] of info) {
-      if (!I.rec) { I.f = 0; I.why = I.cand.length ? "recette à choisir" : "aucune recette avec ces entrées"; continue; }
-      let f = 1, why = null;
-      for (const i of Object.keys(I.rec.in)) {
-        const ns = I.inNets.filter((x) => x.net.items.includes(i));
-        if (!ns.length) continue; // entrée non branchée : fournie de l'extérieur (entrée du montage)
-        for (const x of ns) { const n = x.net; const r = n.Dfull ? Math.min(n.S, n.cap) / n.Dfull : 0; if (r < f) { f = r; why = n.mixed ? "tuyau mélangé" : n.S > n.cap ? "tuyau trop petit (" + itemName(i) + ")" : "manque " + itemName(i); } }
+    deliv = new Map(); sent = new Map(); supp = new Map();
+    const add = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
+    for (const c of comps.values()) {
+      const item = c.items.size === 1 ? [...c.items][0] : null, idx = new Map(c.lanes.map((l, i) => [l, i]));
+      const srcs = c.src.filter((s) => outItem(s.u, s.p)), snks = c.snk.filter((s) => MI.get(s.u)?.rec);
+      // Saturation jugée sur ce que les machines voudraient envoyer (freinées par leurs entrées seulement).
+      const sup = (s, want) => { const i = outItem(s.u, s.p), m = MI.get(s.u); return (want ? m.fin : m.f) * rate(s.u, i, "out") / (cnt.get(`${s.u}|s|${i}`) || 1); };
+      const dem = (s) => item ? MI.get(s.u).f * rate(s.u, item, "in") / (cnt.get(`${s.u}|e|${item}`) || 1) : 0;
+      if (!item) { // vide ou mélangé : rien ne passe
+        for (const s of srcs) { const i = outItem(s.u, s.p); add(supp, `${s.u}|${i}`, sup(s)); add(sent, `${s.u}|${i}`, c.snk.length || c.items.size > 1 ? 0 : sup(s)); }
+        for (const s of snks) for (const i of Object.keys(MI.get(s.u).rec.in)) if (c.items.size > 1 || !isFluid(i) === (s.p.t === "o")) add(deliv, `${s.u}|${i}`, 0);
+        for (const l of c.lanes) lanes.set(l, { item: null, mixed: c.items.size > 1, flow: 0, over: false, cap: capOf(l) });
+        c.conns.forEach((k) => cflow.set(k, { item: null, f: 0 })); [...c.src, ...c.snk].forEach((t) => tflow.set(t, { item: null, f: 0 }));
+        continue;
       }
-      for (const x of I.outNets) {
-        const n = x.net; if (!n.sink.length || !n.Sfull) continue;
-        const r = Math.min(n.D, n.cap) / n.Sfull; if (r < f) { f = r; why = n.Sfull > n.cap ? "tuyau trop petit en sortie" : "sortie qui déborde"; }
-      }
-      I.f = Math.max(0, Math.min(1, f)); I.why = why;
+      const run = (limited) => {
+        const n = c.lanes.length, F = new Flow(2 * n + 2), S0 = 2 * n, T0 = 2 * n + 1;
+        const na = c.lanes.map((l, i) => F.add(2 * i, 2 * i + 1, limited ? capOf(l) : BIG));
+        const ca = c.conns.map((k) => [F.add(2 * idx.get(k.a) + 1, 2 * idx.get(k.b), BIG), F.add(2 * idx.get(k.b) + 1, 2 * idx.get(k.a), BIG)]);
+        const sa = srcs.map((s) => F.add(S0, 2 * idx.get(s.lane), outItem(s.u, s.p) === item ? sup(s, !limited) : 0));
+        const ta = snks.map((s) => F.add(2 * idx.get(s.lane) + 1, T0, MI.get(s.u).rec.in[item] ? dem(s) : 0));
+        F.run(S0, T0);
+        for (const l of c.open) F.add(2 * idx.get(l) + 1, T0, BIG);
+        F.run(S0, T0);
+        return { na, ca, sa, ta };
+      };
+      const A = run(true), U = run(false);
+      c.lanes.forEach((l, i) => lanes.set(l, { item, flow: A.na[i].f, offered: U.na[i].f, cap: capOf(l), over: U.na[i].f > capOf(l) + 1e-9 }));
+      c.conns.forEach((k, i) => cflow.set(k, { item, f: A.ca[i][0].f - A.ca[i][1].f }));
+      // Quand tout ne passe pas, toutes les sources ralentissent d'autant (et non une seule coupée).
+      const tot = srcs.reduce((a, s) => a + sup(s), 0), ratio = tot > 1e-12 ? A.sa.reduce((a, x) => a + x.f, 0) / tot : 1;
+      srcs.forEach((s, i) => { const it2 = outItem(s.u, s.p); add(supp, `${s.u}|${it2}`, sup(s)); add(sent, `${s.u}|${it2}`, sup(s) * ratio); tflow.set(s, { item, f: A.sa[i].f }); });
+      snks.forEach((s, i) => { if (MI.get(s.u).rec.in[item]) add(deliv, `${s.u}|${item}`, A.ta[i].f); tflow.set(s, { item, f: A.ta[i].f }); });
     }
-  }
-  // 5. Bilan.
-  const ext = {}, outx = {}; let energy = 0, price = 0;
-  for (const [, I] of info) {
-    price += M[I.m.id].cost || 0;
-    if (!I.rec) continue;
-    energy += (I.rec.e || 0) * I.f;
-    for (const [i, q] of Object.entries(I.rec.in)) if (!I.inNets.some((x) => x.net.items.includes(i))) ext[i] = (ext[i] || 0) + q / I.rec.s * I.f;
-    for (const [i, q] of Object.entries(I.rec.out)) {
-      const ns = I.outNets.filter((x) => outItemOf(I, x.p) === i);
-      const sent = ns.reduce((a, x) => a + (x.net.sink.length ? Math.min(x.net.D, x.net.cap) / (x.net.Sfull || 1) * (q / I.rec.s) / ns.length : 0), 0);
-      const left = q / I.rec.s * I.f - sent;
-      if (left > 1e-9) outx[i] = (outx[i] || 0) + left;
+    let change = 0;
+    for (const [u, mi] of MI) {
+      if (!mi.rec) continue;
+      let inL = 1, inW = null, outL = 1, outW = null;
+      for (const i of Object.keys(mi.rec.in)) { const k = u + "|" + i; if (!deliv.has(k)) continue; const r = deliv.get(k) / (mi.rec.in[i] / mi.rec.s); if (r < inL - 1e-9) { inL = r; inW = i; } }
+      for (const i of Object.keys(mi.rec.out)) { const k = u + "|" + i; if (!(supp.get(k) > 1e-12)) continue; const r = mi.f * sent.get(k) / supp.get(k); if (r < outL - 1e-9) { outL = r; outW = i; } }
+      const nf = Math.max(0, Math.min(1, inL, outL, mi.f)); mi.fin = Math.min(mi.fin, inL);
+      if (inL < outL - 1e-9) mi.why = ["in", inW]; else if (outL < inL - 1e-9) mi.why = ["out", outW]; else if (nf > 0.999) mi.why = null;
+      change = Math.max(change, Math.abs(nf - mi.f)); mi.f = nf;
     }
+    if (change < 1e-7) break;
   }
-  price += Object.keys(S.pipes).length * B.pipes.objet.price;
+  // Raisons en mots de joueur
+  const termComp = (u, i) => [...comps.values()].find((c) => c.snk.some((t) => t.u === u) && (c.items.has(i) || c.items.size !== 1));
+  for (const [u, mi] of MI) {
+    mi.txt = null; if (!mi.rec) { mi.txt = mi.cand.length > 1 ? "recette à choisir" : mi.cand.length ? null : BL[byU.get(u).id].recipes.length ? "aucune recette avec ces entrées" : null; continue; }
+    if (!mi.why || mi.f > 0.999) continue;
+    const [side, i] = mi.why, c = side === "in" ? termComp(u, i) : null, over = c && c.lanes.some((l) => lanes.get(l)?.over);
+    mi.txt = side === "in" ? (c?.items.size > 1 ? "tuyau mélangé" : over ? `tuyau saturé (${itemName(i)})` : !c?.src.length ? `rien n'arrive (${itemName(i)})` : `pas assez de ${itemName(i)}`) : `sortie bloquée (${itemName(i)})`;
+    if (side === "out") { const cs = [...comps.values()].filter((c2) => c2.src.some((t) => t.u === u)); if (cs.some((c2) => c2.lanes.some((l) => lanes.get(l)?.over))) mi.txt = `tuyau saturé en sortie (${itemName(i)})`; }
+  }
+  // Bilan
+  const prod = {}, used = {}, ext = {}; let energy = 0, poll = 0, price = 0, pieces = 0;
+  for (const [u, mi] of MI) { const r = mi.rec, d = BL[byU.get(u).id]; if (!r) continue; energy += (r.e || 0) * mi.f; poll += (d.poll || 0) * mi.f;
+    for (const [i, q] of Object.entries(r.out)) prod[i] = (prod[i] || 0) + mi.f * q / r.s;
+    for (const [i, q] of Object.entries(r.in)) { const k = u + "|" + i; if (deliv.has(k)) used[i] = (used[i] || 0) + deliv.get(k); else ext[i] = (ext[i] || 0) + mi.f * q / r.s; } }
+  const outs = {}; for (const i in prod) { const v = prod[i] - (used[i] || 0); if (v > 1e-9) outs[i] = v; }
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  const grow = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
-  for (const [, I] of info) { grow(I.m.x, I.m.y); grow(I.m.x + I.g.w - 1, I.m.y + I.g.h - 1); }
-  for (const k in S.pipes) { const [x, y] = k.split(",").map(Number); grow(x, y); }
-  const limit = [...info.values()].filter((I) => I.rec && I.f < 0.999).sort((a, b) => a.f - b.f)[0];
-  R = { info, nets, netOf, ext, outx, energy, price, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, limit };
-}
-// Quel objet sort par ce port : les sorties de la recette du même type, réparties sur les ports dans l'ordre.
-// (Le vrai lien port ↔ objet est dans interfaces.json, S10 : le moteur le lira.)
-function outItemOf(I, p) {
-  if (!I.rec) return null;
-  const outs = Object.keys(I.rec.out).filter((i) => isFluid(i) === (p.t === "fluide"));
-  const ps = I.g.ports.filter((q) => q.d === "sortie" && q.t === p.t);
-  return outs.length ? outs[ps.indexOf(p) % outs.length] : null;
-}
-function portsFor(I, it, d) {
-  const t = isFluid(it) ? "fluide" : "objet";
-  const ns = (d === "sortie" ? I.outNets : I.inNets).filter((x) => x.p.t === t);
-  return Math.max(1, ns.length);
+  for (const b of S.b) { price += BL[b.id].cost || 0; if (BL[b.id].pipe) pieces++; for (const [x, y] of cellsOf(b)) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } }
+  const pb = [];
+  for (const [u, mi] of MI) if (mi.txt) pb.push(`${BL[byU.get(u).id].name} ${mi.rec ? "à " + Math.round(mi.f * 100) + " %" : ""} : ${mi.txt}`);
+  const seenL = new Set();
+  for (const [l, L] of lanes) { const u = +l.split(":")[0]; if (L.over && !seenL.has("o" + L.item)) { seenL.add("o" + L.item); pb.push(`Tuyau saturé : ${fmt(L.offered)}/s de ${itemName(L.item)} pour ${fmt(L.cap)}/s (${BL[byU.get(u).id].name})`); } if (L.mixed && !seenL.has("m" + u)) { seenL.add("m" + u); pb.push("Tuyau mélangé : deux objets dans le même réseau"); } }
+  for (const b of S.b) if (b.missing) pb.push(`Pièce non relevée : ${BL[b.id].name} (à compléter)`);
+  R = { MI, lanes, conns: [...cflow].map(([k, v]) => ({ ...k, ...v })), terms: [...tflow].map(([t, v]) => ({ ...t, ...v })), st: { energy, poll, price, pieces, outs, ext, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, pb } };
 }
 
-// ---------- Dessin ----------
-const svg = document.getElementById("svg"), layer = document.getElementById("layer"), ghost = document.getElementById("ghost");
-const NS = "http://www.w3.org/2000/svg";
-const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; };
-function applyView() {
-  const r = svg.getBoundingClientRect();
-  svg.setAttribute("viewBox", `${view.x} ${view.y} ${r.width / view.z} ${r.height / view.z}`);
-}
-function drawMachine(m, parent, I) {
-  const d = M[m.id], g = geo(m);
-  const grp = el("g", { "data-uid": m.uid ?? "" }, parent);
-  const warn = I && !I.rec;
-  el("rect", { x: m.x * C + 1, y: m.y * C + 1, width: g.w * C - 2, height: g.h * C - 2, rx: 4, fill: warn ? "var(--warn-soft)" : "var(--steel-soft)", stroke: sel === m ? "var(--accent)" : warn ? "#e67e22" : "var(--line)", "stroke-width": sel === m ? 3 : 1.5 }, grp);
-  const t = el("text", { x: m.x * C + 6, y: m.y * C + 15, "font-size": 11, "font-weight": 700, fill: "var(--ink)" }, grp); t.textContent = d.name;
-  // Indication visuelle de la recette (Q14-8) : ce qu'elle produit, et la fraction de marche.
-  if (I) {
-    const lab = el("text", { x: m.x * C + 6, y: m.y * C + 28, "font-size": 10, fill: "var(--muted)" }, grp);
-    lab.textContent = I.rec ? "→ " + Object.keys(I.rec.out).map(itemName).join(", ") + (I.f < 0.999 ? "  " + Math.round(I.f * 100) + " %" : "") : I.cand.length ? "? choisir la recette" : "⚠ aucune recette";
-    if (!I.rec && I.cand.length) { const b = el("circle", { cx: (m.x + g.w) * C - 10, cy: m.y * C + 10, r: 8, fill: "#e67e22" }, grp); const q = el("text", { x: (m.x + g.w) * C - 13, y: m.y * C + 14, "font-size": 11, "font-weight": 700, fill: "#fff" }, grp); q.textContent = "?"; }
-  }
-  for (const p of g.ports) {
-    const cx = p.ix * C + C / 2, cy = p.iy * C + C / 2, dx = (p.ox - p.ix) * 7, dy = (p.oy - p.iy) * 7;
-    const col = p.t === "fluide" ? "#3498db" : "#d4ac0d";
-    const [a, b] = p.d === "sortie" ? [[cx, cy], [cx + dx, cy + dy]] : [[cx + dx, cy + dy], [cx, cy]];
-    el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: col, "stroke-width": 4, "marker-end": "" }, grp);
-    el("circle", { cx: b[0], cy: b[1], r: 3.5, fill: p.d === "sortie" ? "#8e44ad" : col }, grp);
-  }
-}
-function draw() {
-  compute();
-  layer.textContent = "";
-  for (const k in S.pipes) {
-    const [x, y] = k.split(",").map(Number), p = S.pipes[k];
-    const n = R.nets[R.netOf[k]];
-    const it = n.items[0];
-    const fill = n.over ? "url(#over)" : n.mixed ? "#c0392b" : it ? `hsl(${hue(it)} 55% 55%)` : "var(--muted)";
-    const w = p.kind === "fluide" ? 12 : 8;
-    el("rect", { x: x * C + (C - w) / 2, y: y * C + (C - w) / 2, width: w, height: w, fill, rx: p.kind === "fluide" ? 6 : 1, "data-pipe": k }, layer);
-    for (const l of p.links) {
-      const [lx, ly] = l.split(",").map(Number);
-      if (!S.pipes[l]) continue;
-      const mx = (x + (lx - x) / 2) * C + C / 2, my = (y + (ly - y) / 2) * C + C / 2;
-      el("line", { x1: x * C + C / 2, y1: y * C + C / 2, x2: mx, y2: my, stroke: fill, "stroke-width": w, "stroke-linecap": "square", "data-pipe": k }, layer);
+// ======================= Dessin =======================
+const svg = document.getElementById("map"), layer = document.getElementById("layer"), overL = document.getElementById("over-l"), ghostL = document.getElementById("ghost");
+const imgUrl = (f) => "/" + f;
+const PIPE_COL = { o1: "#8a8a8a", o3: "#c2ab70", f1: "#5d7f9c", f3: "#6aa6c9", f4: "#3f74a3" };
+function band(x, y, d, w) { const a = 0.5 - w / 2; return d === "N" ? [x + a, y, w, 0.5 + w / 2] : d === "S" ? [x + a, y + a, w, 0.5 + w / 2] : d === "E" ? [x + a, y + a, 0.5 + w / 2, w] : [x, y + a, 0.5 + w / 2, w]; }
+const rect = (r, fill, extra = "") => `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="${fill}" ${extra}/>`;
+function pipeMarkup(b, o = {}) {
+  const d = BL[b.id], p = d.pipe, fam = famOf(b.id), [w, h] = dims(b.id, b.r);
+  let s = "";
+  if (isLarge(b.id)) { // grands tuyaux et pièces de 2 cases de large : dessinés comme un bloc
+    const L = o.lane?.(b.u + ":0");
+    s += rect([b.x + 0.08, b.y + 0.08, w - 0.16, h - 0.16], L?.over ? "url(#over)" : PIPE_COL.f4, `rx=".3" stroke="#000" stroke-opacity=".5" stroke-width=".05"`);
+  } else for (const [x, y] of cellsOf(b)) {
+    const open = [...cellOpen(b, x, y)];
+    const lanes = p.role === "croisement" ? [[["E", "W"], 0], [["N", "S"], 1]] : [[open, 0]];
+    const kindAt = (dd) => (p.kind === "m" ? geo(b).ports.find((q) => q.dir === dd)?.t : p.kind);
+    for (const [dirs, l] of lanes) {
+      const L = o.lane?.(b.u + ":" + l), k = kindAt(dirs[0]) ?? "o", W = k === "f" ? 0.46 : 0.34;
+      const col = b.missing ? "#c0392b" : L?.over ? "url(#over)" : PIPE_COL[fam ?? (k === "f" ? "f3" : "o3")] ?? "#888";
+      const ex = l === 1 ? `stroke="#000" stroke-width=".05"` : "";
+      s += rect([x + 0.5 - W / 2, y + 0.5 - W / 2, W, W], col, ex);
+      for (const dd of dirs) s += rect(band(x, y, dd, W), col, ex);
+      if (L?.item && L.flow > 1e-9) for (const dd of dirs) { const [bx, by, bw, bh] = band(x, y, dd, 0.09); s += rect([bx, by, bw, bh], `hsl(${hue(L.item)} 80% 62%)`); }
     }
   }
-  for (const m of S.machines) drawMachine(m, layer, R.info.get(m.uid));
-  side();
+  s += rect([b.x + 0.03, b.y + 0.03, w - 0.06, h - 0.06], "none", `stroke="#000" stroke-opacity=".55" stroke-width=".05"`);
+  if (b.missing) s += `<text x="${b.x + 0.5}" y="${b.y + 0.68}" font-size=".5" text-anchor="middle" fill="#fff">✕</text>`;
+  return s;
+}
+function tri(cx, cy, dir, out) { const [dx, dy] = DV[dir], ex = cx + dx * 0.5, ey = cy + dy * 0.5, tip = out ? 0.22 : -0.26, px = -dy * 0.17, py = dx * 0.17; return `${ex + px},${ey + py} ${ex - px},${ey - py} ${ex + dx * tip},${ey + dy * tip}`; }
+function machineMarkup(b, o = {}) {
+  const d = BL[b.id], [w, h] = dims(b.id, b.r), x = b.x, y = b.y; let s = "";
+  s += rect([x + 0.06, y + 0.06, w - 0.12, h - 0.12], "#323232", `rx=".15" stroke="#5c5c5c" stroke-width=".06"`);
+  if (d.img) s += `<image href="${imgUrl(d.img)}" x="${x + 0.2}" y="${y + 0.2}" width="${w - 0.4}" height="${h - 0.4}" preserveAspectRatio="xMidYMid meet" opacity=".85"/>`;
+  if (Math.min(w, h) >= 2) s += `<text x="${x + 0.18}" y="${y + 0.45}" font-size=".3" font-weight="700" fill="#eee" stroke="#000" stroke-width=".06" paint-order="stroke">${esc(d.name)}</text>`;
+  for (const p of geo(b).ports) s += `<polygon points="${tri(p.ix + 0.5, p.iy + 0.5, p.dir, p.d === "s")}" fill="${p.t === "f" ? "#4aa3df" : "#f0c330"}" stroke="#000" stroke-width=".03"/>`;
+  const mi = o.mi;
+  if (mi && d.recipes.length) {
+    const col = !mi.rec ? (mi.cand.length > 1 ? "#f0a040" : "#e55454") : mi.f > 0.999 ? "#5ce677" : mi.why?.[0] === "out" ? "#f0a040" : "#e55454";
+    if (ui.status) s += rect([x + 0.16, y + h - 0.46, 0.3, 0.3], col, `stroke="#000" stroke-width=".04"`);
+    // La recette se voit sur la machine : l'objet qu'elle produit, ou « ? » s'il faut la choisir.
+    const bx = x + w - 0.62, by = y + 0.12;
+    if (mi.rec) { const it = Object.keys(mi.rec.out)[0], im = IT[it]?.img; s += `<circle cx="${bx + 0.25}" cy="${by + 0.25}" r=".28" fill="#111" stroke="#777" stroke-width=".04"/>` + (im ? `<image href="${imgUrl(im)}" x="${bx + 0.04}" y="${by + 0.04}" width=".42" height=".42"/>` : `<text x="${bx + 0.25}" y="${by + 0.36}" font-size=".26" text-anchor="middle" fill="#fff">${esc(itemName(it).slice(0, 2))}</text>`); }
+    else if (mi.cand.length > 1) s += `<circle cx="${bx + 0.25}" cy="${by + 0.25}" r=".28" fill="#f0a040"/><text x="${bx + 0.25}" y="${by + 0.36}" font-size=".32" font-weight="700" text-anchor="middle" fill="#000">?</text>`;
+    if (mi.rec && mi.f < 0.999) s += `<text x="${x + w - 0.15}" y="${y + h - 0.18}" font-size=".28" text-anchor="end" fill="#fff" stroke="#000" stroke-width=".06" paint-order="stroke">${Math.round(mi.f * 100)} %</text>`;
+  }
+  return s;
+}
+const markup = (b, o) => (BL[b.id].pipe ? pipeMarkup(b, o) : machineMarkup(b, o));
+function drawAll() {
+  layer.innerHTML = S.b.map((b) => markup(b, { lane: (k) => R.lanes.get(k), mi: R.MI.get(b.u) })).join("");
+  let o = "";
+  if (ui.vec) { // Liaisons : chaque raccord, avec son sens quand quelque chose y passe
+    const arrow = (x1, y1, x2, y2, f, item) => { if (f < 0) [x1, y1, x2, y2] = [x2, y2, x1, y1]; const on = Math.abs(f) > 1e-9; return `<line x1="${x1 + 0.5}" y1="${y1 + 0.5}" x2="${x1 + 0.5 + (x2 - x1) * 0.8}" y2="${y1 + 0.5 + (y2 - y1) * 0.8}" stroke="${on ? `hsl(${hue(item ?? "")} 85% 65%)` : "#bbb"}" stroke-width=".09" ${on ? `marker-end="url(#ar)"` : `stroke-dasharray=".12 .1"`}/>`; };
+    for (const c of R.conns) o += arrow(c.ax, c.ay, c.bx, c.by, c.f, c.item);
+    for (const t of R.terms) o += t.p.d === "s" ? arrow(t.p.ix, t.p.iy, t.px, t.py, t.f, t.item) : arrow(t.px, t.py, t.p.ix, t.p.iy, t.f, t.item);
+  }
+  overL.innerHTML = o; renderStats(); drawGhost();
+}
+function drawGhost() {
+  let s = ""; const c = ui.cell;
+  const hb = ui.hoverU ?? ui.pinned; if (hb != null && byU.has(hb) && !ui.sel) { const b = byU.get(hb), [w, h] = b.missing ? [1, 1] : dims(b.id, b.r); s += rect([b.x, b.y, w, h], "none", `stroke="#ffd37f" stroke-width=".08"`); }
+  const op = ui.op;
+  if (op && (op.t === "break" || op.t === "schem") && (op.moved || op.t === "schem")) {
+    const [x0, x1] = [Math.min(op.s[0], c[0]), Math.max(op.s[0], c[0])], [y0, y1] = [Math.min(op.s[1], c[1]), Math.max(op.s[1], c[1])];
+    s += rect([x0, y0, x1 - x0 + 1, y1 - y0 + 1], op.t === "break" ? "rgba(229,84,84,.18)" : "rgba(255,211,127,.12)", `stroke="${op.t === "break" ? "#e55454" : "#ffd37f"}" stroke-width=".08"`);
+  }
+  if (ui.clip) { const a = [c[0] - Math.floor(ui.clip.W / 2), c[1] - Math.floor(ui.clip.H / 2)]; for (const it of ui.clip.items) { const b = { ...it, x: a[0] + it.dx, y: a[1] + it.dy, u: -1 }; const ok = fitsAt(b.id, b.x, b.y, b.r); s += `<g opacity=".55">${markup(b, {})}</g>` + (ok ? "" : rect([b.x, b.y, ...dims(b.id, b.r)], "rgba(229,84,84,.35)")); } }
+  else if (ui.sel && !ui.sel.locked && !(op && op.t !== "line")) {
+    const p = op?.t === "line" ? planFor(op.s, c) : planFor(c, c);
+    if (p.bad) for (const [x, y] of p.bad) s += rect([x + 0.1, y + 0.1, 0.8, 0.8], "rgba(229,84,84,.45)");
+    else { for (const u of p.remove ?? []) { const b = byU.get(u); for (const [x, y] of cellsOf(b)) s += rect([x, y, 1, 1], "rgba(0,0,0,.45)"); }
+      for (const b of p.add) s += `<g opacity=".7">${markup({ ...b, u: -1 }, {})}</g>`;
+      for (const b of p.invalid ?? []) s += `<g opacity=".5">${markup({ ...b, u: -1 }, {})}</g>` + rect([b.x, b.y, ...dims(b.id, b.r)], "rgba(229,84,84,.4)"); }
+  }
+  ghostL.innerHTML = s;
+}
+function renderStats() {
+  const st = R.st, el = document.getElementById("stats-in"), pm = (v) => fmt(v * 60, 1) + "/min";
+  if (!S.b.length) { el.innerHTML = `<p class="muted">Plan vierge. Choisis un bloc dans le menu en bas à droite, ou un exemple en haut.</p>`; return; }
+  const row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`, list = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([i, v]) => row(esc(itemName(i)), pm(v))).join("");
+  el.innerHTML = `<table>${row("Bâtiments", S.b.length - st.pieces)}${row("Pièces de tuyau", st.pieces)}${st.area ? row("Place au sol", st.area.join(" × ") + " cases") : ""}${row("Énergie", fmt(st.energy, 0) + " MF/s")}${row("Pollution", fmt(st.poll, 2) + " %/h")}${row("Prix", "$" + fmt(st.price, 0))}</table>`
+    + `<h4>Sorties du montage</h4>${Object.keys(st.outs).length ? `<table>${list(st.outs)}</table>` : `<p class="muted">Rien ne sort.</p>`}`
+    + `<h4>À fournir</h4>${Object.keys(st.ext).length ? `<table>${list(st.ext)}</table>` : `<p class="muted">Rien.</p>`}`
+    + `<h4>Ce qui limite</h4>${st.pb.length ? `<ul>${st.pb.map((x) => `<li class="warn">${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">Tout tourne à 100 %.</p>`}`;
 }
 
-// ---------- Panneau de droite : statistiques et machine sélectionnée ----------
-function side() {
-  const s = document.getElementById("side");
-  const perMin = (v) => fr(v * 60) + "/min";
+// ======================= Menu de pose =======================
+function iconSvg(id, px = 34) {
+  const d = BL[id]; if (!d) return "";
+  if (d.img) return `<img src="${imgUrl(d.img)}" width="${px}" height="${px}" alt="" draggable="false" style="object-fit:contain">`;
+  if (!d.geo) return `<svg width="${px}" height="${px}" viewBox="0 0 1 1"><rect x=".1" y=".1" width=".8" height=".8" rx=".1" fill="#333" stroke="#666" stroke-width=".04"/><text x=".5" y=".66" font-size=".45" text-anchor="middle" fill="#999">?</text></svg>`;
+  const b = { id, x: 0, y: 0, r: 0, u: -1 }, [w, h] = dims(id, 0), m = Math.max(w, h);
+  return `<svg width="${px}" height="${px}" viewBox="${(w - m) / 2 - 0.05} ${(h - m) / 2 - 0.05} ${m + 0.1} ${m + 0.1}">${markup(b, {})}</svg>`;
+}
+const gridEl = document.getElementById("grid"), catsEl = document.getElementById("cats"), tiersEl = document.getElementById("tiers"), infoEl = document.getElementById("info");
+function renderPanel() {
+  tiersEl.innerHTML = TIERS.map((t, i) => `<button class="pf-b ${ui.tier === t.t ? "on" : ""}" data-tier="${i}" title="Tier ${t.l}${t.t ? "" : " (pièces sans tier dans le wiki)"}">${t.l}</button>`).join("");
+  catsEl.innerHTML = CATS.map((c) => { const has = entriesFor(ui.tier, c.id).length; return `<button class="pf-b ${ui.cat === c.id ? "on" : ""}" ${has ? "" : "disabled"} data-cat="${c.id}" title="${c.name}">${c.ic}</button>`; }).join("");
+  gridEl.innerHTML = entriesFor(ui.tier, ui.cat).map((e) => { const v = ui.sel?.e === e ? ui.sel.v : e.def; return `<button class="pf-blk ${locked(e.def) ? "locked" : ""} ${ui.sel?.e === e ? "on" : ""}" data-key="${e.key}" aria-label="${esc(entryName(e))}">${iconSvg(v, 34)}</button>`; }).join("");
+  document.documentElement.style.setProperty("--pfh", document.getElementById("pf").offsetHeight + "px");
+}
+function setTier(t) { ui.tier = t; if (!entriesFor(t, ui.cat).length) ui.cat = CATS.find((c) => entriesFor(t, c.id).length)?.id ?? ui.cat; renderPanel(); }
+function select(e, v) {
+  if (ui.sel?.e === e && !v) { ui.sel = null; } else { ui.sel = { e, v: v ?? (ui.sel?.e === e ? ui.sel.v : e.def), locked: locked(e.def) }; ui.clip = null; ui.pinned = null; ui.tier = e.tier; ui.cat = e.cat; }
+  renderPanel(); renderInfo(true); drawGhost(); renderHint();
+}
+tiersEl.addEventListener("click", (ev) => { const b = ev.target.closest("[data-tier]"); if (b) setTier(TIERS[+b.dataset.tier].t); });
+catsEl.addEventListener("click", (ev) => { const b = ev.target.closest("[data-cat]"); if (b && !b.disabled) { ui.cat = b.dataset.cat; renderPanel(); } });
+gridEl.addEventListener("click", (ev) => { const b = ev.target.closest("[data-key]"); if (b) select(EK[b.dataset.key]); });
+gridEl.addEventListener("mouseover", (ev) => { const b = ev.target.closest("[data-key]"); const k = b?.dataset.key ?? null; if (k !== ui.hoverBtn) { ui.hoverBtn = k; renderInfo(); } });
+gridEl.addEventListener("mouseleave", () => { ui.hoverBtn = null; renderInfo(); });
+
+// Cadre d'infos : le bloc survolé dans la grille, sinon le bloc choisi (gardé), sinon le bâtiment survolé ou cliqué.
+let infoSig = "";
+function head(id, name, sc, q) { return `<div class="i-head">${iconSvg(id, 32)}<div><b>${esc(name)}</b>${sc ? `<small>Raccourci : ${sc}</small>` : ""}</div>${q ? `<button class="i-q" data-info="${id}" title="Plus d'infos (F1)">?</button>` : ""}</div>`; }
+const recTxt = (r) => `${Object.entries(r.in).map(([i, q]) => fmt(q) + " " + itemName(i)).join(" + ") || "rien"} → ${Object.entries(r.out).map(([i, q]) => fmt(q) + " " + itemName(i)).join(" + ")} (${fmt(r.s)} s)`;
+function renderInfo(force) {
+  const t = ui.hoverBtn ? { k: "e", e: EK[ui.hoverBtn] } : ui.sel ? { k: "e", e: ui.sel.e } : ui.hoverU != null && byU.has(ui.hoverU) ? { k: "b", u: ui.hoverU } : ui.pinned != null && byU.has(ui.pinned) ? { k: "b", u: ui.pinned, pin: true } : null;
+  const sig = JSON.stringify([t?.k, t?.e?.key, t?.u, ui.sel?.v, ui.auto, t?.pin]);
+  if (!force && sig === infoSig) return; infoSig = sig;
+  if (!t) { infoEl.innerHTML = ""; return; }
   let h = "";
-  if (sel) {
-    const I = R.info.get(sel.uid), d = M[sel.id];
-    h += `<h3>${d.name}</h3><div class="muted">Chapitre ${d.tier} · ${d.category} · ${fr(d.cost, 0)} $</div>`;
-    if (I.cand.length > 1 || I.m.choice) {
-      h += `<label>Recette : <select id="rec"><option value="">— choisir —</option>${I.cand.map((r) => `<option value="${r.id}" ${I.rec && I.rec.id === r.id ? "selected" : ""}>${Object.entries(r.in).map(([i, q]) => fr(q, 2) + " " + itemName(i)).join(" + ") || "rien"} → ${Object.entries(r.out).map(([i, q]) => fr(q, 2) + " " + itemName(i)).join(" + ")}</option>`).join("")}</select></label>`;
+  if (t.k === "e") {
+    const e = t.e, v = ui.sel?.e === e ? ui.sel.v : e.def, d = BL[v];
+    h += head(v, e.fam ? `${entryName(e)} · ${d.name}` : d.name, shortcut(e), !locked(v));
+    if (locked(v)) h += `<div class="i-line warn">⚠ Ports pas encore relevés : ${e.fam ? "cette pièce" : "ce bâtiment"} ne peut pas être posé.</div><div class="i-btns"><a href="/#donnees/batiments/${v}" target="_blank">Compléter ${esc(d.name)} ▸</a></div>`;
+    h += `<div class="i-line">${d.geo ? dims(v, 0).join(" × ") + " cases · " : ""}$${fmt(d.cost, 0)}${d.pipe ? ` · ${fmt(d.pipe.flow)}/s au plus` : ""}${d.recipes.length ? ` · ${d.recipes.length} recette${d.recipes.length > 1 ? "s" : ""}` : ""}</div>`;
+    if (e.fam) {
+      h += `<div class="i-var">${VAR[e.fam].map((id) => `<button class="${id === v ? "on" : ""} ${locked(id) ? "locked" : ""}" data-var="${id}" title="${esc(BL[id].name)}${locked(id) ? " (non relevé)" : ""}${BL[id].pipe.rusty ? " (rusty : jamais posé tout seul)" : ""}">${iconSvg(id, 26)}</button>`).join("")}</div>`;
+      if (!FAMS[e.fam].large) h += `<label class="i-chk"><input type="checkbox" id="i-auto" ${ui.auto ? "checked" : ""}> Longueur auto : les tuyaux les plus longs possibles${droitLens(e.fam).length < 2 ? ` <span class="muted">(ce tier n'a que des tuyaux courts)</span>` : ""}</label>`;
     }
-    if (I.rec) h += `<div>Marche : <b>${Math.round(I.f * 100)} %</b>${I.why ? ` <span class="warn">(${I.why})</span>` : ""}</div><div class="muted">Énergie : ${fr(I.rec.e * I.f, 0)} MF/s</div>`;
-    else h += `<div class="warn">${I.why}</div>`;
-    h += `<div><button id="rot">Tourner (R)</button> <button id="del">Effacer</button></div>`;
+  } else {
+    const b = byU.get(t.u), d = BL[b.id];
+    h += head(b.id, d.name, null, !b.missing);
+    if (d.pipe) {
+      if (b.missing) h += `<div class="i-line warn">⚠ Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns"><a href="/#donnees/batiments/${b.id}" target="_blank">Compléter ${esc(d.name)} ▸</a></div>`;
+      const ls = d.pipe.role === "croisement" ? [0, 1] : [0];
+      for (const l of ls) { const L = R.lanes.get(b.u + ":" + l); h += `<div class="i-line">${ls.length > 1 ? (l ? "Voie ↕ : " : "Voie ↔ : ") : ""}${L?.item ? "porte " + esc(itemName(L.item)) : L?.mixed ? `<span class="warn">mélange</span>` : "vide"} · ${fmt(L?.flow ?? 0)}/s sur ${fmt(d.pipe.flow)}/s${L?.over ? ` · <span class="warn">saturé (${fmt(L.offered)}/s demandés)</span>` : ""}</div>`; }
+    } else {
+      const mi = R.MI.get(t.u);
+      if (mi && d.recipes.length) {
+        if (mi.cand.length > 1 || b.choice) h += `<select class="i-sel" id="i-rec"><option value="">— choisir la recette —</option>${mi.cand.map((r) => `<option value="${r.id}" ${mi.rec?.id === r.id ? "selected" : ""}>${esc(recTxt(r))}</option>`).join("")}</select>`;
+        else if (mi.rec) h += `<div class="i-line">Recette : ${esc(recTxt(mi.rec))}</div>`;
+        h += mi.rec ? `<div class="i-line">Marche : <b>${Math.round(mi.f * 100)} %</b>${mi.txt ? ` · <span class="warn">${esc(mi.txt)}</span>` : ""} · ${fmt((mi.rec.e || 0) * mi.f, 0)} MF/s</div>` : `<div class="i-line warn">${esc(mi.txt ?? "")}</div>`;
+      }
+    }
+    h += `<div class="i-btns"><button data-act="rot">Tourner (${lab("KeyR")})</button><button data-act="del">Supprimer</button></div>`;
   }
-  h += `<h3>Statistiques du montage</h3>`;
-  if (!S.machines.length) h += `<p class="muted">Plan vierge. Ouvre ☰ pour poser une machine.</p>`;
-  else {
-    const row = (a, b, c = "") => `<tr><td class="${c}">${a}</td><td class="n ${c}">${b}</td></tr>`;
-    h += `<table>${row("Machines", S.machines.length)}${row("Cases de tuyau", Object.keys(S.pipes).length)}${R.area ? row("Place au sol", R.area[0] + " × " + R.area[1] + " cases") : ""}${row("Énergie", fr(R.energy, 0) + " MF/s")}${row("Prix", fr(R.price, 0) + " $")}</table>`;
-    const list = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([i, v]) => row(itemName(i), perMin(v))).join("");
-    h += `<h3>Sorties du montage</h3>${Object.keys(R.outx).length ? `<table>${list(R.outx)}</table>` : `<p class="muted">Rien ne sort.</p>`}`;
-    h += `<h3>À fournir (entrées non branchées)</h3>${Object.keys(R.ext).length ? `<table>${list(R.ext)}</table>` : `<p class="muted">Rien.</p>`}`;
-    h += `<h3>Ce qui limite</h3>`;
-    const pb = [];
-    if (R.limit) pb.push(`${M[R.limit.m.id].name} à ${Math.round(R.limit.f * 100)} % : ${R.limit.why}`);
-    for (const [, I] of R.info) if (!I.rec) pb.push(`${M[I.m.id].name} : ${I.why}`);
-    for (const n of R.nets) { if (n.over) pb.push(`Tuyau ${n.kind} saturé : ${fr(n.S, 2)}/s pour ${n.cap}/s`); if (n.mixed) pb.push(`Tuyau mélangé : ${n.items.map(itemName).join(" + ")}`); }
-    h += pb.length ? `<ul>${pb.map((x) => `<li class="warn">${x}</li>`).join("")}</ul>` : `<p class="muted">Tout tourne à 100 %.</p>`;
-  }
-  h += `<h3>Garder, partager</h3><button id="exp">Exporter (fichier)</button> <button id="lnk">Lien</button><div id="lnkinfo" class="muted"></div>`;
-  s.innerHTML = h;
-  const q = (id) => s.querySelector("#" + id);
-  q("rec") && (q("rec").onchange = (e) => { snap(); sel.choice = e.target.value || null; draw(); });
-  q("rot") && (q("rot").onclick = () => rotateSel());
-  q("del") && (q("del").onclick = () => { snap(); S.machines = S.machines.filter((m) => m !== sel); sel = null; draw(); });
-  q("exp").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: "application/json" })); a.download = "montage.json"; a.click(); };
-  q("lnk").onclick = async () => {
-    // « Petit montage » mesuré : le lien compressé ne dépasse pas 2 000 caractères (limite sûre des messageries).
-    const bytes = new Uint8Array(await new Response(new Blob([JSON.stringify(S)]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
-    const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    const url = "https://industrialist.myprisme.fr/#bac/" + b64;
-    q("lnkinfo").textContent = url.length <= 2000 ? `Lien de ${url.length} caractères : assez petit pour Discord.` : `Lien de ${url.length} caractères : trop long, utilise le fichier.`;
-  };
+  infoEl.innerHTML = h;
+  document.documentElement.style.setProperty("--pfh", document.getElementById("pf").offsetHeight + "px");
 }
+infoEl.addEventListener("click", (ev) => {
+  const q = ev.target.closest("[data-info]"); if (q) return blockInfo(q.dataset.info);
+  const v = ev.target.closest("[data-var]"); if (v) { const e = ui.hoverBtn ? EK[ui.hoverBtn] : ui.sel?.e; if (e) select(e, v.dataset.var); return; }
+  const a = ev.target.closest("[data-act]"); const u = ui.pinned ?? ui.hoverU; if (!a || u == null) return;
+  if (a.dataset.act === "del") apply(...Object.values(rectPlan(...cellsOf(byU.get(u))[0], ...cellsOf(byU.get(u)).at(-1))));
+  else rotatePlaced(u);
+});
+infoEl.addEventListener("change", (ev) => {
+  if (ev.target.id === "i-auto") { ui.auto = ev.target.checked; drawGhost(); }
+  if (ev.target.id === "i-rec") { const u = ui.pinned ?? ui.hoverU; if (u != null) { snap(); byU.get(u).choice = ev.target.value || null; changed(); } }
+});
 
-// ---------- Panneau des machines (☰) : par chapitre puis catégorie ----------
-function panel() {
-  const p = document.getElementById("pan");
-  const tiers = [...new Set(B.machines.map((m) => m.tier))].sort();
-  p.innerHTML = `<input id="find" type="search" placeholder="Chercher une machine" aria-label="Chercher une machine">` +
-    tiers.map((t) => `<details open><summary>Chapitre ${t}</summary>${[...new Set(B.machines.filter((m) => m.tier === t).map((m) => m.category))].sort().map((c) => `<div class="grp"><h4>${c}</h4><div class="bas-cards">${B.machines.filter((m) => m.tier === t && m.category === c).map((m) => `<button class="bas-card" data-id="${m.id}"><svg width="28" height="28" viewBox="0 0 28 28"><rect x="${14 - Math.min(26, m.w * 26 / Math.max(m.w, m.h)) / 2}" y="${14 - Math.min(26, m.h * 26 / Math.max(m.w, m.h)) / 2}" width="${m.w * 26 / Math.max(m.w, m.h)}" height="${m.h * 26 / Math.max(m.w, m.h)}" rx="2" fill="var(--steel-soft)" stroke="var(--line)"/></svg><span>${m.name}<small>${m.w} × ${m.h} cases</small></span></button>`).join("")}</div></div>`).join("")}</details>`).join("") +
-    `<p class="note">${B.machines.length} machines posables. Les autres attendent le relevé de leurs ports (Contribuer → Bâtiments).</p>`;
-  p.querySelectorAll(".bas-card").forEach((b) => b.onclick = () => { carry = { id: b.dataset.id, r: 0, x: 0, y: 0 }; p.classList.remove("open"); say("Clique sur le plan pour poser · R tourne · Échap annule"); });
-  p.querySelector("#find").oninput = (e) => { const v = e.target.value.toLowerCase(); p.querySelectorAll(".bas-card").forEach((b) => b.style.display = M[b.dataset.id].name.toLowerCase().includes(v) ? "" : "none"); };
+// ======================= Fenêtres =======================
+const dlg = document.getElementById("dlg"), dlgIn = document.getElementById("dlg-in");
+function openDlg(h) { dlgIn.innerHTML = h; dlg.hidden = false; dlg.scrollTop = 0; }
+document.getElementById("dlg-back").onclick = () => (dlg.hidden = true);
+const SIDE_FR = { N: "haut", S: "bas", W: "gauche", E: "droite" };
+function blockInfo(id) { // Comme la fiche « ? » de Mindustry
+  const d = BL[id]; let h = `<div class="ttl">${iconSvg(id, 40)} ${esc(d.name)}</div>`;
+  if (d.desc) h += `<h3>Description</h3><div class="kv"><div>${esc(d.desc)}</div></div>`;
+  h += `<h3>Caractéristiques</h3><div class="kv"><div>Taille : ${d.geo ? `${d.geo.w} × ${d.geo.h} cases` : `<span class="warn">ports et empreinte pas encore relevés</span>`}</div><div>Prix : $${fmt(d.cost, 0)}</div><div>Tier : ${d.tier ? ROM[d.tier] : "non donné par le wiki"}</div><div>Catégorie : ${esc(CATS.find((c) => c.id === d.cat)?.name ?? d.cat)}</div>${d.unlock ? `<div>Débloqué par : ${esc(d.unlock)}</div>` : ""}${d.poll ? `<div>Pollution : ${fmt(d.poll)} %/h</div>` : ""}</div>`;
+  if (d.pipe) h += `<h3>Tuyau</h3><div class="kv"><div>Débit : ${fmt(d.pipe.flow)}/s au plus</div><div>Pièce : ${d.pipe.role}${d.pipe.role === "droit" ? `, ${d.pipe.len} case${d.pipe.len > 1 ? "s" : ""}` : ""}</div><div>Section du wiki : ${esc(d.pipe.section)}</div>${d.pipe.rusty ? `<div class="warn">Rusty : jamais posé automatiquement.</div>` : ""}</div>`;
+  if (d.geo?.ports.length) h += `<h3>Ports</h3><div class="kv">${d.geo.ports.map((p) => `<div>${d.pipe ? "Ouverture" : p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"} : côté ${SIDE_FR[p.s]}, case ${p.c}</div>`).join("")}</div>`;
+  if (d.recipes.length) h += `<h3>Fabrication</h3><table><tr><th>Ressources requises</th><th>Produit</th><th>Durée</th><th>Énergie</th></tr>${d.recipes.map((r) => `<tr><td>${Object.entries(r.in).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>") || "—"}</td><td>${Object.entries(r.out).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>")}</td><td>${fmt(r.s)} s</td><td>${fmt(r.e, 0)} MF/s</td></tr>`).join("")}</table>`;
+  if (!d.geo) h += `<p><a href="/#donnees/batiments/${id}" target="_blank" style="color:var(--accent)">Compléter ${esc(d.name)} dans l'éditeur de bâtiments ▸</a></p>`;
+  openDlg(h);
 }
-document.getElementById("t-pan").onclick = () => document.getElementById("pan").classList.toggle("open");
+document.getElementById("b-db").onclick = () => openDlg(`<div class="ttl">📖 Base de données</div>` + CATS.map((c) => { const bs = B.blocks.filter((b) => b.cat === c.id); return bs.length ? `<h3>${c.ic} ${c.name}</h3><div class="db">${bs.map((b) => `<button class="pf-blk ${b.geo ? "" : "locked"}" data-db="${b.id}" title="${esc(b.name)}">${iconSvg(b.id, 34)}</button>`).join("")}</div>` : ""; }).join(""));
+dlgIn.addEventListener("click", (ev) => { const b = ev.target.closest("[data-db]"); if (b) blockInfo(b.dataset.db); });
+// Schémas (T) : comme Mindustry, un schéma est une zone copiée, qu'on enregistre et partage par un code.
+const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))), dec = (s) => JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
+const loadSch = () => { try { return JSON.parse(localStorage.getItem("bas:schemas") || "[]"); } catch { return []; } };
+const saveSch = (l) => { try { localStorage.setItem("bas:schemas", JSON.stringify(l)); } catch {} };
+function schematics() {
+  const l = loadSch(), all = { items: S.b.filter((b) => !b.missing).map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null })) };
+  const code = enc(all), url = "https://industrialist.myprisme.fr/#bac/" + code;
+  openDlg(`<div class="ttl">📋 Schémas</div>
+    <h3>Copie en cours</h3>${ui.clip ? `<div class="row">${ui.clip.items.length} bâtiments · <input id="sch-name" placeholder="Nom du schéma"><button data-sch="save">Enregistrer</button></div>` : `<p class="muted">Aucune copie : maintiens ${lab("KeyF")} et glisse sur le plan pour copier une zone.</p>`}
+    <h3>Mes schémas</h3>${l.length ? l.map((s, i) => `<div class="row"><b>${esc(s.name)}</b> <span class="muted">${s.clip.items.length} bâtiments</span><button data-sch="use" data-i="${i}">Utiliser</button><button data-sch="code" data-i="${i}">Code</button><button data-sch="del" data-i="${i}">Supprimer</button></div>`).join("") : `<p class="muted">Aucun.</p>`}
+    <h3>Importer un code</h3><textarea id="sch-in" placeholder="Colle un code de schéma"></textarea><div class="row"><button data-sch="imp">Importer</button></div>
+    <h3>Partager tout le montage</h3><textarea readonly>${code}</textarea><p class="${url.length <= 2000 ? "muted" : "warn"}">Lien de ${url.length} caractères : ${url.length <= 2000 ? "assez court pour un lien (≤ 2 000)." : "trop long pour un lien, partage le code ou un fichier."}</p>`);
+}
+dlgIn.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-sch]"); if (!b) return; const l = loadSch(), i = +b.dataset.i;
+  if (b.dataset.sch === "save" && ui.clip) { l.push({ name: dlgIn.querySelector("#sch-name").value || "Schéma " + (l.length + 1), clip: ui.clip }); saveSch(l); schematics(); }
+  if (b.dataset.sch === "use") { ui.clip = l[i].clip; ui.sel = null; dlg.hidden = true; renderPanel(); renderHint(); }
+  if (b.dataset.sch === "code") { dlgIn.querySelector("#sch-in").value = enc(l[i].clip); }
+  if (b.dataset.sch === "del") { l.splice(i, 1); saveSch(l); schematics(); }
+  if (b.dataset.sch === "imp") { try { const c = dec(dlgIn.querySelector("#sch-in").value); if (!c.W) { const xs = c.items.map((t) => t.dx), ys = c.items.map((t) => t.dy), mx = Math.min(...xs), my = Math.min(...ys); c.items.forEach((t) => { t.dx -= mx; t.dy -= my; }); c.W = Math.max(...c.items.map((t) => t.dx + dims(t.id, t.r)[0])); c.H = Math.max(...c.items.map((t) => t.dy + dims(t.id, t.r)[1])); } ui.clip = c; ui.sel = null; dlg.hidden = true; renderHint(); } catch { alert("Code illisible."); } }
+});
+document.getElementById("b-schem").onclick = schematics;
 
-// ---------- Gestes ----------
-const msg = document.getElementById("msg"); let msgT;
-function say(t) { msg.textContent = t; msg.classList.add("on"); clearTimeout(msgT); msgT = setTimeout(() => msg.classList.remove("on"), 2400); }
-function cellAt(e) {
-  const r = svg.getBoundingClientRect();
-  const wx = view.x + (e.clientX - r.left) / view.z, wy = view.y + (e.clientY - r.top) / view.z;
-  return [Math.floor(wx / C), Math.floor(wy / C)];
+// ======================= Touches =======================
+// Touches physiques (KeyboardEvent.code), comme les jeux : WASD en QWERTY devient ZQSD en AZERTY sans réglage.
+const LAB = {};
+const lab = (c) => LAB[c] ?? (/^Key/.test(c) ? c.slice(3) : c === "Comma" ? "," : c === "Period" ? "." : c);
+navigator.keyboard?.getLayoutMap?.().then((m) => { for (const [c, k] of m) if (/^Key|Comma|Period/.test(c)) LAB[c] = k.toUpperCase(); renderHint(); }).catch(() => {});
+function renderHint() {
+  const k = (c) => `<kbd>${lab(c)}</kbd>`; let h;
+  if (ui.clip) h = `Clic : coller · Molette ou ${k("KeyR")} : tourner · ${k("KeyZ")} / ${k("KeyX")} : retourner · Clic droit ou ${k("KeyQ")} : annuler`;
+  else if (ui.sel?.locked) h = `Ce bloc n'a pas ses ports relevés : « Compléter » dans le cadre d'infos · Clic droit : lâcher`;
+  else if (ui.sel?.e.fam && !FAMS[ui.sel.e.fam].large) h = `Glisser : tracer (virages, croisements et longueurs posés seuls) · Ctrl : ligne droite seule · ${k("KeyQ")} : variante · Molette ou ${k("KeyR")} : tourner · Clic droit : lâcher`;
+  else if (ui.sel) h = `Clic : poser · Maintenir et glisser : en ligne · Molette ou ${k("KeyR")} : tourner · Clic droit : lâcher · Ctrl + molette : zoom`;
+  else h = `${k("KeyW")}${k("KeyA")}${k("KeyS")}${k("KeyD")} : se déplacer (Maj : vite) · Clic droit glissé : supprimer une zone · ${k("KeyF")} + glisser : copier · ${k("KeyT")} : schémas · ${k("KeyL")} : liaisons · Clic molette : pipette`;
+  document.getElementById("hint").innerHTML = h;
 }
-function setTool(t) { tool = t; carry = null; ghost.textContent = ""; document.querySelectorAll("[data-tool]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tool === t)); }
-document.querySelectorAll("[data-tool]").forEach((b) => b.onclick = () => setTool(b.dataset.tool));
-function rotateSel() { if (carry) { carry.r = (carry.r + 1) % 4; showGhost(); return; } if (!sel) return; snap(); const old = sel.r; sel.r = (sel.r + 1) % 4; if (!fits(sel)) { sel.r = old; undo.pop(); say("Pas la place pour tourner ici"); } draw(); }
-function showGhost() { ghost.textContent = ""; if (carry) drawMachine(carry, ghost); }
+document.getElementById("b-keys").onclick = () => {
+  const r = (a, b, c) => `<tr><td>${a}</td><td>${b}</td><td class="muted">${c}</td></tr>`;
+  openDlg(`<div class="ttl">⌨ Commandes</div><p class="muted">Touches physiques : les lettres affichées suivent ton clavier.</p><table><tr><th>Action</th><th>Ici</th><th>Dans Mindustry (code source)</th></tr>
+  ${r("Se déplacer", `${lab("KeyW")} ${lab("KeyA")} ${lab("KeyS")} ${lab("KeyD")} · Maj : plus vite · clic molette glissé`, "move_x / move_y = WASD, boost = Maj")}
+  ${r("Zoomer", "Molette (Ctrl + molette quand un bloc est en main)", "zoom = molette ; elle tourne le bloc en main")}
+  ${r("Choisir un bloc", "Menu en bas à droite : tier, catégorie, bloc · chiffres [tier, catégorie, bloc] tapés vite", "block_select_01…10, raccourci [catégorie, bloc]")}
+  ${r("Bloc voisin dans la grille", "Flèches", "block_select_left/right/up/down")}
+  ${r("Catégorie précédente / suivante", `${lab("Comma")} / ${lab("Period")}`, "category_prev / category_next")}
+  ${r("Infos sur un bloc", "Survol de la grille ; clic : gardé · ? ou F1 : fiche complète", "cadre d'infos, bouton ?, block_info = F1")}
+  ${r("Poser", "Clic · maintenir et glisser : en ligne droite, sans diagonale", "select, normalizeLine")}
+  ${r("Tracer un tuyau", "Glisser : chemin avec les virages, croisements et longueurs posés seuls · Ctrl : ligne droite seule", "Placement.astar (+8 par virage), getReplacement, calculateBridges")}
+  ${r("Variante de tuyau", `${lab("KeyQ")} ou clic dans le cadre d'infos`, "Industrialist : Q fait défiler les tuyaux")}
+  ${r("Tourner", `Molette ou ${lab("KeyR")} · ${lab("KeyR")} sur un bâtiment posé le tourne`, "rotate = molette, rotateplaced = R")}
+  ${r("Lâcher le bloc", `Clic droit, Échap ou ${lab("KeyQ")}`, "deselect = clic droit, clear_building = Q")}
+  ${r("Supprimer", "Clic droit sur une case · clic droit glissé : une zone, supprimée au relâchement", "break_block = clic droit")}
+  ${r("Pipette", "Clic molette sur un bâtiment (copie aussi sa recette)", "pick = clic molette ; Industrialist : Quick Select")}
+  ${r("Régler un bâtiment", "Clic dessus : recette, tourner, supprimer", "toucher le bâtiment : sa configuration")}
+  ${r("Copier une zone", `Maintenir ${lab("KeyF")} et glisser`, "schematic_select = F")}
+  ${r("Coller, tourner, retourner", `Clic · molette ou ${lab("KeyR")} · ${lab("KeyZ")} / ${lab("KeyX")}`, "schematic_flip_x = Z, schematic_flip_y = X")}
+  ${r("Schémas enregistrés, partage", `${lab("KeyT")} ou 📋`, "schematic_menu = T")}
+  ${r("Base de données", "📖", "bouton du livre sous la grille")}
+  ${r("Liaisons (sens de chaque raccord)", `${lab("KeyL")} ou 🔗`, "demande de l'utilisateur, pas dans Mindustry")}
+  ${r("État des machines (pastille)", "F6", "toggle_block_status = F6")}
+  ${r("Masquer l'interface", lab("KeyC"), "toggle_menus = C")}
+  ${r("Arbre de recherche", `${lab("KeyJ")} ou 🌳`, "research = J")}
+  ${r("Annuler / rétablir", "Ctrl+Z / Ctrl+Y", "éditeur de cartes de Mindustry")}
+  ${r("Au téléphone", "Un doigt : se déplacer · deux doigts : zoom · appui long puis glisser : ligne, zone · 🔨 casser, ⬚ copier, ⟳ tourner, ✕ lâcher", "MobileInput")}
+  </table><h3>Sans objet ici</h3><p class="muted">Pause de la construction (E), reconstruire (B) : la pose est immédiate. Unités, commandes, ping, discussion, carte des planètes. Mini-carte (M) et lignes électriques (F5) : plus tard (lot B5 et électricité).</p>`);
+};
 
-// Pose d'une case de tuyau : refusée sur une machine, sur un tuyau de l'autre type, ou devant un port de l'autre type (Q14-9).
-function pipeOk(x, y, kind) {
-  if (machineAt(x, y)) return "Une machine occupe la case";
-  const p = S.pipes[key(x, y)]; if (p && p.kind !== kind) return "Croisement objet × fluide : pas dans la maquette";
-  const f = portFacing(x, y); if (f && f.p.t !== kind) return `Ce port de ${M[f.m.id].name} attend un tuyau ${f.p.t}`;
-  return null;
+// ======================= Gestes =======================
+const cellAt = (e) => { const r = svg.getBoundingClientRect(); return [Math.floor(cam.x + (e.clientX - r.left) / cam.z), Math.floor(cam.y + (e.clientY - r.top) / cam.z)]; };
+function applyView() { const r = svg.getBoundingClientRect(); svg.setAttribute("viewBox", `${cam.x} ${cam.y} ${r.width / cam.z} ${r.height / cam.z}`); }
+function zoomAt(f, cx, cy) { const r = svg.getBoundingClientRect(), px = cx - r.left, py = cy - r.top, wx = cam.x + px / cam.z, wy = cam.y + py / cam.z; cam.z = Math.min(90, Math.max(6, cam.z * f)); cam.x = wx - px / cam.z; cam.y = wy - py / cam.z; applyView(); }
+function hover(c) {
+  if (c[0] === ui.cell[0] && c[1] === ui.cell[1]) return; ui.cell = c;
+  const u = occ.get(K(...c)) ?? null; if (u !== ui.hoverU) { ui.hoverU = u; renderInfo(); }
+  drawGhost();
 }
-function addLink(a, b) { const A = S.pipes[a], Bp = S.pipes[b]; if (A && Bp && !A.links.includes(b)) { A.links.push(b); Bp.links.push(a); } }
-let drag = null;
+function rotatePlaced(u) { const b = byU.get(u); if (!b || b.missing) return; const nr = (b.r + 1) % 4; if (!fitsAt(b.id, b.x, b.y, nr, u)) return; snap(); b.r = nr; changed(); }
+function rotateSel(dir = 1) {
+  if (ui.clip) { const c = ui.clip; c.items = c.items.map((t) => { const [w, h] = dims(t.id, t.r); return { ...t, dx: c.H - (t.dy + h), dy: t.dx, r: (t.r + 1) % 4 }; }); [c.W, c.H] = [c.H, c.W]; }
+  else if (ui.sel) ui.rot = (ui.rot + (dir > 0 ? 1 : 3)) % 4;
+  else if (ui.hoverU != null) rotatePlaced(ui.hoverU);
+  drawGhost();
+}
+function flipClip(x) { const c = ui.clip; if (!c) return; c.items = c.items.map((t) => { const [w, h] = dims(t.id, t.r); return x ? { ...t, dx: c.W - (t.dx + w), r: t.r % 2 ? (t.r + 2) % 4 : t.r } : { ...t, dy: c.H - (t.dy + h), r: t.r % 2 ? t.r : (t.r + 2) % 4 }; }); drawGhost(); }
+function pasteClip(c) { const a = [c[0] - Math.floor(ui.clip.W / 2), c[1] - Math.floor(ui.clip.H / 2)]; const add = []; for (const t of ui.clip.items) { const b = { id: t.id, x: a[0] + t.dx, y: a[1] + t.dy, r: t.r, choice: t.choice }; if (fitsAt(b.id, b.x, b.y, b.r) && !add.some((o) => cellsOf(o).some(([x, y]) => cellsOf(b).some(([p, q]) => p === x && q === y)))) add.push(b); } apply([], add); }
+function copyRect(s, c) {
+  const x0 = Math.min(s[0], c[0]), x1 = Math.max(s[0], c[0]), y0 = Math.min(s[1], c[1]), y1 = Math.max(s[1], c[1]);
+  const items = S.b.filter((b) => !b.missing && cellsOf(b).every(([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1)).map((b) => ({ id: b.id, dx: b.x - x0, dy: b.y - y0, r: b.r, choice: b.choice ?? null }));
+  if (items.length) { ui.clip = { items, W: x1 - x0 + 1, H: y1 - y0 + 1 }; ui.sel = null; renderPanel(); }
+  renderHint(); renderInfo(true);
+}
+function pick(c) { const u = occ.get(K(...c)); if (u == null) return; const b = byU.get(u); const e = ENTRIES.find((x) => x.def === b.id) ?? ENTRIES.find((x) => x.fam && VAR[x.fam].includes(b.id)); if (!e) return; ui.rot = b.r; ui.choice = b.choice ? { id: b.id, c: b.choice } : null; select(e, e.fam ? b.id : undefined); }
+function finishOp(c) {
+  const op = ui.op; ui.op = null; if (!op) return;
+  if (op.t === "line") { const p = planFor(op.s, c); if (p && !p.bad) apply(p.remove, p.add); }
+  else if (op.t === "break") { const s = op.moved ? op.s : c; const p = rectPlan(Math.min(s[0], c[0]), Math.min(s[1], c[1]), Math.max(s[0], c[0]), Math.max(s[1], c[1])); apply(p.remove, p.add); }
+  else if (op.t === "schem") copyRect(op.s, c);
+  drawGhost();
+}
 svg.addEventListener("contextmenu", (e) => e.preventDefault());
+svg.addEventListener("mousedown", (e) => { if (e.button === 1) e.preventDefault(); }); // pas de défilement automatique du clic molette
 svg.addEventListener("pointerdown", (e) => {
-  svg.setPointerCapture(e.pointerId);
-  const [x, y] = cellAt(e);
-  if (carry) {
-    carry.x = x; carry.y = y;
-    if (e.button === 2) { carry = null; ghost.textContent = ""; return; }
-    const m = { uid: S.next, id: carry.id, x, y, r: carry.r, choice: null };
-    if (!fits(m)) { say("La place est prise"); return; }
-    snap(); S.next++; S.machines.push(m); sel = m; draw();
-    if (!e.shiftKey) { carry = null; ghost.textContent = ""; }
-    return;
+  if (e.pointerType === "touch") return touchDown(e);
+  svg.setPointerCapture(e.pointerId); ui.ctrl = e.ctrlKey; const c = cellAt(e); ui.cell = c;
+  if (e.button === 1) { e.preventDefault(); ui.op = { t: "mid", sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y, moved: false }; return; }
+  if (e.button === 2) {
+    if (ui.clip) { ui.clip = null; renderHint(); drawGhost(); return; }
+    if (ui.sel) { select(ui.sel.e); return; } // clic droit : lâcher le bloc (deselect)
+    ui.op = { t: "break", s: c, moved: false }; return;
   }
-  if (e.button === 2 || tool === "gomme") { snap(); drag = { kind: "gomme" }; erase(x, y); return; }
-  if (e.button === 1) { drag = { kind: "vue", sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; return; }
-  if (tool === "objet" || tool === "fluide") {
-    const err = pipeOk(x, y, tool); if (err) { say(err); return; }
-    snap(); const k = key(x, y); if (!S.pipes[k]) S.pipes[k] = { kind: tool, links: [] };
-    drag = { kind: "tuyau", last: [x, y] }; draw(); return;
-  }
-  const m = machineAt(x, y);
-  if (m) { sel = m; snap(); drag = { kind: "bouge", m, dx: x - m.x, dy: y - m.y, moved: false }; draw(); return; }
-  sel = null; drag = { kind: "vue", sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; draw();
+  if (e.button !== 0) return;
+  if (ui.clip) return pasteClip(c);
+  if (ui.sel && !ui.sel.locked) { ui.op = { t: "line", s: c }; drawGhost(); return; }
+  ui.pinned = occ.get(K(...c)) ?? null; renderInfo(true); drawGhost();
 });
 svg.addEventListener("pointermove", (e) => {
-  const [x, y] = cellAt(e);
-  tipAt(e, x, y);
-  if (carry) { if (carry.x !== x || carry.y !== y) { carry.x = x; carry.y = y; showGhost(); } return; }
-  if (!drag) return;
-  if (drag.kind === "vue") { view.x = drag.vx - (e.clientX - drag.sx) / view.z; view.y = drag.vy - (e.clientY - drag.sy) / view.z; applyView(); }
-  else if (drag.kind === "gomme") erase(x, y);
-  else if (drag.kind === "bouge") {
-    const nx = x - drag.dx, ny = y - drag.dy; if (nx === drag.m.x && ny === drag.m.y) return;
-    const ox = drag.m.x, oy = drag.m.y; drag.m.x = nx; drag.m.y = ny;
-    if (!fits(drag.m)) { drag.m.x = ox; drag.m.y = oy; } else { drag.moved = true; draw(); }
-  } else if (drag.kind === "tuyau") {
-    // Tracé au glisser, à la Mindustry : on avance case par case (d'abord en x, puis en y), coudes automatiques.
-    let [lx, ly] = drag.last;
-    while (lx !== x || ly !== y) {
-      const nx = lx + Math.sign(x - lx) * (lx !== x), ny = lx !== x ? ly : ly + Math.sign(y - ly);
-      const err = pipeOk(nx, ny, tool); if (err) { say(err); break; }
-      const k = key(nx, ny); if (!S.pipes[k]) S.pipes[k] = { kind: tool, links: [] };
-      addLink(key(lx, ly), k); lx = nx; ly = ny;
-    }
-    drag.last = [lx, ly]; draw();
-  }
+  if (e.pointerType === "touch") return touchMove(e);
+  ui.ctrl = e.ctrlKey; const op = ui.op;
+  if (op?.t === "mid") { if (Math.hypot(e.clientX - op.sx, e.clientY - op.sy) > 4) op.moved = true; if (op.moved) { cam.x = op.cx - (e.clientX - op.sx) / cam.z; cam.y = op.cy - (e.clientY - op.sy) / cam.z; applyView(); } return; }
+  const c = cellAt(e); if (op?.t === "break" && (c[0] !== op.s[0] || c[1] !== op.s[1])) op.moved = true;
+  hover(c);
 });
-svg.addEventListener("pointerup", () => { if (drag && drag.kind === "bouge" && !drag.moved) undo.pop(); drag = null; });
-function erase(x, y) {
-  const k = key(x, y);
-  if (S.pipes[k]) { for (const l of S.pipes[k].links) if (S.pipes[l]) S.pipes[l].links = S.pipes[l].links.filter((z) => z !== k); delete S.pipes[k]; draw(); return; }
-  const m = machineAt(x, y); if (m) { S.machines = S.machines.filter((z) => z !== m); if (sel === m) sel = null; draw(); }
+svg.addEventListener("pointerup", (e) => {
+  if (e.pointerType === "touch") return touchUp(e);
+  const op = ui.op, c = cellAt(e);
+  if (op?.t === "mid") { ui.op = null; if (!op.moved) pick(c); return; }
+  if (op && op.t !== "schem") finishOp(c);
+});
+svg.addEventListener("wheel", (e) => { e.preventDefault(); if ((ui.clip || ui.sel) && !e.ctrlKey) rotateSel(e.deltaY < 0 ? 1 : -1); else zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY); }, { passive: false });
+svg.addEventListener("mouseleave", () => { ui.hoverU = null; renderInfo(); });
+// Tactile (MobileInput) : un doigt déplace, deux doigts zooment, appui long puis glisser = ligne ou zone.
+const touches = new Map(); let ts = null;
+function touchDown(e) {
+  svg.setPointerCapture(e.pointerId); touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) { clearTimeout(ts?.timer); const [a, b] = [...touches.values()]; ts = { pinch: true, d: Math.hypot(a.x - b.x, a.y - b.y), z: cam.z }; ui.op = null; return; }
+  const c = cellAt(e); ui.cell = c; ts = { sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y, c, moved: false, long: false };
+  ts.timer = setTimeout(() => { ts.long = true; if (ui.breakMode) ui.op = { t: "break", s: c, moved: true }; else if (ui.schemMode) ui.op = { t: "schem", s: c }; else if (ui.sel && !ui.sel.locked) ui.op = { t: "line", s: c }; drawGhost(); }, 350);
 }
-svg.addEventListener("wheel", (e) => { e.preventDefault(); zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, e); }, { passive: false });
-function zoom(f, e) {
-  const r = svg.getBoundingClientRect(), px = e ? e.clientX - r.left : r.width / 2, py = e ? e.clientY - r.top : r.height / 2;
-  const wx = view.x + px / view.z, wy = view.y + py / view.z;
-  view.z = Math.min(4, Math.max(0.2, view.z * f)); view.x = wx - px / view.z; view.y = wy - py / view.z; applyView();
+function touchMove(e) {
+  if (!touches.has(e.pointerId)) return; touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ts?.pinch && touches.size === 2) { const [a, b] = [...touches.values()]; zoomAt((ts.z * Math.hypot(a.x - b.x, a.y - b.y) / ts.d) / cam.z, (a.x + b.x) / 2, (a.y + b.y) / 2); return; }
+  if (!ts) return;
+  if (ui.op) return hover(cellAt(e));
+  if (Math.hypot(e.clientX - ts.sx, e.clientY - ts.sy) > 8) { ts.moved = true; clearTimeout(ts.timer); }
+  if (ts.moved) { cam.x = ts.cx - (e.clientX - ts.sx) / cam.z; cam.y = ts.cy - (e.clientY - ts.sy) / cam.z; applyView(); }
 }
-document.getElementById("t-zin").onclick = () => zoom(1.25);
-document.getElementById("t-zout").onclick = () => zoom(0.8);
-document.getElementById("t-undo").onclick = () => doUndo();
-function doUndo() { if (!undo.length) return; S = JSON.parse(undo.pop()); sel = null; draw(); }
+function touchUp(e) {
+  touches.delete(e.pointerId); if (!ts) return; if (ts.pinch) { if (!touches.size) ts = null; return; }
+  clearTimeout(ts.timer); const c = cellAt(e);
+  if (ui.op) finishOp(c);
+  else if (!ts.moved) { if (ui.clip) pasteClip(c); else if (ui.breakMode) { const p = rectPlan(c[0], c[1], c[0], c[1]); apply(p.remove, p.add); } else if (ui.sel && !ui.sel.locked) { const p = planFor(c, c); if (!p.bad) apply(p.remove, p.add); } else { ui.pinned = occ.get(K(...c)) ?? null; renderInfo(true); } }
+  ts = null;
+}
+const mob = (id, f) => (document.getElementById(id).onclick = f);
+mob("m-break", () => { ui.breakMode = !ui.breakMode; ui.schemMode = false; ui.sel = null; renderPanel(); syncMob(); });
+mob("m-schem", () => { ui.schemMode = !ui.schemMode; ui.breakMode = false; ui.sel = null; renderPanel(); syncMob(); });
+mob("m-rot", () => rotateSel(1));
+mob("m-cancel", () => { ui.sel = null; ui.clip = null; ui.breakMode = ui.schemMode = false; renderPanel(); syncMob(); drawGhost(); });
+mob("m-undo", () => doUndo());
+function syncMob() { document.getElementById("m-break").classList.toggle("on", ui.breakMode); document.getElementById("m-schem").classList.toggle("on", ui.schemMode); }
+
+// Clavier
+const held = new Set(), MOVE = new Set(["KeyW", "KeyA", "KeyS", "KeyD"]);
+let digits = [], lastDigit = 0;
+function doUndo() { if (!undo.length) return; redo.push(JSON.stringify(S)); S = JSON.parse(undo.pop()); ui.pinned = null; changed(); }
+function doRedo() { if (!redo.length) return; undo.push(JSON.stringify(S)); S = JSON.parse(redo.pop()); changed(); }
+function cancelAll() { ui.sel = null; ui.clip = null; ui.op = null; ui.pinned = null; renderPanel(); renderInfo(true); renderHint(); drawGhost(); }
 document.addEventListener("keydown", (e) => {
-  if (e.target.matches("input, select")) return;
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); doUndo(); return; }
-  const k = e.key.toLowerCase();
-  if (k === "r") rotateSel();
-  else if (k === "o") setTool("objet"); else if (k === "f") setTool("fluide"); else if (k === "e") setTool("gomme"); else if (k === "v") setTool("main");
-  else if (k === "escape") { carry = null; ghost.textContent = ""; document.getElementById("pan").classList.remove("open"); }
-  else if ((k === "delete" || k === "backspace") && sel) { snap(); S.machines = S.machines.filter((m) => m !== sel); sel = null; draw(); }
+  if (e.target.closest?.("input, select, textarea")) return;
+  if (/^Key/.test(e.code) && e.key.length === 1 && !e.ctrlKey && !e.altKey) LAB[e.code] = e.key.toUpperCase();
+  if (!dlg.hidden) { if (e.key === "Escape") dlg.hidden = true; return; }
+  if (e.ctrlKey || e.metaKey) { const k = e.key.toLowerCase(); if (k === "z" && !e.shiftKey) { e.preventDefault(); doUndo(); } else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); doRedo(); } ui.ctrl = true; drawGhost(); return; }
+  if (MOVE.has(e.code)) { held.add(e.code); return; }
+  if (e.code === "ShiftLeft" || e.code === "ShiftRight") { held.add("Shift"); return; }
+  if (/^Digit\d$/.test(e.code)) { // [tier, catégorie, bloc] tapés à moins de 400 ms d'écart (PlacementFragment)
+    const d = +e.code.slice(5), now = performance.now(); digits = now - lastDigit > 400 ? [d] : [...digits, d]; lastDigit = now;
+    const t = TIERS[(digits[0] || 10) - 1]; if (!t) return; setTier(t.t);
+    if (digits.length >= 2) { const c = CATS[(digits[1] || 10) - 1]; if (c && entriesFor(ui.tier, c.id).length) { ui.cat = c.id; renderPanel(); } }
+    if (digits.length >= 3) { const rest = digits.slice(2), n = rest.length === 1 ? rest[0] || 10 : rest[0] * 10 + rest[1]; const e2 = entriesFor(ui.tier, ui.cat)[n - 1]; if (e2) select(e2); }
+    return;
+  }
+  const list = entriesFor(ui.tier, ui.cat), i = list.indexOf(ui.sel?.e);
+  switch (e.code) {
+    case "KeyR": rotateSel(1); break;
+    case "KeyF": if (!e.repeat && !ui.op) { ui.op = { t: "schem", s: ui.cell }; drawGhost(); } break;
+    case "KeyZ": flipClip(true); break;
+    case "KeyX": flipClip(false); break;
+    case "KeyT": schematics(); break;
+    case "KeyQ": if (ui.sel?.e.fam) { const vs = VAR[ui.sel.e.fam]; select(ui.sel.e, vs[(vs.indexOf(ui.sel.v) + 1) % vs.length]); } else cancelAll(); break;
+    case "KeyL": ui.vec = !ui.vec; document.getElementById("b-vec").classList.toggle("on", ui.vec); drawAll(); break;
+    case "KeyC": document.body.classList.toggle("hidden-ui"); break;
+    case "KeyJ": window.open("/#arbre", "_blank"); break;
+    case "F1": e.preventDefault(); { const id = ui.sel?.v ?? (ui.hoverU != null ? byU.get(ui.hoverU).id : null); if (id) blockInfo(id); } break;
+    case "F6": e.preventDefault(); ui.status = !ui.status; drawAll(); break;
+    case "Escape": cancelAll(); break;
+    case "Delete": case "Backspace": if (ui.pinned != null) { const b = byU.get(ui.pinned); const cs = cellsOf(b); const p = rectPlan(...cs[0], ...cs.at(-1)); apply(p.remove, p.add); } break;
+    case "ArrowLeft": case "ArrowRight": case "ArrowUp": case "ArrowDown": { e.preventDefault(); if (!list.length) break; const st = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 }[e.code]; select(list[((i < 0 ? 0 : i + st) % list.length + list.length) % list.length]); break; }
+    case "Comma": case "Period": { const ne = CATS.filter((c) => entriesFor(ui.tier, c.id).length), j = ne.findIndex((c) => c.id === ui.cat); ui.cat = ne[(j + (e.code === "Period" ? 1 : ne.length - 1)) % ne.length].id; renderPanel(); break; }
+  }
+  renderHint();
 });
-// Infobulle : ce que transporte un tuyau (déduit de ce qui y est branché), son débit et sa limite.
-const tip = document.getElementById("tip");
-function tipAt(e, x, y) {
-  const k = key(x, y); const r = document.getElementById("view").getBoundingClientRect();
-  let t = "";
-  if (S.pipes[k] && R) {
-    const n = R.nets[R.netOf[k]];
-    t = `<b>Tuyau ${n.kind}</b><br>${n.items.length ? n.items.map(itemName).join(" + ") : "vide (rien n'y entre)"}<br>${fr(n.flow, 2)}/s sur ${n.cap}/s${n.over ? " — <b>saturé</b>" : ""}`;
-  } else { const f = portFacing(x, y); if (f) t = `Port ${f.p.d} ${f.p.t} de ${M[f.m.id].name}`; }
-  tip.style.display = t ? "block" : "none"; tip.innerHTML = t;
-  tip.style.left = e.clientX - r.left + 14 + "px"; tip.style.top = e.clientY - r.top + 14 + "px";
+document.addEventListener("keyup", (e) => {
+  held.delete(e.code); if (e.key === "Shift") held.delete("Shift");
+  if (e.key === "Control") { ui.ctrl = false; drawGhost(); }
+  if (e.code === "KeyF" && ui.op?.t === "schem") finishOp(ui.cell);
+});
+window.addEventListener("blur", () => held.clear());
+let lastT = performance.now();
+(function tick(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  const dx = held.has("KeyD") - held.has("KeyA"), dy = held.has("KeyS") - held.has("KeyW");
+  if (dx || dy) { const v = (held.has("Shift") ? 40 : 15) * dt; cam.x += dx * v; cam.y += dy * v; applyView(); }
+  requestAnimationFrame(tick);
+})(lastT);
+
+// ======================= Exemples =======================
+function example(n) {
+  snap(); S = { b: [], n: 1 }; reindex();
+  const put = (id, x, y, r, choice) => { S.b.push({ u: S.n++, id, x, y, r, choice }); reindex(); };
+  const pipe = (path, fam) => { const p = pipePlan(path, fam, Infinity); if (!p) return; const rm = new Set(p.remove); S.b = S.b.filter((b) => !rm.has(b.u)); p.add.forEach((a) => S.b.push({ ...a, u: S.n++ })); reindex(); };
+  const line = (x0, y0, x1, y1) => { const o = []; for (let x = x0, y = y0; ; ) { o.push([x, y]); if (x === x1 && y === y1) break; if (x !== x1) x += Math.sign(x1 - x); else y += Math.sign(y1 - y); } return o; };
+  if (n === 1) { put("press", 0, 0, 0, "press_02"); put("roller", 8, 0, 0, null); pipe(line(3, 2, 8, 2), "o1"); }
+  if (n === 2) { for (let i = 0; i < 5; i++) put("roller", i * 5, 0, 0, "roller_01"); pipe([[3, 2], ...line(3, 3, 27, 3)], "o1"); for (let i = 1; i < 5; i++) pipe([[i * 5 + 3, 2], [i * 5 + 3, 3]], "o1"); }
+  if (n === 3) { put("press", 0, 0, 0, "press_02"); put("roller", 24, 0, 0, null); pipe(line(3, 2, 24, 2), "o3"); pipe(line(12, -2, 12, 6), "f3"); }
+  changed(); fit();
 }
-// Exemple : une Press (lingots de fer, recette choisie) reliée à un Roller, qui en déduit sa recette seul.
-document.getElementById("t-ex").onclick = () => {
-  snap();
-  S = { machines: [{ uid: 1, id: "press", x: 2, y: 2, r: 0, choice: "press_02" }, { uid: 2, id: "roller", x: 10, y: 2, r: 0, choice: null }], pipes: {}, next: 3 };
-  const path = [[5, 4], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [10, 4]];
-  path.forEach(([x, y]) => S.pipes[key(x, y)] = { kind: "objet", links: [] });
-  for (let i = 1; i < path.length; i++) addLink(key(...path[i - 1]), key(...path[i]));
-  sel = null; draw();
-};
+function fit() { if (!S.b.length) return; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const b of S.b) for (const [x, y] of cellsOf(b)) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + 1); y1 = Math.max(y1, y + 1); } const r = svg.getBoundingClientRect(), L = r.width > 760 ? 300 : 0, fw = r.width - L - (r.width > 760 ? 390 : 0); cam.z = Math.max(8, Math.min(48, fw * 0.85 / (x1 - x0), r.height * 0.6 / (y1 - y0))); cam.x = (x0 + x1) / 2 - (L + fw / 2) / cam.z; cam.y = (y0 + y1) / 2 - r.height * 0.42 / cam.z; applyView(); } // centré entre les statistiques et le menu de pose
+document.getElementById("ex").onchange = (e) => { if (e.target.value) example(+e.target.value); e.target.value = ""; };
+document.getElementById("b-undo").onclick = doUndo;
+document.getElementById("b-redo").onclick = doRedo;
+document.getElementById("b-clear").onclick = () => { snap(); S = { b: [], n: S.n }; ui.pinned = null; changed(); };
+document.getElementById("b-vec").onclick = () => { ui.vec = !ui.vec; document.getElementById("b-vec").classList.toggle("on", ui.vec); drawAll(); };
 window.addEventListener("resize", applyView);
-panel(); applyView(); draw();
+renderPanel(); renderHint(); applyView(); changed();
 </script>
 </body>
 </html>
