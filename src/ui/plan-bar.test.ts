@@ -51,7 +51,7 @@ describe("barre « Ton plan »", () => {
     expect(html).not.toContain("data-mf-clear");
     const n = plan.verify.filter((e) => e.used).length;
     expect(n).toBeGreaterThan(0);
-    expect(t).toContain(`⚠ ${n} valeur${n > 1 ? "s" : ""} à vérifier`);
+    expect(t).toContain(`${n} valeur${n > 1 ? "s" : ""} à vérifier`);
     // Chaque ligne mène à sa correction, en mots de joueur (plus de « energyMFps »).
     expect(html).toContain('data-fix="recette|press_mk2_05|outputs.gear|gear"');
     expect(t).toContain("Gear (Press MK2) : sortie Gear — 20 (Miraheze) ou 10 (Fandom)");
@@ -123,7 +123,7 @@ describe("⚠ cliquables et barre du bloc", () => {
     expect(hud).toContain('data-mf-ban="press-mk2"');
     expect(hud).toContain('data-focus="gear"');
     expect(t).toContain("Voir le module dans l'usine");
-    expect(t).toContain("⚠ sortie Gear à vérifier : 20 (Miraheze) ou 10 (Fandom) — corriger ▸");
+    expect(t).toContain("sortie Gear à vérifier : 20 (Miraheze) ou 10 (Fandom) — corriger");
     // Objectif RP : rien à régler, l'ancien bouton du plan de pose reste.
     const rp = renderFlowHud({ ...v, goal: "recherche" }, "gear", () => "depot");
     expect(rp).not.toContain("Tu peux régler");

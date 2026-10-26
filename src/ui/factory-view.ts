@@ -12,6 +12,7 @@ import type { FactoryArrow } from "../engine/build/flow.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import type { PlacedPiece } from "../engine/build/module.ts";
 import { colon, esc, fmt, fmtMF, fmtMoney, semi } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 import { pieceRole, renderModuleInfo, renderModuleSvg } from "./module-view.ts";
 import type { UsineView } from "./state.ts";
@@ -58,7 +59,7 @@ function evacSvg(f: FactoryPlan, name: Name, color: Map<string, string>): string
       // La flèche s'arrête au bord de la case ; le nom se lit juste à côté, à l'intérieur du cadre.
       const [x1, y1] = [x0 + v.x * C * 0.5, y0 + v.y * C * 0.5];
       const [tx, ty, anchor] = v.y ? [x0 + 7, y0 - v.y * 2, "start"] : [x0 - v.x * 6, y0 - 7, v.x > 0 ? "end" : "start"];
-      s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${c}" stroke-width="2.6" marker-end="url(#uf)"/><text class="u-evac-t" x="${tx}" y="${ty}" text-anchor="${anchor}" fill="${c}">${esc(name(ev.item))} ↗</text>`;
+      s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${c}" stroke-width="2.6" marker-end="url(#uf)"/><text class="u-evac-t" x="${tx}" y="${ty}" text-anchor="${anchor}" fill="${c}">${esc(name(ev.item))}</text>`;
     }
     s += `</g>`;
   }
@@ -212,7 +213,7 @@ export function factoryFrameClasses(v: UsineView, full: boolean): Record<string,
 
 /** Bouton « Afficher les liaisons », bien en vue (vue de l'usine et vue d'un module). */
 export function linksButton(on: boolean): string {
-  return `<button type="button" class="u-links-btn" data-uopt="links" aria-pressed="${on}">⇄ ${t(on ? "uf.links.on" : "uf.links.off")}</button>`;
+  return `<button type="button" class="u-links-btn" data-uopt="links" aria-pressed="${on}">${icon("link")} ${t(on ? "uf.links.on" : "uf.links.off")}</button>`;
 }
 
 const radio = (opt: string, value: string, on: boolean, label: string, why: string) =>
@@ -329,7 +330,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
   const machines = missing
     .map(
       ({ box: b, reasons, survey }) =>
-        `<li><b>${esc(b.sub)}</b> <span class="muted">(${esc(b.label)})</span>${colon()}${esc(reasons.join(semi()))}.${b.mod ? ` <button type="button" class="link small" data-focus="${esc(b.key)}">${t("uf.seeModule")}</button>` : ""}${survey ? ` · <button type="button" class="link small" data-edit="${esc(b.machine)}">${esc(t("uf.record", { m: name(b.machine) }))}</button>` : ""}</li>`,
+        `<li><b>${esc(b.sub)}</b> <span class="muted">(${esc(b.label)})</span>${colon()}${esc(reasons.join(semi()))}.${b.mod ? ` <button type="button" class="link small" data-focus="${esc(b.key)}">${t("uf.seeModule")}</button>` : ""}${survey ? ` · <button type="button" class="link small" data-edit="${esc(b.machine)}">${withIcons(esc(t("uf.record", { m: name(b.machine) })))}</button>` : ""}</li>`,
     )
     .join("");
   const details = `<details class="more"><summary>${t("uf.d.links", { n: f.nets.length })}</summary><p class="hint">${t("uf.d.links.hint")}</p><div class="tablewrap"><table class="mini u-rows"><thead><tr><th>${t("uf.th.product")}</th><th>${t("uf.th.from")}</th><th>${t("uf.th.to")}</th><th>${t("uf.th.rate")}</th><th>${t("uf.th.cells")}</th><th>${t("uf.th.pipe")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>

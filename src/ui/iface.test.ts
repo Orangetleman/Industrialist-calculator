@@ -37,14 +37,14 @@ describe("le plan dit le réglage à faire", () => {
   it("liste de construction : 4 Industrial Plastic Molder, ⚙ levier sur « container »", () => {
     const row = buildRows(v).find((r) => r.machine === "Industrial Plastic Molder")!;
     expect(row.count).toBe(4);
-    expect(text(row.setting!)).toContain("⚙ levier sur « container »");
+    expect(text(row.setting!)).toContain("levier sur « container »");
     expect(renderBuildList(v, buildRows(v), new Set())).toContain('class="iset"');
     // Une machine sans interface n'a pas de pastille.
     expect(buildRows(v).find((r) => r.machine === "Craft Assembler")!.setting).toBeUndefined();
   });
   it("barre du bas et « Comment c'est calculé »", () => {
     const key = keyOf(v, "industrial-plastic-molder");
-    expect(text(renderFlowHud(v, key, () => "depot"))).toContain("⚙ levier sur « container »");
+    expect(text(renderFlowHud(v, key, () => "depot"))).toContain("levier sur « container »");
     const t = text(renderStepCalc(v, { data: v.data }, key));
     expect(t).toContain("Réglage de la machine");
     expect(t).toContain("levier (sur le côté de la machine) : « Levier » sur la position « container », celle de ce craft");

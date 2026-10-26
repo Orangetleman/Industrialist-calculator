@@ -25,7 +25,7 @@ export const arbreFr = {
   "rs.eta.n": " ({n} recherches, chacune dépense son coût)",
   "rs.eta.html": `≈ <b>{t} de jeu</b> à ton rythme{what}{straight}.`,
   "rs.eta.straight": "en ligne droite : ton seuil n'est pas saisi dans Ma recherche",
-  "rs.faster": "L'avoir plus vite ▸",
+  "rs.faster": "L'avoir plus vite {i:next}",
   "rs.start": "Acquise d'office dans un nouveau monde.",
   "rs.lock": "Marquer comme non débloquée{deps}",
   "rs.lock.deps": { one: " (+ {n} dépendante)", other: " (+ {n} dépendantes)" },

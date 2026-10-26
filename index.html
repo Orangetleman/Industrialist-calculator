@@ -44,11 +44,11 @@
       <a href="#contribuer" data-nav="donnees" data-i18n="nav.contribuer">Contribuer</a>
     </nav>
     <div class="me" id="me" aria-label="Mon usine en bref" data-i18n-attr="aria-label=header.me.aria"></div>
-    <button type="button" class="me-play" id="me-play" data-play="on" hidden>▶ Je joue</button>
+    <button type="button" class="me-play" id="me-play" data-play="on" hidden>Je joue</button>
     <!-- S30 : la langue (maquette S16, écran 1), avant la visite. -->
     <span class="lang-sw" id="lang-sw" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true" title="Français" lang="fr">FR</button><button type="button" data-lang="en" aria-pressed="false" title="English" lang="en">EN</button></span>
-    <!-- S35 : les remarques (maquettes public.html, écran 2, et remarques.html) ; au téléphone, 💬 seul. -->
-    <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog">💬 <span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
+    <!-- S35 : les remarques (maquettes public.html, écran 2, et remarques.html) ; au téléphone, l'icône seule. -->
+    <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
     <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
@@ -117,7 +117,7 @@
       <!-- commun -->
       <details class="criteria" id="criteria">
         <summary><span class="criteria-title" data-i18n="crit.title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit" data-i18n="crit.edit">changer l'ordre</span></summary>
-        <p class="hint" data-i18n="crit.help">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise ↑ ↓.</p>
+        <p class="hint" data-i18n="crit.help">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise les flèches.</p>
         <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre" data-i18n-attr="aria-label=crit.list.aria"></ol>
       </details>
       <details class="criteria mfilter" id="mfilter" data-goals="objet énergie argent">
@@ -173,7 +173,7 @@
         <div class="rs-zoom">
           <button type="button" data-fzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
           <button type="button" data-fzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
-          <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne" data-i18n-attr="aria-label=zoom.fit;title=zoom.fit.chain">⤢</button>
+          <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne" data-i18n-attr="aria-label=zoom.fit;title=zoom.fit.chain" data-ic="fit"></button>
         </div>
       </div>
       <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
@@ -195,8 +195,8 @@
           <div class="rs-zoom">
             <button type="button" data-pzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
             <button type="button" data-pzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
-            <button type="button" data-pzoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit">⤢</button>
-            <button type="button" data-pzoom="reset" aria-label="Vue de départ" data-i18n-attr="aria-label=zoom.reset">⌂</button>
+            <button type="button" data-pzoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit" data-ic="fit"></button>
+            <button type="button" data-pzoom="reset" aria-label="Vue de départ" data-i18n-attr="aria-label=zoom.reset" data-ic="home"></button>
           </div>
           <div class="u-busy" id="pose-busy" hidden></div>
           <div class="u-pick" id="pose-pick" hidden></div>
@@ -204,10 +204,10 @@
         </div>
         <aside class="pose-focus" id="pose-focus" aria-label="Module dans l'usine" data-i18n-attr="aria-label=route.module" hidden>
           <div class="focus-bar">
-            <button type="button" class="link" data-focus-back data-i18n="focus.back">← Retour à l'usine</button>
+            <button type="button" class="link" data-focus-back data-i18n="focus.back">Retour à l'usine</button>
             <span class="focus-title" id="focus-title"></span>
-            <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)" data-i18n-attr="title=focus.full">⛶</button>
-            <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer" data-i18n-attr="aria-label=focus.close;title=common.close">✕</button>
+            <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)" data-i18n-attr="title=focus.full;aria-label=focus.full" data-ic="full"></button>
+            <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer" data-i18n-attr="aria-label=focus.close;title=common.close" data-ic="close"></button>
           </div>
           <div id="focus-bar-opts"></div>
           <div class="flow-frame focus-frame" id="focus-frame" tabindex="0" aria-label="Module dans l'usine : glisser pour se déplacer, molette pour zoomer" data-i18n-attr="aria-label=focus.aria">
@@ -217,7 +217,7 @@
             <div class="rs-zoom">
               <button type="button" data-qzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
               <button type="button" data-qzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
-              <button type="button" data-qzoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit">⤢</button>
+              <button type="button" data-qzoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit" data-ic="fit"></button>
             </div>
           </div>
           <div class="focus-info">
@@ -235,7 +235,7 @@
         <summary><span data-i18n="pose.more">Plus d'options</span> <span class="hint" data-i18n="pose.more.hint">calcul, disposition des modules, tuyaux</span></summary>
         <div id="pose-more-usine"></div>
         <div class="pose-prio">
-          <span class="pose-prio-title"><span data-i18n="pose.prio">Disposition des modules</span> <span class="hint" data-i18n="pose.prio.hint">la première départage d'abord ; glisse une ligne ou utilise ↑ ↓ pour changer l'ordre</span></span>
+          <span class="pose-prio-title"><span data-i18n="pose.prio">Disposition des modules</span> <span class="hint" data-i18n="pose.prio.hint">la première départage d'abord ; glisse une ligne ou utilise les flèches pour changer l'ordre</span></span>
           <ol class="prio-list" id="pose-priority" aria-label="Disposition des modules : priorités, dans l'ordre" data-i18n-attr="aria-label=pose.prio.aria"></ol>
         </div>
         <label class="check-line"><input type="checkbox" id="pose-tier3"> <span data-i18n="pose.tier3">Seulement des tuyaux de tier III</span> <span class="hint" data-i18n="pose.tier3.hint">(plus rapides, plus chers)</span></label>
@@ -388,8 +388,8 @@
           <div class="rs-zoom">
             <button type="button" data-zoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
             <button type="button" data-zoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
-            <button type="button" data-zoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit">⤢</button>
-            <button type="button" data-zoom="reset" aria-label="Revenir au début" data-i18n-attr="aria-label=tr.zoom.reset">⌂</button>
+            <button type="button" data-zoom="fit" aria-label="Tout voir" data-i18n-attr="aria-label=zoom.fit" data-ic="fit"></button>
+            <button type="button" data-zoom="reset" aria-label="Revenir au début" data-i18n-attr="aria-label=tr.zoom.reset" data-ic="home"></button>
           </div>
           <!-- Comme en jeu : coût en bas à gauche, bouton « Research » en bas à droite. -->
           <div class="rs-hud">
@@ -410,7 +410,7 @@
   <!-- ====================================================== RECETTES (comme l'onglet « Recipes » du jeu) -->
   <section class="page" id="page-recettes" aria-labelledby="h-rc" hidden>
     <h1 id="h-rc" data-i18n="page.recettes">Recettes</h1>
-    <p class="lead" data-i18n="rcp.lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche. Une valeur fausse, un craft qui n'existe pas ou qui manque : « ✎ Corriger » sur la fiche (un ⚠ y mène directement).</p>
+    <p class="lead" data-i18n="rcp.lead">Tous les objets et toutes les machines, comme l'onglet « Recipes » du jeu. Clique un objet, une quantité ou une machine pour ouvrir sa fiche. Une valeur fausse, un craft qui n'existe pas ou qui manque : « Corriger » sur la fiche (une valeur à vérifier y mène directement).</p>
     <div class="rc-layout" id="rc-layout">
       <div class="rc-listcol">
         <div class="rc-search">
@@ -423,8 +423,8 @@
               <button type="button" data-rc-filter="machines" aria-pressed="false" data-i18n="rcp.machines">Machines</button>
             </div>
             <div class="tabs" role="group" aria-label="Présentation" data-i18n-attr="aria-label=rcp.layout">
-              <button type="button" data-rc-view="tuiles" aria-pressed="true" title="Tuiles, comme en jeu" data-i18n="rcp.tiles" data-i18n-attr="title=rcp.tiles.title">▦ Tuiles</button>
-              <button type="button" data-rc-view="lignes" aria-pressed="false" title="Lignes triables : nom, valeur, RP" data-i18n="rcp.rows" data-i18n-attr="title=rcp.rows.title">☰ Lignes</button>
+              <button type="button" data-rc-view="tuiles" aria-pressed="true" title="Tuiles, comme en jeu" data-i18n="rcp.tiles" data-i18n-attr="title=rcp.tiles.title">Tuiles</button>
+              <button type="button" data-rc-view="lignes" aria-pressed="false" title="Lignes triables : nom, valeur, RP" data-i18n="rcp.rows" data-i18n-attr="title=rcp.rows.title">Lignes</button>
             </div>
           </div>
           <div class="rc-viewbar">
@@ -434,7 +434,7 @@
                 <option value="valeur" data-i18n="rcp.sort.valeur">valeur ($)</option>
                 <option value="rp" data-i18n="rcp.sort.rp">RP rapportés</option>
               </select>
-              <button type="button" class="small" id="rc-dir" title="Inverser l'ordre" data-i18n-attr="title=rcp.dir">▲</button>
+              <button type="button" class="small" id="rc-dir" title="Inverser l'ordre" aria-label="Inverser l'ordre" data-i18n-attr="title=rcp.dir;aria-label=rcp.dir"></button>
             </label>
             <span class="rc-count" id="rc-count" role="status"></span>
           </div>
@@ -456,13 +456,13 @@
   <!-- S36 : page publique « Propositions » (maquettes public.html écran 3, tableau.html écran 5), hors du menu. -->
   <section class="page" id="page-propositions" aria-labelledby="h-pr" hidden>
     <h1 id="h-pr" data-i18n="page.propositions">Propositions des joueurs</h1>
-    <p class="lead" data-i18n="pr.lead">Les demandes envoyées par « 💬 Remarque » et publiées par l'auteur. Vote ▲ si tu le veux aussi, ▼ si ce n'est pas utile pour toi ; un 2ᵉ clic retire ton vote.</p>
+    <p class="lead" data-i18n="pr.lead">Les demandes envoyées par « Remarque » et publiées par l'auteur. Vote pour si tu le veux aussi, contre si ce n'est pas utile pour toi ; un 2ᵉ clic retire ton vote.</p>
     <div class="pr-tools">
       <label class="pr-q" for="pr-q"><span class="sr-only" data-i18n="pr.search">Chercher une proposition</span>
         <input id="pr-q" type="search" placeholder="Chercher une proposition…" autocomplete="off" data-i18n-attr="placeholder=pr.search.ph"></label>
       <select id="pr-state" aria-label="État" data-i18n-attr="aria-label=pr.state.aria"></select>
       <select id="pr-sort" aria-label="Tri" data-i18n-attr="aria-label=pr.sort.aria"></select>
-      <button type="button" data-pr="feedback" aria-haspopup="dialog" data-i18n="pr.feedback">💬 Proposer une idée</button>
+      <button type="button" data-pr="feedback" aria-haspopup="dialog" data-i18n="pr.feedback">Proposer une idée</button>
     </div>
     <div id="pr-list" class="pr-list"></div>
   </section>
@@ -493,7 +493,7 @@
         <div id="data-errors"></div>
         <div id="corrections"></div>
         <div class="row">
-          <button type="button" id="send-fixes" class="primary" aria-haspopup="dialog" data-i18n="rm.fix.send" hidden>📤 Envoyer mes corrections</button>
+          <button type="button" id="send-fixes" class="primary" aria-haspopup="dialog" data-i18n="rm.fix.send" hidden>Envoyer mes corrections</button>
           <button type="button" id="export" data-i18n="dn.export">Exporter mes corrections</button>
           <label class="button"><span data-i18n="us.import">Importer…</span><input type="file" id="import" accept="application/json,.json" hidden></label>
           <button type="button" id="clear-corrections" class="link" data-i18n="dn.clear">Tout effacer</button>
@@ -523,7 +523,7 @@
 <footer class="src">
   <p data-i18n-html="footer.who.html">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</p>
   <p data-i18n-html="footer.data.html">Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</p>
-  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">💬 Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a></p>
+  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a></p>
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>

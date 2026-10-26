@@ -104,7 +104,7 @@ describe("temps de jeu (S21)", () => {
 
   it("l'interrupteur dit l'état", () => {
     const j = start();
-    expect(renderPlay(j, t0)).toContain("▶ Je joue");
+    expect(renderPlay(j, t0)).toContain("</svg> Je joue");
     expect(renderPlay(setPlaying(j, true, t0), t0 + 72 * MIN)).toContain("En jeu depuis 1 h 12 min");
   });
 });

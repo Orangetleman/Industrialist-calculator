@@ -9,6 +9,7 @@ import type { VerifyFlag } from "../engine/types.ts";
 import { DEFAULT_DIESEL, type DieselChoice } from "./diesel.ts";
 import { lang, t, type Key } from "../i18n/i18n.ts";
 import { colon, doubtText, esc, fmt, fmtMF, semi } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { screenText } from "./iface-view.ts";
 import { filterSummary } from "./mfilter-view.ts";
 import { itemN, machineN, type Ctx } from "./render.ts";
@@ -45,7 +46,7 @@ export function stepWarnings(v: Pick<Ctx, "plan">, s: Pick<Step, "recipeId" | "m
 export function warnButton(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {
   if (!list.length) return "";
   const what = list.map((e) => `${fieldWord(v, e.flag.field)}${colon()}${doubtText(e.flag)}`).join(semi());
-  return `<button type="button" class="warn-btn" ${fixAttr(list[0]!)} title="${esc(t("warn.btn.title", { what }))}">⚠<span class="sr-only">${esc(t("warn.btn.sr", { what }))}</span></button>`;
+  return `<button type="button" class="warn-btn" ${fixAttr(list[0]!)} title="${esc(t("warn.btn.title", { what }))}">${icon("warn")}<span class="sr-only">${esc(t("warn.btn.sr", { what }))}</span></button>`;
 }
 
 /** « : » avec l'espace du français, « : » collé en anglais. */
@@ -55,7 +56,7 @@ export function warnChips(v: Pick<Ctx, "data">, list: VerifyEntry[]): string {
   return list
     .map((e) => {
       const whose = e.scope === "machine" ? t("warn.of", { m: machineN(v, e.id) }) : "";
-      return `<button type="button" class="warn-chip" ${fixAttr(e)}>${esc(t("warn.chip", { field: fieldWord(v, e.flag.field), whose, doubt: doubtText(e.flag) }))}</button>`;
+      return `<button type="button" class="warn-chip" ${fixAttr(e)}>${withIcons(esc(t("warn.chip", { field: fieldWord(v, e.flag.field), whose, doubt: doubtText(e.flag) })))}</button>`;
     })
     .join("");
 }
@@ -82,8 +83,8 @@ export type PlanBarInput = {
 type Chip = { label: string; open: string; title: string; set?: boolean; cancel?: { attr: string; title: string } };
 
 function chipHtml(c: Chip): string {
-  const x = c.cancel ? `<button type="button" class="pb-x" ${c.cancel.attr} aria-label="${esc(c.cancel.title)}" title="${esc(c.cancel.title)}">✕</button>` : "";
-  return `<span class="pb-chip${c.set ? " set" : ""}"><button type="button" class="pb-open" ${c.open} title="${esc(c.title)}">${esc(c.label)}</button>${x}</span>`;
+  const x = c.cancel ? `<button type="button" class="pb-x" ${c.cancel.attr} aria-label="${esc(c.cancel.title)}" title="${esc(c.cancel.title)}">${icon("close")}</button>` : "";
+  return `<span class="pb-chip${c.set ? " set" : ""}"><button type="button" class="pb-open" ${c.open} title="${esc(c.title)}">${withIcons(esc(c.label))}</button>${x}</span>`;
 }
 
 /** Nom court d'une étape : « Steel Ingot », « Énergie ». */
@@ -176,7 +177,7 @@ function verifyMenu(v: Pick<Ctx, "data" | "plan">): string {
     const s = v.plan.steps.find((x) => (e.scope === "recette" ? x.recipeId === e.id : x.machine === e.id && x.item === e.item));
     const who = s ? `${itemN(v, s.item === ENERGY || s.item === POLLUTION ? s.item : e.item)} (${machineN(v, s.machine)})` : e.scope === "machine" ? machineN(v, e.id) : itemN(v, e.item);
     const whose = e.scope === "machine" ? t("warn.of", { m: machineN(v, e.id) }) : "";
-    return `<li><button type="button" class="link" ${fixAttr(e)}><b>${esc(who)}</b>${colon()}${esc(fieldWord(v, e.flag.field))}${esc(whose)} — ${esc(doubtText(e.flag))} <span class="pb-go">${t("pb.fix")}</span></button></li>`;
+    return `<li><button type="button" class="link" ${fixAttr(e)}><b>${esc(who)}</b>${colon()}${esc(fieldWord(v, e.flag.field))}${esc(whose)} — ${esc(doubtText(e.flag))} <span class="pb-go">${withIcons(t("pb.fix"))}</span></button></li>`;
   });
-  return `<details class="pb-warn"><summary class="pb-chip warn">${t("pb.verify", { n: used.length })}</summary><div class="pb-menu"><p class="hint">${t("pb.verify.hint")}</p><ul>${rows.join("")}</ul></div></details>`;
+  return `<details class="pb-warn"><summary class="pb-chip warn">${withIcons(t("pb.verify", { n: used.length }))}</summary><div class="pb-menu"><p class="hint">${t("pb.verify.hint")}</p><ul>${rows.join("")}</ul></div></details>`;
 }

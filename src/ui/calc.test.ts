@@ -128,7 +128,7 @@ describe("source d'une valeur", () => {
     const ca = data.recipes.get("craft_assembler_05")!;
     expect(sourceTag(ca, "durationS")).toContain("relevé en jeu");
     expect(sourceTag(data.recipes.get("advanced_assembler_05")!, "durationS", "durée")).toMatch(/durée : wiki/);
-    expect(sourceTag(data.recipes.get("foundry_05")!, "outputs.iron-ingot")).toContain("⚠ à vérifier : Miraheze : 1200 ; Fandom : 1000");
+    expect(sourceTag(data.recipes.get("foundry_05")!, "outputs.iron-ingot")).toContain("</svg> à vérifier : Miraheze : 1200 ; Fandom : 1000");
   });
 });
 

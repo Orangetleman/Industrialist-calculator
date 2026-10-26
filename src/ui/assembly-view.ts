@@ -6,6 +6,7 @@
 import type { AsmBlock, DieselPlan, FarmSet } from "../engine/build/assembly.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import { esc, fmt, fmtMoney, fmtPct } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { txtHtml } from "./engine-text.ts";
 import type { Text } from "../engine/message.ts";
@@ -214,7 +215,7 @@ export type DieselInfoCtx = {
 
 /** Réglages à faire dans le panneau du contrôleur du moteur diesel (S18). */
 export function controllerPanel(airFuel: number, throttle: number, assumed: boolean): string {
-  return `<span class="iset" title="${esc(t("as.panel.title"))}">${esc(t("as.panel", { a: fmt(airFuel, 0), t: fmtPct(fmt(throttle, 0)), assumed: assumed ? t("as.assumed") : "" }))}</span>`;
+  return `<span class="iset" title="${esc(t("as.panel.title"))}">${withIcons(esc(t("as.panel", { a: fmt(airFuel, 0), t: fmtPct(fmt(throttle, 0)), assumed: assumed ? t("as.assumed") : "" })))}</span>`;
 }
 
 export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: string; legend: string; details: string } {
@@ -260,5 +261,5 @@ export function renderDieselInfo(p: DieselPlan, ctx: DieselInfoCtx): { head: str
 
 /** Bouton « Afficher les portées » de la ferme. */
 export function rangesButton(on: boolean): string {
-  return `<button type="button" class="u-links-btn" data-asm="ranges" aria-pressed="${on}">◯ ${t(on ? "as.ranges.on" : "as.ranges.off")}</button>`;
+  return `<button type="button" class="u-links-btn" data-asm="ranges" aria-pressed="${on}">${icon("range")} ${t(on ? "as.ranges.on" : "as.ranges.off")}</button>`;
 }

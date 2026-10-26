@@ -43,6 +43,7 @@ import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPl
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { applyStatic } from "../i18n/dom.ts";
 import { joinList, KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
 import {
@@ -861,7 +862,7 @@ function renderHeader(): void {
   const chips = [
     `<a class="me-chip" href="#usine" title="${esc(t("header.research.title"))}">${esc(t("header.research", { n: total, done: String(unlockedCount()), total: String(total) }))}</a>`,
     rp !== null
-      ? `<a class="me-chip" href="#usine/recherche" title="${esc(t("header.rp.title"))}">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? t("header.rp.over") : ""}` : ""}</a>`
+      ? `<a class="me-chip" href="#usine/recherche" title="${esc(t("header.rp.title"))}">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? withIcons(t("header.rp.over")) : ""}` : ""}</a>`
       : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="${esc(t("header.money.title"))}">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
@@ -872,7 +873,7 @@ function renderHeader(): void {
   play.hidden = rp === null;
   play.classList.toggle("on", on);
   play.dataset.play = on ? "off" : "on";
-  play.textContent = t(on ? "header.play.on" : "header.play.off");
+  play.innerHTML = withIcons(esc(t(on ? "header.play.on" : "header.play.off")));
   play.title = t(on ? "header.play.on.title" : "header.play.off.title");
   play.setAttribute("aria-label", t(on ? "header.play.on.aria" : "header.play.off.aria"));
 }
@@ -1355,7 +1356,7 @@ function renderPose(): void {
   const factoryLine = inFactory?.mod
     ? t("m.pose.inFactory.html", { turn: turnText(inFactory.rot) ? t("m.pose.inFactory.turn", { turn: turnText(inFactory.rot) }) : "", w: String(inFactory.w), h: String(inFactory.h), btn: `<button type="button" class="link" data-focus="${esc(poseStep)}">${t("m.pose.seeInFactory")}</button>` })
     : `<button type="button" class="link" data-focus="${esc(poseStep)}">${t("m.pose.seeFactory")}</button> <span class="muted">${t("m.pose.recalc", { bg: fullFactory()?.plan ? "" : t("m.pose.bg") })}</span>`;
-  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">${t("m.pose.toFlow")}</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))}${colon()}${surveyText} ✎</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
+  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">${t("m.pose.toFlow")}</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))}${colon()}${surveyText} ${icon("edit")}</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
   $("pose-bar").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t(settings.usine.links ? "m.pose.links.on" : "m.pose.links.off")}</span></div>`;
   $("pose-head").innerHTML = info.head + stepSettingLine(poseStep) + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
   $("pose-legend").innerHTML = info.legend;
@@ -1587,7 +1588,7 @@ setInterval(() => {
 }, 1000);
 
 /** S33 : pendant (ou après l'arrêt d') un calcul « recalculé pour l'usine entière », proposer le module par module. */
-const byModuleTip = () => (settings.usine.full ? `<div class="long-tip">⏱ ${t("m.f.tip")} <button type="button" class="small" data-usine="bymodule">${t("m.f.byModule")}</button></div>` : "");
+const byModuleTip = () => (settings.usine.full ? `<div class="long-tip">${icon("clock")} ${t("m.f.tip")} <button type="button" class="small" data-usine="bymodule">${t("m.f.byModule")}</button></div>` : "");
 
 /** Passages du collecteur central que toute l'usine (recalculée) a gardés pour cette étape (null : pas encore calculée). */
 function advisedPassages(step: string): string[] | null {
@@ -1621,7 +1622,7 @@ function renderFactory(): void {
     }
     const pct = Math.round(st.done * 100);
     // S33 : le temps écoulé hors de la zone annoncée (il change chaque seconde), « Arrêter » bien visible.
-    const progress = `<div class="progress" id="usine-progress"><span class="lbl" role="status" aria-live="polite">${esc(txt(st.label))}</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><span class="since hint">${esc(sinceText(st))}</span><button type="button" class="btn-stop" data-usine="cancel">${t("m.f.cancel")}</button></div>${byModuleTip()}`;
+    const progress = `<div class="progress" id="usine-progress"><span class="lbl" role="status" aria-live="polite">${esc(txt(st.label))}</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><span class="since hint">${esc(sinceText(st))}</span><button type="button" class="btn-stop" data-usine="cancel">${withIcons(t("m.f.cancel"))}</button></div>${byModuleTip()}`;
     const busy = $("pose-busy");
     if (keep && !st.error && !st.cancelled) {
       // L'avancement par-dessus l'ancien dessin ; le résumé reste en place jusqu'au nouveau.
@@ -1710,7 +1711,7 @@ function showFocus(key: string | null): void {
   $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t("m.focus.hint")}</span></div>`;
   // S26 : « Module posé ✓ » dans le panneau aussi (le même réglage que la liste sous l'usine).
   const posed = posedSet().has(key!);
-  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> ${t("m.focus.posed")}</label></p>` + out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">${t("m.focus.poseAlone")}</button> · <button type="button" class="link" data-flow="${esc(key!)}">${t("m.focus.toFlow")}</button></p>`;
+  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> ${withIcons(t("m.focus.posed"))}</label></p>` + out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">${t("m.focus.poseAlone")}</button> · <button type="button" class="link" data-flow="${esc(key!)}">${t("m.focus.toFlow")}</button></p>`;
   $("focus-legend").innerHTML = out.legend;
   $("focus-details").innerHTML = out.details;
   const frame = $("focus-frame");
@@ -1789,7 +1790,7 @@ function applySel(frame: HTMLElement, sel: string | null, pickId: string | null,
     const tipOf = clicked ?? frame.querySelector<SVGGElement>(`.m-pipe[data-item="${CSS.escape(id)}"]`)?.dataset.tip ?? "";
     text = tipOf.split("\n").filter((l) => l && !/^(Clique|Click)\b/.test(l)).join(" · ") || t("m.sel.links", { item: anyName(id) });
   }
-  if (pick) pick.innerHTML = `<span>${esc(text)}</span> <button type="button" class="link small" data-unsel>✕</button>`;
+  if (pick) pick.innerHTML = `<span>${esc(text)}</span> <button type="button" class="link small" data-unsel aria-label="${esc(t("common.close"))}" title="${esc(t("common.close"))}">${icon("close")}</button>`;
 }
 
 // ---------------------------------------------------------------- Mon usine
@@ -2201,8 +2202,9 @@ function renderRecettes(ctx?: RecipesCtx): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-filter]")) b.setAttribute("aria-pressed", String(b.dataset.rcFilter === rcPrefs.filter));
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rc-view]")) b.setAttribute("aria-pressed", String(b.dataset.rcView === rcPrefs.view));
   $<HTMLSelectElement>("rc-sort").value = rcPrefs.sort.key;
-  $("rc-dir").textContent = rcPrefs.sort.dir === "asc" ? "▲" : "▼";
+  $("rc-dir").innerHTML = icon(rcPrefs.sort.dir === "asc" ? "asc" : "desc");
   $("rc-dir").title = t(rcPrefs.sort.dir === "asc" ? "m.rc.asc" : "m.rc.desc");
+  $("rc-dir").setAttribute("aria-label", $("rc-dir").title);
   const n = Object.keys(myImages).length;
   $("rc-imgs").innerHTML = t("m.rc.imgs.html", {
     n: String(n),
@@ -4005,7 +4007,7 @@ async function recallPlaying(): Promise<void> {
   const bar = $("recall");
   bar.innerHTML = `<span>${t("recall.text.html", { away: esc(away) })}</span>
     <button type="button" class="small" data-recall="go">${esc(t("recall.go", { away }))}</button>
-    <button type="button" class="small" data-recall="stop" aria-label="${esc(t("recall.close"))}">✕</button>`;
+    <button type="button" class="small" data-recall="stop" aria-label="${esc(t("recall.close"))}" title="${esc(t("recall.close"))}">${icon("close")}</button>`;
   bar.hidden = false;
   const choice = await new Promise<string>((resolve) =>
     bar.addEventListener("click", function on(e) {

@@ -10,6 +10,7 @@ import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
 import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
 import { colon, esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, semi } from "./format.ts";
+import { icon, iconAt, withIcons } from "./icons.ts";
 import { joinList, t, type Key } from "../i18n/i18n.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, leafText, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
@@ -228,7 +229,7 @@ function tierButton(v: ViewCtx, tier: Plan["tiers"][number], long = false): stri
   const whole = Math.abs(tier.finalMachines - Math.round(tier.finalMachines)) < 1e-6;
   const final = v.goal === "objet" && whole ? ` data-final="${Math.round(tier.finalMachines)}"` : "";
   const label = long ? `${tierUnit(v, tier.ratePerMin)} · ${plural("ans.machines", tier.machines)} · ${fmtPct(fmt(tier.efficiency * 100, 0))}` : tierUnit(v, tier.ratePerMin);
-  return `<button type="button" class="chip tier${tier.exact ? " exact" : ""}" data-tier="${tier.ratePerMin}"${final}>${esc(label)}${tier.exact ? " ●" : ""}</button>`;
+  return `<button type="button" class="chip tier${tier.exact ? " exact" : ""}" data-tier="${tier.ratePerMin}"${final}>${esc(label)}${tier.exact ? ` ${icon("dot")}` : ""}</button>`;
 }
 
 /** Ce qui manque (recherches, machines à posséder), avec les boutons pour le cocher. */
@@ -250,7 +251,7 @@ function missingNotes(v: ViewCtx): string[] {
   }
   if (e.nodesToUnlock.length) {
     const time = e.rpMissing && e.secondsToRp !== null ? t("ans.unlock.time", { t: esc(fmtDuration(e.secondsToRp)) }) : e.rpMissing ? t("ans.unlock.missing", { rp: esc(fmtRP(e.rpMissing)) }) : "";
-    const sell = e.reqItems.length ? t("ans.unlock.sell", { list: e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? " ✓" : ""}`).join(", ") }) : "";
+    const sell = e.reqItems.length ? t("ans.unlock.sell", { list: e.reqItems.map((r) => `${r.amount} ${esc(itemN(v, r.item))}${r.done ? ` ${icon("check")}` : ""}`).join(", ") }) : "";
     const list = e.nodesToUnlock.map((n) => esc(nodeN(v, n))).join(" → ");
     out.push(`<li>${t("ans.unlock", { list, rp: esc(fmtRP(e.rpNeeded)), time, sell, btn: unlockButton(e.nodesToUnlock, t("ans.unlock.done")) })}</li>`);
   }
@@ -265,7 +266,7 @@ export function renderAnswer(v: ViewCtx): string {
   const stats = empty
     ? ""
     : `<div class="kpis">${kpis(v)
-        .map(([val, k, why]) => `<div class="kpi"${why ? ` title="${esc(why)}"` : ""}><b>${esc(val)}</b><span>${esc(k)}${why ? ` <abbr class="kpi-why" aria-label="${esc(why)}">ⓘ</abbr>` : ""}</span></div>`)
+        .map(([val, k, why]) => `<div class="kpi"${why ? ` title="${esc(why)}"` : ""}><b>${esc(val)}</b><span>${withIcons(esc(k))}${why ? ` <abbr class="kpi-why" aria-label="${esc(why)}">${icon("info")}</abbr>` : ""}</span></div>`)
         .join("")}</div>`;
   const plants = p.steps.filter((s) => s.item === ENERGY);
   const lines = [
@@ -570,7 +571,7 @@ export function renderEdgeHud(v: ViewCtx, e: { from: string; to: string; item: s
   const a = nodeText(v, e.from);
   const b = nodeText(v, e.to);
   const info = `<b>${esc(itemN(v, e.item))} · ${esc(flowLabel(e.perMin))}</b><span>${esc(t("pv.edge.fromTo", { a: a.text, b: b.text }))}${e.loop ? t("pv.edge.loop") : ""}</span>`;
-  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">${t("pv.edge.from")}</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">${t("pv.edge.to")}</button><button type="button" class="flow-hud-x" data-flow-close aria-label="${t("common.close")}">×</button></div></div>`;
+  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts"><button type="button" class="flow-hud-btn" data-flow="${esc(e.from)}">${withIcons(t("pv.edge.from"))}</button><button type="button" class="flow-hud-btn" data-flow="${esc(e.to)}">${withIcons(t("pv.edge.to"))}</button><button type="button" class="flow-hud-x" data-flow-close aria-label="${t("common.close")}" title="${t("common.close")}">${icon("close")}</button></div></div>`;
 }
 
 /** Barre du bas du schéma pour le bloc sélectionné : ce qu'il est, et où aller. */
@@ -606,20 +607,20 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   if (st && st.machine === "diesel-engine-controller" && v.diesel && planGoal) sets.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === st.recipeId) ?? null));
   // Filtre de machines (S9) : écarter la machine de ce plan, d'un clic.
   if (st && !st.parts && planGoal) {
-    sets.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="${esc(t("pv.ban.title", { m: machineN(v, st.machine) }))}">${esc(t("pv.ban", { m: machineN(v, st.machine) }))}</button>`);
+    sets.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="${esc(t("pv.ban.title", { m: machineN(v, st.machine) }))}">${withIcons(esc(t("pv.ban", { m: machineN(v, st.machine) })))}</button>`);
   }
   const acts: string[] = [];
   // Le module de cette étape, à sa place dans l'usine (S25) ; « Plan de pose seul » reste dans son panneau.
-  if (st && isPosable(st) && v.goal !== "recherche") acts.push(`<button type="button" class="flow-hud-btn primary" data-focus="${esc(key)}">${t("pv.focus")}</button>`);
-  else if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">${t("pv.pose.btn")}</button>`);
+  if (st && isPosable(st) && v.goal !== "recherche") acts.push(`<button type="button" class="flow-hud-btn primary" data-focus="${esc(key)}">${withIcons(t("pv.focus"))}</button>`);
+  else if (st && isPosable(st)) acts.push(`<button type="button" class="flow-hud-btn primary" data-pose="${esc(key)}">${withIcons(t("pv.pose.btn"))}</button>`);
   if (st && !st.parts) {
     const state = survey(st.machine);
     const label = t(state === "depot" ? "pv.survey.depot" : state === "local" ? "pv.survey.local" : "pv.survey.none");
-    acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="${esc(t("pv.edit.title", { m: machineN(v, st.machine) }))}">${esc(t("pv.edit", { label }))}</button>`);
+    acts.push(`<button type="button" class="flow-hud-btn" data-edit="${esc(st.machine)}" title="${esc(t("pv.edit.title", { m: machineN(v, st.machine) }))}">${withIcons(esc(t("pv.edit", { label })))}</button>`);
   }
   const noteRow = notes.filter(Boolean).join(" ");
   const setRow = sets.filter(Boolean).length ? `<div class="flow-hud-sets"><span class="flow-hud-k">${t("pv.sets")}</span>${sets.filter(Boolean).join("")}</div>` : "";
-  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="${t("common.close")}">×</button></div></div>${noteRow ? `<div class="flow-hud-notes">${noteRow}</div>` : ""}${setRow}`;
+  return `<div class="flow-hud-head"><div class="flow-hud-info">${info}</div><div class="flow-hud-acts">${acts.join("")}<button type="button" class="flow-hud-x" data-flow-close aria-label="${t("common.close")}" title="${t("common.close")}">${icon("close")}</button></div></div>${noteRow ? `<div class="flow-hud-notes">${noteRow}</div>` : ""}${setRow}`;
 }
 
 /**
@@ -708,7 +709,7 @@ export function renderFlow(v: ViewCtx): { svg: string; width: number; height: nu
     // Valeur à vérifier (S28) : un ⚠ cliquable qui ouvre la correction de la première.
     const doubts = st ? stepWarnings(v, st) : [];
     const warn = doubts.length
-      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(t("pv.flow.warn.aria", { name }))}"><title>${esc(t("pv.flow.warn.title", { list: doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(semi()) }))}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/><text x="${n.x + FW - 17}" y="${n.y + 45}" text-anchor="middle">⚠</text></g>`
+      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(t("pv.flow.warn.aria", { name }))}"><title>${esc(t("pv.flow.warn.title", { list: doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(semi()) }))}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/>${iconAt("warn", n.x + FW - 26, n.y + 31, 18)}</g>`
       : "";
     const fixTip = fx ? `${t("pv.flow.fixTip", { n: fx.machines })}${limit ? t("pv.flow.isLimit") : t("pv.flow.usedAt", { n: fx.machines, pct: pctText(fx.utilization, 1) })}` : "";
     s += `<g class="fn ${n.kind}${fx ? " fixed" : ""}${limit ? " limit" : ""}" data-key="${esc(n.id)}"><title>${esc(tip + fixTip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
@@ -743,7 +744,7 @@ function recipesBlock(v: ViewCtx): string {
   const p = v.plan;
   const rows = p.steps.map((s) => {
     const r = v.data.recipes.get(s.recipeId)!;
-    const flags = r.verify.length ? ` <a class="tag warn" href="${verifyHref("recette", r.id, r.verify[0]!.field)}" title="${esc(t("pv.rec.goFix"))}">${t("pv.rec.verify")}</a>` : "";
+    const flags = r.verify.length ? ` <a class="tag warn" href="${verifyHref("recette", r.id, r.verify[0]!.field)}" title="${esc(t("pv.rec.goFix"))}">${withIcons(t("pv.rec.verify"))}</a>` : "";
     const body = s.parts
       ? `${txtHtml(r.setupName ?? "")}${Object.keys(r.inputs).length ? esc(t("pv.rec.consumes", { list: Object.entries(r.inputs).map(([k, q]) => `${fmt(q ?? 0, 2)} ${itemN(v, k)}`).join(" + ") })) : ""}${r.setupNote ? `<br><span class="muted">${txtHtml(r.setupNote)}</span>` : ""}`
       : esc(recipeText(v, r, s.durationS));
@@ -782,7 +783,7 @@ export function renderDetails(v: ViewCtx): string {
       more(
         t("pv.d.tiers"),
         `<p class="chips">${p.tiers.filter((t) => !t.current).map((t) => tierButton(v, t, true)).join(" ")}</p>
-        <p class="hint">${t("pv.d.tiers.hint")}</p>`,
+        <p class="hint">${withIcons(t("pv.d.tiers.hint"))}</p>`,
       ),
     );
   }

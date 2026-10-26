@@ -6,6 +6,7 @@ import { isExtractor } from "../engine/machine-filter.ts";
 import type { Plan } from "../engine/solve.ts";
 import { t } from "../i18n/i18n.ts";
 import { esc } from "./format.ts";
+import { icon, type IconName } from "./icons.ts";
 import { machineN } from "./render.ts";
 import type { PlanMachines } from "./state.ts";
 
@@ -90,8 +91,8 @@ export function filterSummary(ctx: Data, pm: PlanMachines): string | null {
   return null;
 }
 
-const chip = (ctx: Data, id: string, attr: string, label: string, sign: string, off = false) =>
-  `<span class="chip mf${off ? " off" : ""}">${esc(machineN(ctx, id))} <button type="button" ${attr}="${esc(id)}" aria-label="${esc(label)}">${sign}</button></span>`;
+const chip = (ctx: Data, id: string, attr: string, label: string, sign: IconName, off = false) =>
+  `<span class="chip mf${off ? " off" : ""}">${esc(machineN(ctx, id))} <button type="button" ${attr}="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}">${icon(sign)}</button></span>`;
 
 /**
  * Le contenu du réglage ouvert : les machines choisies (la recherche est fixe dans la page), puis les
@@ -104,7 +105,7 @@ export function renderFilterBody(ctx: Data, pm: PlanMachines, plan: Plan): { chi
   }
   const none = `<span class="hint">${t("mf.none")}</span>`;
   if (pm.mode === "exclure") {
-    const chips = [...pm.exclure].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-allow", t("mf.unban", { m: machineN(ctx, id) }), "×")).join("");
+    const chips = [...pm.exclure].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-allow", t("mf.unban", { m: machineN(ctx, id) }), "close")).join("");
     const add = inPlan.filter((id) => !pm.exclure.includes(id));
     const more = [
       add.length ? `<div class="mf-row"><span class="hint">${t("mf.inPlan")}</span> ${add.map((id) => `<button type="button" class="chip add" data-mf-ban="${esc(id)}">+ ${esc(machineN(ctx, id))}</button>`).join("")}</div>` : "",
@@ -112,11 +113,11 @@ export function renderFilterBody(ctx: Data, pm: PlanMachines, plan: Plan): { chi
     ].join("");
     return { chips: chips || none, more, label: t("mf.excluded"), placeholder: t("mf.excluded.ph") };
   }
-  const chips = [...pm.seulement].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-ban", t("mf.remove", { m: machineN(ctx, id) }), "×")).join("");
+  const chips = [...pm.seulement].sort(byName(ctx)).map((id) => chip(ctx, id, "data-mf-ban", t("mf.remove", { m: machineN(ctx, id) }), "close")).join("");
   const ext = [...new Set([...inPlan.filter((id) => extractor(ctx, id)), ...pm.noExtraction])].sort(byName(ctx));
   const others = filterableMachines(ctx).filter((id) => extractor(ctx, id) && !ext.includes(id)).length;
   const extChips = ext
-    .map((id) => (pm.noExtraction.includes(id) ? chip(ctx, id, "data-mf-allow", t("mf.allow", { m: machineN(ctx, id) }), "↺", true) : chip(ctx, id, "data-mf-ban", t("mf.ban", { m: machineN(ctx, id) }), "×")))
+    .map((id) => (pm.noExtraction.includes(id) ? chip(ctx, id, "data-mf-allow", t("mf.allow", { m: machineN(ctx, id) }), "reset", true) : chip(ctx, id, "data-mf-ban", t("mf.ban", { m: machineN(ctx, id) }), "close")))
     .join("");
   const rest = ext.length ? (others === 1 ? t("mf.ext.others1") : t("mf.ext.others", { n: others })) : t("mf.ext.all", { n: others });
   const more = [

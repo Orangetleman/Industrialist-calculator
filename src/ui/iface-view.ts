@@ -5,6 +5,7 @@
 import type { MachineInterface } from "../engine/extension-types.ts";
 import { choicesFor, choiceText, factorsFor, type Interfaces, type MachineSettings, numberSettings, settingValue } from "../engine/interfaces.ts";
 import { esc, fmt, parseNum } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 import { txt } from "./engine-text.ts";
 
@@ -37,8 +38,8 @@ export function settingLines(ifaces: Interfaces | undefined, values: MachineSett
 export function settingChips(lines: SettingLine[], prefix = ""): string {
   return lines
     .map((l) => {
-      const title = [l.once ? t("if.once") : "", l.doubt ? `⚠ ${l.doubt}` : "", t(l.screen ? "if.typed" : "if.forRecipe")].filter(Boolean).join(" ");
-      return `<span class="iset${l.once ? " once" : ""}" title="${esc(title)}">⚙ ${esc(prefix)}${esc(l.text)}${l.doubt ? " ⚠" : ""}</span>`;
+      const title = [l.once ? t("if.once") : "", l.doubt ?? "", t(l.screen ? "if.typed" : "if.forRecipe")].filter(Boolean).join(" ");
+      return `<span class="iset${l.once ? " once" : ""}" title="${esc(title)}">${icon("config")} ${esc(prefix)}${esc(l.text)}${l.doubt ? ` ${icon("warn")}` : ""}</span>`;
     })
     .join(" ");
 }
@@ -55,7 +56,7 @@ export function renderScreenInputs(i: MachineInterface | undefined, machine: str
     .map((s) => `${esc(txt(s.name))} × <input type="text" inputmode="decimal" data-iset-input data-machine="${esc(machine)}" data-setting="${esc(s.id)}" value="${esc(factorText(settingValue(s, values)))}" aria-label="${esc(`${txt(s.name)} (${machineName})`)}" title="${esc(txt(s.note ?? ""))}">`)
     .join(" ");
   const title = t("if.screen.title", { m: machineName });
-  return `<span class="mset${changed ? " on" : ""}" title="${esc(title)}">${t("if.screen.label")} ${fields}</span>${changed ? `<button type="button" class="flow-hud-btn" data-iset-reset="${esc(machine)}" title="${esc(t("if.reset.title"))}">↺ 1×</button>` : ""}`;
+  return `<span class="mset${changed ? " on" : ""}" title="${esc(title)}">${withIcons(t("if.screen.label"))} ${fields}</span>${changed ? `<button type="button" class="flow-hud-btn" data-iset-reset="${esc(machine)}" title="${esc(t("if.reset.title"))}">${icon("reset")} 1×</button>` : ""}`;
 }
 
 /** Lit un nombre tapé (« 1,67 » ou « 1.67 » en français) ; null si vide ou invalide. */

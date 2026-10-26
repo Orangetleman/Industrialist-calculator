@@ -8,6 +8,7 @@
 import { gameNow, readingGap, realTimeAt, removable, evalPiece, type Mark, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { TIERS, nominalRate, rateAt, type ResearchSetup } from "../engine/research-balance.ts";
 import { esc, fmt, fmtDate, fmtDuration, fmtPct, fmtShort, semi } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 
 const H = 3_600_000;
@@ -85,8 +86,8 @@ export function renderPlay(j: RpJournal, now: number): string {
   const since = fmtDuration((now - c.since) / 1000);
   const total = fmtDuration(gameNow(c, now) / 1000);
   return c.playing
-    ? `<div class="play on"><span class="state">${esc(t("rh.on", { t: since }))}</span><span class="hint">${esc(t("rh.on.hint", { t: total }))}</span><button type="button" data-play="off">${t("rh.stop")}</button></div>`
-    : `<div class="play off"><span class="state">${esc(t("rh.off", { since: j.events.some((e) => e.type === "session") ? t("rh.off.since", { t: since }) : "" }))}</span><span class="hint">${t("rh.off.hint")}</span><button type="button" data-play="on">${t("rh.start")}</button></div>`;
+    ? `<div class="play on"><span class="state">${esc(t("rh.on", { t: since }))}</span><span class="hint">${esc(t("rh.on.hint", { t: total }))}</span><button type="button" data-play="off">${withIcons(t("rh.stop"))}</button></div>`
+    : `<div class="play off"><span class="state">${esc(t("rh.off", { since: j.events.some((e) => e.type === "session") ? t("rh.off.since", { t: since }) : "" }))}</span><span class="hint">${t("rh.off.hint")}</span><button type="button" data-play="on">${withIcons(t("rh.start"))}</button></div>`;
 }
 
 // ---------------------------------------------------------------- graphiques
@@ -259,7 +260,7 @@ export function tipAt(h: RpHistory, j: RpJournal, g: number, gNow: number, tol: 
     );
   }
   h.marks.forEach((mk, i) => {
-    if (Math.abs(mk.g - g) <= tol) rows.push(`<div><b>${mk.type === "config" ? "⚙" : "$"}${i + 1}</b> ${esc(describeMark(mk, names))}</div>`);
+    if (Math.abs(mk.g - g) <= tol) rows.push(`<div><b>${mk.type === "config" ? icon("config") : "$"}${i + 1}</b> ${esc(describeMark(mk, names))}</div>`);
   });
   for (const r of h.reconnects) if (Math.abs(r.g - g) <= tol) rows.push(`<div class="t">${esc(t("rh.recon", { t: fmtDuration((r.onAt - r.offAt) / 1000), at: clock(r.onAt) }))}</div>`);
   return rows.join("");
@@ -277,7 +278,7 @@ export function renderHistory(h: RpHistory, j: RpJournal, gNow: number, period: 
     <span><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" class="lg-pred future"/></svg>${t("rh.lg.forecast")}</span>
     <span><svg width="10" height="10"><circle cx="5" cy="5" r="4" class="lg-meas"/></svg>${t("rh.lg.reading")}</span>
     <span><svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" class="lg-cap"/></svg>${t("rh.lg.cap")}</span>
-    <span><svg width="14" height="14"><circle cx="7" cy="7" r="6" class="lg-flag"/></svg>${t("rh.lg.config")}</span>
+    <span><svg width="14" height="14"><circle cx="7" cy="7" r="6" class="lg-flag"/></svg>${withIcons(t("rh.lg.config"))}</span>
     <span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" class="lg-flag"/></svg>${t("rh.lg.spend")}</span>
     <span><svg width="10" height="8"><path d="M5 0 L10 8 L0 8 Z" class="lg-recon"/></svg>${t("rh.lg.recon")}</span></div>`;
   return `<div class="rh-bar"><div class="seg" role="radiogroup" aria-label="${esc(t("rh.period"))}">${PERIODS.map(
@@ -305,17 +306,17 @@ export function renderJournal(h: RpHistory, j: RpJournal, gNow: number, names: N
         if (gp) gap = `${sgn(gp.rp, 0)} RP (${fmtPct(sgn(gp.pct, 1))})`;
       } else if (e.type === "config") {
         const mk = markN.get(i);
-        what = mk ? `⚙${mk.n} ${describeMark(mk.m, names)}` : t("rh.ev.startConfig");
+        what = mk ? `{i:config}${mk.n} ${describeMark(mk.m, names)}` : t("rh.ev.startConfig");
       } else if (e.type === "depense") {
         const mk = markN.get(i);
         what = mk ? `$${mk.n} ${describeMark(mk.m, names)}` : t("rh.ev.spend");
       } else what = t(e.on ? "rh.start" : "rh.stop");
-      const del = removable(j, i) ? `<button type="button" class="small" data-rh-del="${i}" title="${esc(t("rh.del.title"))}" aria-label="${esc(t("rh.del"))}">✕</button>` : "";
-      return `<tr><td class="num">${esc(relGame(e.g, gNow))}</td><td class="num">${esc(clock(e.at))}</td><td>${esc(what)}</td><td class="num">${esc(gap)}</td><td>${del}</td></tr>`;
+      const del = removable(j, i) ? `<button type="button" class="small" data-rh-del="${i}" title="${esc(t("rh.del.title"))}" aria-label="${esc(t("rh.del"))}">${icon("close")}</button>` : "";
+      return `<tr><td class="num">${esc(relGame(e.g, gNow))}</td><td class="num">${esc(clock(e.at))}</td><td>${withIcons(esc(what))}</td><td class="num">${esc(gap)}</td><td>${del}</td></tr>`;
     })
     .reverse();
   return `<div class="tw"><table class="rh-log"><thead><tr><th>${t("rh.th.game")}</th><th>${t("rh.th.real")}</th><th>${t("rh.th.event")}</th><th>${t("rh.th.gap")}</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
-    <p class="hint">${t("rh.log.hint")}</p>`;
+    <p class="hint">${withIcons(t("rh.log.hint"))}</p>`;
 }
 
 // ---------------------------------------------------------------- survol (DOM)

@@ -11,6 +11,7 @@
 import type { GameData } from "../engine/data.ts";
 import type { AddedRecipe, Correction, OverridesFile, Recipe, Source, VerifyFlag } from "../engine/types.ts";
 import { colon, doubtText, energyInputText, esc, fieldLabel, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPollution, parseEnergy, parseNum } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 import { txt } from "./engine-text.ts";
 
@@ -185,15 +186,15 @@ function flagMark(e: Flagged, scope: FixScope, id: string, field: string): strin
   if (c) {
     const before = typeof c.previous === "number" ? (field === "energyMFps" ? fmtMF(c.previous) : field === "durationS" ? `${fmt(c.previous, 2)} s` : fmt(c.previous, 3)) : String(c.previous ?? "—");
     const tip = t("rc.fixed", { src: c.source.wiki === "jeu" ? t("rc.src.game") : c.source.wiki, date: c.source.fetchedAt.slice(0, 10), before });
-    return ` <span class="rc-flag rc-fixed" title="${esc(tip)}">✎<span class="sr-only"> ${esc(tip)}</span></span>`;
+    return ` <span class="rc-flag rc-fixed" title="${esc(tip)}">${icon("edit")}<span class="sr-only"> ${esc(tip)}</span></span>`;
   }
   const f = e.verify.find((x) => x.field === field);
   if (!f) return "";
   // S29 : le doute en mots de joueur, avec ses unités (« 4 kMF/s (Miraheze) ou 3,5 kMF/s (Fandom) »).
   const d = doubtText(f);
-  if (fixableHere(scope, field)) return ` <button type="button" class="rc-flag warn" data-rc-focus="${esc(fixKey(scope, id, field))}" title="${esc(t("rc.verify.title", { d }))}">⚠<span class="sr-only">${esc(t("rc.verify.sr", { d }))}</span></button>`;
-  if (scope === "items") return ` <span class="rc-flag warn">⚠ <small>${esc(d)}</small></span>`;
-  return ` <a class="rc-flag warn" href="${verifyHref(scope === "recipes" ? "recette" : "machine", id, field)}" title="${esc(t("rc.verify.title", { d }))}">⚠<span class="sr-only">${esc(t("rc.verify.sr", { d }))}</span></a>`;
+  if (fixableHere(scope, field)) return ` <button type="button" class="rc-flag warn" data-rc-focus="${esc(fixKey(scope, id, field))}" title="${esc(t("rc.verify.title", { d }))}">${icon("warn")}<span class="sr-only">${esc(t("rc.verify.sr", { d }))}</span></button>`;
+  if (scope === "items") return ` <span class="rc-flag warn">${icon("warn")} <small>${esc(d)}</small></span>`;
+  return ` <a class="rc-flag warn" href="${verifyHref(scope === "recipes" ? "recette" : "machine", id, field)}" title="${esc(t("rc.verify.title", { d }))}">${icon("warn")}<span class="sr-only">${esc(t("rc.verify.sr", { d }))}</span></a>`;
 }
 
 /** Doute du wiki sur une valeur, montré à côté de sa case en mode correction. */
@@ -203,7 +204,7 @@ function doubt(e: Flagged, field: string): string {
   const d = doubtText(f);
   const show = (x: unknown) => (typeof x === "number" ? (field === "energyMFps" ? fmtMF(x) : fmt(x, 3)) : String(x));
   const alts = f.alternatives?.length && d === txt(f.detail) ? esc(t("rc.alts", { list: f.alternatives.map((a) => show(a.value)).join(", ") })) : "";
-  return `<span class="rc-doubt">⚠ ${esc(d)}${alts}</span>`;
+  return `<span class="rc-doubt">${icon("warn")} ${esc(d)}${alts}</span>`;
 }
 
 /** Case d'une valeur en mode correction : enregistrée quand on la quitte ; « annuler ma correction » si elle est à moi. */
@@ -248,15 +249,15 @@ export function renderCraft(ctx: RecipesCtx, r: Recipe, showMachine = true): str
   const acts = !ctx.edit
     ? ""
     : ctx.mine?.added?.recipes?.[r.id]
-      ? `<div class="rc-acts"><button type="button" class="small" data-rc-edit-added="${esc(r.id)}">${t("rc.edit")}</button><button type="button" class="small" data-rc-del-added="${esc(r.id)}">${t("rc.delAdded")}</button></div>`
-      : `<div class="rc-acts">${setup ? "" : `<button type="button" class="small" data-rc-edit="${esc(r.id)}">${t("rc.edit")}</button>`}<button type="button" class="small" data-rc-remove="${esc(r.id)}">${t("rc.remove")}</button></div>`;
+      ? `<div class="rc-acts"><button type="button" class="small" data-rc-edit-added="${esc(r.id)}">${withIcons(t("rc.edit"))}</button><button type="button" class="small" data-rc-del-added="${esc(r.id)}">${t("rc.delAdded")}</button></div>`
+      : `<div class="rc-acts">${setup ? "" : `<button type="button" class="small" data-rc-edit="${esc(r.id)}">${withIcons(t("rc.edit"))}</button>`}<button type="button" class="small" data-rc-remove="${esc(r.id)}">${withIcons(t("rc.remove"))}</button></div>`;
   return `<li class="rc-craft${lock ? " locked" : ""}${ctx.highlight === r.id ? " on" : ""}" data-rc-craft="${esc(r.id)}">
   <div class="rc-side">${side(ctx, r, "inputs")}</div>
   <div class="rc-arrow"><span>${esc(top)}${setup ? "" : flagMark(r, "recipes", r.id, "durationS")}</span><svg viewBox="0 0 60 10" aria-hidden="true"><path d="M0 5H54M48 1l6 4-6 4"/></svg><span class="${e !== null && e < 0 ? "ok" : ""}">${esc(bottom)}${flagMark(r, "recipes", r.id, "energyMFps")}</span></div>
   <div class="rc-side">${side(ctx, r, "outputs")}</div>
   ${showMachine ? `<a class="rc-mach" href="${recipeHref("machine", r.machine)}">(${esc(mname)})</a>${flagMark(r, "recipes", r.id, "machine")}` : setup ? `<span class="rc-mach muted">(${esc(setup)})</span>` : ""}${tag}
   ${acts}
-  ${lock ? `<span class="rc-lock" title="${esc(t("rc.lock.title", { r: lock }))}">${esc(t("rc.lock", { r: lock }))}</span>` : ""}
+  ${lock ? `<span class="rc-lock" title="${esc(t("rc.lock.title", { r: lock }))}">${withIcons(esc(t("rc.lock", { r: lock })))}</span>` : ""}
 </li>`;
 }
 
@@ -277,7 +278,7 @@ function renderCraftEdit(ctx: RecipesCtx, r: Recipe): string {
       })
       .join(`<span class="rc-plus" aria-hidden="true">+</span>`);
   };
-  const doubts = r.verify.map((f) => `<span class="rc-doubt">⚠ ${esc(fieldLabel(f.field, (id) => ctx.data.items.get(id)?.name ?? id))}${colon()}${esc(doubtText(f))}</span>`).join("");
+  const doubts = r.verify.map((f) => `<span class="rc-doubt">${icon("warn")} ${esc(fieldLabel(f.field, (id) => ctx.data.items.get(id)?.name ?? id))}${colon()}${esc(doubtText(f))}</span>`).join("");
   const options = craftMachines(ctx.data)
     .map((m) => `<option value="${esc(m.id)}"${m.id === r.machine ? " selected" : ""}>${esc(m.name)}</option>`)
     .join("");
@@ -302,7 +303,7 @@ function renderRemoved(ctx: RecipesCtx, r: Recipe, source: Source, showMachine: 
       .join(" + ") || t("rc.nothing");
   return `<li class="rc-craft removed" data-rc-craft="${esc(r.id)}">
   <span class="rc-strike">${esc(qty("inputs"))} → ${esc(qty("outputs"))}, ${esc(duration(r.durationS))}${showMachine ? ` (${esc(m?.name ?? r.machine)})` : ""}</span>
-  <div class="rc-acts"><span class="rc-tag del">${esc(t("rc.removed.on", { date: source.fetchedAt.slice(0, 10) }))}</span>${mine ? `<button type="button" class="small" data-rc-restore="${esc(r.id)}">${t("rc.restore")}</button>` : `<span class="hint">${t("rc.removedBySite")}</span>`}</div>
+  <div class="rc-acts"><span class="rc-tag del">${esc(t("rc.removed.on", { date: source.fetchedAt.slice(0, 10) }))}</span>${mine ? `<button type="button" class="small" data-rc-restore="${esc(r.id)}">${withIcons(t("rc.restore"))}</button>` : `<span class="hint">${t("rc.removedBySite")}</span>`}</div>
 </li>`;
 }
 
@@ -443,7 +444,7 @@ export function parseDraft(data: GameData, d: CraftDraft): { ok: true; recipe: O
 
 function draftLines(d: CraftDraft, which: "inputs" | "outputs"): string {
   const lines = d[which].map(
-    (l, i) => `<div class="rc-line" data-side="${which}"><input class="it" name="item" list="rc-dl-items" value="${esc(l.item)}" aria-label="${esc(t(which === "inputs" ? "rc.line.in" : "rc.line.out"))}" placeholder="${esc(t("rc.line.ph"))}" autocomplete="off"><input class="qty" name="qty" value="${esc(l.qty)}" inputmode="decimal" aria-label="${esc(t("rc.qty"))}"><button type="button" class="small link" data-rc-line-del="${which}|${i}" title="${esc(t("rc.line.del"))}">✕</button></div>`,
+    (l, i) => `<div class="rc-line" data-side="${which}"><input class="it" name="item" list="rc-dl-items" value="${esc(l.item)}" aria-label="${esc(t(which === "inputs" ? "rc.line.in" : "rc.line.out"))}" placeholder="${esc(t("rc.line.ph"))}" autocomplete="off"><input class="qty" name="qty" value="${esc(l.qty)}" inputmode="decimal" aria-label="${esc(t("rc.qty"))}"><button type="button" class="small link" data-rc-line-del="${which}|${i}" title="${esc(t("rc.line.del"))}" aria-label="${esc(t("rc.line.del"))}">${icon("close")}</button></div>`,
   );
   return `<div class="rc-lines">${lines.join("")}<div class="rc-line"><button type="button" class="small" data-rc-line-add="${which}">${t(which === "inputs" ? "rc.line.addIn" : "rc.line.addOut")}</button></div></div>`;
 }
@@ -510,22 +511,22 @@ export function parseItemForm(data: GameData, f: { name: string; fluid: string; 
 function sourceLine(sources: { wiki: string; url?: string; fetchedAt: string }[], picture: Picture | null): string {
   const s = sources.find((x) => x.url) ?? sources[0];
   const label = !s ? "" : s.wiki === "miraheze" ? t("rc.src.miraheze") : s.wiki === "fandom" ? t("rc.src.fandom") : s.wiki === "jeu" ? t("rc.src.game") : s.wiki;
-  const data = s ? t("rc.source", { src: s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(label)} ↗</a>` : esc(label), date: esc(s.fetchedAt.slice(0, 10)) }) : "";
-  const img = picture?.credit ? t("rc.image", { link: `<a href="${esc(picture.credit.url)}" target="_blank" rel="noopener">${esc(picture.credit.label)} ↗</a>` }) : picture?.own ? t("rc.image.own") : "";
+  const data = s ? t("rc.source", { src: s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(label)} ${icon("ext")}</a>` : esc(label), date: esc(s.fetchedAt.slice(0, 10)) }) : "";
+  const img = picture?.credit ? t("rc.image", { link: `<a href="${esc(picture.credit.url)}" target="_blank" rel="noopener">${esc(picture.credit.label)} ${icon("ext")}</a>` }) : picture?.own ? t("rc.image.own") : "";
   return data || img ? `<p class="hint rc-src">${data}${img}</p>` : "";
 }
 
 function tools(ctx: RecipesCtx, kind: EntryKind, id: string, picture: Picture | null): string {
   const own = picture?.own === true;
-  const fix = ctx.edit ? "" : `<button type="button" class="small primary" data-rc-edit-on>${t("rc.fix")}</button>`;
-  return `<div class="rc-tools"><button type="button" class="small" data-rc-img="${kind}|${esc(id)}">🖼 ${t(picture ? "rc.img.change" : "rc.img.add")}</button>${own ? `<button type="button" class="small link" data-rc-img-del="${kind}|${esc(id)}">${t(picture?.fallback ? "rc.img.wiki" : "rc.img.del")}</button>` : ""}${fix}</div>`;
+  const fix = ctx.edit ? "" : `<button type="button" class="small primary" data-rc-edit-on>${withIcons(t("rc.fix"))}</button>`;
+  return `<div class="rc-tools"><button type="button" class="small" data-rc-img="${kind}|${esc(id)}">${icon("image")} ${t(picture ? "rc.img.change" : "rc.img.add")}</button>${own ? `<button type="button" class="small link" data-rc-img-del="${kind}|${esc(id)}">${t(picture?.fallback ? "rc.img.wiki" : "rc.img.del")}</button>` : ""}${fix}</div>`;
 }
 
 /** Bandeau du mode correction. */
 function editBar(ctx: RecipesCtx): string {
   if (!ctx.edit) return "";
-  const send = ctx.fixCount ? `<button type="button" class="small" data-rc-send aria-haspopup="dialog">${t("rm.fix.sendN", { n: ctx.fixCount })}</button>` : "";
-  return `<div class="rc-editbar"><span>${t("rc.editbar.html")}</span>${send}<button type="button" class="small" data-rc-edit-off>${t("rc.done")}</button></div>`;
+  const send = ctx.fixCount ? `<button type="button" class="small" data-rc-send aria-haspopup="dialog">${withIcons(t("rm.fix.sendN", { n: ctx.fixCount }))}</button>` : "";
+  return `<div class="rc-editbar"><span>${t("rc.editbar.html")}</span>${send}<button type="button" class="small" data-rc-edit-off>${withIcons(t("rc.done"))}</button></div>`;
 }
 
 /** Étiquette d'un objet ajouté par le joueur, et de quoi l'effacer si l'ajout est à moi. */
@@ -614,7 +615,7 @@ export function renderMachineCard(ctx: RecipesCtx, id: string): string {
       <h2 id="rc-title">${esc(m.name)}</h2>
       ${price}
       ${facts.length ? `<p class="rc-facts">${facts.join(" · ")}</p>` : ""}
-      ${others.length ? `<p class="rc-facts">${t("rc.alsoVerify", { list: others.map((f) => `<a class="rc-flag warn" href="${verifyHref("machine", id, f.field)}" title="${esc(txt(f.detail))}">⚠ ${esc(fieldLabel(f.field, (x) => ctx.data.items.get(x)?.name ?? x))}</a>`).join(", ") })}</p>` : ""}
+      ${others.length ? `<p class="rc-facts">${t("rc.alsoVerify", { list: others.map((f) => `<a class="rc-flag warn" href="${verifyHref("machine", id, f.field)}" title="${esc(txt(f.detail))}">${icon("warn")} ${esc(fieldLabel(f.field, (x) => ctx.data.items.get(x)?.name ?? x))}</a>`).join(", ") })}</p>` : ""}
       ${ctx.edit ? `<p class="hint">${t("rc.machine.hint.html", { id: encodeURIComponent(id) })}</p>` : ""}
     </div>
     ${tools(ctx, "machine", id, picture)}
@@ -631,7 +632,7 @@ const hasWarn = (ctx: RecipesCtx, e: Entry) => (e.kind === "objet" ? ctx.data.it
 /** Une tuile de la liste (pastille et nom), avec ⚠ si une valeur de sa fiche est à vérifier. */
 function tile(ctx: RecipesCtx, e: Entry, current: string | null): string {
   const added = e.kind === "objet" && ctx.data.items.get(e.id)?.added ? `<span class="rc-tag add rc-tile-tag">${t("rc.added")}</span>` : "";
-  const warn = (hasWarn(ctx, e) ? `<span class="rc-flag warn" title="${esc(t("rc.tile.warn"))}">⚠</span>` : "") + added;
+  const warn = (hasWarn(ctx, e) ? `<span class="rc-flag warn" title="${esc(t("rc.tile.warn"))}">${icon("warn", t("rc.tile.warn"))}</span>` : "") + added;
   const on = current === `${e.kind}/${e.id}`;
   return `<li><a class="rc-tile${on ? " on" : ""}" href="${recipeHref(e.kind, e.id)}"${on ? ` aria-current="page"` : ""}>${pic(ctx, e.kind, e.id, e.name)}<span class="rc-name">${esc(e.name)}</span>${warn}</a></li>`;
 }
@@ -648,7 +649,7 @@ export function renderEntryRows(ctx: RecipesCtx, entries: Entry[], current: stri
   if (!entries.length) return empty();
   const th = (k: SortKey, cls: string) => {
     const on = sort.key === k;
-    const arrow = on ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
+    const arrow = on ? ` ${icon(sort.dir === "asc" ? "asc" : "desc")}` : "";
     return `<th class="${cls}" aria-sort="${on ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}"><button type="button" class="link" data-rc-sort="${k}" title="${esc(t(`rc.sort.${k}.help`))}">${t(`rc.sort.${k}`)}${arrow}</button></th>`;
   };
   const rows = entries
@@ -657,7 +658,7 @@ export function renderEntryRows(ctx: RecipesCtx, entries: Entry[], current: stri
       const v = entryValue(ctx.data, e);
       const rv = e.kind === "objet" ? ctx.data.items.get(e.id)?.researchValue : null;
       const href = recipeHref(e.kind, e.id);
-      const warn = hasWarn(ctx, e) ? ` <span class="rc-flag warn" title="${esc(t("rc.tile.warn"))}">⚠</span>` : "";
+      const warn = hasWarn(ctx, e) ? ` <span class="rc-flag warn" title="${esc(t("rc.tile.warn"))}">${icon("warn", t("rc.tile.warn"))}</span>` : "";
       return `<tr class="${on ? "on" : ""}"><td class="rc-rname"><a href="${href}"${on ? ` aria-current="page"` : ""}>${pic(ctx, e.kind, e.id, e.name, "xs")}<span>${esc(e.name)}</span></a>${warn}</td>
 <td class="num"${v === null ? "" : ` title="${esc(`${fmtMoney(v)}${t(e.kind === "machine" ? "rc.buyPrice" : "rc.sellPrice")}`)}"`}>${v === null ? "—" : esc(fmtMoneyShort(v))}${e.kind === "machine" ? ` <small class="muted">${t("rc.buy")}</small>` : ""}</td>
 <td class="num">${rv === null || rv === undefined ? "—" : esc(typeof rv === "number" ? `${fmt(rv, 2)}×` : `${rv}×`)}</td></tr>`;

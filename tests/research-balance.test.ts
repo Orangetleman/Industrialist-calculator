@@ -246,8 +246,8 @@ describe("Ma recherche : rendu (S20)", async () => {
     expect(html).toContain("154\u202f226 RP");
     expect(html).toContain("4,97 RP/s");
     expect(html).toContain("Seuil dépassé depuis 1 h 41 min");
-    expect(html).toContain("✓ comme en jeu : Tier 3 : seuil 76\u202f875");
-    expect(html).not.toContain("⚠ Tier");
+    expect(html).toContain("</svg> comme en jeu : Tier 3 : seuil 76\u202f875");
+    expect(html).not.toContain('<li class="warn-text">');
   });
 
   it("le formulaire détaillé montre les groupes, avec les noms des items", () => {

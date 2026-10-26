@@ -7,6 +7,7 @@ import { parseJournal, type RpJournal } from "../engine/rp-history.ts";
 import type { ResearchCategory } from "../engine/types.ts";
 import { isNodeUnlocked, nodeDepths, type Progress } from "../engine/unlock.ts";
 import { esc, fmt, parseNum } from "./format.ts";
+import { withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 
 // ---------------------------------------------------------------- état
@@ -237,7 +238,7 @@ export function renderTree(data: GameData, p: Progress, view: TreeView): string 
         <span class="node-name">${esc(n.name)}</span><span class="node-rp num">${fmt(n.rp, 0)} RP</span></label>
       <div class="node-meta" id="nd-${esc(n.id)}"><span class="sr-only">${stateLabel}. </span>${n.description ? `<span class="node-desc">${esc(n.description.length > 140 ? `${n.description.slice(0, 139)}…` : n.description)}</span>` : ""}${machines.length ? `<span>${esc(t("prog.unlocks", { list: machines.join(", ") }))}</span>` : ""}${
         n.unlocksOther.length ? `<span class="muted">${esc(n.unlocksOther.join(", "))}</span>` : ""
-      }${parentsText ? `<span>${parentsText}</span>` : ""}${state === "incoherent" ? `<span class="warn-text">${t("prog.unticked")}</span>` : ""}</div>
+      }${parentsText ? `<span>${parentsText}</span>` : ""}${state === "incoherent" ? `<span class="warn-text">${withIcons(t("prog.unticked"))}</span>` : ""}</div>
       ${req}</li>`;
     const d = depth.get(n.id)!;
     if (!levels.has(d)) levels.set(d, []);
