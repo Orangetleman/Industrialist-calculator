@@ -807,4 +807,18 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 - **TR-03** : outils de construction → **Build, Wire, Pipe, Delete** (Building System : « All four
   tools (Build, Wire, Pipe and Delete) »). Les touches 1, 2, 3 viennent de S15 ; le wiki ne donne que
   « 1 » pour l'inventaire.
+
+### Bac à sable (S17)
+
+- **BAS-01** : l'utilisateur veut les machines « triées par chapitre et catégorie comme dans le jeu ».
+  Le dépôt a `tier` (1 à 4) et `category` (Factories, Extractors, Power…) pour chaque machine, mais
+  rien ne dit que le « chapitre » du menu de construction est ce `tier`, ni l'ordre des catégories
+  dans ce menu. À relever en jeu : les onglets du menu de construction, leur ordre, et l'ordre des
+  machines dans chacun. La maquette S17 range provisoirement par `tier`, puis par catégorie.
+- **BAS-02** : règle de raccord d'un tuyau à un port. Les plans de pose supposent qu'un tuyau posé
+  sur la case devant le port s'y raccorde. Reste à vérifier en jeu qu'un tuyau qui passe le long
+  du port, sans s'y diriger, ne s'y raccorde pas.
+- **BAS-03** : quel objet sort par quel port quand une recette a plusieurs sorties du même type.
+  `interfaces.json` (S10) le dit pour certaines machines seulement. Pour les autres, le bac à sable
+  devra marquer la sortie « à vérifier » plutôt que deviner.
 <!-- notes-manuelles:fin -->

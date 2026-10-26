@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S17 — Bac à sable</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+/* Maquette seulement (S17). Données : bac-a-sable.data.js, tiré des fichiers du jeu par bac-a-sable.gen.mjs. */
+body { background: var(--bg); margin: 0; }
+.mq-bar { margin: 8px 12px; padding: 8px 14px; font-size: .86rem; background: var(--warn-soft); border-radius: 8px; }
+.bas { display: grid; grid-template-columns: auto 1fr 300px; height: calc(100vh - 70px); min-height: 480px; margin: 0 12px 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.bas-tools { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-right: 1px solid var(--line); }
+.bas-tools button { min-width: 44px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 1.05rem; cursor: pointer; position: relative; }
+.bas-tools button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.bas-tools button small { position: absolute; right: 3px; bottom: 1px; font-size: .62rem; color: var(--muted); }
+.bas-tools hr { width: 100%; border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
+.bas-view { position: relative; overflow: hidden; touch-action: none; }
+.bas-view svg { width: 100%; height: 100%; display: block; user-select: none; }
+.bas-msg { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 6px 12px; border-radius: 8px; font-size: .85rem; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.bas-msg.on { opacity: .92; }
+.bas-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: .8rem; box-shadow: 0 4px 14px rgba(0,0,0,.2); display: none; max-width: 260px; }
+.bas-side { border-left: 1px solid var(--line); overflow: auto; padding: 10px 12px; font-size: .86rem; }
+.bas-side h3 { font: 700 .95rem var(--f-display); margin: 12px 0 4px; }
+.bas-side h3:first-child { margin-top: 0; }
+.bas-side table { width: 100%; border-collapse: collapse; }
+.bas-side td { padding: 2px 0; vertical-align: top; }
+.bas-side td.n { text-align: right; white-space: nowrap; padding-left: 8px; font-variant-numeric: tabular-nums; }
+.bas-side .warn { color: var(--danger, #c0392b); }
+.bas-side .muted { color: var(--muted); }
+.bas-side select, .bas-side button { min-height: 32px; margin: 2px 0; }
+/* Panneau des machines (« burger ») */
+.bas-pan { position: absolute; left: 0; top: 0; bottom: 0; width: 290px; background: var(--surface); border-right: 1px solid var(--line); box-shadow: 4px 0 18px rgba(0,0,0,.15); overflow: auto; padding: 10px; transform: translateX(-105%); transition: transform .18s; z-index: 2; }
+.bas-pan.open { transform: none; }
+.bas-pan input { width: 100%; min-height: 34px; box-sizing: border-box; margin-bottom: 6px; }
+.bas-pan details { margin: 4px 0; }
+.bas-pan summary { font-weight: 700; cursor: pointer; min-height: 28px; }
+.bas-pan h4 { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 3px; }
+.bas-cards { display: flex; flex-direction: column; gap: 4px; }
+.bas-card { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; background: var(--surface); color: var(--ink); cursor: pointer; text-align: left; min-height: 40px; }
+.bas-card:hover { border-color: var(--accent); }
+.bas-card svg { flex: none; }
+.bas-card small { color: var(--muted); display: block; }
+.bas-pan .note { font-size: .78rem; color: var(--muted); margin-top: 10px; }
+@media (max-width: 760px) {
+  .bas { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height: auto; }
+  .bas-tools { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .bas-tools hr { display: none; }
+  .bas-view { height: 60vh; }
+  .bas-side { border-left: 0; border-top: 1px solid var(--line); max-height: none; }
+  /* Au téléphone : tiroir par le bas, qui défile horizontalement (réponse Q14-6). */
+  .bas-pan { top: auto; width: auto; right: 0; height: 190px; transform: translateY(105%); border-right: 0; border-top: 1px solid var(--line); display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; align-items: flex-start; }
+  .bas-pan.open { transform: none; }
+  .bas-pan > input { position: sticky; left: 0; width: 140px; flex: none; z-index: 1; }
+  .bas-pan details { flex: none; }
+  .bas-pan details[open] { display: flex; gap: 10px; }
+  .bas-pan .grp { flex: none; }
+  .bas-cards { flex-direction: row; }
+  .bas-card { flex: none; width: 150px; }
+  .bas-pan .note { flex: none; width: 200px; }
+}
+</style>
+</head>
+<body>
+<div class="mq-bar"><b>Maquette S17, bac à sable.</b> Ce sont les vraies machines dont les ports ont été relevés, avec les recettes et les tuyaux de tier I tirés du wiki. Le calcul est simplifié : c'est une maquette, pas le moteur. Pour essayer : ☰ machines, ▭ tuyau objet (O), ≈ tuyau fluide (F), gomme (E) ou clic droit glissé, R tourne, Ctrl+Z annule, la molette zoome, et glisser sur le vide déplace la vue. Le bouton « Exemple » pose une Press reliée à un Roller.</div>
+<div class="bas">
+  <div class="bas-tools" role="toolbar" aria-label="Outils">
+    <button id="t-pan" title="Machines (☰)" aria-label="Ouvrir la liste des machines">☰</button>
+    <hr>
+    <button data-tool="main" aria-pressed="true" title="Sélectionner, déplacer (V)">⬚<small>V</small></button>
+    <button data-tool="objet" title="Tuyau objet (O)">▭<small>O</small></button>
+    <button data-tool="fluide" title="Tuyau fluide (F)">≈<small>F</small></button>
+    <button data-tool="gomme" title="Effacer (E, ou clic droit glissé)">⌫<small>E</small></button>
+    <hr>
+    <button id="t-undo" title="Annuler (Ctrl+Z)">↶</button>
+    <button id="t-zin" title="Zoomer">+</button>
+    <button id="t-zout" title="Dézoomer">−</button>
+    <button id="t-ex" title="Exemple : Press puis Roller" style="font-size:.7rem">Exemple</button>
+  </div>
+  <div class="bas-view" id="view">
+    <svg id="svg" aria-label="Plan du montage">
+      <defs>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" stroke-opacity=".12"/></pattern>
+        <pattern id="over" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#c0392b"/><rect width="3" height="6" fill="#f5b041"/></pattern>
+      </defs>
+      <g id="world"><rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#grid)" style="color:var(--ink)"/><g id="layer"></g><g id="ghost" opacity=".55"></g></g>
+    </svg>
+    <div class="bas-pan" id="pan" aria-label="Machines"></div>
+    <div class="bas-tip" id="tip"></div>
+    <div class="bas-msg" id="msg"></div>
+  </div>
+  <div class="bas-side" id="side"></div>
+</div>
+<script src="bac-a-sable.data.js"></script>
+<script>
+const B = window.BAS, C = 20;
+const M = Object.fromEntries(B.machines.map((m) => [m.id, m]));
+const itemName = (i) => B.items[i]?.name ?? i;
+const isFluid = (i) => !!B.items[i]?.fluid;
+const fr = (n, d = 1) => n.toLocaleString("fr-FR", { maximumFractionDigits: d });
+const DIRS = { haut: [0, -1], bas: [0, 1], gauche: [-1, 0], droite: [1, 0] };
+const hue = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+
+// État du montage : machines posées et cases de tuyau (liaisons tracées entre cases voisines, comme en jeu).
+let S = { machines: [], pipes: {}, next: 1 };
+let tool = "main", carry = null, view = { x: -40, y: -40, z: 1 }, sel = null, undo = [];
+const key = (x, y) => x + "," + y;
+const snap = () => { undo.push(JSON.stringify(S)); if (undo.length > 100) undo.shift(); };
+
+// Empreinte et ports d'une machine tournée (r quarts de tour dans le sens horaire).
+function geo(m) {
+  const d = M[m.id]; let w = d.w, h = d.h;
+  let ports = d.ports.map((p) => {
+    const k = p.cell - 1;
+    const inn = { haut: [k, 0], bas: [k, h - 1], gauche: [0, k], droite: [w - 1, k] }[p.side];
+    const v = DIRS[p.side];
+    return { ...p, ix: inn[0], iy: inn[1], ox: inn[0] + v[0], oy: inn[1] + v[1] };
+  });
+  for (let i = 0; i < m.r; i++) {
+    ports = ports.map((p) => ({ ...p, ix: h - 1 - p.iy, iy: p.ix, ox: h - 1 - p.oy, oy: p.ox }));
+    [w, h] = [h, w];
+  }
+  return { w, h, ports: ports.map((p) => ({ ...p, ix: p.ix + m.x, iy: p.iy + m.y, ox: p.ox + m.x, oy: p.oy + m.y })) };
+}
+function machineAt(x, y, skip) {
+  return S.machines.find((m) => { if (m === skip) return false; const g = geo(m); return x >= m.x && y >= m.y && x < m.x + g.w && y < m.y + g.h; });
+}
+function fits(m) {
+  const g = geo(m);
+  for (let y = m.y; y < m.y + g.h; y++) for (let x = m.x; x < m.x + g.w; x++) if (S.pipes[key(x, y)] || machineAt(x, y, m)) return false;
+  return true;
+}
+function portFacing(x, y) {
+  for (const m of S.machines) for (const p of geo(m).ports) if (p.ox === x && p.oy === y) return { m, p };
+  return null;
+}
+
+// ---------- Calcul du montage (simplifié pour la maquette) ----------
+let R = null;
+function compute() {
+  // 1. Réseaux : cases de tuyau reliées par leurs liaisons.
+  const netOf = {}, nets = [];
+  for (const k in S.pipes) {
+    if (netOf[k] != null) continue;
+    const n = { id: nets.length, kind: S.pipes[k].kind, cells: [], src: [], sink: [] };
+    nets.push(n);
+    const st = [k]; netOf[k] = n.id;
+    while (st.length) {
+      const c = st.pop(); n.cells.push(c);
+      for (const l of S.pipes[c].links) if (S.pipes[l] && netOf[l] == null && S.pipes[l].links.includes(c)) { netOf[l] = n.id; st.push(l); }
+    }
+  }
+  // 2. Ports raccordés : la case devant le port porte un tuyau du même type.
+  const info = new Map();
+  for (const m of S.machines) info.set(m.uid, { m, g: geo(m), inNets: [], outNets: [] });
+  for (const [, I] of info) for (const p of I.g.ports) {
+    const k = key(p.ox, p.oy); const n = netOf[k];
+    if (n == null || nets[n].kind !== p.t) continue;
+    (p.d === "sortie" ? I.outNets : I.inNets).push({ net: nets[n], p });
+    (p.d === "sortie" ? nets[n].src : nets[n].sink).push({ I, p });
+  }
+  // 3. Recettes : déduites de ce qui arrive ; plusieurs possibles → le joueur choisit (Q14-8).
+  //    On part des machines sans entrée raccordée, puis on propage le contenu des tuyaux.
+  for (let pass = 0; pass < 8; pass++) {
+    for (const n of nets) {
+      const items = new Set();
+      for (const s of n.src) { const it = outItemOf(s.I, s.p); if (it) items.add(it); }
+      n.items = [...items];
+    }
+    for (const [, I] of info) {
+      const arriving = new Set(I.inNets.flatMap((x) => x.net.items || []));
+      const all = M[I.m.id].recipes;
+      let cand = arriving.size ? all.filter((r) => [...arriving].every((i) => i in r.in)) : all;
+      I.cand = cand; I.arriving = [...arriving];
+      if (cand.length === 1) I.rec = cand[0];
+      else if (I.m.choice && cand.some((r) => r.id === I.m.choice)) I.rec = cand.find((r) => r.id === I.m.choice);
+      else I.rec = null;
+    }
+  }
+  // 4. Débits : chaque machine tourne à une fraction f ≤ 1, freinée par ce qui manque en entrée,
+  //    par la place en sortie et par la capacité des tuyaux. Point fixe en quelques tours.
+  for (const [, I] of info) I.f = I.rec ? 1 : 0;
+  const rate = (I, it, side) => I.rec ? (I.rec[side][it] || 0) / I.rec.s : 0;
+  for (let it = 0; it < 40; it++) {
+    for (const n of nets) {
+      n.cap = B.pipes[n.kind].flowPerSec;
+      n.Sfull = 0; n.S = 0; n.D = 0; n.Dfull = 0;
+      for (const s of n.src) { const i = outItemOf(s.I, s.p); if (!i) continue; const r = rate(s.I, i, "out") / portsFor(s.I, i, "sortie"); n.Sfull += r; n.S += r * s.I.f; }
+      for (const s of n.sink) for (const i of n.items) { const r = rate(s.I, i, "in") / portsFor(s.I, i, "entrée"); n.Dfull += r; n.D += r * s.I.f; }
+      n.flow = Math.min(n.S, n.cap, n.sink.length ? n.Dfull : Infinity);
+      n.over = n.S > n.cap + 1e-9;
+      n.mixed = n.items.length > 1;
+    }
+    for (const [, I] of info) {
+      if (!I.rec) { I.f = 0; I.why = I.cand.length ? "recette à choisir" : "aucune recette avec ces entrées"; continue; }
+      let f = 1, why = null;
+      for (const i of Object.keys(I.rec.in)) {
+        const ns = I.inNets.filter((x) => x.net.items.includes(i));
+        if (!ns.length) continue; // entrée non branchée : fournie de l'extérieur (entrée du montage)
+        for (const x of ns) { const n = x.net; const r = n.Dfull ? Math.min(n.S, n.cap) / n.Dfull : 0; if (r < f) { f = r; why = n.mixed ? "tuyau mélangé" : n.S > n.cap ? "tuyau trop petit (" + itemName(i) + ")" : "manque " + itemName(i); } }
+      }
+      for (const x of I.outNets) {
+        const n = x.net; if (!n.sink.length || !n.Sfull) continue;
+        const r = Math.min(n.D, n.cap) / n.Sfull; if (r < f) { f = r; why = n.Sfull > n.cap ? "tuyau trop petit en sortie" : "sortie qui déborde"; }
+      }
+      I.f = Math.max(0, Math.min(1, f)); I.why = why;
+    }
+  }
+  // 5. Bilan.
+  const ext = {}, outx = {}; let energy = 0, price = 0;
+  for (const [, I] of info) {
+    price += M[I.m.id].cost || 0;
+    if (!I.rec) continue;
+    energy += (I.rec.e || 0) * I.f;
+    for (const [i, q] of Object.entries(I.rec.in)) if (!I.inNets.some((x) => x.net.items.includes(i))) ext[i] = (ext[i] || 0) + q / I.rec.s * I.f;
+    for (const [i, q] of Object.entries(I.rec.out)) {
+      const ns = I.outNets.filter((x) => outItemOf(I, x.p) === i);
+      const sent = ns.reduce((a, x) => a + (x.net.sink.length ? Math.min(x.net.D, x.net.cap) / (x.net.Sfull || 1) * (q / I.rec.s) / ns.length : 0), 0);
+      const left = q / I.rec.s * I.f - sent;
+      if (left > 1e-9) outx[i] = (outx[i] || 0) + left;
+    }
+  }
+  price += Object.keys(S.pipes).length * B.pipes.objet.price;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const grow = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
+  for (const [, I] of info) { grow(I.m.x, I.m.y); grow(I.m.x + I.g.w - 1, I.m.y + I.g.h - 1); }
+  for (const k in S.pipes) { const [x, y] = k.split(",").map(Number); grow(x, y); }
+  const limit = [...info.values()].filter((I) => I.rec && I.f < 0.999).sort((a, b) => a.f - b.f)[0];
+  R = { info, nets, netOf, ext, outx, energy, price, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, limit };
+}
+// Quel objet sort par ce port : les sorties de la recette du même type, réparties sur les ports dans l'ordre.
+// (Le vrai lien port ↔ objet est dans interfaces.json, S10 : le moteur le lira.)
+function outItemOf(I, p) {
+  if (!I.rec) return null;
+  const outs = Object.keys(I.rec.out).filter((i) => isFluid(i) === (p.t === "fluide"));
+  const ps = I.g.ports.filter((q) => q.d === "sortie" && q.t === p.t);
+  return outs.length ? outs[ps.indexOf(p) % outs.length] : null;
+}
+function portsFor(I, it, d) {
+  const t = isFluid(it) ? "fluide" : "objet";
+  const ns = (d === "sortie" ? I.outNets : I.inNets).filter((x) => x.p.t === t);
+  return Math.max(1, ns.length);
+}
+
+// ---------- Dessin ----------
+const svg = document.getElementById("svg"), layer = document.getElementById("layer"), ghost = document.getElementById("ghost");
+const NS = "http://www.w3.org/2000/svg";
+const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; };
+function applyView() {
+  const r = svg.getBoundingClientRect();
+  svg.setAttribute("viewBox", `${view.x} ${view.y} ${r.width / view.z} ${r.height / view.z}`);
+}
+function drawMachine(m, parent, I) {
+  const d = M[m.id], g = geo(m);
+  const grp = el("g", { "data-uid": m.uid ?? "" }, parent);
+  const warn = I && !I.rec;
+  el("rect", { x: m.x * C + 1, y: m.y * C + 1, width: g.w * C - 2, height: g.h * C - 2, rx: 4, fill: warn ? "var(--warn-soft)" : "var(--steel-soft)", stroke: sel === m ? "var(--accent)" : warn ? "#e67e22" : "var(--line)", "stroke-width": sel === m ? 3 : 1.5 }, grp);
+  const t = el("text", { x: m.x * C + 6, y: m.y * C + 15, "font-size": 11, "font-weight": 700, fill: "var(--ink)" }, grp); t.textContent = d.name;
+  // Indication visuelle de la recette (Q14-8) : ce qu'elle produit, et la fraction de marche.
+  if (I) {
+    const lab = el("text", { x: m.x * C + 6, y: m.y * C + 28, "font-size": 10, fill: "var(--muted)" }, grp);
+    lab.textContent = I.rec ? "→ " + Object.keys(I.rec.out).map(itemName).join(", ") + (I.f < 0.999 ? "  " + Math.round(I.f * 100) + " %" : "") : I.cand.length ? "? choisir la recette" : "⚠ aucune recette";
+    if (!I.rec && I.cand.length) { const b = el("circle", { cx: (m.x + g.w) * C - 10, cy: m.y * C + 10, r: 8, fill: "#e67e22" }, grp); const q = el("text", { x: (m.x + g.w) * C - 13, y: m.y * C + 14, "font-size": 11, "font-weight": 700, fill: "#fff" }, grp); q.textContent = "?"; }
+  }
+  for (const p of g.ports) {
+    const cx = p.ix * C + C / 2, cy = p.iy * C + C / 2, dx = (p.ox - p.ix) * 7, dy = (p.oy - p.iy) * 7;
+    const col = p.t === "fluide" ? "#3498db" : "#d4ac0d";
+    const [a, b] = p.d === "sortie" ? [[cx, cy], [cx + dx, cy + dy]] : [[cx + dx, cy + dy], [cx, cy]];
+    el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: col, "stroke-width": 4, "marker-end": "" }, grp);
+    el("circle", { cx: b[0], cy: b[1], r: 3.5, fill: p.d === "sortie" ? "#8e44ad" : col }, grp);
+  }
+}
+function draw() {
+  compute();
+  layer.textContent = "";
+  for (const k in S.pipes) {
+    const [x, y] = k.split(",").map(Number), p = S.pipes[k];
+    const n = R.nets[R.netOf[k]];
+    const it = n.items[0];
+    const fill = n.over ? "url(#over)" : n.mixed ? "#c0392b" : it ? `hsl(${hue(it)} 55% 55%)` : "var(--muted)";
+    const w = p.kind === "fluide" ? 12 : 8;
+    el("rect", { x: x * C + (C - w) / 2, y: y * C + (C - w) / 2, width: w, height: w, fill, rx: p.kind === "fluide" ? 6 : 1, "data-pipe": k }, layer);
+    for (const l of p.links) {
+      const [lx, ly] = l.split(",").map(Number);
+      if (!S.pipes[l]) continue;
+      const mx = (x + (lx - x) / 2) * C + C / 2, my = (y + (ly - y) / 2) * C + C / 2;
+      el("line", { x1: x * C + C / 2, y1: y * C + C / 2, x2: mx, y2: my, stroke: fill, "stroke-width": w, "stroke-linecap": "square", "data-pipe": k }, layer);
+    }
+  }
+  for (const m of S.machines) drawMachine(m, layer, R.info.get(m.uid));
+  side();
+}
+
+// ---------- Panneau de droite : statistiques et machine sélectionnée ----------
+function side() {
+  const s = document.getElementById("side");
+  const perMin = (v) => fr(v * 60) + "/min";
+  let h = "";
+  if (sel) {
+    const I = R.info.get(sel.uid), d = M[sel.id];
+    h += `<h3>${d.name}</h3><div class="muted">Chapitre ${d.tier} · ${d.category} · ${fr(d.cost, 0)} $</div>`;
+    if (I.cand.length > 1 || I.m.choice) {
+      h += `<label>Recette : <select id="rec"><option value="">— choisir —</option>${I.cand.map((r) => `<option value="${r.id}" ${I.rec && I.rec.id === r.id ? "selected" : ""}>${Object.entries(r.in).map(([i, q]) => fr(q, 2) + " " + itemName(i)).join(" + ") || "rien"} → ${Object.entries(r.out).map(([i, q]) => fr(q, 2) + " " + itemName(i)).join(" + ")}</option>`).join("")}</select></label>`;
+    }
+    if (I.rec) h += `<div>Marche : <b>${Math.round(I.f * 100)} %</b>${I.why ? ` <span class="warn">(${I.why})</span>` : ""}</div><div class="muted">Énergie : ${fr(I.rec.e * I.f, 0)} MF/s</div>`;
+    else h += `<div class="warn">${I.why}</div>`;
+    h += `<div><button id="rot">Tourner (R)</button> <button id="del">Effacer</button></div>`;
+  }
+  h += `<h3>Statistiques du montage</h3>`;
+  if (!S.machines.length) h += `<p class="muted">Plan vierge. Ouvre ☰ pour poser une machine.</p>`;
+  else {
+    const row = (a, b, c = "") => `<tr><td class="${c}">${a}</td><td class="n ${c}">${b}</td></tr>`;
+    h += `<table>${row("Machines", S.machines.length)}${row("Cases de tuyau", Object.keys(S.pipes).length)}${R.area ? row("Place au sol", R.area[0] + " × " + R.area[1] + " cases") : ""}${row("Énergie", fr(R.energy, 0) + " MF/s")}${row("Prix", fr(R.price, 0) + " $")}</table>`;
+    const list = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([i, v]) => row(itemName(i), perMin(v))).join("");
+    h += `<h3>Sorties du montage</h3>${Object.keys(R.outx).length ? `<table>${list(R.outx)}</table>` : `<p class="muted">Rien ne sort.</p>`}`;
+    h += `<h3>À fournir (entrées non branchées)</h3>${Object.keys(R.ext).length ? `<table>${list(R.ext)}</table>` : `<p class="muted">Rien.</p>`}`;
+    h += `<h3>Ce qui limite</h3>`;
+    const pb = [];
+    if (R.limit) pb.push(`${M[R.limit.m.id].name} à ${Math.round(R.limit.f * 100)} % : ${R.limit.why}`);
+    for (const [, I] of R.info) if (!I.rec) pb.push(`${M[I.m.id].name} : ${I.why}`);
+    for (const n of R.nets) { if (n.over) pb.push(`Tuyau ${n.kind} saturé : ${fr(n.S, 2)}/s pour ${n.cap}/s`); if (n.mixed) pb.push(`Tuyau mélangé : ${n.items.map(itemName).join(" + ")}`); }
+    h += pb.length ? `<ul>${pb.map((x) => `<li class="warn">${x}</li>`).join("")}</ul>` : `<p class="muted">Tout tourne à 100 %.</p>`;
+  }
+  h += `<h3>Garder, partager</h3><button id="exp">Exporter (fichier)</button> <button id="lnk">Lien</button><div id="lnkinfo" class="muted"></div>`;
+  s.innerHTML = h;
+  const q = (id) => s.querySelector("#" + id);
+  q("rec") && (q("rec").onchange = (e) => { snap(); sel.choice = e.target.value || null; draw(); });
+  q("rot") && (q("rot").onclick = () => rotateSel());
+  q("del") && (q("del").onclick = () => { snap(); S.machines = S.machines.filter((m) => m !== sel); sel = null; draw(); });
+  q("exp").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: "application/json" })); a.download = "montage.json"; a.click(); };
+  q("lnk").onclick = async () => {
+    // « Petit montage » mesuré : le lien compressé ne dépasse pas 2 000 caractères (limite sûre des messageries).
+    const bytes = new Uint8Array(await new Response(new Blob([JSON.stringify(S)]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
+    const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const url = "https://industrialist.myprisme.fr/#bac/" + b64;
+    q("lnkinfo").textContent = url.length <= 2000 ? `Lien de ${url.length} caractères : assez petit pour Discord.` : `Lien de ${url.length} caractères : trop long, utilise le fichier.`;
+  };
+}
+
+// ---------- Panneau des machines (☰) : par chapitre puis catégorie ----------
+function panel() {
+  const p = document.getElementById("pan");
+  const tiers = [...new Set(B.machines.map((m) => m.tier))].sort();
+  p.innerHTML = `<input id="find" type="search" placeholder="Chercher une machine" aria-label="Chercher une machine">` +
+    tiers.map((t) => `<details open><summary>Chapitre ${t}</summary>${[...new Set(B.machines.filter((m) => m.tier === t).map((m) => m.category))].sort().map((c) => `<div class="grp"><h4>${c}</h4><div class="bas-cards">${B.machines.filter((m) => m.tier === t && m.category === c).map((m) => `<button class="bas-card" data-id="${m.id}"><svg width="28" height="28" viewBox="0 0 28 28"><rect x="${14 - Math.min(26, m.w * 26 / Math.max(m.w, m.h)) / 2}" y="${14 - Math.min(26, m.h * 26 / Math.max(m.w, m.h)) / 2}" width="${m.w * 26 / Math.max(m.w, m.h)}" height="${m.h * 26 / Math.max(m.w, m.h)}" rx="2" fill="var(--steel-soft)" stroke="var(--line)"/></svg><span>${m.name}<small>${m.w} × ${m.h} cases</small></span></button>`).join("")}</div></div>`).join("")}</details>`).join("") +
+    `<p class="note">${B.machines.length} machines posables. Les autres attendent le relevé de leurs ports (Contribuer → Bâtiments).</p>`;
+  p.querySelectorAll(".bas-card").forEach((b) => b.onclick = () => { carry = { id: b.dataset.id, r: 0, x: 0, y: 0 }; p.classList.remove("open"); say("Clique sur le plan pour poser · R tourne · Échap annule"); });
+  p.querySelector("#find").oninput = (e) => { const v = e.target.value.toLowerCase(); p.querySelectorAll(".bas-card").forEach((b) => b.style.display = M[b.dataset.id].name.toLowerCase().includes(v) ? "" : "none"); };
+}
+document.getElementById("t-pan").onclick = () => document.getElementById("pan").classList.toggle("open");
+
+// ---------- Gestes ----------
+const msg = document.getElementById("msg"); let msgT;
+function say(t) { msg.textContent = t; msg.classList.add("on"); clearTimeout(msgT); msgT = setTimeout(() => msg.classList.remove("on"), 2400); }
+function cellAt(e) {
+  const r = svg.getBoundingClientRect();
+  const wx = view.x + (e.clientX - r.left) / view.z, wy = view.y + (e.clientY - r.top) / view.z;
+  return [Math.floor(wx / C), Math.floor(wy / C)];
+}
+function setTool(t) { tool = t; carry = null; ghost.textContent = ""; document.querySelectorAll("[data-tool]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tool === t)); }
+document.querySelectorAll("[data-tool]").forEach((b) => b.onclick = () => setTool(b.dataset.tool));
+function rotateSel() { if (carry) { carry.r = (carry.r + 1) % 4; showGhost(); return; } if (!sel) return; snap(); const old = sel.r; sel.r = (sel.r + 1) % 4; if (!fits(sel)) { sel.r = old; undo.pop(); say("Pas la place pour tourner ici"); } draw(); }
+function showGhost() { ghost.textContent = ""; if (carry) drawMachine(carry, ghost); }
+
+// Pose d'une case de tuyau : refusée sur une machine, sur un tuyau de l'autre type, ou devant un port de l'autre type (Q14-9).
+function pipeOk(x, y, kind) {
+  if (machineAt(x, y)) return "Une machine occupe la case";
+  const p = S.pipes[key(x, y)]; if (p && p.kind !== kind) return "Croisement objet × fluide : pas dans la maquette";
+  const f = portFacing(x, y); if (f && f.p.t !== kind) return `Ce port de ${M[f.m.id].name} attend un tuyau ${f.p.t}`;
+  return null;
+}
+function addLink(a, b) { const A = S.pipes[a], Bp = S.pipes[b]; if (A && Bp && !A.links.includes(b)) { A.links.push(b); Bp.links.push(a); } }
+let drag = null;
+svg.addEventListener("contextmenu", (e) => e.preventDefault());
+svg.addEventListener("pointerdown", (e) => {
+  svg.setPointerCapture(e.pointerId);
+  const [x, y] = cellAt(e);
+  if (carry) {
+    carry.x = x; carry.y = y;
+    if (e.button === 2) { carry = null; ghost.textContent = ""; return; }
+    const m = { uid: S.next, id: carry.id, x, y, r: carry.r, choice: null };
+    if (!fits(m)) { say("La place est prise"); return; }
+    snap(); S.next++; S.machines.push(m); sel = m; draw();
+    if (!e.shiftKey) { carry = null; ghost.textContent = ""; }
+    return;
+  }
+  if (e.button === 2 || tool === "gomme") { snap(); drag = { kind: "gomme" }; erase(x, y); return; }
+  if (e.button === 1) { drag = { kind: "vue", sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; return; }
+  if (tool === "objet" || tool === "fluide") {
+    const err = pipeOk(x, y, tool); if (err) { say(err); return; }
+    snap(); const k = key(x, y); if (!S.pipes[k]) S.pipes[k] = { kind: tool, links: [] };
+    drag = { kind: "tuyau", last: [x, y] }; draw(); return;
+  }
+  const m = machineAt(x, y);
+  if (m) { sel = m; snap(); drag = { kind: "bouge", m, dx: x - m.x, dy: y - m.y, moved: false }; draw(); return; }
+  sel = null; drag = { kind: "vue", sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; draw();
+});
+svg.addEventListener("pointermove", (e) => {
+  const [x, y] = cellAt(e);
+  tipAt(e, x, y);
+  if (carry) { if (carry.x !== x || carry.y !== y) { carry.x = x; carry.y = y; showGhost(); } return; }
+  if (!drag) return;
+  if (drag.kind === "vue") { view.x = drag.vx - (e.clientX - drag.sx) / view.z; view.y = drag.vy - (e.clientY - drag.sy) / view.z; applyView(); }
+  else if (drag.kind === "gomme") erase(x, y);
+  else if (drag.kind === "bouge") {
+    const nx = x - drag.dx, ny = y - drag.dy; if (nx === drag.m.x && ny === drag.m.y) return;
+    const ox = drag.m.x, oy = drag.m.y; drag.m.x = nx; drag.m.y = ny;
+    if (!fits(drag.m)) { drag.m.x = ox; drag.m.y = oy; } else { drag.moved = true; draw(); }
+  } else if (drag.kind === "tuyau") {
+    // Tracé au glisser, à la Mindustry : on avance case par case (d'abord en x, puis en y), coudes automatiques.
+    let [lx, ly] = drag.last;
+    while (lx !== x || ly !== y) {
+      const nx = lx + Math.sign(x - lx) * (lx !== x), ny = lx !== x ? ly : ly + Math.sign(y - ly);
+      const err = pipeOk(nx, ny, tool); if (err) { say(err); break; }
+      const k = key(nx, ny); if (!S.pipes[k]) S.pipes[k] = { kind: tool, links: [] };
+      addLink(key(lx, ly), k); lx = nx; ly = ny;
+    }
+    drag.last = [lx, ly]; draw();
+  }
+});
+svg.addEventListener("pointerup", () => { if (drag && drag.kind === "bouge" && !drag.moved) undo.pop(); drag = null; });
+function erase(x, y) {
+  const k = key(x, y);
+  if (S.pipes[k]) { for (const l of S.pipes[k].links) if (S.pipes[l]) S.pipes[l].links = S.pipes[l].links.filter((z) => z !== k); delete S.pipes[k]; draw(); return; }
+  const m = machineAt(x, y); if (m) { S.machines = S.machines.filter((z) => z !== m); if (sel === m) sel = null; draw(); }
+}
+svg.addEventListener("wheel", (e) => { e.preventDefault(); zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, e); }, { passive: false });
+function zoom(f, e) {
+  const r = svg.getBoundingClientRect(), px = e ? e.clientX - r.left : r.width / 2, py = e ? e.clientY - r.top : r.height / 2;
+  const wx = view.x + px / view.z, wy = view.y + py / view.z;
+  view.z = Math.min(4, Math.max(0.2, view.z * f)); view.x = wx - px / view.z; view.y = wy - py / view.z; applyView();
+}
+document.getElementById("t-zin").onclick = () => zoom(1.25);
+document.getElementById("t-zout").onclick = () => zoom(0.8);
+document.getElementById("t-undo").onclick = () => doUndo();
+function doUndo() { if (!undo.length) return; S = JSON.parse(undo.pop()); sel = null; draw(); }
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input, select")) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); doUndo(); return; }
+  const k = e.key.toLowerCase();
+  if (k === "r") rotateSel();
+  else if (k === "o") setTool("objet"); else if (k === "f") setTool("fluide"); else if (k === "e") setTool("gomme"); else if (k === "v") setTool("main");
+  else if (k === "escape") { carry = null; ghost.textContent = ""; document.getElementById("pan").classList.remove("open"); }
+  else if ((k === "delete" || k === "backspace") && sel) { snap(); S.machines = S.machines.filter((m) => m !== sel); sel = null; draw(); }
+});
+// Infobulle : ce que transporte un tuyau (déduit de ce qui y est branché), son débit et sa limite.
+const tip = document.getElementById("tip");
+function tipAt(e, x, y) {
+  const k = key(x, y); const r = document.getElementById("view").getBoundingClientRect();
+  let t = "";
+  if (S.pipes[k] && R) {
+    const n = R.nets[R.netOf[k]];
+    t = `<b>Tuyau ${n.kind}</b><br>${n.items.length ? n.items.map(itemName).join(" + ") : "vide (rien n'y entre)"}<br>${fr(n.flow, 2)}/s sur ${n.cap}/s${n.over ? " — <b>saturé</b>" : ""}`;
+  } else { const f = portFacing(x, y); if (f) t = `Port ${f.p.d} ${f.p.t} de ${M[f.m.id].name}`; }
+  tip.style.display = t ? "block" : "none"; tip.innerHTML = t;
+  tip.style.left = e.clientX - r.left + 14 + "px"; tip.style.top = e.clientY - r.top + 14 + "px";
+}
+// Exemple : une Press (lingots de fer, recette choisie) reliée à un Roller, qui en déduit sa recette seul.
+document.getElementById("t-ex").onclick = () => {
+  snap();
+  S = { machines: [{ uid: 1, id: "press", x: 2, y: 2, r: 0, choice: "press_02" }, { uid: 2, id: "roller", x: 10, y: 2, r: 0, choice: null }], pipes: {}, next: 3 };
+  const path = [[5, 4], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [10, 4]];
+  path.forEach(([x, y]) => S.pipes[key(x, y)] = { kind: "objet", links: [] });
+  for (let i = 1; i < path.length; i++) addLink(key(...path[i - 1]), key(...path[i]));
+  sel = null; draw();
+};
+window.addEventListener("resize", applyView);
+panel(); applyView(); draw();
+</script>
+</body>
+</html>
