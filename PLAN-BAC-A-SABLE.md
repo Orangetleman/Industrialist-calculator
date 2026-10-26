@@ -157,7 +157,7 @@ joueur (`navigator.keyboard.getLayoutMap`, sinon les touches déjà frappées). 
 | --- | --- | --- | --- |
 | Tier I, objet et fluide | 6/s | droit (1 case), coude, té, croix | « Longueur auto » ne change rien |
 | Tier III, objet | 120/s | 1, 2 et 4 cases | |
-| Tier III, fluide | 120/s | 1 et 4 cases | le coude, le té et la croix ne sont pas relevés : posés en rouge, « à compléter » |
+| Tier III, fluide | 120/s | 1, 2 et 4 cases | le coude, le té et la croix ne sont pas relevés : posés en rouge, « à compléter » |
 | Tier IV (grands tuyaux) | 12 000/s | 2 cases de large | posés comme des blocs pour l'instant |
 
 **Les croisements posés seuls** sont toujours des pièces non rusty de tier III : Pipe Intersection, Fluid
@@ -267,10 +267,16 @@ structure du dépôt.
 
 **Règles** :
 - La licence MIT permet de reprendre du code, en gardant leur notice.
-- Leurs données ne sont **pas une source** (§ 0, règle 3 : le wiki d'abord, puis les relevés). Elles
-  servent de contrôle, comme Fandom.
-- Leurs catégories de machines (Factory / Assembler, Extractor / Item Extractor…, Miscellaneous /
-  Pipes) sont une **piste pour BAS-01**, à confirmer par une capture du menu du jeu.
+- Leurs données sont la **deuxième source**, après Miraheze et avant Fandom (décision de l'utilisateur
+  du 2026-10-26, PLAN-ACTION.md § 0, règle 3).
+
+**Réponses du 2026-10-26** (`data/a-verifier.md`) :
+- BAS-01 : catégories du menu Build (Pipes, Logic, Power, Decorations, Factories, Modular, Misc,
+  Extractors, Tanks), dans l'ordre de la capture du tier I.
+- BAS-03 : les infobulles des ports ; la maquette s'en sert, l'éditeur les structurera (S38).
+- BAS-04 : Fluid Pipe2 fait 2 cases.
+- BAS-05 : la jonction distribue sur ses sorties dans la limite de chaque pièce.
+- BAS-06 : à intégrer avec la recherche (S40).
 
 ## 7. Les lots
 
@@ -293,9 +299,9 @@ B1 à B3 suffisent pour un premier usage. Les lots suivants s'ajoutent un par un
 
 - **Bâtiments posables** : 55 bâtiments sur 220, et 32 pièces de tuyau sur 43, ont leurs ports
   relevés. Les autres sont grisés. Le bac à sable vaut ce que valent les relevés.
-- **Règles de jeu encore floues** : la répartition d'un té (BAS-05), quel objet sort par quel port
-  (BAS-03), le menu de construction (BAS-01), la longueur de Fluid Pipe2 (BAS-04). Elles se demandent,
-  elles ne se supposent pas.
+- **Ports mal décrits** : tant que l'éditeur n'enregistre pas les objets de chaque port (S38), le
+  calcul lit le nom des objets dans l'infobulle ; sans infobulle, il répartit dans l'ordre et le marque
+  « à vérifier ». Le bac à sable devrait venir après S38.
 - **Performance** : traitée en B4, avec des mesures. C'est le risque principal au téléphone.
 - **Quantité de code** : la maquette fait environ 930 lignes. Le moteur sera séparé de l'écran et testé
   à part (B1, B2).

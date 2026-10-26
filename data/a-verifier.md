@@ -810,31 +810,29 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 
 ### Bac à sable (S17)
 
-- **BAS-01** (en partie répondu le 2026-10-26) : menu de pose en colonnes, comme Mindustry. La colonne
-  la plus à droite donne le tier, la suivante les catégories du menu de construction d'Industrialist.
-  On ne connaît pas encore les noms ni l'ordre de ces catégories. La maquette prend les catégories du
-  wiki (Extractors, Factories, Power, Storage Silos, Modular, Logic, Miscellaneous), plus « Tuyaux ».
-  Piste : Industrialist Calculator (pages.dev, code MIT) range ses machines en catégories et
-  sous-catégories (Factory / Assembler, Extractor / Item Extractor, Power / Renewable, Modular / Tree
-  Farm, Miscellaneous / Pipes…). Ce n'est pas une source. À confirmer par une capture du menu de
-  construction du jeu.
+- **BAS-01** (répondu le 2026-10-26, captures du menu Build) : tiers I à IV à droite, catégories en
+  liste. Tier I : Pipes, Logic, Power, Decorations, Factories, Modular, Misc, Extractors, Tanks.
+  Tier II : Power, Modular, Factories, Extractors, Misc, Tanks. Tier III : Pipes, Factories, Power,
+  Misc, Extractors, Tanks. Tier IV : Pipes, Factories, Extractors. Ces captures ne montrent pas tout,
+  car tout n'est pas débloqué. L'ordre change d'un tier à l'autre ; le bac à sable garde celui du
+  tier I partout, pour que chaque catégorie reste à la même place. Encore à confirmer :
+  « Storage Silos » (wiki) est rangé dans Tanks, et aucun bâtiment du dépôt n'est dans Decorations.
 - **BAS-02** (répondu le 2026-10-26) : un tuyau se raccorde à un port seulement si son ouverture le
   regarde. Le sens d'une pièce sans sens propre (droit, coude, té, croix) vient de ses voisins. Té :
   1 entrée pour 2 sorties, ou 2 entrées pour 1 sortie. Croix : 1 pour 3, 2 pour 2, 3 pour 1. Chaque
   pièce limite ce qui en sort à son débit. Un croisement a deux voies, et le flux prend celle de son
   côté d'entrée. Détail : PLAN-BAC-A-SABLE.md, § 4. `ports.json` donne une entrée et une sortie aux
   tuyaux droits ; le bac à sable ne s'en sert pas.
-- **BAS-03** (ouvert) : quel objet sort par quel port quand une recette a plusieurs sorties du même
-  type. L'utilisateur renvoie à sa réponse sur les raccords (BAS-02). Lecture proposée : les liaisons
-  ne disent pas quel objet sort par quel port. `interfaces.json` (S10) et le texte du relevé (`tip`)
-  le disent pour certaines machines. Pour les autres, la maquette répartit dans l'ordre et le moteur
-  marquera la sortie « à vérifier ». À confirmer.
-- **BAS-04** : Fluid Pipe2 mesure 1 × 1 case dans `ports.json`, mais 4 × 2 studs (2 cases) sur le wiki
-  (page Pipes). Le bac à sable prend Short Fluid Pipe2 (moins chère) pour une case. À relever en jeu.
-- **BAS-05** : la répartition d'un té qui a une entrée et deux sorties. Moitié-moitié ? Le surplus
-  d'une sortie bouchée passe-t-il par l'autre ? Une sortie prioritaire ? La maquette fait un flot
-  maximal (machines d'abord). À voir en jeu.
-- **BAS-06** : Industrialist Calculator a des réglages « mois courant », « pollution globale » et
-  « Satellite buff » (RP). Ce sont des mécaniques du jeu que le site ne modélise pas. Pistes à chercher
-  sur le wiki, sans en reprendre de valeur.
+- **BAS-03** (répondu le 2026-10-26) : ce qui passe par chaque port est écrit dans son infobulle relevée
+  (`tip` dans `ports.json`, par exemple « Input for Crude Oil/heavy Oil/Fracking Oil/Light Oil »). La
+  maquette lit le nom de l'objet dans l'infobulle. L'éditeur de bâtiments enregistrera ces objets
+  proprement, port par port, choisis parmi les recettes de la machine (R16, lot S38).
+- **BAS-04** (répondu le 2026-10-26) : Fluid Pipe2 fait 2 cases, comme sur le wiki. `ports.json` est
+  corrigé (1 × 2).
+- **BAS-05** (répondu le 2026-10-26) : le partage d'une jonction suit la règle déjà donnée (BAS-02) :
+  avec une entrée, le flux est distribué sur les deux sorties ; avec deux entrées, il sort par la
+  seule sortie ; chaque pièce limite ce qui en sort à son débit. Le moteur (B1) distribuera à parts
+  égales dans ces limites. La maquette fait un flot maximal, qui s'en approche.
+- **BAS-06** (répondu le 2026-10-26) : le mois courant, la pollution globale et le « Satellite buff »
+  sont des mécaniques décrites sur le wiki, à prendre en compte (R18, lot S40).
 <!-- notes-manuelles:fin -->

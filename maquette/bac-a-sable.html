@@ -26,7 +26,9 @@ button { font:inherit; color:inherit; }
 #top .tag { font-size:12px; color:var(--muted); padding:0 6px; }
 /* Menu de pose, en bas à droite, comme Mindustry : infos, grille de 4, catégories, tiers ; outils sous la grille */
 #pf { right:0; bottom:0; border-radius:4px 0 0 0; display:flex; flex-direction:column; width:max-content; }
-#info { border-bottom:3px solid #3a3a3a; padding:8px; width:100%; max-width:384px; }
+/* width:0 + min-width:100% : le cadre d'infos prend la largeur du menu sans jamais l'élargir. Sinon, au
+   survol, le menu s'élargissait, le bouton survolé bougeait, le cadre se fermait… et ça clignotait. */
+#info { border-bottom:3px solid #3a3a3a; padding:8px; width:0; min-width:100%; overflow-wrap:anywhere; }
 #info:empty { display:none; }
 .i-head { display:flex; gap:8px; align-items:center; }
 .i-head img, .i-head svg { flex:none; }
@@ -87,7 +89,6 @@ button { font:inherit; color:inherit; }
   #stats { width:auto; right:8px; max-height:40vh; }
   #top { top:auto; bottom:calc(var(--pfh, 200px) + 8px); }
   #pf { left:0; width:auto; }
-  #info { max-width:none; }
   .pf-body { overflow:hidden; }
   .pf-left { flex:1; min-width:0; }
   /* Au téléphone, la grille défile horizontalement (réponse Q14-6) */
@@ -164,12 +165,17 @@ const isFluid = (i) => !!IT[i]?.fluid;
 const hue = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
-// Catégories du wiki d'Industrialist (BAS-01 : noms et ordre du menu du jeu à confirmer) ; tiers à droite.
+// Catégories du menu Build du jeu, dans l'ordre de la capture du tier I (2026-10-26, BAS-01). L'ordre du
+// jeu change d'un tier à l'autre ; ici il reste fixe pour que chaque catégorie garde sa place et son raccourci.
+// « wiki » : catégorie de machines.json rangée dans cette catégorie du jeu (Storage Silos → Tanks : à confirmer).
 const CATS = [
-  { id: "Extractors", name: "Extraction", ic: "⛏" }, { id: "Factories", name: "Usines", ic: "⚙" }, { id: "Pipes", name: "Tuyaux", ic: "═" },
-  { id: "Power", name: "Énergie", ic: "⚡" }, { id: "Storage Silos", name: "Stockage", ic: "▦" }, { id: "Modular", name: "Modulaires", ic: "⬡" },
-  { id: "Logic", name: "Logique", ic: "◇" }, { id: "Miscellaneous", name: "Divers", ic: "✱" },
+  { id: "Pipes", name: "Pipes", ic: "═" }, { id: "Logic", name: "Logic", ic: "◇" }, { id: "Power", name: "Power", ic: "⚡" },
+  { id: "Decorations", name: "Decorations", ic: "❀" }, { id: "Factories", name: "Factories", ic: "⚙" }, { id: "Modular", name: "Modular", ic: "⬡" },
+  { id: "Miscellaneous", name: "Misc", ic: "✱" }, { id: "Extractors", name: "Extractors", ic: "⛏" }, { id: "Storage Silos", name: "Tanks", ic: "▦" },
 ];
+const completeLink = (id) => BL[id]?.noEditor
+  ? `<span class="muted">${esc(BL[id].name)} n'est pas encore dans l'éditeur de bâtiments (à ajouter).</span>`
+  : `<a href="/#contribuer/batiments/${id}" target="_blank">Compléter ${esc(BL[id].name)} ▸</a>`;
 const TIERS = [{ t: 1, l: "I" }, { t: 2, l: "II" }, { t: 3, l: "III" }, { t: 4, l: "IV" }, { t: null, l: "∗" }];
 
 // Familles de tuyaux : un seul bouton par famille dans la grille, les variantes dans le cadre d'infos.
@@ -232,7 +238,7 @@ function geo(b) {
   const ck = `${b.id}|${b.x}|${b.y}|${b.r}`; if (geoCache.has(ck)) return geoCache.get(ck);
   const d = BL[b.id], g = d.geo; let w = g.w, h = g.h;
   // Les tuyaux n'ont pas de sens propre (réponse BAS-02) : leurs ports vont dans les deux sens.
-  let ps = g.ports.map((p) => { const k = p.c - 1; const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k]; return { t: p.t, d: d.pipe ? "l" : p.d, dir: p.s, ix, iy }; });
+  let ps = g.ports.map((p) => { const k = p.c - 1; const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k]; return { t: p.t, d: d.pipe ? "l" : p.d, dir: p.s, ix, iy, tip: p.tip }; });
   for (let i = 0; i < b.r; i++) { ps = ps.map((p) => ({ ...p, ix: h - 1 - p.iy, iy: p.ix, dir: ROT(p.dir, 1) })); [w, h] = [h, w]; }
   const out = { w, h, ports: ps.map((p) => ({ ...p, ix: p.ix + b.x, iy: p.iy + b.y, ox: p.ix + b.x + DV[p.dir][0], oy: p.iy + b.y + DV[p.dir][1] })) };
   geoCache.set(ck, out); return out;
@@ -418,7 +424,10 @@ function compute() {
   // Recettes : déduites de ce qui arrive ; plusieurs possibles → « ? », le joueur choisit (Q14-8).
   const MI = new Map();
   for (const [u] of G) { const d = BL[byU.get(u).id]; if (!d.pipe) MI.set(u, { rec: null, cand: d.recipes, f: 0, why: null }); }
-  const outItem = (u, p) => { const mi = MI.get(u); if (!mi?.rec) return null; const outs = Object.keys(mi.rec.out).filter((i) => isFluid(i) === (p.t === "f")); if (!outs.length) return null; const ps = G.get(u).ports.filter((q) => q.d === "s" && q.t === p.t); return outs[ps.indexOf(p) % outs.length]; };
+  const outItem = (u, p) => { const mi = MI.get(u); if (!mi?.rec) return null; const outs = Object.keys(mi.rec.out).filter((i) => isFluid(i) === (p.t === "f")); if (!outs.length) return null;
+    // BAS-03 : l'infobulle relevée du port nomme ce qui en sort ; sinon, répartition dans l'ordre (à vérifier).
+    const byTip = p.tip ? outs.filter((i) => p.tip.toLowerCase().includes(itemName(i).toLowerCase())) : []; if (byTip.length) return byTip[0];
+    const ps = G.get(u).ports.filter((q) => q.d === "s" && q.t === p.t); return outs[ps.indexOf(p) % outs.length]; };
   for (let pass = 0; pass < 8; pass++) {
     for (const c of comps.values()) { c.items = new Set(); for (const s of c.src) { const i = outItem(s.u, s.p); if (i) c.items.add(i); } }
     for (const [u, mi] of MI) {
@@ -635,7 +644,7 @@ function renderInfo(force) {
   if (t.k === "e") {
     const e = t.e, v = ui.sel?.e === e ? ui.sel.v : e.def, d = BL[v];
     h += head(v, e.fam ? `${entryName(e)} · ${d.name}` : d.name, shortcut(e), !locked(v));
-    if (locked(v)) h += `<div class="i-line warn">⚠ Ports pas encore relevés : ${e.fam ? "cette pièce" : "ce bâtiment"} ne peut pas être posé.</div><div class="i-btns"><a href="/#donnees/batiments/${v}" target="_blank">Compléter ${esc(d.name)} ▸</a></div>`;
+    if (locked(v)) h += `<div class="i-line warn">⚠ Ports pas encore relevés : ${e.fam ? "cette pièce" : "ce bâtiment"} ne peut pas être posé.</div><div class="i-btns">${completeLink(v)}</div>`;
     h += `<div class="i-line">${d.geo ? dims(v, 0).join(" × ") + " cases · " : ""}$${fmt(d.cost, 0)}${d.pipe ? ` · ${fmt(d.pipe.flow)}/s au plus` : ""}${d.recipes.length ? ` · ${d.recipes.length} recette${d.recipes.length > 1 ? "s" : ""}` : ""}</div>`;
     if (e.fam) {
       h += `<div class="i-var">${VAR[e.fam].map((id) => `<button class="${id === v ? "on" : ""} ${locked(id) ? "locked" : ""}" data-var="${id}" title="${esc(BL[id].name)}${locked(id) ? " (non relevé)" : ""}${BL[id].pipe.rusty ? " (rusty : jamais posé tout seul)" : ""}">${iconSvg(id, 26)}</button>`).join("")}</div>`;
@@ -645,7 +654,7 @@ function renderInfo(force) {
     const b = byU.get(t.u), d = BL[b.id];
     h += head(b.id, d.name, null, !b.missing);
     if (d.pipe) {
-      if (b.missing) h += `<div class="i-line warn">⚠ Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns"><a href="/#donnees/batiments/${b.id}" target="_blank">Compléter ${esc(d.name)} ▸</a></div>`;
+      if (b.missing) h += `<div class="i-line warn">⚠ Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns">${completeLink(b.id)}</div>`;
       const ls = d.pipe.role === "croisement" ? [0, 1] : [0];
       for (const l of ls) { const L = R.lanes.get(b.u + ":" + l); h += `<div class="i-line">${ls.length > 1 ? (l ? "Voie ↕ : " : "Voie ↔ : ") : ""}${L?.item ? "porte " + esc(itemName(L.item)) : L?.mixed ? `<span class="warn">mélange</span>` : "vide"} · ${fmt(L?.flow ?? 0)}/s sur ${fmt(d.pipe.flow)}/s${L?.over ? ` · <span class="warn">saturé (${fmt(L.offered)}/s demandés)</span>` : ""}</div>`; }
     } else {
@@ -683,9 +692,9 @@ function blockInfo(id) { // Comme la fiche « ? » de Mindustry
   if (d.desc) h += `<h3>Description</h3><div class="kv"><div>${esc(d.desc)}</div></div>`;
   h += `<h3>Caractéristiques</h3><div class="kv"><div>Taille : ${d.geo ? `${d.geo.w} × ${d.geo.h} cases` : `<span class="warn">ports et empreinte pas encore relevés</span>`}</div><div>Prix : $${fmt(d.cost, 0)}</div><div>Tier : ${d.tier ? ROM[d.tier] : "non donné par le wiki"}</div><div>Catégorie : ${esc(CATS.find((c) => c.id === d.cat)?.name ?? d.cat)}</div>${d.unlock ? `<div>Débloqué par : ${esc(d.unlock)}</div>` : ""}${d.poll ? `<div>Pollution : ${fmt(d.poll)} %/h</div>` : ""}</div>`;
   if (d.pipe) h += `<h3>Tuyau</h3><div class="kv"><div>Débit : ${fmt(d.pipe.flow)}/s au plus</div><div>Pièce : ${d.pipe.role}${d.pipe.role === "droit" ? `, ${d.pipe.len} case${d.pipe.len > 1 ? "s" : ""}` : ""}</div><div>Section du wiki : ${esc(d.pipe.section)}</div>${d.pipe.rusty ? `<div class="warn">Rusty : jamais posé automatiquement.</div>` : ""}</div>`;
-  if (d.geo?.ports.length) h += `<h3>Ports</h3><div class="kv">${d.geo.ports.map((p) => `<div>${d.pipe ? "Ouverture" : p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"} : côté ${SIDE_FR[p.s]}, case ${p.c}</div>`).join("")}</div>`;
+  if (d.geo?.ports.length) h += `<h3>Ports</h3><div class="kv">${d.geo.ports.map((p) => `<div>${d.pipe ? "Ouverture" : p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"} : côté ${SIDE_FR[p.s]}, case ${p.c}${p.tip ? ` — <i>« ${esc(p.tip)} »</i>` : ""}</div>`).join("")}</div>`;
   if (d.recipes.length) h += `<h3>Fabrication</h3><table><tr><th>Ressources requises</th><th>Produit</th><th>Durée</th><th>Énergie</th></tr>${d.recipes.map((r) => `<tr><td>${Object.entries(r.in).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>") || "—"}</td><td>${Object.entries(r.out).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>")}</td><td>${fmt(r.s)} s</td><td>${fmt(r.e, 0)} MF/s</td></tr>`).join("")}</table>`;
-  if (!d.geo) h += `<p><a href="/#donnees/batiments/${id}" target="_blank" style="color:var(--accent)">Compléter ${esc(d.name)} dans l'éditeur de bâtiments ▸</a></p>`;
+  if (!d.geo) h += `<p>${completeLink(id)}</p>`;
   openDlg(h);
 }
 document.getElementById("b-db").onclick = () => openDlg(`<div class="ttl">📖 Base de données</div>` + CATS.map((c) => { const bs = B.blocks.filter((b) => b.cat === c.id); return bs.length ? `<h3>${c.ic} ${c.name}</h3><div class="db">${bs.map((b) => `<button class="pf-blk ${b.geo ? "" : "locked"}" data-db="${b.id}" title="${esc(b.name)}">${iconSvg(b.id, 34)}</button>`).join("")}</div>` : ""; }).join(""));

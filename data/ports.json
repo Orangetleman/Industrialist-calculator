@@ -602,13 +602,13 @@
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:22:53.841Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
   },
   "fluid-pipe2": {
-   "footprint": { "w": 1, "h": 1 },
+   "footprint": { "w": 1, "h": 2 },
    "ports": [
     { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
     { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 }
    ],
    "noPower": true,
-   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:23:52.663Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
+   "source": { "wiki": "jeu", "fetchedAt": "2026-10-17T13:23:52.663Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18) ; longueur 2 cases confirmée par l'utilisateur le 2026-10-26 (BAS-04, comme le wiki : 4 × 2 studs)" }
   },
   "large-fluid-pipe": {
    "footprint": { "w": 2, "h": 2 },
