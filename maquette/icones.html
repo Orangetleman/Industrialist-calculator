@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S41 — Icônes</title>
+<style>
+/* Maquette seulement (S41, 1er pas de la refonte R19) : des icônes à la place des émojis.
+   Couleurs d'essai vers la future charte (fond charbon, accent or) ; la charte complète viendra avec S41. */
+:root {
+  --bg: #f3f1ec; --surface: #ffffff; --ink: #1f2328; --muted: #5e646b; --line: #d6d2c8;
+  --accent: #8a6410; --accent-soft: #f4ead2; --warn: #b4530a; --warn-soft: #fbeedd; --ok: #2e7d4f; --bad: #b3261e;
+  --f: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1e2125; --ink: #ebe7df; --muted: #a7a399; --line: #3a3f45;
+    --accent: #e2b34a; --accent-soft: #3a2f16; --warn: #ff9b5c; --warn-soft: #3a2414; --ok: #6cc792; --bad: #ff8a80;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1e2125; --ink: #ebe7df; --muted: #a7a399; --line: #3a3f45;
+  --accent: #e2b34a; --accent-soft: #3a2f16; --warn: #ff9b5c; --warn-soft: #3a2414; --ok: #6cc792; --bad: #ff8a80;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f); }
+a { color: var(--accent); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+.mq-bar { margin: 12px 0; padding: 10px 14px; background: var(--accent-soft); border-radius: 8px; font-size: .9rem; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.mq-bar .sp { margin-left: auto; display: flex; gap: 6px; }
+h1 { font-size: 1.35rem; margin: 18px 0 4px; }
+h2 { font-size: .8rem; margin: 30px 0 8px; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); border-bottom: 1px solid var(--accent); padding-bottom: 4px; }
+.note { color: var(--muted); font-size: .9rem; max-width: 820px; margin: 4px 0 10px; }
+
+/* L'icône : un SVG en ligne, trait de la couleur du texte (currentColor), donc lisible en clair et en sombre. */
+.ic { width: 1.1em; height: 1.1em; vertical-align: -.2em; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic.fill { fill: currentColor; }
+
+button, .btn { font: inherit; font-size: .9rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; min-height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+button.icon { padding: 0; width: 32px; justify-content: center; }
+button.link { border: 0; background: none; padding: 0; min-height: 0; color: var(--accent); }
+button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Comparaison avant / après */
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 760px) { .cmp { grid-template-columns: 1fr; } }
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 12px; align-content: start; }
+.pane > .cap { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0; }
+.pane.new { border-color: var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hdr { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.hdr b { font-size: 1rem; } .hdr .sp { margin-left: auto; display: flex; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: .84rem; }
+.chip.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.chip .x { border: 0; background: none; min-height: 22px; width: 22px; padding: 0; justify-content: center; border-radius: 50%; color: var(--muted); }
+.warn-t { color: var(--warn); }
+.tile { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: .9rem; }
+.prio { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.prio li { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-size: .88rem; }
+.prio .grip { color: var(--muted); cursor: grab; } .prio .sp { margin-left: auto; display: flex; gap: 4px; }
+.prio button { min-height: 26px; width: 26px; padding: 0; justify-content: center; }
+.vote { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 700; }
+.vote button { min-height: 26px; width: 30px; padding: 0; justify-content: center; }
+.zoom { display: inline-flex; flex-direction: column; gap: 4px; }
+.mbar { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px; flex-wrap: wrap; }
+.mbar button { width: 38px; min-height: 38px; padding: 0; justify-content: center; }
+.mbar button .ic { width: 20px; height: 20px; }
+.cats { display: flex; flex-wrap: wrap; gap: 4px; }
+.cats button { flex-direction: column; min-height: 52px; width: 76px; padding: 4px 2px; gap: 2px; font-size: .7rem; }
+.cats button .ic { width: 20px; height: 20px; }
+.help { font-size: .88rem; color: var(--muted); }
+
+/* Jeu d'icônes */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.cell { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 6px 8px; text-align: center; font-size: .72rem; color: var(--muted); }
+.cell .ic { width: 24px; height: 24px; color: var(--ink); display: block; margin: 0 auto 6px; }
+.sizes { display: flex; gap: 18px; align-items: flex-end; flex-wrap: wrap; }
+.sizes span { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; font-size: .72rem; color: var(--muted); }
+
+/* Correspondance */
+.map { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: .86rem; }
+.map th, .map td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.map th { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.map td.e { font-size: 1.15rem; white-space: nowrap; }
+.map td.i { white-space: nowrap; } .map td.i .ic { width: 20px; height: 20px; }
+.map td.i code { font-size: .74rem; color: var(--muted); display: block; }
+.map tr.grp td { background: var(--bg); font-weight: 700; font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.tbl { overflow-x: auto; }
+.q { margin: 30px 0 60px; padding: 12px 16px; background: var(--accent-soft); border-radius: 8px; font-size: .92rem; }
+.q ol { margin: 6px 0 0; padding-left: 22px; } .q li { margin: 8px 0; }
+.dot { display: inline-block; width: .55em; height: .55em; border-radius: 50%; background: var(--ok); vertical-align: .1em; }
+@media (max-width: 480px) { .map td.o { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="mq-bar">
+  <span><b>Maquette S41 (1er pas de R19)</b> : remplacer les émojis par des icônes. Rien n'est encore changé sur le site.</span>
+  <span class="sp"><button data-theme-set="light">Clair</button><button data-theme-set="dark">Sombre</button><button data-theme-set="">Comme l'appareil</button></span>
+</div>
+
+<h1>Des icônes à la place des émojis</h1>
+<p class="note">Aujourd'hui, le site affiche ses repères avec des émojis et des symboles du clavier (💬 📤 ⚠ ✎ ▶ ⤢…). Leur dessin change d'un appareil à l'autre, certains sont en couleur et d'autres non, et ils jurent avec un site sobre. Proposition : <b>un seul jeu d'icônes au trait, Lucide</b>, celui qu'utilise Industrialist Calculator. Chaque icône prend la couleur du texte, donc elle se lit en clair comme en sombre, et elle a toujours un libellé à côté ou une bulle (<code>title</code>) pour les lecteurs d'écran.</p>
+
+<h2>En situation : aujourd'hui / proposé</h2>
+<div class="cmp" id="cmp"></div>
+
+<h2>Le jeu d'icônes (Lucide, trait de 2, 24 × 24)</h2>
+<p class="note" id="lic">Lucide est sous licence libre <b>ISC</b> (aussi permissive que MIT) : on peut recopier les dessins dans le site, à condition d'y garder la notice. <b>Aucune dépendance npm</b> : les {N} icônes utiles sont recopiées une fois pour toutes dans un seul fichier, <code>src/ui/icons.ts</code>, avec la notice ISC en tête. Les tracés ci-dessous sont ceux de Lucide 0.460, tels quels.</p>
+<div class="sizes" id="sizes"></div>
+<div class="grid" id="grid" style="margin-top:12px"></div>
+
+<h2>Correspondance émoji → icône</h2>
+<p class="note">Tous les émojis et symboles qui servent d'<b>icône</b> sur le site, regroupés par rôle. Les symboles qui font partie du <b>texte</b> restent tels quels (voir plus bas).</p>
+<div class="tbl"><table class="map" id="map"><thead><tr><th>Aujourd'hui</th><th>Proposé</th><th>Rôle</th><th class="o">Où</th></tr></thead><tbody></tbody></table></div>
+
+<h2>Ce qui reste du texte</h2>
+<p class="note">Ces signes sont de la typographie, pas des icônes : <b>×</b> (3 × Assembler, 2 × 3 cases), <b>→</b> et <b>←</b> dans une phrase (« Iron Ore → Iron Plate »), <b>−</b>, <b>≥ ≤ ≈ √ ⌈ ⌉ ∞</b> dans les formules, <b>…</b>. Le <b>$</b> des repères de dépense du graphique des RP reste aussi. La pastille <span class="dot"></span> (« en jeu », « non enregistré », « nouvelle », « débit exact ») devient un petit rond dessiné en CSS au lieu du caractère ● / ○.</p>
+<p class="note">Quand une aide <b>parle</b> d'une icône (« un ⚠ mène à la valeur », « glisse une ligne ou utilise ↑ ↓ », « mode ✥ Capture »), la même icône est dessinée dans la phrase : <span class="help">un <svg class="ic warn-t" viewBox="0 0 24 24" data-i="triangle-alert"></svg> mène à la valeur, dans la fiche, en mode « <svg class="ic" viewBox="0 0 24 24" data-i="pencil"></svg> Corriger ».</span></p>
+
+<div class="q"><b>À valider</b>
+<ol>
+  <li><b>Le jeu Lucide</b>, recopié en SVG dans <code>src/ui/icons.ts</code> avec sa notice ISC, sans paquet npm : d'accord ?</li>
+  <li><b>La correspondance</b> du tableau : une icône te semble mal choisie ? (par exemple 🌳 Arbre de recherche → <i>network</i>, ⤢ Tout voir → <i>scan</i>, Pipes → <i>droplets</i>.)</li>
+  <li><b>Les listes déroulantes</b> (<code>&lt;select&gt;</code>) ne savent pas afficher d'image : le ★ de l'option conseillée (« Module voisin ») reste un caractère, ou devient le mot « (conseillé) » ?</li>
+  <li><b>Les flèches de « Suivant ▶ », « corriger ▸ », « Voir dans Recettes ▸ »</b> deviennent un chevron <svg class="ic" viewBox="0 0 24 24" data-i="chevron-right"></svg> après le mot : d'accord ? (« ← Retour » prend une flèche <svg class="ic" viewBox="0 0 24 24" data-i="arrow-left"></svg> avant.)</li>
+  <li><b>Le 👍 de la visite</b> (« Tu sais t'orienter 👍 ») est décoratif : je le retire plutôt que de le remplacer ?</li>
+  <li><b>Les couleurs</b> ici sont un essai (charbon, or, orangé pour ⚠ afin qu'il ne se confonde pas avec l'accent or). Pour ce lot, les icônes prennent la couleur du texte du site actuel ; la vraie charte vient avec la suite de S41.</li>
+</ol></div>
+</div>
+
+<script>
+// Tracés Lucide 0.460 (ISC, © Lucide Contributors ; portions © Cole Bemis, Feather, MIT).
+const I = {
+  "arrow-big-down": '<path d="M15 6v6h4l-7 7-7-7h4V6h6z"/>',
+  "arrow-big-up": '<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>',
+  "arrow-down-wide-narrow": '<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/>',
+  "arrow-down": '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  "arrow-left-right": '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  "arrow-left": '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  "arrow-up-down": '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+  "arrow-up-narrow-wide": '<path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="M11 12h4"/><path d="M11 16h7"/><path d="M11 20h10"/>',
+  "arrow-up": '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  "ban": '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  "book-open": '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  "bug": '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>',
+  "chart-column": '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  "check": '<path d="M20 6 9 17l-5-5"/>',
+  "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  "chevron-left": '<path d="m15 18-6-6 6-6"/>',
+  "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+  "circle-dashed": '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
+  "clipboard-list": '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  "cpu": '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+  "cylinder": '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/>',
+  "diamond": '<path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/>',
+  "download": '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  "droplets": '<path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/>',
+  "external-link": '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  "factory": '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
+  "flower-2": '<path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"/><circle cx="12" cy="8" r="2"/><path d="M12 10v12"/><path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z"/><path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z"/>',
+  "folder": '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  "grip-vertical": '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>',
+  "hammer": '<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
+  "hexagon": '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>',
+  "hourglass": '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
+  "house": '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  "image": '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+  "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  "info": '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  "keyboard": '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
+  "languages": '<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>',
+  "layout-grid": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+  "lightbulb": '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  "link": '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  "list": '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+  "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  "maximize": '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  "message-square-text": '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/>',
+  "move": '<path d="M12 2v20"/><path d="m15 19-3 3-3-3"/><path d="m19 9 3 3-3 3"/><path d="M2 12h20"/><path d="m5 9-3 3 3 3"/><path d="m9 5 3-3 3 3"/>',
+  "network": '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+  "paperclip": '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  "pause": '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  "pickaxe": '<path d="M14.531 12.469 6.619 20.38a1 1 0 1 1-3-3l7.912-7.912"/><path d="M15.686 4.314A12.5 12.5 0 0 0 5.461 2.958 1 1 0 0 0 5.58 4.71a22 22 0 0 1 6.318 3.393"/><path d="M17.7 3.7a1 1 0 0 0-1.4 0l-4.6 4.6a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4z"/><path d="M19.686 8.314a12.501 12.501 0 0 1 1.356 10.225 1 1 0 0 1-1.751-.119 22 22 0 0 0-3.393-6.319"/>',
+  "play": '<polygon points="6 3 20 12 6 21 6 3"/>',
+  "redo-2": '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',
+  "rotate-ccw": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  "rotate-cw": '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  "scan": '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>',
+  "send": '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  "shapes": '<path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
+  "square-dashed": '<path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/><path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1"/><path d="M9 21h1"/><path d="M14 3h1"/><path d="M14 21h1"/><path d="M3 9v1"/><path d="M21 9v1"/><path d="M3 14v1"/><path d="M21 14v1"/>',
+  "square": '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+  "thumbs-up": '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+  "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+  "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  "zap": '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+};
+// Pleines plutôt qu'au trait : petites, elles se lisent mieux ainsi (lecture, votes).
+const FILLED = new Set(["play", "pause", "arrow-big-up", "arrow-big-down"]);
+const ic = (n, cls = "") => `<svg class="ic${FILLED.has(n) ? " fill" : ""}${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${I[n]}</svg>`;
+
+// [émoji(s) d'aujourd'hui, icône(s), rôle, où]
+const MAP = [
+  ["Actions"],
+  ["✕", "x", "Fermer, annuler un réglage, retirer une ligne", "fenêtres, barre « Ton plan », journal des RP, bulles, sélection"],
+  ["✎", "pencil", "Corriger, Modifier, valeur corrigée, relever", "Recettes, Contribuer, plan, usine"],
+  ["✓", "check", "Terminer, reçu, fait, « tu as », module posé", "Recettes, Remarques, tableau de bord, usine"],
+  ["↺", "rotate-ccw", "Rétablir, remettre par défaut", "Recettes, écran des machines, filtre"],
+  ["📤", "send", "Envoyer mes corrections, mes relevés", "Recettes, Contribuer, fenêtre Remarque"],
+  ["■", "square", "Arrêter le calcul de l'usine", "Usine"],
+  ["⊘", "ban", "Ne plus utiliser cette machine", "plan (détail d'une étape)"],
+  ["🖼", "image", "Ajouter, changer l'image", "fiche d'un objet"],
+  ["⇄", "arrow-left-right", "Inverser largeur et hauteur", "éditeur de bâtiments"],
+  ["Signaux"],
+  ["⚠", "triangle-alert", "Valeur à vérifier, seuil dépassé, à relever, problème", "partout (plan, Recettes, usine, Contribuer, Ma recherche)"],
+  ["🔒", "lock", "Pas encore débloqué", "fiche d'un objet"],
+  ["ⓘ", "info", "Pourquoi ce chiffre", "tableau de bord du plan"],
+  ["⏱", "clock", "Calcul long", "Usine"],
+  ["⏳", "hourglass", "Chargement", "visite guidée"],
+  ["Se déplacer"],
+  ["▸ ▶", "chevron-right", "Aller plus loin : Suivant, Continuer, corriger, Voir dans Recettes, Arrivée", "plan, visite, barre « Ton plan »"],
+  ["◂ ◀", "chevron-left", "Précédent, Départ", "visite, plan"],
+  ["←", "arrow-left", "Retour (à l'usine, à la liste)", "usine, tableau de l'auteur"],
+  ["▾", "chevron-down", "Ouvre une liste (Priorités, Machines, Options, valeurs à vérifier)", "barre « Ton plan »"],
+  ["↗", "external-link", "Lien vers un autre site (wiki, source, crédit)", "fiches, arbre, usine"],
+  ["↑ ↓", "arrow-up arrow-down", "Monter, descendre une priorité", "listes de priorités"],
+  ["⋮⋮", "grip-vertical", "Poignée pour glisser une ligne", "listes de priorités"],
+  ["⇅", "arrow-up-down", "Bulle fixe ou qui suit", "visite guidée"],
+  ["Vues et zoom"],
+  ["⤢", "scan", "Tout voir", "schémas, usine, arbre, éditeur"],
+  ["⌂", "house", "Vue de départ", "plan de pose, arbre"],
+  ["⛶", "maximize", "Plein écran", "module ouvert de l'usine"],
+  ["▦", "layout-grid", "Vue en tuiles", "Recettes"],
+  ["☰", "list", "Vue en lignes", "Recettes"],
+  ["▲ ▼", "arrow-up-narrow-wide arrow-down-wide-narrow", "Sens du tri", "Recettes"],
+  ["⇄", "link", "Afficher les liaisons entre modules", "usine"],
+  ["◯", "circle-dashed", "Afficher la portée", "modulaires, éditeur"],
+  ["✥", "move", "Mode Capture (déplacer l'image)", "éditeur de bâtiments"],
+  ["Ma recherche"],
+  ["▶", "play", "Je joue", "en-tête, Ma recherche"],
+  ["⏸", "pause", "En jeu, je ne joue plus", "en-tête, Ma recherche"],
+  ["⚙", "settings", "Repère « configuration » du graphique", "graphique des RP"],
+  ["Machines et bâtiments"],
+  ["⚙", "settings", "Réglage d'interface, écran de la machine", "plan, Contribuer, modulaires"],
+  ["⬡", "hexagon", "Bâtiment modulaire", "éditeur de bâtiments"],
+  ["⚡", "zap", "Prise d'énergie", "éditeur de bâtiments"],
+  ["◆", "diamond", "Port sur le dessus", "éditeur de bâtiments"],
+  ["▲ ▼ ◀ ▶", "arrow-up arrow-down arrow-left arrow-right", "Sens d'un port (entrée, sortie)", "éditeur de bâtiments"],
+  ["↕ ↔", "arrow-up-down arrow-left-right", "Port à double sens", "éditeur de bâtiments"],
+  ["Remarques et propositions"],
+  ["💬", "message-square-text", "Remarque, proposer une idée", "en-tête, pied de page, Propositions"],
+  ["▲ ▼", "arrow-big-up arrow-big-down", "Voter pour, contre", "Propositions"],
+  ["⚠", "triangle-alert", "Type : valeur fausse", "fenêtre Remarque"],
+  ["🐞", "bug", "Type : bogue", "fenêtre Remarque"],
+  ["💡", "lightbulb", "Type : idée", "fenêtre Remarque"],
+  ["🌐", "languages", "Type : traduction ; traduire automatiquement", "fenêtre Remarque, tableau de l'auteur"],
+  ["📤", "send", "Type : correction", "fenêtre Remarque"],
+  ["👍", "—", "Décoratif : retiré", "visite guidée"],
+  ["Tableau de l'auteur"],
+  ["📥", "inbox", "Boîte des remarques", "/tableau"],
+  ["📁", "folder", "Sujet auquel la remarque est rangée", "/tableau"],
+  ["📎", "paperclip", "Fichier joint", "/tableau"],
+  ["⬇", "download", "Télécharger le JSON", "/tableau"],
+  ["Bac à sable (maquette)"],
+  ["📊", "chart-column", "Statistiques du montage", "panneau"],
+  ["⌨", "keyboard", "Touches", "barre du bas"],
+  ["↶ ↷", "undo-2 redo-2", "Annuler, rétablir", "barre du bas"],
+  ["📋", "clipboard-list", "Schémas", "barre du bas"],
+  ["📖", "book-open", "Base de données", "barre du bas"],
+  ["🌳", "network", "Arbre de recherche", "barre du bas"],
+  ["🔗", "link", "Liaisons", "barre du bas"],
+  ["🔨", "hammer", "Casser (zone)", "barre du téléphone"],
+  ["⬚", "square-dashed", "Copier une zone", "barre du téléphone"],
+  ["⟳", "rotate-cw", "Tourner", "barre du téléphone"],
+  ["═ ◇ ⚡ ❀ ⚙ ⬡ ✱ ⛏ ▦", "droplets cpu zap flower-2 factory hexagon shapes pickaxe cylinder", "Catégories : Pipes, Logic, Power, Decorations, Factories, Modular, Misc, Extractors, Tanks", "menu Build"],
+];
+
+const tb = document.querySelector("#map tbody");
+tb.innerHTML = MAP.map((r) => r.length === 1
+  ? `<tr class="grp"><td colspan="4">${r[0]}</td></tr>`
+  : `<tr><td class="e">${r[0]}</td><td class="i">${r[1] === "—" ? "—" : r[1].split(" ").map((n) => ic(n)).join(" ")}<code>${r[1]}</code></td><td>${r[2]}</td><td class="o">${r[3]}</td></tr>`).join("");
+
+const used = [...new Set(MAP.filter((r) => r.length > 1 && r[1] !== "—").flatMap((r) => r[1].split(" ")))].sort();
+document.getElementById("grid").innerHTML = used.map((n) => `<div class="cell">${ic(n)}${n}</div>`).join("");
+const lic = document.getElementById("lic");
+lic.innerHTML = lic.innerHTML.replace("{N}", used.length);
+document.getElementById("sizes").innerHTML = [14, 16, 20, 24].map((s) => `<span><svg class="ic" style="width:${s}px;height:${s}px" viewBox="0 0 24 24" aria-hidden="true">${I["triangle-alert"]}</svg>${s} px</span>`).join("")
+  + `<span class="help" style="align-self:center">Dans le texte : 1,1 × la taille des lettres. Seules, sur un bouton : 18 à 20 px, le bouton gardant 32 px au moins (44 px au téléphone).</span>`;
+for (const s of document.querySelectorAll("svg[data-i]")) { s.setAttribute("aria-hidden", "true"); s.innerHTML = I[s.dataset.i]; }
+
+// Comparaison en situation
+const before = `
+  <p class="cap">Aujourd'hui (émojis)</p>
+  <div class="hdr"><b>Planificateur Industrialist</b><span class="sp"><button>FR / EN</button><button>💬 Remarque</button></span></div>
+  <div class="row"><span class="chip">Priorités : Place, Machines ▾</span><span class="chip warn">⚠ 2 valeurs à vérifier ▾</span><span class="chip">Steel Mill bannie <button class="x">✕</button></span></div>
+  <div class="row"><span class="tile">Steel Plate <span class="warn-t">⚠</span></span><button>✎ Corriger</button><button>✓ Terminer</button><button>↺ Rétablir</button><button class="primary">📤 Envoyer mes corrections</button></div>
+  <ol class="prio"><li><span class="grip">⋮⋮</span>1 · Place<span class="sp"><button>↑</button><button>↓</button></span></li><li><span class="grip">⋮⋮</span>2 · Machines<span class="sp"><button>↑</button><button>↓</button></span></li></ol>
+  <div class="row"><span class="vote"><button>▲</button>12<button>▼</button></span><span class="zoom"><button class="icon">⤢</button><button class="icon">⌂</button><button class="icon">⛶</button></span><button>▶ Je joue</button><button>Suivant ▶</button><button class="link">← Retour à l'usine</button></div>
+  <div class="mbar"><button>⌨</button><button>↶</button><button>↷</button><button>📋</button><button>📖</button><button>🌳</button><button>🔗</button><button>🔨</button><button>⬚</button><button>⟳</button><button>✕</button></div>
+  <div class="cats"><button><span>═</span>Pipes</button><button><span>◇</span>Logic</button><button><span>⚡</span>Power</button><button><span>❀</span>Decor.</button><button><span>⚙</span>Factories</button><button><span>⬡</span>Modular</button><button><span>✱</span>Misc</button><button><span>⛏</span>Extractors</button><button><span>▦</span>Tanks</button></div>`;
+const B = (n, label) => `<button class="icon" aria-label="${label}" title="${label}">${ic(n)}</button>`;
+const after = `
+  <p class="cap">Proposé (icônes Lucide)</p>
+  <div class="hdr"><b>Planificateur Industrialist</b><span class="sp"><button>FR / EN</button><button>${ic("message-square-text")} Remarque</button></span></div>
+  <div class="row"><span class="chip">Priorités : Place, Machines ${ic("chevron-down")}</span><span class="chip warn">${ic("triangle-alert")} 2 valeurs à vérifier ${ic("chevron-down")}</span><span class="chip">Steel Mill bannie <button class="x" aria-label="Annuler" title="Annuler">${ic("x")}</button></span></div>
+  <div class="row"><span class="tile">Steel Plate <span class="warn-t" title="Une valeur de sa fiche est à vérifier">${ic("triangle-alert")}</span></span><button>${ic("pencil")} Corriger</button><button>${ic("check")} Terminer</button><button>${ic("rotate-ccw")} Rétablir</button><button class="primary">${ic("send")} Envoyer mes corrections</button></div>
+  <ol class="prio"><li><span class="grip">${ic("grip-vertical")}</span>1 · Place<span class="sp">${B("arrow-up", "Monter")}${B("arrow-down", "Descendre")}</span></li><li><span class="grip">${ic("grip-vertical")}</span>2 · Machines<span class="sp">${B("arrow-up", "Monter")}${B("arrow-down", "Descendre")}</span></li></ol>
+  <div class="row"><span class="vote">${B("arrow-big-up", "Pour")}12${B("arrow-big-down", "Contre")}</span><span class="zoom">${B("scan", "Tout voir")}${B("house", "Vue de départ")}${B("maximize", "Plein écran")}</span><button>${ic("play")} Je joue</button><button>Suivant ${ic("chevron-right")}</button><button class="link">${ic("arrow-left")} Retour à l'usine</button></div>
+  <div class="mbar">${B("keyboard", "Touches")}${B("undo-2", "Annuler")}${B("redo-2", "Rétablir")}${B("clipboard-list", "Schémas")}${B("book-open", "Base de données")}${B("network", "Arbre de recherche")}${B("link", "Liaisons")}${B("hammer", "Casser")}${B("square-dashed", "Copier une zone")}${B("rotate-cw", "Tourner")}${B("x", "Lâcher")}</div>
+  <div class="cats">${[["droplets", "Pipes"], ["cpu", "Logic"], ["zap", "Power"], ["flower-2", "Decor."], ["factory", "Factories"], ["hexagon", "Modular"], ["shapes", "Misc"], ["pickaxe", "Extractors"], ["cylinder", "Tanks"]].map(([n, l]) => `<button>${ic(n)}${l}</button>`).join("")}</div>`;
+document.getElementById("cmp").innerHTML = `<div class="pane">${before}</div><div class="pane new">${after}</div>`;
+
+// Thème
+for (const b of document.querySelectorAll("[data-theme-set]")) b.onclick = () => {
+  if (b.dataset.themeSet) document.documentElement.dataset.theme = b.dataset.themeSet; else delete document.documentElement.dataset.theme;
+};
+</script>
+</body>
+</html>
