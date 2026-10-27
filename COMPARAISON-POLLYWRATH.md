@@ -106,9 +106,22 @@ jeu avant usage.
 | **Pollution par recette** | Champ `pollution` sur chaque recette | `pollutionPerHour` par machine. Non comparé |
 | **Centrales et turbines** | Coal Power Plant, Modular Turbine, Modular Diesel Engine, Steam Condenser, Large, Small et Steam Turbine calculés selon la vapeur et le débit | Calculés à part (`energy.json`, S13) ; non comparé ici |
 
-## 5. Ce qu'il reste à faire
+## 5. Ce qui est fait, ce qu'il reste à faire
 
-1. Relancer `build-data` pour prendre la révision 43888 du module Trommel (POL-01).
-2. Trancher POL-02, POL-03, POL-05, POL-06 et POL-07 : relevé en jeu ou lecture du wiki.
+**Fait le 2026-10-27, à la demande de l'utilisateur** : leurs valeurs sont reprises dans
+`data/overrides.json` (source « saisie ») pour POL-01 à POL-05 et POL-07 à POL-09. Les colonnes
+« Nous » du § 2 donnent donc l'ancienne valeur ; le site utilise désormais celle de la colonne
+« Eux ». Les 4 recettes de l'Industrial Sawmill sont remplacées par des copies avec 300 Steam
+(`industrial_sawmill_0X_vapeur`).
+
+**Reste à faire (demande une modification du code, lot à part)** :
+
+1. POL-06, eau du Large Diesel Engine : le moteur refuse une recette ajoutée sans sortie
+   (`checkAddedRecipe`, `data.noOutput`, dans `src/engine/data.ts`). Il faut soit l'accepter pour
+   les générateurs (énergie négative), soit permettre à une correction d'ajouter une entrée à une
+   recette existante. Ensuite : 20 Water, 7,5 Filtered Water ou 15 Distilled Water (les deux
+   dernières à −6 MMF/s).
+2. Relancer `build-data` pour prendre la révision 43888 du module Trommel ; la correction POL-01
+   deviendra alors inutile.
 3. Chercher sur le wiki l'origine des formules du § 4, d'abord la température de la vapeur (5
    machines) et la pollution globale.
