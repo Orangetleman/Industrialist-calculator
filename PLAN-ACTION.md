@@ -120,7 +120,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S44 | Menu déroulant maison à la place des `<select>` : images dans les options, clavier et lecteur d'écran comme le navigateur (R23) ; maquette d'abord | moyenne | — | à faire |
 | S45 | Visite refaite : une visite principale, puis une visite par usage proposée à la première entrée (R24) ; maquette d'abord | moyenne | — | à faire (plus tard) |
 | S40 | Plan (sans code) : refaire la recherche avec Industrialist Calculator comme source, mois, pollution globale, Satellite buff (R18) | moyenne, sans code | — | fait (2026-10-27) : lots S46 à S51 ci-dessous |
-| S46 | Recherche actuelle masquée (« en refonte ») en attendant S48 | petite | — | à faire (en premier) |
+| S46 | Recherche actuelle masquée (« en refonte ») en attendant S48 | petite | — | fait (2026-10-27) : drapeau `RECHERCHE_EN_REFONTE` dans `src/ui/flags.ts` |
 | S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | à faire |
 | S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | à faire |
 | S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | à faire |
@@ -1609,3 +1609,6 @@ Chaque session de lot :
 - suit le § 0, du début à la fin ;
 - met à jour le § 2 (état), le § 6 (bilan) et la mémoire `prochaine-session`.
 - **2026-10-27, S38** : bulle de port de l'éditeur : bloc « Ce qui passe ici » (maquette `maquette/ports-objets.html`, validée ; l'utilisateur précise que ce n'est pas le style voulu, à reprendre plus tard avec le reste du site). Cases parmi les objets ou fluides des recettes de la machine, selon le sens ; infobulle relevée reprise (noms reconnus cochés d'avance, noms inconnus en orange) ; champ `items` du port, donc enregistré, exporté et importé. Tests `portCandidates` et `tipSuggest`.
+- **2026-10-27, S46** (code, déployé) : recherche masquée par le drapeau `RECHERCHE_EN_REFONTE` (`src/ui/flags.ts`, mettre `false` pour la remontrer) : onglet « Ma recherche » et objectif « Des RP » affichent « Recherche en refonte » (FR/EN, clé `rs.refonte`), puce RP de l en-tête et RP de l arbre masqués.
+- Données du joueur (relevés, journal S21, export) non touchées ; 571 tests verts sans adaptation ; capture faite dans le navigateur.
+- Suite : S47 (maquette) sur feu vert ; S48 et S49 retirent le drapeau.
