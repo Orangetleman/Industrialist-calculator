@@ -1512,7 +1512,10 @@ const fullFactory = () => factories.get(factoryKey({ ...settings.usine, full: tr
 const tierOf = (item: string, perMin: number) => pipeFor(CATALOG, data.items.get(item)?.isFluid ? "fluide" : "objet", perMin / 60, settings.tier3Only)?.tier ?? null;
 
 /** Lance le calcul de toute l'usine dans un Web Worker (annule celui en cours, garde ceux qui sont finis). */
-function startFactory(): void {
+/** S42 : temps visé pour l'usine entière ; `complete` le lève (bouton « Continuer le calcul »). */
+const FACTORY_BUDGET_MS = 20_000;
+
+function startFactory(complete = false): void {
   for (const [k, other] of factories)
     if (other.job || other.key.split("|").slice(0, -1).join("|") !== factoryKey().split("|").slice(0, -1).join("|")) {
       other.job?.cancel();
@@ -1539,7 +1542,7 @@ function startFactory(): void {
     CATALOG,
     plot,
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
-    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow() },
+    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow(), ...(complete ? {} : { budgetMs: FACTORY_BUDGET_MS }) },
   );
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
   factories.set(key, st);
@@ -1551,7 +1554,7 @@ function startFactory(): void {
   // sinon il tourne dans le Web Worker et son résultat est gardé pour la prochaine fois.
   void loadFactory(key).then((hit) => {
     if (factories.get(key) !== st || st.cancelled) return;
-    if (hit) {
+    if (hit && !(complete && hit.plan.cut)) {
       [st.plan, st.ms, st.cached] = [hit.plan, hit.ms, true];
       return refresh();
     }
@@ -2993,6 +2996,9 @@ function bindPlan(): void {
       if (onUsine(u)) return;
       if (u.dataset.usine === "run") {
         startFactory();
+        renderPose();
+      } else if (u.dataset.usine === "complete") {
+        startFactory(true);
         renderPose();
       } else if (u.dataset.usine === "open") {
         poseStep = USINE;

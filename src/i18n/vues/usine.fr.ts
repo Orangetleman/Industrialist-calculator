@@ -465,6 +465,8 @@ export const usineFr = {
   "uf.mode.glue": ", ou collé quand c'est possible{none}",
   "uf.mode.noGlue": " (aucune liaison n'a pu être collée dans ce plan)",
   "uf.time": " Calculée en {s} s{cached}.",
+  "uf.cut": "Calcul arrêté après {s} s pour ne pas te faire attendre : c'est le meilleur plan trouvé jusque-là, un calcul complet peut faire mieux (plus petit, moins de tuyaux), mais peut durer plusieurs minutes.",
+  "uf.cut.more": "Continuer le calcul",
   "uf.cached": ", gardée dans ce navigateur : reprise sans recalcul",
   "uf.lg.cable": "Câble électrique",
   "uf.lg.flow": "Liaison (sens du flux)",

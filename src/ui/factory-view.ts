@@ -317,7 +317,9 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
     : t("uf.mode.mod", { glue: glue ? t("uf.mode.glue", { none: f.glued.length ? "" : t("uf.mode.noGlue") }) : "" });
   const head = `<p class="mod-sum">${sum}</p>${plotText}${unlinked(f, name, sub)}${st.overloaded ? `<ul class="notices"><li>${t("uf.overloaded", { n: String(st.overloaded) })}</li></ul>` : ""}${
     missing.length ? `<p class="mod-other warn-text">${t("uf.incomplete", { n: missing.length })}</p>` : ""
-  }<p class="mod-other">${mode}${t("uf.time", { s: fmt(ms / 1000, 1), cached: cached ? t("uf.cached") : "" })}</p>`;
+  }<p class="mod-other">${mode}${t("uf.time", { s: fmt(ms / 1000, 1), cached: cached ? t("uf.cached") : "" })}</p>${
+    f.cut ? `<p class="mod-other warn-text">${t("uf.cut", { s: fmt(ms / 1000, 0) })} <button type="button" class="small" data-usine="complete">${t("uf.cut.more")}</button></p>` : ""
+  }`;
   const items = [...color.keys()];
   const legend = `<ul class="mod-legend">${items.map((it) => `<li><i style="background:${color.get(it)}"></i>${esc(name(it))}</li>`).join("")}<li><i class="sw-pole"></i>${t("mv.lg.pole")}</li><li><i class="sw-cable"></i>${t("uf.lg.cable")}</li><li><i class="sw-flow"></i>${t("uf.lg.flow")}</li>${plot ? `<li><i class="sw-plot"></i>${t("uf.lg.plot")}</li>` : ""}</ul>`;
   const rows = f.nets
