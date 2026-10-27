@@ -3,7 +3,7 @@
 
 import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
 import { EDGES, type Edge, FACES, type FaceKey, type FacesInfo, type ModularEdit, type ModularEdits, type SideSplit } from "../engine/modular.ts";
-import type { Source } from "../engine/types.ts";
+import type { Item, Recipe, Source } from "../engine/types.ts";
 import { t } from "../i18n/i18n.ts";
 
 export const CELL = 30; // pixels par case dans le SVG (la vue est ensuite mise à l'échelle)
@@ -363,4 +363,31 @@ export function fitTwoCorners(
   const cy = CELL + (h * CELL) / 2;
   // nouveau point = k × (ancien − milieu cliqué) + centre de l'empreinte
   return { x: (k * (b.x * CELL - mx) + cx) / CELL, y: (k * (b.y * CELL - my) + cy) / CELL, scale: b.scale * k, ratio: kx / ky };
+}
+
+// ---------------------------------------------------------------- objets d'un port (S38)
+
+/** Objets (port objet) ou fluides (port fluide) des recettes de la machine, côté entrée ou sortie selon le sens. */
+export function portCandidates(recipes: Recipe[], items: Map<string, Item>, p: Pick<Port, "type" | "direction">): string[] {
+  if (p.type !== "objet" && p.type !== "fluide") return [];
+  const ids = new Set<string>();
+  for (const r of recipes) {
+    if (p.direction !== "sortie") for (const k of Object.keys(r.inputs)) ids.add(k);
+    if (p.direction !== "entrée") for (const k of Object.keys(r.outputs)) ids.add(k);
+  }
+  // isFluid inconnu : l'objet reste proposé des deux côtés.
+  return [...ids].filter((k) => { const f = items.get(k)?.isFluid; return f == null || f === (p.type === "fluide"); });
+}
+
+/** Lit l'infobulle relevée : objets reconnus parmi les candidats, et noms qui n'y correspondent pas. */
+export function tipSuggest(tip: string | undefined, candidates: string[], items: Map<string, Item>): { found: string[]; unknown: string[] } {
+  if (!tip) return { found: [], unknown: [] };
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const text = ` ${norm(tip)} `;
+  const named = candidates.map((id) => ({ id, n: norm(items.get(id)?.name ?? id) }));
+  const found = named.filter((c) => c.n && text.includes(` ${c.n} `)).map((c) => c.id);
+  const body = tip.replace(/^\s*(input|output|outpour)s?\s+(for|of)\s+/i, "");
+  const parts = body.split(/\/|,|\bor\b|\band\b/i);
+  const unknown = parts.map(norm).filter((w) => w && !named.some((c) => c.n.includes(w) || w.includes(c.n)));
+  return { found, unknown };
 }

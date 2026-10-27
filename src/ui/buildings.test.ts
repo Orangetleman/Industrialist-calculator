@@ -231,3 +231,23 @@ describe("éditeur simplifié (S19)", () => {
     expect(sameSize({ w: 3, h: 3 }, null)).toBe(true);
   });
 });
+
+import { portCandidates, tipSuggest } from "./buildings-model.ts";
+import type { Item } from "../engine/types.ts";
+describe("objets d'un port (S38)", () => {
+  const items: Map<string, Item> = new Map([
+    ["ingot", { id: "ingot", name: "Metal Ingot", isFluid: false }],
+    ["plate", { id: "plate", name: "Metal Plate", isFluid: false }],
+    ["water", { id: "water", name: "Water", isFluid: true }],
+  ] as [string, Item][]);
+  const recs = [{ inputs: { ingot: 1, water: 1 }, outputs: { plate: 1 } }] as never;
+  it("propose les objets du bon côté et du bon genre", () => {
+    expect(portCandidates(recs, items, { type: "objet", direction: "entrée" })).toEqual(["ingot"]);
+    expect(portCandidates(recs, items, { type: "fluide", direction: "entrée" })).toEqual(["water"]);
+    expect(portCandidates(recs, items, { type: "objet", direction: "les deux" })).toEqual(["ingot", "plate"]);
+  });
+  it("reprend l'infobulle et signale les noms inconnus", () => {
+    expect(tipSuggest("input for metal ingot", ["ingot"], items)).toEqual({ found: ["ingot"], unknown: [] });
+    expect(tipSuggest("Input for Metal Ingot/heavy Oil", ["ingot"], items).unknown).toEqual(["heavy oil"]);
+  });
+});

@@ -112,7 +112,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S36 | Remarques (3/3) : tableau de bord de l'utilisateur et page publique Propositions (votes ▲ / ▼) | moyenne à grosse | S35 | ✅ fait |
 | S37 | Répétition générale : relecture de l'anglais, parcours A à E en anglais, remarque de bout en bout ; feu vert pour le Discord | moyenne | S30 à S36 | **fait** (2026-10-26, feu vert de l'utilisateur donné : il poste le lien) |
 | S17 | Plan (sans code) : construire sa propre chaîne (bac à sable) et voir ses statistiques | moyenne, sans code | S37 | **fait** (2026-10-26, [PLAN-BAC-A-SABLE.md](PLAN-BAC-A-SABLE.md), lots B1 à B8 ; 2e maquette, façon Mindustry, à valider) |
-| S38 | Éditeur de bâtiments : objets et fluides de chaque port, choisis parmi les recettes de la machine, enregistrés et exportés ; reprise des infobulles déjà relevées (R16, BAS-03) | moyenne | S17 | à faire |
+| S38 | Éditeur de bâtiments : objets et fluides de chaque port, choisis parmi les recettes de la machine, enregistrés et exportés ; reprise des infobulles déjà relevées (R16, BAS-03) | moyenne | S17 | **fait** |
 | S39 | Liens qui ouvrent l'élément visé et l'amènent à l'écran ; les 6 pièces de tuyau manquantes ajoutées à l'éditeur (R17) | petite | — | à faire |
 | S41 | Refonte graphique : charte inspirée d'Industrialist Calculator (couleurs, typographie, panneaux, barre d'outils, icônes), maquette de chaque page avant le code (R19) | grande | — | en cours : 1er pas fait, les émojis remplacés par des icônes Lucide (`maquette/icones.html`, `src/ui/icons.ts`) ; reste la charte |
 | S42 | Lenteur signalée sur le Discord : mesurer (partie neuve, en ligne, téléphone et ordinateur), puis corriger le plus lent (R20) | moyenne | — | à faire |
@@ -1562,3 +1562,4 @@ Chaque session de lot :
   (la branche `main` locale peut être en retard) ;
 - suit le § 0, du début à la fin ;
 - met à jour le § 2 (état), le § 6 (bilan) et la mémoire `prochaine-session`.
+- **2026-10-27, S38** : bulle de port de l'éditeur : bloc « Ce qui passe ici » (maquette `maquette/ports-objets.html`, validée ; l'utilisateur précise que ce n'est pas le style voulu, à reprendre plus tard avec le reste du site). Cases parmi les objets ou fluides des recettes de la machine, selon le sens ; infobulle relevée reprise (noms reconnus cochés d'avance, noms inconnus en orange) ; champ `items` du port, donc enregistré, exporté et importé. Tests `portCandidates` et `tipSuggest`.

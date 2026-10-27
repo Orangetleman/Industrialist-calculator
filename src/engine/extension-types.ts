@@ -140,6 +140,8 @@ export type Port = {
   shown?: string;
   /** Info-bulle du jeu pour ce port (ex. « Input for Coal or coke Fuel »). */
   tip?: string;
+  /** Objets ou fluides qui passent par ce port (ids), cochés dans l'éditeur parmi les recettes de la machine (S38). */
+  items?: string[];
 };
 /** Relevé d'un bâtiment. Les rotations ne sont pas par bâtiment : 4 quarts de tour pour tous (world.json). */
 export type PortsEntry = {
