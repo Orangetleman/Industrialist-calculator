@@ -155,6 +155,7 @@ import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
 import { loadSent, type Piece } from "./remarques.ts";
+import { RECHERCHE_EN_REFONTE } from "./flags.ts";
 import type { Message, Text } from "../engine/message.ts";
 
 // Langue (S30) : le choix gardé, sinon celle du navigateur ; avant tout rendu.
@@ -861,7 +862,7 @@ function renderHeader(): void {
   const total = researchTotal();
   const chips = [
     `<a class="me-chip" href="#usine" title="${esc(t("header.research.title"))}">${esc(t("header.research", { n: total, done: String(unlockedCount()), total: String(total) }))}</a>`,
-    rp !== null
+    rp !== null && !RECHERCHE_EN_REFONTE
       ? `<a class="me-chip" href="#usine/recherche" title="${esc(t("header.rp.title"))}">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? withIcons(t("header.rp.over")) : ""}` : ""}</a>`
       : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="${esc(t("header.money.title"))}">${esc(fmtMoneyShort(player.money))}</a>` : "",
@@ -918,6 +919,8 @@ function syncForm(): void {
   input("use-existing").checked = settings.useExisting;
   input("unverified").checked = settings.useUnverified;
 }
+
+if (RECHERCHE_EN_REFONTE) document.documentElement.classList.add("rs-masquee");
 
 function renderPlanPage(): void {
   const v = viewCtx();
@@ -978,6 +981,12 @@ function renderPlanPage(): void {
   $("first-visit").hidden = !isFresh();
   // Rien de saisi (S23) : une phrase, pas de résultat ni d'onglets vides.
   const blank = isBlank(goal);
+  if (RECHERCHE_EN_REFONTE && goal === "recherche") {
+    $("answer").innerHTML = `<p class="hint blank-prompt">${esc(t("rs.refonte"))}</p>`;
+    for (const id of ["fix-bar", "plan-bar", "rtabs-result"]) $(id).hidden = true;
+    for (const r of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${r}`).hidden = true;
+    return;
+  }
   const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
   $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(blankPrompt(goal))}</p>` : renderAnswer(v);
   const fixBar = $("fix-bar");
@@ -1503,7 +1512,10 @@ const fullFactory = () => factories.get(factoryKey({ ...settings.usine, full: tr
 const tierOf = (item: string, perMin: number) => pipeFor(CATALOG, data.items.get(item)?.isFluid ? "fluide" : "objet", perMin / 60, settings.tier3Only)?.tier ?? null;
 
 /** Lance le calcul de toute l'usine dans un Web Worker (annule celui en cours, garde ceux qui sont finis). */
-function startFactory(): void {
+/** S42 : temps visé pour l'usine entière ; `complete` le lève (bouton « Continuer le calcul »). */
+const FACTORY_BUDGET_MS = 20_000;
+
+function startFactory(complete = false): void {
   for (const [k, other] of factories)
     if (other.job || other.key.split("|").slice(0, -1).join("|") !== factoryKey().split("|").slice(0, -1).join("|")) {
       other.job?.cancel();
@@ -1530,7 +1542,7 @@ function startFactory(): void {
     CATALOG,
     plot,
     { priority: settings.posePriority, tier3Only: settings.tier3Only },
-    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow() },
+    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow(), ...(complete ? {} : { budgetMs: FACTORY_BUDGET_MS }) },
   );
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
   factories.set(key, st);
@@ -1542,7 +1554,7 @@ function startFactory(): void {
   // sinon il tourne dans le Web Worker et son résultat est gardé pour la prochaine fois.
   void loadFactory(key).then((hit) => {
     if (factories.get(key) !== st || st.cancelled) return;
-    if (hit) {
+    if (hit && !(complete && hit.plan.cut)) {
       [st.plan, st.ms, st.cached] = [hit.plan, hit.ms, true];
       return refresh();
     }
@@ -1961,7 +1973,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const p = toEngineProgress(prog);
   const layout = researchLayout();
   if (ui.selected && data.nodes.get(ui.selected)?.category !== treeView.category) ui.selected = null;
-  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, rpNow());
+  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, RECHERCHE_EN_REFONTE ? null : rpNow());
   const svg = $("rs-canvas").querySelector("svg") as SVGSVGElement;
   if (treeView.filter.trim()) {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
@@ -1971,7 +1983,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
-  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow(), rpEta);
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, RECHERCHE_EN_REFONTE ? null : rpNow(), RECHERCHE_EN_REFONTE ? undefined : rpEta);
   renderHud();
   renderTreeBubble();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
@@ -2004,7 +2016,7 @@ function setTreeBubble(on: boolean): void {
 
 function renderTreeBubble(): void {
   const box = $("rs-bubble");
-  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, rpNow(), rpEta) : "";
+  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, RECHERCHE_EN_REFONTE ? null : rpNow(), RECHERCHE_EN_REFONTE ? undefined : rpEta) : "";
   box.innerHTML = html;
   box.hidden = !html;
   placeTreeBubble();
@@ -2984,6 +2996,9 @@ function bindPlan(): void {
       if (onUsine(u)) return;
       if (u.dataset.usine === "run") {
         startFactory();
+        renderPose();
+      } else if (u.dataset.usine === "complete") {
+        startFactory(true);
         renderPose();
       } else if (u.dataset.usine === "open") {
         poseStep = USINE;

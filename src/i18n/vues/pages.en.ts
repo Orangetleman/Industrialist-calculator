@@ -6,6 +6,7 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   // ------------------------------------------------------------ Textes fixes d'index.html : Mon usine, Arbre, Recettes, Contribuer
   "us.tabs.aria": "My factory",
   "us.tab.partie": "My game",
+  "rs.refonte": "Research being reworked",
   "us.tab.recherche": "My research",
   "us.lead": "What you have in your game. Filled in once, used by every plan. Everything is optional.",
   "us.unlocked": "Unlocked research",
