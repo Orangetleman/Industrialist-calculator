@@ -121,7 +121,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S45 | Visite refaite : une visite principale, puis une visite par usage proposée à la première entrée (R24) ; maquette d'abord | moyenne | — | à faire (plus tard) |
 | S40 | Plan (sans code) : refaire la recherche avec Industrialist Calculator comme source, mois, pollution globale, Satellite buff (R18) | moyenne, sans code | — | fait (2026-10-27) : lots S46 à S51 ci-dessous |
 | S46 | Recherche actuelle masquée (« en refonte ») en attendant S48 | petite | — | fait (2026-10-27) : drapeau `RECHERCHE_EN_REFONTE` dans `src/ui/flags.ts` |
-| S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | à faire |
+| S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | maquette `maquette/recherche-refonte.html` faite (2026-10-27), à valider |
 | S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | à faire |
 | S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | à faire |
 | S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | à faire |
@@ -1612,3 +1612,4 @@ Chaque session de lot :
 - **2026-10-27, S46** (code, déployé) : recherche masquée par le drapeau `RECHERCHE_EN_REFONTE` (`src/ui/flags.ts`, mettre `false` pour la remontrer) : onglet « Ma recherche » et objectif « Des RP » affichent « Recherche en refonte » (FR/EN, clé `rs.refonte`), puce RP de l en-tête et RP de l arbre masqués.
 - Données du joueur (relevés, journal S21, export) non touchées ; 571 tests verts sans adaptation ; capture faite dans le navigateur.
 - Suite : S47 (maquette) sur feu vert ; S48 et S49 retirent le drapeau.
+- **2026-10-27, S47** : maquette `maquette/recherche-refonte.html` (saisie par tier, contrôle de la recopie du panneau, réglages de partie avec sources). Chiffres des cases = exemples. 3 questions à valider en bas de la maquette ; non déployée.
