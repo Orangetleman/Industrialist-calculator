@@ -40,6 +40,19 @@
   },
   "overrides.json": {
     "relevé en jeu par l’utilisateur (corrections du calculateur)": "recorded in game by the user (planner corrections)",
+    "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-01, COMPARAISON-POLLYWRATH.md.": "Value from Industrialist Calculator (Pollywrath), taken at the user's request (2026-10-27). POL-01, COMPARAISON-POLLYWRATH.md.",
+    "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-02, COMPARAISON-POLLYWRATH.md.": "Value from Industrialist Calculator (Pollywrath), taken at the user's request (2026-10-27). POL-02, COMPARAISON-POLLYWRATH.md.",
+    "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04.": "Value from Industrialist Calculator (Pollywrath), taken at the user's request (2026-10-27). POL-04.",
+    "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-05.": "Value from Industrialist Calculator (Pollywrath), taken at the user's request (2026-10-27). POL-05.",
+    "Valeur d’Industrialist Calculator (Pollywrath), aussi dans le tableau de la page Microchip (Miraheze). POL-07.": "Value from Industrialist Calculator (Pollywrath), also in the table of the Microchip page (Miraheze). POL-07.",
+    "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_01. POL-03.": "Industrialist Calculator (Pollywrath): 300 Steam per cycle. Replaces industrial_sawmill_01. POL-03.",
+    "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_02. POL-03.": "Industrialist Calculator (Pollywrath): 300 Steam per cycle. Replaces industrial_sawmill_02. POL-03.",
+    "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_03. POL-03.": "Industrialist Calculator (Pollywrath): 300 Steam per cycle. Replaces industrial_sawmill_03. POL-03.",
+    "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_04. POL-03.": "Industrialist Calculator (Pollywrath): 300 Steam per cycle. Replaces industrial_sawmill_04. POL-03.",
+    "Remplacée par industrial_sawmill_01_vapeur (POL-03).": "Replaced by industrial_sawmill_01_vapeur (POL-03).",
+    "Remplacée par industrial_sawmill_02_vapeur (POL-03).": "Replaced by industrial_sawmill_02_vapeur (POL-03).",
+    "Remplacée par industrial_sawmill_03_vapeur (POL-03).": "Replaced by industrial_sawmill_03_vapeur (POL-03).",
+    "Remplacée par industrial_sawmill_04_vapeur (POL-03).": "Replaced by industrial_sawmill_04_vapeur (POL-03).",
     "Choix de l’utilisateur (2026-10-13) : la recherche « Industrial Diesel Refining » ; « Industrial Diesel Refinery » dans l’infobox est le nom de la machine, aucune recherche ne porte ce nom.": "User's choice (2026-10-13): the research “Industrial Diesel Refining”; “Industrial Diesel Refinery” in the infobox is the name of the machine, no research has that name."
   },
   "interfaces.json": {

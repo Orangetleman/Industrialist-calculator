@@ -846,6 +846,10 @@ aux nôtres. Ce ne sont **pas** une source : elles servent à repérer où regar
 COMPARAISON-POLLYWRATH.md. Aucune valeur de `data/` changée. Machines (prix, tier, taille) et RP
 des recherches : aucun écart. « Wiki » = Miraheze relu le 2026-10-26, sauf mention.
 
+**2026-10-27, choix de l'utilisateur** : les valeurs du site sont reprises dans `overrides.json`
+(source « saisie ») pour POL-01 à POL-05 et POL-07 à POL-09. POL-06 (eau du Large Diesel Engine)
+n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur exige.
+
 - **POL-01** `trommel_03`, Deep Earth Fragment : nous 29, eux 28. Wiki : **28** depuis la
   révision 43888 du module Trommel (2026-10-17, « recipe book error, is actually 28 ») ; Fandom 20.
   Notre relevé date du 2026-10-11 : relancer `build-data`. C'est le seul module de recettes changé
