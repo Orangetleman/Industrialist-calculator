@@ -66,6 +66,8 @@ export type FactoryOptions = {
   widen?: boolean;
   /** Bord choisi pour chaque produit à évacuer (objet → bord) ; sinon le bord le plus proche. */
   evacSides?: Record<string, EvacSide>;
+  /** S42 : temps de calcul visé (ms). Passé ce temps, les essais facultatifs s'arrêtent et le meilleur plan trouvé est rendu (`cut`). */
+  budgetMs?: number;
 };
 export type FactoryInput = {
   steps: FactoryStep[];
@@ -96,6 +98,8 @@ export type FactoryNet = { id: string; item: string; perMin: number; from: strin
 export type FactoryPassage = { text: Message; choices: { item: string; passage: Passage }[]; wider: boolean };
 
 export type FactoryPlan = {
+  /** S42 : calcul abrégé par `budgetMs` ; un calcul complet peut donner un meilleur plan. */
+  cut?: true;
   W: number;
   H: number;
   boxes: FactoryBox[];
@@ -224,6 +228,10 @@ type Rect = { x0: number; y0: number; x1: number; y1: number };
 export function designFactory(input: FactoryInput, progress: FactoryProgress = () => {}): FactoryPlan {
   const { cat, plot: PLOT } = input;
   const { glue = false, globalPoles = false, full = false, room = 0, widen = false } = input.options ?? {};
+  // S42 : limite de temps facultative ; sans elle, rien ne change.
+  const deadline = input.options?.budgetMs ? performance.now() + input.options.budgetMs : Infinity;
+  let cut = false;
+  const late = () => performance.now() > deadline && (cut = true);
   const edgesAll = input.edges;
   const name: Namer = (id) => input.names[id] ?? id;
   const safe = <T>(f: () => T, fallback: T): T => {
@@ -476,7 +484,11 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       let bestScore = Infinity;
       for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
         setRot(b, r);
-        const mineEnds = links.map((l) => endOf(b, l.e.item, l.mine));
+        // S42 : décalage du port de chaque liaison, calculé une fois par rotation (plus d'objet par case).
+        const offs = links.map((l) => {
+          const end = endOf(b, l.e.item, l.mine);
+          return end ? { x: end.x + STEP[end.dir].x, y: end.y + STEP[end.dir].y } : { x: b.w / 2, y: b.h / 2 };
+        });
         const ok = freeMap(b, placed, CLR, curW + CLR, curH + CLR); // S27 bis : même règle que `free`, lue en O(1)
         for (let x = 0; x <= curW + CLR; x++) {
           for (let y = 0; y <= curH + CLR; y++) {
@@ -484,13 +496,16 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
             const W = Math.max(x + b.w, curW);
             const H = Math.max(y + b.h, curH);
             const over = Math.max(0, W - PLOT.w) + Math.max(0, H - PLOT.h);
+            const base = W * H + 4000 * over;
+            // S42 : la distance ne fait qu'ajouter ; une case déjà battue sans elle est sautée (même choix).
+            if (wDist >= 0 && base >= bestScore) continue;
             let dist = 0;
-            links.forEach((_, i) => {
-              const end = mineEnds[i];
-              const q = end ? { x: x + end.x + STEP[end.dir].x, y: y + end.y + STEP[end.dir].y } : { x: x + b.w / 2, y: y + b.h / 2 };
-              dist += Math.abs(q.x - fixed[i]!.x) + Math.abs(q.y - fixed[i]!.y);
-            });
-            const score = W * H + 4000 * over + wDist * dist;
+            for (let i = 0; i < offs.length; i++) {
+              const o = offs[i]!;
+              const f = fixed[i]!;
+              dist += Math.abs(x + o.x - f.x) + Math.abs(y + o.y - f.y);
+            }
+            const score = base + wDist * dist;
             if (score < bestScore) [best, bestScore] = [[x, y, r], score];
           }
         }
@@ -902,6 +917,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   for (const CLR of [2, 3]) for (const wDist of [3, 8, 15, 30]) for (const bySize of [false, true]) settings.push([CLR, wDist, bySize]);
   const share = full ? 0.3 : 0.9;
   for (const [i, [CLR, wDist, bySize]] of settings.entries()) {
+    if (i > 0 && late()) break;
     progress((share * i) / settings.length, msg("fac.step.place", { i: i + 1, n: settings.length }));
     tries.push({ ...attempt(CLR, wDist, bySize), CLR, wDist, bySize });
   }
@@ -1114,7 +1130,10 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       let bestState = snap();
       const N = 80_000;
       for (let it = 0; it < N; it++) {
-        if (it % 4000 === 0) progress(0.48 + (0.27 * it) / N, msg("fac.step.closer"));
+        if (it % 4000 === 0) {
+          progress(0.48 + (0.27 * it) / N, msg("fac.step.closer"));
+          if (late()) break;
+        }
         const T = 300 * Math.pow(1 / 300, it / N);
         const b = boxes[Math.floor(rand() * boxes.length)]!;
         const st = snap();
@@ -1162,6 +1181,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     type Opt = ReturnType<typeof passageOptions>[number];
     const doubles = boxes.filter((b) => b.mod && b.req && b.variants[0]!.folds <= 1 && b.variants[0]!.template === "double rangée");
     for (const [i, b] of doubles.entries()) {
+      if (late()) break;
       progress(0.8 + (0.15 * i) / doubles.length, msg("fac.step.passages", { i: i + 1, n: doubles.length }));
       const req = b.req!;
       const ends = Object.fromEntries(b.variants[0]!.nets.map((n) => [n.item, "milieu" as const]));
@@ -1460,6 +1480,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   }
   progress(1, msg("fac.step.done"));
   return {
+    ...(cut ? { cut: true as const } : {}),
     W,
     H,
     boxes: boxes.map((b) => ({ key: b.key, machine: b.machine, label: b.label, sub: b.sub, x: b.x, y: b.y, w: b.w, h: b.h, rot: b.rot, col: b.col, mod: b.mod, power: b.power, ...(b.assembly ? { assembly: true } : {}) })),

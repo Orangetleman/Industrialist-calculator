@@ -466,6 +466,8 @@ export const usineEn: { [K in keyof typeof usineFr]: Msg } = {
   "uf.mode.glue": ", or attached when possible{none}",
   "uf.mode.noGlue": " (no link could be attached in this plan)",
   "uf.time": " Calculated in {s} s{cached}.",
+  "uf.cut": "Calculation stopped after {s} s so you don't have to wait: this is the best map found so far. A full calculation may do better (smaller, fewer pipes), but can take several minutes.",
+  "uf.cut.more": "Continue the calculation",
   "uf.cached": ", kept in this browser: reused without recalculating",
   "uf.lg.cable": "Power wire",
   "uf.lg.flow": "Link (direction of flow)",
