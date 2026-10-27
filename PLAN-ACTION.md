@@ -119,7 +119,13 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S43 | Recette d'une machine non débloquée proposée (Hardened Plastic Casing sans Chemical Reactor) : reproduire, corriger, tester (R21) | petite | — | à faire |
 | S44 | Menu déroulant maison à la place des `<select>` : images dans les options, clavier et lecteur d'écran comme le navigateur (R23) ; maquette d'abord | moyenne | — | à faire |
 | S45 | Visite refaite : une visite principale, puis une visite par usage proposée à la première entrée (R24) ; maquette d'abord | moyenne | — | à faire (plus tard) |
-| S40 | Plan (sans code) : refaire la recherche avec Industrialist Calculator comme source, mois, pollution globale, Satellite buff (R18) | moyenne, sans code | — | à faire |
+| S40 | Plan (sans code) : refaire la recherche avec Industrialist Calculator comme source, mois, pollution globale, Satellite buff (R18) | moyenne, sans code | — | fait (2026-10-27) : lots S46 à S51 ci-dessous |
+| S46 | Recherche actuelle masquée (« en refonte ») en attendant S48 | petite | — | à faire (en premier) |
+| S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | à faire |
+| S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | à faire |
+| S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | à faire |
+| S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | à faire |
+| S51 | Difficulté : recherches bloquées et machines réservées selon le niveau | petite | — | à faire |
 
 Pourquoi cet ordre :
 - **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
@@ -970,6 +976,44 @@ Le lot doit produire `PLAN-BAC-A-SABLE.md` (nom à confirmer) et une maquette cl
 
 Questions : Q14.
 
+### S40 — Plan : refaire la recherche (R18)
+
+Fait le 2026-10-27, sans code. Sources lues : comparaison Pollywrath (`b37d7de`, § 4) et leur
+`researchInfrastructure.ts`. Ils prennent bien les **items** en compte : RS2, RS3 et RS4 ont une
+« valeur de recherche » (celle des items entrés) ; pour la RS3, multiplicateur d'argent
+= log₂(v + 1) si v < 1, sinon log₄(v) + 1, avec v = prix de vente moyen ÷ 600 (×2 avec « RS4 buff »).
+À confronter aux formules du wiki déjà dans `data/research-stations.json` avant tout changement.
+
+Ordre et critère de fin de chaque lot :
+- **S46 — Masquer** : l'onglet et l'objectif recherche affichent « en refonte » ; les données du
+  joueur (relevés, journal S21) sont gardées. Fin : plus aucun chiffre de recherche affiché, rien de
+  perdu au rechargement ; tests verts ; déployé.
+- **S47 — Maquette** (`maquette/recherche.html`) : saisie **par tier** (nombre de stations, items
+  entrés par station ou par groupe identique, liquides des contrôleurs, paraboles, circuits RS4),
+  la recopie du panneau en contrôle (« ✓ comme en jeu » ou l'écart) ; bloc « Réglages de partie »
+  (pollution globale, mois, difficulté), chaque valeur avec sa source (wiki ou Industrialist
+  Calculator). Le niveau « détaillé » de S20 n'est **pas** retiré : les items restent indispensables
+  (réponse du 2026-10-27). Fin : maquette validée par l'utilisateur.
+- **S48 — Moteur** : vitesse et plafond par tier avec les items, bonus RS4 sous le plafond, Satellite
+  buff (paraboles = √(S × R) + S sans arrondi ; efficacité linéaire, en attendant RP-03 ;
+  bonus = 78 × log₁₀(R + 1) % × efficacité). Chaque règle prise chez Pollywrath faute de wiki est
+  marquée « source : Industrialist Calculator » et notée dans `a-verifier.md`. Écart wiki / Pollywrath
+  sur une même formule : on garde le wiki et on le note. Journal et temps de jeu (S21) réutilisés.
+  Fin : tests qui refont la capture du 2026-10-18 et un cas de Pollywrath avec les mêmes entrées, au
+  même résultat (ou écart expliqué) ; tests verts.
+- **S49 — Interface** : « Ma recherche » et l'objectif recherche d'après la maquette, recherche
+  réaffichée, FR et EN. Fin : un relevé en jeu après le seuil reste sous 2 % d'écart (critère de
+  S20 conservé) ; parcours réel avec captures, ordinateur et téléphone ; déployé.
+- **S50 — Pollution et mois** : réglages gardés avec la partie (pollution 10 par défaut, mois du jour
+  par défaut). Pollution : pousse des arbres (facteur 1 + 0,005 p − 0,0001 p², borné 0,5 à 1,2),
+  Residue de l'ASU = borne(p/10 ; 1 ; 20), Tree Scrubber. Mois : × 1,5 bûches de l'Igloo Farm en
+  décembre, janvier et février. Ces formules sont de Pollywrath : les chercher d'abord sur le wiki.
+  Fin : changer la pollution ou le mois change les recettes concernées et le plan ; tests ; déployé.
+- **S51 — Difficulté** : réglage Normal / Hard / Impossible / Impossible2 / Sandbox / Sandbox+ ;
+  recherches bloquées et machines réservées grisées, avec une phrase qui explique le réglage (il
+  manque au site). Liste reprise de Pollywrath, contrôlée sur le wiki. Fin : en Hard, Wind Turbine1
+  et Hand Crank ne sont plus proposés ; tests ; déployé.
+
 ## 4. Questions
 
 À poser au début du lot concerné ; les réponses vont au § 5.
@@ -1403,6 +1447,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S17 Mindustry | 1re maquette refusée le 2026-10-26 : tout calquer sur Mindustry (remplace Q14-6 et Q14-7). Menu de pose en bas à droite (infos au survol, gardées au clic, **?** = fiche ; grille ; catégories du jeu ; tiers tout à droite ; outils sous la grille) ; bâtiments non relevés grisés, clic → compléter ; glisser = ligne sans diagonale ; tuyaux dans le menu, variantes dans le cadre d'infos, longueur 1 par défaut, longueurs auto au glisser (désactivables), virages et croisements posés seuls, pose par-dessus qui recoupe ; zone supprimée au relâchement ; ZQSD / WASD ; pas de boutons d'outils sur le côté ; tous les outils de Mindustry + Liaisons ; règles des tuyaux = réponse BAS-02. Détail : PLAN-BAC-A-SABLE.md § 1. | 2026-10-26 |
 | S17 Bac à sable | Q14 (détail dans [PLAN-BAC-A-SABLE.md](PLAN-BAC-A-SABLE.md) § 1) : stats d'abord, sur la grille du jeu ; une machine sans ports relevés ne se pose pas ; partir d'un plan calculé en lot à part ; partage par fichier et par lien (« petit » = adresse ≤ 2 000 caractères) ; ☰ panneau latéral, tiroir horizontal au téléphone, machines par chapitre et catégorie comme dans le jeu (BAS-01) ; gestes de Mindustry, pas l'aspect ; calcul automatique et fluide pendant la pose, recette déduite des liaisons, « ? » si plusieurs, recette visible sur la machine ; liaisons fausses refusées, tuyau saturé avec une autre texture ; nom « Bac à sable » / « Sandbox ». | 2026-10-26 |
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
+| S40 Recherche | Réponses du 2026-10-27 : masquer la recherche actuelle d'abord (S46) ; refonte complète (chiffres et saisie), journal et temps de jeu gardés ; règle absente du wiki → prise chez Industrialist Calculator, marquée et notée dans `a-verifier.md` ; pollution et mois dans des lots à part (S50) ; difficulté ajoutée (S51, « si tu veux ») ; maquette en 1er lot (S47) ; **items par station gardés** (ils changent la vitesse, Pollywrath les compte aussi). | 2026-10-27 |
 
 ## 6. Journal des sessions
 
@@ -1548,6 +1593,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-10-27, S41 (1er pas : icônes)** (569 tests, déployé) : inventaire de chaque émoji servant d'icône (≈ 60 symboles ; la typographie × → − ≥ ≈ √ … reste du texte) ; maquette `maquette/icones.html` validée le 2026-10-26 (jeu Lucide ISC recopié sans paquet npm, correspondance complète, 👍 de la visite retiré, chevron après le mot). `src/ui/icons.ts` (notice ISC, 52 icônes, `icon()`, `iconAt()` pour les dessins, `withIcons()` / `noIcons()`) ; dans les catalogues FR et EN, chaque émoji devient un jeton `{i:nom}` dessiné en SVG dans le HTML et retiré des attributs ; `data-ic` dans `index.html` (icône remise à chaque traduction) ; ports de l'éditeur, ⚠ du schéma, tableau de l'auteur et maquette du bac à sable (Pipes : la goutte des liquides de Mindustry) passés aux icônes ; ⚠ garde la couleur d'alerte ; nouveau `icons.test.ts` (chaque jeton existe, plus d'émoji dans les catalogues).
   Contrôlé (serveur `calculateur`) : 8 pages en FR et en EN, panneau d'un bloc du schéma et usine entière ouverts : aucun jeton ni émoji visible, aucun dans un attribut ; 1 366 px en sombre et 375 px en clair : pas de défilement horizontal, icônes de 13 à 21 px ; éditeur de bâtiments (ports) et bac à sable sans erreur en console. Deux défauts vus et corrigés : une règle `.rc-arrow svg` grossissait la marque « corrigée » à 72 px, et les icônes dans les dessins prenaient la taille du texte (`iconAt` fixe la sienne).
   Restent en caractères, en attendant S44 (R23, menu déroulant maison) : ★ de l'option conseillée et ⚠ dans les listes de recettes ; ▲ des reconnexions du graphique des RP (le même triangle que la légende). Nouveaux retours : R23 (S44) et R24 (S45, visite principale puis une visite par usage) ; numéros pris après R20 à R22 et S42, S43, ajoutés en parallèle par la session S17.
+- **2026-10-27, S40** (plan, sans code, non déployé) : questions posées, réponses au § 5. Pollywrath compte bien les items des stations. Refonte de la recherche découpée en S46 à S51 (§ 3, « S40 ») : masquer, maquette, moteur, interface, pollution et mois, difficulté.
 
 ## 7. Gestion des sessions
 

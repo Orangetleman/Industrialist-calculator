@@ -836,3 +836,10 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
 - **BAS-06** (répondu le 2026-10-26) : le mois courant, la pollution globale et le « Satellite buff »
   sont des mécaniques décrites sur le wiki, à prendre en compte (R18, lot S40).
 <!-- notes-manuelles:fin -->
+
+## S40 — Règles de recherche prises chez Industrialist Calculator (2026-10-27)
+
+- Multiplicateur d'argent de la RS3 : log₂(v + 1) si v < 1, sinon log₄(v) + 1, v = prix moyen ÷ 600 ; ×2 avec « RS4 buff ». À confronter au wiki.
+- Satellite buff : paraboles = √(S × R) + S sans arrondi (le wiki arrondit) ; efficacité linéaire (supposition, RP-03).
+- Bonus RS4 sous le plafond : plafond T4 × 0,000025 × nombre de RS4. Absent du wiki relevé.
+- Pollution et mois : formules de Pollywrath (arbres, Residue ASU, Igloo Farm) ; origine wiki à trouver.
