@@ -28,6 +28,8 @@ import { dieselConfigs, farmBlocks, farmRates, parseDieselReading, type DieselRe
 import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, readDieselForm, type ModCalcState } from "./modcalc-view.ts";
 import {
   applyTool,
+  portCandidates,
+  tipSuggest,
   type BgPlacement,
   bodyPoint,
   CELL,
@@ -302,7 +304,7 @@ export function initBuildings(
   }
 
   function portTitle(p: Port): string {
-    return t("bld.port.title", { type: noIcons(t(`ptype.${p.type}`)), dir: dirLabel(p.direction), where: placeText(p), tip: p.tip ? ` — ${quote(p.tip)}` : "" });
+    return t("bld.port.title", { type: noIcons(t(`ptype.${p.type}`)), dir: dirLabel(p.direction), where: placeText(p), tip: p.items?.length ? ` — ${p.items.map((k) => data.items.get(k)?.name ?? k).join(", ")}` : p.tip ? ` — ${quote(p.tip)}` : "" });
   }
 
   function svg(): string {
@@ -466,6 +468,32 @@ export function initBuildings(
   /** Types possibles à un emplacement : la marge reçoit les ports, le corps la prise et la logique. */
   const typesAt = (p: Place): PortTool[] => (p.side === "dessus" ? ["énergie", "logique"] : ["objet", "fluide", "logique"]);
 
+  /** Bloc « Ce qui passe ici » (S38) : cases parmi les recettes de la machine, infobulle reprise. */
+  function portItemsHtml(p: Port): string {
+    const cands = portCandidates(machineRecipes(selectedId!), data.items, p);
+    if (p.type !== "objet" && p.type !== "fluide") return "";
+    const sug = tipSuggest(p.tip, cands, data.items);
+    const checked = new Set(p.items ?? sug.found);
+    const fromTip = !p.items;
+    const name = (id: string) => esc(data.items.get(id)?.name ?? id);
+    const boxes = cands.length
+      ? cands.map((id) => `<label class="bld-it"><input type="checkbox" data-pit="${esc(id)}"${checked.has(id) ? " checked" : ""}> ${name(id)}${fromTip && checked.has(id) ? ` <span class="hint">· ${t("bld.items.fromTip")}</span>` : ""}</label>`).join("")
+      : `<div class="hint">${t("bld.items.none")}</div>`;
+    const warn = sug.unknown.map((w) => `<div class="warn">${t("bld.items.unknown", { name: esc(w) })}</div>`).join("");
+    const all = cands.length ? `<div class="row"><button type="button" data-pit-all="1">${t("bld.items.all")}</button><button type="button" data-pit-all="0">${t("bld.items.noneBtn")}</button></div>` : "";
+    return `<fieldset class="bld-items"><legend>${t("bld.items")}</legend><div class="hint">${t(p.type === "fluide" ? "bld.items.fluids" : "bld.items.objects")}</div>${boxes}${warn}${all}</fieldset>`;
+  }
+
+  /** Recopie les cases cochées dans le port ouvert. */
+  function portItemsInput(): void {
+    if (bubble?.kind !== "port" || !entry) return;
+    const p = entry.ports[bubble.index]!;
+    const ids = [...root.querySelectorAll<HTMLInputElement>("#bld-bubble [data-pit]")].filter((c) => c.checked).map((c) => c.dataset.pit!);
+    p.items = ids.length ? ids : undefined;
+    root.querySelector(`[data-port="${bubble.index}"] title`)!.textContent = portTitle(p);
+    renderStatus();
+  }
+
   function renderBubble(): void {
     const box = $("#bld-bubble");
     const p = bubble?.kind === "port" ? entry?.ports[bubble.index] : undefined;
@@ -483,6 +511,7 @@ export function initBuildings(
         <div class="row"><span class="hint">${t("bld.type")}</span>${types}</div>
         <div class="row"><span class="hint">${t("bld.dir")}</span>${dirs}</div>
         <label class="hint">${t("bld.tip")}<input type="text" data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="${esc(t("bld.tip.ph"))}"></label>
+        ${portItemsHtml(p)}
         <div class="row"><button type="button" data-bb-del>${t("bld.delete")}</button><button type="button" class="link small" data-bb-close>${t("bld.close")}</button></div>`;
     } else if (bubble.kind === "new") {
       const place = bubble.place;
@@ -1115,6 +1144,10 @@ export function initBuildings(
       if ((el as HTMLInputElement).type !== "text") ifaceInput(el as HTMLInputElement, true);
       return;
     }
+    if (el.dataset.pit) {
+      portItemsInput();
+      return;
+    }
     if (el.dataset.fp) {
       if (el.dataset.fp !== "note") facePopInput(el);
       return;
@@ -1279,6 +1312,12 @@ export function initBuildings(
     if (bbDir && bubble?.kind === "port") {
       entry.ports[bubble.index]!.direction = bbDir.dataset.bbDir as Port["direction"];
       return refreshCanvas(true);
+    }
+    const allBtn = target.closest<HTMLElement>("[data-pit-all]");
+    if (allBtn) {
+      for (const c of root.querySelectorAll<HTMLInputElement>("#bld-bubble [data-pit]")) c.checked = allBtn.dataset.pitAll === "1";
+      portItemsInput();
+      return;
     }
     if (target.closest("[data-bb-del]") && bubble?.kind === "port") {
       entry.ports.splice(bubble.index, 1);

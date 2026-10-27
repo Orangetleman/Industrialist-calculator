@@ -1298,3 +1298,8 @@ table.rh-log td.num { white-space: nowrap; }
   .brand { min-height: 24px; }
   .top-in { padding-inline: 8px; }
 }
+
+/* S38 : objets d'un port */
+.bld-items { border: 1px solid var(--line, #555); border-radius: 6px; padding: 4px 8px; margin: 6px 0; max-height: 14rem; overflow: auto; }
+.bld-items .bld-it { display: block; }
+.bld-items .warn { color: #e08a3c; font-size: .85em; }

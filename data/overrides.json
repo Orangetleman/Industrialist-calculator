@@ -63,6 +63,22 @@
     }
    }
   },
+  "trommel_03": { "inputs.deep-earth-fragment": { "value": 28, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-01, COMPARAISON-POLLYWRATH.md." } } },
+  "lithium_brine_extractor_01": { "inputs.water": { "value": 300, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-02, COMPARAISON-POLLYWRATH.md." } } },
+  "foundry_01": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_02": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_03": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_04": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_05": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_06": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_07": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_08": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_09": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "foundry_10": { "inputs.water": { "value": 5000, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-04." } } },
+  "industrial_firebox_25": {
+   "inputs.water": { "value": 16, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-05." } },
+   "outputs.water": { "value": 16, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), reprise à la demande de l’utilisateur (2026-10-27). POL-05." } }
+  },
   "tree_01": {
    "durationS": {
     "value": 363,
@@ -86,6 +102,43 @@
    }
   }
  },
- "items": {},
- "research": {}
+ "items": {
+  "8x-microchip": {
+   "sellValue": { "value": 13200, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath), aussi dans le tableau de la page Microchip (Miraheze). POL-07." } },
+   "researchValue": { "value": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath). POL-08." } }
+  },
+  "2x-microchip": {
+   "researchValue": { "value": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Valeur d’Industrialist Calculator (Pollywrath). POL-08." } }
+  }
+ },
+ "research": {},
+ "added": {
+  "items": {
+   "4x-microchip": { "name": "4x Microchip", "isFluid": false, "sellValue": 8400, "researchValue": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "16x-microchip": { "name": "16x Microchip", "isFluid": false, "sellValue": 17600, "researchValue": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "32x-microchip": { "name": "32x Microchip", "isFluid": false, "sellValue": 22000, "researchValue": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "64x-microchip": { "name": "64x Microchip", "isFluid": false, "sellValue": 26400, "researchValue": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "2x64x-microchip": { "name": "2x64x Microchip", "isFluid": false, "sellValue": 100000, "researchValue": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "3x64x-microchip": { "name": "3x64x Microchip", "isFluid": false, "sellValue": 250000, "researchValue": 1, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "4x64x-microchip": { "name": "4x64x Microchip", "isFluid": false, "sellValue": 375000, "researchValue": 100, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "5x64x-microchip": { "name": "5x64x Microchip", "isFluid": false, "sellValue": 1000000, "researchValue": 150, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "6x64x-microchip": { "name": "6x64x Microchip", "isFluid": false, "sellValue": 2000000, "researchValue": 200, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "7x64x-microchip": { "name": "7x64x Microchip", "isFluid": false, "sellValue": 3000000, "researchValue": 250, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } },
+   "8x64x-microchip": { "name": "8x64x Microchip", "isFluid": false, "sellValue": 5000000, "researchValue": 300, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath). POL-09." } }
+  },
+  "recipes": {
+   "industrial_sawmill_01_vapeur": { "machine": "industrial-sawmill", "durationS": 10, "energyMFps": 0, "inputs": { "oak-log": 8, "steam": 300 }, "outputs": { "cut-oak-log": 16 }, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_01. POL-03." } },
+   "industrial_sawmill_02_vapeur": { "machine": "industrial-sawmill", "durationS": 10, "energyMFps": 0, "inputs": { "cut-oak-log": 8, "steam": 300 }, "outputs": { "chunk-plank": 8 }, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_02. POL-03." } },
+   "industrial_sawmill_03_vapeur": { "machine": "industrial-sawmill", "durationS": 10, "energyMFps": 0, "inputs": { "chunk-plank": 8, "steam": 300 }, "outputs": { "planks": 24 }, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_03. POL-03." } },
+   "industrial_sawmill_04_vapeur": { "machine": "industrial-sawmill", "durationS": 10, "energyMFps": 0, "inputs": { "iron-ingot": 3, "steam": 300 }, "outputs": { "iron-plate": 12 }, "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Industrialist Calculator (Pollywrath) : 300 Steam par cycle. Remplace industrial_sawmill_04. POL-03." } }
+  }
+ },
+ "removed": {
+  "recipes": {
+   "industrial_sawmill_01": { "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Remplacée par industrial_sawmill_01_vapeur (POL-03)." } },
+   "industrial_sawmill_02": { "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Remplacée par industrial_sawmill_02_vapeur (POL-03)." } },
+   "industrial_sawmill_03": { "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Remplacée par industrial_sawmill_03_vapeur (POL-03)." } },
+   "industrial_sawmill_04": { "source": { "wiki": "saisie", "fetchedAt": "2026-10-27T00:00:00.000Z", "note": "Remplacée par industrial_sawmill_04_vapeur (POL-03)." } }
+  }
+ }
 }

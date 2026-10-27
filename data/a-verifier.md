@@ -834,5 +834,58 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   seule sortie ; chaque pièce limite ce qui en sort à son débit. Le moteur (B1) distribuera à parts
   égales dans ces limites. La maquette fait un flot maximal, qui s'en approche.
 - **BAS-06** (répondu le 2026-10-26) : le mois courant, la pollution globale et le « Satellite buff »
-  sont des mécaniques décrites sur le wiki, à prendre en compte (R18, lot S40).
+  sont des mécaniques décrites sur le wiki, à prendre en compte (R18, lot S40). Formules de Industrialist Calculator : COMPARAISON-POLLYWRATH.md, § 4 (POL-12).
+
+### Comparaison avec Industrialist Calculator (2026-10-26)
+
+Données du dépôt MIT Pollywrath/Industrialist-Production-Calculator (commit `cdcd34b`) comparées
+aux nôtres. Ce ne sont **pas** une source : elles servent à repérer où regarder. Tableau complet :
+COMPARAISON-POLLYWRATH.md. Aucune valeur de `data/` changée. Machines (prix, tier, taille) et RP
+des recherches : aucun écart. « Wiki » = Miraheze relu le 2026-10-26, sauf mention.
+
+**2026-10-27, choix de l'utilisateur** : les valeurs du site sont reprises dans `overrides.json`
+(source « saisie ») pour POL-01 à POL-05 et POL-07 à POL-09. POL-06 (eau du Large Diesel Engine)
+n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur exige.
+
+- **POL-01** `trommel_03`, Deep Earth Fragment : nous 29, eux 28. Wiki : **28** depuis la
+  révision 43888 du module Trommel (2026-10-17, « recipe book error, is actually 28 ») ; Fandom 20.
+  Notre relevé date du 2026-10-11 : relancer `build-data`. C'est le seul module de recettes changé
+  depuis.
+- **POL-02** `lithium_brine_extractor_01`, Water : nous 60, eux 300. Wiki : module 60 ; page de la
+  machine « 300 liter consumption per recipe » (4 phases de 30 s à 60 L). Miraheze se contredit.
+- **POL-03** `industrial_sawmill_01` à `_04` : eux ont 300 Steam par cycle, nous aucune vapeur.
+  Wiki : module sans vapeur ; page de la machine 30 L/s en marche, 6 L/s à l'arrêt.
+- **POL-04** `foundry_01` à `_10`, Water : nous 3500, eux 5000. Wiki : module 3500 ; Fandom 5000
+  (déjà dans les contradictions).
+- **POL-05** `industrial_firebox_25`, Water : nous 12, eux 16. Wiki : module 12. Pas de source pour 16.
+- **POL-06** `large_diesel_engine_01` à `_04` : eux ajoutent 20 Water, ou 7,5 Filtered Water, ou
+  15 Distilled Water (les deux dernières : +1 MMF/s). Wiki, page de la machine : « Always consumes
+  20 Water or 7.5 Filtered Water » ; les 15 L de Distilled Water ne sont pas écrits. Nous : pas
+  d'eau.
+- **POL-07** `8x-microchip`, valeur de vente : nous 4 000, eux 13 200. Wiki : tableau de la page
+  Microchip **13 200** ; l'infobox commune dit 4 000 (prix du 2x). Erreur probable chez nous.
+- **POL-08** `2x-microchip` et `8x-microchip`, valeur de recherche : nous « 1-300 », eux 1. Wiki :
+  infobox « 1-300 ».
+- **POL-09** Microchips 4x, 16x, 32x, 64x, 2x64x à 8x64x : chez eux, pas chez nous. Wiki (tableau de
+  la page Microchip) : 4x 8 400, 16x 17 600, 32x 22 000, 64x 26 400 ; les autres non relus.
+- **POL-10** Machines chez eux seulement : Gold Drill, Hand Crank MK2, Footstep Power Generator,
+  Small Turbine, Lightning Rod, 3 Turbine Wind, 4 Panel Solar, Energy Wheel, RTG, Wind Turbine4,
+  Solar Heater, Big Liquid Burner, Incinerator, Item Dump, Tree Scrubber, Fort-Tech Heavy Cannon
+  MK2, plus les variantes d'événement et du mode bac à sable. Recherche « Large Scale Power
+  Output » chez eux, « Large Scale Power Production » chez nous : nom à vérifier.
+- **POL-11** Générateurs : eux une valeur fixe (Solar Panel 200 MF/s, Solar Panel2 575, Solar
+  Panel3 3 400, Solar Farm1 80 000), nous la plage du wiki (`power.json` : [120, 240], [0, 5 000],
+  [0, 29 700], [0, 664 100]). Origine de leurs valeurs inconnue.
+- **POL-12** Mécaniques qu'ils calculent et pas nous : température de la vapeur (Alloyer, Coal
+  Liquefaction, Steam Cracking, Industrial Drill, Water Treatment), pollution globale (arbres,
+  Residue de l'ASU, Tree Scrubber), mois courant (Igloo Farm Controller × 1,5 en hiver),
+  efficacité des paraboles (linéaire chez eux : supposition, voir RP-03), bonus des RS4,
+  difficulté. Formules dans COMPARAISON-POLLYWRATH.md, § 4 : à retrouver sur le wiki avant usage.
 <!-- notes-manuelles:fin -->
+
+## S40 — Règles de recherche prises chez Industrialist Calculator (2026-10-27)
+
+- Multiplicateur d'argent de la RS3 : log₂(v + 1) si v < 1, sinon log₄(v) + 1, v = prix moyen ÷ 600 ; ×2 avec « RS4 buff ». À confronter au wiki.
+- Satellite buff : paraboles = √(S × R) + S sans arrondi (le wiki arrondit) ; efficacité linéaire (supposition, RP-03).
+- Bonus RS4 sous le plafond : plafond T4 × 0,000025 × nombre de RS4. Absent du wiki relevé.
+- Pollution et mois : formules de Pollywrath (arbres, Residue ASU, Igloo Farm) ; origine wiki à trouver.
