@@ -326,3 +326,17 @@ La maquette le fait déjà. Les lots suivants s'ajoutent un par un.
   à part (B1, B2).
 - **Valeurs corrigées** : la maquette lit les recettes du wiki sans `overrides.json`. Le moteur passera
   par `buildGameData`, comme le calculateur.
+
+## 9. Retours sur la 2e maquette (2026-10-27), à traiter plus tard
+
+1. Liaisons : relier les ports entre eux (pas les machines), comme dans Industrialist, avec le geste de
+   Mindustry. Cela vaut pour les poteaux électriques et logiques. Chaque port porte un flux, et tout ce qui
+   est relevé dans l'éditeur doit servir dans le bac à sable.
+2. Montrer tous les ports, y compris sur les tuyaux et les ports électriques.
+3. L'aperçu des tuyaux ne distingue pas deux pièces de même taille : y dessiner les ports.
+4. Supprimer le tier « ∗ ». Les tuyaux spéciaux vont en T3 (Cold Bypass compris) et les « Large … »
+   en T4, dans la catégorie Pipes. Les ports des grands tuyaux fluides sont à créer, dans l'éditeur
+   comme dans le bac à sable : les relevés les notent seulement « 1/2 » et « 2/2 ».
+5. Assignation des touches, sur un clavier visuel, inspirée du mod « Keybind Atlas » (pas prioritaire).
+6. F (copier une zone) : ajouter « enregistrer la sélection dans un schéma » et l'afficher dans les
+   indications du bas.
