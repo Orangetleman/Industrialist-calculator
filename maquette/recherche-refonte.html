@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S47 — Ma recherche (refonte)</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 1000px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 10px; }
+.mq > h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin-top: 18px; }
+.mq-note { font-size: .85rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.tw { overflow-x: auto; }
+table.rp { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 640px; }
+table.rp th, table.rp td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+table.rp input { width: 5em; border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 3px 6px; font-family: var(--f-mono); }
+table.rp input.w { width: 12em; }
+.src { font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.src.ic { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+.chk { border-left: 4px solid var(--ok); border-radius: 8px; padding: 8px 12px; background: var(--surface); }
+.chk.bad { border-color: var(--warn); }
+.okc { color: var(--ok); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S47 — Ma recherche, refonte</h1>
+<p class="mq-note">Chiffres des cases : <b>exemples</b> pour montrer la forme, pas des mesures. Les formules citées viennent de
+<code>data/research-stations.json</code> (wiki). L'étiquette <span class="src ic">source : Industrialist Calculator</span> marque ce qui n'est
+pas sur le wiki (notée dans <code>a-verifier.md</code>). Pour l'instant la recherche est masquée (S46) ; cette maquette
+décide de ce qui la remplace (S48 moteur, S49 interface).</p>
+
+<h2 class="mq-t">1. Mon usine › Ma recherche : saisie par tier</h2>
+<p class="mq-note">Un bloc par tier (RS1 à RS4). Les stations identiques se saisissent en <b>un groupe</b> (nombre + items entrés) ; « + un groupe différent » en ajoute un.
+Les items restent saisis : ils changent la vitesse (RS2 : 0,5 unité/s de n'importe quel item ; RS3 et RS4 : valeur des items).</p>
+<div class="box">
+  <div class="tw"><table class="rp">
+    <thead><tr><th>Tier</th><th>Stations</th><th>Items entrés par station</th><th>Vitesse (formule)</th><th>Plafond</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td><b>RS1</b></td><td><input value="12" inputmode="numeric"></td><td class="hint">aucun item</td><td>√n</td><td>200·log₂(n+1)</td><td><span class="src">wiki</span></td></tr>
+      <tr><td><b>RS2</b></td><td><input value="6" inputmode="numeric"></td><td><input class="w" value="Iron Plate × 0,5/s"></td><td>2·n^0,6</td><td>2000·log₂(m+1)</td><td><span class="src">wiki</span></td></tr>
+      <tr><td><b>RS3</b></td><td><input value="4" inputmode="numeric"></td><td><input class="w" value="prix moyen ÷ 600"></td><td>selon la valeur des items</td><td>wiki</td><td><span class="src">wiki</span> <span class="src ic">source : Industrialist Calculator</span> (multiplicateur d'argent)</td></tr>
+      <tr><td><b>RS4</b></td><td><input value="2" inputmode="numeric"></td><td><input class="w" value="liquides du contrôleur"></td><td>wiki</td><td>wiki</td><td><span class="src">wiki</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="row"><button type="button" class="btn">+ un groupe différent</button>
+    <label class="inline"><span>Paraboles satellites</span><input value="3" style="width:4em"></label>
+    <label class="inline"><span>Circuits RS4</span><input value="1" style="width:4em"></label></div>
+  <p class="hint">Satellite buff (S48) : paraboles = √(S × R) + S, bonus = 78 × log₁₀(R+1) % × efficacité — <span class="src ic">source : Industrialist Calculator</span>, à confirmer en jeu.</p>
+</div>
+
+<h2 class="mq-t">2. Contrôle : la recopie du panneau en jeu</h2>
+<p class="mq-note">Tu recopies la 1<sup>re</sup> ligne du Research Tracking Panel ; le site la compare à ce qu'il calcule avec ta saisie ci-dessus.</p>
+<div class="box">
+  <div class="row fields4">
+    <label><span>RP/s relevés</span><input value="7,2" inputmode="decimal"></label>
+    <label><span>RP relevés</span><input value="15000" inputmode="decimal"></label>
+  </div>
+  <div class="chk"><span class="okc">✓ comme en jeu</span> — calculé 7,19 RP/s, écart 0,1 % (seuil : 2 %).</div>
+  <div class="chk bad" style="margin-top:6px"><b>Écart de 9 %</b> — calculé 6,6 RP/s. Vérifie : items d'une station RS2 manquants ? Paraboles ?</div>
+</div>
+
+<h2 class="mq-t">3. Réglages de partie</h2>
+<div class="box">
+  <div class="tw"><table class="rp">
+    <thead><tr><th>Réglage</th><th>Valeur</th><th>Effet</th><th>Source</th><th>Lot</th></tr></thead>
+    <tbody>
+      <tr><td>Pollution globale</td><td><input value="10"></td><td>pousse des arbres, Residue de l'ASU, Tree Scrubber</td><td><span class="src ic">source : Industrialist Calculator</span> (à chercher sur le wiki)</td><td>S50</td></tr>
+      <tr><td>Mois</td><td><input class="w" value="mois du jour"></td><td>× 1,5 bûches (Igloo Farm) déc.–févr.</td><td><span class="src ic">source : Industrialist Calculator</span></td><td>S50</td></tr>
+      <tr><td>Difficulté</td><td><input class="w" value="Normal"></td><td>recherches bloquées, machines réservées grisées</td><td><span class="src ic">source : Industrialist Calculator</span></td><td>S51 (si tu veux)</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<h2 class="mq-t">4. Ce qui reste</h2>
+<p class="mq-note">Historique et temps de jeu (S21) : inchangés, sous le bloc de contrôle. Puce RP de l'en-tête : revient à S49 avec le même texte qu'avant. Niveau « détaillé » de S20 : gardé, c'est la saisie par tier ci-dessus.</p>
+<div class="mq-q"><b>À valider :</b> (1) un groupe = nombre de stations identiques + items communs, ça te va ? (2) le contrôle « ✓ comme en jeu » sous la saisie plutôt qu'en haut ? (3) les réglages de partie dans cet onglet ou dans « Ma partie » ?</div>
+</div>
+</body>
+</html>
