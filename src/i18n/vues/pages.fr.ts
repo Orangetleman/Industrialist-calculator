@@ -5,6 +5,7 @@ export const pagesFr = {
   // ------------------------------------------------------------ Textes fixes d'index.html : Mon usine, Arbre, Recettes, Contribuer
   "us.tabs.aria": "Mon usine",
   "us.tab.partie": "Ma partie",
+  "rs.refonte": "Recherche en refonte",
   "us.tab.recherche": "Ma recherche",
   "us.lead": "Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.",
   "us.unlocked": "Recherches débloquées",
