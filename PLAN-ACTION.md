@@ -121,7 +121,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S45 | Visite refaite : une visite principale, puis une visite par usage proposée à la première entrée (R24) ; maquette d'abord | moyenne | — | à faire (plus tard) |
 | S40 | Plan (sans code) : refaire la recherche avec Industrialist Calculator comme source, mois, pollution globale, Satellite buff (R18) | moyenne, sans code | — | fait (2026-10-27) : lots S46 à S51 ci-dessous |
 | S46 | Recherche actuelle masquée (« en refonte ») en attendant S48 | petite | — | fait (2026-10-27) : drapeau `RECHERCHE_EN_REFONTE` dans `src/ui/flags.ts` |
-| S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | maquette `maquette/recherche-refonte.html` faite (2026-10-27), à valider |
+| S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | maquette `maquette/recherche-refonte.html` faite (2026-10-27), validée par l utilisateur (2026-10-27) |
 | S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | à faire |
 | S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | à faire |
 | S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | à faire |
@@ -1615,3 +1615,4 @@ Chaque session de lot :
 - Données du joueur (relevés, journal S21, export) non touchées ; 571 tests verts sans adaptation ; capture faite dans le navigateur.
 - Suite : S47 (maquette) sur feu vert ; S48 et S49 retirent le drapeau.
 - **2026-10-27, S47** : maquette `maquette/recherche-refonte.html` (saisie par tier, contrôle de la recopie du panneau, réglages de partie avec sources). Chiffres des cases = exemples. 3 questions à valider en bas de la maquette ; non déployée.
+- **2026-10-27, S47 validée** : l utilisateur approuve la maquette `recherche-refonte.html` telle quelle (« c est bon pour moi ») ; les 3 questions prennent donc les choix proposés : groupe = nombre + items communs, contrôle sous la saisie, réglages de partie dans « Ma recherche ». S48 peut démarrer sur feu vert.
