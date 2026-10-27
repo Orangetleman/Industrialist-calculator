@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maquette S38 — ce qui passe par un port</title>
+<style>
+body{font:14px system-ui;background:#1b1d22;color:#e6e6e6;margin:16px;max-width:900px}
+.wrap{display:flex;gap:24px;flex-wrap:wrap}
+.bubble{background:#262a31;border:1px solid #444;border-radius:8px;padding:10px;width:320px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.hint{color:#9aa}button{background:#333a44;color:#eee;border:1px solid #555;border-radius:4px;padding:2px 8px}
+button[aria-pressed=true]{background:#3d6fb3}
+fieldset{border:1px solid #555;border-radius:6px;padding:6px 8px;margin:8px 0}
+legend{color:#ffd166}
+label.it{display:block;padding:2px 0}
+.sug{font-size:12px;color:#8fd18f}.warn{font-size:12px;color:#f0a35e}
+.tip{font-style:italic;color:#bbb}
+</style></head><body>
+<h1>Maquette S38 — objets et fluides d'un port</h1>
+<p>Seul ajout à la bulle de port validée en S19 : le bloc « Ce qui passe ici ». Exemple : la presse (relevé réel de <code>ports.json</code>).</p>
+<div class="wrap">
+<div class="bubble">
+  <div class="row"><b>Objet · Entrée</b><span class="hint">bas, case 1</span></div>
+  <div class="row"><span class="hint">Type</span><button aria-pressed="true">Objet</button><button>Fluide</button><button>Logique</button></div>
+  <div class="row"><span class="hint">Sens</span><button aria-pressed="true">Entrée</button><button>Sortie</button><button>Les deux</button></div>
+  <div class="hint">Infobulle du jeu <span class="tip">« input for metal ingot »</span></div>
+  <fieldset><legend>Ce qui passe ici</legend>
+    <div class="hint">Objets en entrée des recettes de la machine :</div>
+    <label class="it"><input type="checkbox" checked> Lingot de métal <span class="sug">· lu dans l'infobulle</span></label>
+    <label class="it"><input type="checkbox"> (autre entrée d'une autre recette)</label>
+    <div class="row"><button>Tout cocher</button><button>Aucun</button></div>
+  </fieldset>
+  <div class="row"><button>Supprimer</button><button>Fermer</button></div>
+</div>
+<div style="max-width:480px">
+<h3>Règles</h3>
+<ul>
+<li>La liste = objets (port Objet) ou fluides (port Fluide) des recettes de la machine, côté <b>entrée</b> ou <b>sortie</b> selon le sens du port ; « Les deux » montre les deux côtés. Ports énergie et logique : pas de bloc.</li>
+<li><b>Reprise des infobulles</b> : à l'ouverture, si le port n'a encore rien de coché, les objets dont le nom (anglais) apparaît dans l'infobulle sont <b>proposés</b> cochés, marqués « lu dans l'infobulle ». Ils ne comptent qu'après « Enregistrer », comme tout le reste.</li>
+<li>Un nom de l'infobulle qui ne correspond à aucune recette s'affiche en orange : <span class="warn">« heavy oil » : absent des recettes de la machine</span> (à vérifier, rien n'est inventé).</li>
+<li>Rien de coché = inconnu (le bac à sable traitera le port comme « à vérifier »).</li>
+<li>Enregistré dans le champ <code>items</code> du port (identifiants d'objets), donc dans l'export, l'import et <code>data/ports.json</code>.</li>
+<li>Dans l'infobulle du port sur la grille : la liste cochée remplace le texte libre quand elle existe.</li>
+</ul></div></div>
+</body></html>

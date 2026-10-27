@@ -11,6 +11,7 @@
 // S31 : les textes sont des clés du catalogue, lues dans la langue choisie.
 
 import { t, type Key } from "../i18n/i18n.ts";
+import { icon, withIcons } from "./icons.ts";
 
 /** Les textes d'une étape sont des clés du catalogue (S31), lues dans la langue choisie à chaque affichage. */
 export type TourStep = {
@@ -205,9 +206,9 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     spot.style.display = "none";
     bubble.style.display = "block";
     bubble.classList.remove("near");
-    bubble.innerHTML = `${toggle()}<div class="tour-part">${t("tour.decide.part")}</div><div class="tour-title">${t("tour.decide.title")}</div>
+    bubble.innerHTML = withIcons(`${toggle()}<div class="tour-part">${t("tour.decide.part")}</div><div class="tour-title">${t("tour.decide.title")}</div>
       <div class="tour-text">${t("tour.decide.html")}</div>
-      <div class="tour-decision"><button type="button" class="tour-btn next" data-tour="detail">${t("tour.decide.yes")}</button><button type="button" class="tour-link" data-tour="end">${t("tour.decide.no")}</button></div>`;
+      <div class="tour-decision"><button type="button" class="tour-btn next" data-tour="detail">${t("tour.decide.yes")}</button><button type="button" class="tour-link" data-tour="end">${t("tour.decide.no")}</button></div>`);
     bubble.style.removeProperty("top");
     bubble.style.removeProperty("left");
   }
@@ -219,11 +220,11 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     bubble.style.display = "block";
     const last = p === s.length - 1;
     const label = t(step.next ?? (last ? (st.mode === "core" ? "tour.continue" : "tour.finish") : "tour.next"));
-    bubble.innerHTML = `${toggle()}<div class="tour-part">${t(step.part)}</div><div class="tour-title">${t(step.title)}</div><div class="tour-text">${t(step.text)}</div>
+    bubble.innerHTML = withIcons(`${toggle()}<div class="tour-part">${t(step.part)}</div><div class="tour-title">${t(step.title)}</div><div class="tour-text">${t(step.text)}</div>
       <div class="tour-wait" hidden></div>
       <div class="tour-dots">${s.map((_, j) => `<span class="tour-dot${j < p ? " done" : j === p ? " cur" : ""}"></span>`).join("")}</div>
       <div class="tour-ctrl">${p > 0 ? `<button type="button" class="tour-btn" data-tour="prev">${t("tour.prev")}</button>` : ""}<button type="button" class="tour-btn next" data-tour="next">${label}</button>
-      <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${t(p === 0 ? "tour.skip" : "tour.skipAll")}</button>`}</span></div>`;
+      <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${t(p === 0 ? "tour.skip" : "tour.skipAll")}</button>`}</span></div>`);
     bubble.querySelector<HTMLButtonElement>("[data-tour=next]")?.focus({ preventScroll: true });
     // On regarde : la page est figée. On essaie (play) : la page défile, le projecteur suit sa cible.
     document.documentElement.classList.toggle("touring", !step.play);
@@ -245,7 +246,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
       const label = bar.querySelector(".lbl")?.textContent ?? t("tour.waiting");
       const pct = bar.querySelector(".pct")?.textContent ?? "";
       box.hidden = false;
-      box.innerHTML = `<span>⏳ ${label} ${pct}</span><span class="bar"><i style="width:${parseFloat(pct) || 0}%"></i></span>`;
+      box.innerHTML = `<span>${icon("wait")} ${label} ${pct}</span><span class="bar"><i style="width:${parseFloat(pct) || 0}%"></i></span>`;
     } else if (!box.hidden) {
       box.hidden = true;
       place(true);

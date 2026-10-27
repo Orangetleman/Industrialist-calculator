@@ -26,7 +26,7 @@ export const arbreEn: { [K in keyof typeof arbreFr]: Msg } = {
   "rs.eta.n": " ({n} research, each one spends its cost)",
   "rs.eta.html": `≈ <b>{t} of playtime</b> at your pace{what}{straight}.`,
   "rs.eta.straight": "in a straight line: your threshold isn't entered in My research",
-  "rs.faster": "Get it sooner ▸",
+  "rs.faster": "Get it sooner {i:next}",
   "rs.start": "Owned from the start in a new world.",
   "rs.lock": "Mark as not unlocked{deps}",
   "rs.lock.deps": { one: " (+ {n} dependent)", other: " (+ {n} dependents)" },

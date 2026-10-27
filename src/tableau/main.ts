@@ -5,6 +5,7 @@
 
 import "../styles.css";
 import "./tableau.css";
+import { icon, noIcons, withIcons } from "../ui/icons.ts";
 import {
   aTraduire,
   CHAMPS,
@@ -115,7 +116,7 @@ async function recharger(): Promise<void> {
 
 function pageConnexion(): string {
   return `<form class="tb-login" id="tb-login">
-    <h1>📥 Remarques — Planificateur Industrialist</h1>
+    <h1>${icon("inbox")} Remarques — Planificateur Industrialist</h1>
     <label>Mot de passe <input type="password" id="tb-mdp" autocomplete="current-password" required></label>
     ${etat.erreurConnexion ? `<div class="tb-err" role="alert">${esc(etat.erreurConnexion)}</div>` : ""}
     <button type="submit" class="primary"${etat.occupe ? " disabled" : ""}>${etat.occupe ? "Entrée…" : "Entrer"}</button>
@@ -155,13 +156,13 @@ function entete(): string {
   const onglet = (k: Onglet, label: string) =>
     `<button type="button" role="tab" id="tb-tab-${k}" aria-selected="${etat.onglet === k}" tabindex="${etat.onglet === k ? 0 : -1}" data-onglet="${k}">${label}</button>`;
   return `<header class="tb-head">
-    <h1>📥 Remarques</h1>
+    <h1>${icon("inbox")} Remarques</h1>
     <div class="tb-tabs" role="tablist" aria-label="Parties du tableau de bord">
       ${onglet("boite", `Boîte de réception${nouvelles ? ` <span class="chip">${nouvelles} nouvelle${nouvelles > 1 ? "s" : ""}</span>` : ""}`)}
       ${onglet("sujets", `Sujets (${etat.sujets.length})`)}
       ${onglet("corrections", `Corrections (${corrections})`)}
     </div>
-    <span class="tb-right">${etat.traducteur ? "" : `<span class="hint" title="${esc(erreur("traducteur-absent"))}">🌐 traducteur non réglé · </span>`}<button type="button" class="link" data-act="exporter">Exporter tout (JSON)</button> · <button type="button" class="link" data-act="sortir">Se déconnecter</button></span>
+    <span class="tb-right">${etat.traducteur ? "" : `<span class="hint" title="${esc(erreur("traducteur-absent"))}">${icon("lang")} traducteur non réglé · </span>`}<button type="button" class="link" data-act="exporter">Exporter tout (JSON)</button> · <button type="button" class="link" data-act="sortir">Se déconnecter</button></span>
   </header>`;
 }
 
@@ -170,18 +171,18 @@ function entete(): string {
 function ligneRemarque(r: Remarque): string {
   const sujet = r.sujet ? etat.sujets.find((s) => s.id === r.sujet) : null;
   const h = [
-    r.etat === "nouvelle" ? `<span class="new">● nouvelle</span>` : "",
+    r.etat === "nouvelle" ? `<span class="new">${icon("dot")} nouvelle</span>` : "",
     `n° ${r.id}`,
     TYPES[r.type] ?? r.type,
     r.langue?.toUpperCase() ?? "",
     depuis(r.cree),
     r.etat !== "nouvelle" ? ETATS_REMARQUE[r.etat] : "",
     r.reponse ? "répondue" : "",
-    sujet ? `📁 ${esc(titreDe(sujet))}` : "",
+    sujet ? `<span>${icon("folder")} ${esc(titreDe(sujet))}</span>` : "",
   ].filter(Boolean);
   const apercu = r.type === "correction" && !r.texte ? "(fichier de corrections)" : r.texte;
   return `<li><button type="button" class="tb-it${etat.remarque === r.id ? " sel" : ""}" data-remarque="${r.id}" aria-current="${etat.remarque === r.id}">
-    <span class="h">${h.map((x) => (x.startsWith("<span") || x.startsWith("📁") ? x : esc(x))).join(" · ")}</span>
+    <span class="h">${h.map((x) => (x.startsWith("<span") ? x : withIcons(esc(x)))).join(" · ")}</span>
     <span class="t">${esc(apercu)}</span></button></li>`;
 }
 
@@ -189,7 +190,7 @@ function filtresHtml(): string {
   const f = etat.filtres;
   const opt = (v: string, label: string, sel: string) => `<option value="${v}"${v === sel ? " selected" : ""}>${esc(label)}</option>`;
   return `<div class="tb-filters">
-    <select id="f-type" aria-label="Type">${opt("", "Tous les types", f.type)}${Object.entries(TYPES).map(([k, v]) => opt(k, v, f.type)).join("")}</select>
+    <select id="f-type" aria-label="Type">${opt("", "Tous les types", f.type)}${Object.entries(TYPES).map(([k, v]) => opt(k, noIcons(v), f.type)).join("")}</select>
     <select id="f-etat" aria-label="État">${Object.entries(FILTRES_ETAT).map(([k, v]) => opt(k, v, f.etat)).join("")}</select>
     <select id="f-langue" aria-label="Langue">${opt("", "FR + EN", f.langue)}${opt("fr", "FR", f.langue)}${opt("en", "EN", f.langue)}</select>
   </div>`;
@@ -209,7 +210,7 @@ function formulaireNouveau(r: Remarque | null): string {
   return `<div class="panel tb-new" role="group" aria-labelledby="tb-new-t">
     <b id="tb-new-t">Nouveau sujet${r ? ` (avec la remarque n° ${r.id})` : ""}</b>
     <div class="two">${champ("titre", "Titre (français)")}${champ("titre_en", "Titre (anglais)")}</div>
-    <div class="acts"><button type="button" class="small" data-act="traduire-nouveau"${etat.occupe ? " disabled" : ""}>🌐 Traduire automatiquement</button><span class="hint">remplit le champ vide depuis celui que tu as écrit ; tu corriges ensuite si besoin</span></div>
+    <div class="acts"><button type="button" class="small" data-act="traduire-nouveau"${etat.occupe ? " disabled" : ""}>${icon("lang")} Traduire automatiquement</button><span class="hint">remplit le champ vide depuis celui que tu as écrit ; tu corriges ensuite si besoin</span></div>
     <div class="acts"><button type="button" class="primary" data-act="creer-sujet">Créer le sujet</button>
       <label class="inline"><input type="checkbox" id="n-publie"${v.publie ? " checked" : ""}> Publier tout de suite</label>
       <button type="button" data-act="annuler-nouveau">Annuler</button></div>
@@ -218,12 +219,12 @@ function formulaireNouveau(r: Remarque | null): string {
 
 function detailRemarque(r: Remarque): string {
   const seg = (Object.keys(ETATS_REMARQUE) as EtatRemarque[])
-    .map((k) => `<button type="button" aria-pressed="${r.etat === k}" data-etat-remarque="${k}">${ETATS_REMARQUE[k]}</button>`)
+    .map((k) => `<button type="button" aria-pressed="${r.etat === k}" data-etat-remarque="${k}">${withIcons(ETATS_REMARQUE[k])}</button>`)
     .join("");
   const lien = lienPage(r.page);
   const ctx = [
     `Pseudo : <b>${esc(r.pseudo ?? "—")}</b>`,
-    r.page ? `Page : ${lien ? `<a href="${esc(lien)}" target="_blank" rel="noopener">${esc(r.page)} ▸</a>` : esc(r.page)}` : "",
+    r.page ? `Page : ${lien ? `<a href="${esc(lien)}" target="_blank" rel="noopener">${esc(r.page)} ${icon("ext")}</a>` : esc(r.page)}` : "",
     r.plan ? `Plan : ${esc(r.plan)}` : "",
     r.langue ? `Langue : ${r.langue.toUpperCase()}` : "",
     r.version ? `version ${esc(r.version)}` : "",
@@ -231,15 +232,15 @@ function detailRemarque(r: Remarque): string {
   ].filter(Boolean);
   const traduire =
     r.texte && r.langue !== "fr"
-      ? `<div class="acts">${r.traduction ? `<p class="tb-trad"><b>En français :</b> ${esc(r.traduction)} <i class="hint">(traduction automatique)</i></p>` : `<button type="button" class="small" data-act="traduire-remarque"${etat.occupe ? " disabled" : ""}>🌐 Traduire en français</button>`}</div>`
+      ? `<div class="acts">${r.traduction ? `<p class="tb-trad"><b>En français :</b> ${esc(r.traduction)} <i class="hint">(traduction automatique)</i></p>` : `<button type="button" class="small" data-act="traduire-remarque"${etat.occupe ? " disabled" : ""}>${icon("lang")} Traduire en français</button>`}</div>`
       : "";
   const piece = r.aPiece
-    ? `<div class="tb-corr"><b>📎 Fichier joint</b> <button type="button" class="small primary" data-telecharger="${r.id}">⬇ Télécharger le JSON</button> <span class="hint">à intégrer par « Importer… », comme aujourd'hui</span></div>`
+    ? `<div class="tb-corr"><b>${icon("clip")} Fichier joint</b> <button type="button" class="small primary" data-telecharger="${r.id}">${icon("download")} Télécharger le JSON</button> <span class="hint">à intégrer par « Importer… », comme aujourd'hui</span></div>`
     : "";
   const reponse = reponses.get(r.id) ?? r.reponse ?? "";
   return `<div class="tb-det" id="tb-det">
-    <button type="button" class="link tb-back" data-act="liste">← Liste</button>
-    <div class="acts"><h2 tabindex="-1" id="tb-det-t">n° ${r.id} · ${esc(TYPES[r.type] ?? r.type)}</h2><span class="seg" role="group" aria-label="État de la remarque">${seg}</span></div>
+    <button type="button" class="link tb-back" data-act="liste">${icon("back")} Liste</button>
+    <div class="acts"><h2 tabindex="-1" id="tb-det-t">n° ${r.id} · ${withIcons(esc(TYPES[r.type] ?? r.type))}</h2><span class="seg" role="group" aria-label="État de la remarque">${seg}</span></div>
     <div class="quote" lang="${r.langue ?? "fr"}">${esc(r.texte || "(sans texte)")}</div>
     ${traduire}
     <div class="ctx">${ctx.map((x) => `<span>${x}</span>`).join("")}</div>
@@ -272,9 +273,9 @@ function boite(): string {
 function ligneSujet(s: Sujet): string {
   return `<li><button type="button" class="tb-s" data-sujet="${s.id}">
     <span class="n" aria-label="score">${s.score}</span>
-    <span class="t"><b>${esc(titreDe(s))}</b> · ${ETATS_SUJET[s.etat]} · ${s.reponse || s.reponse_en ? "réponse écrite" : "pas de réponse"}${s.auto.length ? " · 🌐 à relire" : ""}<br>
-      <small class="hint">${s.demandes} remarque${s.demandes > 1 ? "s" : ""} + ${s.pour} ▲ − ${s.contre} ▼</small></span>
-    <span class="pub">${s.publie ? "✓ Publié" : "Non publié"}</span></button></li>`;
+    <span class="t"><b>${esc(titreDe(s))}</b> · ${withIcons(ETATS_SUJET[s.etat])} · ${s.reponse || s.reponse_en ? "réponse écrite" : "pas de réponse"}${s.auto.length ? ` · ${icon("lang")} à relire` : ""}<br>
+      <small class="hint">${s.demandes} remarque${s.demandes > 1 ? "s" : ""} + ${s.pour} ${icon("vote-up", "pour")} − ${s.contre} ${icon("vote-down", "contre")}</small></span>
+    <span class="pub">${s.publie ? `${icon("check")} Publié` : "Non publié"}</span></button></li>`;
 }
 
 function valeursSujet(s: Sujet): Partial<Record<Champ, string>> & { auto?: Champ[]; tous?: boolean } {
@@ -294,13 +295,13 @@ function detailSujet(s: Sujet): string {
       ? `<label>${label}${marque}<textarea data-champ="${c}" maxlength="2000" lang="${lang}">${esc(v[c] ?? "")}</textarea></label>`
       : `<label>${label}${marque}<input type="text" data-champ="${c}" maxlength="300" lang="${lang}" value="${esc(v[c] ?? "")}"></label>`;
   };
-  const seg = (Object.keys(ETATS_SUJET) as EtatSujet[]).map((k) => `<button type="button" aria-pressed="${s.etat === k}" data-etat-sujet="${k}">${ETATS_SUJET[k]}</button>`).join("");
+  const seg = (Object.keys(ETATS_SUJET) as EtatSujet[]).map((k) => `<button type="button" aria-pressed="${s.etat === k}" data-etat-sujet="${k}">${withIcons(ETATS_SUJET[k])}</button>`).join("");
   return `<div class="tb-det tb-sujet" role="tabpanel" aria-labelledby="tb-tab-sujets">
-    <button type="button" class="link" data-act="sujets">← Sujets</button>
-    <div class="acts"><span class="count">${s.score}</span><span>score · ${s.demandes + s.pour} joueur${s.demandes + s.pour > 1 ? "s l'ont" : " l'a"} demandé<br><small class="hint">${s.demandes} remarque${s.demandes > 1 ? "s" : ""} + ${s.pour} ▲ − ${s.contre} ▼</small></span>
+    <button type="button" class="link" data-act="sujets">${icon("back")} Sujets</button>
+    <div class="acts"><span class="count">${s.score}</span><span>score · ${s.demandes + s.pour} joueur${s.demandes + s.pour > 1 ? "s l'ont" : " l'a"} demandé<br><small class="hint">${s.demandes} remarque${s.demandes > 1 ? "s" : ""} + ${s.pour} ${icon("vote-up", "pour")} − ${s.contre} ${icon("vote-down", "contre")}</small></span>
       <label class="inline tb-pub"><input type="checkbox" id="s-publie"${s.publie ? " checked" : ""}> Publié dans Propositions</label></div>
     <h2 tabindex="-1" id="tb-det-t" class="sr-only">Sujet : ${esc(titreDe(s))}</h2>
-    <div class="acts"><button type="button" class="small" data-act="traduire-sujet"${etat.occupe ? " disabled" : ""}>🌐 Traduire automatiquement</button><span class="hint">remplit les champs vides depuis l'autre langue ; corrige ensuite si besoin</span></div>
+    <div class="acts"><button type="button" class="small" data-act="traduire-sujet"${etat.occupe ? " disabled" : ""}>${icon("lang")} Traduire automatiquement</button><span class="hint">remplit les champs vides depuis l'autre langue ; corrige ensuite si besoin</span></div>
     <div class="two">
       ${champ("titre", "Titre (français)")}${champ("titre_en", "Titre (anglais)")}
       ${champ("description", "Description publique (français)", true)}${champ("description_en", "Description publique (anglais)", true)}
@@ -345,9 +346,9 @@ function corrections(): string {
       liste.length
         ? liste
             .map(
-              (r) => `<div class="tb-corr"><b>n° ${r.id}</b> · ${r.langue?.toUpperCase() ?? ""} · ${depuis(r.cree)} · ${esc(r.pseudo ?? "sans pseudo")} · ${ETATS_REMARQUE[r.etat]}
+              (r) => `<div class="tb-corr"><b>n° ${r.id}</b> · ${r.langue?.toUpperCase() ?? ""} · ${depuis(r.cree)} · ${esc(r.pseudo ?? "sans pseudo")} · ${withIcons(ETATS_REMARQUE[r.etat])}
               ${r.texte ? `<div>${esc(r.texte)}</div>` : ""}
-              <div class="acts"><button type="button" class="primary small" data-telecharger="${r.id}"${r.aPiece ? "" : " disabled"}>⬇ Télécharger le JSON</button><button type="button" class="small" data-ouvrir="${r.id}">Ouvrir la remarque</button><span class="hint">à intégrer par « Importer… », comme aujourd'hui</span></div></div>`,
+              <div class="acts"><button type="button" class="primary small" data-telecharger="${r.id}"${r.aPiece ? "" : " disabled"}>${icon("download")} Télécharger le JSON</button><button type="button" class="small" data-ouvrir="${r.id}">Ouvrir la remarque</button><span class="hint">à intégrer par « Importer… », comme aujourd'hui</span></div></div>`,
             )
             .join("")
         : `<p class="hint">Aucune correction reçue.</p>`
@@ -591,7 +592,7 @@ racine.addEventListener("click", async (e) => {
   }
   const etatS = el.closest<HTMLElement>("[data-etat-sujet]")?.dataset.etatSujet;
   if (etatS && etat.sujet !== null) {
-    await changerSujet(etat.sujet, { etat: etatS }, `État : ${ETATS_SUJET[etatS as EtatSujet]}.`);
+    await changerSujet(etat.sujet, { etat: etatS }, `État : ${noIcons(ETATS_SUJET[etatS as EtatSujet])}.`);
     return void racine.querySelector<HTMLElement>(`[data-etat-sujet="${etatS}"]`)?.focus();
   }
   const act = el.closest<HTMLElement>("[data-act]")?.dataset.act;

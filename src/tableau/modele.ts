@@ -33,14 +33,14 @@ export type Sujet = { id: number; cree: number; maj: number | null; etat: EtatSu
 >;
 
 export const TYPES: Record<TypeRemarque, string> = {
-  valeur: "⚠ Valeur fausse",
-  bogue: "🐞 Bogue",
-  idee: "💡 Idée",
-  traduction: "🌐 Traduction",
-  correction: "📤 Correction",
+  valeur: "{i:warn} Valeur fausse",
+  bogue: "{i:bug} Bogue",
+  idee: "{i:idea} Idée",
+  traduction: "{i:lang} Traduction",
+  correction: "{i:send} Correction",
 };
-export const ETATS_REMARQUE: Record<EtatRemarque, string> = { nouvelle: "Nouvelle", lue: "Lue", traitee: "Traitée ✓" };
-export const ETATS_SUJET: Record<EtatSujet, string> = { propose: "Proposé", prevu: "Prévu", fait: "Fait ✓", refuse: "Refusé" };
+export const ETATS_REMARQUE: Record<EtatRemarque, string> = { nouvelle: "Nouvelle", lue: "Lue", traitee: "Traitée {i:check}" };
+export const ETATS_SUJET: Record<EtatSujet, string> = { propose: "Proposé", prevu: "Prévu", fait: "Fait {i:check}", refuse: "Refusé" };
 
 /** Filtre d'état de la boîte : « À traiter » (nouvelles et lues) par défaut. */
 export type FiltreEtat = "a-traiter" | "nouvelle" | "non-rangees" | "traitee" | "toutes";

@@ -6,6 +6,7 @@ import type { GameData } from "../engine/data.ts";
 import { itemsPerStation, nearlyZero, nominalRate, rateAt, TIERS, timeToReach, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
 import type { StationKind } from "../engine/research-points.ts";
 import { esc, fmt, fmtDate, fmtDuration, fmtPct, fmtRP } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { lang, t } from "../i18n/i18n.ts";
 import { txtHtml } from "./engine-text.ts";
 
@@ -53,14 +54,14 @@ export function renderResearchForm(data: GameData, s: ResearchSetup): string {
           n
             ? ` ${t("rm.grp.with")} ${Array.from({ length: n }, (_, j) => `<input data-rsg="${k}:${i}:item${j}" list="item-list" autocomplete="off" spellcheck="false" class="i" aria-label="${esc(t("rm.grp.item", { n: String(j + 1) }))}" value="${esc(g.items[j] ? itemName(g.items[j]!) : "")}" placeholder="${esc(t("rm.grp.item.ph"))}">`).join(" + ")}`
             : ""
-        }${k === "rs4" ? ` <label><input type="checkbox" data-rsg="${k}:${i}:logic"${g.logic ? " checked" : ""}> ${t("rm.grp.logic")}</label>` : ""} <button type="button" class="link small" data-rsg-del="${k}:${i}" aria-label="${esc(t("rm.grp.del"))}">✕</button></div>`,
+        }${k === "rs4" ? ` <label><input type="checkbox" data-rsg="${k}:${i}:logic"${g.logic ? " checked" : ""}> ${t("rm.grp.logic")}</label>` : ""} <button type="button" class="link small" data-rsg-del="${k}:${i}" aria-label="${esc(t("rm.grp.del"))}" title="${esc(t("rm.grp.del"))}">${icon("close")}</button></div>`,
       )
       .join("");
     return `${rows}`;
   }).join("");
   const ctrl = s.controllers
     .map(
-      (c, i) => `<div class="grp">${input(`data-rsc="${i}:count" aria-label="${esc(t("rm.ctrl.count"))}"`, c.count, "n", "0")} × Satellite Dish Controller ${t("rm.grp.with")} <input data-rsc="${i}:fluid" list="item-list" autocomplete="off" spellcheck="false" class="i" aria-label="${esc(t("rm.ctrl.fluid"))}" value="${esc(c.fluid ? itemName(c.fluid) : "")}" placeholder="${esc(t("rm.ctrl.fluid.ph"))}"> <button type="button" class="link small" data-rsc-del="${i}" aria-label="${esc(t("rm.grp.del"))}">✕</button></div>`,
+      (c, i) => `<div class="grp">${input(`data-rsc="${i}:count" aria-label="${esc(t("rm.ctrl.count"))}"`, c.count, "n", "0")} × Satellite Dish Controller ${t("rm.grp.with")} <input data-rsc="${i}:fluid" list="item-list" autocomplete="off" spellcheck="false" class="i" aria-label="${esc(t("rm.ctrl.fluid"))}" value="${esc(c.fluid ? itemName(c.fluid) : "")}" placeholder="${esc(t("rm.ctrl.fluid.ph"))}"> <button type="button" class="link small" data-rsc-del="${i}" aria-label="${esc(t("rm.grp.del"))}" title="${esc(t("rm.grp.del"))}">${icon("close")}</button></div>`,
     )
     .join("");
   return `<h3>${t("rm.stations.title.html")}</h3>
@@ -108,8 +109,8 @@ export function renderResearchOut(a: ResearchOutArgs): string {
       `<ul class="rs-checks">${m.checks
         .map((c) =>
           c.ok
-            ? `<li class="okc">${t("rm.check.ok", { label: txtHtml(c.label), x: esc(fmt(c.computed, c.digits)) })}</li>`
-            : `<li class="warn-text">${t("rm.check.bad", { label: txtHtml(c.label), a: esc(fmt(c.computed, c.digits)), b: esc(fmt(c.panel, c.digits)), d: esc(fmtPct(fmt(((c.computed - c.panel) / c.panel) * 100, 1))) })}</li>`,
+            ? `<li class="okc">${withIcons(t("rm.check.ok", { label: txtHtml(c.label), x: esc(fmt(c.computed, c.digits)) }))}</li>`
+            : `<li class="warn-text">${withIcons(t("rm.check.bad", { label: txtHtml(c.label), a: esc(fmt(c.computed, c.digits)), b: esc(fmt(c.panel, c.digits)), d: esc(fmtPct(fmt(((c.computed - c.panel) / c.panel) * 100, 1))) }))}</li>`,
         )
         .join("")}</ul>`,
     );
@@ -135,7 +136,7 @@ export function renderResearchOut(a: ResearchOutArgs): string {
   } else if (over) {
     const since = a.overSince !== undefined ? a.overSince : a.rp0 >= minCap ? null : t0 + timeToReach(tiers, a.rp0, minCap) * 1000;
     lines.push(
-      `<p>${t("rm.over.html", { since: since !== null ? t("rm.over.since", { t: esc(fmtDuration((a.now - since) / 1000)) }) : t("rm.over.before") })}</p>`,
+      `<p>${withIcons(t("rm.over.html", { since: since !== null ? t("rm.over.since", { t: esc(fmtDuration((a.now - since) / 1000)) }) : t("rm.over.before") }))}</p>`,
     );
   } else {
     const at = t0 + timeToReach(tiers, a.rp0, minCap) * 1000;

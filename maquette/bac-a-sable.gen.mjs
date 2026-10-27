@@ -25,7 +25,7 @@ function relevé(id) {
   return {
     w: p.footprint.w, h: p.footprint.h,
     ports: (p.ports ?? []).filter((x) => (x.type === "objet" || x.type === "fluide") && typeof x.cell === "number" && SIDE[x.side])
-      .map((x) => ({ t: x.type === "objet" ? "o" : "f", d: DIR[x.direction] ?? "l", s: SIDE[x.side], c: x.cell })),
+      .map((x) => ({ t: x.type === "objet" ? "o" : "f", d: DIR[x.direction] ?? "l", s: SIDE[x.side], c: x.cell, ...(x.tip ? { tip: x.tip } : {}) })),
   };
 }
 function role(id) {
@@ -54,6 +54,8 @@ for (const p of pipes) {
   const kind = p.kind === "objet" ? "o" : p.kind === "fluide" ? "f" : "m";
   out.blocks.push({
     id: p.id, name: p.name, cat: "Pipes", tier: p.tier ?? null, cost: p.price, desc: p.quote ?? "", poll: 0, unlock: null, img: null, geo: g, recipes: [],
+    // L'éditeur de bâtiments ne liste que machines.json : 6 pièces de tuyau n'y sont pas encore (R17).
+    ...(machines.some((m) => m.id === p.id) ? {} : { noEditor: true }),
     pipe: { kind, flow: p.flowPerSec, role: r, len: r === "droit" && g ? Math.max(g.w, g.h) : 1, rusty: /rusty/.test(p.id), section: p.section },
   });
 }

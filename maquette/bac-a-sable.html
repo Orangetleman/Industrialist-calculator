@@ -26,7 +26,9 @@ button { font:inherit; color:inherit; }
 #top .tag { font-size:12px; color:var(--muted); padding:0 6px; }
 /* Menu de pose, en bas à droite, comme Mindustry : infos, grille de 4, catégories, tiers ; outils sous la grille */
 #pf { right:0; bottom:0; border-radius:4px 0 0 0; display:flex; flex-direction:column; width:max-content; }
-#info { border-bottom:3px solid #3a3a3a; padding:8px; width:100%; max-width:384px; }
+/* width:0 + min-width:100% : le cadre d'infos prend la largeur du menu sans jamais l'élargir. Sinon, au
+   survol, le menu s'élargissait, le bouton survolé bougeait, le cadre se fermait… et ça clignotait. */
+#info { border-bottom:3px solid #3a3a3a; padding:8px; width:0; min-width:100%; overflow-wrap:anywhere; }
 #info:empty { display:none; }
 .i-head { display:flex; gap:8px; align-items:center; }
 .i-head img, .i-head svg { flex:none; }
@@ -56,6 +58,9 @@ button { font:inherit; color:inherit; }
 .pf-col + .pf-col { border-left:3px solid #3a3a3a; }
 .pf-b { width:40px; height:40px; background:transparent; border:2px solid transparent; border-radius:3px; cursor:pointer; font-size:18px; font-weight:700; display:grid; place-items:center; }
 .pf-b.on { border-color:var(--accent); background:#3d3522; color:var(--accent); }
+/* Icônes Lucide (S41, comme src/ui/icons.ts) : trait de la couleur du texte. */
+.ic { width:1.1em; height:1.1em; vertical-align:-.2em; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.pf-tools .ic, #mob .ic, .pf-b .ic { width:20px; height:20px; }
 .pf-b:disabled { opacity:.25; cursor:default; }
 .pf-col.tiers .pf-b { font-size:13px; }
 /* Indications du bas, comme Mindustry */
@@ -87,7 +92,6 @@ button { font:inherit; color:inherit; }
   #stats { width:auto; right:8px; max-height:40vh; }
   #top { top:auto; bottom:calc(var(--pfh, 200px) + 8px); }
   #pf { left:0; width:auto; }
-  #info { max-width:none; }
   .pf-body { overflow:hidden; }
   .pf-left { flex:1; min-width:0; }
   /* Au téléphone, la grille défile horizontalement (réponse Q14-6) */
@@ -108,14 +112,14 @@ button { font:inherit; color:inherit; }
   <g id="layer"></g><g id="over-l"></g><g id="ghost"></g>
 </svg>
 
-<details id="stats" class="pan" open><summary>📊 Statistiques du montage</summary><div id="stats-in"></div></details>
+<details id="stats" class="pan" open><summary data-ic="chart">Statistiques du montage</summary><div id="stats-in"></div></details>
 
 <div id="top" class="pan">
   <span class="tag">Maquette S17 · 2e version</span>
   <select id="ex" aria-label="Exemples"><option value="">Exemples…</option><option value="1">Press → Roller (tier I)</option><option value="2">5 Roller : tuyau saturé</option><option value="3">Tier III : longueurs et croisement</option></select>
-  <button id="b-keys" title="Toutes les commandes">⌨ Touches</button>
-  <button id="b-undo" title="Annuler (Ctrl+Z)">↶</button>
-  <button id="b-redo" title="Rétablir (Ctrl+Y)">↷</button>
+  <button id="b-keys" title="Toutes les commandes" data-ic="keyboard">Touches</button>
+  <button id="b-undo" title="Annuler (Ctrl+Z)" aria-label="Annuler" data-ic="undo"></button>
+  <button id="b-redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir" data-ic="redo"></button>
   <button id="b-clear" title="Vider le plan">Vider</button>
 </div>
 
@@ -125,10 +129,10 @@ button { font:inherit; color:inherit; }
     <div class="pf-left">
       <div id="grid"></div>
       <div class="pf-tools">
-        <button id="b-schem" title="Schémas (T)">📋</button>
-        <button id="b-db" title="Base de données">📖</button>
-        <a href="/#arbre" target="_blank" title="Arbre de recherche (J)">🌳</a>
-        <button id="b-vec" title="Liaisons : sens de chaque raccord (L)">🔗</button>
+        <button id="b-schem" title="Schémas (T)" aria-label="Schémas" data-ic="schem"></button>
+        <button id="b-db" title="Base de données" aria-label="Base de données" data-ic="db"></button>
+        <a href="/#arbre" target="_blank" title="Arbre de recherche (J)" aria-label="Arbre de recherche" data-ic="tree"></a>
+        <button id="b-vec" title="Liaisons : sens de chaque raccord (L)" aria-label="Liaisons" data-ic="link"></button>
       </div>
     </div>
     <div id="cats" class="pf-col"></div>
@@ -137,18 +141,52 @@ button { font:inherit; color:inherit; }
 </div>
 
 <div id="mob" class="pan" aria-label="Outils tactiles">
-  <button id="m-break" title="Casser (zone)">🔨</button>
-  <button id="m-schem" title="Copier une zone">⬚</button>
-  <button id="m-rot" title="Tourner">⟳</button>
-  <button id="m-cancel" title="Lâcher">✕</button>
-  <button id="m-undo" title="Annuler">↶</button>
+  <button id="m-break" title="Casser (zone)" aria-label="Casser (zone)" data-ic="break"></button>
+  <button id="m-schem" title="Copier une zone" aria-label="Copier une zone" data-ic="select"></button>
+  <button id="m-rot" title="Tourner" aria-label="Tourner" data-ic="rotate"></button>
+  <button id="m-cancel" title="Lâcher" aria-label="Lâcher" data-ic="close"></button>
+  <button id="m-undo" title="Annuler" aria-label="Annuler" data-ic="undo"></button>
 </div>
 
 <div id="hint"></div>
-<div id="dlg" hidden><div class="in" id="dlg-in"></div><button class="back" id="dlg-back">← Retour</button></div>
+<div id="dlg" hidden><div class="in" id="dlg-in"></div><button class="back" id="dlg-back" data-ic="back">Retour</button></div>
 
 <script src="bac-a-sable.data.js"></script>
 <script>
+// ======================= Icônes =======================
+// Tracés Lucide 0.460 (ISC, © Lucide Contributors ; portions © Cole Bemis, Feather, MIT), comme src/ui/icons.ts (S41).
+const IC = {
+  chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  keyboard: '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',
+  schem: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  db: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  tree: '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  break: '<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
+  select: '<path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/><path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1"/><path d="M9 21h1"/><path d="M14 3h1"/><path d="M14 21h1"/><path d="M3 9v1"/><path d="M21 9v1"/><path d="M3 14v1"/><path d="M21 14v1"/>',
+  rotate: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  next: '<path d="m9 18 6-6-6-6"/>',
+  warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  updown: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+  swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  // Catégories du menu Build. Pipes : la goutte de la catégorie « liquides » de Mindustry.
+  pipes: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  logic: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+  power: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  deco: '<path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"/><circle cx="12" cy="8" r="2"/><path d="M12 10v12"/><path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z"/><path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z"/>',
+  factory: '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
+  module: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>',
+  misc: '<path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
+  extract: '<path d="M14.531 12.469 6.619 20.38a1 1 0 1 1-3-3l7.912-7.912"/><path d="M15.686 4.314A12.5 12.5 0 0 0 5.461 2.958 1 1 0 0 0 5.58 4.71a22 22 0 0 1 6.318 3.393"/><path d="M17.7 3.7a1 1 0 0 0-1.4 0l-4.6 4.6a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4z"/><path d="M19.686 8.314a12.501 12.501 0 0 1 1.356 10.225 1 1 0 0 1-1.751-.119 22 22 0 0 0-3.393-6.319"/>',
+  tanks: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/>',
+};
+const ic = (n) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${IC[n]}</svg>`;
+for (const el of document.querySelectorAll("[data-ic]")) el.insertAdjacentHTML("afterbegin", ic(el.dataset.ic) + (el.textContent.trim() ? " " : ""));
+
 // ======================= Données =======================
 const B = window.BAS;
 const BL = Object.fromEntries(B.blocks.map((b) => [b.id, b]));
@@ -164,12 +202,20 @@ const isFluid = (i) => !!IT[i]?.fluid;
 const hue = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
-// Catégories du wiki d'Industrialist (BAS-01 : noms et ordre du menu du jeu à confirmer) ; tiers à droite.
+// Catégories du menu Build du jeu, dans l'ordre de la capture du tier I (2026-10-26, BAS-01). L'ordre du
+// jeu change d'un tier à l'autre ; ici il reste fixe pour que chaque catégorie garde sa place et son raccourci.
+// « wiki » : catégorie de machines.json rangée dans cette catégorie du jeu (Storage Silos → Tanks : à confirmer).
 const CATS = [
-  { id: "Extractors", name: "Extraction", ic: "⛏" }, { id: "Factories", name: "Usines", ic: "⚙" }, { id: "Pipes", name: "Tuyaux", ic: "═" },
-  { id: "Power", name: "Énergie", ic: "⚡" }, { id: "Storage Silos", name: "Stockage", ic: "▦" }, { id: "Modular", name: "Modulaires", ic: "⬡" },
-  { id: "Logic", name: "Logique", ic: "◇" }, { id: "Miscellaneous", name: "Divers", ic: "✱" },
+  { id: "Pipes", name: "Pipes", ic: ic("pipes") }, { id: "Logic", name: "Logic", ic: ic("logic") }, { id: "Power", name: "Power", ic: ic("power") },
+  { id: "Decorations", name: "Decorations", ic: ic("deco") }, { id: "Factories", name: "Factories", ic: ic("factory") }, { id: "Modular", name: "Modular", ic: ic("module") },
+  { id: "Miscellaneous", name: "Misc", ic: ic("misc") }, { id: "Extractors", name: "Extractors", ic: ic("extract") }, { id: "Storage Silos", name: "Tanks", ic: ic("tanks") },
 ];
+const completeLink = (id) => BL[id]?.noEditor
+  ? `<span class="muted">${esc(BL[id].name)} n'est pas encore dans l'éditeur de bâtiments (à ajouter).</span>`
+  : `<a href="/#contribuer/batiments/${id}" target="_blank">${BL[id]?.geo ? "Modifier dans l'éditeur de bâtiments" : "Compléter " + esc(BL[id].name)} ${ic("next")}</a>`;
+const SIDE_WORD = { N: "haut", S: "bas", W: "gauche", E: "droite" };
+// Port survolé : son rôle, son côté, et ce que dit son infobulle relevée (ce qui y passe, BAS-03).
+const portTxt = (p) => `${p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"}${p.tip ? ` : « ${esc(p.tip)} »` : " (infobulle non relevée)"}`;
 const TIERS = [{ t: 1, l: "I" }, { t: 2, l: "II" }, { t: 3, l: "III" }, { t: 4, l: "IV" }, { t: null, l: "∗" }];
 
 // Familles de tuyaux : un seul bouton par famille dans la grille, les variantes dans le cadre d'infos.
@@ -232,7 +278,7 @@ function geo(b) {
   const ck = `${b.id}|${b.x}|${b.y}|${b.r}`; if (geoCache.has(ck)) return geoCache.get(ck);
   const d = BL[b.id], g = d.geo; let w = g.w, h = g.h;
   // Les tuyaux n'ont pas de sens propre (réponse BAS-02) : leurs ports vont dans les deux sens.
-  let ps = g.ports.map((p) => { const k = p.c - 1; const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k]; return { t: p.t, d: d.pipe ? "l" : p.d, dir: p.s, ix, iy }; });
+  let ps = g.ports.map((p) => { const k = p.c - 1; const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k]; return { t: p.t, d: d.pipe ? "l" : p.d, dir: p.s, ix, iy, tip: p.tip }; });
   for (let i = 0; i < b.r; i++) { ps = ps.map((p) => ({ ...p, ix: h - 1 - p.iy, iy: p.ix, dir: ROT(p.dir, 1) })); [w, h] = [h, w]; }
   const out = { w, h, ports: ps.map((p) => ({ ...p, ix: p.ix + b.x, iy: p.iy + b.y, ox: p.ix + b.x + DV[p.dir][0], oy: p.iy + b.y + DV[p.dir][1] })) };
   geoCache.set(ck, out); return out;
@@ -418,7 +464,10 @@ function compute() {
   // Recettes : déduites de ce qui arrive ; plusieurs possibles → « ? », le joueur choisit (Q14-8).
   const MI = new Map();
   for (const [u] of G) { const d = BL[byU.get(u).id]; if (!d.pipe) MI.set(u, { rec: null, cand: d.recipes, f: 0, why: null }); }
-  const outItem = (u, p) => { const mi = MI.get(u); if (!mi?.rec) return null; const outs = Object.keys(mi.rec.out).filter((i) => isFluid(i) === (p.t === "f")); if (!outs.length) return null; const ps = G.get(u).ports.filter((q) => q.d === "s" && q.t === p.t); return outs[ps.indexOf(p) % outs.length]; };
+  const outItem = (u, p) => { const mi = MI.get(u); if (!mi?.rec) return null; const outs = Object.keys(mi.rec.out).filter((i) => isFluid(i) === (p.t === "f")); if (!outs.length) return null;
+    // BAS-03 : l'infobulle relevée du port nomme ce qui en sort ; sinon, répartition dans l'ordre (à vérifier).
+    const byTip = p.tip ? outs.filter((i) => p.tip.toLowerCase().includes(itemName(i).toLowerCase())) : []; if (byTip.length) return byTip[0];
+    const ps = G.get(u).ports.filter((q) => q.d === "s" && q.t === p.t); return outs[ps.indexOf(p) % outs.length]; };
   for (let pass = 0; pass < 8; pass++) {
     for (const c of comps.values()) { c.items = new Set(); for (const s of c.src) { const i = outItem(s.u, s.p); if (i) c.items.add(i); } }
     for (const [u, mi] of MI) {
@@ -535,7 +584,7 @@ function pipeMarkup(b, o = {}) {
     }
   }
   s += rect([b.x + 0.03, b.y + 0.03, w - 0.06, h - 0.06], "none", `stroke="#000" stroke-opacity=".55" stroke-width=".05"`);
-  if (b.missing) s += `<text x="${b.x + 0.5}" y="${b.y + 0.68}" font-size=".5" text-anchor="middle" fill="#fff">✕</text>`;
+  if (b.missing) s += `<svg x="${b.x + 0.25}" y="${b.y + 0.25}" width=".5" height=".5" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">${IC.close}</svg>`;
   return s;
 }
 function tri(cx, cy, dir, out) { const [dx, dy] = DV[dir], ex = cx + dx * 0.5, ey = cy + dy * 0.5, tip = out ? 0.22 : -0.26, px = -dy * 0.17, py = dx * 0.17; return `${ex + px},${ey + py} ${ex - px},${ey - py} ${ex + dx * tip},${ey + dy * tip}`; }
@@ -628,14 +677,14 @@ function head(id, name, sc, q) { return `<div class="i-head">${iconSvg(id, 32)}<
 const recTxt = (r) => `${Object.entries(r.in).map(([i, q]) => fmt(q) + " " + itemName(i)).join(" + ") || "rien"} → ${Object.entries(r.out).map(([i, q]) => fmt(q) + " " + itemName(i)).join(" + ")} (${fmt(r.s)} s)`;
 function renderInfo(force) {
   const t = ui.hoverBtn ? { k: "e", e: EK[ui.hoverBtn] } : ui.sel ? { k: "e", e: ui.sel.e } : ui.hoverU != null && byU.has(ui.hoverU) ? { k: "b", u: ui.hoverU } : ui.pinned != null && byU.has(ui.pinned) ? { k: "b", u: ui.pinned, pin: true } : null;
-  const sig = JSON.stringify([t?.k, t?.e?.key, t?.u, ui.sel?.v, ui.auto, t?.pin]);
+  const sig = JSON.stringify([t?.k, t?.e?.key, t?.u, ui.sel?.v, ui.auto, t?.pin, t?.k === "b" ? ui.cell : null]);
   if (!force && sig === infoSig) return; infoSig = sig;
   if (!t) { infoEl.innerHTML = ""; return; }
   let h = "";
   if (t.k === "e") {
     const e = t.e, v = ui.sel?.e === e ? ui.sel.v : e.def, d = BL[v];
     h += head(v, e.fam ? `${entryName(e)} · ${d.name}` : d.name, shortcut(e), !locked(v));
-    if (locked(v)) h += `<div class="i-line warn">⚠ Ports pas encore relevés : ${e.fam ? "cette pièce" : "ce bâtiment"} ne peut pas être posé.</div><div class="i-btns"><a href="/#donnees/batiments/${v}" target="_blank">Compléter ${esc(d.name)} ▸</a></div>`;
+    if (locked(v)) h += `<div class="i-line warn">${ic("warn")} Ports pas encore relevés : ${e.fam ? "cette pièce" : "ce bâtiment"} ne peut pas être posé.</div><div class="i-btns">${completeLink(v)}</div>`;
     h += `<div class="i-line">${d.geo ? dims(v, 0).join(" × ") + " cases · " : ""}$${fmt(d.cost, 0)}${d.pipe ? ` · ${fmt(d.pipe.flow)}/s au plus` : ""}${d.recipes.length ? ` · ${d.recipes.length} recette${d.recipes.length > 1 ? "s" : ""}` : ""}</div>`;
     if (e.fam) {
       h += `<div class="i-var">${VAR[e.fam].map((id) => `<button class="${id === v ? "on" : ""} ${locked(id) ? "locked" : ""}" data-var="${id}" title="${esc(BL[id].name)}${locked(id) ? " (non relevé)" : ""}${BL[id].pipe.rusty ? " (rusty : jamais posé tout seul)" : ""}">${iconSvg(id, 26)}</button>`).join("")}</div>`;
@@ -644,10 +693,11 @@ function renderInfo(force) {
   } else {
     const b = byU.get(t.u), d = BL[b.id];
     h += head(b.id, d.name, null, !b.missing);
+    if (!b.missing && d.geo && !d.pipe) { const ps = geo(b).ports.filter((p) => p.ix === ui.cell[0] && p.iy === ui.cell[1]); for (const p of ps) h += `<div class="i-line"><b>Port</b> (côté ${SIDE_WORD[p.dir]}) : ${portTxt(p)}</div>`; }
     if (d.pipe) {
-      if (b.missing) h += `<div class="i-line warn">⚠ Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns"><a href="/#donnees/batiments/${b.id}" target="_blank">Compléter ${esc(d.name)} ▸</a></div>`;
+      if (b.missing) h += `<div class="i-line warn">${ic("warn")} Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns">${completeLink(b.id)}</div>`;
       const ls = d.pipe.role === "croisement" ? [0, 1] : [0];
-      for (const l of ls) { const L = R.lanes.get(b.u + ":" + l); h += `<div class="i-line">${ls.length > 1 ? (l ? "Voie ↕ : " : "Voie ↔ : ") : ""}${L?.item ? "porte " + esc(itemName(L.item)) : L?.mixed ? `<span class="warn">mélange</span>` : "vide"} · ${fmt(L?.flow ?? 0)}/s sur ${fmt(d.pipe.flow)}/s${L?.over ? ` · <span class="warn">saturé (${fmt(L.offered)}/s demandés)</span>` : ""}</div>`; }
+      for (const l of ls) { const L = R.lanes.get(b.u + ":" + l); h += `<div class="i-line">${ls.length > 1 ? (l ? `Voie ${ic("updown")} : ` : `Voie ${ic("swap")} : `) : ""}${L?.item ? "porte " + esc(itemName(L.item)) : L?.mixed ? `<span class="warn">mélange</span>` : "vide"} · ${fmt(L?.flow ?? 0)}/s sur ${fmt(d.pipe.flow)}/s${L?.over ? ` · <span class="warn">saturé (${fmt(L.offered)}/s demandés)</span>` : ""}</div>`; }
     } else {
       const mi = R.MI.get(t.u);
       if (mi && d.recipes.length) {
@@ -683,12 +733,12 @@ function blockInfo(id) { // Comme la fiche « ? » de Mindustry
   if (d.desc) h += `<h3>Description</h3><div class="kv"><div>${esc(d.desc)}</div></div>`;
   h += `<h3>Caractéristiques</h3><div class="kv"><div>Taille : ${d.geo ? `${d.geo.w} × ${d.geo.h} cases` : `<span class="warn">ports et empreinte pas encore relevés</span>`}</div><div>Prix : $${fmt(d.cost, 0)}</div><div>Tier : ${d.tier ? ROM[d.tier] : "non donné par le wiki"}</div><div>Catégorie : ${esc(CATS.find((c) => c.id === d.cat)?.name ?? d.cat)}</div>${d.unlock ? `<div>Débloqué par : ${esc(d.unlock)}</div>` : ""}${d.poll ? `<div>Pollution : ${fmt(d.poll)} %/h</div>` : ""}</div>`;
   if (d.pipe) h += `<h3>Tuyau</h3><div class="kv"><div>Débit : ${fmt(d.pipe.flow)}/s au plus</div><div>Pièce : ${d.pipe.role}${d.pipe.role === "droit" ? `, ${d.pipe.len} case${d.pipe.len > 1 ? "s" : ""}` : ""}</div><div>Section du wiki : ${esc(d.pipe.section)}</div>${d.pipe.rusty ? `<div class="warn">Rusty : jamais posé automatiquement.</div>` : ""}</div>`;
-  if (d.geo?.ports.length) h += `<h3>Ports</h3><div class="kv">${d.geo.ports.map((p) => `<div>${d.pipe ? "Ouverture" : p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"} : côté ${SIDE_FR[p.s]}, case ${p.c}</div>`).join("")}</div>`;
+  if (d.geo?.ports.length) h += `<h3>Ports</h3><div class="kv">${d.geo.ports.map((p) => `<div>${d.pipe ? "Ouverture" : p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"} : côté ${SIDE_FR[p.s]}, case ${p.c}${p.tip ? ` — <i>« ${esc(p.tip)} »</i>` : ""}</div>`).join("")}</div>`;
   if (d.recipes.length) h += `<h3>Fabrication</h3><table><tr><th>Ressources requises</th><th>Produit</th><th>Durée</th><th>Énergie</th></tr>${d.recipes.map((r) => `<tr><td>${Object.entries(r.in).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>") || "—"}</td><td>${Object.entries(r.out).map(([i, q]) => `${fmt(q)} ${esc(itemName(i))} <span class="muted">${fmt(q / r.s, 3)}/s</span>`).join("<br>")}</td><td>${fmt(r.s)} s</td><td>${fmt(r.e, 0)} MF/s</td></tr>`).join("")}</table>`;
-  if (!d.geo) h += `<p><a href="/#donnees/batiments/${id}" target="_blank" style="color:var(--accent)">Compléter ${esc(d.name)} dans l'éditeur de bâtiments ▸</a></p>`;
+  h += `<p>${completeLink(id)}</p>`; // toujours un accès à l'éditeur du bâtiment
   openDlg(h);
 }
-document.getElementById("b-db").onclick = () => openDlg(`<div class="ttl">📖 Base de données</div>` + CATS.map((c) => { const bs = B.blocks.filter((b) => b.cat === c.id); return bs.length ? `<h3>${c.ic} ${c.name}</h3><div class="db">${bs.map((b) => `<button class="pf-blk ${b.geo ? "" : "locked"}" data-db="${b.id}" title="${esc(b.name)}">${iconSvg(b.id, 34)}</button>`).join("")}</div>` : ""; }).join(""));
+document.getElementById("b-db").onclick = () => openDlg(`<div class="ttl">${ic("db")} Base de données</div>` + CATS.map((c) => { const bs = B.blocks.filter((b) => b.cat === c.id); return bs.length ? `<h3>${c.ic} ${c.name}</h3><div class="db">${bs.map((b) => `<button class="pf-blk ${b.geo ? "" : "locked"}" data-db="${b.id}" title="${esc(b.name)}">${iconSvg(b.id, 34)}</button>`).join("")}</div>` : ""; }).join(""));
 dlgIn.addEventListener("click", (ev) => { const b = ev.target.closest("[data-db]"); if (b) blockInfo(b.dataset.db); });
 // Schémas (T) : comme Mindustry, un schéma est une zone copiée, qu'on enregistre et partage par un code.
 const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))), dec = (s) => JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
@@ -697,7 +747,7 @@ const saveSch = (l) => { try { localStorage.setItem("bas:schemas", JSON.stringif
 function schematics() {
   const l = loadSch(), all = { items: S.b.filter((b) => !b.missing).map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null })) };
   const code = enc(all), url = "https://industrialist.myprisme.fr/#bac/" + code;
-  openDlg(`<div class="ttl">📋 Schémas</div>
+  openDlg(`<div class="ttl">${ic("schem")} Schémas</div>
     <h3>Copie en cours</h3>${ui.clip ? `<div class="row">${ui.clip.items.length} bâtiments · <input id="sch-name" placeholder="Nom du schéma"><button data-sch="save">Enregistrer</button></div>` : `<p class="muted">Aucune copie : maintiens ${lab("KeyF")} et glisse sur le plan pour copier une zone.</p>`}
     <h3>Mes schémas</h3>${l.length ? l.map((s, i) => `<div class="row"><b>${esc(s.name)}</b> <span class="muted">${s.clip.items.length} bâtiments</span><button data-sch="use" data-i="${i}">Utiliser</button><button data-sch="code" data-i="${i}">Code</button><button data-sch="del" data-i="${i}">Supprimer</button></div>`).join("") : `<p class="muted">Aucun.</p>`}
     <h3>Importer un code</h3><textarea id="sch-in" placeholder="Colle un code de schéma"></textarea><div class="row"><button data-sch="imp">Importer</button></div>
@@ -729,7 +779,7 @@ function renderHint() {
 }
 document.getElementById("b-keys").onclick = () => {
   const r = (a, b, c) => `<tr><td>${a}</td><td>${b}</td><td class="muted">${c}</td></tr>`;
-  openDlg(`<div class="ttl">⌨ Commandes</div><p class="muted">Touches physiques : les lettres affichées suivent ton clavier.</p><table><tr><th>Action</th><th>Ici</th><th>Dans Mindustry (code source)</th></tr>
+  openDlg(`<div class="ttl">${ic("keyboard")} Commandes</div><p class="muted">Touches physiques : les lettres affichées suivent ton clavier.</p><table><tr><th>Action</th><th>Ici</th><th>Dans Mindustry (code source)</th></tr>
   ${r("Se déplacer", `${lab("KeyW")} ${lab("KeyA")} ${lab("KeyS")} ${lab("KeyD")} · Maj : plus vite · clic molette glissé`, "move_x / move_y = WASD, boost = Maj")}
   ${r("Zoomer", "Molette (Ctrl + molette quand un bloc est en main)", "zoom = molette ; elle tourne le bloc en main")}
   ${r("Choisir un bloc", "Menu en bas à droite : tier, catégorie, bloc · chiffres [tier, catégorie, bloc] tapés vite", "block_select_01…10, raccourci [catégorie, bloc]")}
@@ -746,14 +796,14 @@ document.getElementById("b-keys").onclick = () => {
   ${r("Régler un bâtiment", "Clic dessus : recette, tourner, supprimer", "toucher le bâtiment : sa configuration")}
   ${r("Copier une zone", `Maintenir ${lab("KeyF")} et glisser`, "schematic_select = F")}
   ${r("Coller, tourner, retourner", `Clic · molette ou ${lab("KeyR")} · ${lab("KeyZ")} / ${lab("KeyX")}`, "schematic_flip_x = Z, schematic_flip_y = X")}
-  ${r("Schémas enregistrés, partage", `${lab("KeyT")} ou 📋`, "schematic_menu = T")}
-  ${r("Base de données", "📖", "bouton du livre sous la grille")}
-  ${r("Liaisons (sens de chaque raccord)", `${lab("KeyL")} ou 🔗`, "demande de l'utilisateur, pas dans Mindustry")}
+  ${r("Schémas enregistrés, partage", `${lab("KeyT")} ou ${ic("schem")}`, "schematic_menu = T")}
+  ${r("Base de données", ic("db"), "bouton du livre sous la grille")}
+  ${r("Liaisons (sens de chaque raccord)", `${lab("KeyL")} ou ${ic("link")}`, "demande de l'utilisateur, pas dans Mindustry")}
   ${r("État des machines (pastille)", "F6", "toggle_block_status = F6")}
   ${r("Masquer l'interface", lab("KeyC"), "toggle_menus = C")}
-  ${r("Arbre de recherche", `${lab("KeyJ")} ou 🌳`, "research = J")}
+  ${r("Arbre de recherche", `${lab("KeyJ")} ou ${ic("tree")}`, "research = J")}
   ${r("Annuler / rétablir", "Ctrl+Z / Ctrl+Y", "éditeur de cartes de Mindustry")}
-  ${r("Au téléphone", "Un doigt : se déplacer · deux doigts : zoom · appui long puis glisser : ligne, zone · 🔨 casser, ⬚ copier, ⟳ tourner, ✕ lâcher", "MobileInput")}
+  ${r("Au téléphone", `Un doigt : se déplacer · deux doigts : zoom · appui long puis glisser : ligne, zone · ${ic("break")} casser, ${ic("select")} copier, ${ic("rotate")} tourner, ${ic("close")} lâcher`, "MobileInput")}
   </table><h3>Sans objet ici</h3><p class="muted">Pause de la construction (E), reconstruire (B) : la pose est immédiate. Unités, commandes, ping, discussion, carte des planètes. Mini-carte (M) et lignes électriques (F5) : plus tard (lot B5 et électricité).</p>`);
 };
 

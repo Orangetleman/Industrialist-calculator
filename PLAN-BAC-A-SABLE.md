@@ -157,7 +157,7 @@ joueur (`navigator.keyboard.getLayoutMap`, sinon les touches déjà frappées). 
 | --- | --- | --- | --- |
 | Tier I, objet et fluide | 6/s | droit (1 case), coude, té, croix | « Longueur auto » ne change rien |
 | Tier III, objet | 120/s | 1, 2 et 4 cases | |
-| Tier III, fluide | 120/s | 1 et 4 cases | le coude, le té et la croix ne sont pas relevés : posés en rouge, « à compléter » |
+| Tier III, fluide | 120/s | 1, 2 et 4 cases | le coude, le té et la croix ne sont pas relevés : posés en rouge, « à compléter » |
 | Tier IV (grands tuyaux) | 12 000/s | 2 cases de large | posés comme des blocs pour l'instant |
 
 **Les croisements posés seuls** sont toujours des pièces non rusty de tier III : Pipe Intersection, Fluid
@@ -267,10 +267,16 @@ structure du dépôt.
 
 **Règles** :
 - La licence MIT permet de reprendre du code, en gardant leur notice.
-- Leurs données ne sont **pas une source** (§ 0, règle 3 : le wiki d'abord, puis les relevés). Elles
-  servent de contrôle, comme Fandom.
-- Leurs catégories de machines (Factory / Assembler, Extractor / Item Extractor…, Miscellaneous /
-  Pipes) sont une **piste pour BAS-01**, à confirmer par une capture du menu du jeu.
+- Leurs données sont la **deuxième source**, après Miraheze et avant Fandom (décision de l'utilisateur
+  du 2026-10-26, PLAN-ACTION.md § 0, règle 3).
+
+**Réponses du 2026-10-26** (`data/a-verifier.md`) :
+- BAS-01 : catégories du menu Build (Pipes, Logic, Power, Decorations, Factories, Modular, Misc,
+  Extractors, Tanks), dans l'ordre de la capture du tier I.
+- BAS-03 : les infobulles des ports ; la maquette s'en sert, l'éditeur les structurera (S38).
+- BAS-04 : Fluid Pipe2 fait 2 cases.
+- BAS-05 : la jonction distribue sur ses sorties dans la limite de chaque pièce.
+- BAS-06 : à intégrer avec la recherche (S40).
 
 ## 7. Les lots
 
@@ -286,16 +292,35 @@ Un lot par session, maquette d'abord quand l'écran change, feu vert entre deux 
 | **B6** Téléphone | Tout MobileInput : appui long, 🔨, ⬚, ⟳, ✕, file d'attente avec ✓ (à décider), tiroir horizontal. | Parcours à 375 px : poser, tracer, supprimer une zone, copier. |
 | **B7** Électricité et ponts | Poteaux et câbles (F5), énergie produite. Partir d'un plan calculé (module ou usine), le comparer au plan conseillé. | L'usine Crankshaft 60/min ouverte dans le bac à sable redonne ses chiffres. |
 | **B8** Visite, aide, remarques | Visite guidée, aide avec recherche, montage joint aux remarques, anglais relu. | Parcours d'un nouveau venu en anglais, au clavier, comme S37. |
+| **B9** Modulaires | Les ensembles modulaires (ferme d'arbres, moteur diesel, turbine) se posent pièce par pièce, comme en jeu. Le bac à sable reconnaît l'ensemble avec les règles de `modular.json` (faces obligatoires, chaîne, portée) et dessine la portée des arroseurs et des récolteurs. Il calcule la production avec `modular-calc.ts` : arbres servis, configuration relevée du moteur. Une pièce mal placée est signalée, avec la raison. | Une ferme posée à la main redonne les chiffres de `designFarm` ; un moteur à 6 cylindres redonne sa configuration relevée ; un arroseur hors de portée est signalé. |
 
-B1 à B3 suffisent pour un premier usage. Les lots suivants s'ajoutent un par un.
+B1 à B3 suffisent pour un premier usage. **B9** répond à la demande de l'utilisateur du 2026-10-26 de « mieux intégrer les modulaires » : aujourd'hui, le calculateur les traite à part. Dans le bac à sable, ce sont des pièces comme les autres.
+
+**Portées (demande du 2026-10-26, B3 pour la règle, B7 et B9 pour les données)** : comme dans Mindustry,
+la portée d'un bâtiment se dessine **pendant qu'on le place** (elle suit le curseur) et **quand on le
+sélectionne une fois posé**. Cela vaut pour **tout bâtiment qui a une portée connue dans les données**,
+sans liste écrite à la main. Le moteur rassemble toutes les portées du dépôt :
+- `modular.json` : contrôleur, arroseur, récolteur et toute autre pièce modulaire ;
+- `releves.json` → `poleRangeTiles` : les poteaux électriques ;
+- les autres portées du wiki ou des relevés, au fur et à mesure.
+
+Un bâtiment dont la portée manque est listé dans `data/a-verifier.md`. Les bâtiments dans la portée
+sont mis en évidence.
+
+**Ajouts du 2026-10-26 (B3)** :
+- au survol d'un port, le cadre d'infos dit son rôle, son côté et son infobulle relevée ;
+- chaque fiche « ? » mène à l'éditeur du bâtiment (« Modifier », ou « Compléter » quand les ports
+  manquent).
+
+La maquette le fait déjà. Les lots suivants s'ajoutent un par un.
 
 ## 8. Risques
 
 - **Bâtiments posables** : 55 bâtiments sur 220, et 32 pièces de tuyau sur 43, ont leurs ports
   relevés. Les autres sont grisés. Le bac à sable vaut ce que valent les relevés.
-- **Règles de jeu encore floues** : la répartition d'un té (BAS-05), quel objet sort par quel port
-  (BAS-03), le menu de construction (BAS-01), la longueur de Fluid Pipe2 (BAS-04). Elles se demandent,
-  elles ne se supposent pas.
+- **Ports mal décrits** : tant que l'éditeur n'enregistre pas les objets de chaque port (S38), le
+  calcul lit le nom des objets dans l'infobulle ; sans infobulle, il répartit dans l'ordre et le marque
+  « à vérifier ». Le bac à sable devrait venir après S38.
 - **Performance** : traitée en B4, avec des mesures. C'est le risque principal au téléphone.
 - **Quantité de code** : la maquette fait environ 930 lignes. Le moteur sera séparé de l'écran et testé
   à part (B1, B2).

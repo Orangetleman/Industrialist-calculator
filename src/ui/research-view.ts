@@ -5,6 +5,7 @@ import type { GameData } from "../engine/data.ts";
 import type { Machine, ResearchNode } from "../engine/types.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, type Progress } from "../engine/unlock.ts";
 import { esc, fmt, fmtDuration, fmtMoney, fmtPollution, fmtRP } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 import { RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { txtHtml } from "./engine-text.ts";
@@ -66,7 +67,7 @@ function machineCard(m: Machine, data: GameData): string {
   ].filter(Boolean);
   const src = m.sources[0];
   return `<li class="bcard">
-    <div class="bhead"><b>${esc(m.name)}</b>${src?.url ? ` <a href="${esc(src.url)}" target="_blank" rel="noopener" class="muted">wiki ↗</a>` : ""}</div>
+    <div class="bhead"><b>${esc(m.name)}</b>${src?.url ? ` <a href="${esc(src.url)}" target="_blank" rel="noopener" class="muted">wiki ${icon("ext")}</a>` : ""}</div>
     ${m.description ? `<p class="bdesc">${esc(m.description).replace(/\n/g, "<br>")}</p>` : `<p class="bdesc muted">${src?.note ? txtHtml(src.note) : t("rs.noDesc.wiki")}</p>`}
     ${facts.length ? `<div class="meta">${facts.join("")}</div>` : ""}
     ${outputs.length ? `<div class="meta"><span>${esc(t("rs.makes", { list: outputs.slice(0, 12).join(", ") }))}${outputs.length > 12 ? "…" : ""}</span></div>` : ""}
@@ -103,7 +104,7 @@ function etaLine(n: ResearchNode, path: string[], rp: number | null, eta: RpEta 
   if (!(e.seconds > 0)) return "";
   const what = path.length > 1 ? t("rs.eta.n", { n: path.length }) : "";
   const straight = e.straight ? ` <span class="hint">${t("rs.eta.straight")}</span>` : "";
-  return `<p class="rs-eta">${t("rs.eta.html", { t: esc(fmtDuration(e.seconds)), what, straight })} <button type="button" class="link" data-rs-faster="${esc(n.id)}">${t("rs.faster")}</button></p>`;
+  return `<p class="rs-eta">${t("rs.eta.html", { t: esc(fmtDuration(e.seconds)), what, straight })} <button type="button" class="link" data-rs-faster="${esc(n.id)}">${withIcons(t("rs.faster"))}</button></p>`;
 }
 
 /** Boutons d'une recherche (panneau et bulle) : débloquer, avec ou sans prérequis, ou marquer non débloquée. */
@@ -131,7 +132,7 @@ export function renderNodeBubble(data: GameData, p: Progress, id: string | null,
   const st = nodeState(data, p, n, rp);
   const missing = p.unlocked.has(n.id) ? [] : missingNodes(data, p, n.id).filter((x) => x !== n.id);
   const nodeName = (x: string) => data.nodes.get(x)?.name ?? x;
-  return `<div class="rs-bub-head"><b>${esc(n.name)}</b><button type="button" class="rs-bub-x" data-rsb-close aria-label="${esc(t("rs.bub.close"))}">✕</button></div>
+  return `<div class="rs-bub-head"><b>${esc(n.name)}</b><button type="button" class="rs-bub-x" data-rsb-close aria-label="${esc(t("rs.bub.close"))}" title="${esc(t("rs.bub.close"))}">${icon("close")}</button></div>
     <p class="rs-bub-st"><span class="num">${esc(fmtRP(n.rp))}</span> · ${esc(stateLabel(st))}${st === "expensive" && rp !== null ? esc(t("rs.short", { x: fmtRP(n.rp - rp) })) : ""}</p>
     ${st === "expensive" || st === "locked" ? etaLine(n, [...missing, n.id], rp, eta) : ""}
     ${missing.length ? `<p class="hint">${esc(t("rs.before", { list: missing.map(nodeName).join(" → ") }))}</p>` : ""}

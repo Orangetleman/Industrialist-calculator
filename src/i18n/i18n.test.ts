@@ -35,7 +35,7 @@ describe("t()", () => {
     setLang("en");
     expect(t("ans.machines", { n: 0 })).toBe("0 machines");
     expect(t("ans.machines", { n: 1 })).toBe("1 machine");
-    expect(t("pb.verify", { n: 2 })).toBe("⚠ 2 unverified values ▾");
+    expect(t("pb.verify", { n: 2 })).toBe("{i:warn} 2 unverified values {i:more}");
     expect(t("ans.item.ok", { rate: "60", item: "Gear", by: "", counts: "3 machines", partial: "" })).toBe("For 60 Gear/min: 3 machines.");
   });
   it("écrit un nombre selon la langue", () => {

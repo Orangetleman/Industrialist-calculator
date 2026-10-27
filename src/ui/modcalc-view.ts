@@ -7,6 +7,7 @@ import { DIESEL_FUELS, dieselConfigs, dieselFuelName, dieselLitersPerMMF, diesel
 import type { ModAssembly, ModularFile } from "../engine/modular.ts";
 import { treeGrowthSeconds } from "../engine/pollution.ts";
 import { esc, fmt, fmtMoney, fmtPct, parseNum } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { txtHtml } from "./engine-text.ts";
 
@@ -44,12 +45,12 @@ export function farmResultHtml(file: ModularFile, data: GameData, st: ModCalcSta
     `<li>${esc(t("mc.limit", { x: limitText(r.limit) }))}</li>`,
     `<li>${t("mc.water.html", { l: fmt(r.waterLpm, 1), n: r.activeSprinklers, c: String(rates.waterCycle.litersPerCycle), p: fmt(rates.waterCycle.periodS, 2) })}</li>`,
     `<li>${t("mc.power.html", { e: mfps(r.energyMFps), n: fmt(r.harvested, 0), k: fmt(rates.energyPerCutMF.value / 1000, 0), g: fmt(g.seconds, 1) })}</li>`,
-    ...r.problems.map((p) => `<li class="must unk">⚠ ${txtHtml(p)}</li>`),
+    ...r.problems.map((p) => `<li class="must unk">${icon("warn")} ${txtHtml(p)}</li>`),
   ];
   const hint = short.length
     ? `<p class="hint">${t("mc.fit", { n: fmt(st.farm.trees, 0), s: String(fit.sprinklers), t: String(fit.tanks), h: String(fit.harvesters) })}</p>`
     : "";
-  const q = rates.treesPerHarvester.question ? ` <span class="must unk" data-ref="${esc(rates.treesPerHarvester.question)}" title="${esc(t("mc.toRecord.title"))}">${t("mc.toRecord")}</span>` : "";
+  const q = rates.treesPerHarvester.question ? ` <span class="must unk" data-ref="${esc(rates.treesPerHarvester.question)}" title="${esc(t("mc.toRecord.title"))}">${withIcons(t("mc.toRecord"))}</span>` : "";
   const slots = rates.controllerSlots ? t("mc.slots", { n: String(rates.controllerSlots) }) : "";
   return `<ul class="mc-out">${lines.join("")}</ul>${hint}<p class="hint">${t("mc.growth", { detail: txtHtml(g.detail), n: String(rates.treesPerHarvester.value), q, s: String(rates.treesPerSprinkler.value), p: String(rates.sprinklersPerTank.value), slots })}</p>`;
 }
@@ -65,7 +66,7 @@ export function dieselResultHtml(file: ModularFile, data: GameData, st: ModCalcS
   const blocks = c.parts.map((p) => `${p.count} ${name(data, p.machine)}`).join(", ");
   const lines = [
     `<li>${t("mc.dsl.power.html", { p: mfps(c.powerMFps), l: fmt(c.fuelLps, 3), fuel: esc(dieselFuelName(c.fuel)), m: fmt(c.fuelLps * 60, 2), r: fmt(dieselLitersPerMMF(c), 3), torque: c.torqueMT !== null ? t("mc.dsl.torque", { x: fmt(c.torqueMT, 0) }) : "" })}</li>`,
-    `<li>${t("mc.dsl.blocks", { list: blocks })}${c.partsComplete ? (cost !== null ? ` · ${fmtMoney(cost)}` : "") : ` <span class="must unk">${t("mc.dsl.incomplete")}</span>`}</li>`,
+    `<li>${t("mc.dsl.blocks", { list: blocks })}${c.partsComplete ? (cost !== null ? ` · ${fmtMoney(cost)}` : "") : ` <span class="must unk">${withIcons(t("mc.dsl.incomplete"))}</span>`}</li>`,
     ...(c.throttleAssumed ? [`<li class="hint">${t("mc.dsl.assumed")}</li>`] : []),
     `<li class="hint">${t("mc.dsl.otherFuel")}</li>`,
   ];
@@ -77,8 +78,8 @@ function dieselTable(configs: DieselConfig[], on: DieselConfig | null): string {
   const rows = configs
     .map((x) => {
       const src = x.reading
-        ? `<span class="src-tag jeu">${t("mc.src.game")}</span> <button type="button" class="link" data-dr-del="${esc(x.reading)}" title="${esc(t("mc.src.del"))}">✕</button>`
-        : `<span class="src-tag">wiki</span>${x.partsComplete ? "" : ` <span class="must unk" title="${esc(t("mc.blocks.title"))}">${t("mc.blocks.toRecord")}</span>`}`;
+        ? `<span class="src-tag jeu">${t("mc.src.game")}</span> <button type="button" class="link" data-dr-del="${esc(x.reading)}" title="${esc(t("mc.src.del"))}" aria-label="${esc(t("mc.src.del"))}">${icon("close")}</button>`
+        : `<span class="src-tag">wiki</span>${x.partsComplete ? "" : ` <span class="must unk" title="${esc(t("mc.blocks.title"))}">${withIcons(t("mc.blocks.toRecord"))}</span>`}`;
       return `<tr${x === on ? ' class="on"' : ""}><td><button type="button" class="link" data-mc-cfg="${esc(x.id)}" title="${esc(t("mc.cfg.see"))}">${fmt(x.cylinders, 0)}</button></td><td>${fmt(x.airFuel, 0)}</td><td>${fmtPct(fmt(x.throttle, 0))}${x.throttleAssumed ? "*" : ""}</td><td>${esc(dieselFuelName(x.fuel))}</td><td class="num">${mfps(x.powerMFps)}</td><td class="num">${fmt(x.fuelLps, 3)}</td><td class="num">${fmt(dieselLitersPerMMF(x), 3)}</td><td>${src}</td></tr>`;
     })
     .join("");

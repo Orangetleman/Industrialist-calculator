@@ -3,6 +3,7 @@
 
 import { lang, t, type Key } from "../i18n/i18n.ts";
 import { esc, fmtDate } from "./format.ts";
+import { icon, noIcons, withIcons } from "./icons.ts";
 import {
   askedBy,
   filterSubjects,
@@ -61,15 +62,15 @@ export function initPropositions(root: HTMLElement, openFeedback: (from: HTMLEle
     const dis = busy.has(s.id) ? " disabled" : "";
     return `<article class="pr" aria-labelledby="pr-t-${s.id}">
       <div class="pr-vote">
-        <button type="button" data-pr-vote="1" data-pr-id="${s.id}" aria-pressed="${s.monVote === 1}" aria-label="${esc(t("pr.up", { title: titleText }))}"${dis}>▲</button>
+        <button type="button" data-pr-vote="1" data-pr-id="${s.id}" aria-pressed="${s.monVote === 1}" aria-label="${esc(t("pr.up", { title: titleText }))}"${dis}>${icon("vote-up")}</button>
         <span class="n" aria-label="${esc(t("pr.score"))} ${s.score}">${s.score}</span>
-        <button type="button" data-pr-vote="-1" data-pr-id="${s.id}" aria-pressed="${s.monVote === -1}" aria-label="${esc(t("pr.down", { title: titleText }))}"${dis}>▼</button>
+        <button type="button" data-pr-vote="-1" data-pr-id="${s.id}" aria-pressed="${s.monVote === -1}" aria-label="${esc(t("pr.down", { title: titleText }))}"${dis}>${icon("vote-down")}</button>
       </div>
       <div class="pr-body">
-        <h3 id="pr-t-${s.id}">${text(s, title, "titre")} <span class="st ${s.etat}">${esc(t(`pr.state.${s.etat}` as Key))}</span></h3>
+        <h3 id="pr-t-${s.id}">${text(s, title, "titre")} <span class="st ${s.etat}">${withIcons(esc(t(`pr.state.${s.etat}` as Key)))}</span></h3>
         ${text(s, desc, "description", "p")}
         ${reply ? `<div class="rep"><b>${esc(t("pr.reply", { who: AUTHOR }))}</b> ${text(s, reply, "reponse")}</div>` : ""}
-        <div class="meta" role="status">${esc(meta.join(" · "))}</div>
+        <div class="meta" role="status">${withIcons(esc(meta.join(" · ")))}</div>
         ${voteError?.id === s.id ? `<div class="rm-err" role="alert">${voteError.html}</div>` : ""}
       </div>
     </article>`;
@@ -78,7 +79,7 @@ export function initPropositions(root: HTMLElement, openFeedback: (from: HTMLEle
   function listHtml(): string {
     if (failed) return `<div class="rm-err" role="alert">${esc(t("pr.offline"))} <button type="button" data-pr="retry">${esc(t("pr.retry"))}</button></div>`;
     if (!list) return `<p class="hint">${esc(t("pr.loading"))}</p>`;
-    if (!list.length) return `<div class="pr-empty">${esc(t("pr.empty"))}</div>`;
+    if (!list.length) return `<div class="pr-empty">${withIcons(esc(t("pr.empty")))}</div>`;
     const shownList = filterSubjects(list, q, state, sort);
     if (!shownList.length) return `<p class="hint">${esc(t("pr.none"))}</p>`;
     return shownList.map(article).join("");
@@ -89,7 +90,7 @@ export function initPropositions(root: HTMLElement, openFeedback: (from: HTMLEle
     if (!out) return;
     out.innerHTML = listHtml();
     const stateSel = root.querySelector<HTMLSelectElement>("#pr-state")!;
-    stateSel.innerHTML = [`<option value="">${esc(t("pr.state.all"))}</option>`, ...SUBJECT_STATES.map((k) => `<option value="${k}">${esc(t(`pr.state.${k}` as Key))}</option>`)].join("");
+    stateSel.innerHTML = [`<option value="">${esc(t("pr.state.all"))}</option>`, ...SUBJECT_STATES.map((k) => `<option value="${k}">${esc(noIcons(t(`pr.state.${k}` as Key)))}</option>`)].join("");
     stateSel.value = state;
     const sortSel = root.querySelector<HTMLSelectElement>("#pr-sort")!;
     sortSel.innerHTML = (["score", "recent"] as const).map((k) => `<option value="${k}">${esc(t(`pr.sort.${k}`))}</option>`).join("");

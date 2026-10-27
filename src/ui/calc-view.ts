@@ -18,6 +18,7 @@ import { choicesFor, factorsFor, numberSettings } from "../engine/interfaces.ts"
 import { factorText, screenText } from "./iface-view.ts";
 import { controllerPanel } from "./assembly-view.ts";
 import { colon, esc, fmt, fmtPct } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 import { kindLabel } from "./buildings-model.ts";
 import { nodeText, type ViewCtx } from "./plan-view.ts";
@@ -61,8 +62,8 @@ export function sourceTag(r: Recipe, field: string, label = ""): string {
   if (f) {
     const text = `${pre}${t("cv.verify", { d: txt(f.detail) })}`;
     return fixableHere("recipes", field)
-      ? `<button type="button" class="src-tag warn" data-rc-focus="${esc(fixKey("recipes", r.id, field))}" title="${esc(t("cv.fix.here"))}">${esc(text)}</button>`
-      : `<a class="src-tag warn" href="${verifyHref("recette", r.id, field)}" title="${esc(t("cv.fix.data"))}">${esc(text)}</a>`;
+      ? `<button type="button" class="src-tag warn" data-rc-focus="${esc(fixKey("recipes", r.id, field))}" title="${esc(t("cv.fix.here"))}">${withIcons(esc(text))}</button>`
+      : `<a class="src-tag warn" href="${verifyHref("recette", r.id, field)}" title="${esc(t("cv.fix.data"))}">${withIcons(esc(text))}</a>`;
   }
   if (r.added) return `<span class="src-tag jeu" title="${esc(t("cv.added.title", { date: r.added.fetchedAt.slice(0, 10) }))}">${esc(pre)}${t("cv.src.jeu")}</span>`;
   const s = r.sources[0];
@@ -129,7 +130,7 @@ function settingRows(v: ViewCtx, s: Step, r: Recipe): Row[] {
   for (const { setting, choice } of choicesFor(i, r.id)) {
     const where = i.where ? ` (${txtHtml(i.where)})` : "";
     const once = i.once ? t("cv.setting.once") : "";
-    rows.push({ label: t("cv.setting"), formula: t("cv.setting.formula", { kind: esc(kind), where, name: txtHtml(setting.name), pos: txtHtml(choice.label), once, doubt: choice.doubt ? ` (⚠ ${txtHtml(choice.doubt)})` : "" }), result: txt(choice.label), src: ifaceSources(i) });
+    rows.push({ label: t("cv.setting"), formula: t("cv.setting.formula", { kind: esc(kind), where, name: txtHtml(setting.name), pos: txtHtml(choice.label), once, doubt: choice.doubt ? ` (${icon("warn")} ${txtHtml(choice.doubt)})` : "" }), result: txt(choice.label), src: ifaceSources(i) });
   }
   const nums = numberSettings(i);
   if (nums.length) {
@@ -353,7 +354,7 @@ export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string 
   const r = v.data.recipes.get(s.recipeId);
   if (!r) return "";
   const card = s.item === ENERGY || s.item === POLLUTION || !v.data.items.has(s.item) ? craftHref("machine", r.machine, r.id) : craftHref("objet", s.item, r.id);
-  const link = `<a href="${card}" class="calc-link">${t("cv.seeRecipes")}</a>`;
+  const link = `<a href="${card}" class="calc-link">${withIcons(t("cv.seeRecipes"))}</a>`;
   const craft = `<ul class="rc-crafts calc-craft">${renderCraft({ ...rc, edit: null, highlight: null }, r)}</ul>`;
   const name = itemN(v, s.item);
   const rows: Row[] = [...settingRows(v, s, r), ...fixedRows(v, s)];
@@ -373,7 +374,7 @@ export function renderStepCalc(v: ViewCtx, rc: RecipesCtx, key: string): string 
     rows.push(...flowRows(v, s, r, true));
   }
   // S29 : plus l'identifiant interne du craft ; seulement ce qui sert au joueur.
-  const foot = r.verify.length ? `<p class="calc-foot">${t("cv.foot", { n: r.verify.length })}</p>` : "";
+  const foot = r.verify.length ? `<p class="calc-foot">${withIcons(t("cv.foot", { n: r.verify.length }))}</p>` : "";
   return panel(name, `${craft}${stepNote(v, s)}${table(rows)}${foot}`, link, ` data-calc-item="${esc(s.item === ENERGY || s.item === POLLUTION ? "" : s.item)}" data-calc-machine="${esc(r.machine)}" data-calc-craft="${esc(r.id)}"`);
 }
 

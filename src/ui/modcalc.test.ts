@@ -30,7 +30,7 @@ describe("bloc « Calcul » de l'éditeur", () => {
     expect(t).toContain("29,11 Oak Log/min");
     expect(t).toContain("118,8 L/min");
     expect(t).toContain("48,52 kMF/s");
-    expect(t).toContain("⚠ à relever");
+    expect(t).toContain("Miraheze à relever");
     expect(t).toContain("776 emplacements");
   });
 

@@ -28,6 +28,8 @@ import { dieselConfigs, farmBlocks, farmRates, parseDieselReading, type DieselRe
 import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, readDieselForm, type ModCalcState } from "./modcalc-view.ts";
 import {
   applyTool,
+  portCandidates,
+  tipSuggest,
   type BgPlacement,
   bodyPoint,
   CELL,
@@ -61,6 +63,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
 import { esc, fmt, fmtMF, fmtPct, parseNum, quote, semi } from "./format.ts";
+import { icon, iconAt, noIcons, withIcons, type IconName } from "./icons.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { txt, txtHtml } from "./engine-text.ts";
 import { sentNote } from "./remarques-view.ts";
@@ -81,8 +84,8 @@ function stateBadge(st: SurveyState): string {
 }
 
 /** Libellés d'un outil, d'un type de port, d'un sens, d'un côté (les valeurs restent celles des données). */
-const toolLabel = (x: Tool) => t(`tool.${x}`);
-const typeName = (x: PortTool) => t(`ptype.${x}`);
+const toolLabel = (x: Tool) => withIcons(t(`tool.${x}`));
+const typeName = (x: PortTool) => withIcons(t(`ptype.${x}`));
 const dirLabel = (d: Port["direction"]) => t(`dir.${d}`);
 const sideLabel = (s: string) => (s === "dessus" || s === "haut" || s === "bas" || s === "gauche" || s === "droite" ? t(`side.${s}`) : s);
 const DIRS = ["entrée", "sortie", "les deux"] as const;
@@ -163,7 +166,7 @@ export function initBuildings(
         <p class="hint bld-states" id="bld-states"></p>
         <ul id="bld-items"></ul>
         <div class="actions">
-          ${onSend ? `<button type="button" id="bld-send" class="primary" aria-haspopup="dialog" data-i18n="rm.surveys.send" hidden>${t("rm.surveys.send")}</button>` : ""}
+          ${onSend ? `<button type="button" id="bld-send" class="primary" aria-haspopup="dialog" data-i18n="rm.surveys.send" hidden>${withIcons(t("rm.surveys.send"))}</button>` : ""}
           <button type="button" id="bld-export" data-i18n="bld.export">${t("bld.export")}</button>
           <label class="button"><span data-i18n="bld.import">${t("bld.import")}</span><input type="file" id="bld-import" accept="application/json,.json" hidden></label>
         </div>
@@ -187,14 +190,14 @@ export function initBuildings(
                 <div id="bld-canvas"></div>
                 <p class="bld-help" id="bld-help"></p>
                 <div class="seg bld-mode" id="bld-mode" role="radiogroup" aria-label="${esc(t("bld.mode.aria"))}" data-i18n-attr="aria-label=bld.mode.aria" hidden>
-                  <button type="button" role="radio" data-mode="ports" title="${esc(t("bld.mode.ports.title"))}" data-i18n="bld.mode.ports" data-i18n-attr="title=bld.mode.ports.title">${t("bld.mode.ports")}</button>
-                  <button type="button" role="radio" data-mode="capture" title="${esc(t("bld.mode.capture.title"))}" data-i18n="bld.mode.capture" data-i18n-attr="title=bld.mode.capture.title">${t("bld.mode.capture")}</button>
+                  <button type="button" role="radio" data-mode="ports" title="${esc(t("bld.mode.ports.title"))}" data-i18n="bld.mode.ports" data-i18n-attr="title=bld.mode.ports.title">${withIcons(t("bld.mode.ports"))}</button>
+                  <button type="button" role="radio" data-mode="capture" title="${esc(t("bld.mode.capture.title"))}" data-i18n="bld.mode.capture" data-i18n-attr="title=bld.mode.capture.title">${withIcons(t("bld.mode.capture"))}</button>
                 </div>
-                <button type="button" class="bld-rangebtn" id="bld-rangebtn" data-i18n="bld.range" hidden>${t("bld.range")}</button>
+                <button type="button" class="bld-rangebtn" id="bld-rangebtn" data-i18n="bld.range" hidden>${withIcons(t("bld.range"))}</button>
                 <div class="rs-zoom">
                   <button type="button" data-bzoom="in" aria-label="${esc(t("zoom.in"))}" data-i18n-attr="aria-label=zoom.in">+</button>
                   <button type="button" data-bzoom="out" aria-label="${esc(t("zoom.out"))}" data-i18n-attr="aria-label=zoom.out">−</button>
-                  <button type="button" data-bzoom="fit" aria-label="${esc(t("zoom.fit"))}" data-i18n-attr="aria-label=zoom.fit">⤢</button>
+                  <button type="button" data-bzoom="fit" aria-label="${esc(t("zoom.fit"))}" data-i18n-attr="aria-label=zoom.fit">${icon("fit")}</button>
                 </div>
               </div>
               <div class="bld-bubble" id="bld-bubble" role="dialog" aria-label="${esc(t("bld.port"))}" data-i18n-attr="aria-label=bld.port" hidden></div>
@@ -250,12 +253,12 @@ export function initBuildings(
       .map((m) => {
         const asm = assemblyOf.get(m.id);
         const modBadge = asm
-          ? `<span class="bld-badge mod" title="${esc(t("bld.mod.title", { name: asm.name, local: localMod[m.id] ? t("bld.mod.local") : "" }))}">⬡ ${esc(asmShort(asm.id) ?? asm.name)}${localMod[m.id] ? " ✎" : ""}</span>`
+          ? `<span class="bld-badge mod" title="${esc(t("bld.mod.title", { name: asm.name, local: localMod[m.id] ? t("bld.mod.local") : "" }))}">${icon("module")} ${esc(asmShort(asm.id) ?? asm.name)}${localMod[m.id] ? ` ${icon("edit")}` : ""}</span>`
           : "";
         const e = local[m.id] ?? repo.machines[m.id];
         const st = surveyState(m.id, repo, local);
         const hasIface = !!(localIfaces[m.id] ?? repoIfaces[m.id]);
-        const badges = `<span class="bld-badges">${modBadge}${hasIface ? `<span class="bld-badge iface" title="${esc(t("bld.iface.title"))}">⚙</span>` : ""}${stateBadge(st)}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(semi()))}">${t("bld.incomplete")}</span>` : ""}</span>`;
+        const badges = `<span class="bld-badges">${modBadge}${hasIface ? `<span class="bld-badge iface" title="${esc(t("bld.iface.title"))}">${icon("config", t("bld.iface.title"))}</span>` : ""}${stateBadge(st)}${e && !isComplete(e) ? `<span class="bld-badge warn" title="${esc(checkEntry(e).join(semi()))}">${t("bld.incomplete")}</span>` : ""}</span>`;
         return `<li><button type="button" data-bld="${esc(m.id)}" class="${m.id === selectedId ? "on" : ""}"><span>${esc(m.name)}</span>${badges}</button></li>`;
       })
       .join("");
@@ -301,7 +304,7 @@ export function initBuildings(
   }
 
   function portTitle(p: Port): string {
-    return t("bld.port.title", { type: typeName(p.type), dir: dirLabel(p.direction), where: placeText(p), tip: p.tip ? ` — ${quote(p.tip)}` : "" });
+    return t("bld.port.title", { type: noIcons(t(`ptype.${p.type}`)), dir: dirLabel(p.direction), where: placeText(p), tip: p.items?.length ? ` — ${p.items.map((k) => data.items.get(k)?.name ?? k).join(", ")}` : p.tip ? ` — ${quote(p.tip)}` : "" });
   }
 
   function svg(): string {
@@ -336,15 +339,16 @@ export function initBuildings(
       const dir = p.direction === "sortie" ? "out" : p.direction === "les deux" ? "both" : "in";
       const r = p.side === "dessus" ? 11 : 13;
       const half = dir === "both" ? `<path class="half" d="M${x + r} ${y - r}L${x + r} ${y + r}L${x - r} ${y + r}Z"/>` : "";
-      let glyph: string;
-      if (p.side === "dessus") glyph = p.type === "énergie" ? "⚡" : "◆";
-      else if (dir === "both") glyph = p.side === "haut" || p.side === "bas" ? "↕" : "↔";
+      let glyph: IconName;
+      if (p.side === "dessus") glyph = p.type === "énergie" ? "power" : "top";
+      else if (dir === "both") glyph = p.side === "haut" || p.side === "bas" ? "updown" : "swap";
       else {
-        const inward = { haut: "▼", bas: "▲", gauche: "▶", droite: "◀" }[p.side];
-        const outward = { haut: "▲", bas: "▼", gauche: "◀", droite: "▶" }[p.side];
+        const inward = ({ haut: "down", bas: "up", gauche: "right", droite: "back" } as const)[p.side];
+        const outward = ({ haut: "up", bas: "down", gauche: "back", droite: "right" } as const)[p.side];
         glyph = dir === "out" ? outward : inward;
       }
-      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><title>${esc(portTitle(p))}</title><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}<text x="${x}" y="${y + (p.side === "dessus" ? 5 : 6)}" text-anchor="middle">${glyph}</text></g>`;
+      const gs = p.side === "dessus" ? 14 : 16;
+      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><title>${esc(portTitle(p))}</title><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}${iconAt(glyph, x - gs / 2, y - gs / 2, gs, "bld-glyph")}</g>`;
     });
     for (const [cx, cy] of corners) s += `<g class="bld-mark"><line x1="${cx - 12}" y1="${cy}" x2="${cx + 12}" y2="${cy}"/><line x1="${cx}" y1="${cy - 12}" x2="${cx}" y2="${cy + 12}"/></g>`;
     return `${s}</g></svg>`;
@@ -428,10 +432,10 @@ export function initBuildings(
     const m = data.machines.get(id)!;
     const asm = assemblyOf.get(id);
     const fp = entry!.footprint!;
-    const wiki = sameSize(fp, m.size) ? "" : ` <span class="must unk" title="${esc(t("bld.wiki.title"))}">${esc(t("bld.wiki", { w: String(m.size!.w), h: String(m.size!.l) }))}</span>`;
-    const mod = asm ? `<span class="bld-badge mod" title="${esc(txt(findBlock(repoModular, id)?.block.role ?? ""))}">⬡ ${esc(asm.name)} · Tier ${TIER[asm.tier] ?? asm.tier}</span>` : "";
+    const wiki = sameSize(fp, m.size) ? "" : ` <span class="must unk" title="${esc(t("bld.wiki.title"))}">${withIcons(esc(t("bld.wiki", { w: String(m.size!.w), h: String(m.size!.l) })))}</span>`;
+    const mod = asm ? `<span class="bld-badge mod" title="${esc(txt(findBlock(repoModular, id)?.block.role ?? ""))}">${icon("module")} ${esc(asm.name)} · Tier ${TIER[asm.tier] ?? asm.tier}</span>` : "";
     const fix = localMod[id] ? `<span class="bld-badge local" title="${esc(t("bld.localFix.title"))}">${t("bld.localFix")}</span>` : "";
-    $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3>${stateBadge(surveyState(id, repo, local))}${mod}${fix}<span class="bld-size">${esc(t("bld.size", { w: String(fp.w), h: String(fp.h) }))} <button type="button" class="link small" id="bld-size" aria-expanded="${sizeOpen}" title="${esc(t("bld.size.change"))}">✎</button>${wiki}</span>`;
+    $("#bld-head").innerHTML = `<h3>${esc(m.name)}</h3>${stateBadge(surveyState(id, repo, local))}${mod}${fix}<span class="bld-size">${esc(t("bld.size", { w: String(fp.w), h: String(fp.h) }))} <button type="button" class="link small" id="bld-size" aria-expanded="${sizeOpen}" title="${esc(t("bld.size.change"))}" aria-label="${esc(t("bld.size.change"))}">${icon("edit")}</button>${wiki}</span>`;
   }
 
   function renderDims(): void {
@@ -441,7 +445,7 @@ export function initBuildings(
     box.innerHTML = `
       <label>${t("bld.width")} <input type="number" min="1" max="200" id="bld-w" value="${entry!.footprint!.w}"></label>
       <label>${t("bld.height")} <input type="number" min="1" max="200" id="bld-h" value="${entry!.footprint!.h}"></label>
-      <button type="button" id="bld-swap" title="${esc(t("bld.swap"))}">⇄</button>`;
+      <button type="button" id="bld-swap" title="${esc(t("bld.swap"))}" aria-label="${esc(t("bld.swap"))}">${icon("swap")}</button>`;
   }
 
   function renderTools(): void {
@@ -464,6 +468,32 @@ export function initBuildings(
   /** Types possibles à un emplacement : la marge reçoit les ports, le corps la prise et la logique. */
   const typesAt = (p: Place): PortTool[] => (p.side === "dessus" ? ["énergie", "logique"] : ["objet", "fluide", "logique"]);
 
+  /** Bloc « Ce qui passe ici » (S38) : cases parmi les recettes de la machine, infobulle reprise. */
+  function portItemsHtml(p: Port): string {
+    const cands = portCandidates(machineRecipes(selectedId!), data.items, p);
+    if (p.type !== "objet" && p.type !== "fluide") return "";
+    const sug = tipSuggest(p.tip, cands, data.items);
+    const checked = new Set(p.items ?? sug.found);
+    const fromTip = !p.items;
+    const name = (id: string) => esc(data.items.get(id)?.name ?? id);
+    const boxes = cands.length
+      ? cands.map((id) => `<label class="bld-it"><input type="checkbox" data-pit="${esc(id)}"${checked.has(id) ? " checked" : ""}> ${name(id)}${fromTip && checked.has(id) ? ` <span class="hint">· ${t("bld.items.fromTip")}</span>` : ""}</label>`).join("")
+      : `<div class="hint">${t("bld.items.none")}</div>`;
+    const warn = sug.unknown.map((w) => `<div class="warn">${t("bld.items.unknown", { name: esc(w) })}</div>`).join("");
+    const all = cands.length ? `<div class="row"><button type="button" data-pit-all="1">${t("bld.items.all")}</button><button type="button" data-pit-all="0">${t("bld.items.noneBtn")}</button></div>` : "";
+    return `<fieldset class="bld-items"><legend>${t("bld.items")}</legend><div class="hint">${t(p.type === "fluide" ? "bld.items.fluids" : "bld.items.objects")}</div>${boxes}${warn}${all}</fieldset>`;
+  }
+
+  /** Recopie les cases cochées dans le port ouvert. */
+  function portItemsInput(): void {
+    if (bubble?.kind !== "port" || !entry) return;
+    const p = entry.ports[bubble.index]!;
+    const ids = [...root.querySelectorAll<HTMLInputElement>("#bld-bubble [data-pit]")].filter((c) => c.checked).map((c) => c.dataset.pit!);
+    p.items = ids.length ? ids : undefined;
+    root.querySelector(`[data-port="${bubble.index}"] title`)!.textContent = portTitle(p);
+    renderStatus();
+  }
+
   function renderBubble(): void {
     const box = $("#bld-bubble");
     const p = bubble?.kind === "port" ? entry?.ports[bubble.index] : undefined;
@@ -477,10 +507,11 @@ export function initBuildings(
     if (bubble.kind === "port" && p) {
       const types = typesAt(p).map((x) => `<button type="button" data-bb-type="${x}" ${pressed(p.type === x)}>${typeName(x)}</button>`).join("");
       const dirs = DIRS.map((d) => `<button type="button" data-bb-dir="${d}" ${pressed(p.direction === d)}>${dirLabel(d)}</button>`).join("");
-      box.innerHTML = `<div class="row"><b>${esc(typeName(p.type))} · ${esc(dirLabel(p.direction))}</b><span class="hint">${esc(placeText(p))}</span></div>
+      box.innerHTML = `<div class="row"><b>${typeName(p.type)} ·${esc(dirLabel(p.direction))}</b><span class="hint">${esc(placeText(p))}</span></div>
         <div class="row"><span class="hint">${t("bld.type")}</span>${types}</div>
         <div class="row"><span class="hint">${t("bld.dir")}</span>${dirs}</div>
         <label class="hint">${t("bld.tip")}<input type="text" data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="${esc(t("bld.tip.ph"))}"></label>
+        ${portItemsHtml(p)}
         <div class="row"><button type="button" data-bb-del>${t("bld.delete")}</button><button type="button" class="link small" data-bb-close>${t("bld.close")}</button></div>`;
     } else if (bubble.kind === "new") {
       const place = bubble.place;
@@ -551,7 +582,7 @@ export function initBuildings(
     const rows = st.choices
       .map(
         (c, j) =>
-          `<tr><td><input type="text" data-if="label" data-s="${k}" data-c="${j}" value="${esc(c.label)}" placeholder="${esc(t("if.pos.ph"))}">${c.doubt ? `<div class="hint">⚠ ${txtHtml(c.doubt)}</div>` : ""}</td><td>${crafts(j, c)}</td><td><button type="button" class="link small" data-if-del-choice data-s="${k}" data-c="${j}">${t("if.remove")}</button></td></tr>`,
+          `<tr><td><input type="text" data-if="label" data-s="${k}" data-c="${j}" value="${esc(c.label)}" placeholder="${esc(t("if.pos.ph"))}">${c.doubt ? `<div class="hint">${icon("warn")} ${txtHtml(c.doubt)}</div>` : ""}</td><td>${crafts(j, c)}</td><td><button type="button" class="link small" data-if-del-choice data-s="${k}" data-c="${j}">${t("if.remove")}</button></td></tr>`,
       )
       .join("");
     return `<table><thead><tr><th>${t("if.th.pos")}</th><th>${t("if.th.crafts")}</th><th></th></tr></thead><tbody>${rows}</tbody></table><button type="button" class="link small" data-if-add-choice data-s="${k}">${t("if.addPos")}</button>`;
@@ -566,7 +597,7 @@ export function initBuildings(
     if (!selectedId) return;
     const i = iface;
     const state = localIfaces[selectedId] ? ` <span class="bld-badge local">${t("bld.badge.local")}</span>` : "";
-    $("#bld-s-iface").innerHTML = `${t("if.summary")} <span class="hint">· ${i ? esc(kindLabel(i.kind)) : t("if.none")}</span>${state}`;
+    $("#bld-s-iface").innerHTML = `${withIcons(t("if.summary"))}<span class="hint">· ${i ? esc(kindLabel(i.kind)) : t("if.none")}</span>${state}`;
     const kinds = `<select data-if="kind"><option value=""${i ? "" : " selected"}>${t("if.none")}</option>${INTERFACE_KINDS.map((k) => `<option value="${esc(k)}"${i?.kind === k ? " selected" : ""}>${esc(kindLabel(k))}</option>`).join("")}</select>`;
     let body = "";
     if (i) {
@@ -644,7 +675,7 @@ export function initBuildings(
       .join(" · ");
   }
   /** ⚠ sur une question encore ouverte (le détail au survol). */
-  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" data-ref="${esc(f!.question!)}" title="${esc(t("bld.open.title", { text: txt(f!.text) }))}">${t("bld.toRecord")}</span>` : "");
+  const openMark = (f: ModFact | undefined) => (isOpen(repoModular, f) ? `<span class="must unk" data-ref="${esc(f!.question!)}" title="${esc(t("bld.open.title", { text: txt(f!.text) }))}">${withIcons(t("bld.toRecord"))}</span>` : "");
 
   /** Les quatre cases autour de la grille (blocs par contact) ; cachées pour les autres bâtiments. */
   function renderFaces(): void {
@@ -747,7 +778,7 @@ export function initBuildings(
         const reach = (x: number | "infinie" | null) => (x === "infinie" ? t("bld.reach.infinite") : typeof x === "number" ? t("bld.reach.cells", { n: fmt(x, 2) }) : t("bld.reach.unknown"));
         parts.push(`<span><b>${t("bld.servedBy")}</b> ${r.servedBy.map((x) => `${modChip(a)(x.id)}<span class="hint">(${reach(x.tiles)})</span>`).join(" ")}</span>`);
       }
-      parts.push(`<button type="button" class="link small" data-range-edit>${t("bld.fix")}</button>`);
+      parts.push(`<button type="button" class="link small" data-range-edit>${withIcons(t("bld.fix"))}</button>`);
     }
     el.hidden = false;
     el.innerHTML = parts.join("");
@@ -771,7 +802,7 @@ export function initBuildings(
     }
     body += modCalcHtml(repoModular, data, a, mcState, diesel.get(), mcMsg);
     const what = t(a.id === "diesel-engine" ? "bld.mod.what.dsl" : a.id === "tree-farm" ? "bld.mod.what.farm" : "bld.mod.what");
-    $("#bld-s-mod").innerHTML = `⬡ ${esc(a.name)} <span class="hint">· ${what}</span>`;
+    $("#bld-s-mod").innerHTML = `${icon("module")} ${esc(a.name)} <span class="hint">· ${what}</span>`;
     $("#bld-mod").innerHTML = `<div class="bld-mod">${body}</div>`;
   }
 
@@ -888,7 +919,7 @@ export function initBuildings(
       <ol class="hint bld-steps">
         <li>${t("bld.bg.step1")}</li>
         <li>${t("bld.bg.step2.html")}</li>
-        <li>${t("bld.bg.step3.html")}</li>
+        <li>${withIcons(t("bld.bg.step3.html"))}</li>
       </ol>`;
   }
 
@@ -916,9 +947,9 @@ export function initBuildings(
     const noPlug = !entry.noPower && !entry.ports.some((p) => p.type === "énergie");
     const problems = list.length
       ? `<ul class="bld-problems">${list.map((p) => `<li>${esc(p)}</li>`).join("")}${noPlug && hint ? `<li class="hint">${esc(hint)}</li>` : ""}</ul>`
-      : `<span class="ok-text">${t("bld.complete")}</span>`;
+      : `<span class="ok-text">${withIcons(t("bld.complete"))}</span>`;
     const pending = pendingParts();
-    const dirty = pending.length ? `<span class="bld-dirty">${esc(t("bld.dirty", { list: pending.join(", ") }))}</span>` : "";
+    const dirty = pending.length ? `<span class="bld-dirty">${withIcons(esc(t("bld.dirty", { list: pending.join(", ") })))}</span>` : "";
     $("#bld-status").innerHTML = `${problems}${dirty}`;
   }
 
@@ -938,17 +969,20 @@ export function initBuildings(
     const seg = $("#bld-mode");
     seg.hidden = !bg;
     for (const b of seg.querySelectorAll<HTMLElement>("[data-mode]")) b.setAttribute("aria-checked", String(b.dataset.mode === mode || (mode === "coins" && b.dataset.mode === "ports")));
-    $("#bld-help").textContent =
-      mode === "coins"
-        ? corners.length
-          ? t("bld.help.corner2")
-          : t("bld.help.corner1")
-        : mode === "capture"
-          ? t("bld.help.capture")
-          : poseBubble
-            ? t("bld.help.bubble")
-            : t("bld.help.tools");
-    $("#bld-msg").textContent = message;
+    $("#bld-help").innerHTML = withIcons(
+      esc(
+        mode === "coins"
+          ? corners.length
+            ? t("bld.help.corner2")
+            : t("bld.help.corner1")
+          : mode === "capture"
+            ? t("bld.help.capture")
+            : poseBubble
+              ? t("bld.help.bubble")
+              : t("bld.help.tools"),
+      ),
+    );
+    $("#bld-msg").innerHTML = withIcons(esc(message));
     const cb = root.querySelector("#bld-corners");
     if (cb) cb.setAttribute("aria-pressed", String(mode === "coins"));
   }
@@ -1108,6 +1142,10 @@ export function initBuildings(
     if (el.dataset.if) {
       // Les champs texte sont pris en compte à la frappe (pas de redessin : un clic qui suit doit garder son bouton).
       if ((el as HTMLInputElement).type !== "text") ifaceInput(el as HTMLInputElement, true);
+      return;
+    }
+    if (el.dataset.pit) {
+      portItemsInput();
       return;
     }
     if (el.dataset.fp) {
@@ -1274,6 +1312,12 @@ export function initBuildings(
     if (bbDir && bubble?.kind === "port") {
       entry.ports[bubble.index]!.direction = bbDir.dataset.bbDir as Port["direction"];
       return refreshCanvas(true);
+    }
+    const allBtn = target.closest<HTMLElement>("[data-pit-all]");
+    if (allBtn) {
+      for (const c of root.querySelectorAll<HTMLInputElement>("#bld-bubble [data-pit]")) c.checked = allBtn.dataset.pitAll === "1";
+      portItemsInput();
+      return;
     }
     if (target.closest("[data-bb-del]") && bubble?.kind === "port") {
       entry.ports.splice(bubble.index, 1);

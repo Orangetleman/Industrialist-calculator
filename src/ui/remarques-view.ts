@@ -3,6 +3,7 @@
 
 import { lang, t, type Key } from "../i18n/i18n.ts";
 import { esc, fmtDate } from "./format.ts";
+import { icon, withIcons } from "./icons.ts";
 import {
   checkOutgoing,
   GAME_DISCORD,
@@ -87,7 +88,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
     const types = fix
       ? `<div class="rm-piece"><b>${esc(t("rm.piece", { file: fix.piece.fichier }))}</b><div class="hint">${esc(fix.piece.resume)}</div></div>`
       : `<fieldset class="rm-types"><legend class="sr-only">${esc(t("rm.types.aria"))}</legend>${PLAYER_TYPES.map(
-          (k) => `<label><input type="radio" name="rm-type" value="${k}"${k === type ? " checked" : ""}> <span>${esc(typeLabel(k))}</span></label>`,
+          (k) => `<label><input type="radio" name="rm-type" value="${k}"${k === type ? " checked" : ""}> <span>${withIcons(esc(typeLabel(k)))}</span></label>`,
         ).join("")}</fieldset>`;
     const ph = fix ? t("rm.text.ph.fix") : t(`rm.text.ph.${type}` as Key);
     const busy = status?.kind === "busy";
@@ -101,7 +102,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
       <p class="rm-meta">${t(fix ? "rm.meta.fix.html" : "rm.meta.html", { page: esc(c.label) })}</p>
       <div id="rm-status" role="status">${status?.kind === "err" ? `<div class="rm-err">${status.html}</div>` : ""}</div>
       <p class="rm-meta">${t("rm.discord.html", { url: GAME_DISCORD })}</p>
-      <div class="rm-actions"><a class="rm-props" href="#propositions" data-rm="props">${esc(t("rm.props"))}</a><button type="button" data-rm="close">${esc(t("rm.cancel"))}</button><button type="button" class="primary" data-rm="send"${busy ? " disabled" : ""}>${esc(busy ? t("rm.sending") : t("rm.send"))}</button></div>`;
+      <div class="rm-actions"><a class="rm-props" href="#propositions" data-rm="props">${withIcons(esc(t("rm.props")))}</a><button type="button" data-rm="close">${esc(t("rm.cancel"))}</button><button type="button" class="primary" data-rm="send"${busy ? " disabled" : ""}>${esc(busy ? t("rm.sending") : t("rm.send"))}</button></div>`;
   }
 
   function mineItem(r: MyRemark): string {
@@ -109,7 +110,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
     const state = r.disparue ? t("rm.mine.gone") : r.etat ? t(`rm.state.${r.etat}` as Key) + (isNew ? ` · ${t("rm.state.new")}` : "") : "";
     const what = r.type === "correction" && r.resume ? r.resume : r.extrait;
     return `<li class="rm-it${isNew ? " new" : ""}">
-      <div class="h"><b>${esc(t("rm.mine.no", { id: String(r.id) }))}</b> · <span>${esc(typeLabel(r.type))} · ${esc(ago(r.cree))}</span>${state ? `<span class="st">${esc(state)}</span>` : ""}</div>
+      <div class="h"><b>${esc(t("rm.mine.no", { id: String(r.id) }))}</b> · <span>${withIcons(esc(typeLabel(r.type)))} · ${esc(ago(r.cree))}</span>${state ? `<span class="st">${esc(state)}</span>` : ""}</div>
       ${what ? `<div class="tx">${esc(what)}</div>` : ""}
       ${r.reponse ? `<div class="ans"><b>${esc(t("rm.mine.reply", { who: AUTHOR }))}</b> ${esc(r.reponse)}</div>` : r.disparue ? "" : `<div class="hint">${esc(t("rm.mine.noReply"))}</div>`}
       <button type="button" class="link small" data-rm-forget="${esc(r.numero)}" aria-label="${esc(t("rm.mine.forget.aria", { id: String(r.id) }))}">${esc(t("rm.mine.forget"))}</button>
@@ -126,7 +127,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
     const n = unseenReplies(mine);
     const tabBtn = (k: "write" | "mine", label: string) =>
       `<button type="button" role="tab" id="rm-tab-${k}" aria-controls="rm-pane" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" data-rm-tab="${k}">${label}</button>`;
-    dlg.innerHTML = `<h3 id="rm-title"><span>${esc(title)}</span><button type="button" class="rm-x" data-rm="close" aria-label="${esc(t("rm.close"))}">✕</button></h3>
+    dlg.innerHTML = `<h3 id="rm-title"><span>${withIcons(esc(title))}</span><button type="button" class="rm-x" data-rm="close" aria-label="${esc(t("rm.close"))}" title="${esc(t("rm.close"))}">${icon("close")}</button></h3>
       <div class="rm-tabs" role="tablist" aria-label="${esc(t("rm.tabs.aria"))}">${tabBtn("write", esc(t("rm.tab.write")))}${tabBtn("mine", `${esc(t("rm.tab.mine", { n: mine.length }))}${n ? ` <span class="rm-dot">${n}</span>` : ""}`)}</div>
       <div id="rm-pane" role="tabpanel" aria-labelledby="rm-tab-${tab}">${tab === "write" ? writePane() : minePane()}</div>`;
     if (focus === "tab") dlg.querySelector<HTMLElement>(`#rm-tab-${tab}`)?.focus();
@@ -196,7 +197,7 @@ export function initRemarks(ctx: RemarkContext, onFixSent: () => void) {
       texte = "";
       saveDraft(null);
     }
-    status = { kind: "ok", html: t("rm.ok.html", { id: String(res.id) }) };
+    status = { kind: "ok", html: withIcons(t("rm.ok.html", { id: String(res.id) })) };
     render("status");
   }
 
