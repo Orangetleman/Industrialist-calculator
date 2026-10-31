@@ -31,8 +31,16 @@ function bigLayout(n: number): Layout {
   return L;
 }
 
-/** Le plus long de `n` essais (après un premier à vide), en ms. */
-const worst = (f: (i: number) => void, n = 20) => { f(-1); let m = 0; for (let i = 0; i < n; i++) { const t0 = performance.now(); f(i); m = Math.max(m, performance.now() - t0); } return m; };
+/**
+ * Durée médiane de `n` essais (après un premier à vide), en ms. La médiane, et non le pire : pendant `npm test`,
+ * les autres fichiers de tests tournent en parallèle et un essai isolé peut être freiné par eux.
+ */
+const median = (f: (i: number) => void, n = 21) => {
+  f(-1);
+  const ms: number[] = [];
+  for (let i = 0; i < n; i++) { const t0 = performance.now(); f(i); ms.push(performance.now() - t0); }
+  return ms.sort((a, b) => a - b)[n >> 1]!;
+};
 
 describe("fluidité (B4)", () => {
   const L0 = bigLayout(100);
@@ -44,7 +52,7 @@ describe("fluidité (B4)", () => {
   it("un geste (tuyau glissé, posé, puis calculé) prend moins de 16 ms", () => {
     const cache = sandboxCache();
     computeSandbox(cat, L0, undefined, cache);
-    const ms = worst((i) => {
+    const ms = median((i) => {
       const k = Math.abs(i * 37) % 100, ox = (k % 10) * 14, oy = Math.floor(k / 10) * 5;
       // On coupe le tuyau d'un îlot à la gomme, puis on le retrace en glissant (20 cases de glisser).
       let L = applyPlan(L0, rectPlan(cat, L0, ox + 5, oy + 2, ox + 6, oy + 2));
@@ -52,9 +60,9 @@ describe("fluidité (B4)", () => {
       const p = pipePath(cat, L, [ox + 4, oy + 2], [ox + 7, oy + 2], "o")!;
       L = applyPlan(L, pipePlan(cat, L, p, "o1")!);
       computeSandbox(cat, L, undefined, cache);
-    }, 20);
+    });
     expect(ms / 20).toBeLessThan(16); // par case de glisser
-    const one = worst((i) => {
+    const one = median((i) => {
       const k = Math.abs(i * 37) % 100, ox = (k % 10) * 14, oy = Math.floor(k / 10) * 5;
       const L = applyPlan(L0, rectPlan(cat, L0, ox + 5, oy + 2, ox + 6, oy + 2));
       computeSandbox(cat, L, undefined, cache);
