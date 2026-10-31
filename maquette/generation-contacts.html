@@ -28,16 +28,16 @@ ol li { margin:4px 0; }
 <p class="leg"><span><i class="sw" style="background:#4b4b4b"></i>machine</span><span><i class="sw" style="background:#f0c330"></i>tuyau objet</span><span><i class="sw" style="background:#4aa3df"></i>tuyau fluide</span><span>E / S : port d'entrée / de sortie</span><span><i class="sw" style="border:2px solid var(--acc)"></i>contact utilisé</span></p>
 
 <h2>1. Les règles (vos réponses du 2026-10-31)</h2>
-<div class="rule"><b>Un port n'est qu'un point de contact.</b> Ce qui arrive sur un port, quel qu'il soit (même un port de sortie), va à l'entrée de la machine qui en a besoin, du même type (objet ou fluide).</div>
-<div class="rule"><b>Seul un port de sortie fait sortir quelque chose</b>, et seulement ce que la machine produit. Un port d'entrée ne fait rien ressortir : pas de traversée d'une machine.</div>
+<div class="rule"><b>Un port n'est qu'un point de contact.</b> Ce qui arrive sur un port, n'importe lequel du même type (objet ou fluide), <b>même un port de sortie</b>, va à l'entrée de la machine qui en a besoin.</div>
+<div class="rule"><b>Ce que la machine produit sort uniquement par son port de sortie</b>, dans le flux branché directement dessus (testé en jeu le 2026-10-31). Un port d'entrée ne fait rien ressortir : pas de traversée d'une machine.</div>
 <div class="rule"><b>Un croisement collé à un port</b> y fait entrer ses deux flux, venus de n'importe où : deux ressources par un seul port.</div>
 <div class="rule"><b>Pas de limite de débit sur un contact</b> : la seule limite est la vitesse de la machine (rien trouvé sur les wikis ; noté à vérifier en jeu).</div>
 
 <h2>2. Ce que le générateur saura faire</h2>
 <div class="cmp">
   <div class="card"><h3>a. Deux ressources par un seul port</h3><svg id="a" viewBox="0 0 240 150"></svg><p class="muted">Le collecteur d'objets et celui de fluide se rejoignent sur un croisement collé au port : une seule branche au lieu de deux, et un port libéré pour coller une autre machine.</p></div>
-  <div class="card"><h3>b. Sortie collée à la machine suivante</h3><svg id="b" viewBox="0 0 240 150"></svg><p class="muted">Le port de sortie de A touche un port de B (n'importe lequel) : ce que A produit entre dans B sans tuyau. Utile entre deux étapes du plan.</p></div>
-  <div class="card"><h3>c. Tuyau collé à un port de sortie</h3><svg id="c" viewBox="0 0 240 150"></svg><p class="muted">Un tuyau d'arrivée peut toucher n'importe quel port libre, même « sortie » : la ressource va à la bonne entrée. Le générateur choisit le port qui raccourcit le tuyau.</p></div>
+  <div class="card"><h3>b. Sortie collée à la machine suivante</h3><svg id="b" viewBox="0 0 240 150"></svg><p class="muted">Le port de sortie de A touche un port de B du même type : ce que A produit entre dans B sans tuyau. Utile entre deux étapes du plan.</p></div>
+  <div class="card"><h3>c. Un croisement sur la sortie : entrée et sortie par le même port</h3><svg id="c" viewBox="0 0 240 150"></svg><p class="muted">Un croisement posé sur le port de sortie (exemple : un Grinder) y amène l'entrée et emporte la production dans le flux branché sur ce port. Le générateur choisit aussi le port le plus proche pour chaque arrivée.</p></div>
 </div>
 
 <h2>3. Comment le générateur choisira</h2>
@@ -49,8 +49,8 @@ ol li { margin:4px 0; }
   <li>« Ouvrir dans le bac à sable » montre le plan, et le moteur y affiche les mêmes débits.</li>
 </ol>
 
-<h2>4. Une question</h2>
-<div class="q"><b>Q4.</b> Pour 2b : si le port de sortie de A touche un port de B, est-ce que <b>tout</b> ce que A produit passe dans B (même ce dont B n'a pas besoin, qui bloquerait A), ou seulement ce que B consomme, le reste sortant par les autres ports de sortie de A ?</div>
+<h2>4. Bouchons (réponse à Q4)</h2>
+<div class="rule">Quand la sortie de A touche B, seul ce que B consomme passe. Le surplus reste dans A, qui ralentit : le moteur montre le bouchon (surproduction) et ses effets sur les étapes d'avant.</div>
 </main>
 <script>
 const C = 20, M = "#4b4b4b", O = "#f0c330", F = "#4aa3df";
@@ -58,14 +58,14 @@ const r = (x, y, w, h, f, s = "") => `<rect x="${x*C}" y="${y*C}" width="${w*C}"
 const mach = (x, y, l) => r(x, y, 3, 3, M, `stroke="#777" rx="3"`) + `<text x="${(x+1.5)*C}" y="${(y+1.8)*C}" fill="#ddd" font-size="12" text-anchor="middle">${l}</text>`;
 const port = (x, y, t) => r(x + .25, y + .25, .5, .5, "#222", `stroke="#aaa"`) + `<text x="${(x+.5)*C}" y="${(y+.68)*C}" fill="#eee" font-size="8" text-anchor="middle">${t}</text>`;
 const seg = (cells, col) => cells.slice(1).map(([x, y], i) => { const [a, b] = cells[i]; return `<line x1="${(a+.5)*C}" y1="${(b+.5)*C}" x2="${(x+.5)*C}" y2="${(y+.5)*C}" stroke="${col}" stroke-width="7"/>`; }).join("");
-const cross = (x, y) => r(x + .1, y + .1, .8, .8, "#333", `stroke="#ffd37f" stroke-width="2"`) + `<line x1="${x*C+4}" y1="${(y+.5)*C}" x2="${(x+1)*C-4}" y2="${(y+.5)*C}" stroke="${O}" stroke-width="4"/><line x1="${(x+.5)*C}" y1="${y*C+4}" x2="${(x+.5)*C}" y2="${(y+1)*C-4}" stroke="${F}" stroke-width="4"/>`;
+const cross = (x, y, v = F) => r(x + .1, y + .1, .8, .8, "#333", `stroke="#ffd37f" stroke-width="2"`) + `<line x1="${x*C+4}" y1="${(y+.5)*C}" x2="${(x+1)*C-4}" y2="${(y+.5)*C}" stroke="${O}" stroke-width="4"/><line x1="${(x+.5)*C}" y1="${y*C+4}" x2="${(x+.5)*C}" y2="${(y+1)*C-4}" stroke="${v}" stroke-width="4"/>`;
 const hit = (x, y, w, h) => r(x, y, w, h, "none", `stroke="#ffd37f" stroke-width="3"`);
 
 document.getElementById("a").innerHTML = mach(4, 3, "M") + seg([[0, 2], [5, 2]], O) + seg([[5, 0], [5, 2]], F) + cross(5, 2) + port(5, 3, "E") + hit(5, 2.9, 1, .2)
   + `<text x="${0.2*C}" y="${1.6*C}" fill="#aaa" font-size="10">objet →</text><text x="${5.8*C}" y="${0.8*C}" fill="#aaa" font-size="10">↓ fluide</text>`;
 document.getElementById("b").innerHTML = mach(1, 2, "A") + mach(4, 2, "B") + port(3, 3, "S") + port(4, 3, "E") + hit(3.9, 3, .2, 1)
   + `<text x="${4*C}" y="${1.5*C}" fill="#aaa" font-size="10" text-anchor="middle">sans tuyau</text>`;
-document.getElementById("c").innerHTML = mach(4, 2, "M") + port(4, 2, "E") + port(6, 4, "S") + seg([[11, 4.5], [7, 4.5]], O) + hit(6.9, 4, .2, 1)
-  + `<text x="${8*C}" y="${3.6*C}" fill="#aaa" font-size="10">arrivée sur le port S</text>`;
+document.getElementById("c").innerHTML = mach(1, 2, "Grinder") + port(3, 3, "S") + cross(4, 3, O) + seg([[4, 0], [4, 3]], O) + seg([[4, 3.5], [10, 3.5]], O) + hit(3.9, 3, .2, 1)
+  + `<text x="${4.4*C}" y="${0.8*C}" fill="#aaa" font-size="10">↓ entrée</text><text x="${6*C}" y="${3.1*C}" fill="#aaa" font-size="10">production →</text>`;
 </script>
 </body></html>

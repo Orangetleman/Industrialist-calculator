@@ -567,6 +567,9 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
 - **2026-10-14, redirection des ports : en entrée seulement** : une ressource peut entrer par n'importe
   quel port de la machine du même type (même un port de sortie) ; une sortie doit partir de son port
   de sortie. **Fait** : les plans de pose ne redirigent plus que les entrées.
+  **Confirmé le 2026-10-31 (testé en jeu par l'utilisateur)** : une entrée peut arriver par un port de sortie (un
+  croisement objet posé sur la sortie d'un Grinder gère son entrée et sa sortie) ; la seule contrainte : ce que la
+  machine produit sort uniquement par son port de sortie, dans le flux branché directement dessus (voir BAS-11).
 
 ### Machines modulaires (S11, 2026-10-16)
 
@@ -922,6 +925,9 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
 - Capture du 2026-10-18 : wiki et Industrialist Calculator donnent le même résultat (+2,93 RP/s des paraboles, 7 paraboles ≥ 2,63 nécessaires → 100 %).
 - **BAS-11** (réponses de l'utilisateur, 2026-10-31, S56) : seul un port de sortie fait sortir quelque chose, et seulement
   ce que la machine produit ; un port d'entrée ne fait rien ressortir (pas de traversée d'une machine). Un tuyau collé à
-  n'importe quel port (même « sortie ») amène sa ressource à la bonne entrée. Un croisement collé à un port y fait entrer
+  n'importe quel port du même type, **même un port de sortie**, amène sa ressource à la bonne entrée ; ce que la machine
+  produit sort uniquement par son port de sortie, dans le flux branché directement dessus (testé en jeu, 2026-10-31).
+  **Q4 (réponse)** : quand la sortie de A touche B, seul ce que B consomme passe ; le surplus reste dans A, qui
+  ralentit, pour qu'on voie le bouchon (surproduction) et ses effets sur les étapes d'avant. Un croisement collé à un port y fait entrer
   ses deux flux, venus de n'importe où. Débit d'un contact : pas de limite connue, seule la vitesse de la machine compte
   (« je pense pas que ça soit limité ») ; rien trouvé sur les wikis : **à vérifier en jeu**.
