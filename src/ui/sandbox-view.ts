@@ -6,9 +6,10 @@
 import "../sandbox.css";
 import {
   applyPlan, autoConnect, cellKey, CROSS_PAIRS, DV, cellsOf, clickRoute, computeSandbox, contacts, crossId, dims, droitLens, elecRole, explicitPlan, facingKey, geo, links,
-  machineLinks, occupancy, pipePath, pipePlan, portKey, powerWires, rectPlan, stillMissing, straightPath, withFills,
-  type Dir, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SbCatalog, type SbIncomplete, type Wire, type Fam,
+  machineLinks, occupancy, pipePath, pipePlan, portKey, powerWires, rectPlan, sandboxCache, stillMissing, straightPath, withFills,
+  type Dir, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
 } from "../engine/sandbox/index.ts";
+import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
 import { blockIcon, blockMarkup, hue, portEdge, PORT_COL, rangeMarkup, rect, type DrawCtx, type ImgOf, type ModRange } from "./sandbox-draw.ts";
@@ -77,6 +78,11 @@ type Sel = { e: Entry; v: string; locked: boolean };
 type Settings = { hideEmptyCats: boolean; runWithoutPower: boolean };
 type PlanView = Plan & { bad?: [number, number][]; invalid?: Piece[] };
 
+/** Au-delà de ce temps de calcul sur place (la moitié d'une image à 60 Hz), le calcul passe dans un worker (B4). */
+const WORKER_MS = 8;
+/** En dessous de ce zoom (pixels par case), la vue compacte : formes simples, sans image, texte ni port (B4). */
+const COMPACT_Z = 12;
+
 const KEY_STATE = "ind-calc:v1:bac";
 const KEY_SET = "ind-calc:v1:bac-reglages";
 const KEY_KEYS = "ind-calc:v1:bac-touches";
@@ -119,7 +125,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   let R: SandboxResult | null = null, laneMap = new Map<string, SandboxResult["lanes"][number]>();
   const layout = (): Layout => ({ blocks: S.blocks, wires: S.wires, routes: S.routes });
   const names: Names = { block: (id) => cat.blocks.get(id)?.name ?? id, item: (id) => cat.items.get(id)?.name ?? id };
-  const dctx = (): DrawCtx => ({ cat, img: deps.img, itemName: names.item, status: ui.status, lane: (u, l) => laneMap.get(`${u}:${l}`) });
+  const dctx = (): DrawCtx => ({ cat, img: deps.img, itemName: names.item, status: ui.status, compact: cam.z < COMPACT_Z, lane: (u, l) => laneMap.get(`${u}:${l}`) });
 
   /** Catalogue avec les recettes complétées par le joueur ; reconstruit seulement quand les données ou les saisies changent. */
   function refreshCatalog(): void {
@@ -137,9 +143,37 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     byU = new Map(S.blocks.map((b) => [b.u, b]));
     S.wires = S.wires.filter((w) => byU.has(w.a) && byU.has(w.b));
   }
-  function compute(): void {
-    R = computeSandbox(cat, layout(), { runWithoutPower: SET.runWithoutPower });
+  // Calcul (B4) : incrémental (seuls les îlots touchés par un geste) ; s'il dépasse WORKER_MS sur place, les
+  // suivants partent dans un worker, et reviennent sur place quand ils redeviennent courts.
+  const cache = sandboxCache();
+  let lastMs = 0, worker: Worker | null = null, workerCat: SbCatalog | null = null, workerOff = false, ask = 0;
+  function setResult(r: SandboxResult): void {
+    R = r;
     laneMap = new Map(R.lanes.map((l) => [`${l.u}:${l.lane}`, l]));
+  }
+  function compute(): void {
+    const settings = { runWithoutPower: SET.runWithoutPower };
+    if (lastMs > WORKER_MS && !workerOff && typeof Worker !== "undefined") return computeAway(settings);
+    ask++; // une réponse du worker encore en route est périmée
+    const t0 = performance.now();
+    setResult(computeSandbox(cat, layout(), settings, cache));
+    lastMs = performance.now() - t0;
+  }
+  function computeAway(settings: SandboxSettings): void {
+    if (!worker) {
+      worker = new Worker(new URL("./sandbox.worker.ts", import.meta.url), { type: "module" });
+      worker.onmessage = (e: MessageEvent<SandboxAnswer>) => {
+        if (e.data.id !== ask) return;
+        if ("error" in e.data) { workerOff = true; lastMs = 0; compute(); }
+        else { lastMs = e.data.ms; setResult(e.data.result); }
+        drawAll();
+        renderInfo(true);
+      };
+      worker.onerror = () => { workerOff = true; worker?.terminate(); worker = null; lastMs = 0; compute(); drawAll(); renderInfo(true); };
+    }
+    const m: SandboxAsk = { id: ++ask, layout: layout(), settings };
+    if (workerCat !== cat) { m.cat = cat; workerCat = cat; }
+    worker.postMessage(m);
   }
   function snap(): void {
     undo.push(JSON.stringify(S));
@@ -226,10 +260,36 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
 
   // ------------------------------------------------------------ dessin
   const hasNodes = (b: Placed) => !!geo(cat.blocks.get(b.id)!, b)?.ports.some((p) => p.dir === "top");
+  /** Dessin par bâtiment (B4) : seuls ceux dont l'état dessiné change sont refaits, dans l'ordre de pose. */
+  let drawn = new Map<number, { sig: string; el: SVGGElement }>(), drawnCompact = false;
+  const drawSig = (c: DrawCtx, b: Placed) => {
+    const d = cat.blocks.get(b.id), mi = R?.machines.get(b.u);
+    let s = `${b.id},${b.x},${b.y},${b.r},${b.open},${b.pair},${c.compact},${c.status}`;
+    if (d?.pipe) for (const l of [0, 1]) { const L = laneMap.get(`${b.u}:${l}`); s += L ? `|${L.over},${L.item},${L.flow > 1e-9}` : "|"; }
+    else {
+      // les images peuvent arriver après le premier dessin
+      s += `|${c.img("machine", b.id)},${d?.recipes.length},${d?.incomplete.length}`;
+      if (mi) s += `|${mi.rec?.id},${mi.rec && c.img("objet", Object.keys(mi.rec.out)[0] ?? "")},${mi.cand.length},${Math.round(mi.f * 100)},${mi.f > 0.999},${mi.f < 0.999},${mi.reason?.k}`;
+    }
+    return s;
+  };
   function drawAll(): void {
     if (!ui.mounted) return;
-    const c = dctx();
-    $("bac-layer").innerHTML = S.blocks.map((b) => blockMarkup({ ...c, mi: R?.machines.get(b.u) }, b)).join("");
+    const c = dctx(), layer = $("bac-layer"), seen = new Set<number>();
+    drawnCompact = !!c.compact;
+    if (layer.dataset.n !== "1") { layer.textContent = ""; drawn = new Map(); layer.dataset.n = "1"; } // squelette refait
+    let prev: Element | null = null;
+    for (const b of S.blocks) {
+      seen.add(b.u);
+      let d = drawn.get(b.u);
+      if (!d) { d = { sig: "", el: document.createElementNS("http://www.w3.org/2000/svg", "g") }; drawn.set(b.u, d); }
+      const sig = drawSig(c, b);
+      if (d.sig !== sig) { d.el.innerHTML = blockMarkup({ ...c, mi: R?.machines.get(b.u) }, b); d.sig = sig; }
+      const want: ChildNode | null = prev ? prev.nextSibling : layer.firstChild;
+      if (want !== d.el) layer.insertBefore(d.el, want);
+      prev = d.el;
+    }
+    for (const [u, d] of drawn) if (!seen.has(u)) { d.el.remove(); drawn.delete(u); }
     let o = "";
     if (ui.vec) o += linksMarkup();
     if (ui.wires) for (const w of S.wires) {
@@ -264,6 +324,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
   function drawGhost(): void {
     if (!ui.mounted) return;
+    frameGhost = false;
     let s = "";
     const c = ui.cell, d = dctx();
     const hb = ui.hoverU ?? ui.pinned;
@@ -366,7 +427,20 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const f = $("bac-filter");
     f.hidden = !ui.filter;
     if (ui.filter) f.innerHTML = `${ic("filter")} <span>${esc(ui.filter.title)}</span><button type="button" data-filter-x title="${esc(t("bac.filter.clear"))}" aria-label="${esc(t("bac.filter.clear"))}">${ic("close")}</button>`;
-    root.style.setProperty("--bac-pfh", `${$("bac-pf").offsetHeight}px`);
+    pfHeight();
+  }
+  /**
+   * Hauteur du menu de pose, pour placer la barre d'aide (B4) : lue une fois par image et écrite seulement si
+   * elle change, car toucher une variable CSS de la page refait le style de tout le plan.
+   */
+  let pfRaf = 0, pfh = -1;
+  function pfHeight(): void {
+    if (pfRaf) return;
+    pfRaf = requestAnimationFrame(() => {
+      pfRaf = 0;
+      const h = $("bac-pf").offsetHeight;
+      if (h !== pfh) { pfh = h; root.style.setProperty("--bac-pfh", `${h}px`); }
+    });
   }
   const entryName = (e: Entry) => (e.fam ? t(`bac.fam.${FAMS[e.fam].kind}` as Key, { t: ROMAN[FAMS[e.fam].tier]! }) : names.block(e.def));
   function setTier(tr: number): void {
@@ -439,7 +513,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     infoSig = sig;
     closePop();
     const el = $("bac-info");
-    if (!tg) { el.innerHTML = ""; root.style.setProperty("--bac-pfh", `${$("bac-pf").offsetHeight}px`); return; }
+    if (!tg) { el.innerHTML = ""; pfHeight(); return; }
     let h = "";
     if (tg.k === "e") {
       const e = tg.e, v = ui.sel?.e === e ? ui.sel.v : e.def, d = cat.blocks.get(v)!, lk = locked(cat, v);
@@ -496,7 +570,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       h += `<div class="i-btns"><button type="button" data-act="rot">${esc(t("bac.rotate", { k: KB.rotate ? keyLabel(KB.rotate, LAB) : "—" }))}</button><button type="button" data-act="del">${esc(t("bac.delete"))}</button></div>`;
     }
     el.innerHTML = h;
-    root.style.setProperty("--bac-pfh", `${$("bac-pf").offsetHeight}px`);
+    pfHeight();
   }
   const target = () => ui.pinned ?? ui.hoverU;
 
@@ -854,6 +928,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (!ui.mounted) return;
     const r = svgEl().getBoundingClientRect();
     if (r.width) svgEl().setAttribute("viewBox", `${cam.x} ${cam.y} ${r.width / cam.z} ${r.height / cam.z}`);
+    if (cam.z < COMPACT_Z !== drawnCompact) drawAll(); // vue compacte quand on dézoome
   }
   function zoomAt(f: number, cx: number, cy: number): void {
     const r = svgEl().getBoundingClientRect(), px = cx - r.left, py = cy - r.top, wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
@@ -862,13 +937,18 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     cam.y = wy - py / cam.z;
     applyView();
   }
+  /**
+   * Survol et glisser (B4) : le cadre d'infos et l'aperçu se refont une fois par image, quel que soit le nombre
+   * d'événements du pointeur ; rien d'autre ne se redessine pendant un glisser.
+   */
+  let frame = 0, frameGhost = false;
   function hover(c: [number, number]): void {
     const moved = c[0] !== ui.cell[0] || c[1] !== ui.cell[1];
     ui.cell = c;
     const u = occ.get(cellKey(...c)) ?? null;
     if (u !== ui.hoverU) ui.hoverU = u;
-    renderInfo();
-    if (moved) drawGhost();
+    frameGhost ||= moved;
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; renderInfo(); if (frameGhost) drawGhost(); });
   }
   function rotatePlaced(u: number): void {
     const b = byU.get(u);

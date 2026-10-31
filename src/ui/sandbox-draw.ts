@@ -9,7 +9,8 @@ import { uiFam } from "./sandbox-model.ts";
 import { esc, fmtPct } from "./format.ts";
 
 export type ImgOf = (kind: "machine" | "objet", id: string) => string | null;
-export type DrawCtx = { cat: SbCatalog; img: ImgOf; itemName: (id: string) => string; status: boolean; lane?: (u: number, l: number) => LaneState | undefined; mi?: MachineState };
+/** `compact` : vue dézoomée (B4), des formes simples sans image, texte ni port. */
+export type DrawCtx = { cat: SbCatalog; img: ImgOf; itemName: (id: string) => string; status: boolean; compact?: boolean; lane?: (u: number, l: number) => LaneState | undefined; mi?: MachineState };
 /** Portée d'une pièce modulaire (modular.json) : depuis le bord (`edge`, null = infinie) et ce qu'elle dessert. */
 export type ModRange = { edge: number | null; serves: string[] };
 
@@ -112,9 +113,33 @@ function machineMarkup(c: DrawCtx, b: Placed): string {
   return s;
 }
 
+/**
+ * Vue compacte (B4) : une machine = un pavé et sa pastille d'état agrandie ; un tuyau = ses cases à la couleur de
+ * la famille (hachurées si saturées). Assez lisible de loin, et bien plus léger à dessiner.
+ */
+function compactMarkup(c: DrawCtx, b: Placed): string {
+  const def = c.cat.blocks.get(b.id)!, [w, h] = dims(def, b.r);
+  if (def.pipe) {
+    const L = c.lane?.(b.u, 0), fam = uiFam(c.cat, b.id);
+    const col = b.open ? "#c0392b" : L?.over ? "url(#bac-over)" : PIPE_COL[fam ?? (def.pipe.kind === "f" ? "f3" : "o3")] ?? "#888";
+    if (fam === "f4" || Math.min(w, h) > 1) return rect([b.x + 0.1, b.y + 0.1, w - 0.2, h - 0.2], col);
+    let s = "";
+    for (const [x, y] of cellsOf(def, b)) {
+      s += rect([x + 0.25, y + 0.25, 0.5, 0.5], col);
+      for (const d of cellOpen(def, b, x, y)) s += rect(band(x, y, d, 0.5), col);
+    }
+    return s;
+  }
+  let s = rect([b.x + 0.08, b.y + 0.08, w - 0.16, h - 0.16], "#3a3a3a", `stroke="#6a6a6a" stroke-width=".12"`);
+  const mi = c.mi;
+  if (c.status && mi && (def.recipes.length || def.incomplete.length)) s += rect([b.x + w / 2 - 0.5, b.y + h / 2 - 0.5, 1, 1], statusColor(mi));
+  return s;
+}
+
 export function blockMarkup(c: DrawCtx, b: Placed): string {
   const def = c.cat.blocks.get(b.id);
   if (!def) return "";
+  if (c.compact) return compactMarkup(c, b);
   return def.pipe ? pipeMarkup(c, b) : machineMarkup(c, b);
 }
 
@@ -126,7 +151,7 @@ export function blockIcon(c: DrawCtx, id: string, px = 34): string {
   if (im) return `<img src="${esc(im)}" width="${px}" height="${px}" alt="" draggable="false" style="object-fit:contain">`;
   if (!def.geo) return `<svg width="${px}" height="${px}" viewBox="0 0 1 1" aria-hidden="true"><rect x=".1" y=".1" width=".8" height=".8" rx=".1" fill="#333" stroke="#666" stroke-width=".04"/><text x=".5" y=".66" font-size=".45" text-anchor="middle" fill="#999">?</text></svg>`;
   const [w, h] = dims(def, 0), m = Math.max(w, h);
-  return `<svg width="${px}" height="${px}" viewBox="${(w - m) / 2 - 0.05} ${(h - m) / 2 - 0.05} ${m + 0.1} ${m + 0.1}" aria-hidden="true">${blockMarkup({ ...c, lane: undefined, mi: undefined }, { u: -1, id, x: 0, y: 0, r: 0 })}</svg>`;
+  return `<svg width="${px}" height="${px}" viewBox="${(w - m) / 2 - 0.05} ${(h - m) / 2 - 0.05} ${m + 0.1} ${m + 0.1}" aria-hidden="true">${blockMarkup({ ...c, lane: undefined, mi: undefined, compact: false }, { u: -1, id, x: 0, y: 0, r: 0 })}</svg>`;
 }
 
 /** Portée d'un bâtiment (poteaux : power.json et relevés ; pièces modulaires : modular.json, depuis le bord), null sinon. */

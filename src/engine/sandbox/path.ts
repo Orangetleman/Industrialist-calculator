@@ -58,8 +58,7 @@ const dirTo = (x: number, y: number, qx: number, qy: number): Dir => (qx > x ? "
 const openAt = (B: Board, b: Placed, x: number, y: number) => cellOpen(B.cat.blocks.get(b.id)!, b, x, y);
 
 /** Coût d'un pas : case libre 1 ; tuyau du même type 3 ; croisement ou tuyau de l'autre type traversé tout droit 6 ; null : impossible. */
-function stepCost(B: Board, x: number, y: number, d: Dir, kind: Kind): [number, boolean] | null {
-  const u = B.occ.get(K(x, y));
+function stepCost(B: Board, x: number, y: number, d: Dir, kind: Kind, u = B.occ.get(K(x, y))): [number, boolean] | null {
   if (u == null) return [1, false];
   const b = B.byU.get(u)!, def = B.cat.blocks.get(b.id)!, p = def.pipe;
   if (!p || p.role === "spécial" || isLarge(B.cat, b.id) || !def.geo) return null;
@@ -84,27 +83,33 @@ class Heap {
 export function pipePath(cat: SbCatalog, layout: Layout, s: [number, number], t: [number, number], kind: Kind): [number, number][] | null {
   const B = board(cat, layout), u0 = B.occ.get(K(...s));
   if (u0 != null && cat.blocks.get(B.byU.get(u0)!.id)?.pipe?.kind !== kind) return null;
-  const pad = 30, x0 = Math.min(s[0], t[0]) - pad, y0 = Math.min(s[1], t[1]) - pad, x1 = Math.max(s[0], t[0]) + pad, y1 = Math.max(s[1], t[1]) + pad, W = x1 - x0 + 1;
+  const pad = 30, x0 = Math.min(s[0], t[0]) - pad, y0 = Math.min(s[1], t[1]) - pad, x1 = Math.max(s[0], t[0]) + pad, y1 = Math.max(s[1], t[1]) + pad, W = x1 - x0 + 1, H = y1 - y0 + 1;
   const key = (x: number, y: number, d: number) => ((y - y0) * W + (x - x0)) * 5 + d, hh = (x: number, y: number) => Math.abs(x - t[0]) + Math.abs(y - t[1]);
-  const g = new Map<number, number>(), from = new Map<number, number>(), heap = new Heap();
-  g.set(key(s[0], s[1], 4), 0);
+  // Tableaux à plat sur le cadre de recherche (B4) : bien plus rapides que des Map à clés texte, même parcours.
+  const g = new Float64Array(W * H * 5).fill(Infinity), from = new Int32Array(W * H * 5).fill(-1), heap = new Heap();
+  const grid = new Int32Array(W * H).fill(-1);
+  for (const b of layout.blocks) {
+    const d = cat.blocks.get(b.id);
+    if (d) for (const [x, y] of cellsOf(d, b)) if (x >= x0 && x <= x1 && y >= y0 && y <= y1 && B.occ.get(K(x, y)) === b.u) grid[(y - y0) * W + (x - x0)] = b.u;
+  }
+  g[key(s[0], s[1], 4)] = 0;
   heap.push([hh(...s), 0, s[0], s[1], 4, false]);
   for (let n = 0; heap.size && n < 20000; n++) {
     const [, gc, x, y, d, str] = heap.pop(), kc = key(x, y, d);
-    if (gc > g.get(kc)!) continue;
+    if (gc > g[kc]!) continue;
     if (x === t[0] && y === t[1] && !str) {
       const path: [number, number][] = [];
-      for (let k: number | undefined = kc; k !== undefined; k = from.get(k)) { const c = Math.floor(k / 5); path.push([x0 + (c % W), y0 + Math.floor(c / W)]); }
+      for (let k = kc; k !== -1; k = from[k]!) { const c = Math.floor(k / 5); path.push([x0 + (c % W), y0 + Math.floor(c / W)]); }
       return path.reverse();
     }
     for (let nd = 0; nd < 4; nd++) {
       if (str && nd !== d) continue;
       const D = DIRS[nd]!, nx = x + DV[D][0], ny = y + DV[D][1];
       if (nx < x0 || nx > x1 || ny < y0 || ny > y1) continue;
-      const c = stepCost(B, nx, ny, D, kind);
+      const gu = grid[(ny - y0) * W + (nx - x0)]!, c = stepCost(B, nx, ny, D, kind, gu < 0 ? undefined : gu);
       if (!c) continue;
       const ng = gc + c[0] + (d !== 4 && nd !== d ? 8 : 0), nk = key(nx, ny, nd);
-      if (ng < (g.get(nk) ?? Infinity)) { g.set(nk, ng); from.set(nk, kc); heap.push([ng + hh(nx, ny), ng, nx, ny, nd, c[1]]); }
+      if (ng < g[nk]!) { g[nk] = ng; from[nk] = kc; heap.push([ng + hh(nx, ny), ng, nx, ny, nd, c[1]]); }
     }
   }
   return null;

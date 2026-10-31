@@ -4,7 +4,7 @@
 // 6. bilan et alertes regroupées.
 
 import type { PlacedPort } from "./layout.ts";
-import { geo, portKey, facingKey, cellsOf, crossLane, machineLinks, type Layout, type PlacedGeo, type Placed } from "./layout.ts";
+import { geo, portKey, facingKey, cellsOf, crossLane, machineLinks, type Layout, type PlacedGeo, type Placed, type Route } from "./layout.ts";
 import type { Dir, SbBlock, SbCatalog, SbRecipe } from "./catalog.ts";
 import { MaxFlow, type Arc } from "./maxflow.ts";
 import { elecRole } from "./wires.ts";
@@ -66,24 +66,164 @@ export type SandboxResult = {
 };
 
 type Term = { u: number; p: PlacedPort; lane: string };
-type Comp = { lanes: string[]; src: Term[]; snk: Term[]; open: string[]; conns: { a: string; b: string }[]; items: Set<string> };
+type Comp = { lanes: string[]; src: Term[]; snk: Term[]; open: string[]; conns: { a: string; b: string }[]; items: Set<string>; at: number };
 
-export function computeSandbox(cat: SbCatalog, layout: Layout, settings: SandboxSettings = DEFAULT_SETTINGS): SandboxResult {
+/*
+ * Calcul incrémental (B4, PLAN-BAC-A-SABLE.md § 5 « Fluidité »). Le montage se découpe en îlots : bâtiments reliés
+ * par des ports qui se font face, des câbles, des liaisons, ou qui se chevauchent. Rien ne passe d'un îlot à l'autre,
+ * donc chaque îlot se calcule seul, et son résultat est gardé tant qu'il ne change pas (même bâtiments, mêmes
+ * réglages, mêmes câbles). Un geste ne recalcule que les îlots qu'il touche. Le bilan et les alertes sont ensuite
+ * assemblés dans l'ordre du calcul d'un seul tenant.
+ */
+
+/** Ce qu'un îlot donne. `at` : rang, dans l'îlot, du bâtiment visité quand le réseau est né ; `w` : rang du 1er câble du réseau électrique. */
+type Part = {
+  machines: [number, MachineState][];
+  deliv: Map<number, Map<string, number>>;
+  comps: { at: number; lanes: LaneState[]; mixed: string[] | null }[];
+  ratio: [number, number][];
+  nets: { w: number; net: PowerNet }[];
+};
+
+/** Mémoire du calcul incrémental : à garder d'un geste à l'autre (une par écran). */
+export type SandboxCache = { cat: SbCatalog | null; settings: string; geo: Map<string, PlacedGeo | null>; parts: Map<string, Part>; used: Set<string>; hits: number; runs: number };
+export const sandboxCache = (): SandboxCache => ({ cat: null, settings: "", geo: new Map(), parts: new Map(), used: new Set(), hits: 0, runs: 0 });
+
+export function computeSandbox(cat: SbCatalog, layout: Layout, settings: SandboxSettings = DEFAULT_SETTINGS, cache: SandboxCache = sandboxCache()): SandboxResult {
+  const sk = JSON.stringify(settings);
+  if (cache.cat !== cat || cache.settings !== sk) Object.assign(cache, sandboxCache(), { cat, settings: sk });
+  if (cache.geo.size > 50_000) cache.geo.clear();
+  const used = new Set<string>();
+  const parts = islands(cat, layout, cache).map((g) => {
+    const sig = JSON.stringify([g.blocks.map((b) => [b.u, b.id, b.x, b.y, b.r, b.choice ?? null, b.pair ?? null, b.open ?? null]), g.wires.map((i) => layout.wires[i]), g.routes]);
+    used.add(sig);
+    let part = cache.parts.get(sig);
+    if (part) cache.hits++;
+    else { cache.runs++; part = island(cat, { blocks: g.blocks, wires: g.wires.map((i) => layout.wires[i]!), routes: g.routes }, settings); cache.parts.set(sig, part); }
+    return { ...g, part };
+  });
+  // Les îlots disparus sont oubliés (on garde ceux du geste précédent, pour annuler sans recalcul).
+  for (const k of cache.parts.keys()) if (!used.has(k) && !cache.used.has(k)) cache.parts.delete(k);
+  cache.used = used;
+  return merge(cat, layout, settings, parts);
+}
+
+type Island = { blocks: Placed[]; idx: number[]; wires: number[]; routes: Route[] };
+
+/** Découpe en îlots, dans l'ordre du premier bâtiment de chacun ; chaque îlot garde l'ordre de pose. */
+function islands(cat: SbCatalog, layout: Layout, cache: SandboxCache): Island[] {
+  const n = layout.blocks.length, up = Array.from({ length: n }, (_, i) => i);
+  const find = (a: number): number => { while (up[a] !== a) a = up[a] = up[up[a]!]!; return a; };
+  const join = (a: number, b: number) => { const ra = find(a), rb = find(b); if (ra !== rb) up[Math.max(ra, rb)] = Math.min(ra, rb); };
+  const at = new Map<number, number>(), portAt = new Map<string, number>(), cellAt = new Map<string, number>(), facing: [number, PlacedPort][] = [];
+  layout.blocks.forEach((b, i) => {
+    at.set(b.u, i);
+    const d = cat.blocks.get(b.id);
+    if (!d) return;
+    for (const [x, y] of cellsOf(d, b)) { const k = `${x},${y}`, o = cellAt.get(k); if (o != null) join(o, i); else cellAt.set(k, i); }
+    const gk = `${b.id}|${b.x}|${b.y}|${b.r}`;
+    let g = cache.geo.get(gk);
+    if (g === undefined) { g = geo(d, b); cache.geo.set(gk, g); }
+    if (g) for (const p of g.ports) if (p.cells) { const k = portKey(p.cells, p.dir as Dir), o = portAt.get(k); if (o != null) join(o, i); else portAt.set(k, i); facing.push([i, p]); }
+  });
+  for (const [i, p] of facing) { const o = portAt.get(facingKey(p)); if (o != null) join(o, i); }
+  for (const w of layout.wires) { const a = at.get(w.a), b = at.get(w.b); if (a != null && b != null) join(a, b); }
+  const routes = layout.routes ?? [];
+  for (const r of routes) { const a = at.get(r.a), b = at.get(r.b); if (a != null && b != null) join(a, b); }
+  const out = new Map<number, Island>();
+  layout.blocks.forEach((b, i) => { const r = find(i); if (!out.has(r)) out.set(r, { blocks: [], idx: [], wires: [], routes: [] }); out.get(r)!.blocks.push(b); out.get(r)!.idx.push(i); });
+  layout.wires.forEach((w, k) => { const a = at.get(w.a); if (a != null && at.has(w.b)) out.get(find(a))!.wires.push(k); });
+  for (const r of routes) { const a = at.get(r.a); if (a != null && at.has(r.b)) out.get(find(a))!.routes.push(r); }
+  return [...out.values()];
+}
+
+/** Un îlot calculé seul. */
+function island(cat: SbCatalog, layout: Layout, settings: SandboxSettings): Part {
   let pcap = new Map<number, number>();
   for (let depth = 0; ; depth++) {
     const r = once(cat, layout, settings, pcap);
-    if (settings.runWithoutPower || depth >= 4) return r.result;
+    if (settings.runWithoutPower || depth >= 4) return r.part;
     // Sans courant, la machine s'arrête si « continuer sans courant » est décoché : on recalcule avec ce plafond.
     let ch = false;
-    const next = new Map(pcap);
-    for (const [u, mi] of r.result.machines) {
+    const next = new Map(pcap), ratio = new Map(r.part.ratio);
+    for (const [u, mi] of r.part.machines) {
       if (!r.needU.has(u)) continue;
-      const c = Math.min(1, mi.f * r.result.powerRatio.get(u)!);
+      const c = Math.min(1, mi.f * ratio.get(u)!);
       if (c < (pcap.get(u) ?? 1) - 1e-6) { next.set(u, c); ch = true; }
     }
-    if (!ch) return r.result;
+    if (!ch) return r.part;
     pcap = next;
   }
+}
+
+/** Assemble les îlots : mêmes résultats, et dans le même ordre, que le calcul du montage d'un seul tenant. */
+function merge(cat: SbCatalog, layout: Layout, settings: SandboxSettings, parts: (Island & { part: Part })[]): SandboxResult {
+  const def = (b: Placed) => cat.blocks.get(b.id) as SbBlock;
+  const pos = new Map(layout.blocks.map((b, i) => [b.u, i])), byU = new Map(layout.blocks.map((b) => [b.u, b]));
+  const D = (u: number) => def(byU.get(u)!);
+  const order = <T>(xs: [number, T][]) => xs.sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  const MI = new Map(order(parts.flatMap((g) => g.part.machines.map(([u, m]) => [pos.get(u)!, [u, m] as const] as [number, readonly [number, MachineState]]))));
+  const comps = order(parts.flatMap((g) => g.part.comps.map((c) => [g.idx[c.at] ?? Infinity, c] as [number, Part["comps"][number]])));
+  const lanes = comps.flatMap((c) => c.lanes);
+  const ratio = new Map(order(parts.flatMap((g) => g.part.ratio.map(([u, r]) => [pos.get(u)!, [u, r] as const] as [number, readonly [number, number]]))));
+  const nets = order(parts.flatMap((g) => g.part.nets.map((x) => [g.wires[x.w]!, x.net] as [number, PowerNet])));
+  const deliv = new Map(parts.flatMap((g) => [...g.part.deliv]));
+
+  // 6. Bilan
+  const prod: Record<string, number> = {}, usedI: Record<string, number> = {}, ext: Record<string, number> = {};
+  let energy = 0, pollution = 0, price = 0, pieces = 0;
+  for (const [u, mi] of MI) {
+    const r = mi.rec;
+    if (!r) continue;
+    energy += (r.e ?? 0) * mi.f;
+    pollution += D(u).poll * mi.f;
+    for (const [i, q] of Object.entries(r.out)) prod[i] = (prod[i] || 0) + (mi.f * q) / r.s;
+    const dv = deliv.get(u);
+    for (const [i, q] of Object.entries(r.in)) {
+      if (dv?.has(i)) usedI[i] = (usedI[i] || 0) + dv.get(i)!;
+      else ext[i] = (ext[i] || 0) + (mi.f * q) / r.s;
+    }
+  }
+  const outs: Record<string, number> = {};
+  for (const i in prod) { const v = prod[i]! - (usedI[i] || 0); if (v > 1e-9) outs[i] = v; }
+  let revenue = 0;
+  const unpriced: string[] = [];
+  for (const [i, v] of Object.entries(outs)) { const s = cat.items.get(i)?.sell; if (s == null) unpriced.push(i); else revenue += v * s; }
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const seenCell = new Set<string>();
+  const alerts: Alert[] = [];
+  for (const b of layout.blocks) {
+    const d = def(b);
+    if (!d) continue;
+    price += d.cost ?? 0;
+    if (d.pipe) pieces++;
+    if (!d.geo) alerts.push({ k: "missing", id: b.id });
+    let clash = false;
+    for (const [x, y] of cellsOf(d, b)) {
+      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      const k = `${x},${y}`;
+      if (seenCell.has(k)) clash = true;
+      seenCell.add(k);
+    }
+    if (clash) alerts.push({ k: "overlap", id: b.id });
+  }
+  for (const [u, mi] of MI) if (mi.reason) alerts.push({ k: "machine", id: D(u).id, pct: mi.rec ? Math.round(mi.f * 100) : null, reason: mi.reason });
+  const seenL = new Set<string>();
+  for (const L of lanes) if (L.over && !seenL.has(L.item!)) { seenL.add(L.item!); alerts.push({ k: "saturated", item: L.item!, offered: L.offered, cap: L.cap, pipe: D(L.u).id }); }
+  for (const c of comps) if (c.mixed) alerts.push({ k: "mixed", items: c.mixed });
+  for (const [u, r] of ratio) if (r < 0.999) alerts.push({ k: "unpowered", id: D(u).id, pct: Math.round(r * 100), continued: settings.runWithoutPower });
+  for (const n of nets) if (n.prod > 0 && n.need > n.prod + 1e-9) alerts.push({ k: "weakGrid", need: n.need, prod: n.prod });
+  const grouped = new Map<string, { a: Alert; n: number }>();
+  for (const a of alerts) { const k = JSON.stringify(a), g = grouped.get(k); if (g) g.n++; else grouped.set(k, { a, n: 1 }); }
+
+  return {
+    machines: MI,
+    lanes,
+    power: nets,
+    powerRatio: ratio,
+    stats: { energy, pollution, price, pieces, outs, ext, revenue, unpriced, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] as [number, number] : null },
+    alerts: [...grouped.values()],
+  };
 }
 
 function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: Map<number, number>) {
@@ -104,12 +244,16 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   };
   const par = new Map<string, string>();
   const find = (a: string): string => { while (par.get(a) !== a) { par.set(a, par.get(par.get(a)!)!); a = par.get(a)!; } return a; };
-  const node = (u: number, l: number) => { const k = `${u}:${l}`; if (!par.has(k)) par.set(k, k); return k; };
+  // `born` : rang du bâtiment visité quand la voie est née (ordre des réseaux, pour assembler les îlots).
+  const rank = new Map(layout.blocks.map((b, i) => [b.u, i])), born = new Map<string, number>();
+  let visit = Infinity;
+  const node = (u: number, l: number) => { const k = `${u}:${l}`; if (!par.has(k)) { par.set(k, k); born.set(k, visit); } return k; };
   const pid = (u: number, p: PlacedPort) => `${u}|${p.cells![0]}|${p.dir}`;
   const conns: { a: string; b: string }[] = [], terms: Term[] = [], linked = new Set<string>(), open: string[] = [];
 
   // 1. Raccords : face à face, même type ; au moins un tuyau ; jamais deux entrées ni deux sorties.
   for (const [u, g] of G) for (const p of g.ports) {
+    visit = rank.get(u)!;
     if (!p.cells) continue; // prises électriques et logiques : câbles
     const pa = pipeOf(u);
     if (pa) node(u, laneOf(u, p));
@@ -127,6 +271,7 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     } else if (q.p.d !== "l") terms.push({ u: q.u, p: q.p, lane: a });
   }
   for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (p.cells && !linked.has(pid(u, p))) open.push(node(u, laneOf(u, p)));
+  visit = Infinity;
   // Machines collées : chaque raccord direct est une voie sans pièce (numéro négatif), donc sans limite de débit.
   machineLinks(cat, layout).forEach((r, k) => {
     const pa = G.get(r.a)?.ports[r.ia], pb = G.get(r.b)?.ports[r.ib];
@@ -137,13 +282,13 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
 
   // 2. Réseaux
   const comps = new Map<string, Comp>();
-  const comp = (l: string) => { const r = find(l); if (!comps.has(r)) comps.set(r, { lanes: [], src: [], snk: [], open: [], conns: [], items: new Set() }); return comps.get(r)!; };
+  const comp = (l: string) => { const r = find(l); if (!comps.has(r)) comps.set(r, { lanes: [], src: [], snk: [], open: [], conns: [], items: new Set(), at: born.get(l)! }); return comps.get(r)!; };
   for (const l of par.keys()) comp(l).lanes.push(l);
   for (const c of conns) comp(c.a).conns.push(c);
   for (const t of terms) (t.p.d === "s" ? comp(t.lane).src : comp(t.lane).snk).push(t);
   for (const l of open) comp(l).open.push(l);
-  const compOf = new Map<Term, Comp>();
-  for (const t of terms) compOf.set(t, comp(t.lane));
+  const compOf = new Map<Term, Comp>(), inTerms = new Map<number, Term[]>();
+  for (const t of terms) { compOf.set(t, comp(t.lane)); if (t.p.d === "e") { if (!inTerms.has(t.u)) inTerms.set(t.u, []); inTerms.get(t.u)!.push(t); } }
 
   // 3. Recettes déduites de ce qui arrive ; plusieurs possibles → « ? », le choix du joueur est gardé s'il va.
   const MI = new Map<number, MachineState & { fin: number; why: ["in" | "out", string] | null }>();
@@ -165,7 +310,7 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     for (const c of comps.values()) { c.items = new Set(); for (const s of c.src) { const i = outItem(s.u, s.p); if (i) c.items.add(i); } }
     for (const [u, mi] of MI) {
       const d = D(u), arr = new Set<string>();
-      for (const t of terms) if (t.u === u && t.p.d === "e") for (const i of compOf.get(t)!.items) arr.add(i);
+      for (const t of inTerms.get(u) ?? []) for (const i of compOf.get(t)!.items) arr.add(i);
       mi.cand = arr.size ? d.recipes.filter((r) => [...arr].every((i) => i in r.in)) : d.recipes;
       mi.rec = mi.cand.length === 1 ? mi.cand[0]! : mi.cand.find((r) => r.id === byU.get(u)!.choice) ?? null;
       mi.shown = mi.rec ? mi.rec.id : mi.cand.length > 1 ? "?" : null;
@@ -265,7 +410,10 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     }
     if (p.d === "e" && mi?.rec?.e != null && mi.rec.e > 0) uses.push({ u, k, need: (mi.rec.e * mi.f) / same("e") });
   });
-  const wired = layout.wires.filter((w) => w.t === "p").map((w) => [pIdx.get(`${w.a}:${w.ia}`), pIdx.get(`${w.b}:${w.ib}`)] as const).filter(([a, b]) => a != null && b != null) as [number, number][];
+  const wired = layout.wires.flatMap((w, j) => {
+    const a = pIdx.get(`${w.a}:${w.ia}`), b = pIdx.get(`${w.b}:${w.ib}`);
+    return w.t === "p" && a != null && b != null ? [[a, b, j] as [number, number, number]] : [];
+  });
   for (const [a, b] of wired) PF.add(2 * a + 1, 2 * b, BIG);
   for (const x of gens) PF.add(PS, 2 * x.k, x.cap);
   for (const x of uses) x.arc = PF.add(2 * x.k + 1, PT, x.need);
@@ -273,73 +421,28 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   // Réseaux (prises reliées par des câbles, sans tenir compte du sens).
   const par2 = pList.map((_, k) => k), f2 = (a: number): number => { while (par2[a] !== a) a = par2[a] = par2[par2[a]!]!; return a; };
   for (const [a, b] of wired) par2[f2(a)] = f2(b);
-  const nets = new Map<number, { us: Set<number>; need: number; got: number; prod: number; wired: boolean }>();
-  const netOf = (k: number) => { const r = f2(k); if (!nets.has(r)) nets.set(r, { us: new Set(), need: 0, got: 0, prod: 0, wired: false }); return nets.get(r)!; };
-  for (const [a] of wired) netOf(a).wired = true;
+  const nets = new Map<number, { us: Set<number>; need: number; got: number; prod: number; wired: boolean; w: number }>();
+  const netOf = (k: number) => { const r = f2(k); if (!nets.has(r)) nets.set(r, { us: new Set(), need: 0, got: 0, prod: 0, wired: false, w: -1 }); return nets.get(r)!; };
+  for (const [a, , j] of wired) { const n = netOf(a); if (!n.wired) { n.wired = true; n.w = j; } }
   pList.forEach(({ u }, k) => netOf(k).us.add(u));
   for (const x of gens) netOf(x.k).prod += x.cap;
   const ratio = new Map<number, number>(), needU = new Map<number, number>();
   for (const x of uses) { const n = netOf(x.k); n.need += x.need; n.got += x.arc!.f; needU.set(x.u, (needU.get(x.u) || 0) + x.need); ratio.set(x.u, (ratio.get(x.u) || 0) + x.arc!.f); }
   for (const [u, nd] of needU) ratio.set(u, nd > 1e-9 ? ratio.get(u)! / nd : 1);
 
-  // 6. Bilan
-  const prod: Record<string, number> = {}, used: Record<string, number> = {}, ext: Record<string, number> = {};
-  let energy = 0, pollution = 0, price = 0, pieces = 0;
-  for (const [u, mi] of MI) {
-    const r = mi.rec;
-    if (!r) continue;
-    energy += (r.e ?? 0) * mi.f;
-    pollution += D(u).poll * mi.f;
-    for (const [i, q] of Object.entries(r.out)) prod[i] = (prod[i] || 0) + (mi.f * q) / r.s;
-    for (const [i, q] of Object.entries(r.in)) {
-      const k = `${u}|${i}`;
-      if (deliv.has(k)) used[i] = (used[i] || 0) + deliv.get(k)!;
-      else ext[i] = (ext[i] || 0) + (mi.f * q) / r.s;
-    }
-  }
-  const outs: Record<string, number> = {};
-  for (const i in prod) { const v = prod[i]! - (used[i] || 0); if (v > 1e-9) outs[i] = v; }
-  let revenue = 0;
-  const unpriced: string[] = [];
-  for (const [i, v] of Object.entries(outs)) { const s = cat.items.get(i)?.sell; if (s == null) unpriced.push(i); else revenue += v * s; }
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  const seenCell = new Set<string>();
-  const alerts: Alert[] = [];
-  for (const b of layout.blocks) {
-    const d = def(b);
-    if (!d) continue;
-    price += d.cost ?? 0;
-    if (d.pipe) pieces++;
-    if (!d.geo) alerts.push({ k: "missing", id: b.id });
-    let clash = false;
-    for (const [x, y] of cellsOf(d, b)) {
-      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
-      const k = `${x},${y}`;
-      if (seenCell.has(k)) clash = true;
-      seenCell.add(k);
-    }
-    if (clash) alerts.push({ k: "overlap", id: b.id });
-  }
-  for (const [u, mi] of MI) if (mi.reason) alerts.push({ k: "machine", id: D(u).id, pct: mi.rec ? Math.round(mi.f * 100) : null, reason: mi.reason });
-  const seenL = new Set<string>();
-  for (const L of lanes.values()) if (L.over && !seenL.has(L.item!)) { seenL.add(L.item!); alerts.push({ k: "saturated", item: L.item!, offered: L.offered, cap: L.cap, pipe: D(L.u).id }); }
-  for (const c of comps.values()) if (c.items.size > 1) alerts.push({ k: "mixed", items: [...c.items].sort() });
-  for (const [u, r] of ratio) if (r < 0.999) alerts.push({ k: "unpowered", id: D(u).id, pct: Math.round(r * 100), continued: settings.runWithoutPower });
-  for (const n of nets.values()) if (n.wired && n.prod > 0 && n.need > n.prod + 1e-9) alerts.push({ k: "weakGrid", need: n.need, prod: n.prod });
-  const grouped = new Map<string, { a: Alert; n: number }>();
-  for (const a of alerts) { const k = JSON.stringify(a), g = grouped.get(k); if (g) g.n++; else grouped.set(k, { a, n: 1 }); }
-
-  const machines = new Map<number, MachineState>();
-  for (const [u, { fin: _fin, why: _why, ...m }] of MI) machines.set(u, m);
+  // Ce que l'îlot donne ; le bilan (6.) est fait par `merge`, pour tout le montage.
+  const machines: [number, MachineState][] = [];
+  for (const [u, { fin: _fin, why: _why, ...m }] of MI) machines.push([u, m]);
+  const dv = new Map<number, Map<string, number>>();
+  for (const [k, v] of deliv) { const j = k.indexOf("|"), u = Number(k.slice(0, j)); if (!dv.has(u)) dv.set(u, new Map()); dv.get(u)!.set(k.slice(j + 1), v); }
   return {
     needU,
-    result: {
+    part: {
       machines,
-      lanes: [...lanes.values()].filter((L) => L.u >= 0),
-      power: [...nets.values()].filter((n) => n.wired).map((n) => ({ us: [...n.us], need: n.need, got: n.got, prod: n.prod })),
-      powerRatio: ratio,
-      stats: { energy, pollution, price, pieces, outs, ext, revenue, unpriced, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] as [number, number] : null },
-      alerts: [...grouped.values()],
-    } satisfies SandboxResult,
+      deliv: dv,
+      comps: [...comps.values()].map((c) => ({ at: c.at, lanes: c.lanes.map((l) => lanes.get(l)!).filter((L) => L.u >= 0), mixed: c.items.size > 1 ? [...c.items].sort() : null })).filter((c) => c.lanes.length || c.mixed),
+      ratio: [...ratio],
+      nets: [...nets.values()].filter((n) => n.wired).map((n) => ({ w: n.w, net: { us: [...n.us], need: n.need, got: n.got, prod: n.prod } })),
+    } satisfies Part,
   };
 }
