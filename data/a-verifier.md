@@ -835,6 +835,18 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   égales dans ces limites. La maquette fait un flot maximal, qui s'en approche.
 - **BAS-06** (répondu le 2026-10-26) : le mois courant, la pollution globale et le « Satellite buff »
   sont des mécaniques décrites sur le wiki, à prendre en compte (R18, lot S40). Formules de Industrialist Calculator : COMPARAISON-POLLYWRATH.md, § 4 (POL-12).
+- **BAS-07** (rappel de l'utilisateur, 2026-10-31, après B1) : deux machines dont des ports se touchent
+  sont liées, même par deux entrées ; le joueur clique sur un port de la 1re puis sur un port de la 2de
+  pour envoyer un flux de l'une à l'autre, dans les règles du 2026-10-13 et du 2026-10-14 (onglet 3
+  ci-dessus). **Fait dans le moteur** (`routeError`, `machineLinks`). Choix faits en attendant
+  confirmation : (a) le contact doit être du même type que la ressource (deux ports objet pour un objet) ;
+  (b) sans choix du joueur, une sortie collée à une entrée du même type s'y raccorde seule ; (c) dès que le
+  joueur choisit une liaison entre deux machines, ses choix remplacent ces raccords automatiques pour ce
+  type ; (d) autant de liaisons que de contacts du même type entre les deux machines. À confirmer en jeu.
+- **BAS-08** (rappel de l'utilisateur, 2026-10-31) : la portée d'un câble est celle du bâtiment d'où il
+  part (début de la flèche), par exemple celle du générateur pour un câble générateur → poteau. Corrigé
+  dans le moteur (B1 prenait la plus grande des deux). **À relever** : la portée de câble de chaque
+  générateur ; d'ici là, le câble se pose à la main avec un avertissement, jamais en automatique.
 
 ### Comparaison avec Industrialist Calculator (2026-10-26)
 

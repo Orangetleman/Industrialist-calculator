@@ -14,7 +14,12 @@ export const cellKey = (x: number, y: number) => `${x},${y}`;
 export type Placed = { u: number; id: string; x: number; y: number; r: number; choice?: string | null };
 /** Câble de prise à prise, orienté de `a` vers `b` (indices des ports dans `geo().ports`). */
 export type Wire = { a: number; ia: number; b: number; ib: number; t: "p" | "g" };
-export type Layout = { blocks: Placed[]; wires: Wire[] };
+/**
+ * Liaison choisie par le joueur entre deux machines collées (clic sur un port, puis sur un autre) : ce qui sort
+ * du port `ia` de la machine `a` entre dans la machine `b` par son port `ib` (indices dans `geo().ports`).
+ */
+export type Route = { a: number; ia: number; b: number; ib: number };
+export type Layout = { blocks: Placed[]; wires: Wire[]; routes?: Route[] };
 
 /** Port tourné et placé. Côté : `cells` (1 ou 2 cases, dans le bâtiment). Dessus : centre `px`, `py` (en cases). */
 export type PlacedPort = { t: PortType; d: PortRole; tip?: string; items?: string[]; dir: Dir | "top"; cells?: [number, number][]; px?: number; py?: number };
@@ -113,4 +118,68 @@ export function links(cat: SbCatalog, layout: Layout): Link[] {
     out.push({ a: u, pa: p, b: q.u, pb: q.p });
   }
   return out;
+}
+
+/*
+ * Machines collées (règles du 2026-10-13 et du 2026-10-14, rappelées le 2026-10-31). Un port n'est qu'un point de
+ * contact : deux machines dont des ports objet ou fluide se font face sont liées, même par deux entrées. Le joueur
+ * choisit alors quel port de la 1re envoie vers quel port de la 2de : une sortie part de son port de sortie, une
+ * ressource entre par n'importe quel port du même type (même une sortie), et chaque contact porte une seule
+ * marchandise. Par défaut, une sortie collée à une entrée du même type s'y raccorde seule.
+ */
+
+/** Contacts entre deux machines : paires de ports de côté qui se font face, du même type (objet ou fluide). */
+export type Contact = { a: number; ia: number; b: number; ib: number; t: "o" | "f" };
+export function contacts(cat: SbCatalog, layout: Layout): Contact[] {
+  const at = new Map<string, { u: number; i: number; p: PlacedPort }>();
+  for (const b of layout.blocks) {
+    const def = cat.blocks.get(b.id), g = def && !def.pipe && geo(def, b);
+    if (g) g.ports.forEach((p, i) => { if (p.cells && (p.t === "o" || p.t === "f")) at.set(portKey(p.cells, p.dir as Dir), { u: b.u, i, p }); });
+  }
+  const out: Contact[] = [];
+  for (const [k, x] of at) {
+    const fk = facingKey(x.p), y = at.get(fk);
+    if (!y || y.u === x.u || y.p.t !== x.p.t || k > fk) continue;
+    out.push({ a: x.u, ia: x.i, b: y.u, ib: y.i, t: x.p.t as "o" | "f" });
+  }
+  return out;
+}
+
+const pairOf = (a: number, b: number) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+/** Raccords directs entre machines : les liaisons du joueur, et par défaut sortie collée à entrée (sauf si le joueur a choisi pour ce contact). */
+export function machineLinks(cat: SbCatalog, layout: Layout): (Route & { auto: boolean })[] {
+  const cs = contacts(cat, layout), routes = layout.routes ?? [];
+  const ok: Route[] = []; // dans l'ordre de pose : une liaison de trop (contact déjà pris, machine déplacée) est ignorée
+  for (const r of routes) if (!routeError(cat, { ...layout, routes: ok }, r)) ok.push(r);
+  const chosen = new Set(ok.map((r) => `${pairOf(r.a, r.b)}|${portType(cat, layout, r.a, r.ia)}`));
+  const out: (Route & { auto: boolean })[] = ok.map((r) => ({ ...r, auto: false }));
+  for (const c of cs) {
+    if (chosen.has(`${pairOf(c.a, c.b)}|${c.t}`)) continue;
+    const da = portAt(cat, layout, c.a, c.ia)?.d, db = portAt(cat, layout, c.b, c.ib)?.d;
+    if (da === "s" && db === "e") out.push({ a: c.a, ia: c.ia, b: c.b, ib: c.ib, auto: true });
+    else if (da === "e" && db === "s") out.push({ a: c.b, ia: c.ib, b: c.a, ib: c.ia, auto: true });
+  }
+  return out;
+}
+
+function portAt(cat: SbCatalog, layout: Layout, u: number, i: number): PlacedPort | undefined {
+  const b = layout.blocks.find((x) => x.u === u), def = b && cat.blocks.get(b.id), g = def && geo(def, b);
+  return g?.ports[i];
+}
+const portType = (cat: SbCatalog, layout: Layout, u: number, i: number) => portAt(cat, layout, u, i)?.t;
+
+export type RouteError = "same" | "notMachine" | "type" | "notOutput" | "noContact" | "full";
+/** Pourquoi une liaison n'est pas permise (null : elle l'est). `layout.routes` : les liaisons déjà posées, sans celle-ci. */
+export function routeError(cat: SbCatalog, layout: Layout, r: Route): RouteError | null {
+  if (r.a === r.b) return "same";
+  const ba = layout.blocks.find((x) => x.u === r.a), bb = layout.blocks.find((x) => x.u === r.b);
+  if (!ba || !bb || cat.blocks.get(ba.id)?.pipe || cat.blocks.get(bb.id)?.pipe) return "notMachine";
+  const pa = portAt(cat, layout, r.a, r.ia), pb = portAt(cat, layout, r.b, r.ib);
+  if (!pa?.cells || !pb?.cells || pa.t !== pb.t || (pa.t !== "o" && pa.t !== "f")) return "type";
+  if (pa.d === "e") return "notOutput";
+  const n = contacts(cat, layout).filter((c) => pairOf(c.a, c.b) === pairOf(r.a, r.b) && c.t === pa.t).length;
+  if (!n) return "noContact";
+  const used = (layout.routes ?? []).filter((q) => pairOf(q.a, q.b) === pairOf(r.a, r.b) && portType(cat, layout, q.a, q.ia) === pa.t).length;
+  return used >= n ? "full" : null;
 }

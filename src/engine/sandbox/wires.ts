@@ -44,32 +44,40 @@ export type WireError = { k: "noPole" } | { k: "tooFar"; dist: number; range: nu
  * - générateur → poteau : de la prise de sortie vers chaque prise du poteau ;
  * - poteau ↔ poteau : prise à prise, du poteau alimenté vers l'autre. En automatique, jamais entre deux poteaux
  *   tous deux alimentés (1,1) ni tous deux sans source (0,0) : seulement (1,0) et (0,1).
- * Le câble doit tenir dans la portée d'un poteau (la plus grande des deux). Renvoie null quand il n'y a rien à faire.
+ * Le câble doit tenir dans la portée du bâtiment d'où il part (début de la flèche) : le poteau vers une machine ou
+ * un autre poteau, le générateur vers un poteau (règle du 2026-10-14, rappelée le 2026-10-31). Portée non relevée
+ * (générateurs) : le câble est posé en manuel avec `rangeUnknown`, jamais en automatique.
+ * Renvoie null quand il n'y a rien à faire.
  */
-export function powerWires(cat: SbCatalog, layout: Layout, ua: number, ub: number, auto = false): { wires: Wire[] } | { err: WireError } | null {
+export function powerWires(cat: SbCatalog, layout: Layout, ua: number, ub: number, auto = false): { wires: Wire[]; rangeUnknown?: true } | { err: WireError } | null {
   const ra = elecRole(cat, layout, ua), rb = elecRole(cat, layout, ub);
   if (!ra || !rb) return null;
   if (ra !== "pole" && rb !== "pole") return { err: { k: "noPole" } };
-  const range = Math.max(...[ua, ub].map((u) => cat.blocks.get(placed(layout, u)!.id)?.elec?.range ?? 0));
-  const A = powerPorts(cat, layout, ua), B = powerPorts(cat, layout, ub);
-  const dist = Math.min(...A.flatMap((x) => B.map((y) => Math.hypot(x.p.px! - y.p.px!, x.p.py! - y.p.py!))));
-  if (dist > range) return { err: { k: "tooFar", dist, range } };
   const wires: Wire[] = [], W = (a: number, ia: number, b: number, ib: number) => wires.push({ a, ia, b, ib, t: "p" });
+  let from: number;
   if (ra === "pole" && rb === "pole") {
     const pa = powered(cat, layout, ua), pb = powered(cat, layout, ub);
-    let from = ua, to = ub;
+    let to = ub;
+    from = ua;
     if (pb && !pa) [from, to] = [ub, ua];
     else if (pa === pb && auto) return null;
     const F = powerPorts(cat, layout, from), T = powerPorts(cat, layout, to);
     F.forEach((x, k) => { if (T[k]) W(from, x.i, to, T[k].i); });
   } else {
     const pole = ra === "pole" ? ua : ub, other = pole === ua ? ub : ua, role = elecRole(cat, layout, other);
+    from = role === "gen" ? other : pole;
     for (const x of powerPorts(cat, layout, pole)) for (const y of powerPorts(cat, layout, other, role === "gen" ? "s" : "e")) {
       if (role === "gen") W(other, y.i, pole, x.i);
       else W(pole, x.i, other, y.i);
     }
   }
-  return wires.length ? { wires } : { err: { k: "noPort" } };
+  if (!wires.length) return { err: { k: "noPort" } };
+  const range = cat.blocks.get(placed(layout, from)!.id)?.elec?.range ?? null;
+  const A = powerPorts(cat, layout, ua), B = powerPorts(cat, layout, ub);
+  const dist = Math.min(...A.flatMap((x) => B.map((y) => Math.hypot(x.p.px! - y.p.px!, x.p.py! - y.p.py!))));
+  if (range == null) return auto ? null : { wires, rangeUnknown: true };
+  if (dist > range) return { err: { k: "tooFar", dist, range } };
+  return { wires };
 }
 
 /** Re-clic sur un poteau : tout ce qui est dans sa portée et pas encore relié, selon les règles automatiques. */

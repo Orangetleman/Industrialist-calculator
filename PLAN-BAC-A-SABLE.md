@@ -398,6 +398,23 @@ Reste à faire :
 Restent pour l'éditeur de bâtiments (code du site, lot à créer) : relever la catégorie d'un bâtiment (3) et la
 portée des câbles logiques (11).
 
+### Retours sur B1 (utilisateur, 2026-10-31)
+
+1. **Liaisons entre machines collées** (« c'est un peu la base du jeu ») : deux machines dont des ports se
+   touchent sont liées, même par deux entrées. Le joueur clique sur un port de la 1re, puis sur un port de la
+   2de : la liaison est acceptée si les règles le permettent (une sortie part de son port de sortie, une
+   ressource entre par n'importe quel port du même type, une marchandise par contact). Moteur : fait
+   (`Layout.routes`, `routeError`, `machineLinks`, BAS-07). Écran : lot B3, avec l'outil Liaisons (le refus
+   dit pourquoi : pas de contact, contact déjà pris, ce port n'est pas une sortie, types différents).
+2. **Portée des câbles** : celle du bâtiment d'où part le câble (BAS-08). Moteur : corrigé.
+3. **Recettes à compléter** : les recettes dont la durée ou une quantité manque ne sont plus écartées. Le
+   moteur les garde à part avec ce qui leur manque (`incomplete`, `missing`), et `withFills` les fait entrer
+   dans le calcul une fois complétées par le joueur (marquées `filled`). Écran, lot B3 : le choix de recette
+   devient un **menu déroulant fait maison** (pas celui du navigateur). Les recettes incomplètes y figurent
+   avec un petit bouton « à compléter » ; les choisir ouvre la fiche de complétion (durée et quantités
+   manquantes), puis la recette est choisie. Les chiffres saisis restent dans le montage et peuvent être
+   proposés comme correction (remarques, S34).
+
 ### Règle du réservoir de la ferme (utilisateur, 2026-10-31) : à faire en B9
 
 Le réservoir d'eau (Tree Farm Water Tank) compte dans la portée du contrôleur. Un arroseur fonctionne quand

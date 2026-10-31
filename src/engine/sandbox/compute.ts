@@ -4,7 +4,7 @@
 // 6. bilan et alertes regroupées.
 
 import type { PlacedPort } from "./layout.ts";
-import { geo, portKey, facingKey, cellsOf, type Layout, type PlacedGeo, type Placed } from "./layout.ts";
+import { geo, portKey, facingKey, cellsOf, machineLinks, type Layout, type PlacedGeo, type Placed } from "./layout.ts";
 import type { Dir, SbBlock, SbCatalog, SbRecipe } from "./catalog.ts";
 import { MaxFlow, type Arc } from "./maxflow.ts";
 import { elecRole } from "./wires.ts";
@@ -122,6 +122,13 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     } else if (q.p.d !== "l") terms.push({ u: q.u, p: q.p, lane: a });
   }
   for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (p.cells && !linked.has(pid(u, p))) open.push(node(u, laneOf(u, p)));
+  // Machines collées : chaque raccord direct est une voie sans pièce (numéro négatif), donc sans limite de débit.
+  machineLinks(cat, layout).forEach((r, k) => {
+    const pa = G.get(r.a)?.ports[r.ia], pb = G.get(r.b)?.ports[r.ib];
+    if (!pa || !pb) return;
+    const l = node(-(k + 1), 0);
+    terms.push({ u: r.a, p: pa, lane: l }, { u: r.b, p: { ...pb, d: "e" }, lane: l });
+  });
 
   // 2. Réseaux
   const comps = new Map<string, Comp>();
@@ -164,7 +171,7 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   for (const mi of MI.values()) mi.f = mi.fin = mi.rec ? 1 : 0;
   const rate = (u: number, i: string, side: "in" | "out") => { const r = MI.get(u)?.rec; return r?.[side][i] ? r[side][i]! / r.s : 0; };
   const laneId = (l: string) => l.split(":").map(Number) as [number, number];
-  const capOf = (l: string) => pipeOf(laneId(l)[0])?.flow ?? BIG;
+  const capOf = (l: string) => { const u = laneId(l)[0]; return u < 0 ? BIG : pipeOf(u)?.flow ?? BIG; };
   const cnt = new Map<string, number>(); // ports raccordés par machine et par objet, pour partager le débit
   const inc = (k: string) => cnt.set(k, (cnt.get(k) || 0) + 1);
   for (const c of comps.values()) {
@@ -323,7 +330,7 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     needU,
     result: {
       machines,
-      lanes: [...lanes.values()],
+      lanes: [...lanes.values()].filter((L) => L.u >= 0),
       power: [...nets.values()].filter((n) => n.wired).map((n) => ({ us: [...n.us], need: n.need, got: n.got, prod: n.prod })),
       powerRatio: ratio,
       stats: { energy, pollution, price, pieces, outs, ext, revenue, unpriced, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] as [number, number] : null },

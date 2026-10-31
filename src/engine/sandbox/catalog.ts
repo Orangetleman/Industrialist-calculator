@@ -18,12 +18,19 @@ export type PortRole = "e" | "s" | "l";
 export type RawPort = { t: PortType; d: PortRole; tip?: string; items?: string[]; s: Dir | "top"; c?: number; span?: number; cx?: number; cy?: number };
 export type BlockGeo = { w: number; h: number; ports: RawPort[] };
 /** Recette par cycle de `s` secondes ; `e` en MF/s (négatif = produit), null = inconnu. */
-export type SbRecipe = { id: string; s: number; in: Record<string, number>; out: Record<string, number>; e: number | null };
+export type SbRecipe = { id: string; s: number; in: Record<string, number>; out: Record<string, number>; e: number | null; filled?: true };
+/**
+ * Recette dont la durée ou une quantité n'est pas connue : hors du calcul tant que le joueur ne l'a pas complétée
+ * (menu des recettes : « à compléter », puis la fiche de complétion). `missing` : "s", "in.<objet>", "out.<objet>".
+ */
+export type SbIncomplete = { id: string; s: number | null; in: Record<string, number | null>; out: Record<string, number | null>; e: number | null; missing: string[] };
+/** Ce que le joueur a saisi pour une recette incomplète (mêmes clés que `missing`). */
+export type RecipeFill = { s?: number; in?: Record<string, number>; out?: Record<string, number> };
 export type PipeRole = "droit" | "coude" | "té" | "croix" | "croisement" | "spécial";
 export type PipeInfo = { kind: "o" | "f" | "m"; flow: number | null; role: PipeRole; len: number; rusty: boolean; tier: number };
 /** `out` : MF/s produits ; `cap` : ce que transporte chaque prise (« transfer » par nœud) ; `range` : portée en cases. */
 export type ElecInfo = { out: number | number[] | null; cap: number | null; range: number | null };
-export type SbBlock = { id: string; name: string; tier: number | null; cost: number | null; poll: number; geo: BlockGeo | null; recipes: SbRecipe[]; pipe?: PipeInfo; elec?: ElecInfo };
+export type SbBlock = { id: string; name: string; tier: number | null; cost: number | null; poll: number; geo: BlockGeo | null; recipes: SbRecipe[]; incomplete: SbIncomplete[]; pipe?: PipeInfo; elec?: ElecInfo };
 export type SbItem = { name: string; fluid: boolean; sell: number | null };
 export type SbCatalog = { blocks: Map<string, SbBlock>; items: Map<string, SbItem> };
 
@@ -76,24 +83,57 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
   const pipeIds = new Set(files.logistics.pipes.map((p) => p.id));
   for (const m of data.machines.values()) {
     if (pipeIds.has(m.id) || m.category == null) continue;
-    const recipes: SbRecipe[] = [];
+    const recipes: SbRecipe[] = [], incomplete: SbIncomplete[] = [];
     for (const r of data.recipes.values()) {
-      // Recettes aux quantités ou à la durée inconnues : hors du bac à sable (rien n'est supposé).
-      if (r.machine !== m.id || r.parts || !(r.durationS! > 0)) continue;
-      if (![...Object.values(r.inputs), ...Object.values(r.outputs)].every((q) => typeof q === "number")) continue;
-      recipes.push({ id: r.id, s: r.durationS!, in: r.inputs as Record<string, number>, out: r.outputs as Record<string, number>, e: r.energyMFps });
+      if (r.machine !== m.id || r.parts) continue; // ensembles modulaires : lot B9
+      // Durée ou quantité inconnue : rien n'est supposé, la recette attend que le joueur la complète.
+      const missing = [
+        ...(r.durationS! > 0 ? [] : ["s"]),
+        ...Object.entries(r.inputs).filter(([, q]) => typeof q !== "number").map(([i]) => `in.${i}`),
+        ...Object.entries(r.outputs).filter(([, q]) => typeof q !== "number").map(([i]) => `out.${i}`),
+      ];
+      if (missing.length) incomplete.push({ id: r.id, s: r.durationS! > 0 ? r.durationS : null, in: { ...r.inputs }, out: { ...r.outputs }, e: r.energyMFps, missing });
+      else recipes.push({ id: r.id, s: r.durationS!, in: r.inputs as Record<string, number>, out: r.outputs as Record<string, number>, e: r.energyMFps });
     }
     recipes.sort((a, b) => a.id.localeCompare(b.id));
+    incomplete.sort((a, b) => a.id.localeCompare(b.id));
     const poll = typeof m.pollutionPerHour === "number" ? m.pollutionPerHour : 0;
-    blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), recipes, elec: elec(m.id) });
+    blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), recipes, incomplete, elec: elec(m.id) });
   }
   for (const p of files.logistics.pipes) {
     const role = pipeRole(p.id), geo = readGeo(ports[p.id]);
     const kind = p.kind === "objet" ? "o" : p.kind === "fluide" ? "f" : "m";
     const tier = p.tier ?? (/^large/.test(p.id) ? 4 : 3); // Special Pipes : T3, « Large … » en T4 (décision du 2026-10-27)
-    blocks.set(p.id, { id: p.id, name: p.name, tier, cost: p.price, poll: 0, geo, recipes: [], pipe: { kind, flow: p.flowPerSec, role, len: role === "droit" && geo ? Math.max(geo.w, geo.h) : 1, rusty: /rusty/.test(p.id), tier } });
+    blocks.set(p.id, { id: p.id, name: p.name, tier, cost: p.price, poll: 0, geo, recipes: [], incomplete: [], pipe: { kind, flow: p.flowPerSec, role, len: role === "droit" && geo ? Math.max(geo.w, geo.h) : 1, rusty: /rusty/.test(p.id), tier } });
   }
   const items = new Map<string, SbItem>();
   for (const i of data.items.values()) items.set(i.id, { name: i.name, fluid: !!i.isFluid, sell: i.sellValue });
   return { blocks, items };
+}
+
+/** Ce qui manque encore à une recette incomplète une fois la saisie du joueur appliquée ([] : elle est utilisable). */
+export function stillMissing(r: SbIncomplete, fill: RecipeFill | undefined): string[] {
+  return r.missing.filter((k) => {
+    const [side, item] = k.split(".") as ["s" | "in" | "out", string?];
+    const v = side === "s" ? fill?.s : fill?.[side]?.[item!];
+    return !(typeof v === "number" && v > 0);
+  });
+}
+
+/**
+ * Catalogue avec les recettes complétées par le joueur (par id de recette). Une recette complète passe dans
+ * `recipes`, marquée `filled` pour que l'écran dise d'où viennent ses chiffres ; une saisie partielle ne suffit pas.
+ */
+export function withFills(cat: SbCatalog, fills: Record<string, RecipeFill>): SbCatalog {
+  const blocks = new Map(cat.blocks);
+  for (const [id, b] of cat.blocks) {
+    const done = b.incomplete.filter((r) => fills[r.id] && !stillMissing(r, fills[r.id]).length);
+    if (!done.length) continue;
+    const add: SbRecipe[] = done.map((r) => {
+      const f = fills[r.id]!, num = (o: Record<string, number | null>, side: "in" | "out") => Object.fromEntries(Object.entries(o).map(([i, q]) => [i, typeof q === "number" ? q : f[side]![i]!]));
+      return { id: r.id, s: r.s ?? f.s!, in: num(r.in, "in"), out: num(r.out, "out"), e: r.e, filled: true };
+    });
+    blocks.set(id, { ...b, recipes: [...b.recipes, ...add].sort((x, y) => x.id.localeCompare(y.id)), incomplete: b.incomplete.filter((r) => !done.includes(r)) });
+  }
+  return { blocks, items: cat.items };
 }

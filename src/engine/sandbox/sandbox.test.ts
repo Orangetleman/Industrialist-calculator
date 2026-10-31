@@ -12,7 +12,7 @@ import relevesJson from "../../../data/releves.json";
 import { buildGameData, type RawFiles } from "../data.ts";
 import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts";
 import type { OverridesFile } from "../types.ts";
-import { buildSandboxCatalog, computeSandbox, autoConnect, geo, links, powerWires, powered, rot, type Dir, type Layout, type Placed, type Wire } from "./index.ts";
+import { buildSandboxCatalog, computeSandbox, autoConnect, contacts, geo, links, machineLinks, powerWires, powered, rot, routeError, stillMissing, withFills, type Dir, type Layout, type Placed, type Wire } from "./index.ts";
 
 const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles, [overridesJson as unknown as OverridesFile]);
 const cat = buildSandboxCatalog(data, { ports: portsJson as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson });
@@ -219,11 +219,11 @@ describe("électricité", () => {
     expect(ws).toHaveLength(2);
     expect(powerWires(cat, L, p1, p2, true)).toBeNull(); // (1,1)
     expect(powerWires(cat, L, p2, p3, false)).not.toBeNull(); // à la main : permis
-    // Re-clic sur p3 (sans source) : le générateur et les poteaux alimentés p1 et p2 vers p3, le Roller depuis p3 ;
-    // jamais de p3 vers un poteau alimenté.
+    // Re-clic sur p3 (sans source) : les poteaux alimentés p1 et p2 vers p3, le Roller depuis p3 ; jamais de p3 vers
+    // un poteau alimenté. Pas le générateur : c'est sa portée qui compte, et elle n'est pas relevée.
     const auto = autoConnect(cat, L, p3);
     const toP3 = auto.filter((w) => w.b === p3);
-    expect(new Set(toP3.map((w) => w.a))).toEqual(new Set([gen, p1, p2]));
+    expect(new Set(toP3.map((w) => w.a))).toEqual(new Set([p1, p2]));
     expect(auto.filter((w) => w.a === p3).every((w) => w.b === m)).toBe(true);
   });
 
@@ -231,5 +231,103 @@ describe("électricité", () => {
     const { L, put, p1 } = setup();
     const far = put("lv-pole", 100, 0);
     expect(powerWires(cat, L, p1, far)).toMatchObject({ err: { k: "tooFar", range: 21 } });
+  });
+
+  it("portée : celle du bâtiment d'où part le câble", () => {
+    const { L, put, gen, p1 } = setup();
+    // Générateur → poteau : portée du générateur, non relevée : posé à la main avec un avertissement, jamais en auto.
+    expect(powerWires(cat, L, gen, p1)).toMatchObject({ rangeUnknown: true });
+    expect(powerWires(cat, L, p1, gen, true)).toBeNull();
+    // HMVT (22 tiles = 44 cases) et LV Pole (21 cases), à 30 cases : seul le câble qui part du HMVT tient.
+    const h = put("hmvt", 0, 40), lv = put("lv-pole", 30, 40);
+    L.wires.push({ a: gen, ia: powerPortsOf(L, gen)[0]!, b: h, ib: powerPortsOf(L, h)[0]!, t: "p" });
+    expect(powerWires(cat, L, lv, h)).toHaveProperty("wires"); // HMVT alimenté → LV
+    L.wires = [{ a: gen, ia: powerPortsOf(L, gen)[0]!, b: lv, ib: powerPortsOf(L, lv)[0]!, t: "p" }];
+    expect(powerWires(cat, L, lv, h)).toMatchObject({ err: { k: "tooFar", range: 21 } }); // LV alimenté → HMVT
+  });
+});
+
+const powerPortsOf = (L: Layout, u: number) => {
+  const b = L.blocks.find((x) => x.u === u)!;
+  return geo(cat.blocks.get(b.id)!, b)!.ports.flatMap((p, i) => (p.dir === "top" && p.t === "p" ? [i] : []));
+};
+
+describe("machines collées", () => {
+  /** Pose un Roller sous la Press, son entrée objet face au port `target` de la Press. */
+  const glued = (target: "e" | "s") => {
+    const t = builder();
+    const press = t.put("press", 0, 0, 0, "press_02");
+    const pb = t.L.blocks[0]!, pg = geo(cat.blocks.get("press")!, pb)!;
+    const ip = pg.ports.findIndex((p) => p.t === "o" && p.d === target && p.dir === "S"), cell = pg.ports[ip]!.cells![0]!;
+    for (let r = 0; r < 4; r++) {
+      const rg = geo(cat.blocks.get("roller")!, { u: 0, id: "roller", x: 0, y: 0, r })!;
+      const k = rg.ports.findIndex((p) => p.t === "o" && p.d === "e" && p.dir === "N");
+      if (k < 0) continue;
+      const [ix, iy] = rg.ports[k]!.cells![0]!;
+      const roller = t.put("roller", cell[0] - ix, cell[1] + 1 - iy, r);
+      const out = pg.ports.findIndex((p) => p.t === "o" && p.d === "s");
+      return { ...t, press, roller, ip, ir: k, out };
+    }
+    throw new Error("Roller : aucune entrée à tourner vers le haut");
+  };
+
+  it("une sortie collée à une entrée s'y raccorde seule ; le choix du joueur remplace ces raccords", () => {
+    const { L, press, roller, ir, ip, out } = glued("s");
+    expect(ip).toBe(out);
+    // Ici le Roller touche la Press par deux contacts : Press → Roller, et la sortie du Roller sur l'entrée de la Press.
+    const auto = machineLinks(cat, L);
+    expect(auto).toContainEqual(expect.objectContaining({ a: press, ia: out, b: roller, ib: ir, auto: true }));
+    expect(auto).toContainEqual(expect.objectContaining({ a: roller, b: press, auto: true }));
+    expect(computeSandbox(cat, L).machines.get(press)!.reason).toEqual({ k: "noRecipe" }); // l'Iron Coil revient dans la Press
+    L.routes = [{ a: press, ia: out, b: roller, ib: ir }];
+    expect(machineLinks(cat, L)).toEqual([expect.objectContaining({ a: press, b: roller, auto: false })]);
+    const R = computeSandbox(cat, L);
+    expect(R.machines.get(roller)!.shown).toBe("roller_02");
+    near(R.stats.outs["iron-coil"]! * 60, 30);
+    expect(R.lanes).toEqual([]); // le raccord direct n'est pas une pièce
+  });
+
+  it("deux entrées collées : liées, et le joueur envoie la sortie de la Press dans le Roller", () => {
+    const { L, press, roller, ip, ir, out } = glued("e");
+    expect(ip).not.toBe(out);
+    expect(contacts(cat, L)).toHaveLength(1);
+    expect(machineLinks(cat, L)).toEqual([]); // rien par défaut
+    expect(computeSandbox(cat, L).machines.get(roller)!.shown).not.toBe("roller_02");
+    const route = { a: press, ia: out, b: roller, ib: ir };
+    expect(routeError(cat, L, route)).toBeNull();
+    L.routes = [route];
+    const R = computeSandbox(cat, L);
+    expect(R.machines.get(roller)!.shown).toBe("roller_02");
+    near(R.stats.outs["iron-coil"]! * 60, 30);
+    // Une seule marchandise par contact ; une sortie part de son port de sortie ; types différents ; sans contact.
+    expect(routeError(cat, L, route)).toBe("full");
+    expect(routeError(cat, { ...L, routes: [] }, { a: press, ia: ip, b: roller, ib: ir })).toBe("notOutput");
+    const fp = geo(cat.blocks.get("roller")!, L.blocks[1]!)!.ports.findIndex((p) => p.t === "p");
+    expect(routeError(cat, { ...L, routes: [] }, { a: press, ia: out, b: roller, ib: fp })).toBe("type");
+    L.blocks[1]!.y += 5;
+    expect(routeError(cat, { ...L, routes: [] }, route)).toBe("noContact");
+    expect(machineLinks(cat, L)).toEqual([]); // la liaison d'une machine déplacée est ignorée
+  });
+});
+
+describe("recettes à compléter", () => {
+  const block = [...cat.blocks.values()].find((b) => b.incomplete.length)!;
+  const r = block.incomplete[0]!;
+  const fill = { s: 1, in: Object.fromEntries(Object.keys(r.in).map((i) => [i, 1])), out: Object.fromEntries(Object.keys(r.out).map((i) => [i, 1])) };
+
+  it("gardées à part avec ce qui leur manque, jamais dans le calcul", () => {
+    expect(r.missing.length).toBeGreaterThan(0);
+    expect(block.recipes.some((x) => x.id === r.id)).toBe(false);
+  });
+  it("complétées par le joueur, elles passent dans le calcul, marquées", () => {
+    expect(stillMissing(r, fill)).toEqual([]);
+    const c2 = withFills(cat, { [r.id]: fill });
+    expect(c2.blocks.get(block.id)!.recipes.find((x) => x.id === r.id)).toMatchObject({ filled: true });
+    expect(c2.blocks.get(block.id)!.incomplete.some((x) => x.id === r.id)).toBe(false);
+    expect(cat.blocks.get(block.id)!.incomplete.some((x) => x.id === r.id)).toBe(true); // catalogue d'origine intact
+  });
+  it("une saisie partielle ne suffit pas", () => {
+    expect(stillMissing(r, {})).toEqual(r.missing);
+    expect(withFills(cat, { [r.id]: {} }).blocks.get(block.id)!.recipes.some((x) => x.id === r.id)).toBe(false);
   });
 });
