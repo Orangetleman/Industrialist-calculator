@@ -6,7 +6,6 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   // ------------------------------------------------------------ Textes fixes d'index.html : Mon usine, Arbre, Recettes, Contribuer
   "us.tabs.aria": "My factory",
   "us.tab.partie": "My game",
-  "rs.refonte": "Research being reworked",
   "us.tab.recherche": "My research",
   "us.lead": "What you have in your game. Filled in once, used by every plan. Everything is optional.",
   "us.unlocked": "Unlocked research",
@@ -39,10 +38,6 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   "us.transfer.hint": "Everything is kept in this browser, for this address. To get it elsewhere, export here then import the file there.",
   "us.export": "Export my game",
   "us.import": "Import…",
-  "us.rs.mode.aria": "My research entry",
-  "us.rs.quick": "Quick: the panel",
-  "us.rs.quick.title": "I copy the Research Tracking Panel",
-  "us.rs.detail": "Detailed: my stations",
   "us.rs.where": "Everything is read on the Research Tracking Panel (Build › Misc).",
   "us.rs.rp": "RP read (1st row)",
   "us.rs.rp.ph": "e.g. 15000",

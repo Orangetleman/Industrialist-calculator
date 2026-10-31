@@ -1,4 +1,5 @@
-// « Mon usine » › « Ma recherche » (lot S20) : saisie (rapide : le panneau ; détaillé : les stations)
+// « Mon usine » › « Ma recherche » (lot S20, refait en S49) : saisie par tier (stations et items),
+// paraboles, panneau recopié en option
 // et ce qu'en tire le site (RP estimés, seuil, vitesse réelle, contrôles « comme en jeu »).
 // Fonctions pures : chaînes HTML.
 
@@ -21,11 +22,12 @@ export const assumed = (ref: string) => `<span class="supp" data-ref="${esc(ref)
 const val = (x: number | null) => (x === null ? "" : lang() === "fr" ? String(x).replace(".", ",") : String(x));
 const input = (attr: string, v: number | null, cls = "", ph = "—") => `<input ${attr} inputmode="decimal" autocomplete="off" class="${cls}" value="${esc(val(v))}" placeholder="${esc(ph)}">`;
 
-/** Le formulaire (sans les champs RP et RP/s, qui restent dans la page). */
-export function renderResearchForm(data: GameData, s: ResearchSetup): string {
-  const itemName = (id: string) => data.items.get(id)?.name ?? id;
-  const panel = `<div class="tw"><table class="rp-panel">
-    <caption class="hint">${t(s.mode === "detaille" ? "rm.cap.detail" : "rm.cap.quick")}</caption>
+/** Une étiquette de source (S47) : « wiki », ou ce qui vient d'Industrialist Calculator (à vérifier). */
+const src = (ic = false) => `<span class="rs-src${ic ? " ic" : ""}">${t(ic ? "rm.src.ic" : "rm.src.wiki")}</span>`;
+
+/** Le tableau du Research Tracking Panel, recopié pour comparer (ou seul, si les stations ne sont pas décrites). */
+function panelTable(s: ResearchSetup): string {
+  return `<div class="tw"><table class="rp-panel">
     <thead><tr><th>${t("rm.th.line")}</th><th>${t("rm.th.stations")}</th><th>RP/s</th><th>${t("rm.th.cap")}</th></tr></thead><tbody>
     ${TIERS.map((k) => {
       const r = s.panel[k];
@@ -37,40 +39,97 @@ export function renderResearchForm(data: GameData, s: ResearchSetup): string {
       )}</td><td>${input(`data-rsp="${k}:cap" aria-label="${esc(t("rm.tier.cap", { n }))}"`, r.cap)}</td></tr>`;
     }).join("")}
     <tr><td>${t("rm.dishes.row")}</td><td>${input(`data-rsd="controllers" aria-label="${esc(t("rm.dishes.ctrl.aria"))}"`, s.dish.controllers, "s", "0")} ${t("rm.controllers")}</td><td>${input(`data-rsd="rate" aria-label="${esc(t("rm.dishes.rate.aria"))}"`, s.dish.rate)}</td><td>${input(
-      `data-rsd="dishes" aria-label="${esc(t("rm.dishes.n.aria"))}"`,
-      s.dish.dishes,
+      `data-rsd="efficiency" aria-label="${esc(t("rm.dishes.eff.aria"))}"`,
+      s.dish.efficiency,
       "s",
-      "0",
-    )} ${t("rm.dishes")} · ${input(`data-rsd="efficiency" aria-label="${esc(t("rm.dishes.eff.aria"))}"`, s.dish.efficiency, "s", "%")} %</td></tr>
+      "%",
+    )} %</td></tr>
     <tr><td>Max RP before RP/s is nearly zero</td><td colspan="3">${input(`data-rsmax aria-label="Max RP before RP/s is nearly zero"`, s.maxRp, "", t("rm.maxRp.ph"))}</td></tr>
     </tbody></table></div>`;
-  if (s.mode !== "detaille") return panel;
+}
 
-  const groups = TIERS.map((k) => {
-    const n = itemsPerStation(k);
-    const rows = s.groups[k]
-      .map(
-        (g, i) => `<div class="grp"><span class="grp-t">${t("rm.tier", { n: TIER_N[k] })}</span> ${input(`data-rsg="${k}:${i}:count" aria-label="${esc(t("rm.grp.count"))}"`, g.count, "n", "0")} × ${esc(STATION_N[k])}${
-          n
-            ? ` ${t("rm.grp.with")} ${Array.from({ length: n }, (_, j) => `<input data-rsg="${k}:${i}:item${j}" list="item-list" autocomplete="off" spellcheck="false" class="i" aria-label="${esc(t("rm.grp.item", { n: String(j + 1) }))}" value="${esc(g.items[j] ? itemName(g.items[j]!) : "")}" placeholder="${esc(t("rm.grp.item.ph"))}">`).join(" + ")}`
-            : ""
-        }${k === "rs4" ? ` <label><input type="checkbox" data-rsg="${k}:${i}:logic"${g.logic ? " checked" : ""}> ${t("rm.grp.logic")}</label>` : ""} <button type="button" class="link small" data-rsg-del="${k}:${i}" aria-label="${esc(t("rm.grp.del"))}" title="${esc(t("rm.grp.del"))}">${icon("close")}</button></div>`,
-      )
+/**
+ * Le formulaire (S49, maquette S47) : un bloc par tier, chaque groupe = nombre de stations identiques
+ * + items entrés par station ; paraboles ; le panneau recopié, replié et facultatif. Les cases
+ * calculées (`data-rs-rate`, `data-rs-cap`, `#rs-dish-eff`) sont remplies par `fillResearchCalc`.
+ */
+export function renderResearchForm(data: GameData, s: ResearchSetup, panelOpen = false): string {
+  const itemName = (id: string) => data.items.get(id)?.name ?? id;
+  const itemInput = (attr: string, id: string | undefined, label: string, ph = t("rm.grp.item.ph")) =>
+    `<input ${attr} list="item-list" autocomplete="off" spellcheck="false" class="i" aria-label="${esc(label)}" value="${esc(id ? itemName(id) : "")}" placeholder="${esc(ph)}">`;
+  const rows = TIERS.map((k) => {
+    const n = TIER_N[k];
+    const per = itemsPerStation(k);
+    const groups = s.groups[k];
+    const span = Math.max(1, groups.length);
+    const head = `<th scope="row" rowspan="${span}">${t("rm.tier", { n })}<span class="hint rs-st">${esc(STATION_N[k])}</span></th>`;
+    const calc = `<td class="num" rowspan="${span}" data-rs-rate="${k}">—</td><td class="num" rowspan="${span}" data-rs-cap="${k}">—</td><td rowspan="${span}">${src()}</td>`;
+    if (!groups.length) {
+      // Pas encore de groupe : la case « Stations » le crée à la première frappe.
+      return `<tr class="off">${head}<td>${input(`data-rsg-new="${k}" aria-label="${esc(t("rm.tier.stations", { n }))}"`, null, "n", "0")}</td><td class="hint">${per ? t("rm.items.later") : t("rm.items.none")}</td>${calc}</tr>`;
+    }
+    return groups
+      .map((g, i) => {
+        const items = per
+          ? Array.from({ length: per }, (_, j) => itemInput(`data-rsg="${k}:${i}:item${j}"`, g.items[j], t("rm.grp.item", { n: String(j + 1) }))).join(" + ")
+          : `<span class="hint">${t("rm.items.none")}</span>`;
+        const logic = k === "rs4" ? ` <label class="rs-logic"><input type="checkbox" data-rsg="${k}:${i}:logic"${g.logic ? " checked" : ""}> ${t("rm.grp.logic")}</label>` : "";
+        const del = `<button type="button" class="link small" data-rsg-del="${k}:${i}" aria-label="${esc(t("rm.grp.del"))}" title="${esc(t("rm.grp.del"))}">${icon("close")}</button>`;
+        return `<tr>${i === 0 ? head : ""}<td>${input(`data-rsg="${k}:${i}:count" aria-label="${esc(t("rm.grp.count"))}"`, g.count, "n", "0")}</td><td>${items}${logic} ${del}</td>${i === 0 ? calc : ""}</tr>`;
+      })
       .join("");
-    return `${rows}`;
   }).join("");
   const ctrl = s.controllers
     .map(
-      (c, i) => `<div class="grp">${input(`data-rsc="${i}:count" aria-label="${esc(t("rm.ctrl.count"))}"`, c.count, "n", "0")} × Satellite Dish Controller ${t("rm.grp.with")} <input data-rsc="${i}:fluid" list="item-list" autocomplete="off" spellcheck="false" class="i" aria-label="${esc(t("rm.ctrl.fluid"))}" value="${esc(c.fluid ? itemName(c.fluid) : "")}" placeholder="${esc(t("rm.ctrl.fluid.ph"))}"> <button type="button" class="link small" data-rsc-del="${i}" aria-label="${esc(t("rm.grp.del"))}" title="${esc(t("rm.grp.del"))}">${icon("close")}</button></div>`,
+      (c, i) =>
+        `<div class="grp">${input(`data-rsc="${i}:count" aria-label="${esc(t("rm.ctrl.count"))}"`, c.count, "n", "0")} × Satellite Dish Controller ${t("rm.grp.with")} ${itemInput(`data-rsc="${i}:fluid"`, c.fluid, t("rm.ctrl.fluid"), t("rm.ctrl.fluid.ph"))} <button type="button" class="link small" data-rsc-del="${i}" aria-label="${esc(t("rm.grp.del"))}" title="${esc(t("rm.grp.del"))}">${icon("close")}</button></div>`,
     )
     .join("");
-  return `<h3>${t("rm.stations.title.html")}</h3>
-    ${groups || `<p class="hint">${t("rm.stations.none")}</p>`}
-    <div class="grp"><label>${t("rm.grp.add")} <select data-rsg-add aria-label="${esc(t("rm.grp.tier"))}">${TIERS.map((k) => `<option value="${k}"${k === "rs3" ? " selected" : ""}>${t("rm.tier", { n: TIER_N[k] })} (${esc(STATION_N[k])})</option>`).join("")}</select></label> <button type="button" class="small" data-rsg-addbtn>${t("rm.add")}</button></div>
+  return `<h3>${t("rm.byTier")}</h3>
+    <p class="hint">${t("rm.byTier.hint")}</p>
+    <div class="tw"><table class="rp-tiers">
+      <thead><tr><th>${t("rm.th.tier")}</th><th>${t("rm.th.stationsN")}</th><th>${t("rm.th.items")}</th><th>${t("rm.th.speed")}</th><th>${t("rm.th.capCalc")}</th><th>${t("rm.th.src")}</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="row rs-add"><label>${t("rm.grp.add")} <select data-rsg-add aria-label="${esc(t("rm.grp.tier"))}">${TIERS.map((k) => `<option value="${k}"${k === "rs3" ? " selected" : ""}>${t("rm.tier", { n: TIER_N[k] })}</option>`).join("")}</select></label> <button type="button" class="small" data-rsg-addbtn>${t("rm.grp.other")}</button></div>
     <h3>${t("rm.myDishes")}</h3>
     ${ctrl}
-    <div class="grp"><button type="button" class="small" data-rsc-add>${t("rm.ctrl.add")}</button> <span class="hint">${t("rm.ctrl.hint")}</span></div>
-    ${panel}`;
+    <div class="row rs-add"><button type="button" class="small" data-rsc-add>${t("rm.ctrl.add")}</button>
+      <label class="inline"><span>${t("rm.dishes.placed")}</span>${input(`data-rsd="dishes" aria-label="${esc(t("rm.dishes.n.aria"))}"`, s.dish.dishes, "s", "0")}</label></div>
+    <p class="hint" id="rs-dish-eff"></p>
+    <details class="more rs-panel-d"${panelOpen ? " open" : ""}><summary>${t("rm.panel.sum")}</summary><p class="hint">${t("rm.panel.hint")}</p>${panelTable(s)}</details>`;
+}
+
+/** Cases calculées du formulaire : vitesse et plafond de chaque tier, efficacité des paraboles. */
+export function fillResearchCalc(root: ParentNode, m: RpModel): void {
+  const fromStations = m.source === "stations";
+  for (const k of TIERS) {
+    const x = fromStations ? m.tiers.find((y) => y.kind === k) : undefined;
+    const r = root.querySelector(`[data-rs-rate="${k}"]`);
+    const c = root.querySelector(`[data-rs-cap="${k}"]`);
+    if (r) r.textContent = x ? `${fmt(x.stationsRate, 2)} RP/s${x.circuits ? ` + ${fmt(x.circuits, 2)}` : ""}` : "—";
+    if (c) c.textContent = x ? fmtRP(x.cap) : "—";
+  }
+  const eff = root.querySelector("#rs-dish-eff");
+  if (eff) {
+    const dish = m.tiers.reduce((a, x) => a + x.boostRate, 0);
+    eff.innerHTML =
+      fromStations && m.liquids !== null && m.dishesFor100 !== null
+        ? `${t("rm.dish.calc", { n: String(m.dishesFor100), p: esc(fmtPct(fmt(m.efficiency * 100, 0))), x: esc(fmt(dish, 2)) })} ${src(true)}`
+        : "";
+  }
+}
+
+/**
+ * Contrôle (S47, sous la saisie) : la 1ʳᵉ ligne du panneau recopiée contre ce que le site calcule
+ * au même solde. Écart toléré : 2 % (critère de S20).
+ */
+export function renderResearchControl(m: RpModel, rp: number | null, rps: number | null): string {
+  if (m.source !== "stations" || rp === null || rps === null || !(rps > 0)) return "";
+  const calc = rateAt(m.tiers, rp);
+  const gap = Math.abs(calc - rps) / rps;
+  return gap <= 0.02
+    ? `<div class="rs-chk">${withIcons(t("rm.ctl.ok.html", { x: esc(fmt(calc, 2)), d: esc(fmtPct(fmt(gap * 100, 1))) }))}</div>`
+    : `<div class="rs-chk bad">${withIcons(t("rm.ctl.bad.html", { x: esc(fmt(calc, 2)), d: esc(fmtPct(fmt(gap * 100, 0))) }))}</div>`;
 }
 
 export type ResearchOutArgs = {
@@ -104,9 +163,11 @@ const realAt = (a: ResearchOutArgs, g: number) => (a.playing ? t("rm.ifContinue"
 export function renderResearchOut(a: ResearchOutArgs): string {
   const m = a.model;
   const out: string[] = [];
-  if (m.checks.length) {
+  // La 1ʳᵉ ligne du panneau a son propre bloc de contrôle quand les stations sont décrites (S49).
+  const checks = m.source === "stations" ? m.checks.filter((c) => c.label.code !== "rs.check.first") : m.checks;
+  if (checks.length) {
     out.push(
-      `<ul class="rs-checks">${m.checks
+      `<ul class="rs-checks">${checks
         .map((c) =>
           c.ok
             ? `<li class="okc">${withIcons(t("rm.check.ok", { label: txtHtml(c.label), x: esc(fmt(c.computed, c.digits)) }))}</li>`

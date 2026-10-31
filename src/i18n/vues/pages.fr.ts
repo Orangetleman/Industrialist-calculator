@@ -5,7 +5,6 @@ export const pagesFr = {
   // ------------------------------------------------------------ Textes fixes d'index.html : Mon usine, Arbre, Recettes, Contribuer
   "us.tabs.aria": "Mon usine",
   "us.tab.partie": "Ma partie",
-  "rs.refonte": "Recherche en refonte",
   "us.tab.recherche": "Ma recherche",
   "us.lead": "Ce que tu as dans ta partie. Rempli une fois, utilisé par tous les calculs. Tout est facultatif.",
   "us.unlocked": "Recherches débloquées",
@@ -38,10 +37,6 @@ export const pagesFr = {
   "us.transfer.hint": "Tout est gardé dans ce navigateur, pour cette adresse. Pour le retrouver ailleurs, exporte ici puis importe le fichier là-bas.",
   "us.export": "Exporter ma partie",
   "us.import": "Importer…",
-  "us.rs.mode.aria": "Saisie de ma recherche",
-  "us.rs.quick": "Rapide : le panneau",
-  "us.rs.quick.title": "Je recopie le Research Tracking Panel",
-  "us.rs.detail": "Détaillé : mes stations",
   "us.rs.where": "Tout se lit sur le Research Tracking Panel (Build › Misc).",
   "us.rs.rp": "RP relevés (1ʳᵉ ligne)",
   "us.rs.rp.ph": "ex. 15000",

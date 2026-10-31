@@ -125,7 +125,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S46 | Recherche actuelle masquée (« en refonte ») en attendant S48 | petite | — | fait (2026-10-27) : drapeau `RECHERCHE_EN_REFONTE` dans `src/ui/flags.ts` |
 | S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | maquette `maquette/recherche-refonte.html` faite (2026-10-27), validée par l utilisateur (2026-10-27) |
 | S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | fait (2026-10-31) : efficacité des paraboles sans arrondi, cas Industrialist Calculator testés |
-| S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | à faire |
+| S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | fait (2026-10-31), déployé ; reste le relevé en jeu après le seuil (< 2 %), à faire par l'utilisateur |
 | S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | à faire |
 | S51 | Difficulté : recherches bloquées et machines réservées selon le niveau | petite | — | à faire |
 
@@ -1626,3 +1626,6 @@ Chaque session de lot :
 - **2026-10-31, S48** (moteur, déployé, recherche toujours masquée) : le moteur S20 couvrait déjà vitesse et plafond par tier avec les items, circuits RS4 sous le plafond et bonus 78 × log₁₀(R + 1) % ; ajout de l efficacité linéaire des paraboles sur S + √(S × R) sans arrondi (`dishesExact`, `dishEfficiency`, source : Industrialist Calculator).
 - Tests : capture du 2026-10-18 et même cas chez Industrialist Calculator → même résultat (+2,93 RP/s) ; bonus RS4 : le wiki donne 1,2 fois le leur, on garde le wiki ; écarts notés dans `a-verifier.md` (S48). Journal et données joueur non touchés.
 - Suite : S49 (interface d après la maquette, retrait du drapeau).
+- **2026-10-31, S49** (code, déployé) : « Ma recherche » d'après la maquette S47 : un tableau par tier (groupe = nombre de stations + items, « + un groupe différent », vitesse et seuil calculés, source), paraboles (contrôleurs, liquide, paraboles posées, efficacité marquée « source : Industrialist Calculator »), contrôle de la 1ʳᵉ ligne sous la saisie (« ✓ comme en jeu » sous 2 %, sinon l'écart), panneau recopié replié et facultatif. Le choix rapide / détaillé disparaît : des stations décrites priment, sinon le panneau ; anciennes saisies relues sans perte. Drapeau `RECHERCHE_EN_REFONTE` retiré (puce RP, objectif « Des RP », arbre).
+- Parcours dans le navigateur (FR, EN, ordinateur, téléphone 375 px) avec la capture du 2026-10-18 : 47,47 RP/s, seuil 76 875, +2,93 des paraboles, « ✓ comme en jeu » ; 50,4 → 45 RP/s donne « Écart de 12 % ». Réglages de partie (pollution, mois, difficulté) pas encore affichés : ils arrivent avec S50 et S51.
+- Reste : un relevé en jeu après le seuil, à comparer (critère < 2 % de S20), par l'utilisateur.
