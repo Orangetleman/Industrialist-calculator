@@ -262,7 +262,7 @@ export function researchModel(p: RpParams, data: GameData | null, setup: Researc
   let efficiencyAssumed = s.dish.efficiency === null;
   let source: RpModel["source"] = "aucune";
 
-  if (s.mode === "detaille" && data && TIERS.some((k) => s.groups[k].some((g) => g.count > 0))) {
+  if (data && TIERS.some((k) => s.groups[k].some((g) => g.count > 0))) {
     source = "stations";
     for (const kind of TIERS) {
       const groups = s.groups[kind].filter((g) => g.count > 0);

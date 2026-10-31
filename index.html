@@ -323,22 +323,17 @@
 
     <div class="rpanel" role="tabpanel" id="upanel-recherche" aria-labelledby="utab-recherche" hidden>
       <div class="box" id="rs-box">
-        <p class="hint rs-refonte" data-i18n="rs.refonte">Recherche en refonte</p>
         <div id="rs-play"></div>
-        <div class="row rs-top-row">
-          <div class="seg" role="radiogroup" aria-label="Saisie de ma recherche" data-i18n-attr="aria-label=us.rs.mode.aria">
-            <button type="button" role="radio" data-rsmode="rapide" aria-checked="true" title="Je recopie le Research Tracking Panel" data-i18n="us.rs.quick" data-i18n-attr="title=us.rs.quick.title">Rapide : le panneau</button>
-            <button type="button" role="radio" data-rsmode="detaille" aria-checked="false" data-i18n="us.rs.detail">Détaillé : mes stations</button>
-          </div>
-          <span class="hint" data-i18n="us.rs.where">Tout se lit sur le Research Tracking Panel (Build › Misc).</span>
-        </div>
+        <p class="hint" data-i18n="us.rs.where">Tout se lit sur le Research Tracking Panel (Build › Misc).</p>
+        <div id="rs-form"></div>
+        <h3 data-i18n="rm.ctl.title">Contrôle : la 1ʳᵉ ligne du panneau</h3>
         <div class="row fields4">
           <label for="p-rp"><span data-i18n="us.rs.rp">RP relevés (1ʳᵉ ligne)</span><input id="p-rp" inputmode="decimal" autocomplete="off" placeholder="ex. 15000" data-i18n-attr="placeholder=us.rs.rp.ph"></label>
           <label for="p-rps"><span data-i18n="us.rs.rps">RP/s (1ʳᵉ ligne)</span><input id="p-rps" inputmode="decimal" autocomplete="off" placeholder="ex. 3,5" data-i18n-attr="placeholder=us.rs.rps.ph"></label>
           <p class="rp-est" id="rp-est" aria-live="off"></p>
         </div>
+        <div id="rs-control" aria-live="polite"></div>
         <p class="hint" id="rp-hint" role="status"></p>
-        <div id="rs-form"></div>
         <div id="rs-out" aria-live="off"></div>
         <h3 class="rh-title" data-i18n="us.rs.history">Historique, en temps de jeu</h3>
         <div class="rh" id="rs-hist"></div>

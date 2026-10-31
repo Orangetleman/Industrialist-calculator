@@ -37,8 +37,8 @@ import modularJson from "../../data/modular.json";
 import type { ModularFile } from "../engine/modular.ts";
 import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
 import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
-import { balanceTimeline, emptySetup, nominalRate, proposeAddStations, rateAt, researchModel, timeToReach, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
-import { renderResearchForm, renderResearchOut, researchHow } from "./research-mine.ts";
+import { balanceTimeline, emptySetup, nominalRate, TIERS, proposeAddStations, rateAt, researchModel, timeToReach, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
+import { fillResearchCalc, renderResearchControl, renderResearchForm, renderResearchOut, researchHow } from "./research-mine.ts";
 import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
@@ -155,7 +155,6 @@ import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
 import { loadSent, type Piece } from "./remarques.ts";
-import { RECHERCHE_EN_REFONTE } from "./flags.ts";
 import type { Message, Text } from "../engine/message.ts";
 
 // Langue (S30) : le choix gardé, sinon celle du navigateur ; avant tout rendu.
@@ -862,7 +861,7 @@ function renderHeader(): void {
   const total = researchTotal();
   const chips = [
     `<a class="me-chip" href="#usine" title="${esc(t("header.research.title"))}">${esc(t("header.research", { n: total, done: String(unlockedCount()), total: String(total) }))}</a>`,
-    rp !== null && !RECHERCHE_EN_REFONTE
+    rp !== null
       ? `<a class="me-chip" href="#usine/recherche" title="${esc(t("header.rp.title"))}">≈ ${esc(fmtShort(rp))} RP${!journal.clock.playing ? "" : real ? ` · ${esc(fmt(real.rate, real.rate < 10 ? 2 : 1))}/s${real.over ? withIcons(t("header.rp.over")) : ""}` : ""}</a>`
       : "",
     player.money !== null ? `<a class="me-chip" href="#usine" title="${esc(t("header.money.title"))}">${esc(fmtMoneyShort(player.money))}</a>` : "",
@@ -919,8 +918,6 @@ function syncForm(): void {
   input("use-existing").checked = settings.useExisting;
   input("unverified").checked = settings.useUnverified;
 }
-
-if (RECHERCHE_EN_REFONTE) document.documentElement.classList.add("rs-masquee");
 
 function renderPlanPage(): void {
   const v = viewCtx();
@@ -981,12 +978,6 @@ function renderPlanPage(): void {
   $("first-visit").hidden = !isFresh();
   // Rien de saisi (S23) : une phrase, pas de résultat ni d'onglets vides.
   const blank = isBlank(goal);
-  if (RECHERCHE_EN_REFONTE && goal === "recherche") {
-    $("answer").innerHTML = `<p class="hint blank-prompt">${esc(t("rs.refonte"))}</p>`;
-    for (const id of ["fix-bar", "plan-bar", "rtabs-result"]) $(id).hidden = true;
-    for (const r of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${r}`).hidden = true;
-    return;
-  }
   const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
   $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(blankPrompt(goal))}</p>` : renderAnswer(v);
   const fixBar = $("fix-bar");
@@ -1856,8 +1847,10 @@ function renderRpEstimate(): void {
 /** « Ma recherche » : le formulaire (à l'ouverture et quand sa forme change) et ce qu'en tire le site. */
 function renderResearchBox(): void {
   const s = player.research ?? emptySetup();
-  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-rsmode]")) b.setAttribute("aria-checked", String(b.dataset.rsmode === s.mode));
-  $("rs-form").innerHTML = renderResearchForm(data, s);
+  // Panneau recopié : déplié s'il l'était, ou si c'est la seule saisie (ancien niveau « rapide »).
+  const wasOpen = !!$("rs-form").querySelector<HTMLDetailsElement>("details.rs-panel-d")?.open;
+  const panelOnly = !TIERS.some((k) => s.groups[k].length) && TIERS.some((k) => s.panel[k].rate !== null);
+  $("rs-form").innerHTML = renderResearchForm(data, s, wasOpen || panelOnly);
   renderRpLive(true);
 }
 
@@ -1885,6 +1878,8 @@ function renderRpLive(full = false): void {
   renderRpEstimate();
   const model = rpModel();
   if (!model) return;
+  fillResearchCalc($("rs-form"), model);
+  $("rs-control").innerHTML = renderResearchControl(model, player.rp, player.rpPerSec);
   const base = h.pieces[h.pieces.length - 1] ?? null;
   const nominal = model.source === "aucune" ? 0 : nominalRate(model.tiers);
   const linear = base && nominal > 0 ? base.rp0 + (nominal * (gNow - base.from)) / 1000 : null;
@@ -1973,7 +1968,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const p = toEngineProgress(prog);
   const layout = researchLayout();
   if (ui.selected && data.nodes.get(ui.selected)?.category !== treeView.category) ui.selected = null;
-  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, RECHERCHE_EN_REFONTE ? null : rpNow());
+  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, rpNow());
   const svg = $("rs-canvas").querySelector("svg") as SVGSVGElement;
   if (treeView.filter.trim()) {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
@@ -1983,7 +1978,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
-  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, RECHERCHE_EN_REFONTE ? null : rpNow(), RECHERCHE_EN_REFONTE ? undefined : rpEta);
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow(), rpEta);
   renderHud();
   renderTreeBubble();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
@@ -2016,7 +2011,7 @@ function setTreeBubble(on: boolean): void {
 
 function renderTreeBubble(): void {
   const box = $("rs-bubble");
-  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, RECHERCHE_EN_REFONTE ? null : rpNow(), RECHERCHE_EN_REFONTE ? undefined : rpEta) : "";
+  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, rpNow(), rpEta) : "";
   box.innerHTML = html;
   box.hidden = !html;
   placeTreeBubble();
@@ -3750,8 +3745,6 @@ function bindResearchBox(): void {
   const tier = (k: string) => k as StationKind;
   box.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
-    const mode = t.closest<HTMLElement>("[data-rsmode]")?.dataset.rsmode;
-    if (mode === "rapide" || mode === "detaille") return updateResearch((s) => void (s.mode = mode), true);
     if (t.closest("[data-rsg-addbtn]")) {
       const k = tier(box.querySelector<HTMLSelectElement>("[data-rsg-add]")!.value);
       return updateResearch((s) => void s.groups[k].push({ count: 1, items: [] }), true);
@@ -3769,6 +3762,17 @@ function bindResearchBox(): void {
   box.addEventListener("input", (e) => {
     const el = e.target as HTMLInputElement;
     const d = el.dataset;
+    // Tier sans groupe : la 1ʳᵉ frappe d'un nombre crée le groupe, puis le curseur y revient.
+    if (d.rsgNew) {
+      const k = tier(d.rsgNew);
+      const v = parseOptional(el.value);
+      if (v === "invalide" || v === null || !(v > 0)) return;
+      updateResearch((s) => void s.groups[k].push({ count: v, items: [] }), true);
+      const next = box.querySelector<HTMLInputElement>(`[data-rsg="${k}:0:count"]`);
+      next?.focus();
+      next?.setSelectionRange(next.value.length, next.value.length);
+      return;
+    }
     const numeric = d.rsp ?? d.rsd ?? (d.rsmax !== undefined ? "max" : undefined) ?? (d.rsg?.endsWith(":count") ? d.rsg : undefined) ?? (d.rsc?.endsWith(":count") ? d.rsc : undefined);
     if (numeric === undefined) return;
     const v = parseOptional(el.value);

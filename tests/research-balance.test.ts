@@ -285,3 +285,28 @@ describe("S48 : cas Industrialist Calculator avec les entrées de la capture", (
     expect(circuitRate(p, cap, 3) / theirs).toBeCloseTo(6 / p.rs4.logicTicks, 9);
   });
 });
+
+describe("S49 : Ma recherche par tier (maquette S47)", async () => {
+  const { renderResearchControl, renderResearchForm } = await import("../src/ui/research-mine.ts");
+  it("un bloc par tier ; un tier sans groupe se crée par sa case « Stations »", () => {
+    const html = renderResearchForm(data, detailed());
+    for (const k of ["rs1", "rs2", "rs4"]) expect(html).toContain(`data-rsg-new="${k}"`);
+    expect(html).not.toContain('data-rsg-new="rs3"');
+    expect(html).toContain('data-rs-rate="rs3"');
+    expect(html).toContain('data-rsd="dishes"');
+    expect(html).not.toContain("data-rsmode");
+  });
+  it("contrôle de la 1ʳᵉ ligne : ✓ sous 2 % d'écart, sinon l'écart", () => {
+    const m = researchModel(p, data, detailed(), 50.4, RP0);
+    expect(renderResearchControl(m, RP0, 50.4)).toContain('class="rs-chk"');
+    expect(renderResearchControl(m, RP0, 50.4 * 1.019)).toContain('class="rs-chk"');
+    expect(renderResearchControl(m, RP0, 45)).toContain('class="rs-chk bad"');
+    expect(renderResearchControl(researchModel(p, data, quick(), 50.4, RP0), RP0, 50.4)).toBe("");
+  });
+  it("une ancienne saisie « rapide » avec des groupes compte ses stations ; sans groupe, le panneau", () => {
+    const s = detailed();
+    s.mode = "rapide";
+    expect(researchModel(p, data, s, 50.4, RP0).source).toBe("stations");
+    expect(researchModel(p, data, quick(), 50.4, RP0).source).toBe("panneau");
+  });
+});

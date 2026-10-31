@@ -1221,7 +1221,22 @@ table.rp-panel { border-collapse: collapse; font-size: .86rem; width: 100%; min-
 table.rp-panel caption { text-align: left; padding-bottom: 4px; }
 table.rp-panel th, table.rp-panel td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
 table.rp-panel tr.off td { color: var(--muted); }
-#rs-box input[inputmode], #rs-box .grp input.i { width: 6.5em; border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 3px 6px; font-family: var(--f-mono); }
+/* S49 : saisie par tier (maquette S47) */
+table.rp-tiers { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 640px; }
+table.rp-tiers th, table.rp-tiers td { padding: 4px 8px 4px 0; text-align: left; border-top: 1px solid var(--line); vertical-align: middle; }
+table.rp-tiers th[scope="row"] { white-space: nowrap; }
+table.rp-tiers .rs-st { display: block; font-weight: 400; font-size: .74rem; }
+table.rp-tiers td { white-space: nowrap; }
+table.rp-tiers td.num { font-family: var(--f-mono); }
+table.rp-tiers tr.off th, table.rp-tiers tr.off td { color: var(--muted); }
+#rs-box table.rp-tiers input.i { width: 11em; }
+.rs-logic { white-space: nowrap; }
+.rs-add { gap: 8px 14px; margin-top: 6px; }
+.rs-src { font-size: .72rem; border-radius: 999px; padding: 0 7px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.rs-src.ic { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+.rs-chk { border-left: 4px solid var(--ok); border-radius: 8px; padding: 8px 12px; background: var(--surface); margin: 6px 0; font-size: .9rem; }
+.rs-chk.bad { border-color: var(--warn); }
+#rs-box input[inputmode], #rs-box .grp input.i, #rs-box .rp-tiers input.i { width: 6.5em; border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 3px 6px; font-family: var(--f-mono); }
 #rs-box .fields4 input { width: 100%; }
 #rs-box input.s, #rs-box input.n { width: 3.8em; }
 #rs-box .grp input.i { width: 11em; }
@@ -1305,6 +1320,3 @@ table.rh-log td.num { white-space: nowrap; }
 .bld-items .warn { color: #e08a3c; font-size: .85em; }
 
 /* S46 : recherche masquée pendant la refonte */
-.rs-refonte { display: none; }
-.rs-masquee .rs-refonte { display: block; }
-.rs-masquee #rs-box > :not(.rs-refonte) { display: none; }
