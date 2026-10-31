@@ -1521,8 +1521,13 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     },
     /** Ouvre un plan du site (module, usine) converti en schéma. */
     open(s: Schematic): void {
+      // Catalogue d'abord : sans lui, ouvrir un plan avant d'avoir vu la page plantait (S56).
+      refreshCatalog();
+      reindex();
+      placeRoot();
       if (!ui.mounted) { ui.mounted = true; skeleton(); }
       loadSchematic(s);
+      requestAnimationFrame(fit); // la page vient d'être affichée : sa taille est connue à l'image suivante
     },
     /** Langue changée ou données corrigées : tout est redessiné, le montage et la vue gardés. */
     refresh(): void {

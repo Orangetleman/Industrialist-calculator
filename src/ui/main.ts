@@ -1277,7 +1277,8 @@ function moduleOf(key: string): ModulePlan | null {
     const base = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
     const req = base && { ...base, tier3Only: settings.tier3Only, priority: settings.posePriority };
     if (req) moduleReqs.set(key, req);
-    modules.set(key, req && m ? designModule(req, pts.machines[m.id] ?? null, m.size, CATALOG, anyName) : null);
+    // S56 : chaque essai est vérifié par le moteur du bac à sable.
+    modules.set(key, req && m ? designModule(req, pts.machines[m.id] ?? null, m.size, CATALOG, anyName, sandboxCatalog()) : null);
   }
   return modules.get(key) ?? null;
 }
@@ -1563,6 +1564,7 @@ function startFactory(complete = false): void {
         const a = assemblyOf(key);
         return a ? { w: a.width, h: a.height, label: a.label } : null;
       },
+      sb: sandboxCatalog(),
     },
     CATALOG,
     plot,

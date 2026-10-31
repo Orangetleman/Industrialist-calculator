@@ -8,6 +8,8 @@ import { pipeFor, type Catalog, type PieceRole, type PipeKind, type PipeSet } fr
 import { OPPOSITE, place, type Cell, type Dir, type Placed, type Rot } from "./geometry.ts";
 import { Grid, route, type Bounds } from "./route.ts";
 import { messageKey, msg, type Message } from "../message.ts";
+import type { SbCatalog } from "../sandbox/catalog.ts";
+import { checkModule, type Check } from "./verify.ts";
 
 export type Flow = { item: string; perMin: number; fluid: boolean };
 
@@ -103,6 +105,8 @@ export type ModulePlan = {
   config?: FlatConfig;
   /** Ordre des critères qui a choisi ce module, et ce que donnerait le 2e critère mis en premier. */
   priority: PoseCriterion[];
+  /** S56 : vérifié par le moteur du bac à sable (true : chaque machine reçoit tout ; null : pas vérifiable). */
+  checked?: boolean | null;
   other: { first: PoseCriterion; width: number; height: number; cost: number; pieces: number; crossings: number; template: ModulePlan["template"]; folds: number } | null;
 };
 
@@ -110,7 +114,11 @@ export type ModulePlan = {
 const num = (x: number) => Math.round(x * 100) / 100;
 const dirOf = (role: "entrée" | "sortie") => msg(role === "entrée" ? "w.in" : "w.out");
 
-type Assign = { port: number; item: string; role: "entrée" | "sortie"; kind: PipeKind };
+/**
+ * Ressource → port. `shared` (S56, BAS-11) : l'entrée n'a pas de port à elle ; son collecteur passe collé à la
+ * machine et entre par l'autre voie du croisement collé au port `port` (celui d'une autre ressource du même type).
+ */
+type Assign = { port: number; item: string; role: "entrée" | "sortie"; kind: PipeKind; shared?: true };
 
 /** Associe chaque ressource à un port du bon type (objet/fluide) et du bon sens. */
 export type Namer = (id: string) => string;
@@ -151,6 +159,26 @@ export function portAssignments(entry: Pick<PortsEntry, "ports">, req: Pick<Modu
     });
   };
   walk(0, []);
+  return out;
+}
+
+/**
+ * Variantes « deux ressources par un port » (S56, maquette `generation-contacts.html`, cas a et c) : une entrée prend
+ * l'autre voie du croisement collé au port d'une autre ressource du même type, même un port de sortie (le Grinder testé
+ * en jeu). Une seule entrée partagée par variante ; le moteur du bac à sable dit ensuite si chaque machine reçoit tout.
+ */
+export function sharedAssignments(options: Assign[][], max = 6): Assign[][] {
+  const out: Assign[][] = [];
+  for (const o of options.slice(0, 2))
+    for (const a of o) {
+      if (a.role !== "entrée" || a.shared) continue;
+      for (const h of o) {
+        if (out.length >= max) return out;
+        if (h === a || h.kind !== a.kind || h.item === a.item || h.shared) continue;
+        const v = o.map((x) => (x === a ? { ...a, port: h.port, shared: true as const } : x));
+        if (!out.some((w) => JSON.stringify(w) === JSON.stringify(v))) out.push(v);
+      }
+    }
   return out;
 }
 
@@ -204,7 +232,10 @@ type Layout = { grid: Grid; machines: Placed[]; nets: Net[]; problems: Problem[]
 function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[], req: ModuleRequest, rot: Rot, double: boolean, gapExtra: number, cat: Catalog, name: Namer, sides: Record<string, "haut" | "bas"> | null = null, hug = false, widen = false): Layout | null {
   const problems: Problem[] = [];
   const probe = place("m", req.machine, entry, 0, 0, rot);
-  const used = new Map(assign.map((a) => [a.port, a]));
+  const used = new Map(assign.filter((a) => !a.shared).map((a) => [a.port, a]));
+  const shared = assign.filter((a) => a.shared);
+  // Entrée partagée : collecteur collé à la rangée, du côté du port hôte (rangée simple seulement).
+  if (shared.length && (double || !hug)) return null;
   const pipePorts = probe.ports.filter((p) => used.has(p.index));
   const sideCount = (f: Dir) => pipePorts.filter((p) => p.facing === f).length;
   const gap = sideCount("E") + sideCount("W") + gapExtra;
@@ -235,10 +266,19 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     // Côté imposé (rangée simple) : un raccord peut contourner la machine pour éviter un croisement.
     sideOf.set(it, double ? "bas" : (sides?.[it] ?? (north > south ? "haut" : "bas")));
   }
+  for (const a of shared) {
+    const f = probe.ports.find((p) => p.index === a.port)?.facing;
+    if ((f !== "N" && f !== "S") || linesOf.get(a.item)! > 1) return null;
+    sideOf.set(a.item, f === "N" ? "haut" : "bas");
+  }
+  const isShared = (id: string) => shared.some((a) => a.item === id);
   const netIds = items.flatMap((it) => (linesOf.get(it)! > 1 ? Array.from({ length: linesOf.get(it)! }, (_, j) => `${it}#${j + 1}`) : [it]));
   const itemOf = (id: string) => id.replace(/#\d+$/, "");
-  const above = netIds.filter((id) => sideOf.get(itemOf(id)) === "haut");
-  const below = netIds.filter((id) => sideOf.get(itemOf(id)) === "bas");
+  // Le collecteur partagé est le plus proche de la rangée (collé), pour passer sur le port hôte.
+  const near = (a: string, b: string) => Number(isShared(b)) - Number(isShared(a));
+  const above = netIds.filter((id) => sideOf.get(itemOf(id)) === "haut").sort(near);
+  const below = netIds.filter((id) => sideOf.get(itemOf(id)) === "bas").sort(near);
+  if (above.filter(isShared).length > 1 || below.filter(isShared).length > 1) return null;
   // Les cases qui touchent les ports (rangée de raccord), puis un collecteur par ressource. Collecteur
   // collé (`hug`) : le plus proche passe sur la rangée de raccord ; une autre ressource le traverse
   // par un croisement collé au port (en jeu, les deux tuyaux du croisement se relient à la machine).
@@ -313,10 +353,18 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   // ou « milieu » (au moins deux cases, pour qu'il y ait un tuyau où raccorder les ports).
   const lanes = new Map(
     nets.map((n) => {
-      const xs = allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
+      const host = shared.find((a) => a.item === n.item)?.port;
+      const xs = host !== undefined ? allPorts.filter((q) => q.p.index === host).map((q) => q.p.cell.x) : allPorts.filter((q) => q.net === n.id).map((q) => q.p.cell.x);
+      // Collecteur partagé : il dépasse d'une case chaque port hôte, pour le traverser par un croisement.
+      const pad = host !== undefined ? 1 : 0;
       const y = laneRow(n.id);
       const endKind = viaOf.has(n.item) ? "milieu" : (req.ends?.[n.item] ?? (n.role === "entrée" ? "début" : "fin"));
-      const lane = endKind === "milieu" ? { y, x0: Math.min(...xs), x1: Math.max(Math.max(...xs), Math.min(...xs) + 1) } : endKind === "fin" ? { y, x0: Math.min(...xs), x1: bounds.x1 } : { y, x0: 0, x1: Math.max(...xs) };
+      const lane =
+        endKind === "milieu"
+          ? { y, x0: Math.min(...xs) - pad, x1: Math.max(Math.max(...xs) + pad, Math.min(...xs) + 1) }
+          : endKind === "fin"
+            ? { y, x0: Math.min(...xs) - pad, x1: bounds.x1 }
+            : { y, x0: 0, x1: Math.max(...xs) + pad };
       return [n.id, { lane, endKind }] as const;
     }),
   );
@@ -528,12 +576,38 @@ function polesWith(l: Layout, plugs: { m: string; x: number; y: number }[], pole
   return { poles, problems, files, cost: poles.length * (pole.price ?? 0), outOfRange };
 }
 
+/**
+ * S56 : le module passé au moteur du bac à sable (`verify.ts`). Rejeté (une erreur) si une machine ne reçoit pas tout
+ * ou si un contact mélange des ressources ; `checked` dit ce qu'il en est. Sans catalogue du bac à sable, rien ne change.
+ */
+export function verified(p: ModulePlan, req: ModuleRequest, sb: SbCatalog | null | undefined, name: Namer = (id) => id): ModulePlan {
+  if (!sb || p.checked !== undefined) return p;
+  const c = checkModule(p, req, sb);
+  p.checked = c ? c.ok : null;
+  if (c && !c.ok) p.problems.push({ level: "erreur", message: rejectMsg(c, name) });
+  return p;
+}
+
+/** La première raison du rejet, en mots de joueur. */
+function rejectMsg(c: Check, name: Namer): Message {
+  const i = c.issues[0]!;
+  const m = (i.at ?? 0) + 1;
+  const why =
+    i.k === "mixed" ? msg("mod.why.mixed", { items: i.item!.split("+").map(name).join(" + ") })
+    : i.k === "recipe" ? msg("mod.why.recipe", { m })
+    : i.k === "overlap" ? msg("mod.why.overlap")
+    : msg("mod.why.short", { m, item: i.item ? name(i.item) : "?" });
+  return msg("mod.rejected", { why });
+}
+
 /** Meilleur module pour une étape : gabarits × orientations × ports × côtés des collecteurs. */
-export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiSize: { w: number; l: number } | null, cat: Catalog, name: Namer = (id) => id): ModulePlan {
+export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiSize: { w: number; l: number } | null, cat: Catalog, name: Namer = (id) => id, sb: SbCatalog | null = null): ModulePlan {
   const portsKnown = !!entry?.footprint;
   const e = portsKnown ? entry! : assumedEntry(wikiSize, req);
   // Ports supposés : leur place est déjà une hypothèse, inutile d'en essayer d'autres combinaisons.
-  const options = portAssignments(e, req, portsKnown ? 8 : 1);
+  const base = portAssignments(e, req, portsKnown ? 8 : 1);
+  // S56 : avec le moteur du bac à sable pour juger, on essaie aussi deux ressources par un port (croisement collé).
+  const options = sb && portsKnown ? [...base, ...sharedAssignments(base)] : base;
   const fallback = assignPorts(e, req, name);
   const assigns: { assign: Assign[]; problems: Problem[] }[] = options.length ? options.map((assign) => ({ assign, problems: [] })) : [fallback];
   const items = [...new Set(assigns[0]!.assign.map((a) => a.item))];
@@ -589,17 +663,23 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
   const full = new Map<string, ModulePlan | null>();
   const real = (k: number, count: number) => {
     const key = `${k}|${count}`;
-    if (!full.has(key)) full.set(key, build(probed[k]!.c, scaleRequest(req, count)));
+    if (!full.has(key)) {
+      const r = scaleRequest(req, count);
+      const p = build(probed[k]!.c, r);
+      full.set(key, p && verified(p, r, sb, name));
+    }
     return full.get(key)!;
   };
-  const best = (count: number, prio: PoseCriterion[], tries = 3): ModulePlan | null =>
-    probed
-      .map((x, k) => ({ k, s: score(prio, x.p, estimate(x, count)) }))
-      .sort((a, b) => order(a.s, b.s))
-      .slice(0, tries)
-      .map((x) => real(x.k, count))
-      .filter((p): p is ModulePlan => !!p)
-      .sort((a, b) => order(score(prio, a, metrics(a)), score(prio, b, metrics(b))))[0] ?? null;
+  // Les `tries` mieux estimées ; si le bac à sable les rejette toutes, les suivantes (jusqu'à 12).
+  const best = (count: number, prio: PoseCriterion[], tries = 3): ModulePlan | null => {
+    const ranked = probed.map((x, k) => ({ k, s: score(prio, x.p, estimate(x, count)) })).sort((a, b) => order(a.s, b.s));
+    const got: ModulePlan[] = [];
+    for (let i = 0; i < ranked.length && (i < tries || (sb && i < 12 && !got.some((p) => !errors(p)))); i++) {
+      const p = real(ranked[i]!.k, count);
+      if (p) got.push(p);
+    }
+    return got.sort((a, b) => order(score(prio, a, metrics(a)), score(prio, b, metrics(b))))[0] ?? null;
+  };
   // 3. Rangées repliées : le même module en blocs empilés, alimentés par des tuyaux principaux. On
   //    essaie le nombre de blocs qui rend l'ensemble à peu près carré, et ses voisins (2 à 4 blocs).
   const candidates = (prio: PoseCriterion[]): ModulePlan[] => {
@@ -617,7 +697,7 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
       const b = last === n ? a : best(last, prio, 1);
       if (!a || !b || errors(a) || errors(b)) continue;
       const f = foldModule([...Array.from({ length: k - 1 }, () => a), b], req, cat, name);
-      if (f) out.push(f);
+      if (f) out.push(verified({ ...f, checked: undefined, problems: [...f.problems] }, req, sb, name));
     }
     return out;
   };
@@ -915,6 +995,39 @@ export function withPieces(m: ModulePlan, pieces: { x: number; y: number; net: s
   const problems = m.problems.filter((p) => p.message.code !== "mod.unknownPiece");
   const { parts, cost, costUnknown } = countParts(req, out, m.poles, cat, name, problems);
   return { ...m, pieces: out, parts, cost, costUnknown, problems };
+}
+
+/**
+ * Le module sans les collecteurs d'une ressource (S56 : sortie d'une étape collée à la machine suivante, sans tuyau) :
+ * pièces, prix et liste d'achat recomptés, puis ramené à son emprise (`trimModule`).
+ */
+export function withoutNet(m: ModulePlan, item: string, role: "entrée" | "sortie", req: ModuleRequest, cat: Catalog, name: Namer = (id) => id): { m: ModulePlan; dx: number; dy: number } {
+  const drop = new Set(m.nets.filter((n) => n.item === item && n.role === role).map((n) => n.id));
+  const pieces = m.pieces.map((pc) => ({ x: pc.x, y: pc.y, net: pc.net, links: drop.has(pc.net) ? [] : pc.links, ...(pc.crossNet ? { crossNet: pc.crossNet, crossLinks: drop.has(pc.crossNet) ? [] : (pc.crossLinks ?? []) } : {}) }));
+  const out = withPieces(m, pieces, req, cat, name);
+  return trimModule({ ...out, nets: out.nets.filter((n) => !drop.has(n.id)), order: out.order });
+}
+
+/** Le module ramené à ce qui est posé (machines, pièces, poteaux) ; `dx`, `dy` : de combien son coin a avancé. */
+export function trimModule(m: ModulePlan): { m: ModulePlan; dx: number; dy: number } {
+  const xs = [...m.machines.flatMap((q) => [q.x, q.x + q.w - 1]), ...m.pieces.map((p) => p.x), ...m.poles.flatMap((p) => [p.x, p.x + p.w - 1])];
+  const ys = [...m.machines.flatMap((q) => [q.y, q.y + q.h - 1]), ...m.pieces.map((p) => p.y), ...m.poles.flatMap((p) => [p.y, p.y + p.h - 1])];
+  const dx = Math.min(...xs);
+  const dy = Math.min(...ys);
+  const shift = <T extends { x: number; y: number }>(o: T): T => ({ ...o, x: o.x - dx, y: o.y - dy });
+  return {
+    dx,
+    dy,
+    m: {
+      ...m,
+      width: Math.max(...xs) - dx + 1,
+      height: Math.max(...ys) - dy + 1,
+      machines: m.machines.map((q) => ({ ...shift(q), cells: q.cells.map(shift), ports: q.ports.map((p) => ({ ...p, cell: shift(p.cell) })), power: q.power.map(shift) })),
+      pieces: m.pieces.map(shift),
+      poles: m.poles.map(shift),
+      nets: m.nets.map((n) => ({ ...n, lane: n.lane ? { y: n.lane.y - dy, x0: n.lane.x0 - dx, x1: n.lane.x1 - dx } : null, end: n.end ? shift(n.end) : null, ...(n.via ? { via: { ...n.via, x: n.via.x - dx } } : {}) })),
+    },
+  };
 }
 
 /** « vers le haut, entre les machines n° 2 et n° 3 » (machines numérotées rangée par rangée, la première d'abord). */

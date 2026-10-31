@@ -41,7 +41,9 @@ it("toute l'usine : mêmes plans qu'avant S42", () => {
   expect(got).toEqual(EXPECTED);
 }, 900000);
 
-const EXPECTED = ["crankshaft/place=c681dcfa9df59fd5", "crankshaft/forme=d098178f5d4f3392"];
+// S56 : relevées de nouveau (mêmes plans ; le plan a un champ `touches` de plus, et les machines d'un module tourné
+// gardent maintenant leur vraie rotation).
+const EXPECTED = ["crankshaft/place=534b73bf97f3d9d6", "crankshaft/forme=731ad708c40fdbbc"];
 
 it("S42 : avec une limite de temps dépassée, un plan complet est quand même rendu, marqué « abrégé »", () => {
   const plan = solve(data, { unlocked: new Set(data.nodes.keys()) }, { item: "crankshaft", ratePerMin: 60, criterion: "energy", tiers: false });

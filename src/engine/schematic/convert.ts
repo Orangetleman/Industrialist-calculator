@@ -46,14 +46,18 @@ class Builder {
     if (!this.sb.blocks.has(b.id)) { this.skipped.push(b.id); return; }
     this.blocks.push({ ...b, u: this.blocks.length });
   }
-  /** Une pièce par case : une pièce posée plus tard sur la même case remplace la précédente. */
-  piece(id: string | null, x: number, y: number, links: Dir[], crossLinks?: Dir[]) {
+  /**
+   * Une pièce par case : une pièce posée plus tard sur la même case remplace la précédente. `fluidLinks` : pour un
+   * croisement objet × fluide, les liaisons du tuyau de fluide (la pièce relevée a son fluide nord-sud).
+   */
+  piece(id: string | null, x: number, y: number, links: Dir[], crossLinks?: Dir[], fluidLinks?: Dir[]) {
     const k = `${x},${y}`;
     if (this.at.has(k)) { const i = this.at.get(k)!; this.blocks.splice(i, 1); this.blocks.forEach((b, j) => (b.u = j)); this.at.forEach((v, kk) => v > i && this.at.set(kk, v - 1)); this.at.delete(k); }
     if (!id) { this.skipped.push("?"); return; }
     if (!this.sb.blocks.has(id)) { this.skipped.push(id); return; }
     const all = new Set([...links, ...(crossLinks ?? [])]);
-    const b: Placed = { u: this.blocks.length, id, x, y, r: pipeRot(this.sb, id, x, y, all) };
+    const mixed = this.sb.blocks.get(id)?.pipe?.kind === "m";
+    const b: Placed = { u: this.blocks.length, id, x, y, r: mixed ? (fluidLinks?.some((d) => d === "E" || d === "W") ? 1 : 0) : pipeRot(this.sb, id, x, y, all) };
     if (crossLinks) b.pair = pairOf(links);
     this.at.set(k, this.blocks.length);
     this.blocks.push(b);
@@ -61,8 +65,20 @@ class Builder {
   module(m: ModulePlan, ox: number, oy: number) {
     for (const p of m.machines) this.add({ id: p.machine, x: ox + p.x, y: oy + p.y, r: p.rot });
     for (const p of m.poles) this.add({ id: p.pole, x: ox + p.x, y: oy + p.y, r: 0 });
-    for (const p of m.pieces as PlacedPiece[]) this.piece(p.pieceId, ox + p.x, oy + p.y, p.links, p.crossLinks);
+    const fluid = (net: string) => m.nets.find((n) => n.id === net)?.kind === "fluide";
+    for (const p of m.pieces as PlacedPiece[]) this.piece(p.pieceId, ox + p.x, oy + p.y, p.links, p.crossLinks, p.crossNet ? (fluid(p.net) ? p.links : fluid(p.crossNet) ? p.crossLinks : undefined) : undefined);
   }
+}
+
+/** Plusieurs modules, chacun à sa place (S56 : étapes collées, vérifiées ensemble par le bac à sable). */
+export function layoutFromModules(list: { m: ModulePlan; x: number; y: number }[], sb: SbCatalog): Converted & { starts: number[] } {
+  const b = new Builder(sb);
+  const starts: number[] = [];
+  for (const { m, x, y } of list) {
+    starts.push(b.blocks.length);
+    b.module(m, x, y);
+  }
+  return { layout: { blocks: b.blocks, wires: [] }, width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts };
 }
 
 export function layoutFromModule(m: ModulePlan, sb: SbCatalog): Converted {
@@ -91,7 +107,7 @@ export function layoutFromFactory(f: FactoryPlan, sb: SbCatalog, cat: Catalog, i
     if (o.cross) {
       const kinds = new Set([setOf(o.net)?.kind, setOf(o.cross.net)?.kind]);
       const piece = kinds.size > 1 ? cat.crossings.mixte : kinds.has("fluide") ? cat.crossings.fluide : cat.crossings.objet;
-      b.piece(piece?.id ?? null, x, y, [...o.links], [...o.cross.links]);
+      b.piece(piece?.id ?? null, x, y, [...o.links], [...o.cross.links], setOf(o.net)?.kind === "fluide" ? [...o.links] : setOf(o.cross.net)?.kind === "fluide" ? [...o.cross.links] : undefined);
     } else {
       const role = roleOf(o.links), set = setOf(o.net);
       b.piece(set ? set.pieces[role === "croisement" ? "droit" : role].id : null, x, y, [...o.links]);

@@ -119,6 +119,10 @@ function contacts(f: FactoryPlan, name: Name, color: Map<string, string>): strin
     const y = (p.y + n.end.y + 0.5 + STEP[n.end.dir].y / 2) * C;
     s += `<circle class="u-contact" cx="${x}" cy="${y}" r="7" fill="${color.get(n.item) ?? "#9aa7b4"}" data-tip="${esc(t("uf.contact", { item: name(n.item) }))}"/>`;
   }
+  // S56 : machine contre machine, le point est sur le bord commun (la case de la machine suivante touchée par le port).
+  for (const c of f.touches ?? []) {
+    s += `<circle class="u-contact" cx="${(c.x + 0.5) * C}" cy="${(c.y + 0.5) * C}" r="7" fill="${color.get(c.item) ?? "#9aa7b4"}" data-tip="${esc(t("uf.touch", { item: name(c.item) }))}"/>`;
+  }
   return s;
 }
 

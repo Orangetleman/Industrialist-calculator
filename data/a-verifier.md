@@ -931,3 +931,10 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   ralentit, pour qu'on voie le bouchon (surproduction) et ses effets sur les étapes d'avant. Un croisement collé à un port y fait entrer
   ses deux flux, venus de n'importe où. Débit d'un contact : pas de limite connue, seule la vitesse de la machine compte
   (« je pense pas que ça soit limité ») ; rien trouvé sur les wikis : **à vérifier en jeu**.
+- **BAS-12** (S56, 2026-10-31, choix faits en attendant confirmation) : (a) l'autre voie d'un croisement collé à un port
+  n'entre que si elle est du même type que le port (un croisement objet × fluide sur un port objet n'y fait entrer que
+  l'objet, BAS-07 d) ; la maquette S56 (cas a) dessinait un objet et un fluide par un même port : est-ce possible en jeu ?
+  (b) un simple tuyau (pas un croisement) posé sur un port de sortie qui amène une entrée reçoit aussi la production :
+  le moteur y voit un mélange et rejette le plan. (c) étapes collées : seulement une machine contre une machine, et le
+  port de sortie contre un port d'entrée du client (le raccord automatique du bac à sable, BAS-07 b) ; une sortie contre
+  un port de sortie qui consomme reste à faire (liaison choisie à la main).

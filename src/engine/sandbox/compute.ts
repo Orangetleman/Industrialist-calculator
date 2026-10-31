@@ -65,7 +65,8 @@ export type SandboxResult = {
   alerts: { a: Alert; n: number }[];
 };
 
-type Term = { u: number; p: PlacedPort; lane: string };
+/** `side` : arrivée par l'autre voie d'un croisement collé au port (elle n'apporte que ce que la machine peut consommer). */
+type Term = { u: number; p: PlacedPort; lane: string; side?: boolean };
 type Comp = { lanes: string[]; src: Term[]; snk: Term[]; open: string[]; conns: { a: string; b: string }[]; items: Set<string>; at: number };
 
 /*
@@ -268,7 +269,15 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
       const b = node(q.u, laneOf(q.u, q.p));
       if (pid(u, p) < pid(q.u, q.p)) conns.push({ a, b });
       par.set(find(a), find(b));
-    } else if (q.p.d !== "l") terms.push({ u: q.u, p: q.p, lane: a });
+    } else if (q.p.d !== "l") {
+      terms.push({ u: q.u, p: q.p, lane: a });
+      // Croisement collé à un port (BAS-11) : son autre voie, du même type que le port, y fait entrer son flux aussi
+      // (même par un port de sortie) ; la production ne part que dans la voie branchée sur le port.
+      if (pa.role === "croisement") {
+        const other = g.ports.find((o) => o.cells && o.t === q.p.t && laneOf(u, o) !== laneOf(u, p));
+        if (other) terms.push({ u: q.u, p: { ...q.p, d: "e" }, lane: node(u, laneOf(u, other)), side: true });
+      }
+    }
   }
   for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (p.cells && !linked.has(pid(u, p))) open.push(node(u, laneOf(u, p)));
   visit = Infinity;
@@ -310,7 +319,9 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     for (const c of comps.values()) { c.items = new Set(); for (const s of c.src) { const i = outItem(s.u, s.p); if (i) c.items.add(i); } }
     for (const [u, mi] of MI) {
       const d = D(u), arr = new Set<string>();
-      for (const t of inTerms.get(u) ?? []) for (const i of compOf.get(t)!.items) arr.add(i);
+      // L'autre voie d'un croisement n'apporte que ce que la recette choisie (sinon l'une des recettes) consomme.
+      const chosen = d.recipes.find((r) => r.id === byU.get(u)!.choice);
+      for (const t of inTerms.get(u) ?? []) for (const i of compOf.get(t)!.items) if (!t.side || (chosen ? i in chosen.in : d.recipes.some((r) => i in r.in))) arr.add(i);
       mi.cand = arr.size ? d.recipes.filter((r) => [...arr].every((i) => i in r.in)) : d.recipes;
       mi.rec = mi.cand.length === 1 ? mi.cand[0]! : mi.cand.find((r) => r.id === byU.get(u)!.choice) ?? null;
       mi.shown = mi.rec ? mi.rec.id : mi.cand.length > 1 ? "?" : null;
@@ -343,7 +354,7 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
       const laneState = (l: string, o: Partial<LaneState>): LaneState => { const [u, lane] = laneId(l); return { u, lane, item: null, mixed: false, flow: 0, offered: 0, cap: capOf(l), over: false, ...o }; };
       if (!item) { // vide ou mélangé : rien ne passe
         for (const s of srcs) { const i = outItem(s.u, s.p)!; add(supp, `${s.u}|${i}`, sup(s)); add(sent, `${s.u}|${i}`, c.snk.length || c.items.size > 1 ? 0 : sup(s)); }
-        for (const s of snks) for (const i of Object.keys(MI.get(s.u)!.rec!.in)) if (c.items.size > 1 || !isFluid(i) === (s.p.t === "o")) add(deliv, `${s.u}|${i}`, 0);
+        for (const s of snks) if (!s.side) for (const i of Object.keys(MI.get(s.u)!.rec!.in)) if (c.items.size > 1 || !isFluid(i) === (s.p.t === "o")) add(deliv, `${s.u}|${i}`, 0);
         for (const l of c.lanes) lanes.set(l, laneState(l, { mixed: c.items.size > 1 }));
         continue;
       }

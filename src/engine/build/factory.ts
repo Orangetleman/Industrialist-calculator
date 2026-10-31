@@ -8,7 +8,10 @@
 import type { PortsEntry } from "../extension-types.ts";
 import type { Catalog } from "./catalog.ts";
 import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
-import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
+import type { SbCatalog } from "../sandbox/catalog.ts";
+import { layoutFromModules } from "../schematic/convert.ts";
+import { checkLayout, feedsOf, runFor } from "./verify.ts";
+import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withoutNet, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
 import { Grid, route, type Occupant } from "./route.ts";
 import { msg, type Message } from "../message.ts";
 
@@ -80,6 +83,8 @@ export type FactoryInput = {
   /** Parcelle du joueur, en cases (sert au placement : on évite d'en sortir). */
   plot: { w: number; h: number };
   options?: FactoryOptions;
+  /** S56 : catalogue du bac à sable, pour vérifier chaque module et chaque étape collée (sans lui, rien n'est vérifié). */
+  sb?: SbCatalog | null;
 };
 /** Avancement : part faite (0 à 1) et étape en cours, en mots de joueur. */
 export type FactoryProgress = (done: number, label: Message) => void;
@@ -110,6 +115,8 @@ export type FactoryPlan = {
   netCells: Record<string, number>;
   /** Liaisons collées (« fournisseur>client »), sans tuyau. */
   glued: string[];
+  /** S56 : liaisons collées machine contre machine (le port de sortie du fournisseur touche le client) : la case de contact. */
+  touches: { from: string; to: string; item: string; x: number; y: number }[];
   /** Liaisons non tracées (« objet : fournisseur → client »). */
   problems: Message[];
   /** Tuyaux des produits à évacuer, jusqu'au bord de l'usine (S27). */
@@ -156,7 +163,7 @@ export function turnModule(m: ModulePlan): ModulePlan {
     ...m,
     width: m.height,
     height: m.width,
-    machines: m.machines.map((q) => ({ ...rect(q), cells: q.cells.map(cell), power: q.power.map(point), ports: q.ports.map((pt) => ({ ...pt, cell: cell(pt.cell), facing: TURN[pt.facing] })) })),
+    machines: m.machines.map((q) => ({ ...rect(q), rot: ((q.rot + 1) % 4) as typeof q.rot, cells: q.cells.map(cell), power: q.power.map(point), ports: q.ports.map((pt) => ({ ...pt, cell: cell(pt.cell), facing: TURN[pt.facing] })) })),
     pieces: m.pieces.map((pc) => ({ ...cell(pc), links: pc.links.map((d) => TURN[d]), ...(pc.crossLinks ? { crossLinks: pc.crossLinks.map((d) => TURN[d]) } : {}) })),
     nets: m.nets.map((n) => ({ ...n, end: n.end ? { ...cell(n.end), dir: TURN[n.end.dir] } : null })),
     poles: m.poles.map(rect),
@@ -191,6 +198,8 @@ export function factoryInput(
     ports: Record<string, PortsEntry>;
     /** Taille réelle d'une étape sans module (ensemble modulaire posé, S14). */
     reserve?: (key: string) => { w: number; h: number; label: string } | null;
+    /** S56 : catalogue du bac à sable, pour vérifier les plans de pose. */
+    sb?: SbCatalog | null;
   },
   cat: Catalog,
   plot: { w: number; h: number },
@@ -218,7 +227,7 @@ export function factoryInput(
       .filter(({ left }) => left > 1e-6)
       .map(({ b, left }): FactoryEvacReq => ({ from: s.key, item: b.item, perMin: left, ...(options.evacSides?.[b.item] ? { side: options.evacSides[b.item] } : {}) })),
   );
-  return { steps, edges, evac, names, cat, plot, options };
+  return { steps, edges, evac, names, cat, plot, options, ...(look.sb ? { sb: look.sb } : {}) };
 }
 
 type Box = FactoryBox & { placed: boolean; variants: ModulePlan[]; req: ModuleRequest | null; entry: PortsEntry | null; size: { w: number; l: number } | null };
@@ -245,7 +254,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   progress(0, msg("fac.step.plans"));
   const maxD = Math.max(0, ...input.steps.map((s) => s.depth));
   const boxes: Box[] = input.steps.map((s) => {
-    const mod = s.req ? designModule(s.req, s.entry, s.size, cat, name) : null;
+    const mod = s.req ? designModule(s.req, s.entry, s.size, cat, name, input.sb ?? null) : null;
     return { key: s.key, machine: s.machine, label: s.label, sub: s.sub, w: mod?.width ?? s.reserve?.w ?? 12, h: mod?.height ?? s.reserve?.h ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: s.power, variants: mod ? fourTurns(mod) : [], rot: 0, req: s.req, entry: s.entry, size: s.size, ...(!mod && s.reserve ? { assembly: true } : {}) };
   });
   const byKey = new Map(boxes.map((b) => [b.key, b]));
@@ -262,6 +271,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     evacs: [],
     netCells: {},
     glued: [],
+    touches: [],
     problems: [],
     poleNodes: [],
     links: [],
@@ -443,9 +453,65 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       }
     }
   };
+  // S56, BAS-11 (Q4) : la sortie d'une étape collée à un port d'entrée de la machine suivante, sans tuyau. Seul ce
+  // que la machine suivante consomme passe ; le surplus fait un bouchon (le fournisseur ralentit). Une machine de
+  // chaque côté ; essayé seulement avec le bac à sable pour vérifier que chacune reçoit tout.
+  type Touch = { a: ModulePlan; adx: number; ady: number; b: ModulePlan; r: number; ox: number; oy: number; at: Pt };
+  const touchMemo = new WeakMap<ModulePlan, Map<string, Touch | null>>();
+  const touchOf = (p: Box, b: Box, item: string): Touch | null => {
+    const pm = p.mod;
+    if (!input.sb || !pm || !p.req || !b.req || pm.count !== 1 || pm.folds !== 1 || !pm.config || pm.config.assign.some((a) => a.shared)) return null;
+    if ((input.evac ?? []).some((ev) => ev.from === p.key && ev.item === item)) return null;
+    const memo = touchMemo.get(pm) ?? new Map<string, Touch | null>();
+    touchMemo.set(pm, memo);
+    const mk = `${b.key}|${item}`;
+    if (memo.has(mk)) return memo.get(mk)!;
+    memo.set(mk, null);
+    const outA = pm.config.assign.find((a) => a.item === item && a.role === "sortie");
+    const runA = runFor(input.sb, p.req);
+    const runB = runFor(input.sb, b.req);
+    if (!outA || !runA || !runB) return null;
+    const { m: a, dx: adx, dy: ady } = withoutNet(pm, item, "sortie", p.req, cat, name);
+    const p0 = a.machines[0]!.ports.find((q) => q.index === outA.port)!;
+    const cellsOf = (m: ModulePlan, ox = 0, oy = 0) => [
+      ...m.machines.flatMap((q) => q.cells),
+      ...m.pieces,
+      ...m.poles.flatMap((q) => Array.from({ length: q.w * q.h }, (_, i) => ({ x: q.x + (i % q.w), y: q.y + Math.floor(i / q.w) }))),
+    ].map((c) => `${c.x + ox},${c.y + oy}`);
+    const occA = new Set(cellsOf(a));
+    const tries: (Touch & { area: number })[] = [];
+    b.variants.forEach((v, r) => {
+      if (v.count !== 1 || v.folds !== 1 || !v.config || v.config.assign.some((x) => x.shared) || !v.nets.some((n) => n.item === item && n.role === "entrée")) return;
+      const bm = withoutNet(v, item, "entrée", b.req!, cat, name).m;
+      for (const q of bm.machines[0]!.ports) {
+        if (q.type !== p0.type || q.direction !== "entrée" || q.facing !== OPPOSITE[p0.facing]) continue;
+        // La case du bord de B, voisine du port, vient sur la case que touche le port de sortie de A.
+        const ox = p0.cell.x - (q.cell.x - STEP[q.facing].x);
+        const oy = p0.cell.y - (q.cell.y - STEP[q.facing].y);
+        if (cellsOf(bm, ox, oy).some((k) => occA.has(k))) continue;
+        const x0 = Math.min(0, ox), y0 = Math.min(0, oy);
+        const area = (Math.max(a.width, ox + bm.width) - x0) * (Math.max(a.height, oy + bm.height) - y0);
+        tries.push({ a, adx, ady, b: bm, r, ox, oy, at: p0.cell, area });
+      }
+    });
+    for (const t of tries.sort((u, v) => u.area - v.area).slice(0, 4)) {
+      const conv = layoutFromModules([{ m: t.a, x: 0, y: 0 }, { m: t.b, x: t.ox, y: t.oy }], input.sb);
+      const fa = feedsOf(t.a), fb = feedsOf(t.b, t.ox, t.oy);
+      if (conv.skipped.length || !fa || !fb) continue;
+      const start = conv.starts[1]!;
+      const ck = checkLayout(input.sb, conv.layout, [...fa, ...fb], (blk) => (blk.id === pm.machine && blk.u < start ? runA : blk.id === b.req!.machine && blk.u >= start ? runB : undefined), true);
+      if (ck.ok) {
+        memo.set(mk, t);
+        return t;
+      }
+    }
+    return null;
+  };
+  let touchAt: FactoryPlan["touches"] = [];
   const place = (CLR: number, wDist: number, bySize: boolean) => {
     for (const b of boxes) b.placed = false;
     const glued: string[] = [];
+    touchAt = [];
     const sep = (b: Box, x: number, y: number, o: Box) => x + b.w + CLR <= o.x || o.x + o.w + CLR <= x || y + b.h + CLR <= o.y || o.y + o.h + CLR <= y;
     const free = (b: Box, x: number, y: number, except?: Box) => x >= 0 && y >= 0 && boxes.every((o) => !o.placed || o === b || o === except || sep(b, x, y, o));
     const order = [...boxes].sort((a, b) => (bySize ? b.w * b.h - a.w * a.h || a.col - b.col : a.col - b.col || b.w * b.h - a.w * a.h));
@@ -455,6 +521,20 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       const prods = producers(b.key);
       if (glue && prods.length === 1 && edgesAll.filter((e) => e.from === prods[0]!.e.from).length === 1) {
         const { e, p } = prods[0]!;
+        const t = p.placed ? touchOf(p, b, e.item) : null;
+        if (t) {
+          const keep = { mod: b.mod, rot: b.rot, w: b.w, h: b.h };
+          Object.assign(b, { rot: t.r, mod: t.b, w: t.b.width, h: t.b.height });
+          const [ax, ay] = [p.x + t.adx, p.y + t.ady];
+          if (free(b, ax + t.ox, ay + t.oy, p)) {
+            Object.assign(p, { mod: t.a, x: ax, y: ay, w: t.a.width, h: t.a.height });
+            Object.assign(b, { x: ax + t.ox, y: ay + t.oy, placed: true });
+            glued.push(`${p.key}>${b.key}`);
+            touchAt.push({ from: p.key, to: b.key, item: e.item, x: t.at.x, y: t.at.y });
+            continue;
+          }
+          Object.assign(b, keep);
+        }
         const out = endOf(p, e.item, "sortie");
         const inn = endOf(b, e.item, "entrée");
         if (out && inn && out.dir === "E" && inn.dir === "W") {
@@ -1488,6 +1568,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     nets,
     netCells,
     glued,
+    touches: touchAt.map((t) => ({ ...t, x: byKey.get(t.from)!.x + t.x, y: byKey.get(t.from)!.y + t.y })),
     problems,
     evacs,
     poleNodes,

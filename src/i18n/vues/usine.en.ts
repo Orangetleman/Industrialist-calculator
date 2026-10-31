@@ -411,6 +411,7 @@ export const usineEn: { [K in keyof typeof usineFr]: Msg } = {
   "uf.tip.sends": "Sends: {list}",
   "uf.tip.open": "Click to open the module alongside",
   "uf.contact": "Direct contact: {item}, no pipe",
+  "uf.touch": "Machines touching: {item} goes from the output port straight into the next machine (only what it uses passes; the surplus backs up)",
   "uf.svg.aria": "Whole factory seen from above: {w} × {h} cells",
   "uf.plot.tip": "Your build area: {w} × {h} cells",
   "uf.plot.label": "your build area {w} × {h}",
