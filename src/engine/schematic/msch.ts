@@ -54,7 +54,7 @@ class Reader {
 }
 
 async function pipe(data: Uint8Array, s: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-  const out = new Response(new Blob([data as BlobPart]).stream().pipeThrough(s));
+  const out = new Response(new Response(data as Uint8Array<ArrayBuffer>).body!.pipeThrough(s));
   return new Uint8Array(await out.arrayBuffer());
 }
 
