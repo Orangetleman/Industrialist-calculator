@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maquette S56 — Génération par contacts</title>
 <style>
-:root { --bg:#151515; --pan:#1f1f1f; --ink:#e8e8e8; --mut:#9a9a9a; --acc:#ffd37f; --line:#3a3a3a; --obj:#f0c330; --flu:#4aa3df; --ok:#7bc96f; --bad:#e55454; }
+:root { --bg:#151515; --pan:#1f1f1f; --ink:#e8e8e8; --mut:#9a9a9a; --acc:#ffd37f; --line:#3a3a3a; --ok:#7bc96f; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, sans-serif; padding:16px; }
 main { max-width:1100px; margin:auto; }
 h1 { color:var(--acc); font-size:22px; } h2 { color:var(--acc); font-size:17px; margin-top:28px; }
-.cmp { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap:14px; }
+.cmp { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap:14px; }
 .card { background:var(--pan); border:1px solid var(--line); border-radius:6px; padding:12px; }
 .card h3 { margin:0 0 8px; font-size:15px; }
 svg { width:100%; height:auto; background:#111; border-radius:4px; }
-table { border-collapse:collapse; width:100%; margin-top:8px; } td { padding:3px 6px; border-bottom:1px solid #2c2c2c; }
-td:last-child { text-align:right; } .good { color:var(--ok); } .muted { color:var(--mut); }
+.muted { color:var(--mut); } .good { color:var(--ok); }
+.rule { background:#1d2a1d; border-left:3px solid var(--ok); padding:8px 12px; margin:6px 0; }
 .q { background:#2a2414; border-left:3px solid var(--acc); padding:8px 12px; margin:8px 0; }
 .leg span { display:inline-flex; align-items:center; gap:5px; margin-right:14px; font-size:13px; }
 .sw { width:14px; height:14px; display:inline-block; border-radius:2px; }
@@ -23,69 +23,49 @@ ol li { margin:4px 0; }
 </style>
 </head>
 <body><main>
-<h1>S56 — Plans générés par contacts (machines et tuyaux collés)</h1>
-<p>Dessins <b>illustratifs</b> (machines de 3 × 3, ports et débits inventés pour l'exemple) : ils montrent la logique, pas un vrai module. Le vrai calcul utilisera les ports relevés.</p>
-<p class="leg"><span><i class="sw" style="background:#4b4b4b"></i>machine</span><span><i class="sw" style="background:var(--obj)"></i>tuyau objet</span><span><i class="sw" style="background:var(--flu)"></i>tuyau fluide</span><span>▸ sens du flux</span><span><i class="sw" style="border:2px solid var(--acc)"></i>contact qui fait passer le flux</span></p>
+<h1>S56 — Plans générés avec les contacts (machines et tuyaux collés)</h1>
+<p>Dessins <b>illustratifs</b> (machines de 3 × 3, ports placés pour l'exemple) : ils montrent les règles, pas un vrai module. Le vrai calcul utilisera les ports relevés.</p>
+<p class="leg"><span><i class="sw" style="background:#4b4b4b"></i>machine</span><span><i class="sw" style="background:#f0c330"></i>tuyau objet</span><span><i class="sw" style="background:#4aa3df"></i>tuyau fluide</span><span>E / S : port d'entrée / de sortie</span><span><i class="sw" style="border:2px solid var(--acc)"></i>contact utilisé</span></p>
 
-<h2>1. Un module de 4 machines (1 objet, 1 fluide en entrée, 1 objet en sortie)</h2>
-<div class="cmp">
-  <div class="card"><h3>Aujourd'hui : un collecteur par ressource, une branche par machine</h3><svg id="now" viewBox="0 0 300 200"></svg>
-    <table><tr><td>Pièces de tuyau</td><td>34</td></tr><tr><td>Place au sol</td><td>14 × 10</td></tr><tr><td>Croisements</td><td>4</td></tr></table></div>
-  <div class="card"><h3>Proposé : les machines collées se passent les flux</h3><svg id="new" viewBox="0 0 300 200"></svg>
-    <table><tr><td>Pièces de tuyau</td><td class="good">6</td></tr><tr><td>Place au sol</td><td class="good">14 × 5</td></tr><tr><td>Croisements</td><td class="good">0</td></tr></table></div>
-</div>
+<h2>1. Les règles (vos réponses du 2026-10-31)</h2>
+<div class="rule"><b>Un port n'est qu'un point de contact.</b> Ce qui arrive sur un port, quel qu'il soit (même un port de sortie), va à l'entrée de la machine qui en a besoin, du même type (objet ou fluide).</div>
+<div class="rule"><b>Seul un port de sortie fait sortir quelque chose</b>, et seulement ce que la machine produit. Un port d'entrée ne fait rien ressortir : pas de traversée d'une machine.</div>
+<div class="rule"><b>Un croisement collé à un port</b> y fait entrer ses deux flux, venus de n'importe où : deux ressources par un seul port.</div>
+<div class="rule"><b>Pas de limite de débit sur un contact</b> : la seule limite est la vitesse de la machine (rien trouvé sur les wikis ; noté à vérifier en jeu).</div>
 
-<h2>2. Les contacts que le générateur saura utiliser</h2>
+<h2>2. Ce que le générateur saura faire</h2>
 <div class="cmp">
-  <div class="card"><h3>a. Tuyau collé à n'importe quel port</h3><svg id="a" viewBox="0 0 200 110"></svg><p class="muted">Le tuyau touche un port d'objet de la machine, même un port « sortie » : la ressource va à l'entrée qui en a besoin (relevé du 2026-10-13).</p></div>
-  <div class="card"><h3>b. Traversée d'une machine</h3><svg id="b" viewBox="0 0 200 110"></svg><p class="muted">Ce qui entre dans A par un port ressort par un autre port du même type vers B collée : A sert de raccord.</p></div>
-  <div class="card"><h3>c. Tuyau collé à un tuyau d'une autre liaison</h3><svg id="c" viewBox="0 0 200 110"></svg><p class="muted">Deux tuyaux qui se touchent se raccordent : le générateur les écarte (ou croise) quand ils portent deux ressources différentes, et s'en sert quand c'est la même.</p></div>
+  <div class="card"><h3>a. Deux ressources par un seul port</h3><svg id="a" viewBox="0 0 240 150"></svg><p class="muted">Le collecteur d'objets et celui de fluide se rejoignent sur un croisement collé au port : une seule branche au lieu de deux, et un port libéré pour coller une autre machine.</p></div>
+  <div class="card"><h3>b. Sortie collée à la machine suivante</h3><svg id="b" viewBox="0 0 240 150"></svg><p class="muted">Le port de sortie de A touche un port de B (n'importe lequel) : ce que A produit entre dans B sans tuyau. Utile entre deux étapes du plan.</p></div>
+  <div class="card"><h3>c. Tuyau collé à un port de sortie</h3><svg id="c" viewBox="0 0 240 150"></svg><p class="muted">Un tuyau d'arrivée peut toucher n'importe quel port libre, même « sortie » : la ressource va à la bonne entrée. Le générateur choisit le port qui raccourcit le tuyau.</p></div>
 </div>
 
 <h2>3. Comment le générateur choisira</h2>
 <ol>
-  <li>Il essaie d'abord les dispositions <b>collées</b> (rangée de machines qui se touchent, tuyaux posés contre un seul port), puis l'actuelle avec collecteurs.</li>
-  <li>Chaque essai passe par le <b>moteur du bac à sable</b> : si une machine ne reçoit pas tout, ou si deux ressources se mélangent sur un contact, l'essai est rejeté.</li>
+  <li>Il essaie les dispositions qui utilisent ces contacts (croisements aux ports, étapes collées, port le plus proche), puis l'actuelle.</li>
+  <li>Chaque essai passe par le <b>moteur du bac à sable</b> : si une machine ne reçoit pas tout, ou si un contact mélange deux ressources qu'il ne doit pas, l'essai est rejeté.</li>
   <li>Parmi les essais valides, il garde le meilleur selon <b>vos priorités</b> (la place d'abord, puis la forme, le prix, les pièces). Jamais de tuyaux rusty.</li>
-  <li>Le prix et la liste d'achat comptent les pièces réellement posées (moins de tuyaux = moins cher).</li>
-  <li>« Ouvrir dans le bac à sable » montre le plan avec ses liaisons, et le moteur y affiche les mêmes débits.</li>
+  <li>Le prix et la liste d'achat comptent les pièces réellement posées.</li>
+  <li>« Ouvrir dans le bac à sable » montre le plan, et le moteur y affiche les mêmes débits.</li>
 </ol>
 
-<h2>4. Questions avant de coder</h2>
-<div class="q"><b>Q1.</b> Traversée (2b) : une ressource dont la machine A <b>n'a pas besoin</b> peut-elle quand même entrer dans A et ressortir vers B ? Ou seulement une ressource que A utilise elle-même (et dans ce cas, A prend d'abord sa part) ?</div>
-<div class="q"><b>Q2.</b> Y a-t-il une limite de débit à travers un contact machine-machine (comme le débit d'un tuyau), ou passe-t-il tout ?</div>
-<div class="q"><b>Q3.</b> Une machine qui produit peut-elle pousser sa sortie dans une machine collée qui a <b>la même recette</b> (pour la faire suivre jusqu'au bout de la rangée), ou la sortie ne va-t-elle que vers une machine qui la consomme ?</div>
+<h2>4. Une question</h2>
+<div class="q"><b>Q4.</b> Pour 2b : si le port de sortie de A touche un port de B, est-ce que <b>tout</b> ce que A produit passe dans B (même ce dont B n'a pas besoin, qui bloquerait A), ou seulement ce que B consomme, le reste sortant par les autres ports de sortie de A ?</div>
 </main>
 <script>
-const C = 20, M = "#4b4b4b";
+const C = 20, M = "#4b4b4b", O = "#f0c330", F = "#4aa3df";
 const r = (x, y, w, h, f, s = "") => `<rect x="${x*C}" y="${y*C}" width="${w*C}" height="${h*C}" fill="${f}" ${s}/>`;
-const mach = (x, y, l) => r(x, y, 3, 3, M, `stroke="#777" rx="3"`) + `<text x="${(x+1.5)*C}" y="${(y+1.7)*C}" fill="#ddd" font-size="11" text-anchor="middle">${l}</text>`;
-const pipe = (cells, col) => cells.map(([x, y]) => r(x + .3, y + .3, .4, .4, col)).join("") + cells.slice(1).map(([x, y], i) => { const [a, b] = cells[i]; return `<line x1="${(a+.5)*C}" y1="${(b+.5)*C}" x2="${(x+.5)*C}" y2="${(y+.5)*C}" stroke="${col}" stroke-width="7"/>`; }).join("");
-const run = (x0, x1, y) => Array.from({ length: x1 - x0 + 1 }, (_, i) => [x0 + i, y]);
-const col = (x, y0, y1) => Array.from({ length: y1 - y0 + 1 }, (_, i) => [x, y0 + i]);
-const contact = (x, y, v) => `<line x1="${x*C}" y1="${y*C + (v ? 3 : 0)}" x2="${x*C + (v ? 0 : 3*C)}" y2="${y*C + (v ? 3*C - 3 : 0)}" stroke="#ffd37f" stroke-width="3"/>`;
-const arrow = (x, y, d) => `<text x="${x*C}" y="${y*C+5}" fill="#fff" font-size="16" text-anchor="middle">${d}</text>`;
-const O = "#f0c330", F = "#4aa3df";
+const mach = (x, y, l) => r(x, y, 3, 3, M, `stroke="#777" rx="3"`) + `<text x="${(x+1.5)*C}" y="${(y+1.8)*C}" fill="#ddd" font-size="12" text-anchor="middle">${l}</text>`;
+const port = (x, y, t) => r(x + .25, y + .25, .5, .5, "#222", `stroke="#aaa"`) + `<text x="${(x+.5)*C}" y="${(y+.68)*C}" fill="#eee" font-size="8" text-anchor="middle">${t}</text>`;
+const seg = (cells, col) => cells.slice(1).map(([x, y], i) => { const [a, b] = cells[i]; return `<line x1="${(a+.5)*C}" y1="${(b+.5)*C}" x2="${(x+.5)*C}" y2="${(y+.5)*C}" stroke="${col}" stroke-width="7"/>`; }).join("");
+const cross = (x, y) => r(x + .1, y + .1, .8, .8, "#333", `stroke="#ffd37f" stroke-width="2"`) + `<line x1="${x*C+4}" y1="${(y+.5)*C}" x2="${(x+1)*C-4}" y2="${(y+.5)*C}" stroke="${O}" stroke-width="4"/><line x1="${(x+.5)*C}" y1="${y*C+4}" x2="${(x+.5)*C}" y2="${(y+1)*C-4}" stroke="${F}" stroke-width="4"/>`;
+const hit = (x, y, w, h) => r(x, y, w, h, "none", `stroke="#ffd37f" stroke-width="3"`);
 
-let s = "";
-for (let i = 0; i < 4; i++) s += mach(1 + i * 3.5, 3.5, "M" + (i + 1));
-s += pipe(run(0, 14, 1), O) + pipe(run(0, 14, 2), F);
-for (let i = 0; i < 4; i++) { const x = 2 + i * 3.5; s += pipe([[x, 1], [x, 2], [x, 3]], O); s += pipe([[x + 1, 2], [x + 1, 3]], F); }
-s += pipe(run(0, 14, 8), O);
-for (let i = 0; i < 4; i++) s += pipe([[2 + i * 3.5, 6.5], [2 + i * 3.5, 7.5]], O);
-s += arrow(.5, 1, "▸") + arrow(.5, 2, "▸") + arrow(14.5, 8, "▸");
-document.getElementById("now").innerHTML = s;
-
-s = "";
-for (let i = 0; i < 4; i++) s += mach(1 + i * 3, 3, "M" + (i + 1));
-s += pipe([[0, 3.5], [1, 3.5]], O) + pipe([[0, 5], [1, 5]], F) + pipe(run(13, 14, 4), O);
-for (let i = 1; i < 4; i++) s += contact(1 + i * 3, 3, true);
-s += arrow(.5, 3.5, "▸") + arrow(.5, 5, "▸") + arrow(14.5, 4, "▸");
-for (let i = 1; i < 4; i++) s += arrow(1 + i * 3, 2.6, "▸");
-document.getElementById("new").innerHTML = s;
-
-document.getElementById("a").innerHTML = mach(3, 1, "A") + pipe(col(4.5, 4, 5), O) + `<text x="${6.2*C}" y="${4.6*C}" fill="#aaa" font-size="11">port « sortie »</text>` + arrow(4.5, 5.3, "▴");
-document.getElementById("b").innerHTML = mach(2, 1, "A") + mach(5, 1, "B") + contact(5, 1, true) + pipe([[0, 2], [1, 2]], O) + arrow(.5, 2, "▸") + arrow(5, .7, "▸");
-document.getElementById("c").innerHTML = pipe(run(1, 8, 2), O) + pipe(col(5, 3, 5), O) + `<circle cx="${5.5*C}" cy="${2.5*C}" r="9" fill="none" stroke="#ffd37f" stroke-width="2"/>` + `<text x="${6*C}" y="${4.5*C}" fill="#aaa" font-size="11">même ressource : raccord</text>`;
+document.getElementById("a").innerHTML = mach(4, 3, "M") + seg([[0, 2], [5, 2]], O) + seg([[5, 0], [5, 2]], F) + cross(5, 2) + port(5, 3, "E") + hit(5, 2.9, 1, .2)
+  + `<text x="${0.2*C}" y="${1.6*C}" fill="#aaa" font-size="10">objet →</text><text x="${5.8*C}" y="${0.8*C}" fill="#aaa" font-size="10">↓ fluide</text>`;
+document.getElementById("b").innerHTML = mach(1, 2, "A") + mach(4, 2, "B") + port(3, 3, "S") + port(4, 3, "E") + hit(3.9, 3, .2, 1)
+  + `<text x="${4*C}" y="${1.5*C}" fill="#aaa" font-size="10" text-anchor="middle">sans tuyau</text>`;
+document.getElementById("c").innerHTML = mach(4, 2, "M") + port(4, 2, "E") + port(6, 4, "S") + seg([[11, 4.5], [7, 4.5]], O) + hit(6.9, 4, .2, 1)
+  + `<text x="${8*C}" y="${3.6*C}" fill="#aaa" font-size="10">arrivée sur le port S</text>`;
 </script>
 </body></html>
