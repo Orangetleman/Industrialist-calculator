@@ -14,6 +14,7 @@
 import type { GameData } from "./data.ts";
 import {
   circuitRate,
+  dishEfficiency,
   dishesNeeded,
   groupSum,
   satelliteBoost,
@@ -298,8 +299,9 @@ export function researchModel(p: RpParams, data: GameData | null, setup: Researc
       const S = controllers.reduce((a, c) => a + c.count, 0);
       dishesFor100 = dishesNeeded(S, liquids);
       if (s.dish.efficiency === null && s.dish.dishes !== null) {
-        // Faute de formule (RP-03) : chaque parabole ajoute la même part, jusqu'à 100 %.
-        efficiency = Math.min(1, s.dish.dishes / Math.max(1, dishesFor100));
+        // Faute de formule au wiki (RP-03) : efficacité linéaire sur les paraboles nécessaires non
+        // arrondies (source : Industrialist Calculator).
+        efficiency = dishEfficiency(s.dish.dishes, S, liquids);
       }
       boost = satelliteBoost(p, liquids) * efficiency;
     }

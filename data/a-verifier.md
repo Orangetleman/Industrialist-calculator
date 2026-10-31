@@ -889,3 +889,10 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
 - Satellite buff : paraboles = √(S × R) + S sans arrondi (le wiki arrondit) ; efficacité linéaire (supposition, RP-03).
 - Bonus RS4 sous le plafond : plafond T4 × 0,000025 × nombre de RS4. Absent du wiki relevé.
 - Pollution et mois : formules de Pollywrath (arbres, Residue ASU, Igloo Farm) ; origine wiki à trouver.
+
+## S48 — Moteur de recherche (2026-10-31)
+
+- Efficacité des paraboles : le moteur prend min(100 %, paraboles ÷ (S + √(S × R))), sans arrondi, linéaire (source : Industrialist Calculator). Le nombre de paraboles conseillé reste ⌈S + √(S × R)⌉ (wiki). À vérifier avec RP-03.
+- Bonus des RS4 sous le plafond : wiki = plafond ÷ 40 000 × n × 6 ÷ t (t = 5 ticks), Industrialist Calculator = plafond × 0,000025 × n, soit 1,2 fois moins. Le moteur garde le wiki (RP-09).
+- « RS4 buff » (facteur d'argent des RS3 × 2) : absent du wiki relevé, non repris.
+- Capture du 2026-10-18 : wiki et Industrialist Calculator donnent le même résultat (+2,93 RP/s des paraboles, 7 paraboles ≥ 2,63 nécessaires → 100 %).

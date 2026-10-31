@@ -28,7 +28,7 @@ import {
   type ResearchSetup,
   type RpTier,
 } from "../src/engine/research-balance.ts";
-import { designResearch, evaluateStations, rpParams, softCapFactor, tierSumFromPanel, unlockTimeline } from "../src/engine/research-points.ts";
+import { circuitRate, designResearch, dishEfficiency, dishesExact, dishesNeeded, evaluateStations, rpParams, softCapFactor, tierSumFromPanel, unlockTimeline } from "../src/engine/research-points.ts";
 import type { OverridesFile } from "../src/engine/types.ts";
 import { progress } from "./engine-helpers.ts";
 import { say } from "../src/ui/engine-text.ts";
@@ -255,5 +255,33 @@ describe("Ma recherche : rendu (S20)", async () => {
     expect(html).toContain('value="Crankshaft"');
     expect(html).toContain('data-rsg="rs3:0:count"');
     expect(html).toContain("Light Oil");
+  });
+});
+
+describe("S48 : cas Industrialist Calculator avec les entrées de la capture", () => {
+  // Leurs formules (COMPARAISON-POLLYWRATH.md § 4), recalculées ici à la main.
+  const S = 2;
+  const R = 0.2;
+  it("paraboles : √(S × R) + S sans arrondi, efficacité linéaire, bonus 78 × log₁₀(R + 1) %", () => {
+    expect(dishesExact(S, R)).toBeCloseTo(2 + Math.sqrt(0.4), 12);
+    expect(dishesExact(S, R)).toBeLessThan(dishesNeeded(S, R));
+    expect(dishEfficiency(7, S, R)).toBe(1);
+    expect(dishEfficiency(dishesExact(S, R) / 2, S, R)).toBeCloseTo(0.5, 12);
+    const m = researchModel(p, data, detailed(), 50.4, RP0);
+    // Même résultat que le wiki sur cette capture : 47,47 × 0,78 × log₁₀(1,2) = 2,93.
+    expect(m.tiers[0]!.stationsRate * 0.78 * Math.log10(R + 1)).toBeCloseTo(2.93, 2);
+    expect(m.tiers[0]!.boostRate).toBeCloseTo(2.93, 2);
+  });
+  it("efficacité du modèle : 2 paraboles sur 2,63 nécessaires → 76 %, le bonus baisse d'autant", () => {
+    const s = detailed();
+    s.dish = { controllers: 2, rate: null, dishes: 2, efficiency: null };
+    const m = researchModel(p, data, s, null, null);
+    expect(m.efficiency).toBeCloseTo(2 / dishesExact(S, R), 9);
+    expect(m.tiers[0]!.boostRate).toBeCloseTo(m.tiers[0]!.stationsRate * 0.78 * Math.log10(1.2) * m.efficiency, 9);
+  });
+  it("bonus RS4 : le wiki (× 6 ÷ t, t = 5) donne 1,2 fois leur plafond × 0,000025 × n ; on garde le wiki (RP-09)", () => {
+    const cap = 100000;
+    const theirs = cap * 0.000025 * 3;
+    expect(circuitRate(p, cap, 3) / theirs).toBeCloseTo(6 / p.rs4.logicTicks, 9);
   });
 });

@@ -11,6 +11,8 @@
 //   RS4 (accrochée à une RS3, remplace son calcul) : même vitesse ; plafond = 150000·(log₂(C+1)+C^0,9)
 //         avec C = (n + 2·m_logic)·(…) ; circuits Logic : plafond/40000 × n_logic × 6/t RP/s
 //   Paraboles : + B × 0,78·log(R+1) (R : somme des valeurs des liquides) ; ⌈S + √(S·R)⌉ paraboles
+//         (wiki) ; efficacité = paraboles ÷ (S + √(S·R)) sans arrondi, linéaire, bornée à 100 %
+//         (source : Industrialist Calculator, RP-03)
 //   Plafond souple : vitesse × 10^(1−x) (RS4 : 10^(1−√x)), x = max(RP/plafond, 1)
 
 import { Chooser, type Criterion } from "./choose.ts";
@@ -87,6 +89,13 @@ export const circuitRate = (p: RpParams, cap: number, circuits: number) => (cap 
 /** Paraboles : multiplicateur ajouté à la production de base (log décimal), et paraboles nécessaires. */
 export const satelliteBoost = (p: RpParams, R: number) => (R > 0 ? p.satellite.boostCoef * Math.log10(R + 1) : 0);
 export const dishesNeeded = (S: number, R: number) => Math.ceil(S + Math.sqrt(S * R) - 1e-9);
+/** Paraboles pour 100 % sans arrondi (source : Industrialist Calculator, RP-03) : base de l'efficacité linéaire. */
+export const dishesExact = (S: number, R: number) => S + Math.sqrt(S * R);
+/** Efficacité des paraboles : min(1, paraboles ÷ nécessaires non arrondies), linéaire (source : Industrialist Calculator). */
+export const dishEfficiency = (dishes: number, S: number, R: number) => {
+  const need = dishesExact(S, R);
+  return need > 0 ? Math.min(1, Math.max(0, dishes) / need) : 1;
+};
 /**
  * Un tier entier, vu par ses deux grandeurs additives (S20) : `value` (RS1 : nombre de stations ;
  * RS2 à RS4 : somme des valeurs de recherche V) et `factor` (RS1, RS2 : nombre de stations ; RS3,
