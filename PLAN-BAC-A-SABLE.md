@@ -379,3 +379,21 @@ Reste à faire :
 - 6 et 12 : fenêtre « Réglages » (masquer les catégories vides d'un tier, continuer sans courant) ;
 - 8 : encadré rouge des bâtiments à supprimer (clic droit, zone) ;
 - 9 (gestes) : liaison machine ↔ poteau sur les deux prises, poteau ↔ poteau nœud à nœud dans le bon sens, re-clic sur un poteau = tout relier selon (1,0)/(0,1), jamais (1,1) ni (0,0) ; flèches de sens sur les câbles. La pose des câbles utilise encore l'ancienne règle (prise la plus proche).
+
+### Retours du 2026-10-31 : tous faits dans la maquette (suite le même jour)
+
+- 1 : fenêtre des touches. Légende des groupes de couleur ; conflits en rouge dans la liste (« aussi : … ») ;
+  boutons « Défaut » et « Aucune » sur chaque ligne ; Échap pendant « Changer » retire la touche ; clic sur une
+  touche du dessin pour choisir son action, ce qui met aussi en évidence les actions en conflit. « Toutes les
+  commandes » reste une aide de la maquette.
+- 4 : « Retour » depuis une fiche ouverte dans la base de données revient à la base.
+- 5 : statistiques repliables (clic sur le titre) et redimensionnables (poignée en bas à droite).
+- 6 et 12 : fenêtre « Réglages » : masquer les catégories vides d'un tier ; continuer le calcul sans courant
+  (décoché : la machine ralentit ou s'arrête).
+- 8 : clic droit maintenu ou zone de suppression : ce qui sera supprimé est encadré en rouge.
+- 9 : machine ↔ poteau sur les deux prises du poteau ; générateur → poteau ; poteau ↔ poteau prise à prise,
+  du poteau alimenté vers l'autre ; re-clic sur un poteau sélectionné : tout relier dans sa portée selon (1,0)
+  et (0,1), jamais (1,1) ni (0,0) ; une flèche au milieu de chaque câble montre son sens.
+
+Restent pour l'éditeur de bâtiments (code du site, lot à créer) : relever la catégorie d'un bâtiment (3) et la
+portée des câbles logiques (11).
