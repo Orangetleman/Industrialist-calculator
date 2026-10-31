@@ -155,6 +155,8 @@ import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
+import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
+import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
 import { buildSandboxCatalog, type SbCatalog } from "../engine/sandbox/index.ts";
 import { fact } from "../engine/modular.ts";
@@ -1298,6 +1300,31 @@ function portsLabel(machine: string): string {
   return st === "local" ? t("m.ports.local") : st === "manquant" ? t("m.ports.assumed") : "";
 }
 
+// ---------------------------------------------------------------- schéma du plan affiché (S55)
+/** Le plan affiché (module ou usine), converti à la demande en schéma .msch, le même format que le bac à sable. */
+let poseSchem: { name: string; conv: () => Converted } | null = null;
+const schemButtons = () =>
+  `<button type="button" class="link" data-msch="file">${t("m.schem.file")}</button> · <button type="button" class="link" data-msch="bac">${t("m.schem.bac")}</button>`;
+async function onSchem(kind: string): Promise<void> {
+  if (!poseSchem) return;
+  const c = poseSchem.conv(), name = poseSchem.name;
+  const s: Schematic = { name, description: "", labels: [], width: c.width, height: c.height, layout: c.layout };
+  if (kind === "bac") {
+    go({ page: "bac" });
+    sandbox.open(s);
+    return;
+  }
+  const u = URL.createObjectURL(new Blob([(await writeMsch(s)) as BlobPart], { type: "application/octet-stream" })), a = document.createElement("a");
+  a.href = u;
+  a.download = `${name.replace(/[\\/:*?"<>|]/g, "_")}.msch`;
+  a.click();
+  URL.revokeObjectURL(u);
+}
+$("pose-links").addEventListener("click", (e) => {
+  const b = (e.target as Element).closest<HTMLElement>("[data-msch]");
+  if (b) void onSchem(b.dataset.msch!);
+});
+
 function renderPose(): void {
   const p = plan!;
   const choices = p.steps.filter(isPosable);
@@ -1362,7 +1389,8 @@ function renderPose(): void {
   const factoryLine = inFactory?.mod
     ? t("m.pose.inFactory.html", { turn: turnText(inFactory.rot) ? t("m.pose.inFactory.turn", { turn: turnText(inFactory.rot) }) : "", w: String(inFactory.w), h: String(inFactory.h), btn: `<button type="button" class="link" data-focus="${esc(poseStep)}">${t("m.pose.seeInFactory")}</button>` })
     : `<button type="button" class="link" data-focus="${esc(poseStep)}">${t("m.pose.seeFactory")}</button> <span class="muted">${t("m.pose.recalc", { bg: fullFactory()?.plan ? "" : t("m.pose.bg") })}</span>`;
-  $("pose-links").innerHTML = `<p class="pose-actions"><button type="button" class="link" data-flow="${esc(poseStep)}">${t("m.pose.toFlow")}</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))}${colon()}${surveyText} ${icon("edit")}</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
+  poseSchem = { name: anyName(m.machine), conv: () => layoutFromModule(m, sandboxCatalog()) };
+  $("pose-links").innerHTML = `<p class="pose-actions">${schemButtons()} · <button type="button" class="link" data-flow="${esc(poseStep)}">${t("m.pose.toFlow")}</button> · <button type="button" class="link" data-edit="${esc(m.machine)}">${esc(anyName(m.machine))}${colon()}${surveyText} ${icon("edit")}</button></p><p class="pose-actions">${factoryLine}</p>${renderStepLinks(viewCtx(), poseStep)}`;
   $("pose-bar").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t(settings.usine.links ? "m.pose.links.on" : "m.pose.links.off")}</span></div>`;
   $("pose-head").innerHTML = info.head + stepSettingLine(poseStep) + renderPassagePick(base, vias, chosen ? viaKey(chosen) : "", anyName, advisedPassages(poseStep));
   $("pose-legend").innerHTML = info.legend;
@@ -1615,7 +1643,9 @@ function flowsOf(st: FactoryState): FactoryArrow[] {
 function renderFactory(): void {
   if (!currentFactory()) startFactory();
   const st = currentFactory()!;
-  $("pose-links").innerHTML = "";
+  const fp = currentFactory()?.plan;
+  poseSchem = fp ? { name: t("m.schem.factory"), conv: () => layoutFromFactory(fp, sandboxCatalog(), CATALOG, (id) => !!data.items.get(id)?.isFluid, settings.tier3Only) } : null;
+  $("pose-links").innerHTML = currentFactory()?.plan ? `<p class="pose-actions">${schemButtons()}</p>` : "";
   $("pose-bar").innerHTML = renderFactoryBar(settings.usine);
   $("pose-more-usine").innerHTML = renderFactoryMore(settings.usine);
   const panel = $("rpanel-pose");
@@ -3895,14 +3925,15 @@ for (const a of REPO_MODULAR.assemblies) for (const b of a.blocks) {
   if (r == null) continue;
   SB_MODS.set(b.id, { edge: typeof r === "number" ? r : null, serves: (fact(b, "serves")?.value as string[] | undefined) ?? [] });
 }
-const sandbox = initSandbox($("page-bac"), {
-  catalog: () => {
+function sandboxCatalog() {
     const p = currentPorts().machines;
     if (!sbCat || sbCat.data !== data || sbCat.ports !== p) {
       sbCat = { data, ports: p, cat: buildSandboxCatalog(data, { ports: { machines: p } as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: RELEVES }) };
     }
     return sbCat.cat;
-  },
+}
+const sandbox = initSandbox($("page-bac"), {
+  catalog: sandboxCatalog,
   category: (id) => data.machines.get(id)?.category ?? null,
   meta: (id) => { const m = data.machines.get(id); return { desc: m?.description ?? null, unlock: m?.unlockedBy ? nodeName(m.unlockedBy) : null }; },
   img: (kind, id) => pictureOf(kind, id)?.src ?? null,

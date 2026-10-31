@@ -10,6 +10,7 @@ import {
   type Dir, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
 } from "../engine/sandbox/index.ts";
 import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
+import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
 import { blockIcon, blockMarkup, hue, portEdge, PORT_COL, rangeMarkup, rect, type DrawCtx, type ImgOf, type ModRange } from "./sandbox-draw.ts";
@@ -47,6 +48,14 @@ const IC: Record<string, string> = {
   module: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>',
   misc: '<path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
   extract: '<path d="M14.531 12.469 6.619 20.38a1 1 0 1 1-3-3l7.912-7.912"/><path d="M15.686 4.314A12.5 12.5 0 0 0 5.461 2.958 1 1 0 0 0 5.58 4.71a22 22 0 0 1 6.318 3.393"/><path d="M17.7 3.7a1 1 0 0 0-1.4 0l-4.6 4.6a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4z"/><path d="M19.686 8.314a12.501 12.501 0 0 1 1.356 10.225 1 1 0 0 1-1.751-.119 22 22 0 0 0-3.393-6.319"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
+  pencil: '<path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  tag: '<path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   tanks: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/>',
 };
 const ic = (n: string) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${IC[n] ?? ""}</svg>`;
@@ -103,8 +112,8 @@ const store = (k: string, v: unknown) => {
     // stockage indisponible : gardé pour cette visite
   }
 };
-const enc = (o: unknown) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o))));
-const dec = <T>(s: string): T => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.trim()), (c) => c.charCodeAt(0)))) as T;
+/** Anciens codes (avant le .msch, S55) : JSON en base64, toujours lus. */
+const decOld =<T>(s: string): T => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.trim()), (c) => c.charCodeAt(0)))) as T;
 
 export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   // ------------------------------------------------------------ état
@@ -690,14 +699,143 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
 
   // ------------------------------------------------------------ schémas (F, Z / X, T)
-  const loadSch = (): { name: string; clip: Clip }[] => { try { return JSON.parse(localStorage.getItem(KEY_SCHEM) || "[]") as { name: string; clip: Clip }[]; } catch { return []; } };
+  // Fenêtre copiée de SchematicsDialog (Mindustry, maquette S53) ; code, fichier et lien au format .msch (S54, S55).
+  type Saved = { name: string; desc?: string; tags?: string[]; clip: Clip };
+  const loadSch = (): Saved[] => { try { return JSON.parse(localStorage.getItem(KEY_SCHEM) || "[]") as Saved[]; } catch { return []; } };
+  const schUi = { q: "", tags: [] as string[] };
+  const clipToSch = (s: Omit<Saved, "clip">, c: Clip): Schematic => ({
+    name: s.name, description: s.desc ?? "", labels: s.tags ?? [], width: c.W, height: c.H,
+    layout: { blocks: c.items.map((it, u) => ({ u, id: it.id, x: it.dx, y: it.dy, r: it.r, ...(it.choice ? { choice: it.choice } : {}) })), wires: [] },
+  });
+  /** Un schéma lu devient une copie à coller : bâtiments inconnus écartés, coin ramené en (0, 0). */
+  function toClip(items: Clip["items"]): Clip | null {
+    const ok = items.filter((it) => cat.blocks.has(it.id));
+    if (!ok.length) return null;
+    const mx = Math.min(...ok.map((it) => it.dx)), my = Math.min(...ok.map((it) => it.dy));
+    const norm = ok.map((it) => ({ ...it, dx: it.dx - mx, dy: it.dy - my }));
+    const W = Math.max(...norm.map((it) => it.dx + dims(cat.blocks.get(it.id)!, it.r)[0])), H = Math.max(...norm.map((it) => it.dy + dims(cat.blocks.get(it.id)!, it.r)[1]));
+    return { id: Date.now(), items: norm, W, H };
+  }
+  const schItems = (s: Schematic): Clip["items"] => s.layout.blocks.map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null }));
+  /** Lit un code .msch, ou un ancien code (JSON en base64). */
+  async function readCode(code: string): Promise<{ meta: Omit<Saved, "clip">; items: Clip["items"] }> {
+    try {
+      const s = await fromCode(code);
+      return { meta: { name: s.name, desc: s.description, tags: s.labels }, items: schItems(s) };
+    } catch {
+      const c = decOld<{ items: Clip["items"] }>(code);
+      if (!Array.isArray(c.items)) throw new Error("items");
+      return { meta: { name: "" }, items: c.items };
+    }
+  }
+  const preview = (c: Clip, px: number) => {
+    const m = Math.max(c.W, c.H) + 1, d = dctx();
+    return `<svg width="${px}" height="${px}" viewBox="-0.5 -0.5 ${m} ${m}" class="sch-pv" aria-hidden="true">${c.items.map((it) => blockMarkup(d, { u: -1, id: it.id, x: it.dx, y: it.dy, r: it.r })).join("")}</svg>`;
+  };
+  const sbtn = (a: string, i: number, n: string, k: Key) => `<button type="button" data-sch="${a}" data-i="${i}" title="${esc(t(k))}" aria-label="${esc(t(k))}">${ic(n)}</button>`;
+  function addSch(meta: Omit<Saved, "clip">, items: Clip["items"]): boolean {
+    const c = toClip(items);
+    if (!c) return false;
+    const l = loadSch();
+    l.push({ name: meta.name || t("bac.sch.default", { n: l.length + 1 }), desc: meta.desc ?? "", tags: meta.tags ?? [], clip: c });
+    store(KEY_SCHEM, l);
+    return true;
+  }
   function schematics(): void {
-    const l = loadSch(), code = enc({ items: S.blocks.filter((b) => !b.open).map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null })) });
-    const url = `${location.origin}${location.pathname}#bac/${code}`;
+    const l = loadSch(), all = [...new Set(l.flatMap((s) => s.tags ?? []))].sort();
+    const vis = l.map((s, i) => [s, i] as const).filter(([s]) => s.name.toLowerCase().includes(schUi.q.toLowerCase()) && schUi.tags.every((x) => (s.tags ?? []).includes(x)));
     openDlg(`<div class="ttl">${ic("schem")} ${esc(t("bac.sch.title"))}</div>
-      <h3>${esc(t("bac.sch.mine"))}</h3>${l.length ? l.map((s, i) => `<div class="row"><b>${esc(s.name)}</b> <span class="muted">${esc(t("bac.sch.n", { n: s.clip.items.length }))}</span><button type="button" data-sch="use" data-i="${i}">${esc(t("bac.sch.use"))}</button><button type="button" data-sch="code" data-i="${i}">${esc(t("bac.sch.code"))}</button><button type="button" data-sch="del" data-i="${i}">${esc(t("bac.delete"))}</button></div>`).join("") : `<p class="muted">${esc(t("bac.sch.none", { k: KB.schem ? keyLabel(KB.schem, LAB) : "—" }))}</p>`}
-      <h3>${esc(t("bac.sch.import"))}</h3><textarea id="bac-sch-in" aria-label="${esc(t("bac.sch.import"))}"></textarea><div class="row"><button type="button" data-sch="imp">${esc(t("bac.sch.importBtn"))}</button></div>
-      <h3>${esc(t("bac.sch.share"))}</h3><textarea readonly aria-label="${esc(t("bac.sch.share"))}">${esc(code)}</textarea><p class="${url.length <= 2000 ? "muted" : "warn"}">${esc(t(url.length <= 2000 ? "bac.sch.linkOk" : "bac.sch.linkLong", { n: url.length }))}${url.length <= 2000 ? ` <a href="${esc(url)}">${esc(t("bac.sch.link"))}</a>` : ""}</p>`);
+      <div class="row sch-top">${ic("search")}<input id="bac-sch-q" value="${esc(schUi.q)}" placeholder="${esc(t("bac.sch.search"))}" aria-label="${esc(t("bac.sch.search"))}"></div>
+      <div class="row sch-tags">${ic("tag")}${all.map((x) => `<button type="button" class="chip${schUi.tags.includes(x) ? " on" : ""}" data-sch="tag" data-t="${esc(x)}" aria-pressed="${schUi.tags.includes(x)}">${esc(x)}</button>`).join("") || `<span class="muted">${esc(t("bac.sch.noTags"))}</span>`}</div>
+      <div class="sch-grid">${vis.map(([s, i]) => `<div class="sch-card"><button type="button" class="sch-use" data-sch="use" data-i="${i}" title="${esc(t("bac.sch.useTip", { name: s.name }))}">${preview(s.clip, 150)}<span class="sch-nm">${esc(s.name)}</span></button><div class="sch-bar">${sbtn("info", i, "info", "bac.sch.info")}${sbtn("exp", i, "share", "bac.sch.export")}${sbtn("edit", i, "pencil", "bac.sch.edit")}${sbtn("del", i, "trash", "bac.delete")}</div></div>`).join("")
+        || `<p class="muted">${esc(l.length ? t("bac.sch.noMatch") : t("bac.sch.none", { k: KB.schem ? keyLabel(KB.schem, LAB) : "—" }))}</p>`}</div>
+      <div class="row sch-foot"><button type="button" data-sch="impmenu">${ic("download")} ${esc(t("bac.sch.importBtn"))}</button><button type="button" data-sch="whole">${ic("share")} ${esc(t("bac.sch.share"))}</button></div>`);
+  }
+  function schInfo(i: number): void {
+    const s = loadSch()[i]!, c = s.clip, n = new Map<string, number>();
+    let price = 0;
+    for (const it of c.items) { n.set(it.id, (n.get(it.id) ?? 0) + 1); price += cat.blocks.get(it.id)?.cost ?? 0; }
+    openDlg(`<div class="ttl">${esc(s.name)}</div><div class="sch-big">${preview(c, 300)}</div>${s.desc ? `<p>${esc(s.desc)}</p>` : ""}
+      <h3>${esc(t("bac.sch.cost"))}</h3><div class="kv"><div>${esc(fmtMoney(price))}</div><div>${esc(t("bac.sch.size", { w: c.W, h: c.H }))}</div></div>
+      <h3>${esc(t("bac.sch.blocks"))}</h3><div class="kv">${[...n].map(([id, k]) => `<div>${k} × ${esc(cat.blocks.get(id)?.name ?? id)}</div>`).join("")}</div>`, schematics);
+  }
+  function schExport(i: number): void {
+    const s = loadSch()[i]!;
+    openDlg(`<div class="ttl">${ic("share")} ${esc(t("bac.sch.exportOf", { name: s.name }))}</div>
+      <div class="sch-menu"><button type="button" data-sch="copy" data-i="${i}">${ic("copy")} ${esc(t("bac.sch.copy"))}</button><button type="button" data-sch="file" data-i="${i}">${ic("save")} ${esc(t("bac.sch.file"))}</button><button type="button" data-sch="link" data-i="${i}">${ic("link")} ${esc(t("bac.sch.link"))}</button></div>
+      <p class="muted" id="bac-sch-msg"></p>`, schematics);
+  }
+  function schImport(): void {
+    openDlg(`<div class="ttl">${ic("download")} ${esc(t("bac.sch.import"))}</div>
+      <div class="sch-menu"><button type="button" data-sch="paste">${ic("copy")} ${esc(t("bac.sch.fromClip"))}</button><button type="button" data-sch="openf">${ic("download")} ${esc(t("bac.sch.fromFile"))}</button></div>
+      <h3>${esc(t("bac.sch.code"))}</h3><textarea id="bac-sch-in" aria-label="${esc(t("bac.sch.code"))}"></textarea><div class="row"><button type="button" data-sch="imp">${esc(t("bac.sch.importBtn"))}</button></div>
+      <p class="muted">${esc(t("bac.sch.noWorkshop"))}</p>`, schematics);
+  }
+  function schEdit(i: number): void {
+    const s = loadSch()[i]!;
+    openDlg(`<div class="ttl">${ic("pencil")} ${esc(t("bac.sch.edit"))}</div>
+      <h3>${esc(t("bac.sch.name"))}</h3><div class="row"><input id="bac-se-n" value="${esc(s.name)}" aria-label="${esc(t("bac.sch.name"))}"></div>
+      <h3>${esc(t("bac.sch.desc"))}</h3><textarea id="bac-se-d" aria-label="${esc(t("bac.sch.desc"))}">${esc(s.desc ?? "")}</textarea>
+      <h3>${esc(t("bac.sch.tags"))}</h3><div class="row">${(s.tags ?? []).map((x) => `<button type="button" class="chip on" data-sch="untag" data-i="${i}" data-t="${esc(x)}" title="${esc(t("bac.delete"))}">${esc(x)} ${ic("close")}</button>`).join("")}<input id="bac-se-t" placeholder="${esc(t("bac.sch.newTag"))}" aria-label="${esc(t("bac.sch.newTag"))}"><button type="button" data-sch="addtag" data-i="${i}">${esc(t("bac.sch.addTag"))}</button></div>
+      <div class="row"><button type="button" data-sch="okedit" data-i="${i}">${ic("save")} ${esc(t("bac.sch.ok"))}</button></div>`, schematics);
+  }
+  const download = (bytes: Uint8Array, name: string) => {
+    const u = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/octet-stream" })), a = document.createElement("a");
+    a.href = u; a.download = `${name.replace(/[\\/:*?"<>|]/g, "_") || "schema"}.msch`; a.click(); URL.revokeObjectURL(u);
+  };
+  /** Tout le montage en schéma (câbles et liaisons compris) : code, fichier et lien. */
+  async function schWhole(): Promise<void> {
+    const blocks = S.blocks.filter((b) => !b.open);
+    if (!blocks.length) return say(t("bac.sch.empty"));
+    const keep = new Set(blocks.map((b) => b.u)), x0 = Math.min(...blocks.map((b) => b.x)), y0 = Math.min(...blocks.map((b) => b.y));
+    const c = toClip(blocks.map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null })))!;
+    const sch: Schematic = { name: t("bac.sch.wholeName"), description: "", labels: [], width: c.W, height: c.H,
+      layout: { blocks: blocks.map((b) => ({ ...b, x: b.x - x0, y: b.y - y0 })), wires: S.wires.filter((w) => keep.has(w.a) && keep.has(w.b)), routes: S.routes.filter((w) => keep.has(w.a) && keep.has(w.b)) } };
+    const code = await toCode(sch), url = `${location.origin}${location.pathname}#bac/${encodeURIComponent(code)}`;
+    openDlg(`<div class="ttl">${ic("share")} ${esc(t("bac.sch.share"))}</div><textarea readonly aria-label="${esc(t("bac.sch.code"))}">${esc(code)}</textarea>
+      <div class="sch-menu"><button type="button" data-sch="wcopy">${ic("copy")} ${esc(t("bac.sch.copy"))}</button><button type="button" data-sch="wfile">${ic("save")} ${esc(t("bac.sch.file"))}</button><button type="button" data-sch="wsave">${ic("schem")} ${esc(t("bac.sch.wholeSave"))}</button></div>
+      <p class="${url.length <= 2000 ? "muted" : "warn"}">${esc(t(url.length <= 2000 ? "bac.sch.linkOk" : "bac.sch.linkLong", { n: url.length }))}${url.length <= 2000 ? ` <a href="${esc(url)}">${esc(t("bac.sch.link"))}</a>` : ""}</p>`, schematics);
+    wholeCache = { sch, code, items: c.items };
+  }
+  let wholeCache: { sch: Schematic; code: string; items: Clip["items"] } | null = null;
+  async function copyText(s: string): Promise<void> {
+    try { await navigator.clipboard.writeText(s); say(t("bac.sch.copied")); } catch { say(t("bac.sch.copyFail")); }
+  }
+  async function onSch(el: HTMLElement): Promise<void> {
+    const l = loadSch(), i = Number(el.dataset.i), a = el.dataset.sch, s = l[i];
+    const val = (id: string) => root.querySelector<HTMLInputElement | HTMLTextAreaElement>(`#${id}`)?.value ?? "";
+    if (a === "use" && s) { ui.clip = { ...structuredClone(s.clip), id: Date.now() }; ui.sel = null; closeDlg(); renderPanel(); renderHint(); drawGhost(); }
+    else if (a === "tag") { const x = el.dataset.t!; schUi.tags = schUi.tags.includes(x) ? schUi.tags.filter((y) => y !== x) : [...schUi.tags, x]; schematics(); }
+    else if (a === "info") schInfo(i);
+    else if (a === "exp") schExport(i);
+    else if (a === "edit") schEdit(i);
+    else if (a === "del" && s && confirm(t("bac.sch.delAsk", { name: s.name }))) { l.splice(i, 1); store(KEY_SCHEM, l); schematics(); }
+    else if (a === "impmenu") schImport();
+    else if (a === "whole") await schWhole();
+    else if (a === "copy" && s) await copyText(await toCode(clipToSch(s, s.clip)));
+    else if (a === "file" && s) download(await writeMsch(clipToSch(s, s.clip)), s.name);
+    else if (a === "link" && s) await copyText(`${location.origin}${location.pathname}#bac/${encodeURIComponent(await toCode(clipToSch(s, s.clip)))}`);
+    else if (a === "wcopy" && wholeCache) await copyText(wholeCache.code);
+    else if (a === "wfile" && wholeCache) download(await writeMsch(wholeCache.sch), wholeCache.sch.name);
+    else if (a === "wsave" && wholeCache) { addSch({ name: wholeCache.sch.name }, wholeCache.items); schematics(); }
+    else if (a === "paste" || a === "imp") {
+      let code = val("bac-sch-in");
+      if (a === "paste") try { code = await navigator.clipboard.readText(); } catch { return say(t("bac.sch.pasteFail")); }
+      try { const r = await readCode(code); if (!addSch(r.meta, r.items)) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
+    } else if (a === "openf") {
+      const inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".msch";
+      inp.onchange = async () => {
+        const f = inp.files?.[0];
+        if (!f) return;
+        try { const s2 = await readMsch(new Uint8Array(await f.arrayBuffer())); if (!addSch({ name: s2.name || f.name.replace(/\.msch$/i, ""), desc: s2.description, tags: s2.labels }, schItems(s2))) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
+      };
+      inp.click();
+    } else if (a === "addtag" && s) {
+      const x = val("bac-se-t").trim();
+      if (x) { s.name = val("bac-se-n").trim() || s.name; s.desc = val("bac-se-d"); s.tags = [...new Set([...(s.tags ?? []), x])]; store(KEY_SCHEM, l); schEdit(i); }
+    } else if (a === "untag" && s) { s.tags = (s.tags ?? []).filter((y) => y !== el.dataset.t); store(KEY_SCHEM, l); schEdit(i); }
+    else if (a === "okedit" && s) { s.name = val("bac-se-n").trim() || s.name; s.desc = val("bac-se-d"); store(KEY_SCHEM, l); schematics(); }
   }
   function renderSchBar(): void {
     const el = $("bac-schbar");
@@ -1154,11 +1292,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       if (at("[data-db]")) return blockInfo(at("[data-db]")!.dataset.db!, openDb);
       const sch = at("[data-sch]");
       if (sch) {
-        const l = loadSch(), i = Number(sch.dataset.i);
-        if (sch.dataset.sch === "use") { ui.clip = { ...l[i]!.clip, id: Date.now() }; ui.sel = null; closeDlg(); renderPanel(); renderHint(); }
-        if (sch.dataset.sch === "code") root.querySelector<HTMLTextAreaElement>("#bac-sch-in")!.value = enc(l[i]!.clip);
-        if (sch.dataset.sch === "del") { l.splice(i, 1); store(KEY_SCHEM, l); schematics(); }
-        if (sch.dataset.sch === "imp") importCode(root.querySelector<HTMLTextAreaElement>("#bac-sch-in")!.value, true);
+        void onSch(sch);
         return;
       }
       if (at("[data-arm]")) { kbPick = null; const a = at("[data-arm]")!.dataset.arm as Action; kbArm = kbArm === a ? null : a; return keysDialog(); }
@@ -1342,20 +1476,28 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     cam.y = (y0 + y1) / 2 - (r.height * 0.42) / cam.z;
     applyView();
   }
-  function importCode(code: string, asClip: boolean): void {
+  /** Remplace le montage par un schéma (lien partagé, ou plan de l'Usine ouvert dans le bac à sable). */
+  function loadSchematic(s: Schematic): void {
+    const items = schItems(s), c = toClip(items);
+    if (!c) return say(t("bac.sch.bad"));
+    snap();
+    S = { blocks: [], wires: [], routes: [], fills: S.fills };
+    reindex();
+    apply({ remove: [], add: c.items.map((it) => ({ id: it.id, x: it.dx, y: it.dy, r: it.r, choice: it.choice })) });
+    // Câbles et liaisons : indices de cases du fichier → numéros des bâtiments posés (même ordre, inconnus écartés).
+    const kept = s.layout.blocks.map((b) => cat.blocks.has(b.id)), u = new Map<number, number>();
+    let k = 0;
+    kept.forEach((ok, i) => { if (ok) u.set(i, S.blocks[S.blocks.length - c.items.length + k++]?.u ?? -1); });
+    const re = <T extends { a: number; b: number }>(l: T[]) => l.filter((w) => (u.get(w.a) ?? -1) >= 0 && (u.get(w.b) ?? -1) >= 0).map((w) => ({ ...w, a: u.get(w.a)!, b: u.get(w.b)! }));
+    if (s.layout.wires.length || s.layout.routes?.length) { S.wires = re(s.layout.wires); S.routes = re(s.layout.routes ?? []); changed(); }
+    fit();
+  }
+  async function importCode(code: string): Promise<void> {
     try {
-      const c = dec<{ items: Clip["items"]; W?: number; H?: number }>(code);
-      if (!Array.isArray(c.items)) throw new Error("items");
-      const items = c.items.filter((it) => cat.blocks.has(it.id));
-      const mx = Math.min(...items.map((it) => it.dx)), my = Math.min(...items.map((it) => it.dy));
-      const norm = items.map((it) => ({ ...it, dx: it.dx - mx, dy: it.dy - my }));
-      const W = Math.max(...norm.map((it) => it.dx + dims(cat.blocks.get(it.id)!, it.r)[0])), H = Math.max(...norm.map((it) => it.dy + dims(cat.blocks.get(it.id)!, it.r)[1]));
-      if (asClip) { ui.clip = { id: Date.now(), items: norm, W, H }; ui.sel = null; closeDlg(); renderHint(); drawGhost(); return; }
-      snap();
-      S = { blocks: [], wires: [], routes: [], fills: S.fills };
-      reindex();
-      apply({ remove: [], add: norm.map((it) => ({ id: it.id, x: it.dx, y: it.dy, r: it.r, choice: it.choice })) });
-      fit();
+      const s = await fromCode(code).catch(() => null);
+      if (s) return loadSchematic(s);
+      const r = await readCode(code);
+      loadSchematic({ name: "", description: "", labels: [], width: 0, height: 0, layout: { blocks: r.items.map((it, i) => ({ u: i, id: it.id, x: it.dx, y: it.dy, r: it.r, ...(it.choice ? { choice: it.choice } : {}) })), wires: [] } });
     } catch {
       say(t("bac.sch.bad"));
     }
@@ -1375,7 +1517,12 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       placeRoot();
       if (!ui.mounted) { ui.mounted = true; skeleton(); if (S.blocks.length) fit(); }
       else { applyView(); drawAll(); renderInfo(true); }
-      if (code) { importCode(code, false); history.replaceState(null, "", "#bac"); }
+      if (code) { void importCode(decodeURIComponent(code)); history.replaceState(null, "", "#bac"); }
+    },
+    /** Ouvre un plan du site (module, usine) converti en schéma. */
+    open(s: Schematic): void {
+      if (!ui.mounted) { ui.mounted = true; skeleton(); }
+      loadSchematic(s);
     },
     /** Langue changée ou données corrigées : tout est redessiné, le montage et la vue gardés. */
     refresh(): void {
