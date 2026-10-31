@@ -340,3 +340,24 @@ La maquette le fait déjà. Les lots suivants s'ajoutent un par un.
 5. Assignation des touches, sur un clavier visuel, inspirée du mod « Keybind Atlas » (pas prioritaire).
 6. F (copier une zone) : ajouter « enregistrer la sélection dans un schéma » et l'afficher dans les
    indications du bas.
+
+### État au 2026-10-31 : faits dans la maquette
+
+1. **Câbles** : on clique sur un bâtiment à prises (poteau, générateur, machine), puis sur un autre, pour
+   poser ou retirer un câble, comme un nœud électrique de Mindustry. Le câble relie les deux prises
+   compatibles les plus proches. Un câble électrique doit tenir dans la portée d'un poteau (relevés et
+   `power.json`, 1 tile = 2 cases), qui se dessine pendant la pose et à la sélection, avec les bâtiments
+   couverts. Les statistiques donnent chaque réseau (consommation, production du wiki au plus) et les
+   machines sans courant. Les câbles logiques fonctionnent de même, mais leur portée n'est pas connue.
+   F5 masque les câbles. À confirmer en jeu : nombre de câbles par prise, tension (LV, MV, HV).
+2. **Tous les ports se voient** : objet, fluide, électrique (carré à éclair), logique (losange). Pour
+   les tuyaux aussi. Les pièces spéciales gardent le sens relevé. Le survol d'une prise la décrit.
+3. **Aperçu des tuyaux** : les ports sont dessinés, donc deux pièces de même taille se distinguent.
+4. **Tier « ∗ » supprimé** : tuyaux spéciaux en T3, « Large … » en T4. Les ports des grands tuyaux sont
+   déduits des notes « 1/2 » et « 2/2 » des relevés : un seul port de 2 cases, qui ne se raccorde qu'à
+   un port de 2 cases. Reste à faire dans l'éditeur de bâtiments (un vrai champ « largeur »).
+5. **Touches réassignables** sur un clavier visuel (bouton Touches) : groupes en couleur, conflits en
+   rouge, « Changer » puis une touche (au clavier ou sur le dessin), retour aux touches par défaut.
+   L'enregistrement se fait dans le navigateur.
+6. **F** : après la copie, une barre propose de l'enregistrer en schéma (nom, E ou Entrée), de la
+   tourner, de la retourner ou de l'annuler. Les indications du bas l'affichent.
