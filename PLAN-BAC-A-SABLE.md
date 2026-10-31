@@ -412,7 +412,9 @@ portée des câbles logiques (11).
 3. **Recettes à compléter** : les recettes dont la durée ou une quantité manque ne sont plus écartées. Le
    moteur les garde à part avec ce qui leur manque (`incomplete`, `missing`), et `withFills` les fait entrer
    dans le calcul une fois complétées par le joueur (marquées `filled`). Écran, lot B3 : le choix de recette
-   devient un **menu déroulant fait maison** (pas celui du navigateur). Les recettes incomplètes y figurent
+   devient un **menu déroulant fait maison** (pas celui du navigateur). **Il survole la page** comme un vrai
+   menu déroulant (liste flottante par-dessus le reste, fermée au clic ailleurs ou par Échap), et ne
+   s'insère jamais dans la page en poussant son contenu : erreur déjà faite une fois, rappel du 2026-10-31. Les recettes incomplètes y figurent
    avec un petit bouton « à compléter » ; les choisir ouvre la fiche de complétion (durée et quantités
    manquantes), puis la recette est choisie. Les chiffres saisis restent dans le montage et peuvent être
    proposés comme correction (remarques, S34).

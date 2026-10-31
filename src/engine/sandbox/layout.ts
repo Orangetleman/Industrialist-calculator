@@ -11,7 +11,7 @@ export const rot = (d: Dir, r: number): Dir => DIRS[(DIRS.indexOf(d) + r) % 4]!;
 export const cellKey = (x: number, y: number) => `${x},${y}`;
 
 /** Un bâtiment posé : `u` identifiant unique, `choice` recette choisie par le joueur (gardée tant qu'elle reste possible). */
-export type Placed = { u: number; id: string; x: number; y: number; r: number; choice?: string | null };
+export type Placed = { u: number; id: string; x: number; y: number; r: number; choice?: string | null; open?: Dir[] };
 /** Câble de prise à prise, orienté de `a` vers `b` (indices des ports dans `geo().ports`). */
 export type Wire = { a: number; ia: number; b: number; ib: number; t: "p" | "g" };
 /**
@@ -77,7 +77,7 @@ export function facingKey(p: PlacedPort): string {
 
 /** Ouvertures d'une case de tuyau : ses ports, plus l'axe d'un tuyau droit de largeur 1 (il traverse toutes ses cases). */
 export function cellOpen(def: SbBlock, b: Placed, x: number, y: number): Set<Dir> {
-  const s = new Set<Dir>(), g = geo(def, b);
+  const s = new Set<Dir>(b.open ?? []), g = geo(def, b); // `open` : pièce non relevée, posée « à compléter » (B2)
   if (!g) return s;
   for (const p of g.ports) if (p.dir !== "top" && p.cells!.some(([cx, cy]) => cx === x && cy === y)) s.add(p.dir);
   if (def.pipe?.role === "droit" && Math.min(def.geo!.w, def.geo!.h) === 1) for (const d of (b.r % 2 ? ["E", "W"] : ["N", "S"]) as Dir[]) s.add(d);

@@ -3,3 +3,4 @@ export * from "./catalog.ts";
 export * from "./layout.ts";
 export * from "./wires.ts";
 export * from "./compute.ts";
+export * from "./path.ts";
