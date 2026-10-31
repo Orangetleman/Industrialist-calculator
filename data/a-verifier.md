@@ -546,7 +546,8 @@ _Ajoute ici tes remarques ou relevés en jeu. Cette section est conservée à ch
   redirige ce qui arrive sur un port vers n'importe quelle entrée (ou sortie) de la machine, du
   même type (objet ou fluide). Un tuyau ne porte qu'une ressource ; un croisement compte pour
   deux tuyaux, donc un croisement collé à un port peut y amener deux flux. Deux machines dont les
-  ports se touchent peuvent échanger directement, une seule marchandise par contact (un vecteur ne
+  ports se touchent peuvent échanger directement (« une seule marchandise par contact » : erreur, corrigée le 2026-10-31,
+  BAS-07 : autant de liaisons qu'on veut entre ports du même type) (un vecteur ne
   fait que donner le sens du flux). **Fait** : les plans de pose choisissent librement le port de
   chaque ressource, et le côté de chaque collecteur (priorité « le moins cher » : les raccords
   contournent les machines) ; un collecteur passe collé aux machines et une autre ressource le
@@ -842,7 +843,9 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   confirmation : (a) le contact doit être du même type que la ressource (deux ports objet pour un objet) ;
   (b) sans choix du joueur, une sortie collée à une entrée du même type s'y raccorde seule ; (c) dès que le
   joueur choisit une liaison entre deux machines, ses choix remplacent ces raccords automatiques pour ce
-  type ; (d) autant de liaisons que de contacts du même type entre les deux machines. À confirmer en jeu.
+  type. À confirmer en jeu. (d) **Réponse du 2026-10-31** : un contact d'un type autorise autant de
+  liaisons qu'on veut entre tous les ports de ce type des deux machines (la « marchandise par contact »
+  du 2026-10-13 était une erreur) ; le type se respecte : un contact objet ne laisse pas passer de fluide.
 - **BAS-08** (rappel de l'utilisateur, 2026-10-31) : la portée d'un câble est celle du bâtiment d'où il
   part (début de la flèche), par exemple celle du générateur pour un câble générateur → poteau. Corrigé
   dans le moteur (B1 prenait la plus grande des deux). **À relever** : la portée de câble de chaque

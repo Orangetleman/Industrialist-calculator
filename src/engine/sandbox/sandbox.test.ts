@@ -12,7 +12,7 @@ import relevesJson from "../../../data/releves.json";
 import { buildGameData, type RawFiles } from "../data.ts";
 import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts";
 import type { OverridesFile } from "../types.ts";
-import { buildSandboxCatalog, computeSandbox, autoConnect, contacts, geo, links, machineLinks, powerWires, powered, rot, routeError, stillMissing, withFills, type Dir, type Layout, type Placed, type Wire } from "./index.ts";
+import { buildSandboxCatalog, clickRoute, computeSandbox, autoConnect, contacts, geo, links, machineLinks, powerWires, powered, rot, routeError, stillMissing, withFills, type Dir, type Layout, type Placed, type Wire } from "./index.ts";
 
 const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles, [overridesJson as unknown as OverridesFile]);
 const cat = buildSandboxCatalog(data, { ports: portsJson as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson });
@@ -299,8 +299,15 @@ describe("machines collées", () => {
     const R = computeSandbox(cat, L);
     expect(R.machines.get(roller)!.shown).toBe("roller_02");
     near(R.stats.outs["iron-coil"]! * 60, 30);
-    // Une seule marchandise par contact ; une sortie part de son port de sortie ; types différents ; sans contact.
-    expect(routeError(cat, L, route)).toBe("full");
+    // Refaire la même liaison la supprime, comme en jeu ; la refaire encore la repose.
+    const off = clickRoute(cat, L, route);
+    expect(off).toEqual({ routes: [], did: "removed" });
+    expect(clickRoute(cat, { ...L, routes: [] }, route)).toEqual({ routes: [route], did: "added" });
+    // Un seul contact suffit pour toutes les liaisons du même type ; une sortie part de son port de sortie ;
+    // types différents ; sans contact.
+    const rOut = geo(cat.blocks.get("roller")!, L.blocks[1]!)!.ports.findIndex((p) => p.t === "o" && p.d === "s");
+    expect(routeError(cat, L, { a: press, ia: out, b: roller, ib: rOut })).toBeNull(); // entrer par une sortie
+    expect(routeError(cat, L, { a: roller, ia: rOut, b: press, ib: out })).toBeNull(); // dans l'autre sens aussi
     expect(routeError(cat, { ...L, routes: [] }, { a: press, ia: ip, b: roller, ib: ir })).toBe("notOutput");
     const fp = geo(cat.blocks.get("roller")!, L.blocks[1]!)!.ports.findIndex((p) => p.t === "p");
     expect(routeError(cat, { ...L, routes: [] }, { a: press, ia: out, b: roller, ib: fp })).toBe("type");

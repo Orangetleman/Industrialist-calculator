@@ -124,8 +124,8 @@ export function links(cat: SbCatalog, layout: Layout): Link[] {
  * Machines collées (règles du 2026-10-13 et du 2026-10-14, rappelées le 2026-10-31). Un port n'est qu'un point de
  * contact : deux machines dont des ports objet ou fluide se font face sont liées, même par deux entrées. Le joueur
  * choisit alors quel port de la 1re envoie vers quel port de la 2de : une sortie part de son port de sortie, une
- * ressource entre par n'importe quel port du même type (même une sortie), et chaque contact porte une seule
- * marchandise. Par défaut, une sortie collée à une entrée du même type s'y raccorde seule.
+ * ressource entre par n'importe quel port du même type (même une sortie). Un contact d'un type (objet ou fluide)
+ * autorise autant de liaisons qu'on veut entre tous les ports de ce type des deux machines. Par défaut, une sortie collée à une entrée du même type s'y raccorde seule.
  */
 
 /** Contacts entre deux machines : paires de ports de côté qui se font face, du même type (objet ou fluide). */
@@ -150,7 +150,7 @@ const pairOf = (a: number, b: number) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 /** Raccords directs entre machines : les liaisons du joueur, et par défaut sortie collée à entrée (sauf si le joueur a choisi pour ce contact). */
 export function machineLinks(cat: SbCatalog, layout: Layout): (Route & { auto: boolean })[] {
   const cs = contacts(cat, layout), routes = layout.routes ?? [];
-  const ok: Route[] = []; // dans l'ordre de pose : une liaison de trop (contact déjà pris, machine déplacée) est ignorée
+  const ok: Route[] = []; // dans l'ordre de pose : une liaison devenue impossible (machine déplacée) est ignorée
   for (const r of routes) if (!routeError(cat, { ...layout, routes: ok }, r)) ok.push(r);
   const chosen = new Set(ok.map((r) => `${pairOf(r.a, r.b)}|${portType(cat, layout, r.a, r.ia)}`));
   const out: (Route & { auto: boolean })[] = ok.map((r) => ({ ...r, auto: false }));
@@ -169,7 +169,7 @@ function portAt(cat: SbCatalog, layout: Layout, u: number, i: number): PlacedPor
 }
 const portType = (cat: SbCatalog, layout: Layout, u: number, i: number) => portAt(cat, layout, u, i)?.t;
 
-export type RouteError = "same" | "notMachine" | "type" | "notOutput" | "noContact" | "full";
+export type RouteError = "same" | "notMachine" | "type" | "notOutput" | "noContact";
 /** Pourquoi une liaison n'est pas permise (null : elle l'est). `layout.routes` : les liaisons déjà posées, sans celle-ci. */
 export function routeError(cat: SbCatalog, layout: Layout, r: Route): RouteError | null {
   if (r.a === r.b) return "same";
@@ -178,8 +178,19 @@ export function routeError(cat: SbCatalog, layout: Layout, r: Route): RouteError
   const pa = portAt(cat, layout, r.a, r.ia), pb = portAt(cat, layout, r.b, r.ib);
   if (!pa?.cells || !pb?.cells || pa.t !== pb.t || (pa.t !== "o" && pa.t !== "f")) return "type";
   if (pa.d === "e") return "notOutput";
-  const n = contacts(cat, layout).filter((c) => pairOf(c.a, c.b) === pairOf(r.a, r.b) && c.t === pa.t).length;
-  if (!n) return "noContact";
-  const used = (layout.routes ?? []).filter((q) => pairOf(q.a, q.b) === pairOf(r.a, r.b) && portType(cat, layout, q.a, q.ia) === pa.t).length;
-  return used >= n ? "full" : null;
+  if (!contacts(cat, layout).some((c) => pairOf(c.a, c.b) === pairOf(r.a, r.b) && c.t === pa.t)) return "noContact";
+  // Un contact autorise autant de liaisons qu'on veut entre tous les ports du même type des deux machines (2026-10-31).
+  return null;
+}
+
+const sameRoute = (q: Route, r: Route) => q.a === r.a && q.ia === r.ia && q.b === r.b && q.ib === r.ib;
+/**
+ * Geste du joueur (port de départ, puis port d'arrivée), comme en jeu : refaire une liaison déjà posée la supprime
+ * (c'est le seul moyen d'en retirer une) ; sinon elle est posée si les règles le permettent.
+ */
+export function clickRoute(cat: SbCatalog, layout: Layout, r: Route): { routes: Route[]; did: "added" | "removed" } | { err: RouteError } {
+  const routes = layout.routes ?? [];
+  if (routes.some((q) => sameRoute(q, r))) return { routes: routes.filter((q) => !sameRoute(q, r)), did: "removed" };
+  const e = routeError(cat, layout, r);
+  return e ? { err: e } : { routes: [...routes, r], did: "added" };
 }
