@@ -361,3 +361,21 @@ La maquette le fait déjà. Les lots suivants s'ajoutent un par un.
    L'enregistrement se fait dans le navigateur.
 6. **F** : après la copie, une barre propose de l'enregistrer en schéma (nom, E ou Entrée), de la
    tourner, de la retourner ou de l'annuler. Les indications du bas l'affichent.
+
+### Retours du 2026-10-31 : état (travail interrompu par la limite d'usage)
+
+Faits dans la maquette :
+- 2 : portée des pièces modulaires (modular.json, depuis le bord), avec les blocs desservis encadrés ;
+- 7 : alertes du même type regroupées (« 5 × … ») ;
+- 9 (calcul) : un flux par prise, des câbles orientés, une capacité par prise (transfer) ;
+- 12 (calcul) : « continuer sans courant » (réglage `SET.runWithoutPower`) ;
+- 10 : nombre de câbles illimité par prise.
+
+Reste à faire :
+- 1 : touches (légende des couleurs, conflits dans la liste, « Défaut », « Aucune » par Échap, clic sur une touche → choisir l'action, surbrillance des conflits ; « Toutes les commandes » reste pour la maquette) ;
+- 3 et 11 : relever la catégorie et la portée logique dans l'éditeur de bâtiments (code du site, lot à créer) ;
+- 4 : retour vers la base de données depuis une fiche ;
+- 5 : statistiques redimensionnables ;
+- 6 et 12 : fenêtre « Réglages » (masquer les catégories vides d'un tier, continuer sans courant) ;
+- 8 : encadré rouge des bâtiments à supprimer (clic droit, zone) ;
+- 9 (gestes) : liaison machine ↔ poteau sur les deux prises, poteau ↔ poteau nœud à nœud dans le bon sens, re-clic sur un poteau = tout relier selon (1,0)/(0,1), jamais (1,1) ni (0,0) ; flèches de sens sur les câbles. La pose des câbles utilise encore l'ancienne règle (prise la plus proche).

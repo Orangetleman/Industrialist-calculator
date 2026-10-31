@@ -57,8 +57,17 @@ function role(id) {
 const elec = (id) => {
   const e = power[id]; const r = releves.poleRangeTiles?.[id] ?? e?.rangeTiles?.tiles;
   if (!e && r == null) return undefined;
-  return { out: e?.output ?? null, in: e?.input ?? null, nodes: e?.capacity?.nodes ?? e?.transfer?.nodes ?? null, range: r != null ? r * 2 : null }; // 1 tile = 2 cases (relevé du 2026-10-13)
+  // cap : débit que transporte chaque prise (power.json « transfer », par nœud) ; chaque prise est un flux à part.
+  return { out: e?.output ?? null, in: e?.input ?? null, nodes: e?.capacity?.nodes ?? e?.transfer?.nodes ?? null, cap: e?.transfer?.perNode ?? null, range: r != null ? r * 2 : null }; // 1 tile = 2 cases (relevé du 2026-10-13)
 };
+// Portées des pièces modulaires (modular.json, en cases depuis le bord) et ce qu'elles desservent.
+const modular = read("modular.json");
+const MOD = {};
+for (const a of modular.assemblies) for (const b of a.blocks) {
+  const f = (k) => b.facts?.find((x) => x.key === k)?.value;
+  const r = f("rangeTiles"); if (r == null) continue;
+  MOD[b.id] = { edge: r, serves: f("serves") ?? [] };
+}
 
 const out = { blocks: [], items: {} };
 const usedItems = new Set();
@@ -69,7 +78,7 @@ for (const m of machines) {
   rs.forEach((r) => [...Object.keys(r.in), ...Object.keys(r.out)].forEach((i) => usedItems.add(i)));
   out.blocks.push({
     id: m.id, name: m.name, cat: m.category, tier: m.tier, cost: m.cost, desc: m.description ?? "", poll: m.pollutionPerHour ?? 0,
-    unlock: m.unlockedBy ? resName[m.unlockedBy] ?? m.unlockedBy : null, img: img("machine", m.id), geo: relevé(m.id), recipes: rs, elec: elec(m.id),
+    unlock: m.unlockedBy ? resName[m.unlockedBy] ?? m.unlockedBy : null, img: img("machine", m.id), geo: relevé(m.id), recipes: rs, elec: elec(m.id), ...(MOD[m.id] ? { mod: MOD[m.id] } : {}),
   });
 }
 for (const p of pipes) {

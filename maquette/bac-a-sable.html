@@ -472,7 +472,18 @@ class Flow { constructor(n) { this.g = Array.from({ length: n }, () => []); }
     let a = Infinity; for (let v = t; v !== s; v = prev[v].r.to) a = Math.min(a, prev[v].cap - prev[v].f); for (let v = t; v !== s; v = prev[v].r.to) { prev[v].f += a; prev[v].r.f -= a; } } } }
 const BIG = 1e12;
 let R = { MI: new Map(), lanes: new Map(), conns: [], terms: [], st: null };
-function compute() {
+// Réglages (bouton « Réglages ») et plafond de marche dû au manque de courant (quand on ne continue pas sans courant).
+const SET = { hideEmptyCats: false, runWithoutPower: true };
+try { Object.assign(SET, JSON.parse(localStorage.getItem("bas:reglages") || "{}")); } catch {}
+let PCAP = new Map();
+// Rôle électrique : poteau (prises dans les deux sens), générateur (prise de sortie), consommateur (prise d'entrée).
+function elecRole(u) {
+  const b = byU.get(u); if (!b || b.missing || !BL[b.id].geo) return null;
+  const ps = geo(b).ports.filter((p) => p.dir === "top" && p.t === "p"); if (!ps.length) return null;
+  return ps.some((p) => p.d === "s") ? "gen" : ps.some((p) => p.d === "e") ? "cons" : "pole";
+}
+function compute(depth = 0) {
+  if (depth === 0) PCAP = new Map();
   const G = new Map(); for (const b of S.b) if (!b.missing && BL[b.id].geo) G.set(b.u, geo(b));
   const portAt = new Map(); for (const [u, g] of G) for (const p of g.ports) if (p.cells) portAt.set(pkey(p.cells, p.dir), { u, p });
   const pipeOf = (u) => BL[byU.get(u).id].pipe;
@@ -567,7 +578,7 @@ function compute() {
       let inL = 1, inW = null, outL = 1, outW = null;
       for (const i of Object.keys(mi.rec.in)) { const k = u + "|" + i; if (!deliv.has(k)) continue; const r = deliv.get(k) / (mi.rec.in[i] / mi.rec.s); if (r < inL - 1e-9) { inL = r; inW = i; } }
       for (const i of Object.keys(mi.rec.out)) { const k = u + "|" + i; if (!(supp.get(k) > 1e-12)) continue; const r = mi.f * sent.get(k) / supp.get(k); if (r < outL - 1e-9) { outL = r; outW = i; } }
-      const nf = Math.max(0, Math.min(1, inL, outL, mi.f)); mi.fin = Math.min(mi.fin, inL);
+      const nf = Math.max(0, Math.min(1, inL, outL, mi.f, PCAP.get(u) ?? 1)); mi.fin = Math.min(mi.fin, inL);
       if (inL < outL - 1e-9) mi.why = ["in", inW]; else if (outL < inL - 1e-9) mi.why = ["out", outW]; else if (nf > 0.999) mi.why = null;
       change = Math.max(change, Math.abs(nf - mi.f)); mi.f = nf;
     }
@@ -595,28 +606,42 @@ function compute() {
   const seenL = new Set();
   for (const [l, L] of lanes) { const u = +l.split(":")[0]; if (L.over && !seenL.has("o" + L.item)) { seenL.add("o" + L.item); pb.push(`Tuyau saturé : ${fmt(L.offered)}/s de ${itemName(L.item)} pour ${fmt(L.cap)}/s (${BL[byU.get(u).id].name})`); } if (L.mixed && !seenL.has("m" + u)) { seenL.add("m" + u); pb.push("Tuyau mélangé : deux objets dans le même réseau"); } }
   for (const b of S.b) if (b.missing) pb.push(`Pièce non relevée : ${BL[b.id].name} (à compléter)`);
-  // Câbles : réseaux électriques (p) et logiques (g). Les prises d'un même bâtiment sont reliées entre elles.
-  const wp = new Map(), wf = (a) => { while (wp.get(a) !== a) a = wp.get(a); return a; }, wn = (u, t) => { const k = u + t; if (!wp.has(k)) wp.set(k, k); return k; };
-  for (const [u, g] of G) for (const p of g.ports) if (p.dir === "top") wn(u, p.t);
-  for (const w of S.w) { const A = wf(wn(w.a, w.t)), Bn = wf(wn(w.b, w.t)); if (A !== Bn) wp.set(A, Bn); }
-  const nets = new Map();
-  for (const k of wp.keys()) { const r = wf(k), u = +k.slice(0, -1), t = k.slice(-1); if (!nets.has(r)) nets.set(r, { t, us: [], use: 0, prod: 0 }); nets.get(r).us.push(u); }
-  const unpowered = [];
-  for (const n of nets.values()) {
-    if (n.t !== "p") continue;
-    for (const u of n.us) {
-      const d = BL[byU.get(u).id], mi = MI.get(u), out = d.elec?.out;
-      if (out != null) n.prod += Array.isArray(out) ? Math.max(...out) : out; // production du wiki (« jusqu'à » quand elle dépend du carburant)
-      if (mi?.rec && geo(byU.get(u)).ports.some((p) => p.dir === "top" && p.t === "p" && p.d === "e")) n.use += (mi.rec.e || 0) * mi.f;
-    }
-    if (n.use > 0 && n.prod === 0) unpowered.push(...n.us.filter((u) => MI.get(u)?.rec && !BL[byU.get(u).id].elec?.out));
-    if (n.prod > 0 && n.use > n.prod) pb.push(`Réseau électrique trop faible : ${fmt(n.use, 0)} MF/s demandés pour ${fmt(n.prod, 0)} au plus`);
-  }
-  // Pas de pause de la production sans courant : la maquette le signale seulement (règle à confirmer en jeu).
-  const unp = new Set(unpowered.filter((u) => BL[byU.get(u).id].recipes.some((r) => r.e > 0)));
-  if (unp.size) pb.push(`${unp.size} machine${unp.size > 1 ? "s" : ""} sans courant (aucun générateur sur leur réseau)`);
-  const power = [...nets.values()].filter((n) => n.t === "p" && (n.us.length > 1 || n.prod > 0));
-  R = { MI, lanes, unp, conns: [...cflow].map(([k, v]) => ({ ...k, ...v })), terms: [...tflow].map(([t, v]) => ({ ...t, ...v })), st: { energy, poll, price, pieces, outs, ext, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, pb, power, logic: [...nets.values()].filter((n) => n.t === "g" && n.us.length > 1).length } };
+  // Électricité (retour du 2026-10-31) : chaque prise est un flux à part (les deux prises d'un poteau LV sont deux
+  // flux) et les câbles sont orientés, de la source vers ce qu'elle alimente. Flot maximal : générateurs → prises
+  // (une prise de poteau transporte au plus son « transfer » du wiki) → entrées des machines.
+  const pList = [], pIdx = new Map();
+  for (const [u, g] of G) g.ports.forEach((p, i) => { if (p.dir === "top" && p.t === "p") { pIdx.set(u + ":" + i, pList.length); pList.push({ u, i, p }); } });
+  const PF = new Flow(2 * pList.length + 2), PS = 2 * pList.length, PT = PS + 1, gens = [], uses = [];
+  pList.forEach(({ u, p }, k) => {
+    const d = BL[byU.get(u).id], mi = MI.get(u), same = (dd) => G.get(u).ports.filter((q) => q.dir === "top" && q.t === "p" && q.d === dd).length;
+    PF.add(2 * k, 2 * k + 1, elecRole(u) === "pole" && d.elec?.cap ? d.elec.cap : BIG);
+    if (p.d === "s" && d.elec?.out != null) { const o = Array.isArray(d.elec.out) ? Math.max(...d.elec.out) : d.elec.out; gens.push({ u, k, cap: o * (mi?.rec ? mi.f : 1) / same("s") }); }
+    if (p.d === "e" && mi?.rec?.e > 0) uses.push({ u, k, need: mi.rec.e * mi.f / same("e") });
+  });
+  for (const w of S.w) if (w.t === "p") { const a = pIdx.get(w.a + ":" + w.ia), b = pIdx.get(w.b + ":" + w.ib); if (a != null && b != null) PF.add(2 * a + 1, 2 * b, BIG); }
+  gens.forEach((x) => (x.arc = PF.add(PS, 2 * x.k, x.cap))); uses.forEach((x) => (x.arc = PF.add(2 * x.k + 1, PT, x.need)));
+  PF.run(PS, PT);
+  // Réseaux (prises reliées par des câbles, sans tenir compte du sens) : bâtiments, besoin, reçu, production possible.
+  const par2 = pList.map((_, k) => k), f2 = (a) => { while (par2[a] !== a) a = par2[a] = par2[par2[a]]; return a; };
+  for (const w of S.w) if (w.t === "p") { const a = pIdx.get(w.a + ":" + w.ia), b = pIdx.get(w.b + ":" + w.ib); if (a != null && b != null) par2[f2(a)] = f2(b); }
+  const nets = new Map(), netOf = (k) => { const r = f2(k); if (!nets.has(r)) nets.set(r, { us: new Set(), need: 0, got: 0, prod: 0, wired: false }); return nets.get(r); };
+  for (const w of S.w) if (w.t === "p") { const a = pIdx.get(w.a + ":" + w.ia); if (a != null) netOf(a).wired = true; }
+  pList.forEach(({ u }, k) => netOf(k).us.add(u));
+  for (const x of gens) netOf(x.k).prod += x.cap;
+  const ratio = new Map(), needU = new Map();
+  for (const x of uses) { const n = netOf(x.k); n.need += x.need; n.got += x.arc.f; needU.set(x.u, (needU.get(x.u) || 0) + x.need); ratio.set(x.u, (ratio.get(x.u) || 0) + x.arc.f); }
+  const unp = new Set();
+  for (const [u, nd] of needU) { const r = nd > 1e-9 ? ratio.get(u) / nd : 1; ratio.set(u, r); if (r < 0.999) unp.add(u); }
+  for (const u of unp) pb.push(`${BL[byU.get(u).id].name} : ${ratio.get(u) < 1e-6 ? "sans courant" : `courant à ${Math.round(ratio.get(u) * 100)} %`}${SET.runWithoutPower ? " (calcul poursuivi, voir Réglages)" : ""}`);
+  for (const n of nets.values()) if (n.wired && n.prod > 0 && n.need > n.prod + 1e-9) pb.push(`Réseau électrique trop faible : ${fmt(n.need, 0)} MF/s demandés pour ${fmt(n.prod, 0)} au plus`);
+  const power = [...nets.values()].filter((n) => n.wired).map((n) => ({ ...n, us: [...n.us] }));
+  const logic = new Set(S.w.filter((w) => w.t === "g").map((w) => w.a)).size;
+  // Sans courant, la machine s'arrête si l'option « continuer sans courant » est décochée : on recalcule avec ce plafond.
+  if (!SET.runWithoutPower && depth < 4) { let ch = false; for (const [u, mi] of MI) { const cap = needU.has(u) ? Math.min(1, mi.f * ratio.get(u)) : 1; if (Math.abs((PCAP.get(u) ?? 1) - cap) > 1e-6 && cap < (PCAP.get(u) ?? 1)) { PCAP.set(u, cap); ch = true; } } if (ch) return compute(depth + 1); }
+  // Alertes du même type regroupées (« 5 × Roller à 80 % : … »).
+  const grp = new Map(); for (const t of pb) grp.set(t, (grp.get(t) || 0) + 1);
+  const pbG = [...grp].map(([t, n]) => (n > 1 ? `${n} × ${t}` : t));
+  R = { MI, lanes, unp, ratio, conns: [...cflow].map(([k, v]) => ({ ...k, ...v })), terms: [...tflow].map(([t, v]) => ({ ...t, ...v })), st: { energy, poll, price, pieces, outs, ext, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, pb: pbG, power, logic } };
 }
 
 // ======================= Dessin =======================
@@ -710,11 +735,23 @@ function drawAll() {
 }
 // Portée : dessinée pendant la pose et quand le bâtiment est sélectionné (comme Mindustry), pour tout bâtiment
 // dont la portée est connue (aujourd'hui : poteaux, relevés et power.json, en cases ; 1 tile = 2 cases).
+// Pièces modulaires (modular.json) : portée depuis le bord, donc rayon = portée + demi-côté ; les blocs desservis
+// (serves) touchés par le cercle sont encadrés. Poteaux : bâtiments à prises touchés par le cercle.
+function rangeOf(id, w, h) {
+  const d = BL[id]; if (!d) return null;
+  if (d.mod) return typeof d.mod.edge === "number" ? { R: d.mod.edge + Math.max(w, h) / 2, serves: d.mod.serves, col: "#7fd67f" } : null;
+  return d.elec?.range ? { R: d.elec.range, serves: null, col: "#ffd84d" } : null;
+}
 function rangeMarkup(id, x, y, r) {
-  const R0 = BL[id]?.elec?.range; if (!R0) return "";
-  const [w, h] = dims(id, r), cx = x + w / 2, cy = y + h / 2;
-  let s = `<circle cx="${cx}" cy="${cy}" r="${R0}" fill="rgba(255,216,77,.06)" stroke="#ffd84d" stroke-width=".07" stroke-dasharray=".4 .25"/>`;
-  for (const b of S.b) { if (!hasNodes(b.u) || (b.x === x && b.y === y)) continue; const [bw, bh] = dims(b.id, b.r); if (Math.hypot(b.x + bw / 2 - cx, b.y + bh / 2 - cy) <= R0) s += rect([b.x, b.y, bw, bh], "none", `stroke="#ffd84d" stroke-width=".06" stroke-opacity=".7"`); }
+  const [w, h] = dims(id, r), g = rangeOf(id, w, h); if (!g) return "";
+  const cx = x + w / 2, cy = y + h / 2;
+  let s = `<circle cx="${cx}" cy="${cy}" r="${g.R}" fill="${g.col}10" stroke="${g.col}" stroke-width=".07" stroke-dasharray=".4 .25"/>`;
+  for (const b of S.b) {
+    if (b.x === x && b.y === y) continue;
+    if (g.serves ? !g.serves.includes(b.id) : !hasNodes(b.u)) continue;
+    const [bw, bh] = dims(b.id, b.r), dd = Math.hypot(Math.max(b.x - cx, 0, cx - (b.x + bw)), Math.max(b.y - cy, 0, cy - (b.y + bh)));
+    if (dd <= g.R) s += rect([b.x, b.y, bw, bh], "none", `stroke="${g.col}" stroke-width=".07" stroke-opacity=".8"`);
+  }
   return s;
 }
 function drawGhost() {
@@ -742,7 +779,7 @@ function renderStats() {
   if (!S.b.length) { el.innerHTML = `<p class="muted">Plan vierge. Choisis un bloc dans le menu en bas à droite, ou un exemple en haut.</p>`; return; }
   const row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`, list = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([i, v]) => row(esc(itemName(i)), pm(v))).join("");
   el.innerHTML = `<table>${row("Bâtiments", S.b.length - st.pieces)}${row("Pièces de tuyau", st.pieces)}${st.area ? row("Place au sol", st.area.join(" × ") + " cases") : ""}${row("Énergie", fmt(st.energy, 0) + " MF/s")}${row("Pollution", fmt(st.poll, 2) + " %/h")}${row("Prix", "$" + fmt(st.price, 0))}</table>`
-    + `<h4>Électricité</h4>${st.power.length ? `<table>${st.power.map((n, i) => row(`Réseau ${i + 1} (${n.us.length} bâtiments)`, `${fmt(n.use, 0)} / ${n.prod ? "≤ " + fmt(n.prod, 0) : "0"} MF/s`)).join("")}</table>` : `<p class="muted">Aucun câble : clique sur un poteau, puis sur ce qu'il doit alimenter.</p>`}${st.logic ? `<p class="muted">${st.logic} réseau${st.logic > 1 ? "x" : ""} logique${st.logic > 1 ? "s" : ""}.</p>` : ""}`
+    + `<h4>Électricité</h4>${st.power.length ? `<table>${st.power.map((n, i) => row(`Réseau ${i + 1} (${n.us.length} bâtiments)`, `${fmt(n.got, 0)} / ${fmt(n.need, 0)} MF/s reçus · production ≤ ${fmt(n.prod, 0)}`)).join("")}</table>` : `<p class="muted">Aucun câble : clique sur un poteau, puis sur ce qu'il doit alimenter ; re-clique sur le poteau pour tout relier dans sa portée.</p>`}${st.logic ? `<p class="muted">Câbles logiques : ${st.logic} départ${st.logic > 1 ? "s" : ""}.</p>` : ""}`
     + `<h4>Sorties du montage</h4>${Object.keys(st.outs).length ? `<table>${list(st.outs)}</table>` : `<p class="muted">Rien ne sort.</p>`}`
     + `<h4>À fournir</h4>${Object.keys(st.ext).length ? `<table>${list(st.ext)}</table>` : `<p class="muted">Rien.</p>`}`
     + `<h4>Ce qui limite</h4>${st.pb.length ? `<ul>${st.pb.map((x) => `<li class="warn">${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">Tout tourne à 100 %.</p>`}`;
