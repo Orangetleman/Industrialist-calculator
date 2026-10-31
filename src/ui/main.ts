@@ -154,6 +154,10 @@ import {
 import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
+import { initSandbox } from "./sandbox-view.ts";
+import type { ModRange } from "./sandbox-draw.ts";
+import { buildSandboxCatalog, type SbCatalog } from "../engine/sandbox/index.ts";
+import { fact } from "../engine/modular.ts";
 import { loadSent, type Piece } from "./remarques.ts";
 import type { Message, Text } from "../engine/message.ts";
 
@@ -549,6 +553,7 @@ function showPage(): void {
   document.body.classList.toggle("wide", page === "arbre" || (page === "donnees" && ui.dataTab === "batiments"));
   setDocTitle();
   document.body.classList.remove("usine-wide");
+  document.body.classList.toggle("bac-on", page === "bac");
   render();
   if (page === "donnees" && route.machine) buildings.show(route.machine);
   if (page === "propositions") props.show();
@@ -841,6 +846,7 @@ function render(): void {
   else if (page === "arbre") renderTreePage();
   else if (page === "recettes") renderRecettes();
   else if (page === "propositions") props.refresh();
+  else if (page === "bac") sandbox.show(route.code);
   else renderData();
 }
 
@@ -3881,6 +3887,29 @@ const remarks = initRemarks(remarkContext, () => {
 });
 // S36 : la page Propositions (son bouton « 💬 Proposer une idée » ouvre la fenêtre Remarque).
 const props = initPropositions($("page-propositions"), (from) => remarks.open(null, from));
+// B3 : le bac à sable. Catalogue refait seulement quand les données (corrections) ou les relevés changent.
+let sbCat: { data: GameData; ports: unknown; cat: SbCatalog } | null = null;
+const SB_MODS = new Map<string, ModRange>();
+for (const a of REPO_MODULAR.assemblies) for (const b of a.blocks) {
+  const r = fact(b, "rangeTiles")?.value;
+  if (r == null) continue;
+  SB_MODS.set(b.id, { edge: typeof r === "number" ? r : null, serves: (fact(b, "serves")?.value as string[] | undefined) ?? [] });
+}
+const sandbox = initSandbox($("page-bac"), {
+  catalog: () => {
+    const p = currentPorts().machines;
+    if (!sbCat || sbCat.data !== data || sbCat.ports !== p) {
+      sbCat = { data, ports: p, cat: buildSandboxCatalog(data, { ports: { machines: p } as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: RELEVES }) };
+    }
+    return sbCat.cat;
+  },
+  category: (id) => data.machines.get(id)?.category ?? null,
+  meta: (id) => { const m = data.machines.get(id); return { desc: m?.description ?? null, unlock: m?.unlockedBy ? nodeName(m.unlockedBy) : null }; },
+  img: (kind, id) => pictureOf(kind, id)?.src ?? null,
+  mods: SB_MODS,
+  inEditor: (id) => data.machines.has(id),
+  propose: (fills, from) => remarks.open({ piece: { fichier: "bac-recettes.json", resume: t("bac.rec.proposeN", { n: Object.keys(fills).length }), contenu: fills }, kind: "fix" }, from),
+});
 window.addEventListener("hashchange", showPage);
 showPage();
 // Visite d'orientation (S24) : seule à la toute première visite, puis par le bouton « ? ».
@@ -3962,6 +3991,7 @@ function bindLang(): void {
     buildings.refresh();
     remarks.refresh();
     props.refresh();
+    sandbox.refresh();
   });
 }
 

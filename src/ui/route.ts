@@ -10,6 +10,7 @@
 //   #recettes/<objet|machine>/<id>  fiche d'un objet ou d'une machine
 //   #recettes/<objet|machine>/<id>/<craft>  la même fiche, un craft mis en évidence (lien du schéma)
 //   #propositions               page publique des propositions des joueurs (S36, hors du menu)
+//   #bac                        bac à sable (B3) ; #bac/<code> : un montage partagé
 // Fonctions pures, testées sans navigateur.
 
 import { t } from "../i18n/i18n.ts";
@@ -17,7 +18,7 @@ import type { Goal, ResultTab } from "./state.ts";
 
 // S23 : plus de page d'accueil (l'ancienne adresse #accueil mène à Planifier) ; « Données » devient
 // « Contribuer » (#contribuer ; les adresses #donnees… restent lues).
-export type Page = "plan" | "usine" | "arbre" | "recettes" | "donnees" | "propositions";
+export type Page = "plan" | "usine" | "arbre" | "recettes" | "donnees" | "propositions" | "bac";
 export type DataTab = "verifier" | "batiments";
 /** Onglet de Mon usine (S29) : « Ma partie » (#usine) ou « Ma recherche » (#usine/recherche). */
 export type UsineTab = "partie" | "recherche";
@@ -35,12 +36,14 @@ export type Route = {
   machine?: string;
   verify?: VerifyTarget;
   card?: { kind: RecipeKind; id: string; craft?: string };
+  /** Bac à sable : montage partagé par un lien (#bac/<code>), chargé puis retiré de l'adresse. */
+  code?: string;
 };
 
 /** Entrée « Toute l'usine » de la liste des étapes du plan de pose. */
 export const USINE_STEP = "usine-entiere";
 
-export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees", "propositions"];
+export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees", "propositions", "bac"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
 /** Titre de la page d'un objectif (« Que veux-tu produire ? »), dans la langue choisie (S30). */
@@ -86,6 +89,7 @@ export function parseRoute(hash: string): Route {
     return r;
   }
   if (head === "usine") return a === "recherche" ? { page: "usine", usineTab: "recherche" } : { page: "usine" };
+  if (head === "bac") return a ? { page: "bac", code: a } : { page: "bac" };
   return (PAGES as string[]).includes(head) && head !== "plan" ? { page: head as Page } : { page: "plan" };
 }
 

@@ -4,7 +4,7 @@
 // 6. bilan et alertes regroupées.
 
 import type { PlacedPort } from "./layout.ts";
-import { geo, portKey, facingKey, cellsOf, machineLinks, type Layout, type PlacedGeo, type Placed } from "./layout.ts";
+import { geo, portKey, facingKey, cellsOf, crossLane, machineLinks, type Layout, type PlacedGeo, type Placed } from "./layout.ts";
 import type { Dir, SbBlock, SbCatalog, SbRecipe } from "./catalog.ts";
 import { MaxFlow, type Arc } from "./maxflow.ts";
 import { elecRole } from "./wires.ts";
@@ -96,7 +96,12 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   const portAt = new Map<string, { u: number; p: PlacedPort }>();
   for (const [u, g] of G) for (const p of g.ports) if (p.cells) portAt.set(portKey(p.cells, p.dir as Dir), { u, p });
   const pipeOf = (u: number) => D(u).pipe;
-  const laneOf = (u: number, p: PlacedPort) => (pipeOf(u)?.role === "croisement" ? (p.dir === "N" || p.dir === "S" ? 1 : 0) : 0);
+  // Croisement : deux voies ; réglées par le joueur (`pair`) pour un croisement d'un seul type, sinon chaque flux ressort en face.
+  const laneOf = (u: number, p: PlacedPort) => {
+    const pi = pipeOf(u);
+    if (pi?.role !== "croisement") return 0;
+    return crossLane(pi.kind === "m" ? 0 : byU.get(u)!.pair, p.dir as Dir);
+  };
   const par = new Map<string, string>();
   const find = (a: string): string => { while (par.get(a) !== a) { par.set(a, par.get(par.get(a)!)!); a = par.get(a)!; } return a; };
   const node = (u: number, l: number) => { const k = `${u}:${l}`; if (!par.has(k)) par.set(k, k); return k; };

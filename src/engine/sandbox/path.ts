@@ -63,7 +63,7 @@ function stepCost(B: Board, x: number, y: number, d: Dir, kind: Kind): [number, 
   if (u == null) return [1, false];
   const b = B.byU.get(u)!, def = B.cat.blocks.get(b.id)!, p = def.pipe;
   if (!p || p.role === "spécial" || isLarge(B.cat, b.id) || !def.geo) return null;
-  if (p.role === "croisement") return [6, true];
+  if (p.role === "croisement") return b.pair ? null : [6, true]; // voies en virages : on ne le traverse plus tout droit
   if (p.kind === kind) return [3, false];
   const ex = [...openAt(B, b, x, y)];
   return ex.length === 2 && OPP[ex[0]!] === ex[1] && !ex.includes(d) ? [6, true] : null;

@@ -850,6 +850,15 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   part (début de la flèche), par exemple celle du générateur pour un câble générateur → poteau. Corrigé
   dans le moteur (B1 prenait la plus grande des deux). **À relever** : la portée de câble de chaque
   générateur ; d'ici là, le câble se pose à la main avec un avertissement, jamais en automatique.
+- **BAS-09** (B3, 2026-10-31, à confirmer en jeu) : voies d'un croisement réglables à la main (§ 4 du plan :
+  « ce choix automatique pourra être changé »). L'écran propose trois réglages pour un croisement d'un seul
+  type : tout droit (défaut), virages haut-droite / bas-gauche, virages haut-gauche / bas-droite
+  (`Placed.pair`). Le croisement objet × fluide garde ses voies par type. Quels réglages le jeu permet-il
+  vraiment (et par quel geste) ?
+- **BAS-10** (B3, 2026-10-31, défaut du moteur relevé à l'écran) : deux machines collées par deux contacts
+  (sortie de A sur l'entrée de B, et sortie de B sur l'entrée de A) : la déduction des recettes peut osciller
+  sans se fixer (exemple : Press au-dessus d'un Roller tourné d'un demi-tour, Press réglé sur Iron Plate).
+  Le joueur s'en sort en choisissant la liaison (outil Liaisons). À corriger dans le moteur (lot à part).
 
 ### Comparaison avec Industrialist Calculator (2026-10-26)
 

@@ -117,6 +117,23 @@ describe("exemples de la maquette", () => {
   });
 });
 
+describe("voies d'un croisement (B3)", () => {
+  it("par défaut le flux ressort en face ; réglé en virages, il tourne", () => {
+    const run = (pair?: 0 | 1 | 2) => {
+      const { L, put } = builder();
+      put("press", 0, 0, 0, "press_02"); // Iron Plate, sortie vers le bas, en (3, 1)
+      const x = put("pipe-intersection", 3, 2, 0);
+      if (pair) L.blocks.find((b) => b.u === x)!.pair = pair;
+      put("short-pipe", 4, 2, 1);
+      return computeSandbox(cat, L).lanes.filter((l) => l.u === x);
+    };
+    expect(run().find((l) => l.lane === 1)!.item).toBe("iron-plate"); // N → S
+    expect(run().find((l) => l.lane === 0)!.item).toBeNull();
+    expect(run(1).find((l) => l.lane === 0)!.item).toBe("iron-plate"); // N → E
+    expect(run(1).find((l) => l.lane === 1)!.item).toBeNull();
+  });
+});
+
 describe("cas signalés", () => {
   it("recette ambiguë → « ? »", () => {
     const { L, put } = builder();

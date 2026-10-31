@@ -10,8 +10,20 @@ export const OPP: Record<Dir, Dir> = { N: "S", S: "N", E: "W", W: "E" };
 export const rot = (d: Dir, r: number): Dir => DIRS[(DIRS.indexOf(d) + r) % 4]!;
 export const cellKey = (x: number, y: number) => `${x},${y}`;
 
-/** Un bâtiment posé : `u` identifiant unique, `choice` recette choisie par le joueur (gardée tant qu'elle reste possible). */
-export type Placed = { u: number; id: string; x: number; y: number; r: number; choice?: string | null; open?: Dir[] };
+/**
+ * Un bâtiment posé : `u` identifiant unique, `choice` recette choisie par le joueur (gardée tant qu'elle reste possible).
+ * `pair` : voies d'un croisement réglées à la main (B3) ; sans réglage, chaque flux ressort en face (↔ et ↕).
+ */
+export type Placed = { u: number; id: string; x: number; y: number; r: number; choice?: string | null; open?: Dir[]; pair?: CrossPair };
+
+/**
+ * Voies d'un croisement (PLAN-BAC-A-SABLE.md § 4) : 0 tout droit (E-O et N-S), 1 en virages N-E et S-O, 2 en
+ * virages N-O et S-E. Le réglage ne vaut que pour un croisement d'un seul type (objet ou fluide).
+ */
+export type CrossPair = 0 | 1 | 2;
+export const CROSS_PAIRS: Record<CrossPair, [Dir[], Dir[]]> = { 0: [["E", "W"], ["N", "S"]], 1: [["N", "E"], ["S", "W"]], 2: [["N", "W"], ["S", "E"]] };
+/** Voie (0 ou 1) d'un côté d'un croisement. */
+export const crossLane = (pair: CrossPair | undefined, d: Dir): 0 | 1 => (CROSS_PAIRS[pair ?? 0][0].includes(d) ? 0 : 1);
 /** Câble de prise à prise, orienté de `a` vers `b` (indices des ports dans `geo().ports`). */
 export type Wire = { a: number; ia: number; b: number; ib: number; t: "p" | "g" };
 /**

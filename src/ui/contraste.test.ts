@@ -51,3 +51,21 @@ describe("contrastes (S33)", () => {
     expect(ratio(light.warn!, light["warn-soft"]!)).toBeGreaterThan(5); // était 3,9:1
   });
 });
+
+// B3 : le bac à sable a ses propres jetons (sombre dans les deux thèmes, comme Mindustry), dans sandbox.css.
+describe("contrastes du bac à sable (B3)", () => {
+  const sb = readFileSync(new URL("../sandbox.css", import.meta.url), "utf8");
+  const at = sb.indexOf(".bac-root {");
+  const b = Object.fromEntries([...sb.slice(at, sb.indexOf("}", at)).matchAll(/--b-([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1]!, m[2]!.toLowerCase()]));
+  // [texte, fond] : panneaux (#121212), boutons, bouton choisi, plan.
+  const SB_PAIRS: [string, string][] = [
+    ["ink", "panel"], ["muted", "panel"], ["accent", "panel"], ["red", "panel"], ["green", "panel"],
+    ["ink", "btn"], ["muted", "btn"], ["ink", "sel"], ["accent", "sel"], ["ink", "bg"],
+  ];
+  for (const [fg, bg] of SB_PAIRS)
+    it(`--b-${fg} sur --b-${bg} ≥ 4,5:1`, () => {
+      expect(b[fg], fg).toBeDefined();
+      expect(b[bg], bg).toBeDefined();
+      expect(ratio(b[fg]!, b[bg]!)).toBeGreaterThanOrEqual(4.5);
+    });
+});
