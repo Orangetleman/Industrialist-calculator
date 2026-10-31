@@ -397,3 +397,13 @@ Reste à faire :
 
 Restent pour l'éditeur de bâtiments (code du site, lot à créer) : relever la catégorie d'un bâtiment (3) et la
 portée des câbles logiques (11).
+
+### Règle du réservoir de la ferme (utilisateur, 2026-10-31) : à faire en B9
+
+Le réservoir d'eau (Tree Farm Water Tank) compte dans la portée du contrôleur. Un arroseur fonctionne quand
+le réservoir et l'arroseur sont tous deux dans la portée du contrôleur, et que le réservoir est alimenté en eau.
+La distance entre le réservoir et l'arroseur ne compte pas : c'est la portée « infinie » de `modular.json`.
+Quand le réservoir est sélectionné, le bac à sable montrera :
+- le cercle du ou des contrôleurs qui le couvrent ;
+- les arroseurs qu'il alimente à travers eux, encadrés ;
+- une alerte s'il n'est dans la portée d'aucun contrôleur, ou s'il n'est pas alimenté.
