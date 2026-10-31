@@ -66,6 +66,24 @@ button { font:inherit; color:inherit; }
 /* Indications du bas, comme Mindustry */
 #hint { position:fixed; left:50%; bottom:10px; transform:translateX(-50%); max-width:min(760px, calc(100vw - 420px)); text-align:center; font-size:12.5px; color:#ddd; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:3px; pointer-events:none; }
 #hint kbd { font:inherit; color:var(--accent); }
+#toast { position:fixed; left:50%; top:14px; transform:translateX(-50%); background:#111; border:1px solid var(--accent); color:var(--ink); padding:6px 12px; border-radius:3px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:4; }
+#toast.on { opacity:1; }
+/* Barre du schéma copié (F) : enregistrer, tourner, retourner, annuler (panneau de schéma de Mindustry) */
+#schbar { left:50%; bottom:44px; transform:translateX(-50%); display:flex; gap:4px; padding:5px; align-items:center; }
+#schbar[hidden] { display:none; }
+#schbar button, #schbar input { min-height:32px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; color:var(--ink); padding:0 8px; display:inline-flex; gap:5px; align-items:center; cursor:pointer; }
+#schbar input { width:150px; cursor:text; }
+#schbar .saved { color:var(--green); font-size:13px; padding:0 6px; }
+/* Clavier visuel des touches (comme le mod Keybind Atlas) */
+.kb { display:flex; flex-direction:column; gap:4px; margin:8px 0 14px; }
+.kb-row { display:flex; gap:4px; }
+.kb-k { min-width:38px; height:42px; padding:2px 4px; background:#222; border:1px solid #444; border-radius:4px; font-size:12px; color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; line-height:1.1; }
+.kb-k small { font-size:9px; color:var(--muted); max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.kb-k.g-move { background:#22384a; } .kb-k.g-build { background:#3d3522; } .kb-k.g-schem { background:#2d3a26; } .kb-k.g-view { background:#352a45; }
+.kb-k.conflict { border:2px solid var(--red); } .kb-k.fixed { opacity:.55; cursor:default; }
+.kb-act { display:grid; grid-template-columns:1fr auto auto; gap:4px 10px; align-items:center; font-size:13px; }
+.kb-act button { min-height:28px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; color:var(--ink); padding:0 8px; cursor:pointer; }
+.kb-act button.arm { border-color:var(--accent); color:var(--accent); }
 /* Outils du téléphone (MobileInput) */
 #mob { display:none; left:8px; bottom:8px; padding:4px; gap:4px; flex-direction:column; }
 #mob button { width:48px; height:48px; background:#2a2a2a; border:1px solid var(--line); border-radius:3px; font-size:20px; }
@@ -148,7 +166,9 @@ button { font:inherit; color:inherit; }
   <button id="m-undo" title="Annuler" aria-label="Annuler" data-ic="undo"></button>
 </div>
 
+<div id="schbar" class="pan" hidden></div>
 <div id="hint"></div>
+<div id="toast" role="status"></div>
 <div id="dlg" hidden><div class="in" id="dlg-in"></div><button class="back" id="dlg-back" data-ic="back">Retour</button></div>
 
 <script src="bac-a-sable.data.js"></script>
@@ -171,6 +191,7 @@ const IC = {
   back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
   next: '<path d="m9 18 6-6-6-6"/>',
   warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
   updown: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
   swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
   // Catégories du menu Build. Pipes : la goutte de la catégorie « liquides » de Mindustry.
@@ -215,8 +236,8 @@ const completeLink = (id) => BL[id]?.noEditor
   : `<a href="/#contribuer/batiments/${id}" target="_blank">${BL[id]?.geo ? "Modifier dans l'éditeur de bâtiments" : "Compléter " + esc(BL[id].name)} ${ic("next")}</a>`;
 const SIDE_WORD = { N: "haut", S: "bas", W: "gauche", E: "droite" };
 // Port survolé : son rôle, son côté, et ce que dit son infobulle relevée (ce qui y passe, BAS-03).
-const portTxt = (p) => `${p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${p.t === "f" ? "fluide" : "objet"}${p.tip ? ` : « ${esc(p.tip)} »` : " (infobulle non relevée)"}`;
-const TIERS = [{ t: 1, l: "I" }, { t: 2, l: "II" }, { t: 3, l: "III" }, { t: 4, l: "IV" }, { t: null, l: "∗" }];
+const portTxt = (p) => `${p.d === "e" ? "Entrée" : p.d === "s" ? "Sortie" : "Entrée et sortie"} ${{ f: "fluide", o: "objet", p: "électrique", g: "logique" }[p.t]}${p.items?.length ? ` : ${p.items.map((i) => esc(itemName(i))).join(", ")}` : p.tip ? ` : « ${esc(p.tip)} »` : p.t === "o" || p.t === "f" ? " (infobulle non relevée)" : ""}`;
+const TIERS = [{ t: 1, l: "I" }, { t: 2, l: "II" }, { t: 3, l: "III" }, { t: 4, l: "IV" }];
 
 // Familles de tuyaux : un seul bouton par famille dans la grille, les variantes dans le cadre d'infos.
 const FAMS = { o1: { kind: "o", tier: 1, name: "Tuyaux objet" }, f1: { kind: "f", tier: 1, name: "Tuyaux fluide" }, o3: { kind: "o", tier: 3, name: "Tuyaux objet" }, f3: { kind: "f", tier: 3, name: "Tuyaux fluide" }, f4: { kind: "f", tier: 4, name: "Grands tuyaux fluide", large: true } };
@@ -254,12 +275,12 @@ function shortcut(e) { // [tier, catégorie, bloc] ; au-delà de 9 : dizaine pui
 }
 
 // ======================= État =======================
-let S = { b: [], n: 1 };
+let S = { b: [], n: 1, w: [] }; // w : câbles électriques et logiques, de prise à prise { a, ia, b, ib, t }
 const occ = new Map(), byU = new Map();
 let undo = [], redo = [];
-const ui = { tier: 1, cat: "Factories", sel: null, auto: true, rot: 0, vec: false, status: true, pinned: null, hoverU: null, hoverBtn: null, cell: [0, 0], op: null, clip: null, ctrl: false, choice: null, breakMode: false, schemMode: false };
+const ui = { tier: 1, cat: "Factories", sel: null, auto: true, rot: 0, vec: false, status: true, pinned: null, hoverU: null, hoverBtn: null, cell: [0, 0], op: null, clip: null, wires: true, ctrl: false, choice: null, breakMode: false, schemMode: false };
 const cam = { x: -6, y: -6, z: 30 };
-function reindex() { occ.clear(); byU.clear(); for (const b of S.b) { byU.set(b.u, b); for (const [x, y] of cellsOf(b)) occ.set(K(x, y), b.u); } }
+function reindex() { occ.clear(); byU.clear(); for (const b of S.b) { byU.set(b.u, b); for (const [x, y] of cellsOf(b)) occ.set(K(x, y), b.u); } S.w = (S.w ?? []).filter((w) => byU.has(w.a) && byU.has(w.b)); }
 function snap() { undo.push(JSON.stringify(S)); if (undo.length > 200) undo.shift(); redo = []; }
 function apply(remove, add) {
   if (!remove.length && !add.length) return;
@@ -277,10 +298,22 @@ const geoCache = new Map();
 function geo(b) {
   const ck = `${b.id}|${b.x}|${b.y}|${b.r}`; if (geoCache.has(ck)) return geoCache.get(ck);
   const d = BL[b.id], g = d.geo; let w = g.w, h = g.h;
-  // Les tuyaux n'ont pas de sens propre (réponse BAS-02) : leurs ports vont dans les deux sens.
-  let ps = g.ports.map((p) => { const k = p.c - 1; const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k]; return { t: p.t, d: d.pipe ? "l" : p.d, dir: p.s, ix, iy, tip: p.tip }; });
-  for (let i = 0; i < b.r; i++) { ps = ps.map((p) => ({ ...p, ix: h - 1 - p.iy, iy: p.ix, dir: ROT(p.dir, 1) })); [w, h] = [h, w]; }
-  const out = { w, h, ports: ps.map((p) => ({ ...p, ix: p.ix + b.x, iy: p.iy + b.y, ox: p.ix + b.x + DV[p.dir][0], oy: p.iy + b.y + DV[p.dir][1] })) };
+  // Les tuyaux droits, coudes, tés, croix et croisements n'ont pas de sens propre (BAS-02) ; les pièces spéciales
+  // (vannes, dérivation…) gardent le sens relevé. Un port de grand tuyau couvre 2 cases (`cells`).
+  const free = d.pipe && d.pipe.role !== "spécial";
+  let ps = g.ports.map((p) => {
+    const base = { t: p.t, d: free && (p.t === "o" || p.t === "f") ? "l" : p.d, tip: p.tip, items: p.items };
+    if (p.s === "top") return { ...base, dir: "top", px: p.cx - 0.5, py: p.cy - 0.5 }; // prise posée dessus (centre, demi-cases permises)
+    const k = p.c - 1, al = p.s === "N" || p.s === "S" ? [1, 0] : [0, 1];
+    const [ix, iy] = p.s === "N" ? [k, 0] : p.s === "S" ? [k, h - 1] : p.s === "W" ? [0, k] : [w - 1, k];
+    return { ...base, dir: p.s, cells: Array.from({ length: p.span || 1 }, (_, i) => [ix + al[0] * i, iy + al[1] * i]) };
+  });
+  for (let i = 0; i < b.r; i++) { const H = h; ps = ps.map((p) => (p.dir === "top" ? { ...p, px: H - p.py, py: p.px } : { ...p, dir: ROT(p.dir, 1), cells: p.cells.map(([x, y]) => [H - 1 - y, x]) })); [w, h] = [h, w]; }
+  const out = { w, h, ports: ps.map((p) => {
+    if (p.dir === "top") return { ...p, px: p.px + b.x, py: p.py + b.y };
+    const cells = p.cells.map(([x, y]) => [x + b.x, y + b.y]);
+    return { ...p, cells, ix: cells[0][0], iy: cells[0][1], ox: cells[0][0] + DV[p.dir][0], oy: cells[0][1] + DV[p.dir][1] };
+  }) };
   geoCache.set(ck, out); return out;
 }
 function cellsOf(b) { if (b.missing) return [[b.x, b.y]]; const [w, h] = dims(b.id, b.r), out = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out.push([b.x + x, b.y + y]); return out; }
@@ -289,7 +322,7 @@ function fitsAt(id, x, y, r, ignore) { const [w, h] = dims(id, r); for (let j = 
 function cellOpen(b, x, y) {
   if (b.missing) return new Set(b.open);
   const d = BL[b.id], s = new Set(); if (!d.geo) return s;
-  for (const p of geo(b).ports) if (p.ix === x && p.iy === y) s.add(p.dir);
+  for (const p of geo(b).ports) if (p.cells?.some(([cx, cy]) => cx === x && cy === y)) s.add(p.dir);
   if (d.pipe?.role === "droit" && !isLarge(b.id)) (b.r % 2 ? ["E", "W"] : ["N", "S"]).forEach((dd) => s.add(dd));
   return s;
 }
@@ -298,8 +331,13 @@ const dirTo = (x, y, qx, qy) => (qx > x ? "E" : qx < x ? "W" : qy > y ? "S" : "N
 function portFacing(x, y, d, kind) {
   const nx = x + DV[d][0], ny = y + DV[d][1], u = occ.get(K(nx, ny)); if (u == null) return null;
   const b = byU.get(u); if (b.missing || !BL[b.id].geo) return null;
-  return geo(b).ports.find((p) => p.ix === nx && p.iy === ny && p.dir === OPP[d] && p.t === kind) ?? null;
+  return geo(b).ports.find((p) => p.cells?.length === 1 && p.ix === nx && p.iy === ny && p.dir === OPP[d] && p.t === kind) ?? null;
 }
+// Clé d'un port côté : sa case la plus en haut à gauche, son côté, sa largeur (un port de 2 cases ne se
+// raccorde qu'à un port de 2 cases qui lui fait face exactement).
+const pkey = (cells, dir) => { const m = cells.reduce((a, c) => (c[1] < a[1] || (c[1] === a[1] && c[0] < a[0]) ? c : a)); return `${m[0]},${m[1]},${dir},${cells.length}`; };
+const facing = (p) => pkey(p.cells.map(([x, y]) => [x + DV[p.dir][0], y + DV[p.dir][1]]), OPP[p.dir]);
+const hasNodes = (u) => { const b = byU.get(u); return !!b && !b.missing && !!BL[b.id].geo && geo(b).ports.some((p) => p.dir === "top"); };
 
 // ======================= Tracé des tuyaux =======================
 // Chemin : A* sur 4 voisins, +8 par virage (Placement.astar de Mindustry) ; un tuyau de l'autre type ou un
@@ -436,7 +474,7 @@ const BIG = 1e12;
 let R = { MI: new Map(), lanes: new Map(), conns: [], terms: [], st: null };
 function compute() {
   const G = new Map(); for (const b of S.b) if (!b.missing && BL[b.id].geo) G.set(b.u, geo(b));
-  const portAt = new Map(); for (const [u, g] of G) for (const p of g.ports) portAt.set(`${p.ix},${p.iy},${p.dir}`, { u, p });
+  const portAt = new Map(); for (const [u, g] of G) for (const p of g.ports) if (p.cells) portAt.set(pkey(p.cells, p.dir), { u, p });
   const pipeOf = (u) => BL[byU.get(u).id].pipe;
   const laneOf = (u, p) => (pipeOf(u)?.role === "croisement" ? (p.dir === "N" || p.dir === "S" ? 1 : 0) : 0);
   const par = new Map(), find = (a) => { while (par.get(a) !== a) { par.set(a, par.get(par.get(a))); a = par.get(a); } return a; };
@@ -444,8 +482,9 @@ function compute() {
   const conns = [], terms = [], linked = new Set(), open = [];
   // Raccords : deux ports face à face, du même type ; au moins un tuyau ; jamais deux entrées ni deux sorties.
   for (const [u, g] of G) for (const p of g.ports) {
+    if (!p.cells) continue; // prises électriques et logiques : câbles, plus bas
     const pa = pipeOf(u); if (pa) node(u, laneOf(u, p));
-    const q = portAt.get(`${p.ox},${p.oy},${OPP[p.dir]}`);
+    const q = portAt.get(facing(p));
     if (!q || q.u === u || q.p.t !== p.t) continue;
     const pb = pipeOf(q.u);
     if ((!pa && !pb) || (p.d === "e" && q.p.d === "e") || (p.d === "s" && q.p.d === "s")) continue;
@@ -455,7 +494,7 @@ function compute() {
     if (pb) { const b = node(q.u, laneOf(q.u, q.p)); if (`${u}|${p.ix},${p.iy},${p.dir}` < `${q.u}|${q.p.ix},${q.p.iy},${q.p.dir}`) conns.push({ a, b, ax: p.ix, ay: p.iy, bx: q.p.ix, by: q.p.iy }); par.set(find(a), find(b)); }
     else if (q.p.d !== "l") terms.push({ u: q.u, p: q.p, lane: a, px: p.ix, py: p.iy });
   }
-  for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (!linked.has(`${u}|${p.ix},${p.iy},${p.dir}`)) open.push(node(u, laneOf(u, p)));
+  for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (p.cells && !linked.has(`${u}|${p.ix},${p.iy},${p.dir}`)) open.push(node(u, laneOf(u, p)));
   const comps = new Map(), comp = (l) => { const r = find(l); if (!comps.has(r)) comps.set(r, { lanes: [], src: [], snk: [], open: [], conns: [], items: new Set() }); return comps.get(r); };
   for (const l of par.keys()) comp(l).lanes.push(l);
   for (const c of conns) comp(c.a).conns.push(c);
@@ -466,6 +505,7 @@ function compute() {
   for (const [u] of G) { const d = BL[byU.get(u).id]; if (!d.pipe) MI.set(u, { rec: null, cand: d.recipes, f: 0, why: null }); }
   const outItem = (u, p) => { const mi = MI.get(u); if (!mi?.rec) return null; const outs = Object.keys(mi.rec.out).filter((i) => isFluid(i) === (p.t === "f")); if (!outs.length) return null;
     // BAS-03 : l'infobulle relevée du port nomme ce qui en sort ; sinon, répartition dans l'ordre (à vérifier).
+    const byItems = p.items?.length ? outs.filter((i) => p.items.includes(i)) : []; if (byItems.length) return byItems[0]; // objets du port (S38)
     const byTip = p.tip ? outs.filter((i) => p.tip.toLowerCase().includes(itemName(i).toLowerCase())) : []; if (byTip.length) return byTip[0];
     const ps = G.get(u).ports.filter((q) => q.d === "s" && q.t === p.t); return outs[ps.indexOf(p) % outs.length]; };
   for (let pass = 0; pass < 8; pass++) {
@@ -555,7 +595,28 @@ function compute() {
   const seenL = new Set();
   for (const [l, L] of lanes) { const u = +l.split(":")[0]; if (L.over && !seenL.has("o" + L.item)) { seenL.add("o" + L.item); pb.push(`Tuyau saturé : ${fmt(L.offered)}/s de ${itemName(L.item)} pour ${fmt(L.cap)}/s (${BL[byU.get(u).id].name})`); } if (L.mixed && !seenL.has("m" + u)) { seenL.add("m" + u); pb.push("Tuyau mélangé : deux objets dans le même réseau"); } }
   for (const b of S.b) if (b.missing) pb.push(`Pièce non relevée : ${BL[b.id].name} (à compléter)`);
-  R = { MI, lanes, conns: [...cflow].map(([k, v]) => ({ ...k, ...v })), terms: [...tflow].map(([t, v]) => ({ ...t, ...v })), st: { energy, poll, price, pieces, outs, ext, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, pb } };
+  // Câbles : réseaux électriques (p) et logiques (g). Les prises d'un même bâtiment sont reliées entre elles.
+  const wp = new Map(), wf = (a) => { while (wp.get(a) !== a) a = wp.get(a); return a; }, wn = (u, t) => { const k = u + t; if (!wp.has(k)) wp.set(k, k); return k; };
+  for (const [u, g] of G) for (const p of g.ports) if (p.dir === "top") wn(u, p.t);
+  for (const w of S.w) { const A = wf(wn(w.a, w.t)), Bn = wf(wn(w.b, w.t)); if (A !== Bn) wp.set(A, Bn); }
+  const nets = new Map();
+  for (const k of wp.keys()) { const r = wf(k), u = +k.slice(0, -1), t = k.slice(-1); if (!nets.has(r)) nets.set(r, { t, us: [], use: 0, prod: 0 }); nets.get(r).us.push(u); }
+  const unpowered = [];
+  for (const n of nets.values()) {
+    if (n.t !== "p") continue;
+    for (const u of n.us) {
+      const d = BL[byU.get(u).id], mi = MI.get(u), out = d.elec?.out;
+      if (out != null) n.prod += Array.isArray(out) ? Math.max(...out) : out; // production du wiki (« jusqu'à » quand elle dépend du carburant)
+      if (mi?.rec && geo(byU.get(u)).ports.some((p) => p.dir === "top" && p.t === "p" && p.d === "e")) n.use += (mi.rec.e || 0) * mi.f;
+    }
+    if (n.use > 0 && n.prod === 0) unpowered.push(...n.us.filter((u) => MI.get(u)?.rec && !BL[byU.get(u).id].elec?.out));
+    if (n.prod > 0 && n.use > n.prod) pb.push(`Réseau électrique trop faible : ${fmt(n.use, 0)} MF/s demandés pour ${fmt(n.prod, 0)} au plus`);
+  }
+  // Pas de pause de la production sans courant : la maquette le signale seulement (règle à confirmer en jeu).
+  const unp = new Set(unpowered.filter((u) => BL[byU.get(u).id].recipes.some((r) => r.e > 0)));
+  if (unp.size) pb.push(`${unp.size} machine${unp.size > 1 ? "s" : ""} sans courant (aucun générateur sur leur réseau)`);
+  const power = [...nets.values()].filter((n) => n.t === "p" && (n.us.length > 1 || n.prod > 0));
+  R = { MI, lanes, unp, conns: [...cflow].map(([k, v]) => ({ ...k, ...v })), terms: [...tflow].map(([t, v]) => ({ ...t, ...v })), st: { energy, poll, price, pieces, outs, ext, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] : null, pb, power, logic: [...nets.values()].filter((n) => n.t === "g" && n.us.length > 1).length } };
 }
 
 // ======================= Dessin =======================
@@ -584,7 +645,33 @@ function pipeMarkup(b, o = {}) {
     }
   }
   s += rect([b.x + 0.03, b.y + 0.03, w - 0.06, h - 0.06], "none", `stroke="#000" stroke-opacity=".55" stroke-width=".05"`);
+  s += portsMarkup(b); // les ports distinguent aussi deux pièces de même taille dans l'aperçu
   if (b.missing) s += `<svg x="${b.x + 0.25}" y="${b.y + 0.25}" width=".5" height=".5" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">${IC.close}</svg>`;
+  return s;
+}
+// Tous les ports relevés se voient (retour du 2026-10-27) : objet en jaune, fluide en bleu ; triangle vers
+// l'extérieur = sortie, vers l'intérieur = entrée, barre = les deux sens ; un port de 2 cases fait une seule
+// barre. Prises posées dessus : carré jaune électrique (éclair), losange violet logique.
+const PORT_COL = { o: "#f0c330", f: "#4aa3df", p: "#ffd84d", g: "#b48ef0" };
+function portsMarkup(b) {
+  if (b.missing || !BL[b.id].geo) return "";
+  let s = "";
+  for (const p of geo(b).ports) {
+    const col = PORT_COL[p.t] ?? "#ccc";
+    if (p.dir === "top") {
+      const r = 0.2, x = p.px, y = p.py;
+      s += p.t === "g"
+        ? `<polygon points="${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}" fill="${col}" stroke="#000" stroke-width=".04"/>`
+        : `<rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx=".04" fill="#222" stroke="${col}" stroke-width=".06"/><path d="M${x + 0.04} ${y - 0.14}l-.1 .16h.12l-.1 .16" fill="none" stroke="${col}" stroke-width=".05" stroke-linecap="round"/>`;
+      continue;
+    }
+    if (p.d === "l") { // barre posée sur le bord, sur toute la largeur du port
+      const [dx, dy] = DV[p.dir], xs = p.cells.map((c) => c[0]), ys = p.cells.map((c) => c[1]);
+      const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs) + 1, y1 = Math.max(...ys) + 1, t = 0.12;
+      const rr = dx === 0 ? [x0 + 0.2, dy < 0 ? y0 : y1 - t, x1 - x0 - 0.4, t] : [dx < 0 ? x0 : x1 - t, y0 + 0.2, t, y1 - y0 - 0.4];
+      s += rect(rr, col, `stroke="#fff" stroke-width=".035"`); // filet blanc : visible même sur un tuyau de la même couleur
+    } else for (const [cx, cy] of p.cells) s += `<polygon points="${tri(cx + 0.5, cy + 0.5, p.dir, p.d === "s")}" fill="${col}" stroke="#000" stroke-width=".03"/>`;
+  }
   return s;
 }
 function tri(cx, cy, dir, out) { const [dx, dy] = DV[dir], ex = cx + dx * 0.5, ey = cy + dy * 0.5, tip = out ? 0.22 : -0.26, px = -dy * 0.17, py = dx * 0.17; return `${ex + px},${ey + py} ${ex - px},${ey - py} ${ex + dx * tip},${ey + dy * tip}`; }
@@ -593,7 +680,7 @@ function machineMarkup(b, o = {}) {
   s += rect([x + 0.06, y + 0.06, w - 0.12, h - 0.12], "#323232", `rx=".15" stroke="#5c5c5c" stroke-width=".06"`);
   if (d.img) s += `<image href="${imgUrl(d.img)}" x="${x + 0.2}" y="${y + 0.2}" width="${w - 0.4}" height="${h - 0.4}" preserveAspectRatio="xMidYMid meet" opacity=".85"/>`;
   if (Math.min(w, h) >= 2) s += `<text x="${x + 0.18}" y="${y + 0.45}" font-size=".3" font-weight="700" fill="#eee" stroke="#000" stroke-width=".06" paint-order="stroke">${esc(d.name)}</text>`;
-  for (const p of geo(b).ports) s += `<polygon points="${tri(p.ix + 0.5, p.iy + 0.5, p.dir, p.d === "s")}" fill="${p.t === "f" ? "#4aa3df" : "#f0c330"}" stroke="#000" stroke-width=".03"/>`;
+  s += portsMarkup(b);
   const mi = o.mi;
   if (mi && d.recipes.length) {
     const col = !mi.rec ? (mi.cand.length > 1 ? "#f0a040" : "#e55454") : mi.f > 0.999 ? "#5ce677" : mi.why?.[0] === "out" ? "#f0a040" : "#e55454";
@@ -615,11 +702,26 @@ function drawAll() {
     for (const c of R.conns) o += arrow(c.ax, c.ay, c.bx, c.by, c.f, c.item);
     for (const t of R.terms) o += t.p.d === "s" ? arrow(t.p.ix, t.p.iy, t.px, t.py, t.f, t.item) : arrow(t.px, t.py, t.p.ix, t.p.iy, t.f, t.item);
   }
+  if (ui.wires) for (const w of S.w) { // câbles (F5 les masque, comme toggle_power_lines dans Mindustry)
+    const A = geo(byU.get(w.a)).ports[w.ia], Bp = geo(byU.get(w.b)).ports[w.ib]; if (!A || !Bp) continue;
+    o += `<line x1="${A.px}" y1="${A.py}" x2="${Bp.px}" y2="${Bp.py}" stroke="${PORT_COL[w.t]}" stroke-width=".08" stroke-opacity=".85"/>`;
+  }
   overL.innerHTML = o; renderStats(); drawGhost();
+}
+// Portée : dessinée pendant la pose et quand le bâtiment est sélectionné (comme Mindustry), pour tout bâtiment
+// dont la portée est connue (aujourd'hui : poteaux, relevés et power.json, en cases ; 1 tile = 2 cases).
+function rangeMarkup(id, x, y, r) {
+  const R0 = BL[id]?.elec?.range; if (!R0) return "";
+  const [w, h] = dims(id, r), cx = x + w / 2, cy = y + h / 2;
+  let s = `<circle cx="${cx}" cy="${cy}" r="${R0}" fill="rgba(255,216,77,.06)" stroke="#ffd84d" stroke-width=".07" stroke-dasharray=".4 .25"/>`;
+  for (const b of S.b) { if (!hasNodes(b.u) || (b.x === x && b.y === y)) continue; const [bw, bh] = dims(b.id, b.r); if (Math.hypot(b.x + bw / 2 - cx, b.y + bh / 2 - cy) <= R0) s += rect([b.x, b.y, bw, bh], "none", `stroke="#ffd84d" stroke-width=".06" stroke-opacity=".7"`); }
+  return s;
 }
 function drawGhost() {
   let s = ""; const c = ui.cell;
   const hb = ui.hoverU ?? ui.pinned; if (hb != null && byU.has(hb) && !ui.sel) { const b = byU.get(hb), [w, h] = b.missing ? [1, 1] : dims(b.id, b.r); s += rect([b.x, b.y, w, h], "none", `stroke="#ffd37f" stroke-width=".08"`); }
+  if (ui.pinned != null && byU.has(ui.pinned) && !ui.sel) { const b = byU.get(ui.pinned); s += rangeMarkup(b.id, b.x, b.y, b.r); }
+  if (ui.sel && !ui.sel.locked && !ui.op) { const a = anchor(ui.sel.v, c); s += rangeMarkup(ui.sel.v, a[0], a[1], ui.rot); }
   const op = ui.op;
   if (op && (op.t === "break" || op.t === "schem") && (op.moved || op.t === "schem")) {
     const [x0, x1] = [Math.min(op.s[0], c[0]), Math.max(op.s[0], c[0])], [y0, y1] = [Math.min(op.s[1], c[1]), Math.max(op.s[1], c[1])];
@@ -640,6 +742,7 @@ function renderStats() {
   if (!S.b.length) { el.innerHTML = `<p class="muted">Plan vierge. Choisis un bloc dans le menu en bas à droite, ou un exemple en haut.</p>`; return; }
   const row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`, list = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([i, v]) => row(esc(itemName(i)), pm(v))).join("");
   el.innerHTML = `<table>${row("Bâtiments", S.b.length - st.pieces)}${row("Pièces de tuyau", st.pieces)}${st.area ? row("Place au sol", st.area.join(" × ") + " cases") : ""}${row("Énergie", fmt(st.energy, 0) + " MF/s")}${row("Pollution", fmt(st.poll, 2) + " %/h")}${row("Prix", "$" + fmt(st.price, 0))}</table>`
+    + `<h4>Électricité</h4>${st.power.length ? `<table>${st.power.map((n, i) => row(`Réseau ${i + 1} (${n.us.length} bâtiments)`, `${fmt(n.use, 0)} / ${n.prod ? "≤ " + fmt(n.prod, 0) : "0"} MF/s`)).join("")}</table>` : `<p class="muted">Aucun câble : clique sur un poteau, puis sur ce qu'il doit alimenter.</p>`}${st.logic ? `<p class="muted">${st.logic} réseau${st.logic > 1 ? "x" : ""} logique${st.logic > 1 ? "s" : ""}.</p>` : ""}`
     + `<h4>Sorties du montage</h4>${Object.keys(st.outs).length ? `<table>${list(st.outs)}</table>` : `<p class="muted">Rien ne sort.</p>`}`
     + `<h4>À fournir</h4>${Object.keys(st.ext).length ? `<table>${list(st.ext)}</table>` : `<p class="muted">Rien.</p>`}`
     + `<h4>Ce qui limite</h4>${st.pb.length ? `<ul>${st.pb.map((x) => `<li class="warn">${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">Tout tourne à 100 %.</p>`}`;
@@ -655,7 +758,7 @@ function iconSvg(id, px = 34) {
 }
 const gridEl = document.getElementById("grid"), catsEl = document.getElementById("cats"), tiersEl = document.getElementById("tiers"), infoEl = document.getElementById("info");
 function renderPanel() {
-  tiersEl.innerHTML = TIERS.map((t, i) => `<button class="pf-b ${ui.tier === t.t ? "on" : ""}" data-tier="${i}" title="Tier ${t.l}${t.t ? "" : " (pièces sans tier dans le wiki)"}">${t.l}</button>`).join("");
+  tiersEl.innerHTML = TIERS.map((t, i) => `<button class="pf-b ${ui.tier === t.t ? "on" : ""}" data-tier="${i}" title="Tier ${t.l}">${t.l}</button>`).join("");
   catsEl.innerHTML = CATS.map((c) => { const has = entriesFor(ui.tier, c.id).length; return `<button class="pf-b ${ui.cat === c.id ? "on" : ""}" ${has ? "" : "disabled"} data-cat="${c.id}" title="${c.name}">${c.ic}</button>`; }).join("");
   gridEl.innerHTML = entriesFor(ui.tier, ui.cat).map((e) => { const v = ui.sel?.e === e ? ui.sel.v : e.def; return `<button class="pf-blk ${locked(e.def) ? "locked" : ""} ${ui.sel?.e === e ? "on" : ""}" data-key="${e.key}" aria-label="${esc(entryName(e))}">${iconSvg(v, 34)}</button>`; }).join("");
   document.documentElement.style.setProperty("--pfh", document.getElementById("pf").offsetHeight + "px");
@@ -693,7 +796,11 @@ function renderInfo(force) {
   } else {
     const b = byU.get(t.u), d = BL[b.id];
     h += head(b.id, d.name, null, !b.missing);
-    if (!b.missing && d.geo && !d.pipe) { const ps = geo(b).ports.filter((p) => p.ix === ui.cell[0] && p.iy === ui.cell[1]); for (const p of ps) h += `<div class="i-line"><b>Port</b> (côté ${SIDE_WORD[p.dir]}) : ${portTxt(p)}</div>`; }
+    if (!b.missing && d.geo) {
+      const [cx, cy] = ui.cell, ps = geo(b).ports.filter((p) => (p.cells ? p.cells.some(([x, y]) => x === cx && y === cy) : Math.floor(p.px) === cx && Math.floor(p.py) === cy));
+      for (const p of ps) h += `<div class="i-line"><b>Port</b> (${p.dir === "top" ? "dessus" : "côté " + SIDE_WORD[p.dir]}${p.cells?.length > 1 ? ", 2 cases" : ""}) : ${portTxt(p)}</div>`;
+      if (hasNodes(t.u)) { const n = S.w.filter((w) => w.a === t.u || w.b === t.u).length; h += `<div class="i-line muted">${n} câble${n > 1 ? "s" : ""}${BL[b.id].elec?.range ? ` · portée ${fmt(BL[b.id].elec.range, 1)} cases` : ""}${t.pin ? " · clic sur un autre bâtiment : relier ou délier" : ""}</div>`; }
+    }
     if (d.pipe) {
       if (b.missing) h += `<div class="i-line warn">${ic("warn")} Pièce non relevée : elle ne se raccorde à rien.</div><div class="i-btns">${completeLink(b.id)}</div>`;
       const ls = d.pipe.role === "croisement" ? [0, 1] : [0];
@@ -766,20 +873,78 @@ document.getElementById("b-schem").onclick = schematics;
 // ======================= Touches =======================
 // Touches physiques (KeyboardEvent.code), comme les jeux : WASD en QWERTY devient ZQSD en AZERTY sans réglage.
 const LAB = {};
-const lab = (c) => LAB[c] ?? (/^Key/.test(c) ? c.slice(3) : c === "Comma" ? "," : c === "Period" ? "." : c);
-navigator.keyboard?.getLayoutMap?.().then((m) => { for (const [c, k] of m) if (/^Key|Comma|Period/.test(c)) LAB[c] = k.toUpperCase(); renderHint(); }).catch(() => {});
+const lab = (c) => LAB[c] ?? (/^Key/.test(c) ? c.slice(3) : /^Digit/.test(c) ? c.slice(5) : { Comma: ",", Period: ".", Semicolon: ";", Quote: "'", Slash: "/", Backquote: "`", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\", IntlBackslash: "<" }[c] ?? c);
+navigator.keyboard?.getLayoutMap?.().then((m) => { for (const [c, k] of m) LAB[c] = k.toUpperCase(); renderHint(); }).catch(() => {});
+// Touches réassignables (retour du 2026-10-27, inspiré du mod Keybind Atlas) : action → touche physique.
+const ACTIONS = [
+  ["up", "Monter", "KeyW", "move"], ["left", "Aller à gauche", "KeyA", "move"], ["down", "Descendre", "KeyS", "move"], ["right", "Aller à droite", "KeyD", "move"],
+  ["rotate", "Tourner", "KeyR", "build"], ["variant", "Variante de tuyau, ou lâcher", "KeyQ", "build"],
+  ["schem", "Copier une zone (maintenir)", "KeyF", "schem"], ["save", "Enregistrer la copie en schéma", "KeyE", "schem"], ["flipX", "Retourner ↔", "KeyZ", "schem"], ["flipY", "Retourner ↕", "KeyX", "schem"], ["schemMenu", "Schémas", "KeyT", "schem"],
+  ["links", "Liaisons (sens des raccords)", "KeyL", "view"], ["wires", "Afficher les câbles", "F5", "view"], ["status", "État des machines", "F6", "view"], ["info", "Fiche du bloc", "F1", "view"],
+  ["menus", "Masquer l'interface", "KeyC", "view"], ["research", "Arbre de recherche", "KeyJ", "view"], ["catPrev", "Catégorie précédente", "Comma", "build"], ["catNext", "Catégorie suivante", "Period", "build"],
+];
+const KB = Object.fromEntries(ACTIONS.map(([a, , k]) => [a, k]));
+try { Object.assign(KB, JSON.parse(localStorage.getItem("bas:touches") || "{}")); } catch {}
+const saveKB = () => { try { localStorage.setItem("bas:touches", JSON.stringify(KB)); } catch {} };
+const actsOf = (code) => ACTIONS.filter(([a]) => KB[a] === code).map(([a]) => a);
+const FIXED = { Escape: "Lâcher, fermer", ShiftLeft: "Plus vite", ControlLeft: "Ligne droite, Ctrl+Z / Y", Delete: "Supprimer", Backspace: "Supprimer" };
 function renderHint() {
-  const k = (c) => `<kbd>${lab(c)}</kbd>`; let h;
-  if (ui.clip) h = `Clic : coller · Molette ou ${k("KeyR")} : tourner · ${k("KeyZ")} / ${k("KeyX")} : retourner · Clic droit ou ${k("KeyQ")} : annuler`;
+  const k = (a) => `<kbd>${lab(KB[a] ?? a)}</kbd>`; let h;
+  if (ui.clip) h = `Clic : coller · ${k("save")} : enregistrer en schéma · Molette ou ${k("rotate")} : tourner · ${k("flipX")} / ${k("flipY")} : retourner · Clic droit ou ${k("variant")} : annuler`;
+  else if (ui.pinned != null && hasNodes(ui.pinned) && !ui.sel) h = `Clic sur un autre bâtiment à prises : relier ou délier un câble · ${k("wires")} : afficher les câbles · Échap : terminer`;
   else if (ui.sel?.locked) h = `Ce bloc n'a pas ses ports relevés : « Compléter » dans le cadre d'infos · Clic droit : lâcher`;
-  else if (ui.sel?.e.fam && !FAMS[ui.sel.e.fam].large) h = `Glisser : tracer (virages, croisements et longueurs posés seuls) · Ctrl : ligne droite seule · ${k("KeyQ")} : variante · Molette ou ${k("KeyR")} : tourner · Clic droit : lâcher`;
-  else if (ui.sel) h = `Clic : poser · Maintenir et glisser : en ligne · Molette ou ${k("KeyR")} : tourner · Clic droit : lâcher · Ctrl + molette : zoom`;
-  else h = `${k("KeyW")}${k("KeyA")}${k("KeyS")}${k("KeyD")} : se déplacer (Maj : vite) · Clic droit glissé : supprimer une zone · ${k("KeyF")} + glisser : copier · ${k("KeyT")} : schémas · ${k("KeyL")} : liaisons · Clic molette : pipette`;
+  else if (ui.sel?.e.fam && !FAMS[ui.sel.e.fam].large) h = `Glisser : tracer (virages, croisements et longueurs posés seuls) · Ctrl : ligne droite seule · ${k("variant")} : variante · Molette ou ${k("rotate")} : tourner · Clic droit : lâcher`;
+  else if (ui.sel) h = `Clic : poser · Maintenir et glisser : en ligne · Molette ou ${k("rotate")} : tourner · Clic droit : lâcher · Ctrl + molette : zoom`;
+  else h = `${k("up")}${k("left")}${k("down")}${k("right")} : se déplacer (Maj : vite) · Clic droit glissé : supprimer une zone · ${k("schem")} + glisser : copier · ${k("schemMenu")} : schémas · ${k("links")} : liaisons · Clic sur un poteau : câbles · Clic molette : pipette`;
   document.getElementById("hint").innerHTML = h;
+  renderSchBar();
 }
-document.getElementById("b-keys").onclick = () => {
+// Barre du schéma copié : l'enregistrer (avec un nom), le tourner, le retourner, l'annuler.
+function renderSchBar() {
+  const el = document.getElementById("schbar"); el.hidden = !ui.clip; if (!ui.clip) return;
+  if (el.dataset.for === String(ui.clip.id) && !ui.clip.dirty) return; ui.clip.dirty = false; el.dataset.for = ui.clip.id;
+  el.innerHTML = (ui.clip.saved ? `<span class="saved">Enregistré : ${esc(ui.clip.saved)}</span>` : `<input id="sch-nm" placeholder="Nom du schéma" aria-label="Nom du schéma"><button data-sb="save">${ic("save")} Enregistrer (${lab(KB.save)})</button>`)
+    + `<button data-sb="rot" title="Tourner">${ic("rotate")}</button><button data-sb="fx" title="Retourner ↔">${ic("swap")}</button><button data-sb="fy" title="Retourner ↕">${ic("updown")}</button><button data-sb="x" title="Annuler">${ic("close")}</button>`;
+}
+function saveClip() {
+  if (!ui.clip || ui.clip.saved) return; const l = loadSch(), nm = document.getElementById("sch-nm")?.value.trim() || "Schéma " + (l.length + 1);
+  const { id, saved, dirty, ...clip } = ui.clip; l.push({ name: nm, clip }); saveSch(l); ui.clip.saved = nm; ui.clip.dirty = true; renderSchBar(); say(`Schéma « ${nm} » enregistré (${lab(KB.schemMenu)} pour le retrouver)`);
+}
+document.getElementById("schbar").addEventListener("click", (e) => { const b = e.target.closest("[data-sb]"); if (!b) return; const a = b.dataset.sb;
+  if (a === "save") saveClip(); else if (a === "rot") rotateSel(1); else if (a === "fx") flipClip(true); else if (a === "fy") flipClip(false); else { ui.clip = null; drawGhost(); renderHint(); } });
+document.getElementById("schbar").addEventListener("keydown", (e) => { if (e.key === "Enter") saveClip(); });
+// Clavier visuel : chaque touche montre ses actions, colorées par groupe ; en rouge, une touche prise deux fois.
+let kbArm = null;
+const KB_ROWS = [
+  ["Escape", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"],
+  ["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal", "Backspace"],
+  ["Tab", "KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Delete"],
+  ["CapsLock", "KeyA", "KeyS", "KeyD", "KeyF", "KeyG", "KeyH", "KeyJ", "KeyK", "KeyL", "Semicolon", "Quote", "Backslash"],
+  ["ShiftLeft", "IntlBackslash", "KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"],
+];
+const KB_NAME = { Escape: "Échap", Backspace: "⌫", Tab: "Tab", CapsLock: "Maj ⇪", ShiftLeft: "Maj", Delete: "Suppr" };
+function kbHTML() {
+  const grp = Object.fromEntries(ACTIONS.map(([a, , , g]) => [a, g]));
+  const key = (c) => {
+    const acts = actsOf(c), fx = FIXED[c], dig = /^Digit/.test(c);
+    const cls = acts.length ? "g-" + grp[acts[0]] : "", tag = acts.length ? acts.map((a) => ACTIONS.find((x) => x[0] === a)[1]).join(" + ") : fx ?? (dig ? "Choix du bloc" : "");
+    return `<button class="kb-k ${cls} ${acts.length > 1 ? "conflict" : ""} ${fx || dig ? "fixed" : ""}" data-kc="${c}" title="${esc(tag || "libre")}">${esc(KB_NAME[c] ?? lab(c))}<small>${esc(tag)}</small></button>`;
+  };
+  return `<div class="kb">${KB_ROWS.map((r) => `<div class="kb-row">${r.map(key).join("")}</div>`).join("")}</div>`
+    + `<div class="kb-act">${ACTIONS.map(([a, n]) => `<span>${esc(n)}</span><kbd>${esc(KB_NAME[KB[a]] ?? lab(KB[a]))}</kbd><button data-arm="${a}" class="${kbArm === a ? "arm" : ""}">${kbArm === a ? "Appuie sur une touche…" : "Changer"}</button>`).join("")}</div>`
+    + `<div class="row" style="margin-top:8px"><button data-kbreset>Touches par défaut</button><span class="muted">Fixes : Échap, Maj, Ctrl, Suppr, chiffres, flèches. Les autres se changent ici, au clavier ou en cliquant une touche du dessin.</span></div>`;
+}
+function assignKey(code) { if (!kbArm || FIXED[code] || /^Digit|^Arrow/.test(code)) return; KB[kbArm] = code; kbArm = null; saveKB(); keysDialog(); renderHint(); }
+dlgIn.addEventListener("click", (ev) => {
+  const arm = ev.target.closest("[data-arm]"); if (arm) { kbArm = kbArm === arm.dataset.arm ? null : arm.dataset.arm; return keysDialog(); }
+  const k = ev.target.closest("[data-kc]"); if (k && kbArm) return assignKey(k.dataset.kc);
+  if (ev.target.closest("[data-kbreset]")) { for (const [a, , d] of ACTIONS) KB[a] = d; saveKB(); keysDialog(); renderHint(); }
+});
+document.getElementById("b-keys").onclick = () => keysDialog();
+function keysDialog() {
   const r = (a, b, c) => `<tr><td>${a}</td><td>${b}</td><td class="muted">${c}</td></tr>`;
-  openDlg(`<div class="ttl">${ic("keyboard")} Commandes</div><p class="muted">Touches physiques : les lettres affichées suivent ton clavier.</p><table><tr><th>Action</th><th>Ici</th><th>Dans Mindustry (code source)</th></tr>
+  const sc = dlg.hidden ? 0 : dlg.scrollTop;
+  openDlg(`<div class="ttl">${ic("keyboard")} Touches</div><p class="muted">Touches physiques : les lettres affichées suivent ton clavier. ${kbArm ? "<b>Choisis la nouvelle touche</b> (Échap : annuler)." : ""}</p>${kbHTML()}<h3>Toutes les commandes</h3><table><tr><th>Action</th><th>Ici</th><th>Dans Mindustry (code source)</th></tr>
   ${r("Se déplacer", `${lab("KeyW")} ${lab("KeyA")} ${lab("KeyS")} ${lab("KeyD")} · Maj : plus vite · clic molette glissé`, "move_x / move_y = WASD, boost = Maj")}
   ${r("Zoomer", "Molette (Ctrl + molette quand un bloc est en main)", "zoom = molette ; elle tourne le bloc en main")}
   ${r("Choisir un bloc", "Menu en bas à droite : tier, catégorie, bloc · chiffres [tier, catégorie, bloc] tapés vite", "block_select_01…10, raccourci [catégorie, bloc]")}
@@ -804,8 +969,9 @@ document.getElementById("b-keys").onclick = () => {
   ${r("Arbre de recherche", `${lab("KeyJ")} ou ${ic("tree")}`, "research = J")}
   ${r("Annuler / rétablir", "Ctrl+Z / Ctrl+Y", "éditeur de cartes de Mindustry")}
   ${r("Au téléphone", `Un doigt : se déplacer · deux doigts : zoom · appui long puis glisser : ligne, zone · ${ic("break")} casser, ${ic("select")} copier, ${ic("rotate")} tourner, ${ic("close")} lâcher`, "MobileInput")}
-  </table><h3>Sans objet ici</h3><p class="muted">Pause de la construction (E), reconstruire (B) : la pose est immédiate. Unités, commandes, ping, discussion, carte des planètes. Mini-carte (M) et lignes électriques (F5) : plus tard (lot B5 et électricité).</p>`);
-};
+  </table><h3>Sans objet ici</h3><p class="muted">Pause de la construction (E), reconstruire (B) : la pose est immédiate. Unités, commandes, ping, discussion, carte des planètes. Mini-carte (M) : plus tard (lot B5).</p>`);
+  dlg.scrollTop = sc;
+}
 
 // ======================= Gestes =======================
 const cellAt = (e) => { const r = svg.getBoundingClientRect(); return [Math.floor(cam.x + (e.clientX - r.left) / cam.z), Math.floor(cam.y + (e.clientY - r.top) / cam.z)]; };
@@ -828,7 +994,7 @@ function pasteClip(c) { const a = [c[0] - Math.floor(ui.clip.W / 2), c[1] - Math
 function copyRect(s, c) {
   const x0 = Math.min(s[0], c[0]), x1 = Math.max(s[0], c[0]), y0 = Math.min(s[1], c[1]), y1 = Math.max(s[1], c[1]);
   const items = S.b.filter((b) => !b.missing && cellsOf(b).every(([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1)).map((b) => ({ id: b.id, dx: b.x - x0, dy: b.y - y0, r: b.r, choice: b.choice ?? null }));
-  if (items.length) { ui.clip = { items, W: x1 - x0 + 1, H: y1 - y0 + 1 }; ui.sel = null; renderPanel(); }
+  if (items.length) { ui.clip = { id: Date.now(), items, W: x1 - x0 + 1, H: y1 - y0 + 1 }; ui.sel = null; renderPanel(); }
   renderHint(); renderInfo(true);
 }
 function pick(c) { const u = occ.get(K(...c)); if (u == null) return; const b = byU.get(u); const e = ENTRIES.find((x) => x.def === b.id) ?? ENTRIES.find((x) => x.fam && VAR[x.fam].includes(b.id)); if (!e) return; ui.rot = b.r; ui.choice = b.choice ? { id: b.id, c: b.choice } : null; select(e, e.fam ? b.id : undefined); }
@@ -853,8 +1019,31 @@ svg.addEventListener("pointerdown", (e) => {
   if (e.button !== 0) return;
   if (ui.clip) return pasteClip(c);
   if (ui.sel && !ui.sel.locked) { ui.op = { t: "line", s: c }; drawGhost(); return; }
-  ui.pinned = occ.get(K(...c)) ?? null; renderInfo(true); drawGhost();
+  const u = occ.get(K(...c)) ?? null;
+  // Comme un nœud électrique de Mindustry : un bâtiment à prises sélectionné, un clic sur un autre les relie ou les délie.
+  if (u != null && ui.pinned != null && u !== ui.pinned && hasNodes(ui.pinned) && hasNodes(u)) { linkToggle(ui.pinned, u); return; }
+  ui.pinned = u; renderInfo(true); drawGhost(); renderHint();
 });
+const toastEl = document.getElementById("toast"); let toastT;
+function say(t) { toastEl.textContent = t; toastEl.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("on"), 2600); }
+// Câble entre deux bâtiments : les deux prises compatibles les plus proches (même type, jamais deux entrées ni deux
+// sorties) ; un câble électrique doit tenir dans la portée d'un des deux (poteau). Un second clic le retire.
+function linkToggle(ua, ub) {
+  const A = byU.get(ua), Bb = byU.get(ub), ex = S.w.findIndex((w) => (w.a === ua && w.b === ub) || (w.a === ub && w.b === ua));
+  if (ex >= 0) { snap(); S.w.splice(ex, 1); changed(); say("Câble retiré"); return; }
+  const nodes = (b) => geo(b).ports.map((p, i) => ({ p, i })).filter((x) => x.p.dir === "top");
+  let best = null;
+  for (const x of nodes(A)) for (const y of nodes(Bb)) {
+    if (x.p.t !== y.p.t || (x.p.d === "e" && y.p.d === "e") || (x.p.d === "s" && y.p.d === "s")) continue;
+    const dd = Math.hypot(x.p.px - y.p.px, x.p.py - y.p.py); if (!best || dd < best.dd) best = { x, y, dd };
+  }
+  if (!best) return say("Aucune prise compatible entre ces deux bâtiments");
+  const range = Math.max(BL[A.id].elec?.range ?? 0, BL[Bb.id].elec?.range ?? 0);
+  if (best.x.p.t === "p" && !range) return say("Un câble électrique passe par un poteau : aucun des deux n'a de portée");
+  if (best.x.p.t === "p" && best.dd > range) return say(`Trop loin : ${fmt(best.dd, 1)} cases pour ${fmt(range, 1)} de portée`);
+  snap(); S.w.push({ a: ua, ia: best.x.i, b: ub, ib: best.y.i, t: best.x.p.t }); changed();
+  say(best.x.p.t === "p" ? "Câble électrique posé" : "Câble logique posé");
+}
 svg.addEventListener("pointermove", (e) => {
   if (e.pointerType === "touch") return touchMove(e);
   ui.ctrl = e.ctrlKey; const op = ui.op;
@@ -910,9 +1099,10 @@ function cancelAll() { ui.sel = null; ui.clip = null; ui.op = null; ui.pinned = 
 document.addEventListener("keydown", (e) => {
   if (e.target.closest?.("input, select, textarea")) return;
   if (/^Key/.test(e.code) && e.key.length === 1 && !e.ctrlKey && !e.altKey) LAB[e.code] = e.key.toUpperCase();
+  if (kbArm) { e.preventDefault(); if (e.key === "Escape") { kbArm = null; keysDialog(); } else assignKey(e.code); return; }
   if (!dlg.hidden) { if (e.key === "Escape") dlg.hidden = true; return; }
   if (e.ctrlKey || e.metaKey) { const k = e.key.toLowerCase(); if (k === "z" && !e.shiftKey) { e.preventDefault(); doUndo(); } else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); doRedo(); } ui.ctrl = true; drawGhost(); return; }
-  if (MOVE.has(e.code)) { held.add(e.code); return; }
+  if ([KB.up, KB.left, KB.down, KB.right].includes(e.code)) { held.add(e.code); return; }
   if (e.code === "ShiftLeft" || e.code === "ShiftRight") { held.add("Shift"); return; }
   if (/^Digit\d$/.test(e.code)) { // [tier, catégorie, bloc] tapés à moins de 400 ms d'écart (PlacementFragment)
     const d = +e.code.slice(5), now = performance.now(); digits = now - lastDigit > 400 ? [d] : [...digits, d]; lastDigit = now;
@@ -922,35 +1112,39 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   const list = entriesFor(ui.tier, ui.cat), i = list.indexOf(ui.sel?.e);
+  for (const a of actsOf(e.code)) { if (/^F\d+$/.test(e.code)) e.preventDefault(); switch (a) {
+    case "rotate": rotateSel(1); break;
+    case "schem": if (!e.repeat && !ui.op) { ui.op = { t: "schem", s: ui.cell }; drawGhost(); } break;
+    case "save": saveClip(); break;
+    case "flipX": flipClip(true); break;
+    case "flipY": flipClip(false); break;
+    case "schemMenu": schematics(); break;
+    case "variant": if (ui.sel?.e.fam) { const vs = VAR[ui.sel.e.fam]; select(ui.sel.e, vs[(vs.indexOf(ui.sel.v) + 1) % vs.length]); } else cancelAll(); break;
+    case "links": ui.vec = !ui.vec; document.getElementById("b-vec").classList.toggle("on", ui.vec); drawAll(); break;
+    case "wires": ui.wires = !ui.wires; drawAll(); break;
+    case "menus": document.body.classList.toggle("hidden-ui"); break;
+    case "research": window.open("/#arbre", "_blank"); break;
+    case "info": { const id = ui.sel?.v ?? (ui.hoverU != null ? byU.get(ui.hoverU).id : null); if (id) blockInfo(id); } break;
+    case "status": ui.status = !ui.status; drawAll(); break;
+    case "catPrev": case "catNext": { const ne = CATS.filter((c) => entriesFor(ui.tier, c.id).length), j = ne.findIndex((c) => c.id === ui.cat); ui.cat = ne[(j + (a === "catNext" ? 1 : ne.length - 1)) % ne.length].id; renderPanel(); break; }
+  } }
   switch (e.code) {
-    case "KeyR": rotateSel(1); break;
-    case "KeyF": if (!e.repeat && !ui.op) { ui.op = { t: "schem", s: ui.cell }; drawGhost(); } break;
-    case "KeyZ": flipClip(true); break;
-    case "KeyX": flipClip(false); break;
-    case "KeyT": schematics(); break;
-    case "KeyQ": if (ui.sel?.e.fam) { const vs = VAR[ui.sel.e.fam]; select(ui.sel.e, vs[(vs.indexOf(ui.sel.v) + 1) % vs.length]); } else cancelAll(); break;
-    case "KeyL": ui.vec = !ui.vec; document.getElementById("b-vec").classList.toggle("on", ui.vec); drawAll(); break;
-    case "KeyC": document.body.classList.toggle("hidden-ui"); break;
-    case "KeyJ": window.open("/#arbre", "_blank"); break;
-    case "F1": e.preventDefault(); { const id = ui.sel?.v ?? (ui.hoverU != null ? byU.get(ui.hoverU).id : null); if (id) blockInfo(id); } break;
-    case "F6": e.preventDefault(); ui.status = !ui.status; drawAll(); break;
     case "Escape": cancelAll(); break;
     case "Delete": case "Backspace": if (ui.pinned != null) { const b = byU.get(ui.pinned); const cs = cellsOf(b); const p = rectPlan(...cs[0], ...cs.at(-1)); apply(p.remove, p.add); } break;
     case "ArrowLeft": case "ArrowRight": case "ArrowUp": case "ArrowDown": { e.preventDefault(); if (!list.length) break; const st = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 }[e.code]; select(list[((i < 0 ? 0 : i + st) % list.length + list.length) % list.length]); break; }
-    case "Comma": case "Period": { const ne = CATS.filter((c) => entriesFor(ui.tier, c.id).length), j = ne.findIndex((c) => c.id === ui.cat); ui.cat = ne[(j + (e.code === "Period" ? 1 : ne.length - 1)) % ne.length].id; renderPanel(); break; }
   }
   renderHint();
 });
 document.addEventListener("keyup", (e) => {
   held.delete(e.code); if (e.key === "Shift") held.delete("Shift");
   if (e.key === "Control") { ui.ctrl = false; drawGhost(); }
-  if (e.code === "KeyF" && ui.op?.t === "schem") finishOp(ui.cell);
+  if (e.code === KB.schem && ui.op?.t === "schem") finishOp(ui.cell);
 });
 window.addEventListener("blur", () => held.clear());
 let lastT = performance.now();
 (function tick(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
-  const dx = held.has("KeyD") - held.has("KeyA"), dy = held.has("KeyS") - held.has("KeyW");
+  const dx = held.has(KB.right) - held.has(KB.left), dy = held.has(KB.down) - held.has(KB.up);
   if (dx || dy) { const v = (held.has("Shift") ? 40 : 15) * dt; cam.x += dx * v; cam.y += dy * v; applyView(); }
   requestAnimationFrame(tick);
 })(lastT);
