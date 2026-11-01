@@ -183,7 +183,7 @@ function turnCell(p: Pt, w: number, h: number, r: number): Pt {
 }
 
 /** Ce qu'il faut savoir d'une étape du plan (champs de `Step`). */
-type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: number };
+type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: number; recipeId?: string };
 
 /**
  * Entrée de `designFactory` pour un plan : une étape par module (demande, relevé des ports, taille du wiki),
@@ -200,6 +200,8 @@ export function factoryInput(
     reserve?: (key: string) => { w: number; h: number; label: string } | null;
     /** S56 : catalogue du bac à sable, pour vérifier les plans de pose. */
     sb?: SbCatalog | null;
+    /** Produits d'une recette dans l'ordre (ports de sortie, comme le bac à sable). */
+    outOrder?: (recipe: string) => string[] | undefined;
   },
   cat: Catalog,
   plot: { w: number; h: number },
@@ -210,7 +212,7 @@ export function factoryInput(
   const nm = (id: string) => (names[id] ??= look.name(id));
   const steps = plan.steps.map((s): FactoryStep => {
     const m = look.machine(s.machine);
-    const base = m ? requestFromStep(s, look.isFluid, m.cost) : null;
+    const base = m ? requestFromStep(s, look.isFluid, m.cost, s.recipeId ? look.outOrder?.(s.recipeId) : undefined) : null;
     const req = base ? { ...base, priority: pose.priority, ...(pose.tier3Only ? { tier3Only: true } : {}) } : null;
     for (const f of [...s.inputs, ...s.byproducts]) nm(f.item);
     const reserve = req ? null : (look.reserve?.(s.key) ?? null);

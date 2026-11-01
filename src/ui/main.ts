@@ -1300,7 +1300,7 @@ function moduleOf(key: string): ModulePlan | null {
   if (!modules.has(key)) {
     const s = plan?.steps.find((x) => x.key === key);
     const m = s ? data.machines.get(s.machine) : undefined;
-    const base = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost) : null;
+    const base = s && m ? requestFromStep(s, (id) => !!data.items.get(id)?.isFluid, m.cost, outOrder(s.recipeId)) : null;
     const req = base && { ...base, tier3Only: settings.tier3Only, priority: settings.posePriority };
     if (req) moduleReqs.set(key, req);
     // S56 : chaque essai est vérifié par le moteur du bac à sable.
@@ -1328,6 +1328,8 @@ function portsLabel(machine: string): string {
 }
 
 // ---------------------------------------------------------------- schéma du plan affiché (S55)
+/** Produits d'une recette dans l'ordre : les ports de sortie sont pris dans cet ordre, comme dans le bac à sable. */
+const outOrder = (recipe: string): string[] | undefined => { const r = data.recipes.get(recipe); return r ? Object.keys(r.outputs) : undefined; };
 /** Le plan affiché (module ou usine), converti à la demande en schéma .msch, le même format que le bac à sable. */
 let poseSchem: { name: string; conv: () => Converted } | null = null;
 const schemButtons = () =>
@@ -1657,6 +1659,7 @@ function startFactory(complete = false): void {
         return a ? { w: a.width, h: a.height, label: a.label } : null;
       },
       sb: sandboxCatalog(),
+      outOrder,
     },
     CATALOG,
     plot,
