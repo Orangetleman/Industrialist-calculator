@@ -100,6 +100,7 @@ export const fr = {
   "plan.goalnav.aria": "Objectif",
   "plan.steps": "Étapes de pose",
   "plan.set": "Réglages",
+  "plan.cat.io": "Entrées / sorties",
   "plan.cat.warn": "À régler",
   "plan.warn.mods": "À compléter avant de construire",
   "plan.warn.vals": "Valeurs à vérifier",

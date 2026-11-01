@@ -1013,6 +1013,7 @@ function renderPlanPage(): void {
   const blank = isBlank(goal);
   const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
   $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(blankPrompt(goal))}</p>` : renderAnswer(v);
+  renderIoPane();
   const fixBar = $("fix-bar");
   fixBar.innerHTML = blank ? "" : renderFixBar(v);
   fixBar.hidden = !fixBar.innerHTML;
@@ -1458,6 +1459,15 @@ function renderSaved(): void {
   $("plan-saved").innerHTML =
     savedPlans.map((p, i) => `<div class="cmd-row"><button type="button" class="cmd-step" data-saved="${i}"><span class="n">${icon("check")}</span><span class="nm">${esc(p.name)}</span></button><button type="button" class="icon-btn" data-saved-x="${i}" aria-label="${esc(t("plan.saved.del", { name: p.name }))}" title="${esc(t("plan.saved.del", { name: p.name }))}">${icon("close")}</button></div>`).join("") +
     `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
+}
+
+/** Fenêtre « Entrées / sorties » (maquette volets.html) : ce qui entre et ce qui sort, repris de la réponse. */
+function renderIoPane(): void {
+  const ins = $("answer").querySelector(".io-in"), outs = $("answer").querySelector(".io-out");
+  const n = (p: Element | null) => (p ? Math.max(0, p.children.length - 1) : 0); // le premier enfant est le titre « À extraire » / « À évacuer »
+  $("cat-io").hidden = !ins && !outs;
+  $("cat-io-n").textContent = `${n(ins)} · ${n(outs)}`;
+  $("io-list").replaceChildren(...[ins, outs].filter((x): x is Element => !!x).map((x) => x.cloneNode(true)));
 }
 
 /** Fenêtre « À régler » du volet droit : les modules qu'on ne peut pas reproduire tels quels en jeu (un clic ouvre

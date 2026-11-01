@@ -94,6 +94,7 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "plan.goalnav.aria": "Goal",
   "plan.steps": "Build steps",
   "plan.set": "Settings",
+  "plan.cat.io": "Inputs / outputs",
   "plan.cat.warn": "To fix",
   "plan.warn.mods": "To complete before building",
   "plan.warn.vals": "Values to check",
