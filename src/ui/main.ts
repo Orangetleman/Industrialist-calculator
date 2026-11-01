@@ -19,6 +19,7 @@ import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
 import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
+import type { Step } from "../engine/solve.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
 import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
@@ -556,6 +557,7 @@ function showPage(): void {
   setDocTitle();
   document.body.classList.remove("usine-wide");
   document.body.classList.toggle("bac-on", page === "bac");
+  document.body.classList.toggle("cmd-on", page === "plan");
   render();
   if (page === "donnees" && route.machine) buildings.show(route.machine);
   if (page === "propositions") props.show();
@@ -1079,6 +1081,7 @@ function renderResultTabs(): void {
   for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
   if (tab === "schema") renderFlowCanvas();
   if (tab === "pose") renderPose();
+  else fillPoseSteps();
   if (tab === "details") $("details").innerHTML = renderDetails(viewCtx());
 }
 
@@ -1326,23 +1329,17 @@ $("pose-links").addEventListener("click", (e) => {
   if (b) void onSchem(b.dataset.msch!);
 });
 
-function renderPose(): void {
-  const p = plan!;
-  const choices = p.steps.filter(isPosable);
+/** La liste « Vue » des modules, et le rail des étapes à gauche qui la reprend (S60). */
+function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
+  const choices = plan ? plan.steps.filter(isPosable) : [];
   const sel = $<HTMLSelectElement>("pose-step");
   if (!choices.length) {
     sel.innerHTML = "";
-    $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
-    $("pose-frame").hidden = true;
-    $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
-    // S37 : la liste des modules du plan précédent (l'exemple de la visite…) ne doit pas rester affichée.
-    $("pose-mods").innerHTML = $("pose-more-usine").innerHTML = $("pose-bar").innerHTML = "";
-    return;
+    renderStepRail();
+    return { mods: [], asms: [] };
   }
   // S25 : l'onglet Usine s'ouvre sur toute l'usine ; un module s'ouvre en cliquant dessus (ou par la liste « Vue »).
   if (!poseStep || (poseStep !== USINE && !choices.some((s) => s.key === poseStep))) poseStep = USINE;
-  $("pose-mods").innerHTML = "";
-  $("pose-more-usine").innerHTML = "";
   const mods = choices.filter((s) => !assemblyKind(s));
   const asms = choices.filter((s) => assemblyKind(s));
   const opt = (s: (typeof choices)[number], text: string) => `<option value="${esc(s.key)}"${s.key === poseStep ? " selected" : ""}>${esc(text)}</option>`;
@@ -1355,6 +1352,38 @@ function renderPose(): void {
     const o = sel.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(s.key)}"]`);
     if (o) o.textContent += portsLabel(s.machine);
   }
+  renderStepRail();
+  return { mods, asms };
+}
+
+/** Rail des étapes (S60, maquette S58) : les vues de la liste « Vue », toujours visibles ; un clic ouvre l'onglet Usine. */
+function renderStepRail(): void {
+  const opts = [...$<HTMLSelectElement>("pose-step").options];
+  let n = 0;
+  $("plan-steps").innerHTML = opts.length
+    ? opts
+        .map((o) => {
+          const mark = o.value === USINE ? icon("home") : String(++n);
+          const on = o.selected && settings.resultTab === "pose";
+          return `<button type="button" class="cmd-step${on ? " on" : ""}" data-step="${esc(o.value)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: o.text }))}"><span class="n">${mark}</span><span class="nm">${esc(o.text)}</span></button>`;
+        })
+        .join("")
+    : `<p class="hint">${esc(t("plan.steps.none"))}</p>`;
+}
+
+function renderPose(): void {
+  const { mods, asms } = fillPoseSteps();
+  if (!mods.length && !asms.length) {
+    $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
+    $("pose-frame").hidden = true;
+    $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = "";
+    // S37 : la liste des modules du plan précédent (l'exemple de la visite…) ne doit pas rester affichée.
+    $("pose-mods").innerHTML = $("pose-more-usine").innerHTML = $("pose-bar").innerHTML = "";
+    return;
+  }
+  if (!poseStep) return;
+  $("pose-mods").innerHTML = "";
+  $("pose-more-usine").innerHTML = "";
   input("pose-tier3").checked = settings.tier3Only;
   renderPriority();
   // Priorités et tuyaux de tier III : seulement pour les modules et l'usine (rien à départager dans un ensemble).
@@ -3060,6 +3089,15 @@ function bindPlan(): void {
     settings.tier3Only = (e.target as HTMLInputElement).checked;
     saveSettings(settings);
     renderPose();
+  });
+  // Rail des étapes (S60) : la même chose que la liste « Vue », dans l'onglet Usine.
+  $("plan-steps").addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-step]");
+    if (!b) return;
+    const sel = $<HTMLSelectElement>("pose-step");
+    sel.value = b.dataset.step!;
+    if (settings.resultTab !== "pose") $("rtab-pose").click();
+    sel.dispatchEvent(new Event("change"));
   });
   $("pose-step").addEventListener("change", (e) => {
     poseStep = (e.target as HTMLSelectElement).value;

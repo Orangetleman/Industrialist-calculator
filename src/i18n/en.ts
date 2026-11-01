@@ -92,6 +92,10 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   // ------------------------------------------------------------ Planifier : formulaire
   "plan.first.html": "<b>First visit?</b> Start by telling where you are in the game (unlocked research, RP, money): plans only use what you have. Everything is saved in this browser.",
   "plan.goalnav.aria": "Goal",
+  "plan.steps": "Build steps",
+  "plan.dash": "This plan",
+  "plan.steps.none": "Steps appear here once the plan is calculated.",
+  "plan.steps.aria": "Open {name} in the Factory tab",
   "plan.goal.objet": "An item",
   "plan.goal.énergie": "Power",
   "plan.goal.recherche": "RP",

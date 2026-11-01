@@ -98,6 +98,10 @@ export const fr = {
   // ------------------------------------------------------------ Planifier : formulaire
   "plan.first.html": "<b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Tout est gardé dans ce navigateur.",
   "plan.goalnav.aria": "Objectif",
+  "plan.steps": "Étapes de pose",
+  "plan.dash": "Ce plan",
+  "plan.steps.none": "Les étapes apparaissent ici une fois le plan calculé.",
+  "plan.steps.aria": "Ouvrir {name} dans l'onglet Usine",
   "plan.goal.objet": "Un objet",
   "plan.goal.énergie": "De l'énergie",
   "plan.goal.recherche": "Des RP",

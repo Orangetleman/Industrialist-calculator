@@ -68,6 +68,8 @@
       <p data-i18n-html="plan.first.html"><b>Première visite ?</b> Indique d'abord où tu en es dans le jeu (recherches débloquées, RP, argent) : les calculs n'utilisent que ce que tu as. Tout est gardé dans ce navigateur.</p>
       <a class="btn primary" href="#usine" data-i18n="header.cta">Renseigner mon usine</a>
     </div>
+    <!-- S60 : poste de commande (maquette S58) : objectif en haut, étapes à gauche, plan au centre, tableau de bord à droite. -->
+    <div class="cmd-goal" id="plan-goal">
     <nav class="goalnav" aria-label="Objectif" data-i18n-attr="aria-label=plan.goalnav.aria">
       <a href="#objet" data-goal="objet" data-i18n="plan.goal.objet">Un objet</a>
       <a href="#energie" data-goal="énergie" data-i18n="plan.goal.énergie">De l'énergie</a>
@@ -158,10 +160,15 @@
         <p class="hint" id="adv-note"></p>
       </details>
     </form>
+    </div>
 
-    <div id="answer" aria-live="polite"></div>
-    <div id="plan-bar" hidden></div>
-    <div id="fix-bar" hidden></div>
+    <div class="cmd-body">
+    <aside class="cmd-rail cmd-left" aria-labelledby="plan-steps-h">
+      <h2 class="cmd-h" id="plan-steps-h" data-i18n="plan.steps">Étapes de pose</h2>
+      <div class="cmd-steps" id="plan-steps"></div>
+      <div id="pose-mods"></div>
+    </aside>
+    <div class="cmd-stage">
 
     <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result" data-i18n-attr="aria-label=result.aria">
       <!-- S25 : les deux vues de travail d'abord (l'Usine, puis le schéma), la liste et les détails ensuite. -->
@@ -233,7 +240,6 @@
         </aside>
       </div>
       <div id="pose-legend"></div>
-      <div id="pose-mods"></div>
       <div id="pose-head"></div>
       <div id="pose-links"></div>
       <details class="more pose-more" id="pose-more">
@@ -250,6 +256,14 @@
       <p class="hint" data-i18n="pose.hint">Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-details" aria-labelledby="rtab-details" hidden><div id="details"></div></div>
+    </div>
+    <aside class="cmd-rail cmd-right" aria-labelledby="plan-dash-h">
+      <h2 class="cmd-h" id="plan-dash-h" data-i18n="plan.dash">Ce plan</h2>
+      <div id="answer" aria-live="polite"></div>
+      <div id="plan-bar" hidden></div>
+      <div id="fix-bar" hidden></div>
+    </aside>
+    </div>
   </section>
 
   <!-- ====================================================== MON USINE -->

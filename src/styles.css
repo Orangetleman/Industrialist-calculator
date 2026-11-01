@@ -1330,3 +1330,76 @@ table.rh-log td.num { white-space: nowrap; }
 .chips.io-in .chips-k { color: var(--in-ink); } .chips.io-out .chips-k { color: var(--out-ink); }
 .chips.io-in .chip { background: var(--in-soft); border-color: var(--in); color: var(--ink); }
 .chips.io-out .chip { background: var(--out-soft); border-color: var(--out); color: var(--ink); }
+
+/* ---------------------------------------------------------------- Planifier en poste de commande (S60, maquette S58)
+   Objectif en haut, étapes à gauche, plan au centre, tableau de bord à droite ; à l'ordinateur, un écran sans
+   défilement de page (chaque colonne défile seule) ; au téléphone, les colonnes s'empilent. */
+.cmd-goal { display: flex; flex-direction: column; gap: 10px; }
+.cmd-body { display: flex; flex-direction: column; gap: 12px; }
+.cmd-rail { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cmd-h { font: 400 .72rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0; }
+.cmd-steps { display: flex; flex-direction: column; gap: 2px; }
+.cmd-steps .hint { margin: 0; }
+.cmd-step { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; border-left: 3px solid transparent; border-radius: 0 6px 6px 0; background: none; padding: 6px 8px; font-size: .82rem; color: var(--ink); }
+.cmd-step:hover { background: var(--bg); border-color: transparent; border-left-color: var(--line); }
+.cmd-step.on { background: var(--accent-soft); border-left-color: var(--accent); }
+.cmd-step .n { flex: none; min-width: 20px; display: inline-grid; place-items: center; font: 600 .78rem var(--f-mono); color: var(--muted); }
+.cmd-step.on .n { color: var(--accent); }
+.cmd-step .n .ic { width: 15px; height: 15px; }
+.cmd-step .nm { min-width: 0; overflow-wrap: anywhere; }
+/* La liste « Vue » est reprise par le rail : elle reste dans la page pour le code, sans s'afficher. */
+#page-plan .pose-top .pose-pick { display: none; }
+.cmd-left .u-mods { border: 0; padding: 0; margin: 0; }
+.cmd-left .u-modlist { padding-left: 0; list-style: none; font-size: .82rem; }
+.cmd-right #answer:empty, .cmd-right .answer { margin: 0; }
+.cmd-right .kpis { grid-template-columns: 1fr 1fr; }
+
+@media (min-width: 900px) {
+  html:has(body.cmd-on) { overflow: hidden; }
+  body.cmd-on { height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  body.cmd-on .top { flex: none; }
+  body.cmd-on main { flex: 1; min-height: 0; width: 100%; max-width: none; padding: 12px 14px; }
+  /* Comme au bac à sable : le pied de page (sources et licences) reste sur les autres pages. */
+  body.cmd-on footer.src { display: none; }
+  #page-plan:not([hidden]) { height: 100%; gap: 10px; }
+  /* La barre d'objectif se lit comme une phrase : but, quoi, combien ; un réglage déplié la fait grandir, sans pousser la page. */
+  #page-plan .cmd-goal { flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; max-height: 42vh; overflow: auto; }
+  #page-plan .callout { flex: none; padding: 8px 12px; }
+  #page-plan .goalnav { margin: 0; }
+  #page-plan h1 { font-size: 1.15rem; margin: 0; }
+  #page-plan .query { flex: 1 1 100%; padding: 8px 12px; gap: 6px 12px; }
+  .cmd-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 330px; gap: 10px; }
+  .cmd-rail { min-height: 0; overflow: auto; }
+  .cmd-stage { min-height: 0; display: flex; flex-direction: column; }
+  #page-plan .rtabs { flex: none; margin-top: 0; }
+  #page-plan .rpanel:not([hidden]) { position: relative; flex: 1; min-height: 0; overflow: auto; margin-top: 0; container-type: size; }
+  /* Le plan prend toute la hauteur du centre (la hauteur calculée par main.ts sert au téléphone). */
+  #rpanel-schema .flow-frame:not(.empty) { height: calc(100cqh - 4px) !important; flex: none; }
+  #pose-split:not(.focus) .pose-frame { height: calc(100cqh - 64px) !important; }
+  #pose-split { flex: none; }
+}
+/* S60 : avec Audiowide, plus large, l'en-tête tient sur une ligne jusqu'à 1400 px. */
+@media (min-width: 761px) and (max-width: 1500px) {
+  .top-in { gap: 6px 8px; max-width: none; }
+  .brand { font-size: .98rem; }
+  .mainnav a { padding: 6px 8px; font-size: .86rem; }
+  .me { font-size: .74rem; }
+}
+@media (min-width: 761px) and (max-width: 1500px) {
+  .unofficial { font-size: .56rem; padding: 1px 5px; }
+  .remark-btn .lbl { display: none; }
+  .me-chip { padding: 2px 7px; }
+  .brand .long { display: none; }
+}
+.cmd-right .answer { padding: 10px 12px; }
+.cmd-right .answer h2 { font-size: 1rem; }
+/* Dans le tableau de bord, la liste des ⚠ s'ouvre dans la colonne (qui défile) au lieu de flotter hors de l'écran. */
+.cmd-right .pb-warn[open] { flex-basis: 100%; }
+.cmd-right .pb-menu { position: static; width: auto; margin-top: 6px; box-shadow: none; }
+@media (max-width: 760px) {
+  /* Audiowide est plus large : le menu tient à 375 px, et défile de côté plutôt que d'élargir la page. */
+  .mainnav { overflow-x: auto; scrollbar-width: none; }
+  .mainnav a { font-size: .7rem; padding-inline: 2px; letter-spacing: -.01em; }
+  /* Colonnes empilées : les étapes ne repoussent pas le plan trop bas. */
+  .cmd-left { max-height: 45vh; overflow: auto; }
+}
