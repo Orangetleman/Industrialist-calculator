@@ -211,6 +211,8 @@ export const fr = {
   "crit.hint": "{label} : {why} C'est elle qui décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité.",
   "prio.up": "Monter {label}",
   "prio.down": "Descendre {label}",
+  "prio.chip": "{label}, priorité {n} sur {total} (← → pour déplacer)",
+  "plan.say.prio": "en privilégiant",
 
   // Machines (filtre, S9)
   "mf.title": "Machines",
