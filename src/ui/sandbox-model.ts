@@ -32,7 +32,7 @@ export function uiFam(cat: SbCatalog, id: string): UiFam | null {
   return p && p.kind === "f" && p.tier === 4 && p.role !== "spécial" ? "f4" : null;
 }
 
-/** Le menu de pose : bâtiments (catégorie du wiki), une entrée par famille de tuyaux, les pièces spéciales à part. */
+/** Le menu de pose : bâtiments (catégorie relevée du menu Build, sinon celle du wiki), une entrée par famille de tuyaux, les pièces spéciales à part. */
 export function buildMenu(cat: SbCatalog, category: (id: string) => string | null): Menu {
   const variants = {} as Record<UiFam, string[]>;
   for (const f of Object.keys(FAMS) as UiFam[]) {
@@ -42,7 +42,7 @@ export function buildMenu(cat: SbCatalog, category: (id: string) => string | nul
       .map((b) => b.id);
   }
   const entries: Entry[] = [];
-  for (const b of cat.blocks.values()) if (!b.pipe) entries.push({ key: b.id, cat: category(b.id) ?? "", tier: b.tier, def: b.id });
+  for (const b of cat.blocks.values()) if (!b.pipe) entries.push({ key: b.id, cat: b.buildCat ?? category(b.id) ?? "", tier: b.tier, def: b.id }); // catégorie relevée (S52), sinon celle du wiki
   for (const f of Object.keys(FAMS) as UiFam[]) {
     const def = variants[f].find((id) => cat.blocks.get(id)!.pipe!.role === "droit" && cat.blocks.get(id)!.geo) ?? variants[f][0];
     if (def) entries.push({ key: `fam:${f}`, cat: "Pipes", tier: FAMS[f].tier, def, fam: f });

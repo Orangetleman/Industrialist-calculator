@@ -821,6 +821,8 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   car tout n'est pas débloqué. L'ordre change d'un tier à l'autre ; le bac à sable garde celui du
   tier I partout, pour que chaque catégorie reste à la même place. Encore à confirmer :
   « Storage Silos » (wiki) est rangé dans Tanks, et aucun bâtiment du dépôt n'est dans Decorations.
+  **S52 (2026-11-02)** : l'éditeur de bâtiments relève la catégorie de chaque bâtiment (« Catégorie du menu Build ») et la portée de
+  ses câbles logiques ; aucune n'est encore saisie.
 - **BAS-02** (répondu le 2026-10-26) : un tuyau se raccorde à un port seulement si son ouverture le
   regarde. Le sens d'une pièce sans sens propre (droit, coude, té, croix) vient de ses voisins. Té :
   1 entrée pour 2 sorties, ou 2 entrées pour 1 sortie. Croix : 1 pour 3, 2 pour 2, 3 pour 1. Chaque

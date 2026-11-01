@@ -37,7 +37,7 @@ export function portCenter(w: number, h: number, p: Port): [number, number] {
     const [cx, cy] = p.cell as [number, number];
     return [(cx + 0.5) * CELL, (cy + 0.5) * CELL];
   }
-  const c = p.cell as number;
+  const c = (p.cell as number) + (p.span === 2 ? 0.5 : 0);
   switch (p.side) {
     case "haut":
       return [(c + 0.5) * CELL, 0.5 * CELL];
@@ -52,19 +52,64 @@ export function portCenter(w: number, h: number, p: Port): [number, number] {
 
 const samePlace = (a: Port, b: Pick<Port, "side" | "cell">) => a.side === b.side && JSON.stringify(a.cell) === JSON.stringify(b.cell);
 
+/** Catégories du menu Build du jeu (BAS-01, ordre du tier I), mêmes ids que le bac à sable. */
+export const BUILD_CATEGORIES = ["Pipes", "Logic", "Power", "Decorations", "Factories", "Modular", "Miscellaneous", "Extractors", "Storage Silos"] as const;
+
+/** Cases du bord occupées par un port (deux pour un port de largeur 2). */
+export const portCells = (p: Port): number[] => (p.side === "dessus" ? [] : p.span === 2 ? [p.cell as number, (p.cell as number) + 1] : [p.cell as number]);
+
+/** Port posé sur une case du bord (la sienne, ou la 2e d'un port de largeur 2). */
+export function portAt(ports: Port[], place: Pick<Port, "side" | "cell">): number {
+  if (place.side === "dessus") return ports.findIndex((p) => samePlace(p, place));
+  return ports.findIndex((p) => p.side === place.side && portCells(p).includes(place.cell as number));
+}
+
+/**
+ * Peut-on passer ce port à 2 cases (S52) ? Seulement un port fluide sur un côté, avec la case suivante
+ * dans le bord et libre. `len` : longueur du bord.
+ */
+export function canWiden(ports: Port[], i: number, len: number): boolean {
+  const p = ports[i];
+  if (!p || p.type !== "fluide" || p.side === "dessus") return false;
+  const next = (p.cell as number) + 1;
+  return next <= len && ports.every((q, k) => k === i || q.side !== p.side || !portCells(q).includes(next));
+}
+
+/**
+ * Anciens relevés des grands tuyaux (S52) : chaque port noté en deux moitiés « 1/2 » et « 2/2 » dans l'infobulle.
+ * Les deux moitiés voisines deviennent un seul port de largeur 2 (l'infobulle perd sa marque de moitié).
+ */
+export function mergeHalves(ports: Port[]): Port[] {
+  const half = (p: Port) => p.side !== "dessus" && p.type === "fluide" && !p.span && /(^|\s)[12]?\/2\b/.test(p.tip ?? "");
+  const out: Port[] = [];
+  const used = new Set<number>();
+  ports.forEach((p, i) => {
+    if (used.has(i)) return;
+    if (!half(p)) { out.push(p); return; }
+    const j = ports.findIndex((q, k) => k > i && !used.has(k) && half(q) && q.side === p.side && q.direction === p.direction && Math.abs((q.cell as number) - (p.cell as number)) === 1);
+    if (j < 0) { out.push(p); return; }
+    used.add(j);
+    const tip = p.tip!.replace(/\s*[12]?\/2\s*/, " ").trim();
+    out.push({ ...p, cell: Math.min(p.cell as number, ports[j]!.cell as number), span: 2, ...(tip ? { tip } : {}) });
+  });
+  return out;
+}
+
 /** Pose, remplace ou retire un port à un emplacement, selon l'outil. Renvoie la nouvelle liste. */
 export function applyTool(ports: Port[], tool: Tool, place: Pick<Port, "side" | "cell">, direction: Port["direction"]): Port[] {
-  const others = ports.filter((p) => !samePlace(p, place));
+  const at = portAt(ports, place);
+  const others = ports.filter((_, i) => i !== at);
   if (tool === "gomme") return others;
   const type: Port["type"] = tool;
-  const previous = ports.find((p) => samePlace(p, place));
+  const previous = ports[at];
   const next: Port = {
     ...(previous && previous.type === type ? previous : {}),
     type,
     direction,
     side: place.side,
-    cell: place.cell,
+    cell: previous && previous.type === type ? previous.cell : place.cell,
   };
+  if (next.type !== "fluide") delete next.span;
   return [...others, next];
 }
 
@@ -86,7 +131,7 @@ export function checkEntry(e: PortsEntry): string[] {
       if (x < 1 || y < 1 || x > w || y > h) out.push(t("bm.socketOut", { x: String(x), y: String(y) }));
     } else {
       const len = p.side === "haut" || p.side === "bas" ? w : h;
-      if ((p.cell as number) < 1 || (p.cell as number) > len) out.push(t("bm.portOut", { side: t(`side.${p.side as "haut"}`), cell: String(p.cell) }));
+      if ((p.cell as number) < 1 || (p.cell as number) + (p.span === 2 ? 1 : 0) > len) out.push(t("bm.portOut", { side: t(`side.${p.side as "haut"}`), cell: String(p.cell) }));
     }
   }
   return out;
@@ -99,8 +144,8 @@ export const isComplete = (e: PortsEntry) => checkEntry(e).length === 0;
  * changé) ? Sans relevé en vigueur, il change dès qu'on a posé ou coché quelque chose.
  */
 export function entryChanged(e: PortsEntry, base: PortsEntry | undefined): boolean {
-  const sig = (x: PortsEntry) => JSON.stringify([x.footprint, x.ports, !!x.noPower, !!x.noPorts, x.notes ?? ""]);
-  if (!base) return e.ports.length > 0 || !!e.noPower || !!e.noPorts || !!e.notes;
+  const sig = (x: PortsEntry) => JSON.stringify([x.footprint, x.ports, !!x.noPower, !!x.noPorts, x.notes ?? "", x.buildCategory ?? "", x.logicRangeTiles ?? null]);
+  if (!base) return e.ports.length > 0 || !!e.noPower || !!e.noPorts || !!e.notes || !!e.buildCategory || e.logicRangeTiles != null;
   return sig(e) !== sig(base);
 }
 
@@ -290,12 +335,16 @@ export function parseSurveys(raw: unknown): Record<string, PortsEntry> | null {
   const out: Record<string, PortsEntry> = {};
   for (const [id, e] of Object.entries(m as Record<string, PortsEntry & { rotations?: unknown }>)) {
     if (!e || !Array.isArray(e.ports) || !e.source?.fetchedAt) continue;
-    const { rotations: _old, noPower, noPorts, ports, ...rest } = e;
+    const { rotations: _old, noPower, noPorts, ports, buildCategory, logicRangeTiles, ...rest } = e;
     const clean = ports.map((p) => {
-      const { stub: _stub, ...port } = p as Port & { stub?: unknown };
-      return port;
+      const { stub: _stub, span, ...port } = p as Port & { stub?: unknown };
+      return span === 2 && port.type === "fluide" && port.side !== "dessus" ? { ...port, span: 2 as const } : port;
     });
-    out[id] = { ...rest, ports: clean, ...(noPower === true ? { noPower: true } : {}), ...(noPorts === true ? { noPorts: true } : {}) };
+    out[id] = {
+      ...rest, ports: clean, ...(noPower === true ? { noPower: true } : {}), ...(noPorts === true ? { noPorts: true } : {}),
+      ...((BUILD_CATEGORIES as readonly string[]).includes(buildCategory ?? "") ? { buildCategory } : {}),
+      ...(typeof logicRangeTiles === "number" && logicRangeTiles > 0 ? { logicRangeTiles } : {}),
+    };
   }
   return out;
 }

@@ -28,6 +28,9 @@ import { dieselConfigs, farmBlocks, farmRates, parseDieselReading, type DieselRe
 import { MODCALC_DEFAULT, modCalcHtml, modCalcOut, readDieselForm, type ModCalcState } from "./modcalc-view.ts";
 import {
   applyTool,
+  BUILD_CATEGORIES,
+  canWiden,
+  mergeHalves,
   portCandidates,
   tipSuggest,
   type BgPlacement,
@@ -208,6 +211,8 @@ export function initBuildings(
           <div class="bld-foot" id="bld-foot">
             <label class="bld-check"><input type="checkbox" id="bld-nopower"> <span data-i18n="bld.noPower">${t("bld.noPower")}</span></label>
             <label class="bld-check"><input type="checkbox" id="bld-noports"> <span data-i18n="bld.noPorts">${t("bld.noPorts")}</span></label>
+            <label class="bld-check"><span data-i18n="bld.cat">${t("bld.cat")}</span> <select id="bld-cat"></select></label>
+            <label class="bld-check" id="bld-lrange-l"><span data-i18n="bld.lrange">${t("bld.lrange")}</span> <input type="number" id="bld-lrange" min="0" step="0.5" placeholder="?" style="width:5em"> <span data-i18n="bld.tiles">${t("bld.tiles")}</span></label>
             <div class="bld-status" id="bld-status" aria-live="polite"></div>
             <div class="actions" id="bld-actions"></div>
           </div>
@@ -270,7 +275,7 @@ export function initBuildings(
     selectedId = id;
     const m = data.machines.get(id)!;
     const base = local[id] ?? repo.machines[id];
-    entry = base ? structuredClone(base) : { footprint: m.size ? { w: m.size.w, h: m.size.l } : { w: 2, h: 2 }, ports: [], source: surveySource() };
+    entry = base ? { ...structuredClone(base), ports: mergeHalves(structuredClone(base.ports)) } : { footprint: m.size ? { w: m.size.w, h: m.size.l } : { w: 2, h: 2 }, ports: [], source: surveySource() };
     const known = localIfaces[id] ?? repoIfaces[id];
     iface = known ? structuredClone(known) : null;
     modDraft = null;
@@ -348,7 +353,9 @@ export function initBuildings(
         glyph = dir === "out" ? outward : inward;
       }
       const gs = p.side === "dessus" ? 14 : 16;
-      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><title>${esc(portTitle(p))}</title><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}${iconAt(glyph, x - gs / 2, y - gs / 2, gs, "bld-glyph")}</g>`;
+      const along = p.span === 2 ? CELL / 2 : 0, horiz = p.side === "haut" || p.side === "bas";
+      const rw = r + (horiz ? along : 0), rh = r + (horiz ? 0 : along);
+      s += `<g class="bld-port ${p.type} ${dir}${sel}" data-port="${i}"><title>${esc(portTitle(p))}</title><rect x="${x - rw}" y="${y - rh}" width="${2 * rw}" height="${2 * rh}" rx="${p.side === "dessus" ? 3 : 4}"/>${half}${iconAt(glyph, x - gs / 2, y - gs / 2, gs, "bld-glyph")}</g>`;
     });
     for (const [cx, cy] of corners) s += `<g class="bld-mark"><line x1="${cx - 12}" y1="${cy}" x2="${cx + 12}" y2="${cy}"/><line x1="${cx}" y1="${cy - 12}" x2="${cx}" y2="${cy + 12}"/></g>`;
     return `${s}</g></svg>`;
@@ -417,6 +424,7 @@ export function initBuildings(
     renderTools();
     ($("#bld-nopower") as HTMLInputElement).checked = !!entry.noPower;
     ($("#bld-noports") as HTMLInputElement).checked = !!entry.noPorts;
+    renderSurveyExtras();
     renderModular();
     refreshCanvas(keepView);
     renderIface();
@@ -425,6 +433,18 @@ export function initBuildings(
     renderNotesSummary();
     renderActions();
     renderMode();
+  }
+
+  /** Catégorie du menu Build et portée des câbles logiques (S52). */
+  function renderSurveyExtras(): void {
+    if (!entry || !selectedId) return;
+    const wiki = data.machines.get(selectedId)?.category;
+    const sel = $("#bld-cat") as HTMLSelectElement;
+    sel.innerHTML = `<option value="">${esc(t("bld.cat.none", { wiki: wiki ?? "?" }))}</option>` + BUILD_CATEGORIES.map((c) => `<option value="${c}">${esc(t(`bac.cat.${c}` as Key))}</option>`).join("");
+    sel.value = entry.buildCategory ?? "";
+    const hasLogic = entry.ports.some((p) => p.type === "logique");
+    $("#bld-lrange-l").hidden = !hasLogic && entry.logicRangeTiles == null;
+    ($("#bld-lrange") as HTMLInputElement).value = entry.logicRangeTiles != null ? String(entry.logicRangeTiles) : "";
   }
 
   function renderHead(): void {
@@ -494,6 +514,14 @@ export function initBuildings(
     renderStatus();
   }
 
+  /** Largeur d'un port fluide sur un côté (S52) : 1 ou 2 cases ; 2 seulement si la case suivante est libre. */
+  function widthRow(p: Port): string {
+    if (p.type !== "fluide" || p.side === "dessus" || !entry || bubble?.kind !== "port") return "";
+    const { w, h } = entry.footprint!;
+    const ok = p.span === 2 || canWiden(entry.ports, bubble.index, p.side === "haut" || p.side === "bas" ? w : h);
+    return `<div class="row"><span class="hint">${t("bld.span")}</span><button type="button" data-bb-span="1" aria-pressed="${p.span !== 2}">${t("bld.span.1")}</button><button type="button" data-bb-span="2" aria-pressed="${p.span === 2}" ${ok ? "" : `disabled title="${esc(t("bld.span.no"))}"`}>${t("bld.span.2")}</button></div>`;
+  }
+
   function renderBubble(): void {
     const box = $("#bld-bubble");
     const p = bubble?.kind === "port" ? entry?.ports[bubble.index] : undefined;
@@ -510,6 +538,7 @@ export function initBuildings(
       box.innerHTML = `<div class="row"><b>${typeName(p.type)} ·${esc(dirLabel(p.direction))}</b><span class="hint">${esc(placeText(p))}</span></div>
         <div class="row"><span class="hint">${t("bld.type")}</span>${types}</div>
         <div class="row"><span class="hint">${t("bld.dir")}</span>${dirs}</div>
+        ${widthRow(p)}
         <label class="hint">${t("bld.tip")}<input type="text" data-pf="tip" value="${esc(p.tip ?? "")}" placeholder="${esc(t("bld.tip.ph"))}"></label>
         ${portItemsHtml(p)}
         <div class="row"><button type="button" data-bb-del>${t("bld.delete")}</button><button type="button" class="link small" data-bb-close>${t("bld.close")}</button></div>`;
@@ -1122,7 +1151,12 @@ export function initBuildings(
     else if (el.dataset.fp === "note") facePopInput(el);
     else if (el.dataset.mod === "range") rangeInput(el);
     else if (el.dataset.mc) mcInput(el);
-    else if (el.id === "bld-notes") {
+    else if (el.id === "bld-lrange") {
+      const v = Number(el.value);
+      if (el.value !== "" && v > 0) entry.logicRangeTiles = v;
+      else delete entry.logicRangeTiles;
+      renderStatus();
+    } else if (el.id === "bld-notes") {
       entry.notes = el.value || undefined;
       renderStatus();
     } else if (el.id === "bld-bgo" && bg) {
@@ -1159,6 +1193,10 @@ export function initBuildings(
     if (el.id === "bld-nopower") {
       if (el.checked) entry!.noPower = true;
       else delete entry!.noPower;
+      renderStatus();
+    } else if (el.id === "bld-cat") {
+      if (el.value) entry!.buildCategory = el.value;
+      else delete entry!.buildCategory;
       renderStatus();
     } else if (el.id === "bld-noports") {
       if (el.checked) entry!.noPorts = true;
@@ -1305,7 +1343,17 @@ export function initBuildings(
     if (target.closest("[data-bb-close]")) return closeBubble();
     const bbType = target.closest<HTMLElement>("[data-bb-type]");
     if (bbType && bubble?.kind === "port") {
-      entry.ports[bubble.index]!.type = bbType.dataset.bbType as Port["type"];
+      const p = entry.ports[bubble.index]!;
+      p.type = bbType.dataset.bbType as Port["type"];
+      if (p.type !== "fluide") delete p.span;
+      renderSurveyExtras();
+      return refreshCanvas(true);
+    }
+    const bbSpan = target.closest<HTMLElement>("[data-bb-span]");
+    if (bbSpan && bubble?.kind === "port") {
+      const p = entry.ports[bubble.index]!;
+      if (bbSpan.dataset.bbSpan === "2") p.span = 2;
+      else delete p.span;
       return refreshCanvas(true);
     }
     const bbDir = target.closest<HTMLElement>("[data-bb-dir]");

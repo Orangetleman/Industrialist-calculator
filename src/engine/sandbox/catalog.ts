@@ -30,7 +30,7 @@ export type PipeRole = "droit" | "coude" | "té" | "croix" | "croisement" | "sp�
 export type PipeInfo = { kind: "o" | "f" | "m"; flow: number | null; role: PipeRole; len: number; rusty: boolean; tier: number };
 /** `out` : MF/s produits ; `cap` : ce que transporte chaque prise (« transfer » par nœud) ; `range` : portée en cases. */
 export type ElecInfo = { out: number | number[] | null; cap: number | null; range: number | null };
-export type SbBlock = { id: string; name: string; tier: number | null; cost: number | null; poll: number; geo: BlockGeo | null; /** Taille de machines.json quand les ports ne sont pas relevés : la place au sol est juste, sans port. */ size?: { w: number; h: number }; recipes: SbRecipe[]; incomplete: SbIncomplete[]; pipe?: PipeInfo; elec?: ElecInfo };
+export type SbBlock = { id: string; name: string; tier: number | null; cost: number | null; poll: number; geo: BlockGeo | null; /** Taille de machines.json quand les ports ne sont pas relevés : la place au sol est juste, sans port. */ size?: { w: number; h: number }; recipes: SbRecipe[]; incomplete: SbIncomplete[]; pipe?: PipeInfo; elec?: ElecInfo; /** Catégorie du menu Build relevée dans l'éditeur (S52). */ buildCat?: string; /** Portée en cases d'un câble logique qui part de ce bâtiment (relevé S52, 1 tile = 2 cases). */ logicRange?: number };
 export type SbItem = { name: string; fluid: boolean; sell: number | null };
 export type SbCatalog = { blocks: Map<string, SbBlock>; items: Map<string, SbItem> };
 
@@ -49,9 +49,10 @@ export function readGeo(entry: PortsEntry | undefined): BlockGeo | null {
     if (!t) continue;
     const base = { t, d: ROLE[x.direction] ?? "l", ...(x.tip ? { tip: x.tip } : {}), ...(x.items?.length ? { items: x.items } : {}) };
     if (x.side === "dessus" && Array.isArray(x.cell)) out.push({ ...base, s: "top", cx: x.cell[0], cy: x.cell[1] });
-    else if (SIDE[x.side] && typeof x.cell === "number") out.push({ ...base, s: SIDE[x.side]!, c: x.cell });
+    else if (SIDE[x.side] && typeof x.cell === "number") out.push({ ...base, s: SIDE[x.side]!, c: x.cell, ...(x.span === 2 ? { span: 2 } : {}) });
   }
-  const half = (q: RawPort) => q.c != null && /large fluid pipe/i.test(q.tip ?? "") && /(^|\s)[12]?\/2\b/.test(q.tip ?? "");
+  // Anciens relevés (avant le champ « largeur » de S52) : les deux moitiés notées dans l'infobulle.
+  const half = (q: RawPort) => q.c != null && !q.span && /large fluid pipe/i.test(q.tip ?? "") && /(^|\s)[12]?\/2\b/.test(q.tip ?? "");
   const merged: (RawPort & { full?: boolean })[] = [];
   for (const q of out) {
     if (!half(q)) { merged.push(q); continue; }
@@ -79,6 +80,7 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
     if (!e && r == null) return undefined;
     return { out: e?.output ?? null, cap: e?.transfer?.perNode ?? null, range: r != null ? r * 2 : null }; // 1 tile = 2 cases (relevé du 2026-10-13)
   };
+  const extras = (e: PortsEntry | undefined) => ({ ...(e?.buildCategory ? { buildCat: e.buildCategory } : {}), ...(e?.logicRangeTiles ? { logicRange: e.logicRangeTiles * 2 } : {}) });
   const blocks = new Map<string, SbBlock>();
   const pipeIds = new Set(files.logistics.pipes.map((p) => p.id));
   for (const m of data.machines.values()) {
@@ -98,7 +100,7 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
     recipes.sort((a, b) => a.id.localeCompare(b.id));
     incomplete.sort((a, b) => a.id.localeCompare(b.id));
     const poll = typeof m.pollutionPerHour === "number" ? m.pollutionPerHour : 0;
-    blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), ...(m.size ? { size: { w: m.size.w, h: m.size.l } } : {}), recipes, incomplete, elec: elec(m.id) });
+    blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), ...(m.size ? { size: { w: m.size.w, h: m.size.l } } : {}), recipes, incomplete, elec: elec(m.id), ...extras(ports[m.id]) });
   }
   for (const p of files.logistics.pipes) {
     const role = pipeRole(p.id), geo = readGeo(ports[p.id]);

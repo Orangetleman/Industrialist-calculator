@@ -142,6 +142,8 @@ export type Port = {
   tip?: string;
   /** Objets ou fluides qui passent par ce port (ids), cochés dans l'éditeur parmi les recettes de la machine (S38). */
   items?: string[];
+  /** Largeur en cases le long du bord (S52) : 2 pour le port d'un grand tuyau fluide, qui occupe sa case et la suivante. Absent = 1. */
+  span?: 2;
 };
 /** Relevé d'un bâtiment. Les rotations ne sont pas par bâtiment : 4 quarts de tour pour tous (world.json). */
 export type PortsEntry = {
@@ -151,6 +153,10 @@ export type PortsEntry = {
   noPower?: boolean;
   /** Bâtiment sans port objet, fluide ni logique (ex. Tree, Farm Harvester) : le relevé est complet sans eux. */
   noPorts?: boolean;
+  /** Catégorie du menu Build du jeu (S52, BAS-01) : Pipes, Logic, Power, Decorations, Factories, Modular, Miscellaneous, Extractors, Storage Silos (« Tanks » en jeu). */
+  buildCategory?: string;
+  /** Portée en tiles d'un câble logique qui part de ce bâtiment (S52, BAS-08 ; 1 tile = 2 cases). */
+  logicRangeTiles?: number;
   notes?: string;
   source: Source;
 };

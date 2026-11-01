@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S52 — Trois relevés de l'éditeur</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+body { padding: 16px; background: var(--bg); }
+.mq { max-width: 900px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 12px; }
+h2.mq-t { font-size: 1.05rem; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin: 18px 0 0; }
+.mq-note { font-size: .86rem; color: var(--muted); max-width: 80ch; }
+.mq-q { background: var(--warn-soft); border-radius: 8px; padding: 8px 12px; font-size: .88rem; }
+.mq-q li { margin: 6px 0; }
+.box { background: var(--surface); border: 1px solid var(--line); padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.box label { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; }
+.box input[type=number] { width: 6em; }
+.hint { color: var(--muted); font-size: .8rem; }
+.bubble { background: var(--surface); border: 1px solid var(--line); padding: 8px 10px; width: 320px; display: flex; flex-direction: column; gap: 6px; font-size: .88rem; box-shadow: 0 4px 14px #0003; }
+.bubble .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.bubble button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.new { outline: 2px dashed var(--accent); outline-offset: 3px; }
+svg { background: var(--surface); border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="mq">
+  <h1>S52 : trois relevés de plus dans l'éditeur de bâtiments</h1>
+  <p class="mq-note">Tout le reste de l'éditeur est inchangé (maquettes S19 et S57). Les ajouts sont encadrés en pointillés.
+    Les trois relevés suivent l'export, l'import et <code>data/ports.json</code>, et le bac à sable s'en sert.</p>
+
+  <h2 class="mq-t">1. Catégorie du menu Build (bas de l'éditeur, à côté des cases « sans prise »)</h2>
+  <div class="box">
+    <label><input type="checkbox"> Pas de prise électrique</label>
+    <label><input type="checkbox"> Pas de port objet, fluide ni logique</label>
+    <label class="new">Catégorie du menu Build
+      <select>
+        <option>— non relevée (catégorie du wiki : Factories)</option>
+        <option>Pipes</option><option>Logic</option><option>Power</option><option>Decorations</option>
+        <option selected>Factories</option><option>Modular</option><option>Miscellaneous</option>
+        <option>Extractors</option><option>Tanks</option>
+      </select></label>
+  </div>
+  <p class="mq-note">Les 9 catégories et leur ordre viennent de vos captures (BAS-01, tier I). Tant que rien n'est choisi, la ligne
+    rappelle la catégorie du wiki, que le bac à sable garde. Une catégorie relevée la remplace dans le menu de pose du bac à sable.</p>
+
+  <h2 class="mq-t">2. Portée des câbles logiques (même ligne, seulement si le bâtiment a un port logique)</h2>
+  <div class="box">
+    <label class="new">Portée des câbles logiques <input type="number" min="0" step="0.5" placeholder="?"> tiles</label>
+    <span class="hint">vide = pas encore relevée ; 1 tile = 2 cases, comme pour les poteaux</span>
+  </div>
+  <p class="mq-note">C'est la portée d'un câble qui <b>part</b> de ce bâtiment (règle BAS-08). Le bac à sable la reçoit
+    (en cases) ; tant qu'elle est vide, il ne suppose rien.</p>
+
+  <h2 class="mq-t">3. Largeur d'un port (dans la bulle d'un port posé sur un côté)</h2>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start">
+    <svg width="220" height="160" viewBox="0 0 220 160">
+      <rect x="40" y="40" width="120" height="60" fill="#8883" stroke="#888"/>
+      <rect x="10" y="40" width="26" height="56" rx="3" fill="#2f7fd0"/>
+      <text x="44" y="125" font-size="11" fill="currentColor">port fluide de 2 cases</text>
+      <text x="44" y="140" font-size="11" fill="currentColor">(gauche, cases 1 et 2)</text>
+    </svg>
+    <div class="bubble">
+      <div class="row"><b>Fluide · entrée</b><span class="hint">gauche, case 1</span></div>
+      <div class="row"><span class="hint">Type</span><button>Objet</button><button aria-pressed="true">Fluide</button></div>
+      <div class="row"><span class="hint">Sens</span><button aria-pressed="true">Entrée</button><button>Sortie</button><button>Les deux</button></div>
+      <div class="row new"><span class="hint">Largeur</span><button>1 case</button><button aria-pressed="true">2 cases</button></div>
+      <label class="hint">Infobulle du jeu <input type="text" value="Input for Water"></label>
+      <div class="row"><button>Supprimer</button><button class="link small">Fermer</button></div>
+    </div>
+  </div>
+  <p class="mq-note">Un port de 2 cases occupe sa case et la suivante le long du bord ; « 2 cases » est refusé s'il n'y a pas
+    la place ou si la case suivante a déjà un port. Les relevés actuels des grands tuyaux (deux moitiés « 1/2 » et « 2/2 »)
+    restent lus comme aujourd'hui ; à l'ouverture dans l'éditeur, ils apparaissent comme un seul port de 2 cases, enregistré ainsi.
+    Comme aujourd'hui, un port de 2 cases ne se raccorde qu'à un port de 2 cases dans le bac à sable.</p>
+
+  <div class="mq-q"><b>Questions</b>
+    <ol>
+      <li>La 9e catégorie s'appelle « Tanks » dans le menu du jeu, le bac à sable l'appelle « Storage Silos » (nom du wiki). Je l'affiche « Tanks » partout ?</li>
+      <li>La largeur 2 est-elle seulement pour les grands tuyaux fluide, ou aussi pour des ports objet ? (la maquette la propose sur les deux types)</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>
