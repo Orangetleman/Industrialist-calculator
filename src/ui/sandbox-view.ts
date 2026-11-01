@@ -14,7 +14,7 @@ import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
 import {
-  arrowDefs, arrowMarkup, blockIcon, blockMarkup, btnKey, btnMarkup, buttonsOf, cutMarkup, portEdge, PORT_COL, rangeMarkup, rect, type Btn, type DrawCtx, type ImgOf, type ModRange,
+  arrowDefs, arrowMarkup, blockIcon, blockMarkup, compactBatch, btnKey, btnMarkup, buttonsOf, cutMarkup, portEdge, PORT_COL, rangeMarkup, rect, type Btn, type DrawCtx, type ImgOf, type ModRange,
 } from "./sandbox-draw.ts";
 import {
   ACTIONS, alertText, anchor, buildMenu, CATS, defaultKeys, entriesFor, FAMS, FIXED_KEYS, keyLabel, linePositions, locked, machinesFor, reasonText, recipeLine,
@@ -93,6 +93,8 @@ type PlanView = Plan & { bad?: [number, number][]; invalid?: Piece[] };
 const WORKER_MS = 8;
 /** En dessous de ce zoom (pixels par case), la vue compacte : formes simples, sans image, texte ni port (B4). */
 const COMPACT_Z = 12;
+/** Dézoom le plus loin (pixels par case) : une usine de 1 000 cases tient dans un écran. */
+const MIN_Z = 0.5;
 
 const KEY_STATE = "ind-calc:v1:bac";
 const KEY_SET = "ind-calc:v2:bac-reglages"; // v2 : catégories vides masquées par défaut (2026-11-01)
@@ -225,7 +227,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     ${arrowDefs()}
   </defs>
   <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#bac-cells)"/>
-  <g id="bac-layer"></g><g id="bac-over-l"></g><g id="bac-ghost"></g>
+  <g id="bac-compact"></g><g id="bac-layer"></g><g id="bac-over-l"></g><g id="bac-ghost"></g>
 </svg>
 <details class="bac-pan bac-stats" id="bac-stats" ${innerWidth > 760 ? "open" : ""}><summary>${ic("chart")} ${esc(t("bac.stats.title"))}</summary><div id="bac-stats-in"></div></details>
 <div class="bac-pan bac-top" id="bac-top">
@@ -261,6 +263,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   <button type="button" data-mob="undo" title="${esc(t("bac.undo"))}" aria-label="${esc(t("bac.undo"))}">${ic("undo")}</button>
 </div>
 <div class="bac-pan bac-schbar" id="bac-schbar" hidden></div>
+<canvas class="bac-pan bac-mini" id="bac-mini" role="img" aria-label="${esc(t("bac.mini.aria"))}" title="${esc(t("bac.mini.tip"))}"></canvas>
 <div class="bac-hint" id="bac-hint"></div>
 <div class="bac-toast" id="bac-toast" role="status"></div>
 <div class="bac-dlg" id="bac-dlg" role="dialog" aria-modal="true" hidden><div class="in" id="bac-dlg-in"></div><button type="button" class="back" id="bac-dlg-back">${ic("back")} ${esc(t("bac.back"))}</button></div>`;
@@ -278,9 +281,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   const hasNodes = (b: Placed) => !!geo(cat.blocks.get(b.id)!, b)?.ports.some((p) => p.dir === "top");
   /** Dessin par bâtiment (B4) : seuls ceux dont l'état dessiné change sont refaits, dans l'ordre de pose. */
   let drawn = new Map<number, { sig: string; el: SVGGElement }>(), drawnCompact = false;
-  /** Zone dessinée (cases) : la vue et une demi-vue de marge de chaque côté. Hors d'elle, rien n'est dans la page (gros montages). */
+  /** Zone dessinée (cases) : la vue et 40 % de marge de chaque côté (le glissement va jusqu'à 35 %). Hors d'elle, rien n'est dans la page (gros montages). */
   let drawnArea: [number, number, number, number] = [0, 0, 0, 0];
-  const viewArea = (): [number, number, number, number] => { const r = svgEl().getBoundingClientRect(), w = (r.width || 1600) / cam.z, h = (r.height || 900) / cam.z; return [cam.x - w / 2, cam.y - h / 2, cam.x + w * 1.5, cam.y + h * 1.5]; };
+  const viewArea = (): [number, number, number, number] => { const r = mapRect(), w = (r.width || 1600) / cam.z, h = (r.height || 900) / cam.z; return [cam.x - w * 0.4, cam.y - h * 0.4, cam.x + w * 1.4, cam.y + h * 1.4]; };
   const drawSig = (c: DrawCtx, b: Placed) => {
     const d = cat.blocks.get(b.id), mi = R?.machines.get(b.u);
     let s = `${b.id},${b.x},${b.y},${b.r},${b.open},${b.pair},${c.compact},${c.status},${c.wiring}`;
@@ -292,15 +295,69 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     }
     return s;
   };
-  function drawAll(): void {
+  // ------------------------------------------------------------ mini-carte
+  /** Cadre de la mini-carte : les bâtiments les plus éloignés (cases), et le dessin du montage mis de côté. */
+  let mini: { box: [number, number, number, number]; img: HTMLCanvasElement } | null = null;
+  const miniEl = () => $("bac-mini") as HTMLCanvasElement;
+  /** Échelle et décalage (pixels CSS) qui font tenir le cadre dans la mini-carte. */
+  const miniFit = () => {
+    const cv = miniEl(), W = cv.clientWidth, H = cv.clientHeight, [x0, y0, x1, y1] = mini!.box, k = Math.min(W / (x1 - x0), H / (y1 - y0));
+    return { W, H, k, ox: (W - (x1 - x0) * k) / 2 - x0 * k, oy: (H - (y1 - y0) * k) / 2 - y0 * k };
+  };
+  /** Redessine le montage dans la mini-carte (après un changement du montage, pas en se déplaçant). */
+  function miniBuild(): void {
+    const cv = miniEl();
+    if (!S.blocks.length || !cv.clientWidth) { mini = null; cv.hidden = !S.blocks.length; return; }
+    cv.hidden = false;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const b of S.blocks) { const [w, h] = dims(cat.blocks.get(b.id)!, b.r); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + w); y1 = Math.max(y1, b.y + h); }
+    const pad = Math.max(2, (x1 - x0) * 0.03);
+    mini = { box: [x0 - pad, y0 - pad, x1 + pad, y1 + pad], img: document.createElement("canvas") };
+    const f = miniFit(), dpr = devicePixelRatio || 1, img = mini.img;
+    img.width = Math.round(f.W * dpr); img.height = Math.round(f.H * dpr);
+    const g = img.getContext("2d")!;
+    g.scale(dpr, dpr);
+    g.fillStyle = "#0b0714"; g.fillRect(0, 0, f.W, f.H);
+    for (const b of S.blocks) {
+      const d = cat.blocks.get(b.id)!, [w, h] = dims(d, b.r);
+      g.fillStyle = d.pipe ? (d.pipe.kind === "f" ? PORT_COL.f! : PORT_COL.o!) : "#8a8a9a";
+      g.fillRect(f.ox + b.x * f.k, f.oy + b.y * f.k, Math.max(1, w * f.k), Math.max(1, h * f.k));
+    }
+    miniView();
+  }
+  /** Le montage et, par-dessus, ce que montre l'écran (rectangle). */
+  function miniView(): void {
+    if (!mini) return;
+    const cv = miniEl(), f = miniFit(), dpr = devicePixelRatio || 1, r = mapRect();
+    if (cv.width !== Math.round(f.W * dpr)) { cv.width = Math.round(f.W * dpr); cv.height = Math.round(f.H * dpr); }
+    const g = cv.getContext("2d")!;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(mini.img, 0, 0, cv.width, cv.height);
+    g.scale(dpr, dpr);
+    g.strokeStyle = "#ff8f52"; g.lineWidth = 1.5;
+    g.strokeRect(f.ox + cam.x * f.k, f.oy + cam.y * f.k, (r.width / cam.z) * f.k, (r.height / cam.z) * f.k);
+  }
+  /** Clic ou glissé sur la mini-carte : l'écran se centre sur ce point. */
+  function miniGo(e: PointerEvent): void {
+    if (!mini) return;
+    const f = miniFit(), rc = miniEl().getBoundingClientRect(), r = mapRect();
+    const wx = (e.clientX - rc.left - f.ox) / f.k, wy = (e.clientY - rc.top - f.oy) / f.k;
+    cam.x = wx - r.width / cam.z / 2;
+    cam.y = wy - r.height / cam.z / 2;
+    applyView(true);
+  }
+  /** `moved` : seule la vue a bougé (déplacement, zoom) : statistiques inchangées. */
+  function drawAll(moved = false): void {
     if (!ui.mounted) return;
     const c = dctx(), layer = $("bac-layer"), seen = new Set<number>();
     drawnCompact = !!c.compact;
-    const A = (drawnArea = viewArea()), inA = (b: Placed) => { const [w, h] = dims(cat.blocks.get(b.id)!, b.r); return b.x + w >= A[0] && b.x <= A[2] && b.y + h >= A[1] && b.y <= A[3]; };
+    // Vue dézoomée : tout le montage en quelques tracés, rien à refaire en se déplaçant.
+    $("bac-compact").innerHTML = c.compact ? compactBatch(c, S.blocks, (u) => R?.machines.get(u)) : "";
+    const A = (drawnArea = c.compact ? [-Infinity, -Infinity, Infinity, Infinity] : viewArea()), inA = (b: Placed) => { const [w, h] = dims(cat.blocks.get(b.id)!, b.r); return b.x + w >= A[0] && b.x <= A[2] && b.y + h >= A[1] && b.y <= A[3]; };
     if (layer.dataset.n !== "1") { layer.textContent = ""; drawn = new Map(); layer.dataset.n = "1"; } // squelette refait
     let prev: Element | null = null;
     for (const b of S.blocks) {
-      if (!inA(b)) continue;
+      if (c.compact || !inA(b)) continue;
       seen.add(b.u);
       let d = drawn.get(b.u);
       if (!d) { d = { sig: "", el: document.createElementNS("http://www.w3.org/2000/svg", "g") }; drawn.set(b.u, d); }
@@ -322,7 +379,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     // Tuyau droit à l'envers : il clignote, avec une infobulle courte (dans les deux modes).
     for (const u of R?.cuts ?? []) { const b = byU.get(u); if (b) o += cutMarkup(cat, b, t("bac.cut.tip")); }
     $("bac-over-l").innerHTML = o;
-    renderStats();
+    if (!moved) { renderStats(); miniBuild(); }
     drawGhost();
   }
   /** Boutons du mode câblage, par clé (pour le dessin et la visée au clic). */
@@ -1028,7 +1085,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const id = "id" in a ? a.id : a.k === "saturated" ? a.pipe : null;
     const b = id ? S.blocks.find((x) => x.id === id && (a.k !== "machine" || R!.machines.get(x.u)?.reason)) ?? S.blocks.find((x) => x.id === id) : null;
     if (!b) return;
-    const r = svgEl().getBoundingClientRect(), [w, h] = dims(cat.blocks.get(b.id)!, b.r);
+    const r = mapRect(), [w, h] = dims(cat.blocks.get(b.id)!, b.r);
     cam.x = b.x + w / 2 - r.width / 2 / cam.z;
     cam.y = b.y + h / 2 - r.height / 2 / cam.z;
     ui.pinned = b.u;
@@ -1107,6 +1164,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
 
   // ------------------------------------------------------------ gestes
   const svgEl = () => $<SVGSVGElement>("bac-map");
+  /** Cadre du plan à l'écran : celui du bac à sable (le plan, lui, peut être décalé pendant un déplacement). */
+  const mapRect = () => root.getBoundingClientRect();
   /** Le glisser continue même hors du plan (un pointeur déjà relâché ne se capture pas : sans effet). */
   const capture = (e: PointerEvent) => {
     try {
@@ -1116,20 +1175,40 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     }
   };
   function cellAt(e: { clientX: number; clientY: number }): [number, number] {
-    const r = svgEl().getBoundingClientRect(), wx = cam.x + (e.clientX - r.left) / cam.z, wy = cam.y + (e.clientY - r.top) / cam.z;
+    const r = mapRect(), wx = cam.x + (e.clientX - r.left) / cam.z, wy = cam.y + (e.clientY - r.top) / cam.z;
     ui.sub = [wx - Math.floor(wx), wy - Math.floor(wy)];
     return [Math.floor(wx), Math.floor(wy)];
   }
-  function applyView(): void {
+  /** Vue posée sur le plan (viewBox) ; pendant un déplacement, le plan déjà dessiné glisse en attendant. */
+  let vb = { x: 0, y: 0, z: 0 }, settle = 0;
+  /**
+   * `slide` (déplacement à la souris, au clavier, au doigt, par la mini-carte) : le plan déjà dessiné glisse (transform,
+   * sans rien redessiner, comme une carte en ligne) ; la vue est posée à l'arrêt, ou quand on s'éloigne trop.
+   */
+  function applyView(slide = false): void {
     if (!ui.mounted) return;
-    const r = svgEl().getBoundingClientRect();
-    if (r.width) svgEl().setAttribute("viewBox", `${cam.x} ${cam.y} ${r.width / cam.z} ${r.height / cam.z}`);
+    const r = mapRect(), svg = svgEl();
+    if (slide && cam.z === vb.z && r.width) {
+      const dx = (vb.x - cam.x) * cam.z, dy = (vb.y - cam.y) * cam.z;
+      if (Math.abs(dx) < r.width * 0.35 && Math.abs(dy) < r.height * 0.35) {
+        svg.style.transform = `translate(${dx}px, ${dy}px)`;
+        clearTimeout(settle);
+        settle = window.setTimeout(() => applyView(), 140);
+        miniView();
+        return;
+      }
+    }
+    clearTimeout(settle);
+    svg.style.transform = "";
+    vb = { x: cam.x, y: cam.y, z: cam.z };
+    if (r.width) svg.setAttribute("viewBox", `${cam.x} ${cam.y} ${r.width / cam.z} ${r.height / cam.z}`);
     const A = drawnArea, w = r.width / cam.z, h = r.height / cam.z, out = cam.x < A[0] || cam.y < A[1] || cam.x + w > A[2] || cam.y + h > A[3];
-    if (cam.z < COMPACT_Z !== drawnCompact || out) drawAll(); // vue compacte quand on dézoome ; vue sortie de la zone dessinée
+    if (cam.z < COMPACT_Z !== drawnCompact || out) drawAll(true); // vue compacte quand on dézoome ; vue sortie de la zone dessinée
+    miniView();
   }
   function zoomAt(f: number, cx: number, cy: number): void {
-    const r = svgEl().getBoundingClientRect(), px = cx - r.left, py = cy - r.top, wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
-    cam.z = Math.min(90, Math.max(6, cam.z * f));
+    const r = mapRect(), px = cx - r.left, py = cy - r.top, wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;
+    cam.z = Math.min(90, Math.max(MIN_Z, cam.z * f));
     cam.x = wx - px / cam.z;
     cam.y = wy - py / cam.z;
     applyView();
@@ -1213,6 +1292,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   const touches = new Map<number, { x: number; y: number }>();
   let ts: { pinch?: boolean; d?: number; z?: number; sx?: number; sy?: number; cx?: number; cy?: number; c?: [number, number]; moved?: boolean; timer?: number } | null = null;
   function bindDom(): void {
+    const mc = miniEl();
+    mc.addEventListener("pointerdown", (e) => { mc.setPointerCapture(e.pointerId); miniGo(e); });
+    mc.addEventListener("pointermove", (e) => { if (e.buttons & 1) miniGo(e); });
     const svg = svgEl();
     svg.addEventListener("contextmenu", (e) => e.preventDefault());
     svg.addEventListener("mousedown", (e) => { if (e.button === 1) e.preventDefault(); });
@@ -1256,7 +1338,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       const op = ui.op;
       if (op?.t === "mid") {
         if (Math.hypot(e.clientX - op.sx, e.clientY - op.sy) > 4) op.moved = true;
-        if (op.moved) { cam.x = op.cx - (e.clientX - op.sx) / cam.z; cam.y = op.cy - (e.clientY - op.sy) / cam.z; applyView(); }
+        if (op.moved) { cam.x = op.cx - (e.clientX - op.sx) / cam.z; cam.y = op.cy - (e.clientY - op.sy) / cam.z; applyView(true); }
         return;
       }
       const c = cellAt(e);
@@ -1391,7 +1473,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (!ts) return;
     if (ui.op) return hover(cellAt(e));
     if (Math.hypot(e.clientX - ts.sx!, e.clientY - ts.sy!) > 8) { ts.moved = true; clearTimeout(ts.timer); }
-    if (ts.moved) { cam.x = ts.cx! - (e.clientX - ts.sx!) / cam.z; cam.y = ts.cy! - (e.clientY - ts.sy!) / cam.z; applyView(); }
+    if (ts.moved) { cam.x = ts.cx! - (e.clientX - ts.sx!) / cam.z; cam.y = ts.cy! - (e.clientY - ts.sy!) / cam.z; applyView(true); }
   }
   function touchUp(e: PointerEvent): void {
     touches.delete(e.pointerId);
@@ -1428,7 +1510,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const dt = Math.max(0, Math.min(0.05, (now - lastT) / 1000)); // l'heure d'une image peut précéder l'appui
     lastT = now;
     const dx = +held.has(KB.right ?? "") - +held.has(KB.left ?? ""), dy = +held.has(KB.down ?? "") - +held.has(KB.up ?? "");
-    if (dx || dy) { const v = (held.has("Shift") ? 40 : 15) * dt; cam.x += dx * v; cam.y += dy * v; applyView(); }
+    if (dx || dy) { const v = ((held.has("Shift") ? 1600 : 600) * dt) / cam.z; cam.x += dx * v; cam.y += dy * v; applyView(true); } // vitesse à l'écran, quel que soit le zoom
     raf = held.size ? requestAnimationFrame(tick) : 0;
   }
   function onKey(e: KeyboardEvent): void {
@@ -1533,11 +1615,11 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   function fit(tries = 0): void {
     if (!S.blocks.length) return;
     // Page pas encore affichée (ouverture depuis un plan) : on recadre dès qu'elle a une taille.
-    if (!svgEl().getBoundingClientRect().width) { if (tries < 60) requestAnimationFrame(() => fit(tries + 1)); return; }
+    if (!mapRect().width) { if (tries < 60) requestAnimationFrame(() => fit(tries + 1)); return; }
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const b of S.blocks) for (const [x, y] of cellsOf(cat.blocks.get(b.id)!, b)) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + 1); y1 = Math.max(y1, y + 1); }
-    const r = svgEl().getBoundingClientRect(), wide = r.width > 760, L = wide ? 300 : 0, fw = r.width - L - (wide ? 390 : 0);
-    cam.z = Math.max(6, Math.min(48, (fw * 0.85) / (x1 - x0), (r.height * 0.6) / (y1 - y0)));
+    const r = mapRect(), wide = r.width > 760, L = wide ? 300 : 0, fw = r.width - L - (wide ? 390 : 0);
+    cam.z = Math.max(MIN_Z, Math.min(48, (fw * 0.85) / (x1 - x0), (r.height * 0.6) / (y1 - y0)));
     cam.x = (x0 + x1) / 2 - (L + fw / 2) / cam.z;
     cam.y = (y0 + y1) / 2 - (r.height * 0.42) / cam.z;
     applyView();

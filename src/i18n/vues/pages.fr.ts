@@ -133,6 +133,7 @@ export const pagesFr = {
   "m.schem.file": "Exporter en fichier .msch",
   "m.schem.bac": "Éditer dans le bac à sable",
   "m.schem.factory": "Usine",
+  "m.schem.busy": "Conversion du plan en schéma…",
   "m.pose.links.on": "Une flèche blanche par liaison, dans le sens du flux, et les câbles de chaque poteau vers ses machines.",
   "m.pose.links.off": "Ou clique un tuyau pour voir les liaisons de sa ressource. Clique une machine pour ouvrir sa fiche.",
   "m.asm.farms": "{n} fermes d'arbres ({t} arbres)",

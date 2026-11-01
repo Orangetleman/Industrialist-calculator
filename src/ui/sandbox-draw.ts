@@ -160,6 +160,38 @@ function compactMarkup(c: DrawCtx, b: Placed): string {
   return s;
 }
 
+/**
+ * Vue dézoomée de tout le montage en quelques tracés (un par couleur) au lieu d'un élément par bâtiment : de
+ * gros montages se déplacent sans à-coups. Même dessin que `compactMarkup`.
+ */
+export function compactBatch(c: DrawCtx, blocks: Placed[], mi: (u: number) => MachineState | undefined): string {
+  const paths = new Map<string, string[]>(), add = (col: string, r: number[]) => { let a = paths.get(col); if (!a) paths.set(col, (a = [])); a.push(`M${r[0]} ${r[1]}h${r[2]}v${r[3]}h${-r[2]!}z`); };
+  const MACH = " m";
+  for (const b of blocks) {
+    const def = c.cat.blocks.get(b.id);
+    if (!def) continue;
+    const [w, h] = dims(def, b.r);
+    if (def.pipe) {
+      const L = c.lane?.(b.u, 0), fam = uiFam(c.cat, b.id);
+      const col = b.open ? "#c0392b" : L?.over ? "url(#bac-over)" : PIPE_COL[fam ?? (def.pipe.kind === "f" ? "f3" : "o3")] ?? "#888";
+      if (fam === "f4" || Math.min(w, h) > 1) { add(col, [b.x + 0.1, b.y + 0.1, w - 0.2, h - 0.2]); continue; }
+      for (const [x, y] of cellsOf(def, b)) {
+        add(col, [x + 0.25, y + 0.25, 0.5, 0.5]);
+        for (const d of cellOpen(def, b, x, y)) add(col, band(x, y, d, 0.5));
+      }
+      continue;
+    }
+    add(MACH, [b.x + 0.08, b.y + 0.08, w - 0.16, h - 0.16]);
+    const m = mi(b.u);
+    if (c.status && m && (def.recipes.length || def.incomplete.length)) add(statusColor(m), [b.x + w / 2 - 0.5, b.y + h / 2 - 0.5, 1, 1]);
+  }
+  let s = "";
+  const mach = paths.get(MACH);
+  if (mach) s += `<path d="${mach.join("")}" fill="#3a3a3a" stroke="#6a6a6a" stroke-width=".12"/>`;
+  for (const [col, a] of paths) if (col !== MACH) s += `<path d="${a.join("")}" fill="${col}"/>`;
+  return s;
+}
+
 export function blockMarkup(c: DrawCtx, b: Placed): string {
   const def = c.cat.blocks.get(b.id);
   if (!def) return "";

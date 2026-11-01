@@ -1438,3 +1438,9 @@ table.rh-log td.num { white-space: nowrap; }
 }
 .cmd-step .nm small { display: block; color: var(--muted); font-size: .74rem; }
 .cmd-step .x { margin-left: auto; flex: none; font: 600 .8rem var(--f-mono); color: var(--accent); }
+/* Écran d'attente (conversion d'un plan en schéma) */
+.busy { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgb(0 0 0 / .55); cursor: progress; }
+.busy-in { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-radius: 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); font-weight: 600; box-shadow: 0 8px 30px rgb(0 0 0 / .5); }
+.busy-spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid currentColor; border-right-color: transparent; animation: busy-spin .8s linear infinite; }
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy-spin { animation-duration: 2.4s; } }

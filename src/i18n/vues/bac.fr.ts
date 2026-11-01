@@ -5,6 +5,8 @@ import type { Msg } from "../fr.ts";
 export const bacFr = {
   "nav.bac": "Bac à sable",
   "page.bac": "Bac à sable",
+  "bac.mini.aria": "Mini-carte du montage",
+  "bac.mini.tip": "Mini-carte : clic ou glisser pour vous y rendre",
   "bac.map.aria": "Plan du montage : clic pour poser ou régler, clic droit pour lâcher ou supprimer",
   "bac.grid.aria": "Blocs de la catégorie",
   "bac.cats.aria": "Catégories",

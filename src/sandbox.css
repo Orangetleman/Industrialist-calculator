@@ -17,7 +17,7 @@ body.bac-on footer.src { display: none; }
 .bac-root .warn { color: var(--b-red); }
 .bac-root kbd { font: inherit; color: var(--b-accent); }
 .bac-root .ic { width: 18px; height: 18px; }
-.bac-map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none; cursor: crosshair; }
+.bac-map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; will-change: transform; touch-action: none; user-select: none; cursor: crosshair; }
 .bac-pan { position: absolute; background: rgb(18 18 18 / .95); border: 1px solid var(--b-line); border-radius: 4px; }
 .bac-root.ui-off .bac-pan, .bac-root.ui-off .bac-hint { display: none !important; }
 
@@ -37,6 +37,10 @@ body.bac-on footer.src { display: none; }
 /* Barre du haut à droite */
 .bac-top { right: 8px; top: 8px; display: flex; gap: 4px; padding: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 320px); }
 .bac-root .bac-top button { display: inline-flex; gap: 5px; align-items: center; }
+
+/* Mini-carte (2026-11-01), en bas à gauche : cadrée sur les bâtiments les plus éloignés */
+.bac-mini { left: 8px; bottom: 8px; width: 220px; height: 140px; padding: 0; cursor: pointer; touch-action: none; }
+.bac-mini[hidden] { display: none; }
 
 /* Menu de pose, en bas à droite : infos, grille de 4, catégories, tiers ; outils sous la grille */
 .bac-pf { right: 0; bottom: 0; border-radius: 4px 0 0 0; display: flex; flex-direction: column; width: max-content; max-width: 100%; }
@@ -156,6 +160,7 @@ body.bac-on footer.src { display: none; }
   .bac-grid { grid-template-columns: none; grid-auto-flow: column; grid-template-rows: repeat(2, 46px); grid-auto-columns: 46px; height: auto; overflow-x: auto; overflow-y: hidden; }
   .bac-col { flex-direction: row; flex-wrap: wrap; width: 88px; align-content: flex-start; }
   .bac-mob { bottom: calc(var(--bac-pfh, 200px) + 8px); }
+  .bac-mini { left: auto; right: 8px; bottom: calc(var(--bac-pfh, 200px) + 8px); width: 140px; height: 90px; }
   .bac-filter { max-width: none; }
 }
 

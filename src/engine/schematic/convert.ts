@@ -45,7 +45,9 @@ function pairOf(links: Dir[]): CrossPair {
 class Builder {
   blocks: Placed[] = [];
   skipped: string[] = [];
-  at = new Map<string, number>();
+  /** Pièce de tuyau de chaque case ; celles remplacées sont écartées à la fin (`list`), sans renuméroter à chaque fois. */
+  at = new Map<string, Placed>();
+  removed = new Set<Placed>();
   sb: SbCatalog;
   /** Paires à relier par câble (bâtiments gardés par référence : les numéros changent quand une pièce est remplacée). */
   elec: [Placed, Placed][] = [];
@@ -64,15 +66,22 @@ class Builder {
    */
   piece(id: string | null, x: number, y: number, links: Dir[], crossLinks?: Dir[], fluidLinks?: Dir[]) {
     const k = `${x},${y}`;
-    if (this.at.has(k)) { const i = this.at.get(k)!; this.blocks.splice(i, 1); this.blocks.forEach((b, j) => (b.u = j)); this.at.forEach((v, kk) => v > i && this.at.set(kk, v - 1)); this.at.delete(k); }
+    const old = this.at.get(k);
+    if (old) { this.removed.add(old); this.at.delete(k); }
     if (!id) { this.skipped.push("?"); return; }
     if (!this.sb.blocks.has(id)) { this.skipped.push(id); return; }
     const all = new Set([...links, ...(crossLinks ?? [])]);
     const mixed = this.sb.blocks.get(id)?.pipe?.kind === "m";
     const b: Placed = { u: this.blocks.length, id, x, y, r: mixed ? (fluidLinks?.some((d) => d === "E" || d === "W") ? 1 : 0) : pipeRot(this.sb, id, x, y, all) };
     if (crossLinks) b.pair = pairOf(links);
-    this.at.set(k, this.blocks.length);
+    this.at.set(k, b);
     this.blocks.push(b);
+  }
+  /** Les bâtiments gardés, numérotés dans l'ordre. */
+  list(): Placed[] {
+    if (this.removed.size) { this.blocks = this.blocks.filter((b) => !this.removed.has(b)); this.removed.clear(); }
+    this.blocks.forEach((b, i) => (b.u = i));
+    return this.blocks;
   }
   /** Un module ; ses poteaux seulement si `poles` (l'usine pose les siens, gardés ou refaits). */
   module(m: ModulePlan, ox: number, oy: number, key = "", poles = true) {
@@ -100,18 +109,23 @@ class Builder {
     const fluid = (net: string) => m.nets.find((n) => n.id === net)?.kind === "fluide";
     for (const p of m.pieces as PlacedPiece[]) this.piece(p.pieceId, ox + p.x, oy + p.y, p.links, p.crossLinks, p.crossNet ? (fluid(p.net) ? p.links : fluid(p.crossNet) ? p.crossLinks : undefined) : undefined);
   }
-  /** Cases prises par les bâtiments posés. */
+  /** Cases prises par les bâtiments posés (calculées une fois, puis tenues à jour par `put`). */
+  takenSet: Set<string> | null = null;
   taken(): Set<string> {
-    const s = new Set<string>();
-    for (const b of this.blocks) for (const [x, y] of cellsOf(this.sb.blocks.get(b.id)!, b)) s.add(`${x},${y}`);
-    return s;
+    if (!this.takenSet) {
+      this.takenSet = new Set<string>();
+      for (const b of this.list()) for (const [x, y] of cellsOf(this.sb.blocks.get(b.id)!, b)) this.takenSet.add(`${x},${y}`);
+    }
+    return this.takenSet;
   }
   /** Câbles des paires notées, posés comme dans le bac à sable ; une paire hors de portée reste sans câble. */
   wires(): Wire[] {
-    const out: Wire[] = [];
+    const out: Wire[] = [], seen = new Set<string>();
+    this.list();
     for (const [a, b] of this.elec) {
-      const r = powerWires(this.sb, { blocks: this.blocks, wires: out }, a.u, b.u);
-      if (r && "wires" in r) out.push(...r.wires.filter((w) => !out.some((o) => o.a === w.a && o.ia === w.ia && o.b === w.b && o.ib === w.ib)));
+      // Les deux bâtiments seuls : le câble va du premier au second (amont → aval), sans parcourir tout le montage.
+      const r = powerWires(this.sb, { blocks: [a, b], wires: [] }, a.u, b.u);
+      if (r && "wires" in r) for (const w of r.wires) { const k = `${w.a}:${w.ia}>${w.b}:${w.ib}`; if (!seen.has(k)) { seen.add(k); out.push(w); } }
     }
     return out;
   }
@@ -142,18 +156,20 @@ export function touchRoute(sb: SbCatalog, blocks: Placed[], at: { x: number; y: 
 /** Plusieurs modules, chacun à sa place (S56 : étapes collées, vérifiées ensemble par le bac à sable). */
 export function layoutFromModules(list: { m: ModulePlan; x: number; y: number }[], sb: SbCatalog): Converted & { starts: number[] } {
   const b = new Builder(sb);
-  const starts: number[] = [];
+  const firsts: number[] = [];
   for (const { m, x, y } of list) {
-    starts.push(b.blocks.length);
+    firsts.push(b.blocks.length);
     b.module(m, x, y);
   }
-  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.blocks, wires: b.wires() })), width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts };
+  const heads = firsts.map((i) => b.blocks[i]), blocks = b.list();
+  // Vérification seulement (pas de pièces longues) : les numéros restent dans l'ordre des modules.
+  return { layout: orientPipes(sb, { blocks, wires: b.wires() }), width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts: heads.map((h) => h?.u ?? blocks.length) };
 }
 
 export function layoutFromModule(m: ModulePlan, sb: SbCatalog): Converted {
   const b = new Builder(sb);
   b.module(m, 0, 0);
-  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.blocks, wires: b.wires() })), width: m.width, height: m.height, skipped: b.skipped };
+  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.list(), wires: b.wires() })), width: m.width, height: m.height, skipped: b.skipped };
 }
 
 /**
@@ -183,8 +199,8 @@ export function layoutFromFactory(f: FactoryPlan, sb: SbCatalog, cat: Catalog, i
   }
   // Étapes collées : la liaison d'un bouton à l'autre, comme le joueur la règle en jeu.
   poles(f, b);
-  const routes = (f.touches ?? []).map((t) => touchRoute(sb, b.blocks, t)).filter((r): r is Route => !!r);
-  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.blocks, wires: b.wires(), ...(routes.length ? { routes } : {}) })), width: f.W, height: f.H, skipped: b.skipped };
+  const routes = (f.touches ?? []).map((t) => touchRoute(sb, b.list(), t)).filter((r): r is Route => !!r);
+  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.list(), wires: b.wires(), ...(routes.length ? { routes } : {}) })), width: f.W, height: f.H, skipped: b.skipped };
 }
 
 /**
@@ -198,25 +214,27 @@ function poles(f: FactoryPlan, b: Builder) {
     const free = (x: number, y: number) => { for (let a = 0; a < w; a++) for (let c = 0; c < h; c++) if (taken.has(`${x + a},${y + c}`)) return false; return true; };
     for (let r = 0; r <= 4; r++)
       for (let dx = -r; dx <= r; dx++)
-        for (let dy = -r; dy <= r; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && free(x0 + dx, y0 + dy)) return b.add({ id, x: x0 + dx, y: y0 + dy, r: 0 });
+        for (let dy = -r; dy <= r; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && free(x0 + dx, y0 + dy)) {
+          const nb = b.add({ id, x: x0 + dx, y: y0 + dy, r: 0 });
+          if (nb) for (let a = 0; a < w; a++) for (let c = 0; c < h; c++) taken.add(`${x0 + dx + a},${y0 + dy + c}`);
+          return nb;
+        }
     return null;
   };
+  const plugOf = new Map<string, Placed>(), paired = new Set<string>();
+  for (const box of f.boxes) for (const m of box.mod?.machines ?? []) {
+    const mb = b.machines.get(`${box.key}|${m.id}`);
+    if (mb) for (const q of m.power) plugOf.set(`${box.x + q.x},${box.y + q.y}`, mb);
+  }
+  b.list(); // numéros à jour pour les clés des paires
   for (const p of f.poleNodes) {
     const pb = put(p.type.id, p.type.size.w, p.type.size.h, p.x, p.y);
     if (!pb) continue;
     at.set(p.id, pb);
-    // Prise → machine qui la porte : la plus proche de la prise parmi les machines de son module.
+    // Prise → la machine qui la porte (les prises du plan sont celles des machines).
     for (const plug of p.plugs) {
-      const box = boxOf.get(plug.key);
-      if (!box?.mod) continue;
-      let best: Placed | null = null, bd = Infinity;
-      for (const m of box.mod.machines) {
-        const mb = b.machines.get(`${box.key}|${m.id}`);
-        if (!mb) continue;
-        const d = Math.min(...m.cells.map((c) => Math.hypot(box.x + c.x - plug.x, box.y + c.y - plug.y)));
-        if (d < bd) { bd = d; best = mb; }
-      }
-      if (best && !b.elec.some(([x, y]) => x === pb && y === best)) b.elec.push([pb, best]);
+      const best = plugOf.get(`${plug.x},${plug.y}`), k = best && `${pb.u}>${best.u}`;
+      if (best && !paired.has(k!)) { paired.add(k!); b.elec.push([pb, best]); }
     }
   }
   for (const l of f.links) {
