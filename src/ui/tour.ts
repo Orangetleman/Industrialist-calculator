@@ -60,8 +60,8 @@ export const SITE_TOUR: TourStep[] = [
   // Visite détaillée : elle entre dans les vues (au minimum le schéma et l'usine complète, Q25), et on y touche.
   { part: "tour.part.flow", hash: "#objet/schema", target: "#flow-frame", play: true, title: "tour.flow.title", text: "tour.flow.html" },
   { part: "tour.part.factory", hash: "#objet/pose/usine-entiere", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.factory.title", text: "tour.factory.html" },
-  { part: "tour.part.settings", hash: "#objet", target: "#criteria", play: true, title: "tour.prio.title", text: "tour.prio.html" },
-  { part: "tour.part.settings", hash: "#objet", target: "#mfilter", play: true, title: "tour.machines.title", text: "tour.machines.html" },
+  { part: "tour.part.settings", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.prio.title", text: "tour.prio.html" },
+  { part: "tour.part.settings", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.machines.title", text: "tour.machines.html" },
   { part: "tour.part.research", hash: "#usine/recherche", target: "#rs-box", title: "tour.research.title", text: "tour.research.html" },
   { part: "tour.part.tree", hash: "#arbre", target: ".rs-workspace", play: true, title: "tour.arbre.title", text: "tour.arbre.html" },
   { part: "tour.part.recipes", hash: "#recettes", target: "#rc-layout", play: true, title: "tour.recettes.title", text: "tour.recettes.html" },

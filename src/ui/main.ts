@@ -937,7 +937,7 @@ function renderPlanPage(): void {
     if (a.dataset.goal === goal) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   }
-  for (const el of document.querySelectorAll<HTMLElement>("#query [data-goals]")) el.hidden = !el.dataset.goals!.split(" ").includes(goal);
+  for (const el of document.querySelectorAll<HTMLElement>("#query [data-goals], #plan-drawer [data-goals]")) el.hidden = !el.dataset.goals!.split(" ").includes(goal);
   $("rp-rate-label").hidden = goal !== "recherche" || settings.rpMode !== "rate";
   $("rp-node-label").hidden = goal !== "recherche" || settings.rpMode !== "node";
   $("rp-minutes-label").hidden = goal !== "recherche" || settings.rpMode === "rate";
@@ -1335,6 +1335,7 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
   const sel = $<HTMLSelectElement>("pose-step");
   if (!choices.length) {
     sel.innerHTML = "";
+    railSteps = [];
     renderStepRail();
     return { mods: [], asms: [] };
   }
@@ -1352,20 +1353,26 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
     const o = sel.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(s.key)}"]`);
     if (o) o.textContent += portsLabel(s.machine);
   }
+  railSteps = [
+    { key: USINE, name: t("plan.steps.usine"), sub: "" },
+    ...mods.map((s) => ({ key: s.key, name: anyName(s.machine), sub: anyName(s.item), n: s.machines })),
+    ...asms.map((s) => ({ key: s.key, name: assemblyKind(s) === "ferme" ? t("plan.steps.farm") : t("plan.steps.engine"), sub: anyName(s.item), n: s.machines })),
+  ];
   renderStepRail();
   return { mods, asms };
 }
 
+/** Étapes du rail : nom court, objet, nombre de machines (la liste « Vue » garde le texte long). */
+let railSteps: { key: string; name: string; sub: string; n?: number }[] = [];
 /** Rail des étapes (S60, maquette S58) : les vues de la liste « Vue », toujours visibles ; un clic ouvre l'onglet Usine. */
 function renderStepRail(): void {
-  const opts = [...$<HTMLSelectElement>("pose-step").options];
-  let n = 0;
-  $("plan-steps").innerHTML = opts.length
-    ? opts
-        .map((o) => {
-          const mark = o.value === USINE ? icon("home") : String(++n);
-          const on = o.selected && settings.resultTab === "pose";
-          return `<button type="button" class="cmd-step${on ? " on" : ""}" data-step="${esc(o.value)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: o.text }))}"><span class="n">${mark}</span><span class="nm">${esc(o.text)}</span></button>`;
+  let i = 0;
+  $("plan-steps").innerHTML = railSteps.length
+    ? railSteps
+        .map((r) => {
+          const on = r.key === poseStep && settings.resultTab === "pose";
+          const mark = r.key === USINE ? icon("home") : String(++i);
+          return `<button type="button" class="cmd-step${on ? " on" : ""}" data-step="${esc(r.key)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: r.sub ? `${r.name} — ${r.sub}` : r.name }))}"><span class="n">${mark}</span><span class="nm">${esc(r.name)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</span>${r.n ? `<span class="x">×${r.n}</span>` : ""}</button>`;
         })
         .join("")
     : `<p class="hint">${esc(t("plan.steps.none"))}</p>`;
@@ -3089,6 +3096,28 @@ function bindPlan(): void {
     settings.tier3Only = (e.target as HTMLInputElement).checked;
     saveSettings(settings);
     renderPose();
+  });
+  // Tiroir des réglages (S60, maquette S58) : tout à plat ; R l'ouvre, Échap le ferme. Un lien qui ouvre une
+  // rubrique (barre « Ton plan », visite…) ouvre le tiroir avec elle.
+  const drawer = $("plan-drawer");
+  const setDrawer = (on: boolean) => {
+    if (drawer.hidden === !on) return;
+    drawer.hidden = !on;
+    $("plan-set-open").setAttribute("aria-expanded", String(on));
+    if (on) for (const d of drawer.querySelectorAll<HTMLDetailsElement>(":scope > details")) d.open = true;
+    (on ? drawer.querySelector<HTMLElement>("summary") : $("plan-set-open"))?.focus();
+  };
+  $("plan-set-open").addEventListener("click", () => setDrawer(drawer.hidden !== false));
+  $("plan-set-close").addEventListener("click", () => setDrawer(false));
+  for (const d of drawer.querySelectorAll<HTMLDetailsElement>(":scope > details"))
+    d.addEventListener("toggle", () => {
+      if (d.open && drawer.hidden) setDrawer(true);
+    });
+  document.addEventListener("keydown", (e) => {
+    if ($("page-plan").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    const typing = e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
+    if (e.key === "Escape" && !drawer.hidden) setDrawer(false);
+    else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
   });
   // Rail des étapes (S60) : la même chose que la liste « Vue », dans l'onglet Usine.
   $("plan-steps").addEventListener("click", (e) => {

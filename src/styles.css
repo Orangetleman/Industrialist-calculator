@@ -1403,3 +1403,38 @@ table.rh-log td.num { white-space: nowrap; }
   /* Colonnes empilées : les étapes ne repoussent pas le plan trop bas. */
   .cmd-left { max-height: 45vh; overflow: auto; }
 }
+
+/* ---------------------------------------------------------------- S60 suite : objectif en phrase et tiroir des réglages */
+.say { display: none; }
+.cmd-set-btn { display: inline-flex; align-items: center; gap: 6px; }
+.cmd-set-btn .ic { width: 16px; height: 16px; }
+.cmd-set-btn kbd, .cmd-drawer kbd { font: .72rem var(--f-mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.cmd-set-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.cmd-drawer { position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(440px, 94vw); overflow: auto; background: var(--surface); border-right: 2px solid var(--accent); padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 8px 0 30px #0006; }
+.cmd-drawer[hidden] { display: none; }
+.cmd-drawer-top { display: flex; align-items: center; justify-content: space-between; }
+.cmd-drawer details.advanced summary { width: auto; }
+.cmd-drawer .adv { display: flex; flex-direction: column; gap: 6px; }
+.cmd-drawer .hint { margin: 0; }
+@media (min-width: 900px) {
+  /* Une phrase : [but] Je veux [60] [par minute] de [objet] … [Réglages]. */
+  #page-plan .cmd-goal { flex-wrap: nowrap; align-items: center; }
+  #page-plan .goalnav { flex: none; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  #page-plan .goalnav a { border: 0; border-radius: 0; padding: 7px 11px; }
+  #page-plan .goalnav a[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
+  #page-plan h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #page-plan .query { flex: 1 1 auto; flex-wrap: wrap; align-items: center; background: none; border: 0; padding: 0; gap: 6px 10px; }
+  #page-plan .query > .say:not([hidden]) { display: inline; color: var(--muted); font-size: 1rem; }
+  #page-plan .query > .say-of { order: 3; }
+  #page-plan .query > label[for="qty"] { order: 2; }
+  #page-plan .query > label[for="item"] { order: 4; }
+  #page-plan .query > :not(.say):not(label[for="qty"]):not(label[for="item"]) { order: 5; }
+  #page-plan .query > label[data-goals="objet"] > span[data-i18n] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  #page-plan .query > label { flex-direction: row; align-items: center; gap: 6px; }
+  #page-plan .query > label.grow { flex: 0 1 280px; position: relative; }
+  #page-plan #item { border-color: var(--accent); font-weight: 600; }
+  #page-plan #item-hint:not(:empty) { position: absolute; top: 100%; left: 0; z-index: 5; background: var(--surface); padding: 2px 6px; border-radius: 6px; }
+  #page-plan .cmd-set-btn { flex: none; margin-left: auto; }
+}
+.cmd-step .nm small { display: block; color: var(--muted); font-size: .74rem; }
+.cmd-step .x { margin-left: auto; flex: none; font: 600 .8rem var(--f-mono); color: var(--accent); }

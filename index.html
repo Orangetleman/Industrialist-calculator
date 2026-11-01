@@ -80,11 +80,13 @@
 
     <form class="query" id="query" novalidate>
       <!-- objet -->
+      <span class="say" data-goals="objet" data-i18n="plan.say.want">Je veux</span>
       <label class="grow" data-goals="objet" for="item"><span data-i18n="form.item">Objet</span>
         <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft" data-i18n-attr="placeholder=form.item.ph">
         <span id="item-hint" class="hint warn-text" role="status"></span>
       </label>
       <datalist id="item-list"></datalist>
+      <span class="say say-of" data-goals="objet" data-i18n="plan.say.of">de</span>
       <label data-goals="objet" for="qty"><span data-i18n="form.qty">Quantité</span>
         <span class="qty"><input id="qty" type="number" min="0.01" step="any" inputmode="decimal" placeholder="60">
         <select id="qty-unit" aria-label="Unité de la quantité" data-i18n-attr="aria-label=form.qty.unit.aria"><option value="rate" data-i18n="form.qty.rate">par minute</option><option value="machines" data-i18n="form.qty.machines">machines finales</option></select></span>
@@ -122,11 +124,20 @@
         <input id="money" type="number" min="1" step="any" inputmode="decimal" placeholder="ex. 10000" data-i18n-attr="placeholder=form.money.ph">
       </label>
       <!-- commun -->
+      <p class="hint" id="goal-hint"></p>
+
+    </form>
+    <button type="button" class="cmd-set-btn" id="plan-set-open" aria-controls="plan-drawer" aria-expanded="false"><span data-ic="settings"></span><span data-i18n="plan.set">Réglages</span> <kbd>R</kbd></button>
+    </div>
+    <!-- S60 suite : les réglages du plan dans un tiroir (maquette S58), tous visibles d'un coup ; R l'ouvre, Échap le ferme. -->
+    <aside class="cmd-drawer" id="plan-drawer" aria-labelledby="plan-drawer-h" hidden>
+      <div class="cmd-drawer-top"><h2 class="cmd-h" id="plan-drawer-h" data-i18n="plan.set.title">Réglages du plan</h2><button type="button" class="icon-btn" id="plan-set-close" data-ic="close" aria-label="Fermer" data-i18n-attr="aria-label=common.close"></button></div>
       <details class="criteria" id="criteria">
         <summary><span class="criteria-title" data-i18n="crit.title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit" data-i18n="crit.edit">changer l'ordre</span></summary>
         <p class="hint" data-i18n="crit.help">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise les flèches.</p>
         <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre" data-i18n-attr="aria-label=crit.list.aria"></ol>
       </details>
+      <p class="hint crit-hint" id="criterion-hint"></p>
       <details class="criteria mfilter" id="mfilter" data-goals="objet énergie argent">
         <summary><span class="criteria-title" data-i18n="mf.title">Machines</span> <span class="criteria-order"><span class="mf-sum" id="mf-sum"></span></span> <span class="criteria-edit" data-i18n="mf.edit">en exclure ou choisir</span></summary>
         <div class="mf-mode" role="radiogroup" aria-label="Machines que le calcul peut utiliser" data-i18n-attr="aria-label=mf.mode.aria">
@@ -139,9 +150,6 @@
         <datalist id="mf-list"></datalist>
         <div id="mf-more"></div>
       </details>
-      <p class="hint crit-hint" id="criterion-hint"></p>
-      <p class="hint" id="goal-hint"></p>
-
       <details class="advanced" id="advanced">
         <summary><span data-i18n="adv.title">Options avancées</span> <span class="muted" id="adv-count"></span></summary>
         <div class="adv">
@@ -159,8 +167,7 @@
         </div>
         <p class="hint" id="adv-note"></p>
       </details>
-    </form>
-    </div>
+    </aside>
 
     <div class="cmd-body">
     <aside class="cmd-rail cmd-left" aria-labelledby="plan-steps-h">
