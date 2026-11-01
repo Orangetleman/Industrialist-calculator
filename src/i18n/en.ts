@@ -36,6 +36,8 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "nav.recettes": "Recipes",
   "nav.usine": "My factory",
   "nav.contribuer": "Contribute",
+  "header.props": "Suggestions",
+  "header.props.title": "See the players' suggestions and vote",
   "header.me.aria": "My factory at a glance",
   "header.cta": "Set up my factory",
   "header.research": { one: "{done}/{total} research", other: "{done}/{total} research" },

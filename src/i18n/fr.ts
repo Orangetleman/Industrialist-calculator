@@ -41,6 +41,8 @@ export const fr = {
   "nav.recettes": "Recettes",
   "nav.usine": "Mon usine",
   "nav.contribuer": "Contribuer",
+  "header.props": "Propositions",
+  "header.props.title": "Voir les propositions des joueurs et voter",
   "header.me.aria": "Mon usine en bref",
   "header.cta": "Renseigner mon usine",
   "header.research": { one: "{done}/{total} recherche", other: "{done}/{total} recherches" },

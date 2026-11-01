@@ -53,7 +53,9 @@
     <!-- S59 : thème clair en option -->
     <button type="button" class="theme-btn" id="theme-btn" data-i18n-attr="title=header.theme.title;aria-label=header.theme.title" title="Thème clair / sombre" aria-label="Thème clair / sombre"></button>
     <!-- S35 : les remarques (maquettes public.html, écran 2, et remarques.html) ; au téléphone, l'icône seule. -->
-    <button type="button" class="remark-btn" id="remark-btn" aria-label="Proposer une idée ou signaler une erreur" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Proposer</span><span class="rm-dot" id="remark-dot" hidden></span></button>
+    <!-- Accès direct à la liste des propositions des joueurs (S36), à côté de « Remarque » qui sert à en envoyer une. -->
+    <a class="props-btn" href="#propositions" data-nav="propositions" data-i18n-attr="title=header.props.title" title="Voir les propositions des joueurs et voter"><span data-ic="idea"></span><span class="lbl" data-i18n="header.props">Propositions</span></a>
+    <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
     <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
