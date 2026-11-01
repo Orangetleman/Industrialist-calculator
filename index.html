@@ -8,7 +8,9 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#1f3d52">
+  <meta name="theme-color" content="#160f25">
+  <!-- S59 : sombre par défaut, clair en option ; posé avant le style pour éviter un éclair. -->
+  <script>try { if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}</script>
   <!-- Aperçu des liens partagés (Discord, réseaux…) : en anglais, la langue de la communauté du jeu (S33, décision S16 Public).
        L'image vient de scripts/og-image.html. -->
   <meta property="og:type" content="website">
@@ -24,7 +26,7 @@
   <meta property="og:locale:alternate" content="fr_FR">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 </head>
 <body>
 <a class="skip" href="#main" data-i18n="site.skip">Aller au contenu</a>
@@ -48,6 +50,8 @@
     <button type="button" class="me-play" id="me-play" data-play="on" hidden>Je joue</button>
     <!-- S30 : la langue (maquette S16, écran 1), avant la visite. -->
     <span class="lang-sw" id="lang-sw" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true" title="Français" lang="fr">FR</button><button type="button" data-lang="en" aria-pressed="false" title="English" lang="en">EN</button></span>
+    <!-- S59 : thème clair en option -->
+    <button type="button" class="theme-btn" id="theme-btn" data-i18n-attr="title=header.theme.title;aria-label=header.theme.title" title="Thème clair / sombre" aria-label="Thème clair / sombre"></button>
     <!-- S35 : les remarques (maquettes public.html, écran 2, et remarques.html) ; au téléphone, l'icône seule. -->
     <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
     <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>

@@ -1,8 +1,8 @@
 /* B3 : bac à sable (PLAN-BAC-A-SABLE.md). Plein écran sous l'en-tête, sombre dans les deux thèmes, comme Mindustry
    (maquette/bac-a-sable.html, validée). Jetons à part (--b-*), contrastes contrôlés par contraste.test.ts. */
 .bac-root {
-  --b-bg: #161616; --b-panel: #121212; --b-btn: #2a2a2a; --b-line: #6a6a6a; --b-ink: #e8e8e8; --b-muted: #a8a8a8;
-  --b-accent: #ffd37f; --b-sel: #3d3522; --b-red: #ff7b72; --b-green: #5ce677;
+  --b-bg: #120c20; --b-panel: #0e0a18; --b-btn: #2a1f42; --b-line: #6a5a94; --b-ink: #f0ecfa; --b-muted: #b3a7d1;
+  --b-accent: #ff8f52; --b-sel: #3a1e14; --b-red: #ff7b72; --b-green: #5ce677;
   position: fixed; left: 0; right: 0; top: var(--bac-top, 56px); bottom: 0; z-index: 5; overflow: hidden;
   background: var(--b-bg); color: var(--b-ink); font: 14px/1.35 var(--f-body); color-scheme: dark;
 }
@@ -41,7 +41,7 @@ body.bac-on footer.src { display: none; }
 /* Menu de pose, en bas à droite : infos, grille de 4, catégories, tiers ; outils sous la grille */
 .bac-pf { right: 0; bottom: 0; border-radius: 4px 0 0 0; display: flex; flex-direction: column; width: max-content; max-width: 100%; }
 /* width:0 + min-width:100% : le cadre d'infos prend la largeur du menu sans jamais l'élargir (sinon il clignote au survol). */
-.bac-info { border-bottom: 3px solid #3a3a3a; padding: 8px; width: 0; min-width: 100%; overflow-wrap: anywhere; max-height: 50vh; overflow-y: auto; }
+.bac-info { border-bottom: 3px solid #3a2b5c; padding: 8px; width: 0; min-width: 100%; overflow-wrap: anywhere; max-height: 50vh; overflow-y: auto; }
 .bac-info:empty { display: none; }
 .bac-info .i-head { display: flex; gap: 8px; align-items: center; }
 .bac-info .i-head img, .bac-info .i-head svg { flex: none; }
@@ -58,29 +58,29 @@ body.bac-on footer.src { display: none; }
 .bac-info .i-btns a { min-height: 30px; display: inline-flex; align-items: center; }
 .bac-root .bac-info .i-sel { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 6px; margin-top: 6px; text-align: left; min-height: 34px; }
 .bac-pf-body { display: flex; }
-.bac-pf-left { display: flex; flex-direction: column; border-right: 3px solid #3a3a3a; }
-.bac-filter { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12.5px; color: var(--b-accent); border-bottom: 1px solid #3a3a3a; max-width: 196px; }
+.bac-pf-left { display: flex; flex-direction: column; border-right: 3px solid #3a2b5c; }
+.bac-filter { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12.5px; color: var(--b-accent); border-bottom: 1px solid #3a2b5c; max-width: 196px; }
 .bac-filter[hidden] { display: none; }
 .bac-filter span { flex: 1; }
 .bac-root .bac-filter button { min-height: 28px; min-width: 28px; padding: 0; display: grid; place-items: center; }
 .bac-grid { display: grid; grid-template-columns: repeat(4, 46px); grid-auto-rows: 46px; height: 276px; overflow-y: auto; align-content: start; padding: 2px; }
 .bac-grid .bac-empty { grid-column: 1 / -1; padding: 8px; color: var(--b-muted); font-size: 13px; margin: 0; }
 .bac-root .bac-blk { width: 46px; height: 46px; padding: 4px; background: transparent; border: 2px solid transparent; display: grid; place-items: center; }
-.bac-root .bac-blk:hover { background: #2c2c2c; }
+.bac-root .bac-blk:hover { background: #2d2147; }
 .bac-root .bac-blk.locked img, .bac-root .bac-blk.locked svg { filter: grayscale(1) brightness(.42); }
-.bac-tools { display: flex; border-top: 3px solid #3a3a3a; }
+.bac-tools { display: flex; border-top: 3px solid #3a2b5c; }
 .bac-root .bac-tools button, .bac-root .bac-tools a { width: 48px; height: 44px; padding: 0; background: transparent; border: 0; border-radius: 0; display: grid; place-items: center; color: var(--b-ink); }
 .bac-root .bac-tools .ic { width: 20px; height: 20px; }
 .bac-col { display: flex; flex-direction: column; }
-.bac-col + .bac-col { border-left: 3px solid #3a3a3a; }
+.bac-col + .bac-col { border-left: 3px solid #3a2b5c; }
 .bac-root .bac-b { width: 40px; height: 40px; padding: 0; background: transparent; border: 2px solid transparent; font-weight: 700; display: grid; place-items: center; }
 .bac-root .bac-b .ic { width: 20px; height: 20px; }
 .bac-root .bac-col.tiers .bac-b { font-size: 13px; }
 
 /* Menu déroulant maison : il survole la page (jamais inséré dans le flux), fermé au clic ailleurs ou par Échap. */
-.bac-pop { position: fixed; z-index: 30; background: #1b1b1b; border: 1px solid var(--b-accent); border-radius: 4px; box-shadow: 0 6px 22px rgb(0 0 0 / .6); overflow-y: auto; max-width: min(520px, calc(100vw - 16px)); padding: 3px; display: flex; flex-direction: column; gap: 2px; }
+.bac-pop { position: fixed; z-index: 30; background: #1d1430; border: 1px solid var(--b-accent); border-radius: 4px; box-shadow: 0 6px 22px rgb(0 0 0 / .6); overflow-y: auto; max-width: min(520px, calc(100vw - 16px)); padding: 3px; display: flex; flex-direction: column; gap: 2px; }
 .bac-root .bac-pop button { text-align: left; border-color: transparent; background: transparent; min-height: 32px; padding: 4px 8px; }
-.bac-root .bac-pop button:hover, .bac-root .bac-pop button:focus-visible { background: #2c2c2c; border-color: var(--b-line); }
+.bac-root .bac-pop button:hover, .bac-root .bac-pop button:focus-visible { background: #2d2147; border-color: var(--b-line); }
 .bac-root .bac-pop button.on { border-color: var(--b-accent); background: var(--b-sel); }
 .bac-pop .tag { color: var(--b-accent); font-size: 11.5px; border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
 .bac-pop .tag.warn { color: var(--b-red); }
@@ -108,7 +108,7 @@ body.bac-on footer.src { display: none; }
 .bac-dlg table { border-collapse: collapse; width: 100%; }
 .bac-dlg td, .bac-dlg th { padding: 4px 6px; border-bottom: 1px solid #333; text-align: left; vertical-align: top; font-size: 13px; }
 .bac-dlg th { color: var(--b-accent); font-weight: 600; }
-.bac-root .bac-dlg .back { position: sticky; bottom: 0; margin-top: 16px; min-width: 200px; min-height: 48px; background: #1d1d1d; border: 2px solid #777; border-radius: 6px; font-size: 16px; display: inline-flex; gap: 6px; align-items: center; justify-content: center; flex: none; }
+.bac-root .bac-dlg .back { position: sticky; bottom: 0; margin-top: 16px; min-width: 200px; min-height: 48px; background: #1d1430; border: 2px solid #7c6aa8; border-radius: 6px; font-size: 16px; display: inline-flex; gap: 6px; align-items: center; justify-content: center; flex: none; }
 .bac-dlg .db { display: flex; flex-wrap: wrap; gap: 3px; }
 .bac-dlg textarea { width: 100%; min-height: 70px; background: #111; color: var(--b-ink); border: 1px solid var(--b-line); }
 .bac-dlg input { background: #111; color: var(--b-ink); border: 1px solid var(--b-line); border-radius: 3px; min-height: 30px; padding: 0 6px; }
@@ -119,7 +119,7 @@ body.bac-on footer.src { display: none; }
 .bac-dlg p { margin: 4px 0; }
 .bac-dlg .kb { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 14px; overflow-x: auto; }
 .bac-dlg .kb-row { display: flex; gap: 4px; }
-.bac-root .bac-dlg .kb-k { min-width: 38px; height: 42px; padding: 2px 4px; background: #222; border: 1px solid #444; border-radius: 4px; font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.bac-root .bac-dlg .kb-k { min-width: 38px; height: 42px; padding: 2px 4px; background: #222; border: 1px solid #4f3d7a; border-radius: 4px; font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .bac-dlg .kb-k small { font-size: 9px; color: var(--b-muted); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bac-root .bac-dlg .kb-k.g-move { background: #22384a; }
 .bac-root .bac-dlg .kb-k.g-build { background: #3d3522; }
@@ -162,15 +162,15 @@ body.bac-on footer.src { display: none; }
 .bac-dlg .chip { min-height: 28px; display: inline-flex; gap: 4px; align-items: center; }
 .bac-dlg .chip.on { border-color: var(--b-accent); color: var(--b-accent); }
 .bac-dlg .sch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; }
-.bac-dlg .sch-card { position: relative; border: 2px solid #444; background: #1d1d1d; }
+.bac-dlg .sch-card { position: relative; border: 2px solid #4f3d7a; background: #1d1430; }
 .bac-dlg .sch-card:hover, .bac-dlg .sch-card:focus-within { border-color: var(--b-accent); }
 .bac-dlg .sch-use { display: block; width: 100%; padding: 4px; background: none; border: 0; text-align: center; }
-.bac-dlg .sch-use svg { width: 100%; height: auto; display: block; background: #161616; }
+.bac-dlg .sch-use svg { width: 100%; height: auto; display: block; background: #120c20; }
 .bac-dlg .sch-nm { display: block; margin-top: 3px; background: #111; padding: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bac-dlg .sch-bar { position: absolute; top: 4px; left: 4px; right: 4px; display: flex; justify-content: space-between; pointer-events: none; }
 .bac-dlg .sch-bar button { pointer-events: auto; width: 30px; height: 30px; padding: 0; background: rgba(0, 0, 0, .7); display: grid; place-items: center; }
 .bac-dlg .sch-big { text-align: center; margin: 10px 0; }
-.bac-dlg .sch-big svg { max-width: 100%; height: auto; background: #161616; }
+.bac-dlg .sch-big svg { max-width: 100%; height: auto; background: #120c20; }
 .bac-dlg .sch-menu { display: flex; flex-direction: column; gap: 6px; max-width: 360px; margin: 16px auto; }
 .bac-dlg .sch-menu button { min-height: 48px; display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 15px; }
 .bac-dlg .sch-foot { justify-content: center; margin-top: 12px; }

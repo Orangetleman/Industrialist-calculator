@@ -205,8 +205,10 @@ function pollutionLine(v: ViewCtx): string {
   return `<p class="hint">${t("pv.pollution.html", { what: t(removes ? "pv.pollution.removed" : "pv.pollution.added"), x: esc(fmtPol(tt.pollutionPerHour)), unknown })}</p>`;
 }
 
-function chipLine(label: string, chips: string[]): string {
-  return chips.length ? `<p class="chips"><span class="chips-k">${label}</span> ${chips.join(" ")}</p>` : "";
+/** `io` : ce qui entre dans le plan (cyan) ou en sort (mauve), avec son icône (S59). */
+function chipLine(label: string, chips: string[], io?: "in" | "out"): string {
+  if (!chips.length) return "";
+  return `<p class="chips${io ? ` io-${io}` : ""}"><span class="chips-k">${io ? icon(io) : ""}${label}</span> ${chips.join(" ")}</p>`;
 }
 const chip = (name: string, n: string, cls = "") => `<span class="chip${cls ? ` ${cls}` : ""}">${esc(name)} <span class="n">${esc(n)}</span></span>`;
 
@@ -283,11 +285,13 @@ export function renderAnswer(v: ViewCtx): string {
     chipLine(
       t("ans.chips.raw"),
       p.raw.filter((r) => r.item !== ENERGY && r.item !== POLLUTION).map((r) => chip(itemN(v, r.item), `${fmtRate(r.perMin)}/min`)),
+      "in",
     ),
     chipLine(t("ans.chips.existing"), p.existing.map((x) => chip(itemN(v, x.item), t("ans.chips.existing.n", { used: fmtRate(x.used), available: fmtRate(x.available) }), "ok"))),
     chipLine(
       t("ans.chips.surplus"),
-      p.surplus.filter((s) => s.item !== ENERGY && s.item !== POLLUTION).map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min`, "accent")),
+      p.surplus.filter((s) => s.item !== ENERGY && s.item !== POLLUTION).map((s) => chip(itemN(v, s.item), `${fmtRate(s.perMin)}/min`)),
+      "out",
     ),
   ].join("");
   const notes = [

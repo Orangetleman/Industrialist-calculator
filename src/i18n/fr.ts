@@ -55,6 +55,7 @@ export const fr = {
   "header.play.on.aria": "Je ne joue plus",
   "header.play.off.aria": "Je joue",
   "header.help.title": "Visite du site",
+  "header.theme.title": "Thème clair / sombre",
   "header.help.aria": "Rejouer la visite du site",
   "header.unofficial": "Non officiel",
   "header.unofficial.title": "Outil de fan, non officiel : il n'est pas fait par les auteurs du jeu.",

@@ -390,7 +390,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const hb = ui.hoverU ?? ui.pinned;
     if (hb != null && byU.has(hb) && !ui.sel) {
       const b = byU.get(hb)!, [w, h] = dims(cat.blocks.get(b.id)!, b.r);
-      s += rect([b.x, b.y, w, h], "none", `stroke="#ffd37f" stroke-width=".08"`);
+      s += rect([b.x, b.y, w, h], "none", `stroke="#ff8f52" stroke-width=".08"`);
     }
     if (ui.pinned != null && byU.has(ui.pinned) && !ui.sel) { const b = byU.get(ui.pinned)!; s += rangeMarkup(d, deps.mods, S.blocks, b.id, b.x, b.y, b.r, hasNodes); }
     if (ui.sel && !ui.sel.locked && !ui.op) { const a = anchor(cat.blocks.get(ui.sel.v)!, c, ui.rot); s += rangeMarkup(d, deps.mods, S.blocks, ui.sel.v, a[0], a[1], ui.rot, hasNodes); }
@@ -406,7 +406,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     // Liaison en cours : le port de départ, et les ports qu'on peut viser.
     if (ui.routeFrom) {
       const b = byU.get(ui.routeFrom.u), p = b && geo(cat.blocks.get(b.id)!, b)?.ports[ui.routeFrom.i];
-      if (p?.cells) for (const [x, y] of p.cells) s += rect([x + 0.05, y + 0.05, 0.9, 0.9], "none", `stroke="#ffd37f" stroke-width=".1"`);
+      if (p?.cells) for (const [x, y] of p.cells) s += rect([x + 0.05, y + 0.05, 0.9, 0.9], "none", `stroke="#ff8f52" stroke-width=".1"`);
     }
     const op = ui.op;
     if (op?.t === "break") {
@@ -421,7 +421,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     }
     if (op?.t === "schem") {
       const x0 = Math.min(op.s[0], c[0]), x1 = Math.max(op.s[0], c[0]), y0 = Math.min(op.s[1], c[1]), y1 = Math.max(op.s[1], c[1]);
-      s += rect([x0, y0, x1 - x0 + 1, y1 - y0 + 1], "rgba(255,211,127,.12)", `stroke="#ffd37f" stroke-width=".08"`);
+      s += rect([x0, y0, x1 - x0 + 1, y1 - y0 + 1], "rgba(255,143,82,.12)", `stroke="#ff8f52" stroke-width=".08"`);
     }
     if (ui.clip) {
       const a = [c[0] - Math.floor(ui.clip.W / 2), c[1] - Math.floor(ui.clip.H / 2)] as const;

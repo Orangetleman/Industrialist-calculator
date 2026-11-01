@@ -50,6 +50,7 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "header.play.on.aria": "Not playing",
   "header.play.off.aria": "Playing",
   "header.help.title": "Site tour",
+  "header.theme.title": "Light / dark theme",
   "header.help.aria": "Replay the site tour",
   "header.unofficial": "Unofficial",
   "header.unofficial.title": "Unofficial fan tool: not made by the game's developers.",

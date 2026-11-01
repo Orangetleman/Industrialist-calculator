@@ -3910,6 +3910,7 @@ bindTree();
 bindData();
 bindRecettes();
 bindLang();
+bindTheme();
 const buildings = initBuildings($("bld-root"), data, REPO_PORTS, (id) => refine({ page: "donnees", dataTab: "batiments", machine: id }), REPO_IFACES.machines, REPO_MODULAR, { get: () => dieselReadings, set: setDieselReadings }, (piece) => remarks.open({ piece, kind: "surveys" }));
 // S35 : la fenêtre « Remarque ». Un envoi de corrections redessine les boutons « 📤 » (« Envoyées le… »).
 const remarks = initRemarks(remarkContext, () => {
@@ -4004,6 +4005,28 @@ function applyLang(): void {
   applyStatic(document);
   document.querySelector('meta[name="description"]')?.setAttribute("content", t("site.description"));
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang()));
+}
+
+/** S59 : thème sombre par défaut, clair en option ; le choix est gardé (lu dès index.html). */
+function bindTheme(): void {
+  const btn = $("theme-btn");
+  const draw = (): void => {
+    const light = document.documentElement.dataset.theme === "light";
+    btn.innerHTML = icon(light ? "moon" : "sun");
+    btn.setAttribute("aria-pressed", String(light));
+  };
+  draw();
+  btn.addEventListener("click", () => {
+    const light = document.documentElement.dataset.theme !== "light";
+    if (light) document.documentElement.dataset.theme = "light";
+    else delete document.documentElement.dataset.theme;
+    try {
+      localStorage.setItem("theme", light ? "light" : "dark");
+    } catch {
+      // choix pour cette visite seulement
+    }
+    draw();
+  });
 }
 
 /** Bouton FR / EN : la page est redessinée sur place (saisie et usine calculée gardées), le choix est gardé. */
