@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maquette S59 — Charte graphique</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen:wght@400;700&family=VT323&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@400;600;700&family=Exo+2:wght@400;600;700&family=Oxanium:wght@400;600;700&family=Chakra+Petch:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="mindustry-ref.local.css"><!-- police de Mindustry, en local seulement (ignorée par git) -->
 <style>
 /* Maquette S59 : 3 chartes au choix, chacune sur l'écran Planifier de maquette/planifier.html (S58), en sombre et en clair.
    Les jetons sont posés en JS (objet CHARTES plus bas) : un seul écran, recoloré. Chiffres de démonstration, non issus du jeu. */
@@ -120,9 +121,9 @@ svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
 /* Icônes Lucide (ISC), comme src/ui/icons.ts : log-in = entre, log-out = sort */
 [data-io="v2"] .mk-in { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10 17 5-5-5-5'/%3E%3Cpath d='M15 12H3'/%3E%3Cpath d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'/%3E%3C/svg%3E"); }
 [data-io="v2"] .mk-out { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m16 17 5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3C/svg%3E"); }
-/* Police des titres (2e tour) : le texte courant reste IBM Plex */
-.logo, .rail h2, .kpi .l, .flow .hd, .panel h2, .intro h1, .nav a, .views button, .seg button { font-family: var(--f-title, "IBM Plex Sans Condensed", "Arial Narrow", sans-serif) !important; }
-.kpi .v, .node header .k, .step .x { font-family: var(--f-num, "IBM Plex Mono", monospace) !important; }
+/* Police (3e tour) : appliquée à tout l'écran, titres, texte et chiffres.
+   « Mindustry » = extrait de la police envoyée par l'utilisateur, dans mindustry-ref.local.css (ignoré par git, jamais publié). */
+.app, .app *, .panel, .panel *, .intro, .intro * { font-family: var(--f-all) !important; }
 
 /* --- Panneaux sous l'écran --- */
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
@@ -164,7 +165,7 @@ table.ct td.r { text-align: right; font-family: "IBM Plex Mono", monospace; }
   <span class="g" id="g-ch"><span>Charte</span><button data-ch="BC">B+C · Plasma Chantier</button><button data-ch="A">A · Signal</button><button data-ch="B">B · Chantier</button><button data-ch="C">C · Plasma</button></span>
   <span class="g" id="g-th"><span>Thème</span><button data-th="dark">Sombre</button><button data-th="light">Clair (option)</button></span>
   <span class="g" id="g-io"><span>Entrée / sortie</span><button data-io="v1">1 · vert / rouge</button><button data-io="v2">2 · couleurs alternatives + icônes</button><button data-io="v3">3 · formes, sans couleur</button></span>
-  <span class="g" id="g-ft"><span>Police des titres</span><button data-ft="plex">IBM Plex (actuelle)</button><button data-ft="pixelify">Pixelify Sans</button><button data-ft="silk">Silkscreen</button><button data-ft="vt">VT323</button></span>
+  <span class="g" id="g-ft"><span>Police</span><button data-ft="ref">Mindustry (référence)</button><button data-ft="saira">Saira</button><button data-ft="exo">Exo 2</button><button data-ft="oxa">Oxanium</button><button data-ft="chakra">Chakra Petch</button><button data-ft="plex">IBM Plex (actuelle)</button></span>
   <span class="g" id="g-sim"><span>Vue</span><button data-sim="">Normale</button><button data-sim="deut">Deutéranopie</button><button data-sim="prot">Protanopie</button><button data-sim="trit">Tritanopie</button></span>
 </div>
 
@@ -259,7 +260,7 @@ table.ct td.r { text-align: right; font-family: "IBM Plex Mono", monospace; }
     <ol>
       <li>La fusion « B+C · Plasma Chantier » vous va-t-elle (sombre, et le clair adouci) ?</li>
       <li>Entrée cyan / sortie mauve, avec les icônes « entrer » / « sortir » : d'accord ?</li>
-      <li>Police des titres, dans l'esprit pixel de Mindustry : Pixelify Sans, Silkscreen ou VT323 (toutes sous licence libre OFL) ? Le texte courant reste en IBM Plex pour rester lisible. La police choisie serait copiée dans le site (pas de dépendance npm).</li>
+      <li>Police, appliquée cette fois à tout l'écran : laquelle se rapproche le plus de celle de Mindustry (bouton « Mindustry (référence) », visible seulement sur votre ordinateur) ? Saira, Exo 2, Oxanium et Chakra Petch sont sous licence libre OFL ; celle de Mindustry ne peut pas être reprise telle quelle, faute de licence connue. La police choisie serait copiée dans le site, sans dépendance npm.</li>
     </ol>
   </section>
 </div>
@@ -273,10 +274,12 @@ const V1 = {
   light: { in: "#16a34a", "in-ink": "#166534", "in-bg": "#e3f5e9", out: "#dc2626", "out-ink": "#991b1b", "out-bg": "#fde8e8" },
 };
 const FONTS = {
-  plex: { t: '"IBM Plex Sans Condensed", "Arial Narrow", sans-serif', n: '"IBM Plex Mono", monospace' },
-  pixelify: { t: '"Pixelify Sans", sans-serif', n: '"Pixelify Sans", monospace' },
-  silk: { t: '"Silkscreen", sans-serif', n: '"IBM Plex Mono", monospace' },
-  vt: { t: '"VT323", monospace', n: '"VT323", monospace' },
+  plex: '"IBM Plex Sans", system-ui, sans-serif',
+  ref: '"Mindustry ref", system-ui, sans-serif',
+  saira: '"Saira", system-ui, sans-serif',
+  exo: '"Exo 2", system-ui, sans-serif',
+  oxa: '"Oxanium", system-ui, sans-serif',
+  chakra: '"Chakra Petch", system-ui, sans-serif',
 };
 const CHARTES = {
   BC: {
@@ -357,8 +360,8 @@ const IO = {
     pros: ["+ le plus sobre, aucune confusion possible", "+ la page garde une seule couleur vive", "− moins « parlant » au premier regard"] },
 };
 
-const st = { ch: "BC", th: "dark", io: "v2", sim: "", ft: "pixelify" };
-try { Object.assign(st, JSON.parse(localStorage.getItem("s59b") || "{}")); } catch {}
+const st = { ch: "BC", th: "dark", io: "v2", sim: "", ft: "saira" };
+try { Object.assign(st, JSON.parse(localStorage.getItem("s59c") || "{}")); } catch {}
 
 function tokensOf(ch, th, io) {
   const c = CHARTES[ch], t = { ...c[th] };
@@ -390,7 +393,7 @@ function flowsHTML() {
 function render() {
   const root = document.documentElement, t = tokensOf(st.ch, st.th, st.io);
   apply(root, t);
-  root.style.setProperty("--f-title", FONTS[st.ft].t); root.style.setProperty("--f-num", FONTS[st.ft].n);
+  root.style.setProperty("--f-all", FONTS[st.ft] || FONTS.plex);
   document.getElementById("app").dataset.io = st.io;
   document.getElementById("root").style.filter = st.sim ? `url(#${st.sim})` : "";
   for (const k of ["ch", "th", "io", "sim", "ft"]) document.querySelectorAll(`[data-${k}]`).forEach((b) => b.tagName === "BUTTON" && b.classList.toggle("on", b.dataset[k] === st[k]));
@@ -413,7 +416,7 @@ function render() {
 
   const rows = PAIRS.map(([f, b]) => { const r = ratio(t[f], t[b]); return `<tr><td>--${f} sur --${b}</td><td class="r">${t[f]} / ${t[b]}</td><td class="r ${r < 4.5 ? "ko" : ""}">${r.toFixed(2).replace(".", ",")}:1</td></tr>`; });
   document.getElementById("ct").innerHTML = rows.join("");
-  try { localStorage.setItem("s59b", JSON.stringify(st)); } catch {}
+  try { localStorage.setItem("s59c", JSON.stringify(st)); } catch {}
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-ch],button[data-th],button[data-io],button[data-sim],button[data-ft],[data-pick-io],[data-pick-ch]");
