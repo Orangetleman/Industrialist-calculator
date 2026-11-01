@@ -1468,6 +1468,10 @@ function renderIoPane(): void {
   $("cat-io").hidden = !ins && !outs;
   $("cat-io-n").textContent = `${n(ins)} · ${n(outs)}`;
   $("io-list").replaceChildren(...[ins, outs].filter((x): x is Element => !!x).map((x) => x.cloneNode(true)));
+  // Le reste de la réponse (centrales, remarques) : fenêtre « Notes », pour garder le menu léger.
+  const rest = [...$("answer").querySelectorAll(".answer > :not(h2):not(.kpis):not(.io-in):not(.io-out)")];
+  $("cat-notes").hidden = !rest.length;
+  $("notes-list").replaceChildren(...rest.map((x) => x.cloneNode(true)));
 }
 
 /** Fenêtre « À régler » du volet droit : les modules qu'on ne peut pas reproduire tels quels en jeu (un clic ouvre
@@ -2006,9 +2010,11 @@ function markIncomplete(): void {
     if (!why) continue;
     const r = g.querySelector<SVGRectElement>(".u-box");
     if (!r) continue;
-    const x = Number(r.getAttribute("x")), y = Number(r.getAttribute("y"));
-    const size = Math.max(16, Math.min(60, Number(r.getAttribute("width")) / 3));
-    g.insertAdjacentHTML("beforeend", `<g class="u-bad"><title>${esc(why.join(" ; "))}</title><circle cx="${x + size / 2 + 4}" cy="${y + size / 2 + 4}" r="${size / 2 + 3}"/>${iconAt("warn", x + 4, y + 4, size)}</g>`);
+    const x = Number(r.getAttribute("x")), y = Number(r.getAttribute("y")), w = Number(r.getAttribute("width")), h = Number(r.getAttribute("height"));
+    // Un voile jaune sur tout le module et la pastille au centre (R28 suite).
+    const size = Math.max(16, Math.min(56, Math.min(w, h) / 2.6));
+    const cx = x + w / 2, cy = y + h / 2;
+    g.insertAdjacentHTML("beforeend", `<g class="u-bad"><title>${esc(why.join(" ; "))}</title><rect class="u-bad-film" x="${x}" y="${y}" width="${w}" height="${h}"/><circle cx="${cx}" cy="${cy}" r="${size / 2 + 4}"/>${iconAt("warn", cx - size / 2, cy - size / 2 - size * 0.04, size)}</g>`);
   }
 }
 
@@ -2018,6 +2024,23 @@ function markFocused(): void {
 }
 
 // ---------------------------------------------------------------- bulle d'un module (S67, maquette volets.html)
+/** Les alertes d'un module, cliquables comme dans « À régler » : ports supposés → l'éditeur de bâtiments ;
+ *  valeur à vérifier → sa correction ; les autres raisons s'affichent seulement. */
+function bubbleAlerts(key: string): string {
+  const fp = currentFactory()?.plan;
+  const m = fp ? incompleteMachines(fp).find((x) => x.box.key === key) : undefined;
+  const v = viewCtx();
+  const st = v.plan.steps.find((s) => s.key === key);
+  const vals = st ? stepWarnings(v, st) : [];
+  const ports = t("uf.why.ports");
+  const row = (attr: string, text: string) =>
+    attr ? `<button type="button" class="cmd-li" ${attr}>${icon("warn")}<span class="nm">${esc(text)}</span>${icon("chevR")}</button>` : `<span class="cmd-li">${icon("warn")}<span class="nm">${esc(text)}</span></span>`;
+  const rows = [
+    ...(m?.reasons ?? []).map((r) => row(m!.survey && r === ports ? `data-edit="${esc(m!.box.machine)}"` : "", r)),
+    ...vals.map((e) => row(fixAttr(e), `${fieldWord(v, e.flag.field)} : ${t("plan.warn.check")}`)),
+  ];
+  return rows.length ? `<div class="cmd-alerts">${rows.join("")}</div>` : "";
+}
 /** À l'ordinateur, le module cliqué s'ouvre dans une bulle accrochée à lui : elle suit le plan quand on le déplace,
  *  grandit quand on zoome, et le bouton ⤢ l'agrandit pour montrer le dessin du module. */
 let bubbleRaf = 0;
@@ -2040,7 +2063,7 @@ function followBubble(key: string): void {
       let x = r.left - host.left, y = r.bottom - host.top + 10;
       if (y + ph > host.height) y = r.top - host.top - ph - 10; // pas la place dessous : au-dessus
       x = Math.max(6, Math.min(x, host.width - pw - 6));
-      y = Math.max(6, Math.min(y, host.height - ph - 6));
+      y = Math.max(48, Math.min(y, host.height - ph - 6)); // sous le groupe d'onglets posé sur le plan
       panel.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) scale(${sc.toFixed(3)})`;
     }
     bubbleRaf = requestAnimationFrame(tick);
@@ -2069,7 +2092,7 @@ function showFocus(key: string | null): void {
   $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t("m.focus.hint")}</span></div>`;
   // S26 : « Module posé ✓ » dans le panneau aussi (le même réglage que la liste sous l'usine).
   const posed = posedSet().has(key!);
-  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> ${withIcons(t("m.focus.posed"))}</label></p>` + out.head + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">${t("m.focus.poseAlone")}</button> · <button type="button" class="link" data-flow="${esc(key!)}">${t("m.focus.toFlow")}</button></p>`;
+  $("focus-head").innerHTML = `<p class="focus-posed"><label${posed ? ' class="done"' : ""}><input type="checkbox" data-posed="${esc(key!)}"${posed ? " checked" : ""}> ${withIcons(t("m.focus.posed"))}</label></p>` + out.head + bubbleAlerts(key!) + stepSettingLine(key!) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key!)}">${t("m.focus.poseAlone")}</button> · <button type="button" class="link" data-flow="${esc(key!)}">${t("m.focus.toFlow")}</button></p>`;
   $("focus-legend").innerHTML = out.legend;
   $("focus-details").innerHTML = out.details;
   const frame = $("focus-frame");

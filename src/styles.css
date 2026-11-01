@@ -1733,3 +1733,32 @@ table.rh-log td.num { white-space: nowrap; }
   #page-plan .goalnav a { padding: 6px 9px; font-size: .84rem; }
   #page-plan #qty-unit { max-width: 130px; }
 }
+
+/* ---------------------------------------------------------------- Retouches R28 (suite) */
+/* Alerte d'un module : pointillés plus fins, voile jaune léger, pastille au centre. */
+.u-mod.bad > .u-box { stroke-width: 2.5; stroke-dasharray: 10 6; }
+.u-bad-film { fill: var(--warn); opacity: .1; pointer-events: none; }
+.u-bad circle { opacity: .9; }
+/* Alertes cliquables dans la bulle. */
+.cmd-alerts { display: flex; flex-direction: column; margin: 6px -10px; border-top: 1px solid var(--line); }
+.cmd-alerts .cmd-li { font-size: .78rem; }
+.cmd-alerts span.cmd-li { cursor: default; }
+@media (min-width: 900px) {
+  #pose-focus:not(.big) #focus-head > .cmd-alerts { display: flex !important; }
+}
+/* Levier aligné sur la ligne « Toute l'usine », pleine largeur. */
+.cmd-row:first-child > .cmd-box { display: none; }
+.cmd-seg { margin: 2px 0 8px; }
+/* En-tête sur une ligne sur Planifier, jusqu'aux grands écrans. */
+@media (min-width: 761px) and (max-width: 1800px) {
+  body.cmd-on .top-in { max-width: none; gap: 6px 8px; flex-wrap: nowrap; }
+  body.cmd-on .brand .long, body.cmd-on .remark-btn .lbl { display: none; }
+  body.cmd-on .mainnav a { padding: 6px 8px; font-size: .86rem; }
+  body.cmd-on .me { font-size: .74rem; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+}
+/* Les réglages sont ceux de Planifier : le tiroir s'ouvre dans la page, à la hauteur de son contenu. */
+@media (min-width: 900px) {
+  #page-plan:not([hidden]) { position: relative; }
+  .cmd-drawer { position: absolute; top: 0; bottom: auto; left: 0; height: auto; max-height: 100%; border-bottom: 2px solid var(--accent); }
+}
+.cmd-right #answer .answer > :not(h2):not(.kpis):not(.io-in):not(.io-out) { display: none; } .cmd-notes > * { margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: .8rem; }
