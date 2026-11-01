@@ -43,7 +43,7 @@ export type PlacedPort = { t: PortType; d: PortRole; tip?: string; items?: strin
 export type PlacedGeo = { w: number; h: number; ports: PlacedPort[] };
 
 export function dims(def: SbBlock, r: number): [number, number] {
-  const g = def.geo;
+  const g = def.geo ?? def.size;
   if (!g) return [1, 1];
   return r % 2 ? [g.h, g.w] : [g.w, g.h];
 }

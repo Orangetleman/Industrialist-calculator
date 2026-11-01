@@ -30,7 +30,7 @@ export type PipeRole = "droit" | "coude" | "té" | "croix" | "croisement" | "sp�
 export type PipeInfo = { kind: "o" | "f" | "m"; flow: number | null; role: PipeRole; len: number; rusty: boolean; tier: number };
 /** `out` : MF/s produits ; `cap` : ce que transporte chaque prise (« transfer » par nœud) ; `range` : portée en cases. */
 export type ElecInfo = { out: number | number[] | null; cap: number | null; range: number | null };
-export type SbBlock = { id: string; name: string; tier: number | null; cost: number | null; poll: number; geo: BlockGeo | null; recipes: SbRecipe[]; incomplete: SbIncomplete[]; pipe?: PipeInfo; elec?: ElecInfo };
+export type SbBlock = { id: string; name: string; tier: number | null; cost: number | null; poll: number; geo: BlockGeo | null; /** Taille de machines.json quand les ports ne sont pas relevés : la place au sol est juste, sans port. */ size?: { w: number; h: number }; recipes: SbRecipe[]; incomplete: SbIncomplete[]; pipe?: PipeInfo; elec?: ElecInfo };
 export type SbItem = { name: string; fluid: boolean; sell: number | null };
 export type SbCatalog = { blocks: Map<string, SbBlock>; items: Map<string, SbItem> };
 
@@ -98,13 +98,21 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
     recipes.sort((a, b) => a.id.localeCompare(b.id));
     incomplete.sort((a, b) => a.id.localeCompare(b.id));
     const poll = typeof m.pollutionPerHour === "number" ? m.pollutionPerHour : 0;
-    blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), recipes, incomplete, elec: elec(m.id) });
+    blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), ...(m.size ? { size: { w: m.size.w, h: m.size.l } } : {}), recipes, incomplete, elec: elec(m.id) });
   }
   for (const p of files.logistics.pipes) {
     const role = pipeRole(p.id), geo = readGeo(ports[p.id]);
     const kind = p.kind === "objet" ? "o" : p.kind === "fluide" ? "f" : "m";
     const tier = p.tier ?? (/^large/.test(p.id) ? 4 : 3); // Special Pipes : T3, « Large … » en T4 (décision du 2026-10-27)
     blocks.set(p.id, { id: p.id, name: p.name, tier, cost: p.price, poll: 0, geo, recipes: [], incomplete: [], pipe: { kind, flow: p.flowPerSec, role, len: role === "droit" && geo ? Math.max(geo.w, geo.h) : 1, rusty: /rusty/.test(p.id), tier } });
+  }
+  // Coude, té ou croix du tier III sans ports relevés (Pipe Fluid Turn2…) : même forme que la pièce du tier I du même
+  // type (supposition confirmée par l'utilisateur le 2026-11-01) ; son débit reste le sien.
+  for (const b of blocks.values()) {
+    const p = b.pipe;
+    if (b.geo || !p || (p.role !== "coude" && p.role !== "té" && p.role !== "croix")) continue;
+    const twin = [...blocks.values()].find((o) => o.geo && o.pipe?.kind === p.kind && o.pipe.role === p.role && o.pipe.tier === 1 && !o.pipe.rusty && o.geo.w === 1 && o.geo.h === 1);
+    if (twin) b.geo = twin.geo;
   }
   const items = new Map<string, SbItem>();
   for (const i of data.items.values()) items.set(i.id, { name: i.name, fluid: !!i.isFluid, sell: i.sellValue });

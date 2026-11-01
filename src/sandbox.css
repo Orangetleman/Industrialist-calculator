@@ -41,7 +41,7 @@ body.bac-on footer.src { display: none; }
 /* Menu de pose, en bas à droite : infos, grille de 4, catégories, tiers ; outils sous la grille */
 .bac-pf { right: 0; bottom: 0; border-radius: 4px 0 0 0; display: flex; flex-direction: column; width: max-content; max-width: 100%; }
 /* width:0 + min-width:100% : le cadre d'infos prend la largeur du menu sans jamais l'élargir (sinon il clignote au survol). */
-.bac-info { border-bottom: 3px solid #3a2b5c; padding: 8px; width: 0; min-width: 100%; overflow-wrap: anywhere; max-height: 50vh; overflow-y: auto; }
+.bac-info { border-bottom: 3px solid #3a2b5c; padding: 8px; width: 0; min-width: 100%; overflow-wrap: anywhere; max-height: 40vh; overflow-y: auto; }
 .bac-info:empty { display: none; }
 .bac-info .i-head { display: flex; gap: 8px; align-items: center; }
 .bac-info .i-head img, .bac-info .i-head svg { flex: none; }
@@ -59,21 +59,23 @@ body.bac-on footer.src { display: none; }
 .bac-root .bac-info .i-sel { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 6px; margin-top: 6px; text-align: left; min-height: 34px; }
 .bac-pf-body { display: flex; }
 .bac-pf-left { display: flex; flex-direction: column; border-right: 3px solid #3a2b5c; }
-.bac-filter { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12.5px; color: var(--b-accent); border-bottom: 1px solid #3a2b5c; max-width: 196px; }
+.bac-filter { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12.5px; color: var(--b-accent); border-bottom: 1px solid #3a2b5c; max-width: 172px; }
 .bac-filter[hidden] { display: none; }
 .bac-filter span { flex: 1; }
 .bac-root .bac-filter button { min-height: 28px; min-width: 28px; padding: 0; display: grid; place-items: center; }
-.bac-grid { display: grid; grid-template-columns: repeat(4, 46px); grid-auto-rows: 46px; height: 276px; overflow-y: auto; align-content: start; padding: 2px; }
+.bac-grid { display: grid; grid-template-columns: repeat(4, 42px); grid-auto-rows: 42px; height: 176px; overflow-y: auto; align-content: start; padding: 2px; }
 .bac-grid .bac-empty { grid-column: 1 / -1; padding: 8px; color: var(--b-muted); font-size: 13px; margin: 0; }
-.bac-root .bac-blk { width: 46px; height: 46px; padding: 4px; background: transparent; border: 2px solid transparent; display: grid; place-items: center; }
+.bac-root .bac-blk { width: 42px; height: 42px; padding: 3px; background: transparent; border: 2px solid transparent; display: grid; place-items: center; }
 .bac-root .bac-blk:hover { background: #2d2147; }
 .bac-root .bac-blk.locked img, .bac-root .bac-blk.locked svg { filter: grayscale(1) brightness(.42); }
 .bac-tools { display: flex; border-top: 3px solid #3a2b5c; }
-.bac-root .bac-tools button, .bac-root .bac-tools a { width: 48px; height: 44px; padding: 0; background: transparent; border: 0; border-radius: 0; display: grid; place-items: center; color: var(--b-ink); }
+.bac-root .bac-tools button, .bac-root .bac-tools a { width: 42px; height: 36px; padding: 0; background: transparent; border: 0; border-radius: 0; display: grid; place-items: center; color: var(--b-ink); }
 .bac-root .bac-tools .ic { width: 20px; height: 20px; }
 .bac-col { display: flex; flex-direction: column; }
+/* Catégories sur deux colonnes : le menu de pose reste bas (retour du 2026-11-01). */
+@media (min-width: 761px) and (pointer: fine) { .bac-col#bac-cats { display: grid; grid-template-columns: repeat(2, 36px); grid-auto-rows: 36px; align-content: start; } }
 .bac-col + .bac-col { border-left: 3px solid #3a2b5c; }
-.bac-root .bac-b { width: 40px; height: 40px; padding: 0; background: transparent; border: 2px solid transparent; font-weight: 700; display: grid; place-items: center; }
+.bac-root .bac-b { width: 36px; height: 36px; padding: 0; background: transparent; border: 2px solid transparent; font-weight: 700; display: grid; place-items: center; }
 .bac-root .bac-b .ic { width: 20px; height: 20px; }
 .bac-root .bac-col.tiers .bac-b { font-size: 13px; }
 

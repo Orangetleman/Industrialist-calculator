@@ -86,12 +86,12 @@ describe("tracé des tuyaux", () => {
     expect(pipePlan(cat, F, straightPath([0, 0], [1, 0]), "o3")).toBeNull();
   });
 
-  it("pièce non relevée (coude fluide du tier III) : posée avec ses ouvertures, à compléter", () => {
+  it("coude fluide du tier III : forme du coude du tier I (supposition confirmée le 2026-11-01), tourné vers ses liaisons", () => {
     const p = pipePlan(cat, empty(), [[0, 0], [0, 1], [1, 1]], "f3")!;
     const turn = p.add.find((a) => a.x === 0 && a.y === 1)!;
     expect(turn.id).toBe("pipe-fluid-turn2");
-    expect(turn.open?.sort()).toEqual(["E", "N"]);
-    expect(computeSandbox(cat, applyPlan(empty(), p)).alerts.map((a) => a.a)).toContainEqual({ k: "missing", id: "pipe-fluid-turn2" });
+    expect(turn.open).toBeUndefined();
+    expect(computeSandbox(cat, applyPlan(empty(), p)).alerts.map((a) => a.a)).not.toContainEqual({ k: "missing", id: "pipe-fluid-turn2" });
   });
 
   it("pièce posée d'un clic sur un tuyau du même type : elle le remplace, le reste s'adapte", () => {

@@ -951,4 +951,6 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   **Fait** : le collage essaie tous ces ports et le montage porte la liaison (`Layout.routes`). Reste : collage d'une
   machine à une machine seulement. **Supposition de vérification** : une pièce de tier III d'une case sans ports relevés
   (Pipe Fluid Turn2…) est jugée avec la forme de la même pièce en tier I (son débit reste le sien) ; à relever.
+  **Confirmé par l'utilisateur le 2026-11-01** : le bac à sable donne désormais cette forme aux coudes, tés et croix
+  du tier III sans relevé (Pipe Fluid Turn2, Junction2, Section2), qui se dessinent et se raccordent comme les autres.
   Un module dont la recette du bac à sable a d'autres entrées que le plan (Boiler : eau et eau chaude) n'est pas vérifié.
