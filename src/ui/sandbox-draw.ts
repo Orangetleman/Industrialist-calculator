@@ -1,20 +1,24 @@
 // Bac à sable, écran (B3) : le dessin SVG du montage, repris de la maquette validée (maquette/bac-a-sable.html).
-// Une case = 1 unité du dessin. Tuyaux : couleur de la famille, hachures rouge et orange quand ils sont saturés,
-// filet de la couleur de l'objet qui passe. Ports : objet en jaune, fluide en bleu ; triangle vers l'extérieur =
-// sortie, vers l'intérieur = entrée, barre = les deux sens. Prises dessus : carré à éclair, losange logique.
+// Une case = 1 unité du dessin. Tuyaux (S57) : la texture dit le type (objet : parallélépipède à rails et nervures ;
+// fluide : cylindre ombré à bagues), une teinte légère le tier (I laiton, III acier, IV sombre) ; hachures rouge et
+// orange quand ils sont saturés, filet de la couleur de l'objet qui passe. Ports : objet en jaune, fluide en bleu ;
+// triangle vers l'extérieur = sortie, vers l'intérieur = entrée, barre = les deux sens. Prises dessus : carré à
+// éclair, losange logique. Mode câblage (S57) : un bouton par port et par voie de tuyau, comme en jeu.
 
-import type { Dir, LaneState, MachineState, Placed, PlacedPort, SbCatalog } from "../engine/sandbox/index.ts";
+import type { Dir, FlowBtn, LaneState, MachineState, Placed, PlacedPort, SbCatalog } from "../engine/sandbox/index.ts";
 import { CROSS_PAIRS, DV, cellOpen, cellsOf, dims, geo } from "../engine/sandbox/index.ts";
 import { uiFam } from "./sandbox-model.ts";
 import { esc, fmtPct } from "./format.ts";
 
 export type ImgOf = (kind: "machine" | "objet", id: string) => string | null;
 /** `compact` : vue dézoomée (B4), des formes simples sans image, texte ni port. */
-export type DrawCtx = { cat: SbCatalog; img: ImgOf; itemName: (id: string) => string; status: boolean; compact?: boolean; lane?: (u: number, l: number) => LaneState | undefined; mi?: MachineState };
+/** `wiring` : mode câblage, les ports se voient par leurs boutons (dessinés à part), pas par les triangles. */
+export type DrawCtx = { cat: SbCatalog; img: ImgOf; itemName: (id: string) => string; status: boolean; compact?: boolean; wiring?: boolean; lane?: (u: number, l: number) => LaneState | undefined; mi?: MachineState };
 /** Portée d'une pièce modulaire (modular.json) : depuis le bord (`edge`, null = infinie) et ce qu'elle dessert. */
 export type ModRange = { edge: number | null; serves: string[] };
 
-export const PIPE_COL: Record<string, string> = { o1: "#8a8a8a", o3: "#c2ab70", f1: "#5d7f9c", f3: "#6aa6c9", f4: "#3f74a3" };
+/** Teinte du tier (réponse de l'utilisateur, S57 : tier I laiton, tier III acier, tier IV sombre) ; le type se lit à la texture. */
+export const PIPE_COL: Record<string, string> = { o1: "#b39b62", f1: "#a8925e", o3: "#9ba2a9", f3: "#8f99a3", f4: "#505b67" };
 export const PORT_COL: Record<string, string> = { o: "#f0c330", f: "#4aa3df", p: "#ffd84d", g: "#b48ef0" };
 const ST_COL = { ok: "rgb(92 230 119)", out: "#f0a040", bad: "#e55454" };
 
@@ -58,6 +62,25 @@ export function portsMarkup(cat: SbCatalog, b: Placed): string {
   return s;
 }
 
+/** Un bras de tuyau texturé : objet = bande à rails et nervures ; fluide = tube ombré, bague au bord de la case. */
+function armTex(x: number, y: number, d: Dir, W: number, k: string, col: string, ex: string): string {
+  const r = band(x, y, d, W), v = d === "N" || d === "S";
+  let s = rect(r, col, ex);
+  if (k === "f") {
+    s += rect(r, `url(#bac-cyl-${v ? "x" : "y"})`);
+    const t = 0.07, w2 = W + 0.08, ring = `stroke="#000" stroke-opacity=".6" stroke-width=".02"`;
+    s += rect(d === "N" ? [x + 0.5 - w2 / 2, y, w2, t] : d === "S" ? [x + 0.5 - w2 / 2, y + 1 - t, w2, t] : d === "E" ? [x + 1 - t, y + 0.5 - w2 / 2, t, w2] : [x, y + 0.5 - w2 / 2, t, w2], col, ring);
+  } else {
+    const e = 0.05, dark = "rgba(0,0,0,.45)"; // rails le long du bras, nervures en travers
+    s += v ? rect([r[0]!, r[1]!, e, r[3]!], dark) + rect([r[0]! + r[2]! - e, r[1]!, e, r[3]!], dark) : rect([r[0]!, r[1]!, r[2]!, e], dark) + rect([r[0]!, r[1]! + r[3]! - e, r[2]!, e], dark);
+    for (const q of [0.12, 0.32]) {
+      const o = d === "N" || d === "W" ? q : 1 - q - 0.03;
+      s += v ? rect([r[0]!, y + o, r[2]!, 0.03], "rgba(0,0,0,.35)") : rect([x + o, r[1]!, 0.03, r[3]!], "rgba(0,0,0,.35)");
+    }
+  }
+  return s;
+}
+
 function pipeMarkup(c: DrawCtx, b: Placed): string {
   const def = c.cat.blocks.get(b.id)!, p = def.pipe!, fam = uiFam(c.cat, b.id), [w, h] = dims(def, b.r), g = geo(def, b);
   const large = fam === "f4" || (!!def.geo && Math.min(def.geo.w, def.geo.h) > 1);
@@ -65,6 +88,7 @@ function pipeMarkup(c: DrawCtx, b: Placed): string {
   if (large) {
     const L = c.lane?.(b.u, 0);
     s += rect([b.x + 0.08, b.y + 0.08, w - 0.16, h - 0.16], L?.over ? "url(#bac-over)" : PIPE_COL.f4!, `rx=".3" stroke="#000" stroke-opacity=".5" stroke-width=".05"`);
+    s += rect([b.x + 0.08, b.y + 0.08, w - 0.16, h - 0.16], `url(#bac-cyl-${w < h ? "x" : "y"})`, `rx=".3"`);
   } else for (const [x, y] of cellsOf(def, b)) {
     const open = [...cellOpen(def, b, x, y)];
     const pairs = CROSS_PAIRS[p.kind === "m" ? 0 : b.pair ?? 0];
@@ -74,13 +98,13 @@ function pipeMarkup(c: DrawCtx, b: Placed): string {
       const L = c.lane?.(b.u, l), k = kindAt(dirs[0]!) ?? "o", W = k === "f" ? 0.46 : 0.34;
       const col = b.open ? "#c0392b" : L?.over ? "url(#bac-over)" : PIPE_COL[fam ?? (k === "f" ? "f3" : "o3")] ?? "#888";
       const ex = l === 1 ? `stroke="#000" stroke-width=".05"` : "";
-      s += rect([x + 0.5 - W / 2, y + 0.5 - W / 2, W, W], col, ex);
-      for (const d of dirs) s += rect(band(x, y, d, W), col, ex);
+      s += rect([x + 0.5 - W / 2, y + 0.5 - W / 2, W, W], col, `${k === "f" ? `rx="${W / 2}"` : ""} ${ex}`);
+      for (const d of dirs) s += armTex(x, y, d, W, k, col, ex);
       if (L?.item && L.flow > 1e-9) for (const d of dirs) s += rect(band(x, y, d, 0.09), `hsl(${hue(L.item)} 80% 62%)`);
     }
   }
   s += rect([b.x + 0.03, b.y + 0.03, w - 0.06, h - 0.06], "none", `stroke="#000" stroke-opacity=".55" stroke-width=".05"`);
-  s += portsMarkup(c.cat, b);
+  if (!c.wiring) s += portsMarkup(c.cat, b);
   if (b.open) s += `<svg x="${b.x + 0.25}" y="${b.y + 0.25}" width=".5" height=".5" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">${CLOSE}</svg>`;
   return s;
 }
@@ -97,10 +121,10 @@ function machineMarkup(c: DrawCtx, b: Placed): string {
   let s = rect([x + 0.06, y + 0.06, w - 0.12, h - 0.12], "#323232", `rx=".15" stroke="#5c5c5c" stroke-width=".06"`);
   if (im) s += `<image href="${esc(im)}" x="${x + 0.2}" y="${y + 0.2}" width="${w - 0.4}" height="${h - 0.4}" preserveAspectRatio="xMidYMid meet" opacity=".85"/>`;
   if (Math.min(w, h) >= 2) s += `<text x="${x + 0.18}" y="${y + 0.45}" font-size=".3" font-weight="700" fill="#eee" stroke="#000" stroke-width=".06" paint-order="stroke">${esc(def.name)}</text>`;
-  s += portsMarkup(c.cat, b);
+  if (!c.wiring) s += portsMarkup(c.cat, b);
   const mi = c.mi;
   if (mi && (def.recipes.length || def.incomplete.length)) {
-    if (c.status) s += rect([x + 0.16, y + h - 0.46, 0.3, 0.3], statusColor(mi), `stroke="#000" stroke-width=".04"`);
+    if (c.status && !c.wiring) s += rect([x + 0.16, y + h - 0.46, 0.3, 0.3], statusColor(mi), `stroke="#000" stroke-width=".04"`); // en câblage, elle cacherait un bouton
     // La recette retenue se voit sur la machine : l'objet qu'elle produit, ou « ? » s'il faut la choisir.
     const bx = x + w - 0.62, by = y + 0.12;
     if (mi.rec) {
@@ -185,4 +209,79 @@ export function portEdge(p: PlacedPort): [number, number] {
   const [dx, dy] = DV[p.dir as Dir], n = p.cells!.length;
   const cx = p.cells!.reduce((a, q) => a + q[0], 0) / n + 0.5, cy = p.cells!.reduce((a, q) => a + q[1], 0) / n + 0.5;
   return [cx + dx * 0.5, cy + dy * 0.5];
+}
+
+// ---------------------------------------------------------------- mode câblage (S57)
+
+/** Couleurs indicatives du jeu (réponse de l'utilisateur) : entrées jaunes, sorties violettes, voies de tuyau bleues (2e voie d'un croisement rouge), logique jaune. */
+export const BTN_COL = { e: "#f0c330", s: "#b040e0", lane: ["#3d6bff", "#e83a3a"], g: "#f0c330" } as const;
+/** Prises électriques : rouge et bleu, puis vert et jaune pour les poteaux à 4 prises ; Small MV Pole rouge, Small MV Pole 2 bleu. */
+const POWER_COL = ["#e83a3a", "#3d6bff", "#4caf50", "#f0c330"];
+/** Un bouton : sa place, sa couleur, son type, ce qu'il désigne (`top` : rang d'une prise du dessus) et le trait du port. */
+export type Btn = { key: string; x: number; y: number; col: string; t: string; ref: FlowBtn | { u: number; top: number }; trait?: number[] };
+export const btnKey = (r: FlowBtn | { u: number; top: number }) => ("port" in r ? `${r.u}:p${r.port}` : "lane" in r ? `${r.u}:l${r.lane}` : `${r.u}:t${r.top}`);
+
+export function buttonsOf(cat: SbCatalog, b: Placed): Btn[] {
+  const def = cat.blocks.get(b.id), g = def && geo(def, b);
+  if (!def || !g) return [];
+  const out: Btn[] = [];
+  if (def.pipe) {
+    const [w, h] = dims(def, b.r), cx = b.x + w / 2, cy = b.y + h / 2;
+    const lanes = def.pipe.role === "croisement" ? [0, 1] : [0];
+    for (const l of lanes) {
+      const p = g.ports.find((q) => q.cells && (lanes.length === 1 || CROSS_PAIRS[def.pipe!.kind === "m" ? 0 : b.pair ?? 0][l]!.includes(q.dir as Dir)));
+      const ref = { u: b.u, lane: l };
+      out.push({ key: btnKey(ref), x: cx + (lanes.length > 1 ? (l ? 0.17 : -0.17) : 0), y: cy, col: BTN_COL.lane[l]!, t: p?.t ?? "o", ref });
+    }
+    return out;
+  }
+  let nTop = b.id === "small-mv-pole2" ? 1 : 0;
+  g.ports.forEach((p, i) => {
+    if (p.dir === "top") {
+      const ref = { u: b.u, top: i };
+      out.push({ key: btnKey(ref), x: p.px!, y: p.py!, col: p.t === "p" ? POWER_COL[nTop++ % 4]! : BTN_COL.g, t: p.t, ref });
+      return;
+    }
+    if (p.t !== "o" && p.t !== "f") return;
+    const [dx, dy] = DV[p.dir], xs = p.cells!.map((c) => c[0]), ys = p.cells!.map((c) => c[1]);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs) + 1, y1 = Math.max(...ys) + 1, th = 0.1;
+    const cx = (x0 + x1) / 2 + dx * 0.2, cy = (y0 + y1) / 2 + dy * 0.2, col = p.d === "s" ? BTN_COL.s : BTN_COL.e;
+    const trait = dx === 0 ? [x0 + 0.2, dy < 0 ? y0 : y1 - th, x1 - x0 - 0.4, th] : [dx < 0 ? x0 : x1 - th, y0 + 0.2, th, y1 - y0 - 0.4];
+    const ref = { u: b.u, port: i };
+    out.push({ key: btnKey(ref), x: cx, y: cy, col, t: p.t, ref, trait });
+  });
+  return out;
+}
+
+/** Dessin d'un bouton (et du trait de son port) ; `on` : départ d'un réglage, `glow` : arrivée possible, `dim` : effacé. */
+export function btnMarkup(x: Btn, o: { on?: boolean; glow?: boolean; dim?: boolean } = {}): string {
+  const s = 0.3, op = o.dim ? ` opacity=".3"` : "";
+  let m = x.trait ? rect(x.trait, x.col, `stroke="#000" stroke-width=".03"${op}`) : "";
+  if (o.glow) m += `<rect x="${x.x - 0.26}" y="${x.y - 0.26}" width=".52" height=".52" rx=".06" fill="none" stroke="#fff" stroke-width=".05" stroke-dasharray=".1 .07"/>`;
+  return m + `<rect x="${x.x - s / 2}" y="${x.y - s / 2}" width="${s}" height="${s}" rx=".05" fill="${x.col}" stroke="${o.on ? "#fff" : "#000"}" stroke-width="${o.on ? 0.07 : 0.03}"${op}/>`;
+}
+
+const markerId = (col: string) => col.replace("#", "");
+/** Une flèche d'un bouton à l'autre : couleur du bouton de départ ; grise en pointillés si rien ne passe ; rouge hachurée si saturée. */
+export function arrowMarkup(a: Btn, b: Btn, o: { idle?: boolean; over?: boolean; dir?: boolean; pin?: boolean } = {}): string {
+  const L = Math.hypot(b.x - a.x, b.y - a.y);
+  if (L < 1e-6) return "";
+  const k = Math.min(0.2, L / 3), ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+  const x1 = a.x + ux * k, y1 = a.y + uy * k, x2 = b.x - ux * k, y2 = b.y - uy * k;
+  const col = o.over ? "#ff4d4d" : o.idle ? "#8a8a8a" : a.col, mk = o.dir === false ? "" : ` marker-end="url(#bac-ar-${markerId(col)})"`;
+  let s = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width=".07"${mk}${o.idle || o.over ? ` stroke-dasharray=".12 .08"` : ""}/>`;
+  if (o.pin) s += `<circle cx="${x1}" cy="${y1}" r=".07" fill="#fff" stroke="#000" stroke-width=".02"/>`;
+  return s;
+}
+/** Les pointes de flèche, une par couleur (petites : retour de l'utilisateur sur la maquette). */
+const ARROW_COLS = [BTN_COL.e, BTN_COL.s, ...BTN_COL.lane, ...POWER_COL, "#8a8a8a", "#ff4d4d"];
+export const arrowDefs = () => [...new Set(ARROW_COLS)].map((c) => `<marker id="bac-ar-${markerId(c)}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0L10,5L0,10z" fill="${c}"/></marker>`).join("");
+
+/** Tuyau à l'envers : il clignote en rouge, avec une infobulle courte. */
+export function cutMarkup(cat: SbCatalog, b: Placed, tip: string): string {
+  const def = cat.blocks.get(b.id);
+  if (!def) return "";
+  const [w, h] = dims(def, b.r), tw = tip.length * 0.15 + 0.3, tx = b.x + w / 2 - tw / 2, ty = b.y - 0.62;
+  return `<rect x="${b.x + 0.02}" y="${b.y + 0.02}" width="${w - 0.04}" height="${h - 0.04}" fill="#ff3b3b" fill-opacity=".25" stroke="#ff3b3b" stroke-width=".09"><animate attributeName="opacity" values="1;.2;1" dur="1s" repeatCount="indefinite"/></rect>`
+    + `<rect x="${tx}" y="${ty}" width="${tw}" height=".44" rx=".08" fill="#2a1111" stroke="#ff3b3b" stroke-width=".03"/><text x="${b.x + w / 2}" y="${ty + 0.3}" font-size=".26" text-anchor="middle" fill="#ffd0d0">${esc(tip)}</text>`;
 }

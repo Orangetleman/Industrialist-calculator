@@ -463,5 +463,27 @@ describe("S57 : flux d'un bouton à l'autre et raccord automatique (R26)", () =>
     expect("routes" in r2 && r2.routes).toEqual([]);
     expect(pipes.length).toBe(4);
   });
+
+  it("voie d'un croisement réglée d'un bouton à l'autre : elle sort du côté visé, sans menu (réponse Q4)", () => {
+    const { L, put } = builder();
+    const x = put("pipe-intersection", 1, 1, 0);
+    const w = put("short-pipe", 0, 1, 1), n = put("short-pipe", 1, 0, 0), e = put("short-pipe", 2, 1, 1);
+    // Voie 0 (ouest-est) envoyée vers le nord, en gardant l'ouest par où son flux arrive.
+    const r = clickRoute(cat, L, { a: x, ia: 0, b: n, ib: 0 }, "W");
+    expect(r).toEqual({ pair: 2, u: x, did: "lane" });
+    expect(clickRoute(cat, L, { a: x, ia: 0, b: e, ib: 0 }, "W")).toEqual({ pair: 0, u: x, did: "lane" });
+    expect(w).toBeGreaterThan(0);
+  });
+
+  it("tuyau → machine : le joueur choisit le bouton d'arrivée, la flèche y va", () => {
+    const { L, roller } = ex1();
+    const turn = L.blocks.find((b) => b.id === "pipe-turn" && b.x === 8)!.u;
+    const g = geo(cat.blocks.get("roller")!, L.blocks.find((b) => b.u === roller)!)!;
+    const outP = g.ports.findIndex((p) => p.t === "o" && p.d === "s");
+    const r = clickRoute(cat, L, { a: turn, ia: 0, b: roller, ib: outP });
+    expect(r).toMatchObject({ did: "added" });
+    L.routes = (r as { routes: Route[] }).routes;
+    expect(R0(L).arrows).toContainEqual(expect.objectContaining({ from: { u: turn, lane: 0 }, to: { u: roller, port: outP }, auto: false }));
+  });
 });
 const R0 = (L: Layout) => computeSandbox(cat, L);

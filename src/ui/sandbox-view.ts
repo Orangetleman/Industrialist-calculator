@@ -5,15 +5,17 @@
 
 import "../sandbox.css";
 import {
-  applyPlan, autoConnect, cellKey, CROSS_PAIRS, DV, cellsOf, clickRoute, computeSandbox, contacts, crossId, dims, droitLens, elecRole, explicitPlan, facingKey, geo, links,
-  machineLinks, occupancy, pipePath, pipePlan, portKey, powerWires, rectPlan, sandboxCache, stillMissing, straightPath, withFills,
-  type Dir, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
+  applyPlan, autoConnect, cellKey, CROSS_PAIRS, DV, cellsOf, clickRoute, computeSandbox, contacts, crossId, dims, droitLens, elecRole, explicitPlan, facingKey, geo,
+  laneAt, occupancy, pipePath, pipePlan, portKey, powerWires, rectPlan, sandboxCache, stillMissing, straightPath, withFills,
+  type ClickResult, type Dir, type FlowBtn, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
 } from "../engine/sandbox/index.ts";
 import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
 import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
-import { blockIcon, blockMarkup, hue, portEdge, PORT_COL, rangeMarkup, rect, type DrawCtx, type ImgOf, type ModRange } from "./sandbox-draw.ts";
+import {
+  arrowDefs, arrowMarkup, blockIcon, blockMarkup, btnKey, btnMarkup, buttonsOf, cutMarkup, portEdge, PORT_COL, rangeMarkup, rect, type Btn, type DrawCtx, type ImgOf, type ModRange,
+} from "./sandbox-draw.ts";
 import {
   ACTIONS, alertText, anchor, buildMenu, CATS, defaultKeys, entriesFor, FAMS, FIXED_KEYS, keyLabel, linePositions, locked, machinesFor, reasonText, recipeLine,
   ROMAN, routeErrorText, shortcut, TIERS, wireErrorText, type Action, type Entry, type KeyMap, type Menu, type Names,
@@ -127,6 +129,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     pinned: null as number | null, hoverU: null as number | null, hoverBtn: null as string | null, cell: [0, 0] as [number, number], sub: [0.5, 0.5] as [number, number],
     op: null as Op | null, clip: null as Clip | null, ctrl: false, choice: null as { id: string; c: string } | null, breakMode: false, schemMode: false,
     filter: null as { ids: string[]; title: string } | null, routeFrom: null as PortRef | null, unit: 60, mounted: false,
+    /** Mode câblage (S57) : bouton de départ d'un réglage de flux. */
+    btnFrom: null as Btn | null,
   };
   const cam = { x: -6, y: -6, z: 30 };
   let baseCat: SbCatalog | null = null, cat!: SbCatalog, menu!: Menu, fillSig = "";
@@ -134,7 +138,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   let R: SandboxResult | null = null, laneMap = new Map<string, SandboxResult["lanes"][number]>();
   const layout = (): Layout => ({ blocks: S.blocks, wires: S.wires, routes: S.routes });
   const names: Names = { block: (id) => cat.blocks.get(id)?.name ?? id, item: (id) => cat.items.get(id)?.name ?? id };
-  const dctx = (): DrawCtx => ({ cat, img: deps.img, itemName: names.item, status: ui.status, compact: cam.z < COMPACT_Z, lane: (u, l) => laneMap.get(`${u}:${l}`) });
+  const dctx = (): DrawCtx => ({ cat, img: deps.img, itemName: names.item, status: ui.status, compact: cam.z < COMPACT_Z, wiring: ui.vec, lane: (u, l) => laneMap.get(`${u}:${l}`) });
 
   /** Catalogue avec les recettes complétées par le joueur ; reconstruit seulement quand les données ou les saisies changent. */
   function refreshCatalog(): void {
@@ -216,6 +220,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     <pattern id="bac-cells" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M1 0H0V1" fill="none" stroke="#fff" stroke-opacity=".07" stroke-width=".04"/></pattern>
     <pattern id="bac-over" width=".5" height=".5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".5" height=".5" fill="#c0392b"/><rect width=".25" height=".5" fill="#f5b041"/></pattern>
     <marker id="bac-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#fff"/></marker>
+    <linearGradient id="bac-cyl-x" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient>
+    <linearGradient id="bac-cyl-y" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient>
+    ${arrowDefs()}
   </defs>
   <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#bac-cells)"/>
   <g id="bac-layer"></g><g id="bac-over-l"></g><g id="bac-ghost"></g>
@@ -273,7 +280,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   let drawn = new Map<number, { sig: string; el: SVGGElement }>(), drawnCompact = false;
   const drawSig = (c: DrawCtx, b: Placed) => {
     const d = cat.blocks.get(b.id), mi = R?.machines.get(b.u);
-    let s = `${b.id},${b.x},${b.y},${b.r},${b.open},${b.pair},${c.compact},${c.status}`;
+    let s = `${b.id},${b.x},${b.y},${b.r},${b.open},${b.pair},${c.compact},${c.status},${c.wiring}`;
     if (d?.pipe) for (const l of [0, 1]) { const L = laneMap.get(`${b.u}:${l}`); s += L ? `|${L.over},${L.item},${L.flow > 1e-9}` : "|"; }
     else {
       // les images peuvent arriver après le premier dessin
@@ -300,36 +307,80 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     }
     for (const [u, d] of drawn) if (!seen.has(u)) { d.el.remove(); drawn.delete(u); }
     let o = "";
-    if (ui.vec) o += linksMarkup();
-    if (ui.wires) for (const w of S.wires) {
+    if (ui.vec && !c.compact) o += wiringMarkup();
+    else if (ui.wires) for (const w of S.wires) {
       const A = byU.get(w.a), B = byU.get(w.b), pa = A && geo(cat.blocks.get(A.id)!, A)?.ports[w.ia], pb = B && geo(cat.blocks.get(B.id)!, B)?.ports[w.ib];
       if (!pa || !pb) continue;
       const mx = (pa.px! + pb.px!) / 2, my = (pa.py! + pb.py!) / 2;
       o += `<line x1="${pa.px}" y1="${pa.py}" x2="${pb.px}" y2="${pb.py}" stroke="${PORT_COL[w.t]}" stroke-width=".08" stroke-opacity=".85"/><line x1="${pa.px}" y1="${pa.py}" x2="${mx}" y2="${my}" stroke="${PORT_COL[w.t]}" stroke-width=".08" marker-end="url(#bac-ar)"/>`;
     }
+    // Tuyau droit à l'envers : il clignote, avec une infobulle courte (dans les deux modes).
+    for (const u of R?.cuts ?? []) { const b = byU.get(u); if (b) o += cutMarkup(cat, b, t("bac.cut.tip")); }
     $("bac-over-l").innerHTML = o;
     renderStats();
     drawGhost();
   }
-  /** Outil Liaisons : chaque raccord. Machine → tuyau ou machine : flèche dans le sens du flux ; tuyau ↔ tuyau : un trait de la couleur de l'objet. */
-  function linksMarkup(): string {
+  /** Boutons du mode câblage, par clé (pour le dessin et la visée au clic). */
+  let btns = new Map<string, Btn>();
+  /**
+   * Mode câblage (S57, comme l'onglet 3 du jeu) : un bouton par port et par voie de tuyau, et les flux d'un bouton à
+   * l'autre (une flèche par pièce), calculés par le moteur ; les câbles aussi, d'une prise à l'autre.
+   */
+  function wiringMarkup(): string {
+    btns = new Map();
+    for (const b of S.blocks) for (const x of buttonsOf(cat, b)) btns.set(x.key, x);
     let o = "";
-    const arrow = (a: [number, number], b: [number, number], col: string, dash: boolean) => `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${col}" stroke-width=".09" marker-end="url(#bac-ar)" ${dash ? 'stroke-dasharray=".14 .1"' : ""}/>`;
-    for (const l of links(cat, layout())) {
-      const A = byU.get(l.a)!, B = byU.get(l.b)!, pipeA = !!cat.blocks.get(A.id)!.pipe, pipeB = !!cat.blocks.get(B.id)!.pipe;
-      const ea = portEdge(l.pa), [dx, dy] = [ea[0] - (l.pa.cells![0]![0] + 0.5), ea[1] - (l.pa.cells![0]![1] + 0.5)];
-      const inA: [number, number] = [ea[0] - dx * 0.9, ea[1] - dy * 0.9], inB: [number, number] = [ea[0] + dx * 0.9, ea[1] + dy * 0.9];
-      const lane = pipeA ? laneMap.get(`${l.a}:0`) : laneMap.get(`${l.b}:0`), col = lane?.item ? `hsl(${hue(lane.item)} 85% 65%)` : "#bbb";
-      if (pipeA && pipeB) o += `<line x1="${inA[0]}" y1="${inA[1]}" x2="${inB[0]}" y2="${inB[1]}" stroke="${col}" stroke-width=".09"/>`;
-      else if (!pipeA) o += l.pa.d === "s" ? arrow(inA, inB, col, false) : arrow(inB, inA, col, false);
-      else o += l.pb.d === "s" ? arrow(inB, inA, col, false) : arrow(inA, inB, col, false);
+    const over = (r: FlowBtn) => "lane" in r && !!laneMap.get(`${r.u}:${r.lane}`)?.over;
+    for (const a of R?.arrows ?? []) {
+      const A = btns.get(btnKey(a.from)), B = btns.get(btnKey(a.to));
+      if (A && B) o += arrowMarkup(A, B, { idle: a.f <= 1e-9, over: over(a.from) || over(a.to), dir: a.dir, pin: !a.auto });
     }
-    for (const r of machineLinks(cat, layout())) {
-      const A = byU.get(r.a)!, B = byU.get(r.b)!, pa = geo(cat.blocks.get(A.id)!, A)!.ports[r.ia]!, pb = geo(cat.blocks.get(B.id)!, B)!.ports[r.ib]!;
-      const a = portEdge(pa), b = portEdge(pb), ca: [number, number] = [pa.cells![0]![0] + 0.5, pa.cells![0]![1] + 0.5], cb: [number, number] = [pb.cells![0]![0] + 0.5, pb.cells![0]![1] + 0.5];
-      o += arrow([(a[0] + ca[0]) / 2, (a[1] + ca[1]) / 2], [(b[0] + cb[0]) / 2, (b[1] + cb[1]) / 2], r.auto ? "#9ad" : "#ffd37f", r.auto);
+    for (const w of S.wires) {
+      const A = btns.get(btnKey({ u: w.a, top: w.ia })), B = btns.get(btnKey({ u: w.b, top: w.ib }));
+      if (A && B) o += arrowMarkup(A, B);
     }
+    for (const x of btns.values()) o += btnMarkup(x);
     return o;
+  }
+  /** Bouton sous le curseur (mode câblage), ou null. */
+  function btnUnder(): Btn | null {
+    const wx = ui.cell[0] + ui.sub[0], wy = ui.cell[1] + ui.sub[1];
+    let best: Btn | null = null, bd = 0.28;
+    for (const x of btns.values()) { const dd = Math.hypot(x.x - wx, x.y - wy); if (dd < bd && !("top" in x.ref)) { bd = dd; best = x; } }
+    return best;
+  }
+  /** Bâtiments qui touchent `u` par des ports objet ou fluide qui se font face. */
+  function neighbours(u: number): Set<number> {
+    const at = new Map<string, number>(), out = new Set<number>();
+    for (const b of S.blocks) { const g = geo(cat.blocks.get(b.id)!, b); if (g) for (const p of g.ports) if (p.cells) at.set(portKey(p.cells, p.dir as Dir), b.u); }
+    const b = byU.get(u), g = b && geo(cat.blocks.get(b.id)!, b);
+    if (g) for (const p of g.ports) if (p.cells) { const v = at.get(facingKey(p)); if (v != null && v !== u) out.add(v); }
+    for (const c of contacts(cat, layout())) { if (c.a === u) out.add(c.b); if (c.b === u) out.add(c.a); }
+    return out;
+  }
+  /** Geste du joueur en mode câblage : un bouton, puis un autre (machines et tuyaux, BAS-12 c). */
+  function btnClick(x: Btn): void {
+    const from = ui.btnFrom;
+    if (!from) { ui.btnFrom = x; say(t("bac.route.start")); drawGhost(); renderHint(); return; }
+    ui.btnFrom = null;
+    if (from.key === x.key || "top" in from.ref || "top" in x.ref) { drawGhost(); renderHint(); return; }
+    const fr = from.ref, to = x.ref, ia = "port" in fr ? fr.port : fr.lane, ib = "port" in to ? to.port : to.lane;
+    // Voie d'un croisement : garder le côté par lequel son flux arrive.
+    let keep: Dir | undefined;
+    if ("lane" in fr) {
+      const src = R?.arrows.find((a) => "lane" in a.to && a.to.u === fr.u && a.to.lane === fr.lane)?.from.u, b = byU.get(fr.u)!;
+      const g = geo(cat.blocks.get(b.id)!, b), at = new Map(S.blocks.flatMap((q) => (geo(cat.blocks.get(q.id)!, q)?.ports ?? []).filter((p) => p.cells).map((p) => [portKey(p.cells!, p.dir as Dir), q.u] as const)));
+      keep = g?.ports.find((p) => p.cells && laneAt(cat, b, p) === fr.lane && at.get(facingKey(p)) === src)?.dir as Dir | undefined;
+    }
+    applyClick(clickRoute(cat, layout(), { a: fr.u, ia, b: to.u, ib }, keep));
+  }
+  function applyClick(res: ClickResult): void {
+    if ("err" in res) { say(t("bac.route.refused", { why: routeErrorText(res.err) })); drawGhost(); renderHint(); return; }
+    snap();
+    if ("pair" in res) { byU.get(res.u)!.pair = res.pair || undefined; changed(); say(t("bac.cross.set")); return; }
+    S.routes = res.routes;
+    changed();
+    say(t(res.did === "added" ? "bac.route.added" : res.did === "removed" ? "bac.route.removed" : res.did === "off" ? "bac.route.off" : "bac.route.on"));
   }
   function drawGhost(): void {
     if (!ui.mounted) return;
@@ -343,6 +394,15 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     }
     if (ui.pinned != null && byU.has(ui.pinned) && !ui.sel) { const b = byU.get(ui.pinned)!; s += rangeMarkup(d, deps.mods, S.blocks, b.id, b.x, b.y, b.r, hasNodes); }
     if (ui.sel && !ui.sel.locked && !ui.op) { const a = anchor(cat.blocks.get(ui.sel.v)!, c, ui.rot); s += rangeMarkup(d, deps.mods, S.blocks, ui.sel.v, a[0], a[1], ui.rot, hasNodes); }
+    // Mode câblage : le bouton de départ s'allume, ceux qu'on peut viser s'éclairent (même type, en contact).
+    if (ui.btnFrom && ui.vec) {
+      const f = ui.btnFrom, nb = neighbours(f.ref.u);
+      for (const x of btns.values()) {
+        if ("top" in x.ref) continue;
+        const ok = x.key !== f.key && nb.has(x.ref.u) && (x.t === f.t || "lane" in x.ref || "lane" in f.ref);
+        s += btnMarkup(x, x.key === f.key ? { on: true } : ok ? { glow: true } : { dim: true });
+      }
+    }
     // Liaison en cours : le port de départ, et les ports qu'on peut viser.
     if (ui.routeFrom) {
       const b = byU.get(ui.routeFrom.u), p = b && geo(cat.blocks.get(b.id)!, b)?.ports[ui.routeFrom.i];
@@ -370,7 +430,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
         s += `<g opacity=".55">${blockMarkup(d, b)}</g>` + (fitsAt(b.id, b.x, b.y, b.r) ? "" : rect([b.x, b.y, ...dims(cat.blocks.get(b.id)!, b.r)], "rgba(229,84,84,.35)"));
       }
     } else if (op?.t === "port") {
-      const p = op.moved ? tracePlan(op.s, c, op.fam) : null;
+      const p = op.moved ? tracePlan(op.s, c, op.fam, Infinity, op.pr.p.d === "e") : null;
       if (p?.bad) for (const [x, y] of p.bad) s += rect([x + 0.1, y + 0.1, 0.8, 0.8], "rgba(229,84,84,.45)");
       else if (p) {
         for (const u of p.remove) { const b = byU.get(u); if (b) for (const [x, y] of cellsOf(cat.blocks.get(b.id)!, b)) s += rect([x, y, 1, 1], "rgba(0,0,0,.45)"); }
@@ -399,8 +459,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   const lastFam: Record<"o" | "f", Fam> = { o: "o1", f: "f1" };
   const famFor = (k: string): Fam => lastFam[k === "f" ? "f" : "o"];
   /** Tracé glissé d'un tuyau de la famille `fam` (A* ; Ctrl : ligne droite) ; `lenMax` : longueur auto décochée. */
-  function tracePlan(s: [number, number], c: [number, number], fam: Fam, lenMax = Infinity): PlanView {
-    const path = (ui.ctrl ? null : pipePath(cat, layout(), s, c, FAMS[fam].kind as "o" | "f")) ?? straightPath(s, c);
+  /** `toPort` : tracé parti d'un port d'entrée, le flux va vers lui (tuyaux droits tournés dans ce sens, S57). */
+  function tracePlan(s: [number, number], c: [number, number], fam: Fam, lenMax = Infinity, toPort = false): PlanView {
+    const p0 = (ui.ctrl ? null : pipePath(cat, layout(), s, c, FAMS[fam].kind as "o" | "f")) ?? straightPath(s, c), path = toPort ? [...p0].reverse() : p0;
     return pipePlan(cat, layout(), path, fam, lenMax, ui.rot % 2 ? "H" : "V") ?? { remove: [], add: [], bad: path };
   }
   function planFor(s: [number, number], c: [number, number]): PlanView {
@@ -558,10 +619,6 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
           const what = L?.item ? t("bac.lane.carries", { item: names.item(L.item) }) : L?.mixed ? t("bac.lane.mixed") : t("bac.lane.empty");
           const sides = CROSS_PAIRS[d.pipe.kind === "m" ? 0 : b.pair ?? 0][l as 0 | 1].map((x) => t(`bac.dir.${x}` as Key)).join("-");
           h += `<div class="i-line">${ls.length > 1 ? `${esc(t("bac.lane", { sides }))}${esc(colon())}` : ""}${esc(what)} · ${esc(t("bac.lane.flow", { f: fmt(L?.flow ?? 0, 2), cap: fmt(d.pipe.flow ?? 0, 2) }))}${L?.over ? ` · <span class="warn">${esc(t("bac.lane.over", { v: fmt(L.offered, 2) }))}</span>` : ""}</div>`;
-        }
-        if (d.pipe.role === "croisement" && d.pipe.kind !== "m") {
-          const cur = b.pair ?? 0;
-          h += `<div class="i-line">${esc(t("bac.pair"))}</div><div class="i-btns" role="group" aria-label="${esc(t("bac.pair"))}">${([0, 1, 2] as const).map((k) => `<button type="button" data-pair="${k}" aria-pressed="${cur === k}" class="${cur === k ? "on" : ""}">${esc(t(`bac.pair.${k}` as Key))}</button>`).join("")}</div>`;
         }
       } else {
         const mi = R?.machines.get(tg.u);
@@ -931,7 +988,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const k = (a: Action) => `<kbd>${esc(keyName(KB[a]))}</kbd>`;
     let h: string;
     if (ui.clip) h = t("bac.hint.clip");
-    else if (ui.routeFrom) h = t("bac.hint.route");
+    else if (ui.routeFrom || ui.btnFrom) h = t("bac.hint.route");
     else if (ui.pinned != null && byU.has(ui.pinned) && hasNodes(byU.get(ui.pinned)!) && !ui.sel) h = t("bac.hint.wires");
     else if (ui.sel?.locked) h = t("bac.hint.locked");
     else if (ui.sel && isTraced(ui.sel.e)) h = t("bac.hint.pipe");
@@ -1027,12 +1084,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const from = ui.routeFrom;
     ui.routeFrom = null;
     if (from.u === pr.u && from.i === pr.i) { drawGhost(); renderHint(); return; }
-    const res = clickRoute(cat, layout(), { a: from.u, ia: from.i, b: pr.u, ib: pr.i });
-    if ("err" in res) { say(t("bac.route.refused", { why: routeErrorText(res.err) })); drawGhost(); renderHint(); return; }
-    snap();
-    S.routes = res.routes;
-    changed();
-    say(t(res.did === "added" ? "bac.route.added" : "bac.route.removed"));
+    applyClick(clickRoute(cat, layout(), { a: from.u, ia: from.i, b: pr.u, ib: pr.i }));
   }
   /** Port libre cliqué : la grille ne montre plus que les machines qui fournissent (entrée) ou utilisent (sortie) ce qu'il porte. */
   function filterFor(pr: PortRef & { p: PlacedPort }): void {
@@ -1131,7 +1183,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (op.t === "line") { const p = planFor(op.s, c); if (!p.bad) apply(p); else say(t("bac.place.refused")); }
     else if (op.t === "port") {
       if (!op.moved) { ui.pinned = op.pr.u; filterFor(op.pr); }
-      else { const p = tracePlan(op.s, c, op.fam); if (!p.bad) apply(p); else say(t("bac.place.refused")); }
+      else { const p = tracePlan(op.s, c, op.fam, Infinity, op.pr.p.d === "e"); if (!p.bad) apply(p); else say(t("bac.place.refused")); }
     }
     else if (op.t === "break") { const s = op.moved ? op.s : c; apply(rectPlan(cat, layout(), Math.min(s[0], c[0]), Math.min(s[1], c[1]), Math.max(s[0], c[0]), Math.max(s[1], c[1]))); }
     else if (op.t === "schem") copyRect(op.s, c);
@@ -1168,13 +1220,19 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       if (e.button === 2) {
         if (ui.clip) { ui.clip = null; renderHint(); drawGhost(); return; }
         if (ui.sel) { select(ui.sel.e); return; }
-        if (ui.routeFrom) { ui.routeFrom = null; drawGhost(); renderHint(); return; }
+        if (ui.routeFrom || ui.btnFrom) { ui.routeFrom = null; ui.btnFrom = null; drawGhost(); renderHint(); return; }
         ui.op = { t: "break", s: c, moved: false };
         drawGhost();
         return;
       }
       if (e.button !== 0) return;
       if (ui.clip) return pasteClip(c);
+      // Mode câblage : un clic sur un bouton règle un flux ; ailleurs, il annule un départ.
+      if (ui.vec && !ui.sel) {
+        const bt = btnUnder();
+        if (bt) return btnClick(bt);
+        if (ui.btnFrom) { ui.btnFrom = null; say(t("bac.route.cancel")); drawGhost(); renderHint(); return; }
+      }
       // Port libre d'une machine (même avec une machine en main) : clic = quoi brancher, glisser = un tuyau.
       const pr = !ui.routeFrom && !(ui.sel && isTraced(ui.sel.e)) ? portUnder() : null;
       if (pr && (pr.p.t === "o" || pr.p.t === "f") && portFree(pr.p) && !hasContact(pr.u, pr.p.t)) {
@@ -1227,8 +1285,6 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       if (v) { const en = ui.hoverBtn ? menu.byKey.get(ui.hoverBtn) : ui.sel?.e; if (en) select(en, v.dataset.var); return; }
       if (el.closest("#bac-rec")) return recipeMenu(el.closest<HTMLElement>("#bac-rec")!);
       const u = target();
-      const pr = el.closest<HTMLElement>("[data-pair]");
-      if (pr && u != null) { snap(); const n = Number(pr.dataset.pair) as 0 | 1 | 2; byU.get(u)!.pair = n || undefined; return changed(); }
       const a = el.closest<HTMLElement>("[data-act]");
       if (!a || u == null) return;
       if (a.dataset.act === "del") deleteBlock(u);
@@ -1261,7 +1317,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       if (m === "break") { ui.breakMode = !ui.breakMode; ui.schemMode = false; ui.sel = null; }
       else if (m === "schem") { ui.schemMode = !ui.schemMode; ui.breakMode = false; ui.sel = null; }
       else if (m === "rot") rotateSel(1);
-      else if (m === "cancel") { ui.sel = null; ui.clip = null; ui.breakMode = ui.schemMode = false; ui.routeFrom = null; }
+      else if (m === "cancel") { ui.sel = null; ui.clip = null; ui.breakMode = ui.schemMode = false; ui.routeFrom = null; ui.btnFrom = null; }
       else if (m === "undo") doUndo();
       for (const b of root.querySelectorAll<HTMLElement>("[data-mob]")) b.classList.toggle("on", (b.dataset.mob === "break" && ui.breakMode) || (b.dataset.mob === "schem" && ui.schemMode));
       renderPanel();
@@ -1351,9 +1407,10 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   let digits: number[] = [], lastDigit = 0, raf = 0, lastT = 0;
   function doUndo(): void { if (!undo.length) return; redo.push(JSON.stringify(S)); S = JSON.parse(undo.pop()!) as State; ui.pinned = null; changed(); }
   function doRedo(): void { if (!redo.length) return; undo.push(JSON.stringify(S)); S = JSON.parse(redo.pop()!) as State; changed(); }
-  function cancelAll(): void { ui.sel = null; ui.clip = null; ui.op = null; ui.pinned = null; ui.routeFrom = null; ui.filter = null; renderPanel(); renderInfo(true); renderHint(); drawGhost(); }
+  function cancelAll(): void { ui.sel = null; ui.clip = null; ui.op = null; ui.pinned = null; ui.routeFrom = null; ui.btnFrom = null; ui.filter = null; renderPanel(); renderInfo(true); renderHint(); drawGhost(); }
   function toggleLinks(): void {
     ui.vec = !ui.vec;
+    ui.btnFrom = null;
     const b = $("bac-vec");
     b.classList.toggle("on", ui.vec);
     b.setAttribute("aria-pressed", String(ui.vec));

@@ -853,7 +853,9 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   part (début de la flèche), par exemple celle du générateur pour un câble générateur → poteau. Corrigé
   dans le moteur (B1 prenait la plus grande des deux). **À relever** : la portée de câble de chaque
   générateur ; d'ici là, le câble se pose à la main avec un avertissement, jamais en automatique.
-- **BAS-09** (B3, 2026-10-31, à confirmer en jeu) : voies d'un croisement réglables à la main (§ 4 du plan :
+- **BAS-09** (**répondu le 2026-11-01, S57** : les deux voies d'un croisement sortent chacune où le joueur veut sur
+  les 4 côtés, dans la limite du type ; elles se règlent d'un bouton à l'autre, plus de menu ; croisement objet × fluide :
+  un bouton objet, un bouton fluide) (B3, 2026-10-31) : voies d'un croisement réglables à la main (§ 4 du plan :
   « ce choix automatique pourra être changé »). L'écran propose trois réglages pour un croisement d'un seul
   type : tout droit (défaut), virages haut-droite / bas-gauche, virages haut-gauche / bas-droite
   (`Placed.pair`). Le croisement objet × fluide garde ses voies par type. Quels réglages le jeu permet-il
@@ -931,6 +933,11 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   ralentit, pour qu'on voie le bouchon (surproduction) et ses effets sur les étapes d'avant. Un croisement collé à un port y fait entrer
   ses deux flux, venus de n'importe où. Débit d'un contact : pas de limite connue, seule la vitesse de la machine compte
   (« je pense pas que ça soit limité ») ; rien trouvé sur les wikis : **à vérifier en jeu**.
+- **2026-11-01, sens des tuyaux droits (S57, réponse de l'utilisateur)** : un tuyau droit a une entrée et une sortie
+  définies à la pose ; posé dans le mauvais sens, il coupe le flux (les liaisons ne se font pas). **Fait** : coupure dans le
+  calcul, tuyau qui clignote avec une infobulle ; plans générés et tracés orientés dans le sens du flux. Couleurs des
+  boutons en jeu, seulement indicatives : sorties violettes, entrées jaunes, tuyaux bleus (2e voie d'un croisement rouge),
+  électricité rouge et bleu puis vert et jaune, logique jaune.
 - **BAS-12** (S56, répondu par l'utilisateur le 2026-11-01) : (a) **oui, testé en jeu** : un croisement objet × fluide
   collé à un port par la bonne paire de ports (son côté qui touche le port est du type du port) fait entrer ses deux flux,
   l'objet et le fluide. **Fait** : l'autre voie entre quel que soit son type. (b) un tuyau au sens indéterminé (autre
