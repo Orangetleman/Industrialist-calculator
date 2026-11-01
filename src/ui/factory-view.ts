@@ -217,7 +217,7 @@ export function factoryFrameClasses(v: UsineView, full: boolean): Record<string,
 
 /** Bouton « Afficher les liaisons », bien en vue (vue de l'usine et vue d'un module). */
 export function linksButton(on: boolean): string {
-  return `<button type="button" class="u-links-btn" data-uopt="links" aria-pressed="${on}">${icon("link")} ${t(on ? "uf.links.on" : "uf.links.off")}</button>`;
+  return `<button type="button" class="u-links-btn" data-uopt="links" aria-pressed="${on}" title="${esc(t(on ? "uf.links.on" : "uf.links.off"))}">${icon("link")} <span class="lbl">${t(on ? "uf.links.on" : "uf.links.off")}</span></button>`;
 }
 
 const radio = (opt: string, value: string, on: boolean, label: string, why: string) =>
@@ -229,9 +229,9 @@ const radio = (opt: string, value: string, on: boolean, label: string, why: stri
  * (renderFactoryMore), « Câbles » est retiré (« Afficher les liaisons » montre aussi les câbles vers les machines).
  */
 export function renderFactoryBar(v: UsineView): string {
-  const check = (opt: keyof UsineView, label: string, why: string) => `<label class="u-tog" title="${esc(why)}"><input type="checkbox" data-uopt="${opt}"${v[opt] ? " checked" : ""}> ${label}</label>`;
+  const check = (opt: keyof UsineView, label: string, why: string, ic: Parameters<typeof icon>[0]) => `<label class="u-tog" title="${esc(`${label} : ${why}`)}"><input type="checkbox" data-uopt="${opt}"${v[opt] ? " checked" : ""}> ${icon(ic)}<span class="lbl">${label}</span></label>`;
   return `<div class="u-bar" role="group" aria-label="${esc(t("uf.bar.aria"))}">
-    ${check("detail", t("uf.detail"), t("uf.detail.why"))}${check("power", t("uf.power"), t("uf.power.why"))}
+    ${check("detail", t("uf.detail"), t("uf.detail.why"), "tiles")}${check("power", t("uf.power"), t("uf.power.why"), "power")}
     ${linksButton(v.links)}
   </div>
   <p class="hint u-hint">${t(v.links ? "uf.hint.links" : "uf.hint")}</p>`;

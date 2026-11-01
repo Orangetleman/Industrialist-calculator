@@ -1674,3 +1674,29 @@ table.rh-log td.num { white-space: nowrap; }
   #pose-focus #focus-bar-opts { padding: 6px 10px 0; }
   #pose-focus #focus-bar-opts .hint { display: none; }
 }
+
+/* ---------------------------------------------------------------- Outils du plan en icônes flottantes (maquette volets.html) */
+@media (min-width: 900px) {
+  #page-plan #rpanel-pose { position: relative; }
+  #page-plan .pose-top { position: absolute; top: 8px; left: 8px; z-index: 4; padding: 0 !important; background: none !important; border: 0 !important; }
+  #pose-split:not(.focus) .pose-frame, #pose-split.focus .pose-frame { height: calc(100cqh - 2px) !important; }
+  #page-plan #pose-bar .u-bar { display: flex; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  #page-plan #pose-bar .u-tog, #page-plan #pose-bar .u-links-btn { width: 34px; height: 32px; display: grid; place-items: center; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); cursor: pointer; }
+  #page-plan #pose-bar .u-tog input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  #page-plan #pose-bar .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  #page-plan #pose-bar .u-tog:has(input:checked), #page-plan #pose-bar .u-links-btn[aria-pressed="true"] { color: var(--accent); }
+  #page-plan #pose-bar .u-tog:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+  #page-plan #pose-bar :is(.u-tog, .u-links-btn):hover { background: var(--panel2); }
+  #page-plan #pose-bar .ic { width: 17px; height: 17px; }
+}
+.cmd-list { display: flex; flex-direction: column; padding: 0 !important; }
+.cmd-sub { margin: 0; padding: 8px 12px 4px; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cmd-li { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0 !important; background: none; padding: 7px 12px; text-align: left; font-size: .8rem; }
+.cmd-li:hover { background: var(--panel2); }
+.cmd-li .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmd-li .q { flex: 0 1 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .72rem; }
+.cmd-li .ic-warn { color: var(--warn); }
+/* Bulle petite : l'essentiel seulement (posé, la ligne du module, les actions) ; ⤢ montre le reste. */
+@media (min-width: 900px) {
+  #pose-focus:not(.big) #focus-head > :not(.focus-posed):not(.pose-actions):not(:nth-child(2)) { display: none; }
+}

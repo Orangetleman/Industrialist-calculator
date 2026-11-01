@@ -279,6 +279,7 @@
         <div class="cmd-pane" id="pane-root">
           <div class="cmd-pb">
             <div id="answer" aria-live="polite"></div>
+            <button type="button" class="cmd-cat" data-pane="warn" id="cat-warn" hidden><span data-ic="warn"></span><span data-i18n="plan.cat.warn">À régler</span><span class="cmd-n" id="cat-warn-n"></span><span data-ic="chevR"></span></button>
             <button type="button" class="cmd-cat" data-pane="plan"><span data-ic="settings"></span><span data-i18n="plan.cat.plan">Ton plan</span><span class="cmd-n" id="cat-plan-n"></span><span data-ic="chevR"></span></button>
             <button type="button" class="cmd-cat" data-pane="pose" id="cat-pose"><span data-ic="home"></span><span data-i18n="plan.set.pose">Plan de pose</span><span class="cmd-tag" data-i18n="plan.proposal" data-i18n-attr="title=plan.help">proposition</span><span data-ic="chevR"></span></button>
             <section class="cmd-share" id="plan-share" aria-labelledby="plan-share-h">
@@ -290,6 +291,10 @@
             </section>
           </div>
         </div>
+        <section class="cmd-pane sub" data-pane="warn" aria-labelledby="pane-warn-h">
+          <h2 class="cmd-ph" id="pane-warn-h"><button type="button" class="cmd-back" data-back data-i18n-attr="title=plan.back;aria-label=plan.back"><span data-ic="chevL"></span></button><span data-i18n="plan.cat.warn">À régler</span></h2>
+          <div class="cmd-pb"><div id="warn-list" class="cmd-list"></div></div>
+        </section>
         <section class="cmd-pane sub" data-pane="plan" aria-labelledby="pane-plan-h">
           <h2 class="cmd-ph" id="pane-plan-h"><button type="button" class="cmd-back" data-back data-i18n-attr="title=plan.back;aria-label=plan.back"><span data-ic="chevL"></span></button><span data-i18n="plan.cat.plan">Ton plan</span></h2>
           <div class="cmd-pb">

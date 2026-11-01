@@ -111,7 +111,7 @@ import {
   type SortKey,
   verifyHref,
 } from "./recipes-view.ts";
-import { renderPlanBar, stepWarnings, warnButton, warnChips, type PlanBarInput } from "./plan-bar.ts";
+import { fieldWord, fixAttr, renderPlanBar, stepWarnings, warnButton, warnChips, type PlanBarInput } from "./plan-bar.ts";
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
@@ -1460,6 +1460,22 @@ function renderSaved(): void {
     `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
 }
 
+/** Fenêtre « À régler » du volet droit : les modules qu'on ne peut pas reproduire tels quels en jeu (un clic ouvre
+ *  leur bulle dans l'Usine), puis les valeurs à vérifier utilisées par le plan (un clic ouvre la correction). */
+function renderWarnPane(): void {
+  const v = viewCtx();
+  const fp = currentFactory()?.plan;
+  const mods = fp ? incompleteMachines(fp) : [];
+  const vals = v.plan.verify.filter((e) => e.used);
+  const n = mods.length + vals.length;
+  $("cat-warn").hidden = !n;
+  $("cat-warn-n").textContent = n ? String(n) : "";
+  const row = (attr: string, name: string, why: string) => `<button type="button" class="cmd-li" ${attr} title="${esc(why)}">${icon("warn")}<span class="nm">${esc(name)}</span><span class="q">${esc(why)}</span>${icon("chevR")}</button>`;
+  $("warn-list").innerHTML =
+    (mods.length ? `<p class="cmd-sub">${esc(t("plan.warn.mods"))}</p>` + mods.map((m) => row(`data-warn-mod="${esc(m.box.key)}"`, m.box.label, m.reasons[0] ?? "")).join("") : "") +
+    (vals.length ? `<p class="cmd-sub">${esc(t("plan.warn.vals"))}</p>` + vals.map((e) => row(fixAttr(e), e.scope === "machine" ? machineN(v, e.id) : itemName(e.item), fieldWord(v, e.flag.field))).join("") : "");
+}
+
 // ---------------------------------------------------------------- volets (S66, maquette volets.html)
 /** Largeur des volets, gardée dans ce navigateur ; un volet réduit n'est plus qu'une colonne d'icônes. */
 const KEY_RAILS = "ind-calc:v1:rails";
@@ -1528,6 +1544,8 @@ function bindRails(): void {
     const c = (e.target as Element).closest<HTMLElement>(".cmd-cat");
     if (c) return paneOpen(c.dataset.pane!);
     if ((e.target as Element).closest("[data-back]")) paneBack();
+    const wm = (e.target as Element).closest<HTMLElement>("[data-warn-mod]");
+    if (wm) go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: wm.dataset.warnMod! });
   });
 }
 function paneOpen(name: string): void {
@@ -1559,6 +1577,7 @@ function renderStepRail(): void {
   const done = mods.filter((r) => posed.has(r.key)).length;
   $("plan-steps-n").textContent = mods.length ? `${done} / ${mods.length}` : "";
   $("plan-steps-prog").querySelector("i")!.style.width = mods.length ? `${(100 * done) / mods.length}%` : "0";
+  renderWarnPane();
   $("plan-steps-prog").title = mods.length ? t("plan.steps.n", { n: done, total: mods.length }) : "";
   $("plan-steps").innerHTML = railSteps.length
     ? railSteps
@@ -1967,6 +1986,7 @@ function markPosed(): void {
  *  inconnu, problème de pose) est cerclé et marqué d'un ⚠ sur l'usine, avec la raison au survol. */
 function markIncomplete(): void {
   const fp = currentFactory()?.plan;
+  renderWarnPane();
   if (!fp) return;
   const bad = new Map(incompleteMachines(fp).map((m) => [m.box.key, m.reasons]));
   for (const g of $("pose-canvas").querySelectorAll<SVGGElement>(".u-mod")) {
