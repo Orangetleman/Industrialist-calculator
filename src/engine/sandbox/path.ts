@@ -122,7 +122,8 @@ export function straightPath(s: [number, number], t: [number, number]): [number,
   return out;
 }
 
-type Cell = { x: number; y: number; fam: Fam; open: Set<Dir>; lenMax: number; axis: "V" | "H"; cross?: { mixed: false } | { mixed: true; kinds: Partial<Record<Dir, Kind>> } };
+/** `fwd` : sens du flux dans un tuyau droit (S57 : sens du tracé, ou celui de la pièce d'origine). */
+type Cell = { x: number; y: number; fam: Fam; open: Set<Dir>; lenMax: number; axis: "V" | "H"; fwd?: Dir; cross?: { mixed: false } | { mixed: true; kinds: Partial<Record<Dir, Kind>> } };
 
 /** Les cases restantes des pièces retirées gardent leurs ouvertures : un long tuyau coupé devient des pièces plus courtes. */
 function rest(B: Board, remove: Iterable<number>, cells: Map<string, Cell>, skip?: (x: number, y: number) => boolean) {
@@ -132,7 +133,8 @@ function rest(B: Board, remove: Iterable<number>, cells: Map<string, Cell>, skip
     for (const [x, y] of cellsOf(B.cat.blocks.get(b.id)!, b)) {
       const k = K(x, y);
       if (cells.has(k) || skip?.(x, y)) continue;
-      cells.set(k, { x, y, fam: f, open: openAt(B, b, x, y), lenMax: Infinity, axis: b.r % 2 ? "H" : "V" });
+      const fwd = B.cat.blocks.get(b.id)!.pipe!.role === "droit" ? DIRS[b.r] : undefined;
+      cells.set(k, { x, y, fam: f, open: openAt(B, b, x, y), lenMax: Infinity, axis: b.r % 2 ? "H" : "V", ...(fwd ? { fwd } : {}) });
     }
   }
 }
@@ -168,10 +170,12 @@ function assemble(cat: SbCatalog, cells: Map<string, Cell>): Piece[] {
     const run: [number, number][] = [];
     for (let x = sx, y = sy; same(straight.get(K(x, y)), c) && !seen.has(K(x, y)); x += dx, y += dy) { run.push([x, y]); seen.add(K(x, y)); }
     const lens = droitLens(cat, c.fam).filter((o) => o.L <= c.lenMax);
+    // Tuyau droit relevé dans le sens sud → nord (sortie en haut) : r = 0 ↑, 1 →, 2 ↓, 3 ←.
+    const rOf = (i: number) => { const f = run.slice(i).map(([x, y]) => straight.get(K(x, y))!.fwd).find(Boolean); return c.axis === "V" ? (f === "S" ? 2 : 0) : f === "W" ? 3 : 1; };
     for (let i = 0; i < run.length; ) {
       const pick = lens.find((o) => o.L <= run.length - i), [x, y] = run[i]!;
       if (!pick) { const id = famRole(cat, c.fam, "droit"); if (id) out.push({ id, x, y, r: 0, open: c.axis === "V" ? ["N", "S"] : ["E", "W"] }); i++; continue; }
-      out.push({ id: pick.id, x, y, r: c.axis === "V" ? 0 : 1 });
+      out.push({ id: pick.id, x, y, r: rOf(i) });
       i += pick.L;
     }
   }
@@ -196,7 +200,8 @@ export function pipePlan(cat: SbCatalog, layout: Layout, path: [number, number][
   path.forEach(([x, y], i) => {
     const open = new Set<Dir>();
     for (const q of [path[i - 1], path[i + 1]]) if (q) open.add(dirTo(x, y, q[0], q[1]));
-    cells.set(K(x, y), { x, y, fam, open, lenMax, axis });
+    const nx = path[i + 1], pv = path[i - 1], fwd = nx ? dirTo(x, y, nx[0], nx[1]) : pv ? dirTo(pv[0], pv[1], x, y) : undefined;
+    cells.set(K(x, y), { x, y, fam, open, lenMax, axis, ...(fwd ? { fwd } : {}) });
   });
   for (const i of [0, path.length - 1]) {
     const [x, y] = path[i]!, c = cells.get(K(x, y))!;

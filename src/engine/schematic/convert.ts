@@ -8,6 +8,7 @@
  */
 import type { Dir, SbCatalog } from "../sandbox/catalog";
 import { geo, type CrossPair, type Layout, type Placed, type Route } from "../sandbox/layout";
+import { orientPipes } from "../sandbox/orient";
 import { pipeFor, type Catalog, type PieceRole } from "../build/catalog";
 import type { ModulePlan, PlacedPiece } from "../build/module";
 import type { FactoryPlan } from "../build/factory";
@@ -100,13 +101,13 @@ export function layoutFromModules(list: { m: ModulePlan; x: number; y: number }[
     starts.push(b.blocks.length);
     b.module(m, x, y);
   }
-  return { layout: { blocks: b.blocks, wires: [] }, width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts };
+  return { layout: orientPipes(sb, { blocks: b.blocks, wires: [] }), width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts };
 }
 
 export function layoutFromModule(m: ModulePlan, sb: SbCatalog): Converted {
   const b = new Builder(sb);
   b.module(m, 0, 0);
-  return { layout: { blocks: b.blocks, wires: [] }, width: m.width, height: m.height, skipped: b.skipped };
+  return { layout: orientPipes(sb, { blocks: b.blocks, wires: [] }), width: m.width, height: m.height, skipped: b.skipped };
 }
 
 /**
@@ -137,5 +138,5 @@ export function layoutFromFactory(f: FactoryPlan, sb: SbCatalog, cat: Catalog, i
   }
   // Étapes collées : la liaison d'un bouton à l'autre, comme le joueur la règle en jeu.
   const routes = (f.touches ?? []).map((t) => touchRoute(sb, b.blocks, t)).filter((r): r is Route => !!r);
-  return { layout: { blocks: b.blocks, wires: [], ...(routes.length ? { routes } : {}) }, width: f.W, height: f.H, skipped: b.skipped };
+  return { layout: orientPipes(sb, { blocks: b.blocks, wires: [], ...(routes.length ? { routes } : {}) }), width: f.W, height: f.H, skipped: b.skipped };
 }

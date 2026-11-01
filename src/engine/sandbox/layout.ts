@@ -30,7 +30,12 @@ export type Wire = { a: number; ia: number; b: number; ib: number; t: "p" | "g" 
  * Liaison choisie par le joueur entre deux machines collées (clic sur un port, puis sur un autre) : ce qui sort
  * du port `ia` de la machine `a` entre dans la machine `b` par son port `ib` (indices dans `geo().ports`).
  */
-export type Route = { a: number; ia: number; b: number; ib: number };
+/**
+ * Liaison réglée par le joueur, d'un bouton à l'autre. Entre machines : ports `ia` → `ib`. Avec un tuyau (S57, BAS-12 c),
+ * `ia` ou `ib` est la voie du tuyau : tuyau → machine choisit le bouton d'arrivée ; machine → tuyau avec `off` retire le
+ * raccord automatique de la production dans ce tuyau (BAS-12 b).
+ */
+export type Route = { a: number; ia: number; b: number; ib: number; off?: true };
 export type Layout = { blocks: Placed[]; wires: Wire[]; routes?: Route[] };
 
 /** Port tourné et placé. Côté : `cells` (1 ou 2 cases, dans le bâtiment). Dessus : centre `px`, `py` (en cases). */
@@ -57,7 +62,8 @@ export function geo(def: SbBlock, b: Placed): PlacedGeo | null {
   const g = def.geo;
   if (!g) return null;
   let w = g.w, h = g.h;
-  const free = !!def.pipe && def.pipe.role !== "spécial";
+  // Tuyaux droits : entrée et sortie relevées, gardées (un tuyau droit posé à l'envers coupe le flux, S57) ; les autres pièces vont dans les deux sens.
+  const free = !!def.pipe && def.pipe.role !== "spécial" && def.pipe.role !== "droit";
   let ps: PlacedPort[] = g.ports.map((p) => {
     const base = { t: p.t, d: free && (p.t === "o" || p.t === "f") ? ("l" as const) : p.d, tip: p.tip, items: p.items };
     if (p.s === "top") return { ...base, dir: "top" as const, px: p.cx! - 0.5, py: p.cy! - 0.5 };
@@ -125,7 +131,10 @@ export function links(cat: SbCatalog, layout: Layout): Link[] {
   for (const [k, { u, p }] of at) {
     const q = at.get(facingKey(p));
     if (!q || q.u === u || q.p.t !== p.t || seen.has(k)) continue;
-    if ((p.d === "e" && q.p.d === "e") || (p.d === "s" && q.p.d === "s") || (!isPipe(u) && !isPipe(q.u))) continue;
+    if (!isPipe(u) && !isPipe(q.u)) continue;
+    // Deux entrées ou deux sorties ne se lient pas, sauf un tuyau dont la sortie touche un port de sortie de machine (entrée par ce port, BAS-11).
+    const sameRole = (p.d === "e" && q.p.d === "e") || (p.d === "s" && q.p.d === "s");
+    if (sameRole && !(p.d === "s" && isPipe(u) !== isPipe(q.u))) continue;
     seen.add(k); seen.add(facingKey(p));
     out.push({ a: u, pa: p, b: q.u, pb: q.p });
   }
@@ -196,12 +205,72 @@ export function routeError(cat: SbCatalog, layout: Layout, r: Route): RouteError
 }
 
 const sameRoute = (q: Route, r: Route) => q.a === r.a && q.ia === r.ia && q.b === r.b && q.ib === r.ib;
+
+/** Voie d'une pièce de tuyau par laquelle passe ce port (0, ou 0 / 1 pour un croisement). */
+export function laneAt(cat: SbCatalog, b: Placed, p: PlacedPort): 0 | 1 {
+  const pi = cat.blocks.get(b.id)?.pipe;
+  return pi?.role === "croisement" ? crossLane(pi.kind === "m" ? 0 : b.pair, p.dir as Dir) : 0;
+}
+/** Paires de ports qui se font face entre la voie `lane` du tuyau `pu` et le bâtiment `u` (même type). */
+function laneContacts(cat: SbCatalog, layout: Layout, pu: number, lane: number, u: number): { p: PlacedPort; q: PlacedPort; qi: number }[] {
+  const A = layout.blocks.find((x) => x.u === pu), B = layout.blocks.find((x) => x.u === u);
+  const ga = A && geo(cat.blocks.get(A.id)!, A), gb = B && geo(cat.blocks.get(B.id)!, B);
+  if (!ga || !gb) return [];
+  const out: { p: PlacedPort; q: PlacedPort; qi: number }[] = [];
+  for (const p of ga.ports) {
+    if (!p.cells || laneAt(cat, A!, p) !== lane) continue;
+    const fk = facingKey(p);
+    gb.ports.forEach((q, qi) => { if (q.cells && q.t === p.t && portKey(q.cells, q.dir as Dir) === fk) out.push({ p, q, qi }); });
+  }
+  return out;
+}
+
+export type ClickResult = { routes: Route[]; did: "added" | "removed" | "off" | "on" } | { pair: CrossPair; u: number; did: "lane" } | { err: RouteError };
 /**
- * Geste du joueur (port de départ, puis port d'arrivée), comme en jeu : refaire une liaison déjà posée la supprime
- * (c'est le seul moyen d'en retirer une) ; sinon elle est posée si les règles le permettent.
+ * Geste du joueur, d'un bouton à l'autre, comme en jeu (S57 : machines et tuyaux, BAS-12 c). Entre machines : refaire une
+ * liaison déjà posée la supprime ; sinon elle est posée si les règles le permettent. Avec un tuyau (`ia` / `ib` = voie) :
+ * - machine → tuyau collé à son port de sortie : retire (puis rend) la production dans ce tuyau (BAS-12 b) ;
+ * - tuyau → machine qu'il touche : le bouton d'entrée d'arrivée (refaire la même le retire) ;
+ * - voie d'un croisement → bouton voisin : la voie sort de ce côté (les deux autres côtés vont à l'autre voie). `keep` :
+ *   le côté par lequel le flux y entre, gardé dans la voie.
  */
-export function clickRoute(cat: SbCatalog, layout: Layout, r: Route): { routes: Route[]; did: "added" | "removed" } | { err: RouteError } {
+export function clickRoute(cat: SbCatalog, layout: Layout, r: Route, keep?: Dir): ClickResult {
   const routes = layout.routes ?? [];
+  const blk = (u: number) => layout.blocks.find((x) => x.u === u);
+  const A = blk(r.a), B = blk(r.b);
+  if (!A || !B || r.a === r.b) return { err: "same" };
+  const pa = cat.blocks.get(A.id)?.pipe, pb = cat.blocks.get(B.id)?.pipe;
+  const crossSet = (): ClickResult => {
+    const gx = geo(cat.blocks.get(A.id)!, A), gb = geo(cat.blocks.get(B.id)!, B);
+    const side = gx?.ports.find((p) => p.cells && gb?.ports.some((q) => q.cells && q.t === p.t && portKey(q.cells, q.dir as Dir) === facingKey(p)))?.dir as Dir | undefined;
+    if (!side) return { err: "noContact" };
+    const cur = CROSS_PAIRS[A.pair ?? 0][r.ia === 1 ? 1 : 0];
+    if (cur.includes(side)) return { pair: A.pair ?? 0, u: A.u, did: "lane" };
+    const k0 = keep && cur.includes(keep) ? keep : cur[0]!;
+    const pair = ([0, 1, 2] as CrossPair[]).find((k) => CROSS_PAIRS[k].some((l) => l.includes(k0) && l.includes(side)))!;
+    return { pair, u: A.u, did: "lane" };
+  };
+  if (pa || pb) {
+    if (pa?.role === "croisement" && pa.kind !== "m") return crossSet();
+    if (pa && !pb) { // tuyau → machine : le bouton d'arrivée
+      const cs = laneContacts(cat, layout, r.a, r.ia, r.b);
+      if (!cs.length) return { err: "noContact" };
+      const q = portAt(cat, layout, r.b, r.ib);
+      if (!q?.cells || q.t !== cs[0]!.p.t) return { err: "type" };
+      const has = routes.find((x) => !x.off && x.a === r.a && x.ia === r.ia && x.b === r.b);
+      const rest = routes.filter((x) => x !== has);
+      return has && has.ib === r.ib ? { routes: rest, did: "removed" } : { routes: [...rest, { a: r.a, ia: r.ia, b: r.b, ib: r.ib }], did: "added" };
+    }
+    if (!pa && pb) { // machine → tuyau : production retirée ou rendue
+      const q = portAt(cat, layout, r.a, r.ia);
+      if (!q?.cells) return { err: "type" };
+      if (q.d !== "s") return { err: "notOutput" };
+      if (!laneContacts(cat, layout, r.b, r.ib, r.a).some((c) => c.qi === r.ia)) return { err: "noContact" };
+      const off: Route = { a: r.a, ia: r.ia, b: r.b, ib: r.ib, off: true };
+      return routes.some((x) => x.off && sameRoute(x, off)) ? { routes: routes.filter((x) => !(x.off && sameRoute(x, off))), did: "on" } : { routes: [...routes, off], did: "off" };
+    }
+    return { err: "notMachine" }; // tuyau → tuyau : seule la voie d'un croisement se règle
+  }
   if (routes.some((q) => sameRoute(q, r))) return { routes: routes.filter((q) => !sameRoute(q, r)), did: "removed" };
   const e = routeError(cat, layout, r);
   return e ? { err: e } : { routes: [...routes, r], did: "added" };

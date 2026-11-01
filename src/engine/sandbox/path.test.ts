@@ -33,6 +33,15 @@ describe("tracé des tuyaux", () => {
     expect(ids(pipePlan(cat, empty(), straightPath([0, 0], [0, 3]), "o3", 2))).toEqual(["pipe2", "pipe2"]);
   });
 
+  it("un tuyau droit est posé dans le sens du glisser (S57 : à l'envers, il couperait le flux)", () => {
+    expect(pipePlan(cat, empty(), straightPath([0, 0], [3, 0]), "o1")!.add.map((a) => a.r)).toEqual([1, 1, 1, 1]);
+    expect(pipePlan(cat, empty(), straightPath([3, 0], [0, 0]), "o1")!.add.map((a) => a.r)).toEqual([3, 3, 3, 3]);
+    expect(pipePlan(cat, empty(), straightPath([0, 3], [0, 0]), "o1")!.add.map((a) => a.r)).toEqual([0, 0, 0, 0]);
+    expect(pipePlan(cat, empty(), straightPath([0, 0], [0, 3]), "o1")!.add.map((a) => a.r)).toEqual([2, 2, 2, 2]);
+    // La gomme garde le sens des morceaux restants.
+    expect(rectPlan(cat, one("long-pipe2", 0, 0, 2), 0, 0, 0, 0).add.every((a) => a.r === 2)).toBe(true);
+  });
+
   it("la gomme coupe un Long Pipe2 en Pipe2 + Short Pipe2", () => {
     const L = one("long-pipe2", 0, 0);
     const p = rectPlan(cat, L, 0, 0, 0, 0);

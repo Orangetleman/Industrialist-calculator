@@ -15,12 +15,12 @@ import { buildGameData, type RawFiles } from "../data.ts";
 import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts";
 import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
-import { buildSandboxCatalog, computeSandbox, geo, type Layout, type SbBlock, type SbCatalog } from "../sandbox/index.ts";
+import { arrowFaults, buildSandboxCatalog, computeSandbox, geo, type Layout, type SbBlock, type SbCatalog } from "../sandbox/index.ts";
 import { layoutFromFactory, layoutFromModule, touchRoute } from "../schematic/convert.ts";
 import { buildCatalog } from "./catalog.ts";
 import { designFactory, factoryInput } from "./factory.ts";
 import { designModule, portAssignments, requestFromStep, sharedAssignments } from "./module.ts";
-import { checkLayout, checkModule } from "./verify.ts";
+import { checkCatalog, checkLayout, checkModule } from "./verify.ts";
 
 const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles, [overridesJson as unknown as OverridesFile]);
 const files = { ports: portsJson as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson };
@@ -52,7 +52,7 @@ describe("S56 : règles de contact dans le moteur du bac à sable (BAS-11)", () 
       { id: "m", x: 0, y: 1, r: 0 },
       { id: "pipe-intersection", x: 1, y: 0, r: 0 },
       { id: "short-pipe", x: 0, y: 0, r: 1 },
-      { id: "short-pipe", x: 1, y: -1, r: 0 },
+      { id: "short-pipe", x: 1, y: -1, r: 2 }, // tuyau droit : sortie vers le sud (S57)
     ]);
     const ck = checkLayout(c, l, [{ x: 0, y: 0, dir: "W", item: "ta" }, { x: 1, y: -1, dir: "N", item: "tb" }], { m: { recipe: "r", need: 1 } });
     expect(ck.issues).toEqual([]);
@@ -94,8 +94,8 @@ describe("S56 : règles de contact dans le moteur du bac à sable (BAS-11)", () 
     const c = testCatalog({ g: { geo: box([{ t: "o", d: "s", s: "N", c: 2 }]), recipes: [{ id: "r", s: 1, in: { ta: 1 }, out: { tc: 1 }, e: null }] } });
     const l = lay([
       { id: "g", x: 0, y: 1, r: 0 },
-      { id: "short-pipe", x: 1, y: 0, r: 0 },
-      { id: "short-pipe", x: 1, y: -1, r: 0 },
+      { id: "short-pipe", x: 1, y: 0, r: 2 },
+      { id: "short-pipe", x: 1, y: -1, r: 2 },
     ]);
     const ck = checkLayout(c, l, [{ x: 1, y: -1, dir: "N", item: "ta" }], { g: { recipe: "r", need: 1 } });
     expect(ck.ok).toBe(false);
@@ -109,7 +109,7 @@ describe("S56 : règles de contact dans le moteur du bac à sable (BAS-11)", () 
       { id: "m", x: 0, y: 1, r: 0 },
       { id: "fluid-pipe-and-item-intersection", x: 1, y: 0, r: 1 },
       { id: "short-fluid-pipe", x: 0, y: 0, r: 1 },
-      { id: "short-pipe", x: 1, y: -1, r: 0 },
+      { id: "short-pipe", x: 1, y: -1, r: 2 },
     ]);
     const ck = checkLayout(c, l, [{ x: 0, y: 0, dir: "W", item: "tf" }, { x: 1, y: -1, dir: "N", item: "ta" }], { m: { recipe: "r", need: 1 } });
     expect(ck.issues).toEqual([]);
@@ -119,8 +119,8 @@ describe("S56 : règles de contact dans le moteur du bac à sable (BAS-11)", () 
     const c = testCatalog({ g: { geo: box([{ t: "o", d: "s", s: "N", c: 2, items: ["td"] }]), recipes: [{ id: "r", s: 1, in: { ta: 1 }, out: { tc: 1 }, e: null }] } });
     const l = lay([
       { id: "g", x: 0, y: 1, r: 0 },
-      { id: "short-pipe", x: 1, y: 0, r: 0 },
-      { id: "short-pipe", x: 1, y: -1, r: 0 },
+      { id: "short-pipe", x: 1, y: 0, r: 2 },
+      { id: "short-pipe", x: 1, y: -1, r: 2 },
     ]);
     const ck = checkLayout(c, l, [{ x: 1, y: -1, dir: "N", item: "ta" }], { g: { recipe: "r", need: 1 } });
     expect(ck.issues).toEqual([]);
@@ -266,5 +266,27 @@ describe("S56 : étapes collées dans l'usine", () => {
     const blocks = [a, b].flatMap((x, i) => x!.mod!.machines.map((m) => ({ u: i, id: m.machine, x: x!.x + m.x, y: x!.y + m.y, r: m.rot })));
     const res = computeSandbox(sb, { blocks, wires: [] });
     expect(res.machines.get(1)!.rec?.in[t.item]).toBeGreaterThan(0);
+  }, 120000);
+});
+
+describe("S57 : le raccord automatique des plans générés relie chaque flux au bon port (R26)", () => {
+  it("modules de Crankshaft, Gunpowder, Glass (60/min) : bonne ressource, bon type, production par son port de sortie, aucune coupure", () => {
+    let seen = 0;
+    for (const item of ["crankshaft", "gunpowder", "glass"]) {
+      const plan = solve(data, all, { item, ratePerMin: 60, criterion: "energy", tiers: false });
+      for (const s of plan.steps) {
+        const m = data.machines.get(s.machine);
+        const req = m && requestFromStep(s, fluid, m.cost);
+        if (!req) continue;
+        const mod = designModule(req, files.ports.machines[s.machine] ?? null, m.size, cat, (x) => x, sb);
+        const ck = mod.checked ? checkModule(mod, req, sb) : null;
+        if (!ck?.result || !ck.layout) continue;
+        seen++;
+        expect(ck.result.cuts, `${s.machine} → ${s.item}`).toEqual([]);
+        expect(arrowFaults(checkCatalog(sb), ck.layout, ck.result), `${s.machine} → ${s.item}`).toEqual([]);
+        expect(ck.result.arrows.some((a) => a.f > 0), `${s.machine} → ${s.item}`).toBe(true);
+      }
+    }
+    expect(seen).toBeGreaterThan(3);
   }, 120000);
 });

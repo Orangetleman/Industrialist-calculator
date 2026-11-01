@@ -33,7 +33,16 @@ export type Alert =
   | { k: "missing"; id: string }
   | { k: "overlap"; id: string }
   | { k: "unpowered"; id: string; pct: number; continued: boolean }
-  | { k: "weakGrid"; need: number; prod: number };
+  | { k: "weakGrid"; need: number; prod: number }
+  | { k: "reversed"; id: string };
+
+/** Un bouton (S57, comme en jeu) : un port objet ou fluide de machine (`port` = son rang), ou une voie de tuyau (`lane`). */
+export type FlowBtn = { u: number; port: number } | { u: number; lane: number };
+/**
+ * Une flèche d'un bouton à l'autre : `t` type du flux, `item` ce qui passe, `f` débit (/s). `dir` : sens connu (par le
+ * débit ou par un tuyau droit) ; sinon la flèche est sans sens. `auto` : raccord automatique (sinon réglé par le joueur).
+ */
+export type FlowArrow = { from: FlowBtn; to: FlowBtn; t: "o" | "f"; item: string | null; f: number; dir: boolean; auto: boolean };
 
 /** `shown` : la recette retenue, « ? » quand plusieurs vont et que le joueur n'a pas choisi, null sinon. */
 export type MachineState = { u: number; rec: SbRecipe | null; cand: SbRecipe[]; shown: string | null; f: number; reason: Reason | null };
@@ -63,11 +72,17 @@ export type SandboxResult = {
   };
   /** Alertes du même type regroupées : `n` = nombre de fois. */
   alerts: { a: Alert; n: number }[];
+  /** Les flux d'un bouton à l'autre (S57). */
+  arrows: FlowArrow[];
+  /** Tuyaux droits posés à l'envers : le flux y est coupé (S57). */
+  cuts: number[];
 };
 
 /** `side` : arrivée par l'autre voie d'un croisement collé au port (elle n'apporte que ce que la machine peut consommer). */
-type Term = { u: number; p: PlacedPort; lane: string; side?: boolean };
-type Comp = { lanes: string[]; src: Term[]; snk: Term[]; open: string[]; conns: { a: string; b: string }[]; items: Set<string>; at: number };
+type Term = { u: number; p: PlacedPort; pi: number; lane: string; side?: boolean };
+/** `one` : sens imposé par un tuyau droit (1 : de a vers b, -1 : de b vers a). */
+type Conn = { a: string; b: string; one?: 1 | -1 };
+type Comp = { lanes: string[]; src: Term[]; snk: Term[]; open: string[]; conns: Conn[]; items: Set<string>; at: number };
 
 /*
  * Calcul incrémental (B4, PLAN-BAC-A-SABLE.md § 5 « Fluidité »). Le montage se découpe en îlots : bâtiments reliés
@@ -84,6 +99,8 @@ type Part = {
   comps: { at: number; lanes: LaneState[]; mixed: string[] | null }[];
   ratio: [number, number][];
   nets: { w: number; net: PowerNet }[];
+  arrows: FlowArrow[];
+  cuts: number[];
 };
 
 /** Mémoire du calcul incrémental : à garder d'un geste à l'autre (une par écran). */
@@ -169,6 +186,7 @@ function merge(cat: SbCatalog, layout: Layout, settings: SandboxSettings, parts:
   const ratio = new Map(order(parts.flatMap((g) => g.part.ratio.map(([u, r]) => [pos.get(u)!, [u, r] as const] as [number, readonly [number, number]]))));
   const nets = order(parts.flatMap((g) => g.part.nets.map((x) => [g.wires[x.w]!, x.net] as [number, PowerNet])));
   const deliv = new Map(parts.flatMap((g) => [...g.part.deliv]));
+  const arrows = parts.flatMap((g) => g.part.arrows), cuts = parts.flatMap((g) => g.part.cuts);
 
   // 6. Bilan
   const prod: Record<string, number> = {}, usedI: Record<string, number> = {}, ext: Record<string, number> = {};
@@ -208,6 +226,7 @@ function merge(cat: SbCatalog, layout: Layout, settings: SandboxSettings, parts:
     }
     if (clash) alerts.push({ k: "overlap", id: b.id });
   }
+  for (const u of cuts) alerts.push({ k: "reversed", id: D(u).id });
   for (const [u, mi] of MI) if (mi.reason) alerts.push({ k: "machine", id: D(u).id, pct: mi.rec ? Math.round(mi.f * 100) : null, reason: mi.reason });
   const seenL = new Set<string>();
   for (const L of lanes) if (L.over && !seenL.has(L.item!)) { seenL.add(L.item!); alerts.push({ k: "saturated", item: L.item!, offered: L.offered, cap: L.cap, pipe: D(L.u).id }); }
@@ -224,6 +243,8 @@ function merge(cat: SbCatalog, layout: Layout, settings: SandboxSettings, parts:
     powerRatio: ratio,
     stats: { energy, pollution, price, pieces, outs, ext, revenue, unpriced, area: x1 >= x0 ? [x1 - x0 + 1, y1 - y0 + 1] as [number, number] : null },
     alerts: [...grouped.values()],
+    arrows,
+    cuts,
   };
 }
 
@@ -250,9 +271,12 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   let visit = Infinity;
   const node = (u: number, l: number) => { const k = `${u}:${l}`; if (!par.has(k)) { par.set(k, k); born.set(k, visit); } return k; };
   const pid = (u: number, p: PlacedPort) => `${u}|${p.cells![0]}|${p.dir}`;
-  const conns: { a: string; b: string }[] = [], terms: Term[] = [], linked = new Set<string>(), open: string[] = [];
+  const conns: Conn[] = [], terms: Term[] = [], linked = new Set<string>(), open: string[] = [], clash: [number, number][] = [];
+  const off = new Set((layout.routes ?? []).filter((r) => r.off).map((r) => `${r.a}|${r.ia}|${r.b}|${r.ib}`));
 
-  // 1. Raccords : face à face, même type ; au moins un tuyau ; jamais deux entrées ni deux sorties.
+  // 1. Raccords : face à face, même type ; au moins un tuyau. Un tuyau droit a une entrée et une sortie (S57) : deux
+  // entrées ou deux sorties face à face ne se lient pas, le flux est coupé et le tuyau signalé (le dernier posé des deux).
+  // Une sortie de tuyau sur un port de sortie de machine y fait entrer sa ressource (BAS-11).
   for (const [u, g] of G) for (const p of g.ports) {
     visit = rank.get(u)!;
     if (!p.cells) continue; // prises électriques et logiques : câbles
@@ -261,33 +285,45 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     const q = portAt.get(facingKey(p));
     if (!q || q.u === u || q.p.t !== p.t) continue;
     const pb = pipeOf(q.u);
-    if ((!pa && !pb) || (p.d === "e" && q.p.d === "e") || (p.d === "s" && q.p.d === "s")) continue;
-    if (!pa) continue;
+    if (!pa) continue; // vu depuis le tuyau ; deux machines : `machineLinks`
+    const same = (p.d === "e" && q.p.d === "e") || (p.d === "s" && q.p.d === "s");
+    if (same && (pb || p.d === "e")) { if (!pb) clash.push([u, u]); else if (u < q.u) clash.push([u, q.u]); continue; }
     linked.add(pid(u, p));
     const a = node(u, laneOf(u, p));
     if (pb) {
       const b = node(q.u, laneOf(q.u, q.p));
-      if (pid(u, p) < pid(q.u, q.p)) conns.push({ a, b });
+      const one = p.d === "s" || q.p.d === "e" ? 1 : p.d === "e" || q.p.d === "s" ? -1 : undefined;
+      if (pid(u, p) < pid(q.u, q.p)) conns.push(one ? { a, b, one } : { a, b });
       par.set(find(a), find(b));
     } else if (q.p.d !== "l") {
-      terms.push({ u: q.u, p: q.p, lane: a });
+      const qi = G.get(q.u)!.ports.indexOf(q.p);
+      // Sortie du tuyau sur un port de sortie : la ressource entre ; production retirée de ce tuyau par le joueur (BAS-12 b).
+      // Sur un port de sortie, la production y part aussi : une entrée amenée ainsi bouche la production (BAS-12 b).
+      if (p.d === "s") { terms.push({ u: q.u, p: { ...q.p, d: "e" }, pi: qi, lane: a }); if (q.p.d === "s") terms.push({ u: q.u, p: q.p, pi: qi, lane: a }); }
+      else if (!(q.p.d === "s" && off.has(`${q.u}|${qi}|${u}|${laneOf(u, p)}`))) terms.push({ u: q.u, p: q.p, pi: qi, lane: a });
       // Croisement collé à un port (BAS-11) : son autre voie y fait entrer son flux aussi (même par un port de sortie,
       // et même un fluide par un port objet pour un croisement objet × fluide : testé en jeu, BAS-12) ; la production
       // ne part que dans la voie branchée sur le port.
       if (pa.role === "croisement") {
         const other = g.ports.find((o) => o.cells && laneOf(u, o) !== laneOf(u, p));
-        if (other) terms.push({ u: q.u, p: { ...q.p, d: "e" }, lane: node(u, laneOf(u, other)), side: true });
+        if (other) terms.push({ u: q.u, p: { ...q.p, d: "e" }, pi: qi, lane: node(u, laneOf(u, other)), side: true });
       }
     }
   }
   for (const [u, g] of G) if (pipeOf(u)) for (const p of g.ports) if (p.cells && !linked.has(pid(u, p))) open.push(node(u, laneOf(u, p)));
+  // Le tuyau à l'envers : celui des deux qui a le plus de contacts à contresens (à égalité, le dernier posé).
+  const nClash = new Map<number, number>();
+  for (const [a, b] of clash) for (const x of new Set([a, b])) nClash.set(x, (nClash.get(x) || 0) + 1);
+  const cut = new Set(clash.map(([a, b]) => (a === b ? a : nClash.get(a)! !== nClash.get(b)! ? (nClash.get(a)! > nClash.get(b)! ? a : b) : rank.get(a)! > rank.get(b)! ? a : b)));
   visit = Infinity;
   // Machines collées : chaque raccord direct est une voie sans pièce (numéro négatif), donc sans limite de débit.
+  const mlinks: { r: Route & { auto: boolean }; l: string }[] = [];
   machineLinks(cat, layout).forEach((r, k) => {
     const pa = G.get(r.a)?.ports[r.ia], pb = G.get(r.b)?.ports[r.ib];
     if (!pa || !pb) return;
     const l = node(-(k + 1), 0);
-    terms.push({ u: r.a, p: pa, lane: l }, { u: r.b, p: { ...pb, d: "e" }, lane: l });
+    mlinks.push({ r, l });
+    terms.push({ u: r.a, p: pa, pi: r.ia, lane: l }, { u: r.b, p: { ...pb, d: "e" }, pi: r.ib, lane: l });
   });
 
   // 2. Réseaux
@@ -357,6 +393,8 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     if (item) for (const t of c.snk) inc(`${t.u}|e|${item}`);
   }
   let deliv = new Map<string, number>(), sent = new Map<string, number>(), supp = new Map<string, number>();
+  /** Le dernier flot de chaque réseau (pour les flèches). */
+  const last = new Map<Comp, { srcs: Term[]; snks: Term[]; sa: Arc[]; ta: Arc[]; ca: [Arc | null, Arc | null][] }>();
   const lanes = new Map<string, LaneState>();
   for (let it = 0; it < 40; it++) {
     deliv = new Map(); sent = new Map(); supp = new Map();
@@ -377,15 +415,16 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
       const run = (limited: boolean) => {
         const n = c.lanes.length, F = new MaxFlow(2 * n + 2), S0 = 2 * n, T0 = 2 * n + 1;
         const na = c.lanes.map((l, i) => F.add(2 * i, 2 * i + 1, limited ? capOf(l) : BIG));
-        for (const k of c.conns) { F.add(2 * idx.get(k.a)! + 1, 2 * idx.get(k.b)!, BIG); F.add(2 * idx.get(k.b)! + 1, 2 * idx.get(k.a)!, BIG); }
+        const ca = c.conns.map((k): [Arc | null, Arc | null] => [k.one !== -1 ? F.add(2 * idx.get(k.a)! + 1, 2 * idx.get(k.b)!, BIG) : null, k.one !== 1 ? F.add(2 * idx.get(k.b)! + 1, 2 * idx.get(k.a)!, BIG) : null]);
         const sa = srcs.map((s) => F.add(S0, 2 * idx.get(s.lane)!, outItem(s.u, s.p) === item ? sup(s, !limited) : 0));
         const ta: Arc[] = snks.map((s) => F.add(2 * idx.get(s.lane)! + 1, T0, MI.get(s.u)!.rec!.in[item] ? dem(s) : 0));
         F.run(S0, T0); // les machines d'abord
         for (const l of c.open) F.add(2 * idx.get(l)! + 1, T0, BIG); // puis les bouts ouverts (sorties du montage)
         F.run(S0, T0);
-        return { na, sa, ta };
+        return { na, sa, ta, ca };
       };
       const A = run(true), U = run(false);
+      last.set(c, { srcs, snks, sa: A.sa, ta: A.ta, ca: A.ca });
       c.lanes.forEach((l, i) => lanes.set(l, laneState(l, { item, flow: A.na[i]!.f, offered: U.na[i]!.f, over: U.na[i]!.f > capOf(l) + 1e-9 })));
       // Quand tout ne passe pas, toutes les sources ralentissent d'autant (et non une seule coupée).
       const tot = srcs.reduce((a, s) => a + sup(s), 0), ratio = tot > 1e-12 ? A.sa.reduce((a, x) => a + x.f, 0) / tot : 1;
@@ -457,6 +496,46 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   for (const x of uses) { const n = netOf(x.k); n.need += x.need; n.got += x.arc!.f; needU.set(x.u, (needU.get(x.u) || 0) + x.need); ratio.set(x.u, (ratio.get(x.u) || 0) + x.arc!.f); }
   for (const [u, nd] of needU) ratio.set(u, nd > 1e-9 ? ratio.get(u)! / nd : 1);
 
+  // Flèches d'un bouton à l'autre (S57) : production → voie, voie → voie (sens du débit, sinon celui du tuyau droit),
+  // voie → bouton d'entrée qui consomme la ressource (redirection du jeu, ou bouton choisi par le joueur), machine → machine.
+  const arrows: FlowArrow[] = [], EPS = 1e-9;
+  const laneBtn = (l: string): FlowBtn => { const [u, lane] = laneId(l); return { u, lane }; };
+  const laneType = (l: string): "o" | "f" => { const [u, lane] = laneId(l), g = G.get(u); return (g?.ports.find((p) => p.cells && laneOf(u, p) === lane)?.t ?? "o") as "o" | "f"; };
+  const chosenIn = new Map((layout.routes ?? []).filter((r) => !r.off && pipeOf(r.a) && !pipeOf(r.b)).map((r) => [`${r.a}:${r.ia}|${r.b}`, r.ib]));
+  /** Bouton d'entrée de la machine qui consomme `item` (type `t`), sinon le port du contact. */
+  const consumer = (s: Term, item: string | null, t: "o" | "f"): number => {
+    const ps = G.get(s.u)!.ports, name = item ? (cat.items.get(item)?.name ?? item).toLowerCase() : null;
+    const ins = ps.map((p, i) => ({ p, i })).filter(({ p }) => p.cells && p.d === "e" && p.t === t);
+    const named = item ? ins.find(({ p }) => p.items?.includes(item) || (!!p.tip && p.tip.toLowerCase().includes(name!))) : undefined;
+    if (named) return named.i;
+    if (ps[s.pi]?.d === "e" && ps[s.pi]!.t === t) return s.pi;
+    return ins[0]?.i ?? s.pi;
+  };
+  for (const c of comps.values()) {
+    const item = c.items.size === 1 ? [...c.items][0]! : null, L = last.get(c);
+    const itemT = (l: string) => (item ? (isFluid(item) ? "f" : "o") : laneType(l));
+    c.conns.forEach((k, j) => {
+      const [ab, ba] = L?.ca[j] ?? [null, null], f = (ab?.f ?? 0) - (ba?.f ?? 0);
+      const fwd = Math.abs(f) > EPS ? f > 0 : k.one !== -1;
+      arrows.push({ from: laneBtn(fwd ? k.a : k.b), to: laneBtn(fwd ? k.b : k.a), t: laneType(k.a), item, f: Math.abs(f), dir: Math.abs(f) > EPS || !!k.one, auto: true });
+    });
+    const flowOf = (s: Term, side: "sa" | "ta") => { const i = L ? L[side === "sa" ? "srcs" : "snks"].indexOf(s) : -1; return i >= 0 ? L![side][i]!.f : 0; };
+    for (const s of c.src) {
+      if (laneId(s.lane)[0] < 0) continue;
+      arrows.push({ from: { u: s.u, port: s.pi }, to: laneBtn(s.lane), t: s.p.t as "o" | "f", item: outItem(s.u, s.p), f: flowOf(s, "sa"), dir: true, auto: true });
+    }
+    for (const s of c.snk) {
+      const [lu, ll] = laneId(s.lane);
+      if (lu < 0) continue;
+      const t = itemT(s.lane), pick = chosenIn.get(`${lu}:${ll}|${s.u}`);
+      arrows.push({ from: laneBtn(s.lane), to: { u: s.u, port: pick ?? consumer(s, item, t) }, t, item, f: flowOf(s, "ta"), dir: true, auto: pick == null });
+    }
+  }
+  for (const { r, l } of mlinks) {
+    const L = lanes.get(l), pa = G.get(r.a)!.ports[r.ia]!;
+    arrows.push({ from: { u: r.a, port: r.ia }, to: { u: r.b, port: r.ib }, t: pa.t as "o" | "f", item: L?.item ?? null, f: L?.flow ?? 0, dir: true, auto: r.auto });
+  }
+
   // Ce que l'îlot donne ; le bilan (6.) est fait par `merge`, pour tout le montage.
   const machines: [number, MachineState][] = [];
   for (const [u, { fin: _fin, why: _why, ...m }] of MI) machines.push([u, m]);
@@ -470,6 +549,8 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
       comps: [...comps.values()].map((c) => ({ at: c.at, lanes: c.lanes.map((l) => lanes.get(l)!).filter((L) => L.u >= 0), mixed: c.items.size > 1 ? [...c.items].sort() : null })).filter((c) => c.lanes.length || c.mixed),
       ratio: [...ratio],
       nets: [...nets.values()].filter((n) => n.wired).map((n) => ({ w: n.w, net: { us: [...n.us], need: n.need, got: n.got, prod: n.prod } })),
+      arrows,
+      cuts: [...cut],
     } satisfies Part,
   };
 }

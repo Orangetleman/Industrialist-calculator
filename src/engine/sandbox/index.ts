@@ -4,3 +4,5 @@ export * from "./layout.ts";
 export * from "./wires.ts";
 export * from "./compute.ts";
 export * from "./path.ts";
+export * from "./orient.ts";
+export * from "./faults.ts";

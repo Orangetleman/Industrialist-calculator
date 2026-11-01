@@ -125,6 +125,7 @@ export function alertText(a: Alert, n: Names): string {
     case "overlap": return t("bac.alert.overlap", { name: n.block(a.id) });
     case "unpowered": return t(a.pct === 0 ? "bac.alert.unpowered0" : "bac.alert.unpowered", { name: n.block(a.id), pct: fmtPct(String(a.pct)) }) + (a.continued ? ` ${t("bac.alert.continued")}` : "");
     case "weakGrid": return t("bac.alert.weakGrid", { need: fmt(a.need, 0), prod: fmt(a.prod, 0) });
+    case "reversed": return t("bac.alert.reversed", { name: n.block(a.id) });
   }
 }
 

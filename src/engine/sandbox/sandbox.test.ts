@@ -12,7 +12,7 @@ import relevesJson from "../../../data/releves.json";
 import { buildGameData, type RawFiles } from "../data.ts";
 import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts";
 import type { OverridesFile } from "../types.ts";
-import { buildSandboxCatalog, clickRoute, computeSandbox, autoConnect, contacts, geo, links, machineLinks, powerWires, powered, rot, routeError, stillMissing, withFills, type Dir, type Layout, type Placed, type Wire } from "./index.ts";
+import { arrowFaults, orientPipes, buildSandboxCatalog, clickRoute, computeSandbox, autoConnect, contacts, geo, links, machineLinks, powerWires, powered, rot, routeError, stillMissing, withFills, type Dir, type Layout, type Placed, type Route, type Wire } from "./index.ts";
 
 const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles, [overridesJson as unknown as OverridesFile]);
 const cat = buildSandboxCatalog(data, { ports: portsJson as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson });
@@ -76,10 +76,10 @@ describe("exemples de la maquette", () => {
   it("2 : 5 Roller sur un tuyau de tier I, 80 % et saturation", () => {
     const { L, put, piece } = builder();
     const rollers = [0, 1, 2, 3, 4].map((i) => put("roller", i * 5, 0, 0, "roller_01"));
-    put("short-pipe", 3, 2, 0);
+    put("short-pipe", 3, 2, 2); // tuyau droit : sortie vers le bas (S57)
     piece("pipe-turn", 3, 3, ["N", "E"]);
     for (let x = 4; x <= 27; x++) {
-      if (x % 5 === 3) { put("short-pipe", x, 2, 0); piece("pipe-junction", x, 3, ["W", "E", "N"]); }
+      if (x % 5 === 3) { put("short-pipe", x, 2, 2); piece("pipe-junction", x, 3, ["W", "E", "N"]); }
       else put("short-pipe", x, 3, 1);
     }
     const R = computeSandbox(cat, L);
@@ -355,3 +355,113 @@ describe("recettes à compléter", () => {
     expect(withFills(cat, { [r.id]: {} }).blocks.get(block.id)!.recipes.some((x) => x.id === r.id)).toBe(false);
   });
 });
+
+describe("S57 : flux d'un bouton à l'autre et raccord automatique (R26)", () => {
+  /** Exemple 1 de la maquette : Press → tuyaux → Roller. `flip` : rang d'un tuyau droit posé à l'envers. */
+  const ex1 = (flip?: number) => {
+    const { L, put, piece } = builder();
+    const press = put("press", 0, 0, 0, "press_02"), roller = put("roller", 8, 0, 0, null);
+    piece("pipe-turn", 3, 2, ["N", "E"]);
+    const pipes = [4, 5, 6, 7].map((x, i) => put("short-pipe", x, 2, i === flip ? 3 : 1));
+    piece("pipe-turn", 8, 2, ["N", "W"]);
+    return { L, press, roller, pipes };
+  };
+  const portAt = (L: Layout, u: number, i: number) => { const b = L.blocks.find((x) => x.u === u)!; return geo(cat.blocks.get(b.id)!, b)!.ports[i]!; };
+
+  it("la production part du bouton de sortie, va de pièce en pièce et arrive au bouton d'entrée du Roller", () => {
+    const { L, press, roller, pipes } = ex1();
+    const R = computeSandbox(cat, L);
+    expect(arrowFaults(cat, L, R)).toEqual([]);
+    const first = R.arrows.find((a) => a.from.u === press)!;
+    expect(portAt(L, press, (first.from as { port: number }).port)).toMatchObject({ t: "o", d: "s" });
+    expect(first).toMatchObject({ item: "iron-plate", t: "o", dir: true });
+    const last = R.arrows.find((a) => a.to.u === roller)!;
+    expect(portAt(L, roller, (last.to as { port: number }).port)).toMatchObject({ t: "o", d: "e" });
+    near(last.f * 60, 15); // 15 Iron Plate/min vers le Roller (roller_02 : 2 → 4 Iron Coil en 8 s)
+    // Une flèche par contact entre deux pièces, dans le sens du flux (ouest → est).
+    for (let i = 0; i + 1 < pipes.length; i++) expect(R.arrows).toContainEqual(expect.objectContaining({ from: { u: pipes[i], lane: 0 }, to: { u: pipes[i + 1], lane: 0 }, dir: true }));
+    expect(R.cuts).toEqual([]);
+  });
+
+  it("un tuyau droit posé à l'envers coupe le flux : signalé, sans flèche entre les deux pièces", () => {
+    const { L, roller, pipes } = ex1(2);
+    const R = computeSandbox(cat, L);
+    expect(R.cuts.length).toBe(1);
+    expect(pipes).toContain(R.cuts[0]);
+    expect(R.alerts.map((a) => a.a)).toContainEqual({ k: "reversed", id: "short-pipe" });
+    expect(R.machines.get(roller)!.rec).toBeNull();
+    expect(R.arrows.some((a) => "lane" in a.from && "lane" in a.to && a.from.u === pipes[1] && a.to.u === pipes[2])).toBe(false);
+    // Remis dans le sens du flux par l'orientation automatique (plans générés) : plus de coupure.
+    const R2 = computeSandbox(cat, orientPipes(cat, L));
+    expect(R2.cuts).toEqual([]);
+    expect(arrowFaults(cat, L, R2)).toEqual([]);
+  });
+
+  it("croisement objet × fluide : l'objet va au bouton d'entrée objet, jamais sur un bouton fluide", () => {
+    const { L, put, piece } = builder();
+    put("press", 0, 0, 0, "press_02");
+    const roller = put("roller", 24, 0, 0, null);
+    piece("pipe-turn2", 3, 2, ["N", "E"]);
+    put("long-pipe2", 4, 2, 1); put("long-pipe2", 8, 2, 1);
+    const x = put("fluid-pipe-and-item-intersection", 12, 2, 0);
+    put("long-pipe2", 13, 2, 1); put("long-pipe2", 17, 2, 1); put("pipe2", 21, 2, 1); put("short-pipe2", 23, 2, 1);
+    piece("pipe-turn2", 24, 2, ["N", "W"]);
+    put("long-fluid-pipe2", 12, -2, 0); put("long-fluid-pipe2", 12, 3, 0);
+    const R = computeSandbox(cat, L);
+    expect(arrowFaults(cat, L, R)).toEqual([]);
+    const through = R.arrows.filter((a) => a.f > 0 && ((a.from.u === x && "lane" in a.from) || (a.to.u === x && "lane" in a.to)));
+    expect(through.length).toBeGreaterThan(0);
+    for (const a of through) expect(a).toMatchObject({ t: "o", item: "iron-plate" });
+    const last = R.arrows.find((a) => a.to.u === roller)!;
+    expect(portAt(L, roller, (last.to as { port: number }).port)).toMatchObject({ t: "o", d: "e" });
+  });
+
+  it("Boiler : « Steam out » fait sortir la vapeur et « Used water out » l'eau usée, chacune par son port", () => {
+    const { L, put } = builder();
+    const boiler = put("boiler", 0, 0, 0, "boiler_01");
+    const g = geo(cat.blocks.get("boiler")!, L.blocks[0]!)!;
+    const steamP = g.ports.findIndex((p) => /steam out/i.test(p.tip ?? "")), usedP = g.ports.findIndex((p) => /used water/i.test(p.tip ?? ""));
+    for (const i of [steamP, usedP]) { const [cx, cy] = g.ports[i]!.cells![0]!; put("short-fluid-pipe", cx, cy + 1, 2); }
+    const R = computeSandbox(cat, L);
+    expect(arrowFaults(cat, L, R)).toEqual([]);
+    const from = (i: number) => R.arrows.find((a) => a.from.u === boiler && "port" in a.from && a.from.port === i)!;
+    expect(from(steamP)).toMatchObject({ t: "f", item: "steam" });
+    expect(from(usedP)).toMatchObject({ t: "f", item: "water" });
+    expect(from(steamP).f).toBeGreaterThan(0);
+  });
+
+  it("machines collées : flèche du bouton de sortie au bouton choisi, jamais depuis une entrée", () => {
+    const t = builder();
+    const press = t.put("press", 0, 0, 0, "press_02");
+    const pb = t.L.blocks[0]!, pg = geo(cat.blocks.get("press")!, pb)!;
+    const out = pg.ports.findIndex((p) => p.t === "o" && p.d === "s"), cell = pg.ports[out]!.cells![0]!;
+    for (let r = 0; r < 4; r++) {
+      const rg = geo(cat.blocks.get("roller")!, { u: 0, id: "roller", x: 0, y: 0, r })!;
+      const k = rg.ports.findIndex((p) => p.t === "o" && p.d === "e" && p.dir === "N");
+      if (k < 0) continue;
+      const [ix, iy] = rg.ports[k]!.cells![0]!;
+      const roller = t.put("roller", cell[0] - ix, cell[1] + 1 - iy, r);
+      t.L.routes = [{ a: press, ia: out, b: roller, ib: k }];
+      const R = computeSandbox(cat, t.L);
+      expect(arrowFaults(cat, t.L, R)).toEqual([]);
+      expect(R.arrows).toContainEqual(expect.objectContaining({ from: { u: press, port: out }, to: { u: roller, port: k }, item: "iron-plate", auto: false }));
+      return;
+    }
+    throw new Error("Roller : aucune entrée à tourner vers le haut");
+  });
+
+  it("le joueur retire la production d'un tuyau collé à une sortie (BAS-12 b), et la rend", () => {
+    const { L, press, pipes } = ex1();
+    const turn = L.blocks.find((b) => b.id === "pipe-turn" && b.x === 3)!.u;
+    const out = R0(L).arrows.find((a) => a.from.u === press)!;
+    const ia = (out.from as { port: number }).port;
+    const r1 = clickRoute(cat, L, { a: press, ia, b: turn, ib: 0 });
+    expect("routes" in r1 && r1.routes).toEqual([{ a: press, ia, b: turn, ib: 0, off: true }]);
+    L.routes = (r1 as { routes: Route[] }).routes;
+    expect(R0(L).arrows.some((a) => a.from.u === press)).toBe(false);
+    const r2 = clickRoute(cat, L, { a: press, ia, b: turn, ib: 0 });
+    expect("routes" in r2 && r2.routes).toEqual([]);
+    expect(pipes.length).toBe(4);
+  });
+});
+const R0 = (L: Layout) => computeSandbox(cat, L);

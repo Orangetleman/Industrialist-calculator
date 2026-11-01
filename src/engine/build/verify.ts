@@ -5,6 +5,7 @@
 
 import type { Dir, SbBlock, SbCatalog } from "../sandbox/catalog.ts";
 import { computeSandbox } from "../sandbox/compute.ts";
+import { orientPipes } from "../sandbox/orient.ts";
 import { DIRS, DV, OPP, type Layout, type Placed } from "../sandbox/layout.ts";
 import { layoutFromModule } from "../schematic/convert.ts";
 import { tierOneTwin } from "./catalog.ts";
@@ -13,7 +14,7 @@ import type { ModulePlan, ModuleRequest } from "./module.ts";
 /** Un collecteur à alimenter : la case de son bout, le sens vers l'extérieur, la ressource, le débit prévu (sans : illimité). */
 export type Feed = { x: number; y: number; dir: Dir; item: string; perSec?: number };
 /** Ce qui ne va pas, en codes courts (pour les tests et la mise au point). */
-export type CheckIssue = { k: "recipe" | "short" | "mixed" | "overlap"; at?: number; item?: string };
+export type CheckIssue = { k: "recipe" | "short" | "mixed" | "overlap" | "cut"; at?: number; item?: string };
 export type Check = { ok: boolean; issues: CheckIssue[]; result?: ReturnType<typeof computeSandbox>; layout?: Layout };
 
 /** Id du bâtiment source d'une ressource et de son débit (n'existe que dans le catalogue de vérification). */
@@ -69,8 +70,10 @@ export type Run = { recipe: string; need: number };
 export function checkLayout(sb: SbCatalog, layout: Layout, feeds: Feed[], runs: Record<string, Run> | ((b: Placed) => Run | undefined), allowBlocked = false): Check {
   const cat = sourceCatalog(sb, feeds);
   const runOf = typeof runs === "function" ? runs : (b: Placed) => runs[b.id];
-  const blocks: Placed[] = layout.blocks.map((b) => (runOf(b) ? { ...b, choice: runOf(b)!.recipe } : b));
-  for (const f of feeds) blocks.push({ u: blocks.length, id: srcId(f), x: f.x + DV[f.dir][0], y: f.y + DV[f.dir][1], r: DIRS.indexOf(OPP[f.dir]) });
+  const placed: Placed[] = layout.blocks.map((b) => (runOf(b) ? { ...b, choice: runOf(b)!.recipe } : b));
+  for (const f of feeds) placed.push({ u: placed.length, id: srcId(f), x: f.x + DV[f.dir][0], y: f.y + DV[f.dir][1], r: DIRS.indexOf(OPP[f.dir]) });
+  // Tuyaux droits tournés dans le sens du flux, sources comprises (S57).
+  const blocks = orientPipes(cat, { ...layout, blocks: placed }, placed.slice(layout.blocks.length).map((b) => b.u)).blocks;
   const res = computeSandbox(cat, { ...layout, blocks });
   const issues: CheckIssue[] = [];
   const groups = new Map<Run, { got: number; need: number; worst: { at: number; f: number; item?: string } | null }>();
@@ -96,6 +99,7 @@ export function checkLayout(sb: SbCatalog, layout: Layout, feeds: Feed[], runs: 
   for (const { a } of res.alerts) {
     if (a.k === "mixed") issues.push({ k: "mixed", item: a.items.join("+") });
     if (a.k === "overlap") issues.push({ k: "overlap" });
+    if (a.k === "reversed") issues.push({ k: "cut" });
   }
   return { ok: !issues.length, issues, result: res, layout: { ...layout, blocks } };
 }
