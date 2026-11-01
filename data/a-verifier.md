@@ -938,7 +938,8 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   retirer cette liaison à la main) : une entrée amenée ainsi par un port de sortie bouche la production, l'emplacement
   est impossible, **sauf si ce port de sortie ne sert pas au craft** : il reste libre. **Fait** : un port de sortie dont
   les objets relevés ou l'infobulle nomment d'autres ressources et aucun produit de la recette ne fait rien sortir
-  (« Used water out » d'un Boiler). (c) les flux se règlent d'un bouton à l'autre sur tout ce qui en porte (machines,
+  (**corrigé le 2026-11-01, S57** : le « Used water out » du Boiler n'en est pas un, l'eau usée est un produit du craft
+  et sort par ce port ; le moteur la fait bien sortir). (c) les flux se règlent d'un bouton à l'autre sur tout ce qui en porte (machines,
   tuyaux) : une sortie collée peut viser n'importe quel port du même type de la machine suivante, même un port de sortie.
   **Fait** : le collage essaie tous ces ports et le montage porte la liaison (`Layout.routes`). Reste : collage d'une
   machine à une machine seulement. **Supposition de vérification** : une pièce de tier III d'une case sans ports relevés

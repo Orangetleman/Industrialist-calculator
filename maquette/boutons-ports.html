@@ -13,10 +13,11 @@ h1 { color:var(--acc); font-size:22px; } h2 { color:var(--acc); font-size:17px; 
 .cmp { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap:14px; }
 .card { background:var(--pan); border:1px solid var(--line); border-radius:6px; padding:12px; }
 .card h3 { margin:0 0 8px; font-size:15px; }
-svg { width:100%; height:auto; background:#111; border-radius:4px; display:block; }
+svg { width:100%; height:auto; background:#2b3a22; border-radius:4px; display:block; }
 .muted { color:var(--mut); }
 .rule { background:#1d2a1d; border-left:3px solid var(--ok); padding:8px 12px; margin:6px 0; }
 .q { background:#2a2414; border-left:3px solid var(--acc); padding:8px 12px; margin:10px 0; }
+.done { background:#1c2230; border-left:3px solid #6aa6c9; padding:8px 12px; margin:6px 0; }
 .leg { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:13px; margin:6px 0 10px; }
 .leg span { display:inline-flex; align-items:center; gap:6px; }
 .leg svg { width:22px; height:22px; background:none; }
@@ -24,148 +25,144 @@ ol li, ul li { margin:4px 0; }
 </style>
 </head>
 <body><main>
-<h1>S57 — Les flux d'un bouton à l'autre, comme en jeu</h1>
-<p>Dessins <b>illustratifs</b> (machines A, B, C de 4 × 2, ports placés pour l'exemple), comme la maquette S56 : ils montrent la façon de dessiner, pas un vrai montage. Le code utilisera les ports relevés.</p>
-<p class="muted">Aujourd'hui, le bac à sable mêle quatre dessins : triangles aux ports, petites flèches au contact machine → tuyau, traits sans pointe entre deux tuyaux, pointillés bleus ou jaunes entre machines collées. La proposition les remplace par <b>un seul</b> : une flèche qui part d'un bouton et arrive sur un bouton.</p>
+<h1>S57 — Les flux d'un bouton à l'autre, comme en jeu (2e version)</h1>
+<p>Dessins <b>illustratifs</b> (machines A, B, C de 4 × 2, ports placés pour l'exemple). Le code utilisera les ports relevés.</p>
+
+<h2>Vos réponses (1re version)</h2>
+<div class="done"><b>Une flèche par pièce</b>, pointes plus petites. <b>Un bouton par voie</b> sur un tuyau : au milieu de chaque pièce, <b>deux</b> pour un croisement (bleu et rouge, la couleur de l'ouverture à la pose).</div>
+<div class="done"><b>Couleurs</b>, seulement indicatives : sorties violettes, entrées jaunes, tuyaux bleus (2e voie d'un croisement rouge) ; électricité rouge et bleu, puis vert et jaune pour les poteaux à 4 prises (Small MV Pole : rouge, Small MV Pole 2 : bleu) ; logique jaune. En câblage, les prises sont les boutons.</div>
+<div class="done"><b>Boutons et flèches seulement en mode câblage</b> (touche L, comme l'onglet 3 du jeu). Hors de ce mode, le dessin reste celui d'aujourd'hui.</div>
+<div class="done"><b>Un trait</b> sur le bord de la machine montre la place exacte du port, à côté de son bouton.</div>
+<div class="done"><b>Correction</b> : l'eau usée du Boiler est un produit du craft (« Used water out » fait sortir l'eau, « Steam out » la vapeur). Le moteur le fait déjà ; l'exemple faux est retiré des notes et du code.</div>
 
 <h2>1. Les boutons</h2>
 <div class="leg" id="leg"></div>
-<div class="rule">Un bouton carré sur <b>chaque port</b> objet ou fluide, des machines <b>et</b> des pièces de tuyau (comme sur la capture <code>boutons-ports.png</code>). Couleur du type : <b>jaune = objet</b>, <b>bleu = fluide</b> (les couleurs déjà utilisées par le site). Dedans, l'image de la ressource qui passe ; sans ressource, le sens du port (▲ entrée, ▼ sortie, ◆ les deux pour un tuyau). Un bouton sans flux est creux.</div>
 
-<h2>2. Le même montage, flèches affichées (touche L)</h2>
+<h2>2. Le montage, en mode câblage</h2>
 <div class="cmp">
-  <div class="card"><h3>Proposé : une flèche par trajet</h3><svg id="s1" viewBox="0 0 400 210"></svg>
-    <p class="muted">Le long d'une suite de tuyaux simples (droits, coudes), une seule flèche suit le tuyau, d'un bouton au suivant qui compte (machine, croisement, jonction). La flèche prend la couleur du bouton de départ, comme en jeu (<code>flux-boutons.png</code>).</p></div>
-  <div class="card"><h3>Variante : une flèche par pièce</h3><svg id="s2" viewBox="0 0 400 210"></svg>
-    <p class="muted">Chaque pièce relie ses boutons, et chaque contact relie deux pièces : plus fidèle au détail, mais beaucoup de petites flèches sur un long tuyau.</p></div>
+  <div class="card"><h3>Mode normal (aujourd'hui, inchangé)</h3><svg id="s0" viewBox="0 0 400 200"></svg></div>
+  <div class="card"><h3>Mode câblage (touche L)</h3><svg id="s1" viewBox="0 0 400 200"></svg></div>
 </div>
 <ul>
-  <li><b>①</b> La production de A part de son <b>bouton de sortie</b> (BAS-11), et rien d'autre ne sort de A.</li>
-  <li><b>②</b> L'objet arrive sur B par un croisement objet × fluide collé au port <b>fluide</b> de B (BAS-12 a) : la flèche va jusqu'au bouton d'<b>entrée objet</b> de B, celui qui le consomme. On voit la redirection du jeu.</li>
-  <li><b>③</b> Le fluide entre par le même croisement, jusqu'au bouton d'entrée fluide de B.</li>
-  <li><b>④</b> B et C sont collées : la sortie de B touche l'entrée de C, la flèche va d'un bouton à l'autre (raccord automatique).</li>
-  <li>La sortie de C ne touche rien : bouton creux, pas de flèche.</li>
-  <li>Sans flux (machine arrêtée, rien à transporter), la flèche est grise en pointillés. Tuyau saturé : flèche rouge.</li>
+  <li><b>①</b> La production de A part de son <b>bouton de sortie</b> (violet), puis va de pièce en pièce, d'un bouton bleu au suivant, dans le sens de chaque tuyau droit.</li>
+  <li><b>②</b> Au croisement objet × fluide, la voie objet (bouton rouge) est collée au port <b>fluide</b> de B (BAS-12 a) : la flèche rouge va jusqu'au bouton d'<b>entrée objet</b> (jaune) de B, celui qui le consomme. C'est la redirection du jeu (3e capture).</li>
+  <li><b>③</b> Le fluide monte de pièce en pièce et entre par le même croisement.</li>
+  <li><b>④</b> B et C sont collées : flèche violette de la sortie de B à l'entrée de C (raccord automatique).</li>
+  <li>Sans flux, la flèche est grise en pointillés ; tuyau saturé : flèche rouge hachurée.</li>
 </ul>
 
 <h2>3. Régler un flux : clic sur un bouton, puis sur un autre</h2>
 <div class="cmp">
-  <div class="card"><h3>1. Clic sur le bouton de départ</h3><svg id="g1" viewBox="0 0 290 115"></svg><p class="muted">Il s'allume. Les boutons qu'on peut viser (même type, en contact) s'éclairent ; les autres s'effacent.</p></div>
-  <div class="card"><h3>2. Clic sur le bouton d'arrivée</h3><svg id="g2" viewBox="0 0 290 115"></svg><p class="muted">La flèche est posée. Une flèche choisie par le joueur porte une pastille blanche au départ ; celles du raccord automatique n'en ont pas.</p></div>
-  <div class="card"><h3>3. Refaire la même flèche la retire</h3><svg id="g3" viewBox="0 0 290 115"></svg><p class="muted">Comme en jeu. Échap ou clic droit annule un départ. Refusé (message) : types différents, départ sur une entrée de machine, pas de contact.</p></div>
+  <div class="card"><h3>1. Clic sur le bouton de départ</h3><svg id="g1" viewBox="0 0 290 115"></svg><p class="muted">Il s'allume ; les boutons qu'on peut viser (même type, en contact) s'éclairent, les autres s'effacent.</p></div>
+  <div class="card"><h3>2. Clic sur le bouton d'arrivée</h3><svg id="g2" viewBox="0 0 290 115"></svg><p class="muted">La flèche est posée ; une flèche choisie par le joueur porte une pastille blanche au départ.</p></div>
+  <div class="card"><h3>3. Refaire la même flèche la retire</h3><svg id="g3" viewBox="0 0 290 115"></svg><p class="muted">Échap ou clic droit annule un départ. Refusé avec un message : types différents, départ sur une entrée, pas de contact.</p></div>
 </div>
-<div class="rule">Sur <b>tout ce qui porte des boutons</b> (BAS-12 c) : machine → machine collée (déjà là), machine → tuyau (exemple : retirer la flèche « production → tuyau » d'un tuyau qui touche une sortie, BAS-12 b), tuyau → machine (choisir le bouton d'entrée), et à l'intérieur d'un croisement (bouton d'un côté → bouton d'un autre côté : le virage remplace le menu « tout droit / virages » de BAS-09).</div>
+<div class="rule">Sur tout ce qui porte des boutons (BAS-12 c) : machine → machine collée, machine → tuyau (retirer la flèche « production → tuyau » d'un tuyau collé à une sortie, BAS-12 b), tuyau → machine (choisir le bouton d'entrée).</div>
 
 <h2>4. Ce que les tests garantiront (raccord automatique)</h2>
 <ol>
-  <li>Chaque flèche porte une ressource que le départ fournit <b>et</b> que l'arrivée consomme (bonne ressource).</li>
-  <li>Jamais un objet sur un bouton fluide ni l'inverse, sauf l'autre voie d'un croisement objet × fluide (bon type, BAS-12 a).</li>
-  <li>Une production part toujours du <b>port de sortie</b> de sa machine, jamais d'une entrée (BAS-11), et seulement dans le flux branché dessus.</li>
+  <li>Chaque flèche porte une ressource que le départ fournit <b>et</b> que l'arrivée consomme.</li>
+  <li>Jamais un objet sur un bouton fluide ni l'inverse, sauf l'autre voie d'un croisement objet × fluide (BAS-12 a).</li>
+  <li>Une production part toujours du <b>port de sortie</b> de sa machine, jamais d'une entrée, et seulement dans le flux branché dessus (BAS-11).</li>
   <li>Une entrée arrivée par un port de sortie va au bouton d'entrée qui consomme la ressource.</li>
-  <li>Un port de sortie qui ne sert pas au craft reste libre (« Used water out » du Boiler, BAS-12 b).</li>
+  <li>Boiler : « Used water out » fait sortir l'eau usée et « Steam out » la vapeur, chacune par son port.</li>
   <li>Sur les plans générés par S56 (modules de l'usine d'exemple), chaque flèche automatique respecte 1 à 5.</li>
 </ol>
 
-<h2>5. Questions</h2>
-<div class="q"><b>Q1.</b> Sur un tuyau : une flèche par trajet (proposé, à gauche) ou une flèche par pièce (variante, à droite) ? Les boutons, eux, sont sur chaque port dans les deux cas.</div>
-<div class="q"><b>Q2.</b> En jeu, les boutons ont des couleurs (jaune, rouge, bleu sur la capture). Veulent-elles dire quelque chose (type, entrée / sortie, ressource) ? Proposé en attendant : jaune = objet, bleu = fluide, flèche de la couleur du bouton de départ.</div>
-<div class="q"><b>Q3.</b> Les boutons toujours visibles (petits), et les flèches seulement avec la touche L (comme l'onglet 3 du jeu) : d'accord ?</div>
-<div class="q"><b>Q4.</b> Dans un croisement, régler les voies d'un bouton à l'autre remplace le menu actuel « tout droit / virages » (BAS-09) : d'accord ?</div>
+<h2>5. Deux points encore</h2>
+<div class="q"><b>Q5.</b> Les tuyaux droits ont une entrée et une sortie (relevées : sortie en haut, entrée en bas). Le bac à sable les dessinera dans ce sens, et un tuyau tracé au glisser sera posé dans le sens du glisser. Mais si un tuyau droit est posé <b>à l'envers</b> (le flux arrive par sa sortie) : en jeu, le flux passe-t-il quand même, ou est-il bloqué ? Aujourd'hui le calcul le laisse passer.</div>
+<div class="q"><b>Q4 (précisée).</b> Le « menu » : quand on clique sur un croisement dans le bac à sable, le cadre d'infos propose « Voies : tout droit / virages haut-droite et bas-gauche / virages haut-gauche et bas-droite ». Il a été ajouté en B3 sur une supposition (BAS-09 : peut-on faire tourner les voies d'un croisement ?). Votre 2e capture montre deux voies tout droit. Si le jeu ne permet pas de les faire tourner, je retire ce menu ; sinon je le garde tel quel.</div>
 </main>
 <script>
-const C = 24, M = "#3a3a3a", O = "#f0c330", F = "#4aa3df", P = { o:"#8a8a8a", f:"#5d7f9c" };
+const C = 24, M = "#4a4f55", PC = { o:"#9aa0a6", f:"#8f969c" };
+const COL = { e:"#f0c330", s:"#b040e0", p:"#3d6bff", p2:"#e83a3a" };
 const X = (v) => v * C;
 const rect = (x, y, w, h, f, s = "") => `<rect x="${X(x)}" y="${X(y)}" width="${X(w)}" height="${X(h)}" fill="${f}" ${s}/>`;
-const mach = (x, y, w, h, l) => rect(x + .05, y + .05, w - .1, h - .1, M, `rx="4" stroke="#666"`) + `<text x="${X(x + .25)}" y="${X(y + .7)}" fill="#ddd" font-size="12" font-weight="700">${l}</text>`;
-// pièce de tuyau : cases et ouvertures
-const band = (x, y, d, k) => { const w = k === "f" ? .46 : .34, a = .5 - w / 2; const r = d === "N" ? [x + a, y, w, .5 + w / 2] : d === "S" ? [x + a, y + a, w, .5 + w / 2] : d === "E" ? [x + a, y + a, .5 + w / 2, w] : [x, y + a, .5 + w / 2, w]; return rect(...r, P[k]); };
-const pipe = (x, y, dirs, k) => dirs.map((d) => band(x, y, d, k)).join("") + rect(x + .5 - (k === "f" ? .23 : .17), y + .5 - (k === "f" ? .23 : .17), k === "f" ? .46 : .34, k === "f" ? .46 : .34, P[k]);
-// bouton : centre (cx, cy) en cases, type, contenu ; hollow = sans flux
-function btn(cx, cy, t, txt, o = {}) {
-  const col = t === "f" ? F : O, s = .36;
-  const fill = o.hollow ? "#111" : col, ink = o.hollow ? col : "#111";
-  let r = `<rect x="${X(cx - s / 2)}" y="${X(cy - s / 2)}" width="${X(s)}" height="${X(s)}" rx="2" fill="${fill}" stroke="${o.on ? "#fff" : "#000"}" stroke-width="${o.on ? 2.5 : 1}" opacity="${o.dim ? .3 : 1}"/>`;
-  if (o.glow) r = `<rect x="${X(cx - .3)}" y="${X(cy - .3)}" width="${X(.6)}" height="${X(.6)}" rx="4" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="3 2"/>` + r;
-  return r + `<text x="${X(cx)}" y="${X(cy) + 3.5}" font-size="9" font-weight="700" text-anchor="middle" fill="${ink}" opacity="${o.dim ? .3 : 1}">${txt}</text>`;
+const mach = (x, y, w, h, l) => rect(x + .05, y + .05, w - .1, h - .1, M, `rx="4" stroke="#777"`) + `<text x="${X(x + .25)}" y="${X(y + .7)}" fill="#ddd" font-size="12" font-weight="700">${l}</text>`;
+const band = (x, y, d, k) => { const w = k === "f" ? .46 : .34, a = .5 - w / 2; const r = d === "N" ? [x + a, y, w, .5 + w / 2] : d === "S" ? [x + a, y + a, w, .5 + w / 2] : d === "E" ? [x + a, y + a, .5 + w / 2, w] : [x, y + a, .5 + w / 2, w]; return rect(...r, PC[k], `stroke="#555" stroke-width=".5"`); };
+const pipe = (x, y, dirs, k) => dirs.map((d) => band(x, y, d, k)).join("");
+// trait du port sur le bord d'une machine (dir = côté)
+const trait = (x, y, dir, col) => dir === "S" ? rect(x + .2, y + .86, .6, .12, col, `stroke="#000" stroke-width=".6"`) : dir === "E" ? rect(x + .86, y + .2, .12, .6, col, `stroke="#000" stroke-width=".6"`) : rect(x + .02, y + .2, .12, .6, col, `stroke="#000" stroke-width=".6"`);
+function btn(cx, cy, col, txt = "", o = {}) {
+  const s = .34;
+  let r = "";
+  if (o.glow) r += `<rect x="${X(cx - .28)}" y="${X(cy - .28)}" width="${X(.56)}" height="${X(.56)}" rx="3" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+  r += `<rect x="${X(cx - s / 2)}" y="${X(cy - s / 2)}" width="${X(s)}" height="${X(s)}" rx="1.5" fill="${col}" stroke="${o.on ? "#fff" : "#000"}" stroke-width="${o.on ? 2.2 : .8}" opacity="${o.dim ? .3 : 1}"/>`;
+  return r + (txt ? `<text x="${X(cx)}" y="${X(cy) + 3}" font-size="7.5" font-weight="700" text-anchor="middle" fill="#fff" opacity="${o.dim ? .3 : 1}">${txt}</text>` : "");
 }
 let mk = 0;
-function arrow(pts, col, o = {}) {
-  const id = `m${mk++}`;
-  const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${X(x)} ${X(y)}`).join(" ");
-  let s = `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="${col}"/></marker></defs>`;
-  s += `<path d="${d}" fill="none" stroke="#000" stroke-width="5" stroke-opacity=".5" stroke-linejoin="round"/>`;
-  s += `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#${id})" ${o.dash ? 'stroke-dasharray="5 4"' : ""}/>`;
-  if (o.pin) s += `<circle cx="${X(pts[0][0])}" cy="${X(pts[0][1])}" r="3.5" fill="#fff" stroke="#000"/>`;
+function arrow(a, b, col, o = {}) {
+  const id = `m${mk++}`, [x1, y1] = a, [x2, y2] = b, L = Math.hypot(x2 - x1, y2 - y1), sh = .2 / L;
+  const p = [X(x1 + (x2 - x1) * sh), X(y1 + (y2 - y1) * sh), X(x2 - (x2 - x1) * sh), X(y2 - (y2 - y1) * sh)];
+  let s = `<defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="3" markerHeight="3" orient="auto"><path d="M0 0L10 5L0 10z" fill="${col}"/></marker></defs>`;
+  s += `<line x1="${p[0]}" y1="${p[1]}" x2="${p[2]}" y2="${p[3]}" stroke="${col}" stroke-width="2.4" marker-end="url(#${id})" ${o.dash ? 'stroke-dasharray="4 3"' : ""}/>`;
+  if (o.pin) s += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#fff" stroke="#000"/>`;
   return s;
 }
 const lbl = (x, y, t) => `<circle cx="${X(x)}" cy="${X(y)}" r="8" fill="#ffd37f"/><text x="${X(x)}" y="${X(y) + 4}" font-size="11" font-weight="700" text-anchor="middle" fill="#000">${t}</text>`;
+const tri = (x, y, dir, out, col) => { // triangles d'aujourd'hui
+  const cx = X(x + .5), cy = X(y + .5), [dx, dy] = dir === "S" ? [0, 1] : dir === "E" ? [1, 0] : [-1, 0], ex = cx + dx * 12, ey = cy + dy * 12, t = out ? 5 : -6;
+  return `<polygon points="${ex - dy * 4},${ey + dx * 4} ${ex + dy * 4},${ey - dx * 4} ${ex + dx * t},${ey + dy * t}" fill="${col}" stroke="#000" stroke-width=".7"/>`;
+};
 
-// ---- le montage commun (cases)
 function base() {
   let s = mach(0, 0, 4, 2, "A") + mach(7, 0, 4, 2, "B") + mach(11, 0, 4, 2, "C");
   s += pipe(3, 2, ["N", "E"], "o");
   for (let x = 4; x <= 8; x++) s += pipe(x, 2, ["E", "W"], "o");
-  s += pipe(9, 2, ["E", "W"], "o") + pipe(9, 2, ["N", "S"], "f"); // croisement objet × fluide
+  s += pipe(9, 2, ["E", "W"], "o") + pipe(9, 2, ["N", "S"], "f");
   for (let y = 3; y <= 6; y++) s += pipe(9, y, ["N", "S"], "f");
-  s += pipe(10, 2, ["W"], "o");
   return s;
 }
-// boutons des machines (centre du bouton : juste à l'intérieur du bord)
-const mBtns = (o = {}) =>
-  btn(.5, 1.65, "o", "▲", { hollow: true }) + btn(3.5, 1.65, "o", "Fe") + // A : entrée objet (fournie de l'extérieur), sortie
-  btn(7.5, 1.65, "o", "Fe") + btn(9.5, 1.65, "f", "H₂O") + btn(10.65, 1.5, "o", "Pl") + // B : entrée objet, entrée fluide, sortie
-  btn(11.35, 1.5, "o", "Pl") + btn(14.65, 1, "o", "▼", { hollow: true }); // C : entrée, sortie libre
-
+function scene0() {
+  return base() + tri(0, 1, "S", false, "#f0c330") + tri(3, 1, "S", true, "#f0c330") + tri(7, 1, "S", false, "#f0c330") + tri(9, 1, "S", false, "#4aa3df") + tri(10, 1, "E", true, "#f0c330") + tri(11, 1, "W", false, "#f0c330") + tri(14, 1, "E", true, "#f0c330");
+}
 function scene1() {
-  let s = base() + mBtns();
-  // boutons des tuyaux aux bouts des trajets et au croisement
-  s += btn(3.5, 2.3, "o", "Fe") + btn(8.7, 2.5, "o", "Fe") + btn(9.5, 2.3, "f", "H₂O") + btn(9.5, 6.6, "f", "H₂O");
-  s += arrow([[3.5, 1.8], [3.5, 2.5], [8.45, 2.5]], O); // ① A → tuyau → croisement
-  s += arrow([[8.7, 2.3], [8.2, 1.65], [7.75, 1.65]], O); // ② croisement → entrée objet de B
-  s += arrow([[9.5, 6.4], [9.5, 2.55]], F) + arrow([[9.5, 2.1], [9.5, 1.9]], F); // ③ fluide
-  s += arrow([[10.75, 1.5], [11.15, 1.5]], O); // ④ B → C
-  s += lbl(5.5, 3.3, "①") + lbl(7.4, 3.0, "②") + lbl(10.4, 4.5, "③") + lbl(11, 2.6, "④");
+  let s = base();
+  // traits des ports + boutons des machines
+  s += trait(0, 1, "S", COL.e) + btn(.5, 1.55, COL.e);
+  s += trait(3, 1, "S", COL.s) + btn(3.5, 1.55, COL.s);
+  s += trait(7, 1, "S", COL.e) + btn(7.5, 1.55, COL.e) + trait(9, 1, "S", COL.e) + btn(9.5, 1.55, COL.e) + trait(10, 1, "E", COL.s) + btn(10.55, 1.5, COL.s);
+  s += trait(11, 1, "W", COL.e) + btn(11.45, 1.5, COL.e) + trait(14, 1, "E", COL.s) + btn(14.45, 1.5, COL.s);
+  // un bouton par voie, au milieu de chaque pièce
+  const run = [[3.5, 2.5]];
+  for (let x = 4; x <= 8; x++) run.push([x + .5, 2.5]);
+  for (const [x, y] of run) s += btn(x, y, COL.p);
+  s += btn(9.32, 2.5, COL.p2) + btn(9.68, 2.5, COL.p);
+  for (let y = 3; y <= 6; y++) s += btn(9.5, y + .5, COL.p);
+  s += arrow([3.5, 1.55], run[0], COL.s);
+  for (let i = 0; i + 1 < run.length; i++) s += arrow(run[i], run[i + 1], COL.p);
+  s += arrow(run[run.length - 1], [9.32, 2.5], COL.p);
+  s += arrow([9.32, 2.5], [7.5, 1.55], COL.p2); // ② redirection vers l'entrée objet
+  for (let y = 6; y >= 4; y--) s += arrow([9.5, y + .5], [9.5, y - .5], COL.p);
+  s += arrow([9.5, 3.5], [9.68, 2.5], COL.p) + arrow([9.68, 2.5], [9.5, 1.55], COL.p);
+  s += arrow([10.55, 1.5], [11.45, 1.5], COL.s); // ④
+  s += lbl(5.5, 3.3, "①") + lbl(8, 3.6, "②") + lbl(10.4, 4.5, "③") + lbl(11, 2.6, "④");
   return s;
 }
-function scene2() {
-  let s = base() + mBtns();
-  // un bouton par port de chaque pièce, une flèche par pièce et par contact
-  const pts = [];
-  pts.push([3.5, 2.15], [3.85, 2.5]);
-  for (let x = 4; x <= 8; x++) pts.push([x + .15, 2.5], [x + .85, 2.5]);
-  for (let i = 0; i < pts.length; i++) s += btn(pts[i][0], pts[i][1], "o", "", {});
-  for (let i = 0; i + 1 < pts.length; i++) s += arrow([pts[i], pts[i + 1]], O);
-  s += btn(9.15, 2.5, "o", "") + btn(9.5, 2.15, "f", "") + btn(9.5, 2.85, "f", "") + btn(9.85, 2.5, "o", "", { hollow: true });
-  s += arrow([[9.15, 2.35], [7.75, 1.65]], O) + arrow([[9.5, 2.0], [9.5, 1.85]], F);
-  for (let y = 3; y <= 6; y++) s += btn(9.5, y + .15, "f", "") + btn(9.5, y + .85, "f", "");
-  for (let y = 6; y >= 3; y--) s += arrow([[9.5, y + .8], [9.5, y + .2]], F);
-  s += arrow([[10.75, 1.5], [11.15, 1.5]], O);
-  return s;
-}
-// ---- le geste, sur B et C collées
 function gest(step) {
   let s = mach(1, 1, 4, 2, "B") + mach(5, 1, 4, 2, "C");
   const on = step === 1;
-  // B : sortie à droite (en bas) ; C : à gauche, sortie (en bas, face à B) et entrée (en haut)
-  s += btn(1.5, 2.65, "o", "Fe", { dim: on }) + btn(3, 2.65, "f", "H₂O", { dim: on }) + btn(4.65, 2.5, "o", "Pl", { on: on || step === 2 });
-  s += btn(5.35, 2.5, "o", "▼", { glow: on, hollow: true }) + btn(5.35, 1.5, "o", step === 2 ? "Pl" : "▲", { glow: on, hollow: step !== 2 }) + btn(8.65, 2, "o", "▼", { dim: on, hollow: true });
-  if (step === 2) s += arrow([[4.8, 2.5], [5.15, 1.6]], O, { pin: true });
-  const note = (t) => `<text x="${X(1)}" y="${X(4.3)}" fill="#9a9a9a" font-size="10">${t}</text>`;
+  s += trait(1, 2, "S", COL.e) + btn(1.5, 2.55, COL.e, "", { dim: on }) + trait(4, 2, "E", COL.s) + btn(4.55, 2.5, COL.s, "", { on: on || step === 2 });
+  s += trait(5, 2, "W", COL.s) + btn(5.45, 2.5, COL.s, "", { glow: on }) + trait(5, 1, "W", COL.e) + btn(5.45, 1.5, COL.e, "", { glow: on }) + trait(8, 1, "E", COL.s) + btn(8.45, 1.5, COL.s, "", { dim: on });
+  if (step === 2) s += arrow([4.55, 2.5], [5.45, 1.5], COL.s, { pin: true });
+  const note = (t) => `<text x="${X(1)}" y="${X(4.3)}" fill="#ddd" font-size="10">${t}</text>`;
   if (step === 1) s += note("départ : sortie de B ; visables : les ports objet de C");
   if (step === 2) s += note("arrivée : l'entrée de C, par le contact sur sa sortie");
   if (step === 3) s += note("même départ, même arrivée : la flèche est retirée");
   return s;
 }
-document.getElementById("s1").innerHTML = `<g transform="translate(10 18)">${scene1()}</g>`;
-document.getElementById("s2").innerHTML = `<g transform="translate(10 18)">${scene2()}</g>`;
+document.getElementById("s0").innerHTML = `<g transform="translate(12 16)">${scene0()}</g>`;
+document.getElementById("s1").innerHTML = `<g transform="translate(12 16)">${scene1()}</g>`;
 for (const i of [1, 2, 3]) document.getElementById(`g${i}`).innerHTML = `<g transform="translate(6 6)">${gest(i)}</g>`;
-const legSvg = (inner) => `<svg width="22" height="22" viewBox="0 0 22 22" style="background:none">${inner}</svg>`;
-const b1 = (t, txt, o) => legSvg(btn(11 / C, 11 / C, t, txt, o));
+const legSvg = (inner) => `<svg viewBox="0 0 22 22">${inner}</svg>`;
+const b1 = (col) => legSvg(btn(11 / C, 11 / C, col));
 document.getElementById("leg").innerHTML = [
-  [b1("o", "Fe"), "objet, avec la ressource"], [b1("f", "H₂O"), "fluide, avec la ressource"], [b1("o", "▼", { hollow: true }), "sans flux (creux) : ▲ entrée, ▼ sortie"],
-  [legSvg(`<path d="M2 11H18" stroke="${O}" stroke-width="2.6"/><path d="M14 7L20 11L14 15z" fill="${O}"/>`), "flux, couleur du départ"],
-  [legSvg(`<path d="M2 11H18" stroke="#888" stroke-width="2.6" stroke-dasharray="4 3"/>`), "rien ne passe"],
-  [legSvg(`<circle cx="5" cy="11" r="3.5" fill="#fff" stroke="#000"/><path d="M5 11H18" stroke="${O}" stroke-width="2.6"/>`), "flèche choisie par le joueur"],
+  [b1(COL.e), "entrée de machine, prise logique"], [b1(COL.s), "sortie de machine"], [b1(COL.p), "voie d'un tuyau"], [b1(COL.p2), "2e voie d'un croisement"],
+  [legSvg(`<rect x="4" y="15" width="14" height="3" fill="${COL.e}" stroke="#000" stroke-width=".6"/>`), "trait : place exacte du port"],
+  [legSvg(btn(7 / C, 11 / C, "#e83a3a") + btn(15 / C, 11 / C, "#3d6bff")), "prises électriques (puis vert, jaune)"],
+  [legSvg(`<path d="M2 11H16" stroke="#3d6bff" stroke-width="2.4"/><path d="M15 8.5L20 11L15 13.5z" fill="#3d6bff"/>`), "flux, couleur du bouton de départ"],
+  [legSvg(`<path d="M2 11H18" stroke="#888" stroke-width="2.4" stroke-dasharray="4 3"/>`), "rien ne passe"],
+  [legSvg(`<circle cx="5" cy="11" r="3" fill="#fff" stroke="#000"/><path d="M5 11H18" stroke="${COL.s}" stroke-width="2.4"/>`), "choisie par le joueur"],
 ].map(([s, t]) => `<span>${s}${t}</span>`).join("");
 </script>
 </body></html>

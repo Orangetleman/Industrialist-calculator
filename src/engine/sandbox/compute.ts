@@ -324,7 +324,8 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     const byTip = p.tip ? outs.filter((i) => p.tip!.toLowerCase().includes((cat.items.get(i)?.name ?? i).toLowerCase())) : [];
     if (byTip.length) return byTip[0]!;
     // Port de sortie qui ne sert pas au craft : ses objets relevés, ou son infobulle, nomment d'autres ressources et
-    // aucun produit de la recette (« Used water out » d'un Boiler qui fait de la vapeur). Il reste libre, rien n'en sort
+    // aucun produit de la recette. Il reste libre, rien n'en sort. (Pas le « Used water out » du Boiler : l'eau usée est
+    // un produit du craft, elle sort par ce port ; correction de l'utilisateur, S57.)
     // (BAS-12, réponse de l'utilisateur). Une infobulle qui ne nomme rien (« Output ») ne dit rien.
     if (p.items?.length || (p.tip && namesSome(p.tip, p.t === "f"))) return null;
     const ps = G.get(u)!.ports.filter((q) => q.d === "s" && q.t === p.t);
