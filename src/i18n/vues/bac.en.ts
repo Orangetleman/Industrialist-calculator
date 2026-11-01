@@ -5,6 +5,8 @@ import type { bacFr } from "./bac.fr.ts";
 export const bacEn: { [K in keyof typeof bacFr]: Msg } = {
   "nav.bac": "Sandbox",
   "page.bac": "Sandbox",
+  "bac.mini.aria": "Build minimap",
+  "bac.mini.tip": "Minimap: click or drag to go there",
   "bac.map.aria": "Build area: click to place or configure, right-click to drop or delete",
   "bac.grid.aria": "Blocks in this category",
   "bac.cats.aria": "Categories",

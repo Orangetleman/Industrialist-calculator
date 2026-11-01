@@ -1309,9 +1309,28 @@ function portsLabel(machine: string): string {
 let poseSchem: { name: string; conv: () => Converted } | null = null;
 const schemButtons = () =>
   `<button type="button" class="link" data-msch="file">${t("m.schem.file")}</button> · <button type="button" class="link" data-msch="bac">${t("m.schem.bac")}</button>`;
+/** Écran d'attente par-dessus la page pendant un long calcul (conversion d'une grosse usine en schéma). */
+async function busy<T>(text: string, fn: () => Promise<T> | T): Promise<T> {
+  const el = document.createElement("div");
+  el.className = "busy";
+  el.setAttribute("role", "status");
+  el.innerHTML = `<div class="busy-in"><span class="busy-spin" aria-hidden="true"></span>${esc(text)}</div>`;
+  document.body.append(el);
+  await new Promise((r) => setTimeout(r, 50)); // l'écran s'affiche avant que le calcul n'occupe la page
+  try {
+    return await fn();
+  } finally {
+    await new Promise((r) => setTimeout(r, 0));
+    el.remove();
+  }
+}
 async function onSchem(kind: string): Promise<void> {
   if (!poseSchem) return;
-  const c = poseSchem.conv(), name = poseSchem.name;
+  const ps = poseSchem;
+  await busy(t("m.schem.busy"), () => schemGo(kind, ps));
+}
+async function schemGo(kind: string, ps: NonNullable<typeof poseSchem>): Promise<void> {
+  const c = ps.conv(), name = ps.name;
   const s: Schematic = { name, description: "", labels: [], width: c.width, height: c.height, layout: c.layout };
   if (kind === "bac") {
     go({ page: "bac" });
