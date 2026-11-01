@@ -83,6 +83,7 @@
       <span class="say" data-goals="objet" data-i18n="plan.say.want">Je veux</span>
       <label class="grow" data-goals="objet" for="item"><span data-i18n="form.item">Objet</span>
         <input id="item" list="item-list" autocomplete="off" spellcheck="false" placeholder="ex. Crankshaft" data-i18n-attr="placeholder=form.item.ph">
+        <button type="button" class="cmd-pick" id="item-pick" aria-haspopup="dialog" title="Choisir l'objet (Ctrl+K)" data-i18n-attr="title=plan.pick.title"></button>
         <span id="item-hint" class="hint warn-text" role="status"></span>
       </label>
       <datalist id="item-list"></datalist>
@@ -267,6 +268,13 @@
     <aside class="cmd-rail cmd-right" aria-labelledby="plan-dash-h">
       <h2 class="cmd-h" id="plan-dash-h" data-i18n="plan.dash">Ce plan</h2>
       <div id="answer" aria-live="polite"></div>
+      <!-- Partager ou modifier le plan proposé : mêmes conversions que sous le dessin de l'usine (S55). -->
+      <section class="cmd-share" id="plan-share" aria-labelledby="plan-share-h">
+        <h2 class="cmd-h" id="plan-share-h" data-i18n="plan.share">Modifier ou partager</h2>
+        <button type="button" class="primary" data-share="bac"><span data-ic="edit"></span> <span data-i18n="plan.share.bac">Modifier dans le bac à sable</span></button>
+        <button type="button" data-share="file"><span data-ic="download"></span> <span data-i18n="plan.share.file">Exporter en .msch</span></button>
+        <p class="hint" data-i18n="plan.share.hint">Le plan affiché dans l'onglet Usine (toute l'usine ou le module ouvert). Le bac à sable donne aussi un lien à partager.</p>
+      </section>
       <div id="plan-bar" hidden></div>
       <div id="fix-bar" hidden></div>
     </aside>

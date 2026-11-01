@@ -45,6 +45,7 @@ import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } 
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { icon, withIcons } from "./icons.ts";
+import { createItemPalette, itemTile, type PalItem } from "./item-palette.ts";
 import { applyStatic } from "../i18n/dom.ts";
 import { joinList, KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
 import {
@@ -808,6 +809,7 @@ function ensurePlan(): void {
       machines: engineFilter(filterNow()),
       diesel: dieselRecipeNow(),
     });
+  poseSchem = null; // le schéma à exporter suit le nouveau plan
   plan = request(
     goal === "argent"
       ? { moneyPerMin: settings.money }
@@ -900,11 +902,32 @@ function enter(g: Goal): boolean {
 }
 const blankPrompt = (g: Goal): string => (g === "recherche" ? "" : t(`plan.blank.${g}`));
 
+/** Objets de la palette (S61) : nom du jeu et vignette du wiki ou du joueur. */
+const palItems = (): PalItem[] =>
+  [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name)).map((it) => ({ id: it.id, name: it.name, pic: pictureOf("objet", it.id)?.src ?? null }));
+const itemPal = createItemPalette({
+  items: palItems,
+  current: () => settings.item,
+  onPick: (id) => {
+    const inp = input("item");
+    inp.value = data.items.get(id)?.name ?? id;
+    inp.dispatchEvent(new Event("change"));
+  },
+});
+/** Le bouton de l'objet dans la phrase : vignette, nom, raccourci. */
+function renderItemPick(): void {
+  const it = data.items.get(settings.item);
+  $("item-pick").innerHTML = it && !isBlank("objet")
+    ? `${itemTile({ id: it.id, name: it.name, pic: pictureOf("objet", it.id)?.src ?? null })}<span class="nm">${esc(it.name)}</span><kbd>Ctrl K</kbd>`
+    : `<span class="nm">${esc(t("plan.pick.none"))}</span><kbd>Ctrl K</kbd>`;
+}
+
 function syncForm(): void {
   const set = (id: string, v: string) => {
     if (document.activeElement !== $(id)) input(id).value = v;
   };
   set("item", isBlank("objet") ? "" : (data.items.get(settings.item)?.name ?? settings.item));
+  renderItemPick();
   $<HTMLSelectElement>("qty-unit").value = settings.mode;
   // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste).
   set("qty", isBlank("objet") ? "" : settings.mode === "rate" ? String(Number(settings.rate.toFixed(4))) : String(settings.machines));
@@ -1343,6 +1366,20 @@ async function schemGo(kind: string, ps: NonNullable<typeof poseSchem>): Promise
   a.click();
   URL.revokeObjectURL(u);
 }
+/** Partager ou modifier depuis le tableau de bord (S60) : la vue Usine se calcule d'abord si besoin. */
+async function shareGo(kind: string): Promise<void> {
+  if (!poseSchem) {
+    if (settings.resultTab !== "pose") $("rtab-pose").click();
+    await busy(t("m.schem.wait"), async () => {
+      for (let i = 0; i < 600 && !poseSchem; i++) await new Promise((r) => setTimeout(r, 100));
+    });
+  }
+  await onSchem(kind);
+}
+$("plan-share").addEventListener("click", (e) => {
+  const b = (e.target as Element).closest<HTMLElement>("[data-share]");
+  if (b) void shareGo(b.dataset.share!);
+});
 $("pose-links").addEventListener("click", (e) => {
   const b = (e.target as Element).closest<HTMLElement>("[data-msch]");
   if (b) void onSchem(b.dataset.msch!);
@@ -2905,6 +2942,13 @@ async function askExisting(id: string, perMin: number): Promise<void> {
 
 function bindPlan(): void {
   const itemInput = input("item");
+  $("item-pick").addEventListener("click", () => itemPal.open());
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K") && !$("page-plan").hidden && settings.goal === "objet") {
+      e.preventDefault();
+      itemPal.open();
+    }
+  });
   const onItem = () => {
     const id = resolveItem(itemInput.value);
     $("item-hint").textContent = id ? "" : itemInput.value.trim() ? t("form.item.notFound") : "";

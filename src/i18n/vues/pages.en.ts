@@ -135,6 +135,7 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   "m.schem.bac": "Edit in the sandbox",
   "m.schem.factory": "Factory",
   "m.schem.busy": "Converting the plan into a schematic…",
+  "m.schem.wait": "Calculating the factory…",
   "m.pose.links.on": "One white arrow per link, in the direction of flow, and the wires from each pole to its machines.",
   "m.pose.links.off": "Or click a pipe to see the links of its resource. Click a machine to open its page.",
   "m.asm.farms": "{n} tree farms ({t} trees)",

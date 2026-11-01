@@ -1444,3 +1444,53 @@ table.rh-log td.num { white-space: nowrap; }
 .busy-spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid currentColor; border-right-color: transparent; animation: busy-spin .8s linear infinite; }
 @keyframes busy-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .busy-spin { animation-duration: 2.4s; } }
+
+/* ---------------------------------------------------------------- S61 : palette de recherche d'objet (Ctrl+K) */
+/* Le champ texte reste pour le code et la saisie au clavier de secours ; le bouton le remplace à l'écran. */
+#page-plan #item { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.cmd-pick { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--accent); background: var(--bg); color: var(--ink); font-weight: 600; border-radius: 8px; min-width: 0; max-width: 100%; }
+.cmd-pick:hover { background: var(--accent-soft); border-color: var(--accent); }
+.cmd-pick .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmd-pick kbd, .pal-help { font: .72rem var(--f-mono); color: var(--muted); }
+.cmd-pick kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+.pal-ico { width: 28px; height: 28px; flex: none; border-radius: 5px; object-fit: contain; background: var(--panel2); }
+.pal-txt { display: inline-grid; place-items: center; font: 700 .7rem var(--f-mono); color: var(--accent); border: 1px solid var(--line); }
+.cmd-pal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: start center; padding: 10vh 12px 12px; background: rgb(0 0 0 / .6); }
+.cmd-pal[hidden] { display: none; }
+.pal-box { width: min(720px, 100%); max-height: 78vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; overflow: hidden; box-shadow: 0 12px 40px rgb(0 0 0 / .5); }
+.pal-box input { width: 100%; padding: 14px; font-size: 1.05rem; border: 0; border-bottom: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.pal-box input:focus-visible { outline: none; }
+.pal-tabs { display: flex; gap: 6px; padding: 8px 10px 0; }
+.pal-tabs button { border-radius: 999px; padding: 3px 12px; font-size: .82rem; color: var(--muted); }
+.pal-tabs button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.pal-grid { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; padding: 10px; align-content: start; }
+.pal-it { display: flex; align-items: center; gap: 8px; padding: 6px; text-align: left; font-size: .8rem; background: var(--bg); border-radius: 7px; min-width: 0; }
+.pal-it span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.pal-it.cur { border-color: var(--line); color: var(--accent); }
+.pal-it.f, .pal-it:hover { border-color: var(--accent); background: var(--accent-soft); }
+.pal-more { grid-column: 1 / -1; margin: 4px 0; color: var(--muted); font-size: .82rem; }
+.pal-help { margin: 0; padding: 6px 12px 10px; }
+@media (max-width: 760px) { .cmd-pal { padding-top: 12px; } .pal-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } .pal-help { display: none; } }
+.cmd-share { display: flex; flex-direction: column; gap: 6px; }
+.cmd-share button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.cmd-share .ic { width: 16px; height: 16px; }
+.cmd-share .hint { margin: 0; font-size: .76rem; }
+
+/* ---------------------------------------------------------------- S63 (léger) : interrupteurs et pastilles dans le tiroir */
+.cmd-drawer input[type="checkbox"], .cmd-drawer .adv label.check input { appearance: none; -webkit-appearance: none; flex: none; width: 34px; height: 18px; margin: 0; border-radius: 9px; background: var(--line); position: relative; cursor: pointer; vertical-align: middle; transition: background .15s; }
+.cmd-drawer input[type="checkbox"]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: left .15s; }
+.cmd-drawer input[type="checkbox"]:checked { background: var(--accent); }
+.cmd-drawer input[type="checkbox"]:checked::after { left: 18px; background: var(--on-accent); }
+.cmd-drawer input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cmd-drawer .adv label.check input { margin: 0; }
+.cmd-drawer label.check { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.cmd-drawer .mf-mode { display: flex; flex-wrap: wrap; gap: 4px; }
+.cmd-drawer .mf-mode label { border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; font-size: .84rem; color: var(--muted); }
+.cmd-drawer .mf-mode label:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.cmd-drawer .mf-mode label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cmd-drawer .mf-mode input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+@media (prefers-reduced-motion: reduce) { .cmd-drawer input[type="checkbox"], .cmd-drawer input[type="checkbox"]::after { transition: none; } }
+.cmd-drawer { overflow-x: hidden; }
+.cmd-drawer > * { min-width: 0; max-width: 100%; }
+.cmd-drawer .mf-row input[type="search"] { width: 100%; }
+.cmd-drawer .adv label.check { text-indent: 0; padding-left: 0; }
