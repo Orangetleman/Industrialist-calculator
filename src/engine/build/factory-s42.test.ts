@@ -43,7 +43,9 @@ it("toute l'usine : mêmes plans qu'avant S42", () => {
 
 // S56 : relevées de nouveau (mêmes plans ; le plan a un champ `touches` de plus, et les machines d'un module tourné
 // gardent maintenant leur vraie rotation).
-const EXPECTED = ["crankshaft/place=534b73bf97f3d9d6", "crankshaft/forme=731ad708c40fdbbc"];
+// Usine compacte (2026-11-01) : relevées de nouveau, volontairement (écart de 1 entre modules essayé, bord de 2 cases
+// au lieu de 3, longues bandes écartées, tuyaux redressés).
+const EXPECTED = ["crankshaft/place=1171f8db0a22dff2", "crankshaft/forme=cf1c811da9ab4e8a"];
 
 it("S42 : avec une limite de temps dépassée, un plan complet est quand même rendu, marqué « abrégé »", () => {
   const plan = solve(data, { unlocked: new Set(data.nodes.keys()) }, { item: "crankshaft", ratePerMin: 60, criterion: "energy", tiers: false });

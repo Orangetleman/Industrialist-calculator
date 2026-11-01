@@ -57,16 +57,18 @@ describe("toute l'usine", () => {
     const ms = performance.now() - t0;
     console.info(`Toute l'usine (Crankshaft 60/min, recalculée) : ${Math.round(ms)} ms, ${f.W} × ${f.H}, ${f.stats.allPipeCells} cases de tuyau, ${f.stats.allCrossings} croisements, ${f.stats.polesCost} $`);
     checkLayout(f, input.edges);
-    expect(f.W).toBeLessThanOrEqual(81);
-    expect(f.H).toBeLessThanOrEqual(101);
-    expect(f.stats.allPipeCells).toBeLessThanOrEqual(1090);
+    // Usine compacte (retour du 2026-11-01, la place d'abord) : 79 × 99 au lieu de 81 × 101 (360 cases de moins),
+    // pour 18 cases de tuyau de plus (1 090 → 1 108), volontairement.
+    expect(f.W).toBeLessThanOrEqual(79);
+    expect(f.H).toBeLessThanOrEqual(99);
+    expect(f.stats.allPipeCells).toBeLessThanOrEqual(1108);
     expect(f.stats.allCrossings).toBeLessThanOrEqual(73);
     expect(f.stats.polesCost).toBeLessThanOrEqual(3595);
     expect(f.stats.overloaded).toBe(0);
     expect(factoryFits(f, PLOT)).toBe("oui");
     // Appendices retirés à la fin : plus aucune pièce à une seule liaison (un bout qui ne mène nulle part),
     // dans la grille comme dans les modules (1 115 → 1 090 cases, 74 → 73 croisements le 2026-10-17).
-    expect(f.stats.pruned).toBeGreaterThan(0);
+    // Depuis l'usine compacte (2026-11-01), ce plan n'en a plus aucun à retirer : seul compte qu'il n'en reste pas.
     for (const [k, o] of f.cells) if (o.kind === "tuyau") for (const l of [o.links, ...(o.cross ? [o.cross.links] : [])]) expect(l.size, k).toBeGreaterThanOrEqual(2);
     for (const b of f.boxes) for (const pc of b.mod?.pieces ?? []) expect(pc.links.length + (pc.crossLinks?.length ?? 0), `${b.key} ${pc.x},${pc.y}`).toBeGreaterThan(0);
     // Liaisons (S4) : chaque tuyau entre modules a ses vecteurs, et chaque client en reçoit un.
@@ -79,12 +81,16 @@ describe("toute l'usine", () => {
         expect(arrows.some((a) => a.item === n.item && a.x2 > b.x && a.x2 < b.x + b.w && a.y2 > b.y && a.y2 < b.y + b.h), `${n.id} → ${to}`).toBe(true);
       }
     }
-    // Passages du collecteur central gardés (bilan de S2) : vers les voisins, sans élargir le module.
+    // Passages du collecteur central gardés (bilan de S2) : vers les voisins, sans élargir le module. Depuis l'usine
+    // compacte (2026-11-01), ce plan n'en garde plus ; le même avec la place d'abord en garde un.
     expect([...f.passagesKept.values()].map((p) => p.wider)).not.toContain(true);
-    expect(f.passagesKept.size).toBeGreaterThan(0);
+    const inputP = factoryInput(plan, look, cat, PLOT, { priority: ["place", "forme", "prix", "pieces"] }, { full: true });
+    const fp = designFactory(inputP);
+    expect([...fp.passagesKept.values()].map((p) => p.wider)).not.toContain(true);
+    expect(fp.passagesKept.size).toBeGreaterThan(0);
     // Le site : le passage gardé est conseillé dans le plan de pose du module (« vers les voisins »).
-    const [key, kept] = [...f.passagesKept][0]!;
-    const st = input.steps.find((s) => s.key === key)!;
+    const [key, kept] = [...fp.passagesKept][0]!;
+    const st = inputP.steps.find((s) => s.key === key)!;
     const base = designModule(st.req!, st.entry, st.size, cat, name);
     const advised = kept.choices.map((c) => `${c.item}|${c.passage.row}|${c.passage.after}`);
     const pick = renderPassagePick(base, passageOptions(base, st.req!, st.entry, st.size, cat, name), "", name, advised);

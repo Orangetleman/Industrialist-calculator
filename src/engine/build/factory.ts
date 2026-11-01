@@ -978,7 +978,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     routeBetweenOnce();
   };
   const margin = () => {
-    const M = 3;
+    const M = 2;
     const minX = Math.min(...boxes.map((b) => b.x));
     const minY = Math.min(...boxes.map((b) => b.y));
     for (const b of boxes) [b.x, b.y] = [b.x + M - minX, b.y + M - minY];
@@ -991,13 +991,13 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     margin();
     routeBetween();
     const fits = (W <= PLOT.w && H <= PLOT.h) || (H <= PLOT.w && W <= PLOT.h);
-    return { area: W * H, pipes: [...grid.cells.values()].filter((o) => o.kind === "tuyau").length, fits, problems: problems.length };
+    return { area: W * H, long: Math.max(W, H) / Math.max(1, Math.min(W, H)), pipes: [...grid.cells.values()].filter((o) => o.kind === "tuyau").length, fits, problems: problems.length };
   };
   // Parmi les essais entièrement raccordés : le meilleur compromis surface / longueur des tuyaux.
   // Le gagnant est refait pour retrouver ses tuyaux.
-  const tries: { area: number; pipes: number; fits: boolean; problems: number; CLR: number; wDist: number; bySize: boolean }[] = [];
+  const tries: { area: number; long: number; pipes: number; fits: boolean; problems: number; CLR: number; wDist: number; bySize: boolean }[] = [];
   const settings: [number, number, boolean][] = [];
-  for (const CLR of [2, 3]) for (const wDist of [3, 8, 15, 30]) for (const bySize of [false, true]) settings.push([CLR, wDist, bySize]);
+  for (const CLR of [1, 2, 3]) for (const wDist of [3, 8, 15, 30]) for (const bySize of [false, true]) settings.push([CLR, wDist, bySize]);
   const share = full ? 0.3 : 0.9;
   for (const [i, [CLR, wDist, bySize]] of settings.entries()) {
     if (i > 0 && late()) break;
@@ -1008,7 +1008,10 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   // D'abord ceux qui sont entièrement raccordés, puis ceux qui tiennent sur la parcelle.
   const done = tries.some((t) => !t.problems) ? tries.filter((t) => !t.problems) : tries.filter((t) => t.problems === Math.min(...tries.map((u) => u.problems)));
   const pool = done.some((t) => t.fits) ? done.filter((t) => t.fits) : done;
-  const bestTry = [...pool].sort((a, b) => a.area + 10 * a.pipes - (b.area + 10 * b.pipes))[0];
+  // Retour du 2026-11-01 : une usine en longue bande (plus de 6 fois plus longue que large) n'est pas compacte,
+  // même à surface égale : sa surface compte un quart de plus par unité de rapport au-delà de 6.
+  const note = (t: (typeof tries)[number]) => t.area * (1 + 0.25 * Math.max(0, t.long - 6)) + 10 * t.pipes;
+  const bestTry = [...pool].sort((a, b) => note(a) - note(b))[0];
   if (bestTry) attempt(bestTry.CLR, bestTry.wDist, bestTry.bySize);
 
   // ------------------------------------------------------------ recalcul complet du tuyautage
@@ -1087,6 +1090,97 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       b.mod = withPieces(b.mod, pieces, b.req, cat, name);
     }
     return before - [...grid.cells.values()].filter((o) => o.kind === "tuyau").length;
+  };
+  /**
+   * Redressement des tuyaux entre modules (retour de l'utilisateur du 2026-11-01 : « des petits détours inutiles ») :
+   * les liaisons sont tracées une par une, une liaison tracée tôt en fait contourner une autre, et ce contournement
+   * reste quand la place s'est libérée. Un bout de tuyau simple (sans branche ni croisement, hors pièces des modules)
+   * est remplacé par un tuyau droit ou en L entre ses deux extrémités s'il est plus court, ou aussi court avec moins
+   * de coudes, sur des cases libres qui ne sont devant aucun port. Les extrémités restent reliées : rien ne se coupe.
+   * Rend le nombre de cases gagnées.
+   */
+  const straighten = (): number => {
+    const k = (x: number, y: number) => `${x},${y}`;
+    const banned = new Set<string>();
+    for (const b of boxes) {
+      if (!b.mod) continue;
+      for (const pc of b.mod.pieces) banned.add(k(b.x + pc.x, b.y + pc.y));
+      for (const q of b.mod.poles) for (let i = 0; i < q.w * q.h; i++) banned.add(k(b.x + q.x + (i % q.w), b.y + q.y + Math.floor(i / q.w)));
+      for (const m of b.mod.machines) for (const p of m.ports) banned.add(k(b.x + p.cell.x + STEP[p.facing].x, b.y + p.cell.y + STEP[p.facing].y));
+    }
+    const pipeOf = (x: number, y: number, net: string) => {
+      const o = grid.cells.get(k(x, y));
+      return o?.kind === "tuyau" && !o.cross && o.net === net ? o : null;
+    };
+    const turns = (ds: Dir[]) => ds.reduce((t, d, i) => t + (i && d !== ds[i - 1] ? 1 : 0), 0);
+    // Pas de p vers q : tout droit, ou en L (deux ordres).
+    const shapes = (p: Pt, q: Pt): Dir[][] => {
+      const hx: Dir[] = Array(Math.abs(q.x - p.x)).fill(q.x > p.x ? "E" : "W");
+      const vy: Dir[] = Array(Math.abs(q.y - p.y)).fill(q.y > p.y ? "S" : "N");
+      if (!hx.length || !vy.length) return [[...hx, ...vy]];
+      const out: Dir[][] = [[...hx, ...vy], [...vy, ...hx]];
+      // En Z : un décrochement au milieu (deux coudes).
+      for (let i = 1; i < hx.length; i++) out.push([...hx.slice(0, i), ...vy, ...hx.slice(i)]);
+      for (let i = 1; i < vy.length; i++) out.push([...vy.slice(0, i), ...hx, ...vy.slice(i)]);
+      return out;
+    };
+    let gained = 0;
+    for (let changed = true, guard = 0; changed && guard < 20; guard++) {
+      changed = false;
+      for (const [pk, o] of [...grid.cells]) {
+        if (o.kind !== "tuyau" || o.cross || grid.cells.get(pk) !== o) continue;
+        const net = o.net;
+        const [px, py] = pk.split(",").map(Number) as [number, number];
+        for (const d0 of [...o.links]) {
+          const walk: string[] = [];
+          const ds: Dir[] = [d0];
+          let [x, y, dir] = [px + STEP[d0].x, py + STEP[d0].y, d0];
+          let done = false;
+          while (walk.length < 24 && !done) {
+            const c = pipeOf(x, y, net);
+            if (!c || c.links.size !== 2 || !c.links.has(OPPOSITE[dir]) || banned.has(k(x, y)) || (x === px && y === py)) break;
+            walk.push(k(x, y));
+            dir = [...c.links].find((d) => d !== OPPOSITE[dir])!;
+            ds.push(dir);
+            [x, y] = [x + STEP[dir].x, y + STEP[dir].y];
+            const q = pipeOf(x, y, net);
+            if (!q || !q.links.has(OPPOSITE[dir]) || (x === px && y === py)) break;
+            // Coudes comptés avec le sens d'arrivée en p et de départ de q (quand ce sont des tuyaux simples).
+            const pin = o.links.size === 2 ? [OPPOSITE[[...o.links].find((d) => d !== d0)!]] : [];
+            const qout = q.links.size === 2 ? [[...q.links].find((d) => d !== OPPOSITE[dir])!] : [];
+            const oldT = turns([...pin, ...ds, ...qout]);
+            const inWalk = new Set(walk);
+            for (const s of shapes({ x: px, y: py }, { x, y })) {
+              const len = s.length - 1;
+              if (len > walk.length || (len === walk.length && turns([...pin, ...s, ...qout]) >= oldT)) continue;
+              if ((s[0] !== d0 && o.links.has(s[0]!)) || (s.at(-1) !== dir && q.links.has(OPPOSITE[s.at(-1)!]))) continue;
+              const cells: Pt[] = [];
+              let [cx, cy] = [px, py];
+              for (const d of s.slice(0, -1)) {
+                [cx, cy] = [cx + STEP[d].x, cy + STEP[d].y];
+                cells.push({ x: cx, y: cy });
+              }
+              if (!cells.every((c) => c.x >= 0 && c.y >= 0 && c.x < W && c.y < H && !banned.has(k(c.x, c.y)) && (inWalk.has(k(c.x, c.y)) || !grid.cells.has(k(c.x, c.y))))) continue;
+              for (const w of walk) grid.cells.delete(w);
+              o.links.delete(d0);
+              q.links.delete(OPPOSITE[dir]);
+              let prev: Pt = { x: px, y: py };
+              for (const d of s) {
+                const next = { x: prev.x + STEP[d].x, y: prev.y + STEP[d].y };
+                grid.link(prev, d, net);
+                grid.link(next, OPPOSITE[d], net);
+                prev = next;
+              }
+              gained += walk.length - len;
+              changed = done = true;
+              break;
+            }
+          }
+          if (done) break;
+        }
+      }
+    }
+    return gained;
   };
   const setVariant = (b: Box, m: ModulePlan) => {
     b.variants = fourTurns(m);
@@ -1315,6 +1409,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   // Appendices : une fois la disposition finale choisie, les bouts de tuyau qui ne mènent nulle part (bouts des
   // collecteurs recalculés, raccords d'origine des modules remplacés par la prise unique) sont retirés, pièce par
   // pièce depuis le bout ; un té qui perd une branche devient un tuyau droit ou un coude.
+  const straightened = straighten();
   const pruned = full ? pruneDeadEnds() : 0;
 
   // ------------------------------------------------------------ produits à évacuer (S27)
@@ -1595,7 +1690,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       newPoles,
       pruned,
     },
-    debug: { tries: tries.map((t) => `${t.area} ${t.pipes} CLR${t.CLR} w${t.wDist} ${t.bySize}${t.problems ? ` (${t.problems} non tracées)` : ""}`), passages: passLog, taps: tapLog },
+    debug: { tries: tries.map((t) => `${t.area} ${t.pipes} CLR${t.CLR} w${t.wDist} ${t.bySize}${t.problems ? ` (${t.problems} non tracées)` : ""}`), passages: passLog, taps: [...tapLog, `redressement : ${straightened} cases gagnées`] },
   };
 }
 
