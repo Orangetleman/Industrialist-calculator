@@ -168,6 +168,16 @@
         </div>
         <p class="hint" id="adv-note"></p>
       </details>
+      <h2 class="cmd-h" data-i18n="plan.set.pose">Plan de pose</h2>
+      <details class="more pose-more" id="pose-more">
+        <summary><span data-i18n="pose.more">Plus d'options</span> <span class="hint" data-i18n="pose.more.hint">calcul, disposition des modules, tuyaux</span></summary>
+        <div id="pose-more-usine"></div>
+        <div class="pose-prio">
+          <span class="pose-prio-title"><span data-i18n="pose.prio">Disposition des modules</span> <span class="hint" data-i18n="pose.prio.hint">la première départage d'abord ; glisse une ligne ou utilise les flèches pour changer l'ordre</span></span>
+          <ol class="prio-list" id="pose-priority" aria-label="Disposition des modules : priorités, dans l'ordre" data-i18n-attr="aria-label=pose.prio.aria"></ol>
+        </div>
+        <label class="check-line"><input type="checkbox" id="pose-tier3"> <span data-i18n="pose.tier3">Seulement des tuyaux de tier III</span> <span class="hint" data-i18n="pose.tier3.hint">(plus rapides, plus chers)</span></label>
+      </details>
     </aside>
 
     <div class="cmd-body">
@@ -186,6 +196,7 @@
       <button type="button" role="tab" id="rtab-schema" data-rtab="schema" aria-controls="rpanel-schema" data-i18n="tab.schema">Schéma</button>
       <button type="button" role="tab" id="rtab-liste" data-rtab="liste" aria-controls="rpanel-liste" data-i18n="tab.liste">Liste des machines</button>
       <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details" data-i18n="tab.details">Détails</button>
+      <span class="cmd-help" id="plan-help" tabindex="0" role="note" data-i18n-attr="title=plan.help;aria-label=plan.help" title="" aria-label="">?</span>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
     <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
@@ -247,19 +258,7 @@
           </div>
         </aside>
       </div>
-      <div id="pose-legend"></div>
-      <div id="pose-head"></div>
       <div id="pose-links"></div>
-      <details class="more pose-more" id="pose-more">
-        <summary><span data-i18n="pose.more">Plus d'options</span> <span class="hint" data-i18n="pose.more.hint">calcul, disposition des modules, tuyaux</span></summary>
-        <div id="pose-more-usine"></div>
-        <div class="pose-prio">
-          <span class="pose-prio-title"><span data-i18n="pose.prio">Disposition des modules</span> <span class="hint" data-i18n="pose.prio.hint">la première départage d'abord ; glisse une ligne ou utilise les flèches pour changer l'ordre</span></span>
-          <ol class="prio-list" id="pose-priority" aria-label="Disposition des modules : priorités, dans l'ordre" data-i18n-attr="aria-label=pose.prio.aria"></ol>
-        </div>
-        <label class="check-line"><input type="checkbox" id="pose-tier3"> <span data-i18n="pose.tier3">Seulement des tuyaux de tier III</span> <span class="hint" data-i18n="pose.tier3.hint">(plus rapides, plus chers)</span></label>
-      </details>
-      <div id="pose-details"></div>
       <p class="callout-lite" data-i18n-html="pose.proposal.html"><b>C'est une proposition.</b> Sers-t'en comme base pour construire, puis optimise-la comme tu le souhaites : le jeu permet souvent mieux qu'un calcul automatique.</p>
       <p class="hint" data-i18n="pose.hint">Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.</p>
     </div>
@@ -270,10 +269,16 @@
       <div id="answer" aria-live="polite"></div>
       <!-- Partager ou modifier le plan proposé : mêmes conversions que sous le dessin de l'usine (S55). -->
       <section class="cmd-share" id="plan-share" aria-labelledby="plan-share-h">
-        <h2 class="cmd-h" id="plan-share-h" data-i18n="plan.share">Modifier ou partager</h2>
+        <h2 class="cmd-h" id="plan-share-h"><span data-i18n="plan.share">Modifier ou partager</span> <span class="cmd-help" tabindex="0" role="note" data-i18n-attr="title=plan.share.hint;aria-label=plan.share.hint">?</span></h2>
         <button type="button" class="primary" data-share="bac"><span data-ic="edit"></span> <span data-i18n="plan.share.bac">Modifier dans le bac à sable</span></button>
         <button type="button" data-share="file"><span data-ic="download"></span> <span data-i18n="plan.share.file">Exporter en .msch</span></button>
-        <p class="hint" data-i18n="plan.share.hint">Le plan affiché dans l'onglet Usine (toute l'usine ou le module ouvert). Le bac à sable donne aussi un lien à partager.</p>
+      </section>
+      <!-- S65 : les informations du plan de pose, dans le volet droit plutôt que sous le dessin. -->
+      <section class="cmd-info" id="plan-pose-info" aria-labelledby="plan-pose-h">
+        <h2 class="cmd-h" id="plan-pose-h"><span data-i18n="plan.set.pose">Plan de pose</span> <span class="cmd-tag" data-i18n="plan.proposal" data-i18n-attr="title=plan.help">proposition</span></h2>
+        <div id="pose-head"></div>
+        <div id="pose-legend"></div>
+        <div id="pose-details"></div>
       </section>
       <div id="plan-bar" hidden></div>
       <div id="fix-bar" hidden></div>

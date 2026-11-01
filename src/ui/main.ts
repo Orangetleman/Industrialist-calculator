@@ -25,7 +25,7 @@ import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engi
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
 import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
-import { factoryFrameClasses, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
+import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
 import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
@@ -44,10 +44,10 @@ import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPl
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
-import { icon, withIcons } from "./icons.ts";
+import { icon, iconAt, withIcons } from "./icons.ts";
 import { createItemPalette, itemTile, type PalItem } from "./item-palette.ts";
 import { applyStatic } from "../i18n/dom.ts";
-import { joinList, KEY_LANG, lang, setLang, startLang, t, type Lang } from "../i18n/i18n.ts";
+import { joinList, KEY_LANG, lang, setLang, startLang, t, type Key, type Lang } from "../i18n/i18n.ts";
 import {
   exportProgress,
   loadJournal,
@@ -1085,6 +1085,8 @@ function openFix(attr: string): void {
 /** Ouvre un réglage du formulaire depuis « Ton plan » : déplié, amené à l'écran, le focus dessus. */
 function openSetting(id: string): void {
   const d = $<HTMLDetailsElement>(id);
+  // R28 : les réglages vivent dans le tiroir ; il s'ouvre même quand la rubrique est déjà dépliée.
+  if (d.closest("#plan-drawer") && $("plan-drawer").hidden) $("plan-set-open").click();
   d.open = true;
   d.scrollIntoView({ block: "center", behavior: "smooth" });
   d.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
@@ -1103,6 +1105,7 @@ function renderResultTabs(): void {
   }
   for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
   $("plan-insp").hidden = tab !== "schema";
+  $("plan-pose-info").hidden = tab !== "pose";
   if (tab === "schema") renderFlowCanvas();
   if (tab === "pose") renderPose();
   else fillPoseSteps();
@@ -1458,6 +1461,11 @@ function renderSaved(): void {
 
 /** Étapes du rail : nom court, objet, nombre de machines (la liste « Vue » garde le texte long). */
 let railSteps: { key: string; name: string; sub: string; n?: number }[] = [];
+/** Levier du calcul de l'usine (R28) : module par module (S25, par défaut) ou recalculée pour l'usine entière. */
+function modeLever(): string {
+  const b = (full: boolean, key: Key) => `<button type="button" data-full="${full ? 1 : 0}" aria-pressed="${settings.usine.full === full}">${esc(t(key))}</button>`;
+  return `<div class="cmd-seg" role="group" aria-label="${esc(t("uf.calc"))}">${b(false, "plan.mode.module")}${b(true, "plan.mode.full")}</div>`;
+}
 /** Rail des étapes (S60, maquette S58) : les vues de la liste « Vue », toujours visibles ; un clic ouvre l'onglet Usine. */
 function renderStepRail(): void {
   let i = 0;
@@ -1475,7 +1483,7 @@ function renderStepRail(): void {
           const label = r.sub ? `${r.name} — ${r.sub}` : r.name;
           // S64 : chaque étape se coche « posée » dans le rail (le même stockage que « module posé ✓ », S25).
           const box = isUsine ? `<span class="cmd-box"></span>` : `<input type="checkbox" class="cmd-box" data-posed="${esc(r.key)}"${p ? " checked" : ""} aria-label="${esc(t("plan.steps.posed", { name: label }))}" title="${esc(t("plan.steps.posed", { name: label }))}">`;
-          return `<div class="cmd-row${on ? " on" : ""}${p ? " done" : ""}">${box}<button type="button" class="cmd-step" data-step="${esc(r.key)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: label }))}"><span class="n">${mark}</span><span class="nm">${esc(r.name)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</span>${r.n ? `<span class="x">×${r.n}</span>` : ""}</button>${isUsine ? "" : moduleWarn(r.key)}</div>`;
+          return `<div class="cmd-row${on ? " on" : ""}${p ? " done" : ""}">${box}<button type="button" class="cmd-step" data-step="${esc(r.key)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: label }))}"><span class="n">${mark}</span><span class="nm">${esc(r.name)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</span>${r.n ? `<span class="x">×${r.n}</span>` : ""}</button>${isUsine ? "" : moduleWarn(r.key)}</div>${isUsine ? modeLever() : ""}`;
         })
         .join("")
     : `<p class="hint">${esc(t("plan.steps.none"))}</p>`;
@@ -1866,6 +1874,25 @@ function setPosed(key: string, on: boolean): void {
 function markPosed(): void {
   const posed = posedSet();
   for (const g of $("pose-canvas").querySelectorAll<SVGGElement>(".u-mod")) g.classList.toggle("posed", posed.has(g.dataset.mod!));
+  markIncomplete();
+}
+/** R28 : un module qu'on ne peut pas reproduire tel quel en jeu (bâtiment non relevé, ports supposés, prix
+ *  inconnu, problème de pose) est cerclé et marqué d'un ⚠ sur l'usine, avec la raison au survol. */
+function markIncomplete(): void {
+  const fp = currentFactory()?.plan;
+  if (!fp) return;
+  const bad = new Map(incompleteMachines(fp).map((m) => [m.box.key, m.reasons]));
+  for (const g of $("pose-canvas").querySelectorAll<SVGGElement>(".u-mod")) {
+    const why = bad.get(g.dataset.mod!);
+    g.classList.toggle("bad", !!why);
+    g.querySelector(".u-bad")?.remove();
+    if (!why) continue;
+    const r = g.querySelector<SVGRectElement>(".u-box");
+    if (!r) continue;
+    const x = Number(r.getAttribute("x")), y = Number(r.getAttribute("y"));
+    const size = Math.max(16, Math.min(60, Number(r.getAttribute("width")) / 3));
+    g.insertAdjacentHTML("beforeend", `<g class="u-bad"><title>${esc(why.join(" ; "))}</title><circle cx="${x + size / 2 + 4}" cy="${y + size / 2 + 4}" r="${size / 2 + 3}"/>${iconAt("warn", x + 4, y + 4, size)}</g>`);
+  }
 }
 
 /** Le module ouvert est encadré dans l'usine. */
@@ -3217,6 +3244,8 @@ function bindPlan(): void {
     drawer.hidden = !on;
     $("plan-set-open").setAttribute("aria-expanded", String(on));
     if (on) for (const d of drawer.querySelectorAll<HTMLDetailsElement>(":scope > details")) d.open = true;
+    // R28 : pas de phrase sous chaque option ; l'explication passe au survol de l'option.
+    if (on) for (const h of drawer.querySelectorAll<HTMLElement>("label > .hint[data-i18n]")) h.parentElement!.title = h.textContent!.replace(/^(|)$/g, "");
     (on ? drawer.querySelector<HTMLElement>("summary") : $("plan-set-open"))?.focus();
   };
   $("plan-set-open").addEventListener("click", () => setDrawer(drawer.hidden !== false));
@@ -3258,6 +3287,14 @@ function bindPlan(): void {
   });
   // Rail des étapes (S60) : la même chose que la liste « Vue », dans l'onglet Usine.
   $("plan-steps").addEventListener("click", (e) => {
+    const lever = (e.target as Element).closest<HTMLElement>("[data-full]");
+    if (lever) {
+      settings.usine = { ...settings.usine, full: lever.dataset.full === "1" };
+      saveSettings(settings);
+      if (settings.resultTab !== "pose") $("rtab-pose").click();
+      else renderPose();
+      return renderStepRail();
+    }
     const b = (e.target as Element).closest<HTMLElement>("[data-step]");
     if (!b) return;
     const sel = $<HTMLSelectElement>("pose-step");

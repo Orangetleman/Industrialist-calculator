@@ -1516,3 +1516,80 @@ table.rh-log td.num { white-space: nowrap; }
 }
 @keyframes insp-in { from { transform: translateX(24px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cmd-insp { animation: none; } }
+
+/* ---------------------------------------------------------------- S65 (R28) : volets à plat qui orbitent autour du plan */
+/* Plus d'effet « bloc » : pas de coins arrondis ni de cadres dans Planifier ; des volets collés aux bords, séparés par un filet. */
+#page-plan :is(.cmd-rail, .answer, .kpi, .plan-bar, .rpanel, .flow-frame, .cmd-insp, .callout, .flow-hud, .criteria, details.more, .u-busy, .rtabs, .cmd-drawer) { border-radius: 0; }
+#page-plan :is(button, input, select, .pb-chip, .warn-btn, .cmd-pick, .goalnav, .goalnav a) { border-radius: 3px; }
+.cmd-drawer :is(.criteria, details, .prio-list li, button, input, select) { border-radius: 3px; }
+@media (min-width: 900px) {
+  body.cmd-on main { padding: 0; }
+  #page-plan:not([hidden]) { gap: 0; }
+  #page-plan .cmd-goal { padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  #page-plan .callout { margin: 0; }
+  .cmd-body { gap: 0; }
+  .cmd-rail { border: 0; padding: 10px 12px; }
+  .cmd-left { border-right: 1px solid var(--line); }
+  .cmd-right { border-left: 1px solid var(--line); }
+  .cmd-stage { background: var(--cv-bg); }
+  #page-plan .rtabs { padding: 0 8px; background: var(--surface); border-bottom: 1px solid var(--line); align-items: center; }
+  #page-plan .rpanel:not([hidden]) { border: 0; padding: 0; gap: 0; background: var(--cv-bg); }
+  #page-plan .flow-frame { border: 0; }
+  #pose-split:not(.focus) .pose-frame { height: calc(100cqh - 38px) !important; }
+  #rpanel-schema .flow-frame:not(.empty) { height: 100cqh !important; }
+  #page-plan .pose-top { padding: 4px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  #page-plan .rpanel > :not(.pose-top):not(.pose-split):not(.flow-frame):not(#build):not(#details) { padding-inline: 10px; }
+  #rpanel-liste:not([hidden]), #rpanel-details:not([hidden]) { padding: 10px 14px !important; background: var(--bg) !important; }
+  /* Le tableau de bord : des sections séparées par un filet, sans cartes. */
+  .cmd-right { gap: 0; padding: 0; }
+  .cmd-right > :not([hidden]) { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .cmd-right > .cmd-h { border-bottom: 0; padding-bottom: 0; }
+  .cmd-right .answer { border: 0; border-left: 3px solid var(--ok); background: none; }
+  .cmd-right .answer.warn { border-left-color: var(--warn); }
+  .cmd-right .answer.bad { border-left-color: var(--bad); }
+  .cmd-right .kpi { background: var(--bg); border: 0; }
+  .cmd-right .plan-bar { border: 0; background: none; padding: 0; }
+}
+/* Aucune écriture parasite sous le plan : l'aide passe dans la pastille « ? », l'export dans « Modifier ou partager ». */
+#page-plan :is(.u-hint, .flow-help, #pose-links, .callout-lite, #rpanel-pose > p.hint, #rpanel-schema > p.hint) { display: none; }
+.cmd-help, .prio-why { display: inline-grid; place-items: center; flex: none; width: 18px; height: 18px; border: 1px solid var(--line); border-radius: 50%; font: 700 .7rem var(--f-mono); color: var(--muted); cursor: help; }
+.cmd-help:hover, .cmd-help:focus-visible, .prio-why:hover, .prio-why:focus-visible { color: var(--accent); border-color: var(--accent); }
+.cmd-help { margin-left: auto; }
+.cmd-tag { font: .66rem var(--f-mono); letter-spacing: 0; text-transform: none; color: var(--muted); border: 1px solid var(--line); padding: 0 5px; cursor: help; }
+/* Priorités compactes : une ligne par critère, la description au survol de « ? ». */
+#criteria .criteria-order, #criteria .criteria-edit, #criteria > p.hint, .crit-hint { display: none; }
+.prio-list li { gap: 6px; padding: 3px 6px; align-items: center; }
+.prio-list .crit { flex: 1; min-width: 0; }
+.prio-list .crit b { font-weight: 600; font-size: .86rem; }
+.prio-list .mv { padding: 1px 4px; }
+/* Dans le tiroir, les rubriques sont des titres, pas des dépliants. */
+.cmd-drawer > details > summary { pointer-events: none; list-style: none; cursor: default; }
+.cmd-drawer > details > summary::-webkit-details-marker { display: none; }
+.cmd-drawer > details > summary :is(.criteria-order, .criteria-edit, .hint, .muted) { display: none; }
+.cmd-drawer > details { border: 0; padding: 0; }
+#pose-more > summary { display: none; }
+/* Levier du calcul de l'usine, sous « Toute l'usine ». */
+.cmd-seg { display: flex; margin: 2px 0 6px 26px; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.cmd-seg button { flex: 1; border: 0; border-radius: 0; padding: 3px 6px; font-size: .74rem; background: none; color: var(--muted); }
+.cmd-seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+/* Fiche du bloc : une colonne propre, tout aligné à gauche, pleine largeur. */
+.cmd-insp .flow-hud { background: none; border: 0; padding: 0; color: var(--ink); }
+.cmd-insp .flow-hud-head, .cmd-insp .flow-hud-notes, .cmd-insp .flow-hud-sets { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+.cmd-insp .flow-hud-sets > * { width: 100%; }
+.cmd-insp :is(select, input[type="number"]) { max-width: 100%; }
+@media (min-width: 900px) {
+  .cmd-right:has(.cmd-insp:not([hidden]) #flow-hud:not([hidden])) { overflow: hidden; }
+  .cmd-insp { border-radius: 0; border: 0; border-left: 2px solid var(--accent); padding: 12px; }
+}
+/* Machines non reproductibles telles quelles en jeu : cerclées et marquées sur l'usine (R28). */
+.u-mod.bad > .u-box { stroke: var(--warn); stroke-width: 4; stroke-dasharray: 14 8; }
+.u-bad circle { fill: var(--warn); opacity: .95; }
+.u-bad .ic { color: var(--on-accent); stroke: currentColor; }
+.cmd-h { display: flex; align-items: center; gap: 6px; } .cmd-h .cmd-help { margin-left: auto; }
+.cmd-insp [data-flow-close] { position: absolute; top: 8px; right: 8px; z-index: 1; }
+.cmd-insp .flow-hud-head { padding-right: 34px; }
+.cmd-insp :is(select, .flow-hud-sets label, .flow-hud-sets > span) { width: 100%; min-width: 0; }
+.cmd-insp #flow-calc > * { border-radius: 0; border-left: 0; border-right: 0; }
+.cmd-insp .flow-hud-sets label { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.cmd-insp { overflow-x: hidden; } .cmd-insp table.calc-t { display: block; max-width: 100%; overflow-x: auto; font-size: .78rem; }
+.cmd-drawer label > .hint[data-i18n] { display: none; }
