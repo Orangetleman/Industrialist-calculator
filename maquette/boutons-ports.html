@@ -25,7 +25,7 @@ ol li, ul li { margin:4px 0; }
 </style>
 </head>
 <body><main>
-<h1>S57 — Les flux d'un bouton à l'autre, comme en jeu (2e version)</h1>
+<h1>S57 — Les flux d'un bouton à l'autre, comme en jeu (3e version)</h1>
 <p>Dessins <b>illustratifs</b> (machines A, B, C de 4 × 2, ports placés pour l'exemple). Le code utilisera les ports relevés.</p>
 
 <h2>Vos réponses (1re version)</h2>
@@ -69,9 +69,30 @@ ol li, ul li { margin:4px 0; }
   <li>Sur les plans générés par S56 (modules de l'usine d'exemple), chaque flèche automatique respecte 1 à 5.</li>
 </ol>
 
-<h2>5. Deux points encore</h2>
-<div class="q"><b>Q5.</b> Les tuyaux droits ont une entrée et une sortie (relevées : sortie en haut, entrée en bas). Le bac à sable les dessinera dans ce sens, et un tuyau tracé au glisser sera posé dans le sens du glisser. Mais si un tuyau droit est posé <b>à l'envers</b> (le flux arrive par sa sortie) : en jeu, le flux passe-t-il quand même, ou est-il bloqué ? Aujourd'hui le calcul le laisse passer.</div>
-<div class="q"><b>Q4 (précisée).</b> Le « menu » : quand on clique sur un croisement dans le bac à sable, le cadre d'infos propose « Voies : tout droit / virages haut-droite et bas-gauche / virages haut-gauche et bas-droite ». Il a été ajouté en B3 sur une supposition (BAS-09 : peut-on faire tourner les voies d'un croisement ?). Votre 2e capture montre deux voies tout droit. Si le jeu ne permet pas de les faire tourner, je retire ce menu ; sinon je le garde tel quel.</div>
+<h2>5. Vos réponses (2e version)</h2>
+<div class="done"><b>Q4</b> : plus de menu « tout droit / virages ». Chaque voie d'un croisement (son bouton) peut sortir sur n'importe lequel des 4 côtés de son type : on la règle d'un bouton à l'autre. Croisement objet × fluide : un bouton pour l'objet, un pour le fluide.</div>
+<div class="done"><b>Q5</b> : un tuyau droit à l'envers <b>coupe</b> le flux (les liaisons ne se font pas). Le calcul en tiendra compte, et la coupure doit se voir.</div>
+
+<h2>6. Croisement : chaque voie sort où on veut</h2>
+<div class="cmp">
+  <div class="card"><h3>Par défaut : tout droit</h3><svg id="x1" viewBox="0 0 170 130"></svg></div>
+  <div class="card"><h3>Clic sur le bouton rouge, puis sur le tuyau du haut</h3><svg id="x2" viewBox="0 0 170 130"></svg><p class="muted">La voie rouge sort maintenant en haut ; la bleue prend les deux autres côtés (bas → droite). Un côté n'appartient qu'à une voie.</p></div>
+</div>
+
+<h2>7. Flux coupé : tuyau droit posé à l'envers</h2>
+<div class="cmp">
+  <div class="card"><h3>Proposé</h3><svg id="c1" viewBox="0 0 260 90"></svg><p class="muted">Le contact fautif clignote en rouge (cadre rouge qui pulse), <b>dans les deux modes</b>, et une alerte dit « Flux coupé : Short Pipe posé à l'envers ». En mode câblage, pas de flèche entre les deux boutons. Un tuyau tracé au glisser est toujours posé dans le sens du glisser, donc jamais coupé.</p></div>
+</div>
+
+<h2>8. Distinguer les tuyaux objet et fluide (proposition, à choisir)</h2>
+<p class="muted">Mindustry : les conduits (fluides) ont des rebords clairs, des bagues aux jonctions et un canal sombre où se voit le liquide ; les convoyeurs (objets) sont des bandes plates à rails et chevrons. Les tiers se distinguent par une teinte légère et des détails, pas par une couleur vive.</p>
+<div class="cmp">
+  <div class="card"><h3>A. Texture pour le type, teinte légère pour le tier (proposé)</h3><svg id="t1" viewBox="0 0 300 130"></svg><p class="muted">Objet = <b>parallélépipède</b> : bords droits, deux rails sombres, nervures en travers. Fluide = <b>cylindre</b> : bouts arrondis, ombré (bords sombres, reflet clair au milieu), bagues aux jonctions. Tier I gris acier, tier III laiton, tier IV gris sombre.</p></div>
+  <div class="card"><h3>B. Texture seule, sans couleur</h3><svg id="t2" viewBox="0 0 300 130"></svg><p class="muted">Tout en gris ; le tier se lit seulement à la largeur et aux détails (tier III : double nervure / double bague).</p></div>
+</div>
+
+<h2>9. Dernière question</h2>
+<div class="q"><b>Q6.</b> Pour les tuyaux : A (texture pour le type, teinte légère pour le tier) ou B (texture seule) ? Le reste de la maquette est-il validé ?</div>
 </main>
 <script>
 const C = 24, M = "#4a4f55", PC = { o:"#9aa0a6", f:"#8f969c" };
@@ -164,5 +185,53 @@ document.getElementById("leg").innerHTML = [
   [legSvg(`<path d="M2 11H18" stroke="#888" stroke-width="2.4" stroke-dasharray="4 3"/>`), "rien ne passe"],
   [legSvg(`<circle cx="5" cy="11" r="3" fill="#fff" stroke="#000"/><path d="M5 11H18" stroke="${COL.s}" stroke-width="2.4"/>`), "choisie par le joueur"],
 ].map(([s, t]) => `<span>${s}${t}</span>`).join("");
+
+// ---- croisement
+function cross(step) {
+  let s = "";
+  s += pipe(1, 2, ["E", "W"], "o") + pipe(3, 2, ["E", "W"], "o") + pipe(2, 1, ["N", "S"], "o") + pipe(2, 3, ["N", "S"], "o") + pipe(2, 2, ["N", "S", "E", "W"], "o");
+  const b = { W: [1.5, 2.5], E: [3.5, 2.5], N: [2.5, 1.5], S: [2.5, 3.5] };
+  for (const k in b) s += btn(...b[k], COL.p);
+  s += btn(2.32, 2.5, COL.p2, "", { on: step === 2 }) + btn(2.68, 2.5, COL.p);
+  if (step === 1) s += arrow(b.W, [2.32, 2.5], COL.p) + arrow([2.32, 2.5], b.E, COL.p2) + arrow(b.S, [2.68, 2.5], COL.p) + arrow([2.68, 2.5], b.N, COL.p);
+  else s += arrow(b.W, [2.32, 2.5], COL.p) + arrow([2.32, 2.5], b.N, COL.p2, { pin: true }) + arrow(b.S, [2.68, 2.5], COL.p) + arrow([2.68, 2.5], b.E, COL.p);
+  return s;
+}
+document.getElementById("x1").innerHTML = `<g transform="translate(20 0)">${cross(1)}</g>`;
+document.getElementById("x2").innerHTML = `<g transform="translate(20 0)">${cross(2)}</g>`;
+// ---- coupure
+{
+  let s = mach(0, .5, 3, 2, "A") + trait(2, 1.5, "E", COL.s);
+  for (let x = 3; x <= 8; x++) s += pipe(x, 2, ["E", "W"], "o");
+  const tick = (x, back) => { const c = X(x + .5), y = X(2.5), d = back ? -1 : 1; return `<path d="M${c - 3 * d} ${y - 4}L${c + 3 * d} ${y}L${c - 3 * d} ${y + 4}" fill="none" stroke="#333" stroke-width="1.5"/>`; };
+  for (let x = 3; x <= 8; x++) s += tick(x, x === 6);
+  s += `<rect x="${X(5.75)}" y="${X(1.95)}" width="${X(.5)}" height="${X(1.1)}" fill="none" stroke="#ff3b3b" stroke-width="2.5"><animate attributeName="opacity" values="1;.15;1" dur="1s" repeatCount="indefinite"/></rect>`;
+  s += `<text x="${X(5.2)}" y="${X(3.6)}" fill="#ff8080" font-size="10">contact coupé</text><text x="${X(6)}" y="${X(1.5)}" fill="#ddd" font-size="9">à l'envers</text>`;
+  document.getElementById("c1").innerHTML = `<g transform="translate(8 0)">${s}</g>`;
+}
+// ---- textures
+function item(x, y, n, tint, detail) {
+  let s = "";
+  for (let i = 0; i < n; i++) {
+    const cx = x + i;
+    s += rect(cx, y + .28, 1, .44, tint, `stroke="none"`) + rect(cx, y + .28, 1, .07, "rgba(0,0,0,.45)") + rect(cx, y + .65, 1, .07, "rgba(0,0,0,.45)");
+    for (const k of detail ? [.3, .4, .8, .9] : [.35, .85]) s += rect(cx + k - .02, y + .35, .04, .3, "rgba(0,0,0,.35)");
+  }
+  return s + rect(x, y + .28, n, .44, "none", `stroke="#111" stroke-width=".8"`);
+}
+let gid = 0;
+function fluid(x, y, n, tint, detail) {
+  const id = `g${gid++}`;
+  let s = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient></defs>`;
+  s += `<rect x="${X(x)}" y="${X(y + .25)}" width="${X(n)}" height="${X(.5)}" rx="${X(.25)}" fill="${tint}" stroke="#111" stroke-width=".8"/>`;
+  s += `<rect x="${X(x)}" y="${X(y + .25)}" width="${X(n)}" height="${X(.5)}" rx="${X(.25)}" fill="url(#${id})"/>`;
+  for (let i = 1; i < n; i++) for (const k of detail ? [-.06, .06] : [0]) s += rect(x + i + k - .04, y + .2, .08, .6, tint, `stroke="#111" stroke-width=".6"`);
+  return s;
+}
+const T = { o1: "#8d9399", o3: "#b8a06a", f1: "#7d8a96", f3: "#a89466", f4: "#4f5a66" };
+const lab = (x, y, t) => `<text x="${X(x)}" y="${X(y)}" fill="#ddd" font-size="10">${t}</text>`;
+document.getElementById("t1").innerHTML = `<g transform="translate(8 4)">${lab(0, .6, "objet I")}${item(2.6, 0, 6, T.o1)}${lab(0, 1.6, "objet III")}${item(2.6, 1, 6, T.o3, true)}${lab(0, 2.6, "fluide I")}${fluid(2.6, 2, 6, T.f1)}${lab(0, 3.6, "fluide III")}${fluid(2.6, 3, 6, T.f3, true)}${lab(0, 4.6, "fluide IV")}<rect x="${X(2.6)}" y="${X(4.05)}" width="${X(6)}" height="${X(.9)}" rx="${X(.45)}" fill="${T.f4}" stroke="#111"/></g>`;
+const G = "#8d9399";
+document.getElementById("t2").innerHTML = `<g transform="translate(8 4)">${lab(0, .6, "objet I")}${item(2.6, 0, 6, G)}${lab(0, 1.6, "objet III")}${item(2.6, 1, 6, G, true)}${lab(0, 2.6, "fluide I")}${fluid(2.6, 2, 6, G)}${lab(0, 3.6, "fluide III")}${fluid(2.6, 3, 6, G, true)}${lab(0, 4.6, "fluide IV")}<rect x="${X(2.6)}" y="${X(4.05)}" width="${X(6)}" height="${X(.9)}" rx="${X(.45)}" fill="${G}" stroke="#111"/></g>`;
 </script>
 </body></html>
