@@ -181,13 +181,19 @@
     </aside>
 
     <div class="cmd-body">
+    <!-- S66 (maquette volets.html) : chaque volet se réduit (‹) en colonne d'icônes et se redimensionne en glissant son bord. -->
     <aside class="cmd-rail cmd-left" aria-labelledby="plan-steps-h">
-      <h2 class="cmd-h" id="plan-steps-h"><span data-i18n="plan.steps">Étapes de pose</span> <span class="cmd-n" id="plan-steps-n"></span></h2>
-      <div class="cmd-steps" id="plan-steps"></div>
-      <div id="pose-mods"></div>
-      <h2 class="cmd-h" data-i18n="plan.saved">Plans enregistrés</h2>
-      <div class="cmd-steps" id="plan-saved"></div>
+      <h2 class="cmd-h" id="plan-steps-h"><span data-i18n="plan.steps">Étapes de pose</span> <span class="cmd-n" id="plan-steps-n"></span><button type="button" class="cmd-fold" data-fold="l" data-i18n-attr="title=plan.fold;aria-label=plan.fold" title="Réduire le volet" aria-label="Réduire le volet"><span data-ic="chevL"></span></button></h2>
+      <div class="cmd-rb">
+        <div class="cmd-prog" id="plan-steps-prog" aria-hidden="true"><i></i></div>
+        <div class="cmd-steps" id="plan-steps"></div>
+        <div id="pose-mods"></div>
+        <h2 class="cmd-h cmd-h2" data-i18n="plan.saved">Plans enregistrés</h2>
+        <div class="cmd-steps" id="plan-saved"></div>
+      </div>
+      <div class="cmd-strip"><button type="button" data-fold="l" data-i18n-attr="title=plan.steps"><span data-ic="list"></span><span data-i18n="plan.strip.steps">Étapes</span></button></div>
     </aside>
+    <div class="cmd-split" data-split="l" data-i18n-attr="title=plan.split" title="Glisser pour changer la largeur · double-clic pour revenir"></div>
     <div class="cmd-stage">
 
     <div class="rtabs" role="tablist" aria-label="Résultat" id="rtabs-result" data-i18n-attr="aria-label=result.aria">
@@ -237,6 +243,7 @@
           <div class="focus-bar">
             <button type="button" class="link" data-focus-back data-i18n="focus.back">Retour à l'usine</button>
             <span class="focus-title" id="focus-title"></span>
+            <button type="button" class="icon-btn" data-focus-big aria-pressed="false" title="Agrandir la bulle" data-i18n-attr="title=plan.bubble.big;aria-label=plan.bubble.big" data-ic="full"></button>
             <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)" data-i18n-attr="title=focus.full;aria-label=focus.full" data-ic="full"></button>
             <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer" data-i18n-attr="aria-label=focus.close;title=common.close" data-ic="close"></button>
           </div>
@@ -264,29 +271,47 @@
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-details" aria-labelledby="rtab-details" hidden><div id="details"></div></div>
     </div>
+    <div class="cmd-split" data-split="r" data-i18n-attr="title=plan.split" title="Glisser pour changer la largeur · double-clic pour revenir"></div>
     <aside class="cmd-rail cmd-right" aria-labelledby="plan-dash-h">
-      <h2 class="cmd-h" id="plan-dash-h" data-i18n="plan.dash">Ce plan</h2>
-      <div id="answer" aria-live="polite"></div>
-      <!-- Partager ou modifier le plan proposé : mêmes conversions que sous le dessin de l'usine (S55). -->
-      <section class="cmd-share" id="plan-share" aria-labelledby="plan-share-h">
-        <h2 class="cmd-h" id="plan-share-h"><span data-i18n="plan.share">Modifier ou partager</span> <span class="cmd-help" tabindex="0" role="note" data-i18n-attr="title=plan.share.hint;aria-label=plan.share.hint">?</span></h2>
-        <button type="button" class="primary" data-share="bac"><span data-ic="edit"></span> <span data-i18n="plan.share.bac">Modifier dans le bac à sable</span></button>
-        <button type="button" data-share="file"><span data-ic="download"></span> <span data-i18n="plan.share.file">Exporter en .msch</span></button>
-      </section>
-      <!-- S65 : les informations du plan de pose, dans le volet droit plutôt que sous le dessin. -->
-      <section class="cmd-info" id="plan-pose-info" aria-labelledby="plan-pose-h">
-        <h2 class="cmd-h" id="plan-pose-h"><span data-i18n="plan.set.pose">Plan de pose</span> <span class="cmd-tag" data-i18n="plan.proposal" data-i18n-attr="title=plan.help">proposition</span></h2>
-        <div id="pose-head"></div>
-        <div id="pose-legend"></div>
-        <div id="pose-details"></div>
-      </section>
-      <div id="plan-bar" hidden></div>
-      <div id="fix-bar" hidden></div>
-      <!-- S62 : la fiche du bloc cliqué dans le schéma glisse par-dessus le tableau de bord ; Échap ou ✕ la ferme. -->
-      <section class="cmd-insp" id="plan-insp" aria-label="Fiche" data-i18n-attr="aria-label=plan.insp">
-        <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
-        <div id="flow-calc" hidden></div>
-      </section>
+      <h2 class="cmd-h" id="plan-dash-h"><button type="button" class="cmd-fold" data-fold="r" data-i18n-attr="title=plan.fold;aria-label=plan.fold" title="Réduire le volet" aria-label="Réduire le volet"><span data-ic="chevR"></span></button><span data-i18n="plan.dash">Ce plan</span></h2>
+      <!-- S66 : un menu ; chaque titre orange ouvre sa fenêtre, qui glisse par-dessus (‹ pour revenir). -->
+      <div class="cmd-panes">
+        <div class="cmd-pane" id="pane-root">
+          <div class="cmd-pb">
+            <div id="answer" aria-live="polite"></div>
+            <button type="button" class="cmd-cat" data-pane="plan"><span data-ic="settings"></span><span data-i18n="plan.cat.plan">Ton plan</span><span class="cmd-n" id="cat-plan-n"></span><span data-ic="chevR"></span></button>
+            <button type="button" class="cmd-cat" data-pane="pose" id="cat-pose"><span data-ic="home"></span><span data-i18n="plan.set.pose">Plan de pose</span><span class="cmd-tag" data-i18n="plan.proposal" data-i18n-attr="title=plan.help">proposition</span><span data-ic="chevR"></span></button>
+            <section class="cmd-share" id="plan-share" aria-labelledby="plan-share-h">
+              <h2 class="cmd-h" id="plan-share-h"><span data-i18n="plan.share">Modifier ou partager</span> <span class="cmd-help" tabindex="0" role="note" data-i18n-attr="title=plan.share.hint;aria-label=plan.share.hint">?</span></h2>
+              <div class="cmd-share-b">
+                <button type="button" class="primary" data-share="bac"><span data-ic="edit"></span> <span data-i18n="plan.share.bac.s">Bac à sable</span></button>
+                <button type="button" data-share="file"><span data-ic="download"></span> <span>.msch</span></button>
+              </div>
+            </section>
+          </div>
+        </div>
+        <section class="cmd-pane sub" data-pane="plan" aria-labelledby="pane-plan-h">
+          <h2 class="cmd-ph" id="pane-plan-h"><button type="button" class="cmd-back" data-back data-i18n-attr="title=plan.back;aria-label=plan.back"><span data-ic="chevL"></span></button><span data-i18n="plan.cat.plan">Ton plan</span></h2>
+          <div class="cmd-pb">
+            <div id="plan-bar" hidden></div>
+            <div id="fix-bar" hidden></div>
+          </div>
+        </section>
+        <section class="cmd-pane sub" data-pane="pose" id="plan-pose-info" aria-labelledby="plan-pose-h">
+          <h2 class="cmd-ph" id="plan-pose-h"><button type="button" class="cmd-back" data-back data-i18n-attr="title=plan.back;aria-label=plan.back"><span data-ic="chevL"></span></button><span data-i18n="plan.set.pose">Plan de pose</span></h2>
+          <div class="cmd-pb">
+            <div id="pose-head"></div>
+            <div id="pose-legend"></div>
+            <div id="pose-details"></div>
+          </div>
+        </section>
+        <!-- S62 : la fiche du bloc cliqué dans le schéma glisse par-dessus le tableau de bord ; Échap ou ✕ la ferme. -->
+        <section class="cmd-insp" id="plan-insp" aria-label="Fiche" data-i18n-attr="aria-label=plan.insp">
+          <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
+          <div id="flow-calc" hidden></div>
+        </section>
+      </div>
+      <div class="cmd-strip"><button type="button" data-fold="r" data-i18n-attr="title=plan.dash"><span data-ic="chart"></span><span data-i18n="plan.strip.plan">Plan</span></button><button type="button" data-share="bac" data-i18n-attr="title=plan.share.bac"><span data-ic="edit"></span><span data-i18n="plan.strip.bac">Bac</span></button><button type="button" data-share="file" title=".msch"><span data-ic="download"></span><span>.msch</span></button></div>
     </aside>
     </div>
   </section>

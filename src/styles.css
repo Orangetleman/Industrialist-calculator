@@ -1602,3 +1602,75 @@ table.rh-log td.num { white-space: nowrap; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 /* Les titres des volets restent en haut : seul le contenu défile dessous. */
 .cmd-rail > .cmd-h { position: sticky; top: 0; z-index: 2; background: var(--surface); margin: -10px -12px 0; padding: 10px 12px 6px; }
+
+/* ---------------------------------------------------------------- S66 : volets réductibles et redimensionnables, menu qui glisse */
+.cmd-fold { border: 0; background: none; padding: 2px; color: var(--muted); margin-left: auto; }
+.cmd-right .cmd-fold { margin-left: 0; margin-right: 2px; }
+.cmd-fold:hover { color: var(--accent); }
+.cmd-split, .cmd-strip { display: none; }
+.cmd-prog { height: 4px; background: var(--line); margin: 2px 0 8px; }
+.cmd-prog i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .2s; }
+.cmd-h2 { margin-top: 12px !important; }
+.cmd-cat { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0 !important; background: none; padding: 10px 12px; text-align: left; color: var(--accent); font: 400 .72rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; }
+.cmd-cat:hover { background: var(--panel2); }
+.cmd-cat > :nth-child(2) { flex: 1; }
+.cmd-cat .ic { width: 15px; height: 15px; }
+.cmd-ph { display: flex; align-items: center; gap: 6px; margin: 0; padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--accent); font: 400 .72rem var(--f-display); letter-spacing: .1em; text-transform: uppercase; }
+.cmd-back { border: 0; background: none; padding: 2px; color: var(--muted); }
+.cmd-share-b { display: flex; gap: 6px; }
+.cmd-share-b button { flex: 1; }
+/* Chiffres clés en lignes (icône · nom · valeur), comme le tableau d'Industrialist Calculator. */
+.cmd-right .answer h2 { font-size: .9rem; }
+.cmd-right .kpis { display: flex; flex-direction: column; gap: 0; }
+.cmd-right .kpi { display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: baseline; gap: 8px; padding: 4px 0; background: none !important; border-bottom: 1px solid var(--line) !important; }
+.cmd-right .kpi b { font-size: .92rem; white-space: nowrap; }
+.cmd-right .kpi span { font-size: .78rem; color: var(--muted); }
+@media (min-width: 900px) {
+  .cmd-body { grid-template-columns: var(--lw, 250px) 5px minmax(0, 1fr) 5px var(--rw, 320px); }
+  .cmd-body.l-off { --lw: 40px !important; }
+  .cmd-body.r-off { --rw: 40px !important; }
+  .cmd-split { display: block; cursor: col-resize; background: var(--line); position: relative; touch-action: none; }
+  .cmd-split::after { content: ""; position: absolute; inset: 0 -4px; }
+  .cmd-split:hover, .cmd-split.drag { background: var(--accent); }
+  .cmd-left, .cmd-right { border: 0 !important; }
+  /* Titre fixe, contenu qui défile dessous. */
+  .cmd-rail { overflow: hidden !important; padding: 0 !important; display: flex; flex-direction: column; }
+  .cmd-rail > .cmd-h { position: static; margin: 0; flex: none; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .cmd-rb { flex: 1; min-height: 0; overflow: auto; padding: 8px 10px; }
+  .cmd-panes { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  .cmd-pane { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--surface); transition: transform .2s ease, opacity .2s ease; }
+  .cmd-pane.sub { transform: translateX(100%); visibility: hidden; }
+  .cmd-pane.sub.on { transform: none; visibility: visible; }
+  #pane-root.away { transform: translateX(-30%); opacity: 0; pointer-events: none; }
+  .cmd-pb { flex: 1; min-height: 0; overflow: auto; }
+  .cmd-pb > :not([hidden]):not(.cmd-cat) { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .cmd-right > :not([hidden]) { padding: 0; border-bottom: 0; }
+  .cmd-right > .cmd-h { padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .cmd-insp { z-index: 6; }
+  /* Volet réduit : une colonne d'icônes. */
+  .cmd-body.l-off .cmd-left > :not(.cmd-strip), .cmd-body.r-off .cmd-right > :not(.cmd-strip) { display: none !important; }
+  .cmd-body.l-off .cmd-left .cmd-strip, .cmd-body.r-off .cmd-right .cmd-strip { display: flex; }
+  .cmd-strip { flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; }
+  .cmd-strip button { border: 0; background: none; width: 36px; padding: 6px 0; display: grid; place-items: center; gap: 2px; color: var(--muted); font-size: .5rem; letter-spacing: .04em; text-transform: uppercase; }
+  .cmd-strip button:hover { color: var(--accent); }
+}
+@media (prefers-reduced-motion: reduce) { .cmd-pane, .cmd-prog i { transition: none; } }
+
+/* ---------------------------------------------------------------- S67 : bulle d'un module dans l'Usine */
+[data-focus-big] { display: none; }
+@media (min-width: 900px) {
+  #pose-split.focus { display: block; position: relative; }
+  #pose-split.focus .pose-frame { height: calc(100cqh - 38px) !important; }
+  #pose-focus { position: absolute; left: 0; top: 0; z-index: 5; width: 310px; max-height: calc(100cqh - 60px); overflow: auto; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px #0008; transform-origin: 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+  #pose-focus[hidden] { display: none; }
+  #pose-focus.big { width: min(580px, 70%); }
+  #pose-focus [data-focus-big] { display: inline-grid; }
+  #pose-focus [data-focus-full], #pose-focus .focus-bar button.link { display: none; }
+  #pose-focus:not(.big) :is(.focus-frame, #focus-bar-opts, #focus-legend, #focus-details) { display: none; }
+  #pose-focus .focus-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  #pose-focus .focus-title { flex: 1; font-size: .84rem; }
+  #pose-focus .focus-info { padding: 8px 10px; font-size: .82rem; }
+  #pose-focus .focus-frame { height: 280px !important; border-radius: 0; margin: 0 10px; }
+  #pose-focus #focus-bar-opts { padding: 6px 10px 0; }
+  #pose-focus #focus-bar-opts .hint { display: none; }
+}

@@ -1105,7 +1105,8 @@ function renderResultTabs(): void {
   }
   for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
   $("plan-insp").hidden = tab !== "schema";
-  $("plan-pose-info").hidden = tab !== "pose";
+  $("cat-pose").hidden = tab !== "pose";
+  if (tab !== "pose" && $("plan-pose-info").classList.contains("on")) paneBack();
   if (tab === "schema") renderFlowCanvas();
   if (tab === "pose") renderPose();
   else fillPoseSteps();
@@ -1382,7 +1383,7 @@ async function shareGo(kind: string): Promise<void> {
   }
   await onSchem(kind);
 }
-$("plan-share").addEventListener("click", (e) => {
+document.querySelector(".cmd-right")!.addEventListener("click", (e) => {
   const b = (e.target as Element).closest<HTMLElement>("[data-share]");
   if (b) void shareGo(b.dataset.share!);
 });
@@ -1459,6 +1460,90 @@ function renderSaved(): void {
     `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
 }
 
+// ---------------------------------------------------------------- volets (S66, maquette volets.html)
+/** Largeur des volets, gardée dans ce navigateur ; un volet réduit n'est plus qu'une colonne d'icônes. */
+const KEY_RAILS = "ind-calc:v1:rails";
+const RAIL_W = { l: 250, r: 320 };
+let rails = { l: RAIL_W.l, r: RAIL_W.r, lOff: false, rOff: false };
+try {
+  const raw = JSON.parse(localStorage.getItem(KEY_RAILS) ?? "null");
+  if (raw && typeof raw === "object") rails = { ...rails, ...raw };
+} catch {
+  // largeurs par défaut
+}
+function applyRails(save = false): void {
+  const body = document.querySelector<HTMLElement>(".cmd-body")!;
+  body.style.setProperty("--lw", `${rails.l}px`);
+  body.style.setProperty("--rw", `${rails.r}px`);
+  body.classList.toggle("l-off", rails.lOff);
+  body.classList.toggle("r-off", rails.rOff);
+  if (!save) return;
+  try {
+    localStorage.setItem(KEY_RAILS, JSON.stringify(rails));
+  } catch {
+    // stockage indisponible : réglage pour cette visite
+  }
+}
+function bindRails(): void {
+  applyRails();
+  for (const sp of document.querySelectorAll<HTMLElement>(".cmd-split")) {
+    const side = sp.dataset.split as "l" | "r";
+    sp.addEventListener("pointerdown", (e) => {
+      sp.setPointerCapture(e.pointerId);
+      sp.classList.add("drag");
+      const move = (ev: PointerEvent) => {
+        const x = side === "l" ? ev.clientX : innerWidth - ev.clientX;
+        // Tiré presque au bord : le volet se réduit ; sinon il prend la largeur voulue.
+        if (side === "l") rails.lOff = x < 100;
+        else rails.rOff = x < 100;
+        if (x >= 100) rails[side] = Math.round(Math.max(180, Math.min(innerWidth * 0.45, x)));
+        applyRails();
+      };
+      const up = () => {
+        sp.classList.remove("drag");
+        sp.removeEventListener("pointermove", move);
+        sp.removeEventListener("pointerup", up);
+        applyRails(true);
+        posePZ?.fit?.();
+      };
+      sp.addEventListener("pointermove", move);
+      sp.addEventListener("pointerup", up);
+    });
+    sp.addEventListener("dblclick", () => {
+      rails[side] = RAIL_W[side];
+      if (side === "l") rails.lOff = false;
+      else rails.rOff = false;
+      applyRails(true);
+    });
+  }
+  $("page-plan").addEventListener("click", (e) => {
+    const f = (e.target as Element).closest<HTMLElement>("[data-fold]");
+    if (!f) return;
+    if (f.dataset.fold === "l") rails.lOff = !rails.lOff;
+    else rails.rOff = !rails.rOff;
+    applyRails(true);
+  });
+  // Volet droit : chaque catégorie glisse vers sa fenêtre ; ‹ revient au menu.
+  document.querySelector(".cmd-panes")!.addEventListener("click", (e) => {
+    const c = (e.target as Element).closest<HTMLElement>(".cmd-cat");
+    if (c) return paneOpen(c.dataset.pane!);
+    if ((e.target as Element).closest("[data-back]")) paneBack();
+  });
+}
+function paneOpen(name: string): void {
+  const p = document.querySelector<HTMLElement>(`.cmd-pane.sub[data-pane="${name}"]`);
+  if (!p) return;
+  $("pane-root").classList.add("away");
+  p.classList.add("on");
+  p.querySelector<HTMLElement>("[data-back]")?.focus({ preventScroll: true });
+}
+function paneBack(): void {
+  const p = document.querySelector<HTMLElement>(".cmd-pane.sub.on");
+  p?.classList.remove("on");
+  $("pane-root").classList.remove("away");
+  if (p) document.querySelector<HTMLElement>(`.cmd-cat[data-pane="${p.dataset.pane}"]`)?.focus({ preventScroll: true });
+}
+
 /** Étapes du rail : nom court, objet, nombre de machines (la liste « Vue » garde le texte long). */
 let railSteps: { key: string; name: string; sub: string; n?: number }[] = [];
 /** Levier du calcul de l'usine (R28) : module par module (S25, par défaut) ou recalculée pour l'usine entière. */
@@ -1472,7 +1557,9 @@ function renderStepRail(): void {
   const posed = posedSet();
   const mods = railSteps.filter((r) => r.key !== USINE);
   const done = mods.filter((r) => posed.has(r.key)).length;
-  $("plan-steps-n").textContent = mods.length ? t("plan.steps.n", { n: done, total: mods.length }) : "";
+  $("plan-steps-n").textContent = mods.length ? `${done} / ${mods.length}` : "";
+  $("plan-steps-prog").querySelector("i")!.style.width = mods.length ? `${(100 * done) / mods.length}%` : "0";
+  $("plan-steps-prog").title = mods.length ? t("plan.steps.n", { n: done, total: mods.length }) : "";
   $("plan-steps").innerHTML = railSteps.length
     ? railSteps
         .map((r) => {
@@ -1900,6 +1987,37 @@ function markFocused(): void {
   for (const g of $("pose-canvas").querySelectorAll(".u-mod")) g.classList.toggle("focus", (g as SVGGElement).dataset.mod === poseFocus);
 }
 
+// ---------------------------------------------------------------- bulle d'un module (S67, maquette volets.html)
+/** À l'ordinateur, le module cliqué s'ouvre dans une bulle accrochée à lui : elle suit le plan quand on le déplace,
+ *  grandit quand on zoome, et le bouton ⤢ l'agrandit pour montrer le dessin du module. */
+let bubbleRaf = 0;
+function followBubble(key: string): void {
+  cancelAnimationFrame(bubbleRaf);
+  const panel = $("pose-focus");
+  panel.classList.remove("big");
+  panel.querySelector("[data-focus-big]")?.setAttribute("aria-pressed", "false");
+  let w0 = 0;
+  const tick = () => {
+    if (panel.hidden || !matchMedia("(min-width: 900px)").matches) return;
+    const box = $("pose-canvas").querySelector(`.u-mod[data-mod="${CSS.escape(key)}"] .u-box`);
+    const host = $("pose-split").getBoundingClientRect();
+    if (box && host.width) {
+      const r = box.getBoundingClientRect();
+      w0 ||= r.width || 1;
+      const big = panel.classList.contains("big");
+      const sc = big ? 1 : Math.max(0.75, Math.min(1.6, r.width / w0));
+      const pw = panel.offsetWidth * sc, ph = panel.offsetHeight * sc;
+      let x = r.left - host.left, y = r.bottom - host.top + 10;
+      if (y + ph > host.height) y = r.top - host.top - ph - 10; // pas la place dessous : au-dessus
+      x = Math.max(6, Math.min(x, host.width - pw - 6));
+      y = Math.max(6, Math.min(y, host.height - ph - 6));
+      panel.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) scale(${sc.toFixed(3)})`;
+    }
+    bubbleRaf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
 /** Panneau du module à côté de l'usine (null : fermé), dans la version que l'usine utilise. */
 function showFocus(key: string | null): void {
   const panel = $("pose-focus");
@@ -1917,6 +2035,7 @@ function showFocus(key: string | null): void {
     return;
   }
   $("focus-title").textContent = out.title;
+  followBubble(key!);
   $("focus-bar-opts").innerHTML = `<div class="u-bar">${linksButton(settings.usine.links)}<span class="hint">${t("m.focus.hint")}</span></div>`;
   // S26 : « Module posé ✓ » dans le panneau aussi (le même réglage que la liste sous l'usine).
   const posed = posedSet().has(key!);
@@ -3258,8 +3377,17 @@ function bindPlan(): void {
     if ($("page-plan").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
     const typing = e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
     if (e.key === "Escape" && !drawer.hidden) setDrawer(false);
+    else if (e.key === "Escape" && document.querySelector(".cmd-pane.sub.on") && $("flow-hud").hidden) paneBack();
     else if (e.key === "Escape" && !$("flow-hud").hidden && !document.querySelector("dialog[open], .cmd-pal:not([hidden])")) selectFlow(null);
     else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
+  });
+  bindRails();
+  $("pose-focus").addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-focus-big]");
+    if (!b) return;
+    const on = $("pose-focus").classList.toggle("big");
+    b.setAttribute("aria-pressed", String(on));
+    requestAnimationFrame(() => $("focus-frame").querySelector<HTMLElement>("[data-qzoom=\"fit\"]")?.click());
   });
   // Plans enregistrés (S64).
   renderSaved();
