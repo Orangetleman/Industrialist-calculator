@@ -1776,3 +1776,9 @@ table.rh-log td.num { white-space: nowrap; }
 .props-btn:hover, .props-btn[aria-current="page"] { border-color: var(--accent); color: var(--accent); }
 .props-btn .ic { width: 15px; height: 15px; }
 @media (max-width: 1099px) { .props-btn .lbl { display: none; } }
+/* En-tête de Planifier sur une ligne avec « Propositions » : Remarque en icône, état du joueur résumé. */
+@media (min-width: 761px) and (max-width: 1800px) {
+  body.cmd-on .remark-btn .lbl { display: none !important; }
+  body.cmd-on .me-chip:not(:first-child) { display: none; }
+  body.cmd-on .unofficial { display: none; }
+}
