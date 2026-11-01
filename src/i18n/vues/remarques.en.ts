@@ -3,8 +3,8 @@ import type { Msg } from "../fr.ts";
 import type { remarquesFr } from "./remarques.fr.ts";
 
 export const remarquesEn: { [K in keyof typeof remarquesFr]: Msg } = {
-  "rm.btn": "Feedback",
-  "rm.btn.aria": "Send feedback",
+  "rm.btn": "Suggest",
+  "rm.btn.aria": "Suggest an idea or report a mistake",
   "rm.btn.aria.new": { one: "Send feedback ({n} new reply)", other: "Send feedback ({n} new replies)" },
   "rm.title": "{i:remark} Feedback",
   "rm.title.fix": "{i:send} Send my fixes",

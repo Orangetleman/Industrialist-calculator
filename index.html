@@ -53,7 +53,7 @@
     <!-- S59 : thème clair en option -->
     <button type="button" class="theme-btn" id="theme-btn" data-i18n-attr="title=header.theme.title;aria-label=header.theme.title" title="Thème clair / sombre" aria-label="Thème clair / sombre"></button>
     <!-- S35 : les remarques (maquettes public.html, écran 2, et remarques.html) ; au téléphone, l'icône seule. -->
-    <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
+    <button type="button" class="remark-btn" id="remark-btn" aria-label="Proposer une idée ou signaler une erreur" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Proposer</span><span class="rm-dot" id="remark-dot" hidden></span></button>
     <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
@@ -115,6 +115,7 @@
         <input id="rp-rate" type="number" min="0.01" step="any" inputmode="decimal" placeholder="ex. 50" data-i18n-attr="placeholder=form.rp.rate.ph">
       </label>
       <label data-goals="recherche" class="grow" for="rp-node" id="rp-node-label"><span data-i18n="form.rp.node">Recherche à débloquer</span>
+        <button type="button" class="cmd-pick" id="rp-node-pick" aria-haspopup="dialog"></button>
         <input id="rp-node" list="node-list" autocomplete="off" spellcheck="false" placeholder="ex. Research Station 3" data-i18n-attr="placeholder=form.rp.node.ph">
       </label>
       <label data-goals="recherche" for="rp-minutes" id="rp-minutes-label"><span data-i18n="form.rp.minutes">En combien de minutes</span>
@@ -147,6 +148,7 @@
           <label><input type="radio" name="mf-mode" value="seulement"> <span data-i18n="mf.mode.seulement">Seulement…</span></label>
         </div>
         <div class="mf-row" id="mf-pick"><span class="k" id="mf-label"></span> <span id="mf-chips"></span>
+          <button type="button" class="cmd-pick cmd-pick-add" id="mf-pick-btn"><span data-ic="config"></span> <span data-i18n="mf.pick">Choisir une machine</span></button>
           <input type="search" id="mf-search" list="mf-list" autocomplete="off" spellcheck="false" aria-label="Chercher une machine" data-i18n-attr="aria-label=mf.search.aria"></div>
         <datalist id="mf-list"></datalist>
         <div id="mf-more"></div>

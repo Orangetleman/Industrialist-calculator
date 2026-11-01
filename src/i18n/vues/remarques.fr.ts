@@ -3,8 +3,8 @@
 import type { Msg } from "../fr.ts";
 
 export const remarquesFr = {
-  "rm.btn": "Remarque",
-  "rm.btn.aria": "Envoyer une remarque",
+  "rm.btn": "Proposer",
+  "rm.btn.aria": "Proposer une idée ou signaler une erreur",
   "rm.btn.aria.new": { one: "Envoyer une remarque ({n} réponse nouvelle)", other: "Envoyer une remarque ({n} réponses nouvelles)" },
   "rm.title": "{i:remark} Une remarque ?",
   "rm.title.fix": "{i:send} Envoyer mes corrections",

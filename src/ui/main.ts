@@ -914,6 +914,29 @@ const itemPal = createItemPalette({
     inp.dispatchEvent(new Event("change"));
   },
 });
+/** Palettes des machines (filtre du tiroir) et des recherches (objectif « Des RP ») : même choix que l'objet. */
+const machinePal = createItemPalette({
+  items: () => filterableMachines({ data }).map((id) => ({ id, name: data.machines.get(id)!.name, pic: pictureOf("machine", id)?.src ?? null })).sort((a, b) => a.name.localeCompare(b.name)),
+  current: () => null,
+  onPick: (id) => {
+    const inp = input("mf-search");
+    inp.value = data.machines.get(id)?.name ?? id;
+    inp.dispatchEvent(new Event("change"));
+  },
+  recentKey: "ind-calc:v1:recent-machines",
+  ph: () => t("pal.ph.machine"),
+});
+const nodePal = createItemPalette({
+  items: () => [...data.nodes.values()].filter((n) => !n.isRoot).sort((a, b) => a.name.localeCompare(b.name)).map((n) => ({ id: n.id, name: n.name, pic: null })),
+  current: () => settings.rpNode,
+  onPick: (id) => {
+    const inp = input("rp-node");
+    inp.value = nodeName(id);
+    inp.dispatchEvent(new Event("change"));
+  },
+  recentKey: "ind-calc:v1:recent-nodes",
+  ph: () => t("pal.ph.node"),
+});
 /** Le bouton de l'objet dans la phrase : vignette, nom, raccourci. */
 function renderItemPick(): void {
   const it = data.items.get(settings.item);
@@ -940,6 +963,7 @@ function syncForm(): void {
   $<HTMLSelectElement>("rp-mode").value = settings.rpMode;
   set("rp-rate", settings.rpRate === null ? "" : String(settings.rpRate));
   set("rp-node", settings.rpNode ? nodeName(settings.rpNode) : "");
+  $("rp-node-pick").textContent = settings.rpNode ? nodeName(settings.rpNode) : t("pal.ph.node");
   set("rp-minutes", String(settings.rpMinutes));
   set("rp-cap", settings.rpCap === null ? "" : String(settings.rpCap));
   input("rp-satellites").checked = settings.rpSatellites;
@@ -3191,6 +3215,8 @@ async function askExisting(id: string, perMin: number): Promise<void> {
 function bindPlan(): void {
   const itemInput = input("item");
   $("item-pick").addEventListener("click", () => itemPal.open());
+  $("mf-pick-btn").addEventListener("click", () => machinePal.open());
+  $("rp-node-pick").addEventListener("click", () => nodePal.open());
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K") && !$("page-plan").hidden && settings.goal === "objet") {
       e.preventDefault();

@@ -1762,3 +1762,16 @@ table.rh-log td.num { white-space: nowrap; }
   .cmd-drawer { position: absolute; top: 0; bottom: auto; left: 0; height: auto; max-height: 100%; border-bottom: 2px solid var(--accent); }
 }
 .cmd-right #answer .answer > :not(h2):not(.kpis):not(.io-in):not(.io-out) { display: none; } .cmd-notes > * { margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: .8rem; }
+
+/* ---------------------------------------------------------------- Palettes des machines et des recherches */
+#mf-search, #rp-node { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.cmd-pick-add { border-style: dashed; font-weight: 400; color: var(--muted); padding: 4px 10px; }
+.cmd-pick-add:hover { color: var(--accent); }
+#rp-node-pick { padding: 5px 10px; }
+/* Tiroir : le titre reste en haut, les réglages défilent dessous. */
+.cmd-drawer { padding-top: 0; }
+.cmd-drawer-top { position: sticky; top: 0; z-index: 3; background: var(--surface); margin: 0 -14px; padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+/* « Proposer » : le bouton des remarques, bien visible (R28 suite). */
+.remark-btn { border-color: var(--accent) !important; color: var(--accent) !important; background: var(--accent-soft) !important; font-weight: 600; }
+.remark-btn:hover { background: var(--accent) !important; color: var(--on-accent) !important; }
+@media (min-width: 1100px) { body.cmd-on .remark-btn .lbl, .remark-btn .lbl { display: inline !important; } }

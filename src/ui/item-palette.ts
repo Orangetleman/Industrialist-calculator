@@ -10,17 +10,17 @@ export type PalItem = { id: string; name: string; pic: string | null };
 const KEY_RECENT = "ind-calc:v1:recent-items";
 const MAX_SHOWN = 160;
 
-function loadRecent(): string[] {
+function loadRecent(key: string): string[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY_RECENT) ?? "[]");
+    const raw = JSON.parse(localStorage.getItem(key) ?? "[]");
     return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string").slice(0, 24) : [];
   } catch {
     return [];
   }
 }
-function saveRecent(list: string[]): void {
+function saveRecent(key: string, list: string[]): void {
   try {
-    localStorage.setItem(KEY_RECENT, JSON.stringify(list.slice(0, 24)));
+    localStorage.setItem(key, JSON.stringify(list.slice(0, 24)));
   } catch {
     // stockage indisponible : la liste des récents reste en mémoire
   }
@@ -36,8 +36,10 @@ export function itemTile(it: PalItem, cls = "pal-ico"): string {
   return it.pic ? `<img class="${cls}" src="${esc(it.pic)}" alt="" loading="lazy">` : `<span class="${cls} pal-txt" aria-hidden="true">${esc(initials(it.name))}</span>`;
 }
 
-export function createItemPalette(opts: { items: () => PalItem[]; current: () => string | null; onPick: (id: string) => void }) {
-  let recent = loadRecent();
+/** Une palette par sorte d'élément du jeu (objet, machine, recherche…) : ses récents et son texte de recherche. */
+export function createItemPalette(opts: { items: () => PalItem[]; current: () => string | null; onPick: (id: string) => void; recentKey?: string; ph?: () => string }) {
+  const recentKey = opts.recentKey ?? KEY_RECENT;
+  let recent = loadRecent(recentKey);
   let tab: "all" | "recent" = "all";
   let shown: PalItem[] = [];
   let focus = 0;
@@ -46,19 +48,21 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
   const el = document.createElement("div");
   el.className = "cmd-pal";
   el.hidden = true;
-  el.innerHTML = `<div class="pal-box" role="dialog" aria-modal="true" aria-labelledby="pal-q">
-    <input id="pal-q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="pal-grid">
+  el.innerHTML = `<div class="pal-box" role="dialog" aria-modal="true">
+    <input class="pal-q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" >
     <div class="pal-tabs" role="group"><button type="button" data-pal-tab="all"></button><button type="button" data-pal-tab="recent"></button></div>
-    <div class="pal-grid" id="pal-grid" role="listbox"></div>
+    <div class="pal-grid" role="listbox"></div>
     <p class="pal-help"></p>
   </div>`;
   document.body.append(el);
-  const q = el.querySelector<HTMLInputElement>("#pal-q")!;
-  const grid = el.querySelector<HTMLElement>("#pal-grid")!;
+  const q = el.querySelector<HTMLInputElement>(".pal-q")!;
+  const grid = el.querySelector<HTMLElement>(".pal-grid")!;
+  const uid = Math.random().toString(36).slice(2, 7); // plusieurs palettes : des identifiants distincts
 
   function texts(): void {
-    q.placeholder = t("pal.ph");
-    q.setAttribute("aria-label", t("pal.ph"));
+    const ph = opts.ph ? opts.ph() : t("pal.ph");
+    q.placeholder = ph;
+    q.setAttribute("aria-label", ph);
     el.querySelector('[data-pal-tab="all"]')!.textContent = t("pal.all");
     el.querySelector('[data-pal-tab="recent"]')!.textContent = t("pal.recent");
     el.querySelector(".pal-help")!.textContent = t("pal.help");
@@ -80,10 +84,10 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
     for (const b of el.querySelectorAll<HTMLElement>("[data-pal-tab]")) b.setAttribute("aria-pressed", String(b.dataset.palTab === tab));
     grid.innerHTML = shown.length
       ? shown
-          .map((it, i) => `<button type="button" role="option" class="pal-it${i === focus ? " f" : ""}${it.id === cur ? " cur" : ""}" id="pal-o${i}" data-pal="${esc(it.id)}" aria-selected="${i === focus}" tabindex="-1">${itemTile(it)}<span>${esc(it.name)}</span></button>`)
+          .map((it, i) => `<button type="button" role="option" class="pal-it${i === focus ? " f" : ""}${it.id === cur ? " cur" : ""}" id="pal-${uid}-${i}" data-pal="${esc(it.id)}" aria-selected="${i === focus}" tabindex="-1">${itemTile(it)}<span>${esc(it.name)}</span></button>`)
           .join("") + (list.length > MAX_SHOWN ? `<p class="pal-more">${esc(t("pal.more", { n: list.length - MAX_SHOWN }))}</p>` : "")
       : `<p class="pal-more">${esc(t(tab === "recent" && !needle ? "pal.noRecent" : "pal.empty"))}</p>`;
-    q.setAttribute("aria-activedescendant", shown.length ? `pal-o${focus}` : "");
+    q.setAttribute("aria-activedescendant", shown.length ? `pal-${uid}-${focus}` : "");
   }
 
   function move(to: number): void {
@@ -93,14 +97,14 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
       b.classList.toggle("f", i === focus);
       b.setAttribute("aria-selected", String(i === focus));
     });
-    q.setAttribute("aria-activedescendant", `pal-o${focus}`);
-    grid.querySelector(`#pal-o${focus}`)?.scrollIntoView({ block: "nearest" });
+    q.setAttribute("aria-activedescendant", `pal-${uid}-${focus}`);
+    grid.querySelector(`#pal-${uid}-${focus}`)?.scrollIntoView({ block: "nearest" });
   }
   const cols = () => Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(" ").length);
 
   function pick(id: string): void {
     recent = [id, ...recent.filter((x) => x !== id)];
-    saveRecent(recent);
+    saveRecent(recentKey, recent);
     close();
     opts.onPick(id);
   }
