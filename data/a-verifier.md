@@ -954,3 +954,8 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   **Confirmé par l'utilisateur le 2026-11-01** : le bac à sable donne désormais cette forme aux coudes, tés et croix
   du tier III sans relevé (Pipe Fluid Turn2, Junction2, Section2), qui se dessinent et se raccordent comme les autres.
   Un module dont la recette du bac à sable a d'autres entrées que le plan (Boiler : eau et eau chaude) n'est pas vérifié.
+- **BAS-13** (2026-11-01, à vérifier en jeu) : une machine à plusieurs ports de sortie du même type, sans relevé de ce qui
+  sort par lequel (objets du port ou infobulle), par exemple la Steam Cracking Plant (éthylène et paraxylène) : on suppose
+  que les produits prennent les ports de sortie **dans l'ordre de la recette** (plan de pose et bac à sable). Avant, le
+  plan donnait le premier port au produit principal et le bac à sable au premier produit de la recette : les deux flux
+  se croisaient. Question : en jeu, quel produit sort par quel port (et peut-on le régler aux boutons) ?
