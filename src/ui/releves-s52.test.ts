@@ -4,7 +4,7 @@ import type { Port, PortsEntry } from "../engine/extension-types.ts";
 import { readGeo } from "../engine/sandbox/catalog.ts";
 import { applyTool, canWiden, entryChanged, mergeHalves, parseSurveys, portCenter, CELL } from "./buildings-model.ts";
 
-const src = { wiki: "saisie", fetchedAt: "2026-11-02T00:00:00Z" };
+const src = { wiki: "saisie" as const, fetchedAt: "2026-11-02T00:00:00Z" };
 const halves: Port[] = [
   { type: "fluide", direction: "sortie", side: "haut", cell: 1, tip: "Output 1/2 large fluid pipe" },
   { type: "fluide", direction: "sortie", side: "haut", cell: 2, tip: "Output 2/2 large fluid pipe" },
