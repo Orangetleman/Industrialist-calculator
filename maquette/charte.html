@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maquette S59 — Charte graphique</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen:wght@400;700&family=VT323&display=swap">
 <style>
 /* Maquette S59 : 3 chartes au choix, chacune sur l'écran Planifier de maquette/planifier.html (S58), en sombre et en clair.
    Les jetons sont posés en JS (objet CHARTES plus bas) : un seul écran, recoloré. Chiffres de démonstration, non issus du jeu. */
@@ -115,13 +116,18 @@ svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
 [data-io="v2"] .mk-in, [data-io="v2"] .mk-out, [data-io="v3"] .mk-in, [data-io="v3"] .mk-out { display: inline-grid; }
 [data-io="v3"] .mk-in::before { content: ""; width: 9px; height: 9px; border: 2px solid currentColor; border-radius: 50%; }
 [data-io="v3"] .mk-out::before { content: ""; width: 9px; height: 9px; background: currentColor; border-radius: 2px; }
-[data-io="v2"] .mk-in::before { content: "⇥"; font-size: 14px; }
-[data-io="v2"] .mk-out::before { content: "↦"; font-size: 14px; }
+[data-io="v2"] .mk-in::before, [data-io="v2"] .mk-out::before { content: ""; width: 14px; height: 14px; background: currentColor; -webkit-mask: var(--m) center/contain no-repeat; mask: var(--m) center/contain no-repeat; }
+/* Icônes Lucide (ISC), comme src/ui/icons.ts : log-in = entre, log-out = sort */
+[data-io="v2"] .mk-in { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10 17 5-5-5-5'/%3E%3Cpath d='M15 12H3'/%3E%3Cpath d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'/%3E%3C/svg%3E"); }
+[data-io="v2"] .mk-out { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m16 17 5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3C/svg%3E"); }
+/* Police des titres (2e tour) : le texte courant reste IBM Plex */
+.logo, .rail h2, .kpi .l, .flow .hd, .panel h2, .intro h1, .nav a, .views button, .seg button { font-family: var(--f-title, "IBM Plex Sans Condensed", "Arial Narrow", sans-serif) !important; }
+.kpi .v, .node header .k, .step .x { font-family: var(--f-num, "IBM Plex Mono", monospace) !important; }
 
 /* --- Panneaux sous l'écran --- */
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
 .panel h2 { margin: 0 0 10px; font: 600 12px "IBM Plex Sans Condensed", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--acc-ink); }
-.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--bg); display: grid; gap: 8px; align-content: start; }
 .card.cur { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc); }
 .card h3 { margin: 0; font-size: 14px; }
@@ -155,9 +161,10 @@ table.ct td.r { text-align: right; font-family: "IBM Plex Mono", monospace; }
 
 <div class="ctl">
   <b>Maquette S59</b>
-  <span class="g" id="g-ch"><span>Charte</span><button data-ch="A">A · Signal</button><button data-ch="B">B · Chantier</button><button data-ch="C">C · Plasma</button></span>
+  <span class="g" id="g-ch"><span>Charte</span><button data-ch="BC">B+C · Plasma Chantier</button><button data-ch="A">A · Signal</button><button data-ch="B">B · Chantier</button><button data-ch="C">C · Plasma</button></span>
   <span class="g" id="g-th"><span>Thème</span><button data-th="dark">Sombre</button><button data-th="light">Clair (option)</button></span>
-  <span class="g" id="g-io"><span>Entrée / sortie</span><button data-io="v1">1 · vert / rouge</button><button data-io="v2">2 · bleu / orange + flèches</button><button data-io="v3">3 · formes, sans couleur</button></span>
+  <span class="g" id="g-io"><span>Entrée / sortie</span><button data-io="v1">1 · vert / rouge</button><button data-io="v2">2 · couleurs alternatives + icônes</button><button data-io="v3">3 · formes, sans couleur</button></span>
+  <span class="g" id="g-ft"><span>Police des titres</span><button data-ft="plex">IBM Plex (actuelle)</button><button data-ft="pixelify">Pixelify Sans</button><button data-ft="silk">Silkscreen</button><button data-ft="vt">VT323</button></span>
   <span class="g" id="g-sim"><span>Vue</span><button data-sim="">Normale</button><button data-sim="deut">Deutéranopie</button><button data-sim="prot">Protanopie</button><button data-sim="trit">Tritanopie</button></span>
 </div>
 
@@ -238,7 +245,7 @@ table.ct td.r { text-align: right; font-family: "IBM Plex Mono", monospace; }
   </section>
 
   <section class="panel">
-    <h2>Les 3 chartes en un coup d'œil</h2>
+    <h2>Les chartes en un coup d'œil</h2>
     <div class="cols" id="ch-cols"></div>
   </section>
 
@@ -250,10 +257,9 @@ table.ct td.r { text-align: right; font-family: "IBM Plex Mono", monospace; }
   <section class="panel qs">
     <h2>Questions</h2>
     <ol>
-      <li>Quelle charte : A Signal, B Chantier ou C Plasma (ou un mélange, par exemple « le fond de A avec l'accent de C ») ?</li>
-      <li>Entrée / sortie : variante 1 (vert / rouge, comme S58), 2 (bleu / orange + flèches) ou 3 (formes, sans couleur) ?</li>
-      <li>Le thème clair de cette charte (bouton « Clair ») vous convient-il comme option ?</li>
-      <li>Les polices restent IBM Plex (déjà sur le site) : d'accord, ou voulez-vous essayer une autre police (elle s'ajouterait au site) ?</li>
+      <li>La fusion « B+C · Plasma Chantier » vous va-t-elle (sombre, et le clair adouci) ?</li>
+      <li>Entrée cyan / sortie mauve, avec les icônes « entrer » / « sortir » : d'accord ?</li>
+      <li>Police des titres, dans l'esprit pixel de Mindustry : Pixelify Sans, Silkscreen ou VT323 (toutes sous licence libre OFL) ? Le texte courant reste en IBM Plex pour rester lisible. La police choisie serait copiée dans le site (pas de dépendance npm).</li>
     </ol>
   </section>
 </div>
@@ -266,7 +272,30 @@ const V1 = {
   dark:  { in: "#22c55e", "in-ink": "#86efac", "in-bg": "#10261a", out: "#ef4444", "out-ink": "#fca5a5", "out-bg": "#2a1212" },
   light: { in: "#16a34a", "in-ink": "#166534", "in-bg": "#e3f5e9", out: "#dc2626", "out-ink": "#991b1b", "out-bg": "#fde8e8" },
 };
+const FONTS = {
+  plex: { t: '"IBM Plex Sans Condensed", "Arial Narrow", sans-serif', n: '"IBM Plex Mono", monospace' },
+  pixelify: { t: '"Pixelify Sans", sans-serif', n: '"Pixelify Sans", monospace' },
+  silk: { t: '"Silkscreen", sans-serif', n: '"IBM Plex Mono", monospace' },
+  vt: { t: '"VT323", monospace', n: '"VT323", monospace' },
+};
 const CHARTES = {
+  BC: {
+    name: "B+C · Plasma Chantier", tag: "violet profond, orange sécurité, bande hachurée, touche vert acide",
+    desc: "La fusion demandée : le fond violet et l'esprit de C, l'accent orange de B, le bandeau hachuré de chantier (orange sur violet). Le vert acide de C ne reste que pour la cible du plan (★). Entrée en cyan, sortie en mauve. En clair : plus de blanc pur, des fonds lilas grisés pour moins éblouir.",
+    shape: { r: "4px", logo: "2px" },
+    dark: { bg: "#0e0a18", panel: "#160f25", panel2: "#201733", line: "#392a5a", "node-line": "#4a3874", edge: "#5c4a8a",
+      acc: "#ff6a1a", "acc-ink": "#ff8f52", "on-acc": "#1a0800", acc2: "#b6f23a", ink: "#f0ecfa", muted: "#a99cc8",
+      ok: "#4ade80", warn: "#ffd23f", "warn-bg": "#2a220c", bad: "#ff7a9a", sel: "#2e1a1c",
+      glow: "0 0 16px rgba(255,106,26,.25)", grid: "radial-gradient(circle, #2a1f45 1px, transparent 1.2px) 0 0/22px 22px",
+      "brand-bar": "repeating-linear-gradient(45deg, #ff6a1a 0 10px, #0e0a18 10px 20px)", "goal-bg": "linear-gradient(#1a1230, #120c20)",
+      in: "#38bdf8", "in-ink": "#8fd8fb", "in-bg": "#0f2235", out: "#e879f9", "out-ink": "#f0abfc", "out-bg": "#2d1436" },
+    light: { bg: "#e9e5f0", panel: "#f5f2f9", panel2: "#eeeaf4", line: "#d0c7e0", "node-line": "#b9add2", edge: "#9c8fbd",
+      acc: "#b43f0b", "acc-ink": "#8f320c", "on-acc": "#ffffff", acc2: "#4d7c0f", ink: "#1f1730", muted: "#55496e",
+      ok: "#15803d", warn: "#7d5200", "warn-bg": "#f3e9d0", bad: "#b4234a", sel: "#f3e0d6",
+      glow: "0 0 0 rgba(0,0,0,0)", grid: "radial-gradient(circle, #d6cde6 1px, transparent 1.2px) 0 0/22px 22px",
+      "brand-bar": "repeating-linear-gradient(45deg, #b43f0b 0 10px, #e9e5f0 10px 20px)", "goal-bg": "#f0ecf6",
+      in: "#0369a1", "in-ink": "#075985", "in-bg": "#dbe9f3", out: "#a21caf", "out-ink": "#86198f", "out-bg": "#f1def4" },
+  },
   A: {
     name: "A · Signal", tag: "bleu nuit, cyan électrique, touche magenta",
     desc: "Une salle de contrôle : fond bleu nuit, accent cyan qui « s'allume » (halo léger), la cible du plan en magenta. Froid, net, technique ; très loin de l'or et du charbon.",
@@ -322,14 +351,14 @@ const CHARTES = {
 const IO = {
   v1: { name: "1 · Vert entre, rouge sort", desc: "La maquette S58. Lu d'un coup d'œil… sauf si on confond vert et rouge, et le rouge ressemble à une erreur.",
     pros: ["+ habitude des jeux de gestion", "− illisible pour un daltonien rouge-vert", "− rouge = « problème » ?"] },
-  v2: { name: "2 · Bleu entre, orange sort + flèches", desc: "Paire froid / chaud, sûre pour les daltonismes courants ; une flèche ⇥ (arrive) ou ↦ (part) double la couleur. (Charte B : bleu / mauve, l'orange étant l'accent.)",
+  v2: { name: "2 · Bleu entre, orange sort + flèches", desc: "Paire de couleurs sûre pour les daltonismes courants, doublée d'une icône (Lucide « log-in » : arrive, « log-out » : part). Bleu / orange en A et C ; cyan / mauve en B et B+C, l'orange y étant l'accent.",
     pros: ["+ lisible par tous", "+ le rouge reste réservé aux erreurs", "− une couleur de plus à apprendre"] },
   v3: { name: "3 · Forme et place, sans couleur", desc: "Entrée : rond creux, à gauche, barre à gauche. Sortie : carré plein, à droite, barre à droite. La couleur ne sert plus qu'à l'accent et aux alertes.",
     pros: ["+ le plus sobre, aucune confusion possible", "+ la page garde une seule couleur vive", "− moins « parlant » au premier regard"] },
 };
 
-const st = { ch: "A", th: "dark", io: "v2", sim: "" };
-try { Object.assign(st, JSON.parse(localStorage.getItem("s59") || "{}")); } catch {}
+const st = { ch: "BC", th: "dark", io: "v2", sim: "", ft: "pixelify" };
+try { Object.assign(st, JSON.parse(localStorage.getItem("s59b") || "{}")); } catch {}
 
 function tokensOf(ch, th, io) {
   const c = CHARTES[ch], t = { ...c[th] };
@@ -361,9 +390,10 @@ function flowsHTML() {
 function render() {
   const root = document.documentElement, t = tokensOf(st.ch, st.th, st.io);
   apply(root, t);
+  root.style.setProperty("--f-title", FONTS[st.ft].t); root.style.setProperty("--f-num", FONTS[st.ft].n);
   document.getElementById("app").dataset.io = st.io;
   document.getElementById("root").style.filter = st.sim ? `url(#${st.sim})` : "";
-  for (const k of ["ch", "th", "io", "sim"]) document.querySelectorAll(`[data-${k}]`).forEach((b) => b.tagName === "BUTTON" && b.classList.toggle("on", b.dataset[k] === st[k]));
+  for (const k of ["ch", "th", "io", "sim", "ft"]) document.querySelectorAll(`[data-${k}]`).forEach((b) => b.tagName === "BUTTON" && b.classList.toggle("on", b.dataset[k] === st[k]));
   const c = CHARTES[st.ch];
   document.getElementById("ch-name").textContent = `Charte ${c.name} — ${st.th === "dark" ? "sombre" : "clair"}`;
   document.getElementById("ch-desc").textContent = c.desc;
@@ -383,14 +413,14 @@ function render() {
 
   const rows = PAIRS.map(([f, b]) => { const r = ratio(t[f], t[b]); return `<tr><td>--${f} sur --${b}</td><td class="r">${t[f]} / ${t[b]}</td><td class="r ${r < 4.5 ? "ko" : ""}">${r.toFixed(2).replace(".", ",")}:1</td></tr>`; });
   document.getElementById("ct").innerHTML = rows.join("");
-  try { localStorage.setItem("s59", JSON.stringify(st)); } catch {}
+  try { localStorage.setItem("s59b", JSON.stringify(st)); } catch {}
 }
 document.addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-ch],button[data-th],button[data-io],button[data-sim],[data-pick-io],[data-pick-ch]");
+  const b = e.target.closest("button[data-ch],button[data-th],button[data-io],button[data-sim],button[data-ft],[data-pick-io],[data-pick-ch]");
   if (!b) return;
   if (b.dataset.pickIo) st.io = b.dataset.pickIo;
   else if (b.dataset.pickCh) st.ch = b.dataset.pickCh;
-  else for (const k of ["ch", "th", "io", "sim"]) if (k in b.dataset) st[k] = b.dataset[k];
+  else for (const k of ["ch", "th", "io", "sim", "ft"]) if (k in b.dataset) st[k] = b.dataset[k];
   render();
 });
 render();
