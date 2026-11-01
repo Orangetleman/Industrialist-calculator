@@ -2032,7 +2032,7 @@ function markIncomplete(): void {
     g.classList.toggle("bad", !!why);
     g.querySelector(".u-bad")?.remove();
     if (!why) continue;
-    const r = g.querySelector<SVGRectElement>(".u-box");
+    const r = g.querySelector<SVGRectElement>(":scope > rect");
     if (!r) continue;
     const x = Number(r.getAttribute("x")), y = Number(r.getAttribute("y")), w = Number(r.getAttribute("width")), h = Number(r.getAttribute("height"));
     // Un voile jaune sur tout le module et la pastille au centre (R28 suite).
@@ -2076,7 +2076,7 @@ function followBubble(key: string): void {
   let w0 = 0;
   const tick = () => {
     if (panel.hidden || !matchMedia("(min-width: 900px)").matches) return;
-    const box = $("pose-canvas").querySelector(`.u-mod[data-mod="${CSS.escape(key)}"] .u-box`);
+    const box = $("pose-canvas").querySelector(`.u-mod[data-mod="${CSS.escape(key)}"] > rect`); // module (u-box) ou ensemble (u-farm…)
     const host = $("pose-split").getBoundingClientRect();
     if (box && host.width) {
       const r = box.getBoundingClientRect();
@@ -2137,8 +2137,9 @@ function showAssemblyFocus(key: string, a: Assembly): void {
   $("pose-split").classList.add("focus");
   document.body.classList.add("usine-wide");
   $("focus-title").textContent = v.title;
+  followBubble(key);
   $("focus-bar-opts").innerHTML = v.bar;
-  $("focus-head").innerHTML = v.head.replace('id="asm-pole"', 'id="asm-pole-focus"').replace('for="asm-pole"', 'for="asm-pole-focus"') + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key)}">${t("m.focus.asmAlone")}</button> · <button type="button" class="link" data-flow="${esc(key)}">${t("m.focus.toFlow")}</button></p>`;
+  $("focus-head").innerHTML = v.head.replace('id="asm-pole"', 'id="asm-pole-focus"').replace('for="asm-pole"', 'for="asm-pole-focus"') + bubbleAlerts(key) + `<p class="pose-actions"><button type="button" class="link" data-pose="${esc(key)}">${t("m.focus.asmAlone")}</button> · <button type="button" class="link" data-flow="${esc(key)}">${t("m.focus.toFlow")}</button></p>`;
   $("focus-legend").innerHTML = v.legend;
   $("focus-details").innerHTML = v.details;
   const frame = $("focus-frame");
@@ -3456,6 +3457,8 @@ function bindPlan(): void {
     if ($("page-plan").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
     const typing = e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
     if (e.key === "Escape" && !drawer.hidden) setDrawer(false);
+    else if (e.key === "Escape" && !$("pose-focus").hidden && !document.body.classList.contains("focus-full") && !document.querySelector("dialog[open], .cmd-pal:not([hidden])"))
+      $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click();
     else if (e.key === "Escape" && document.querySelector(".cmd-pane.sub.on") && $("flow-hud").hidden) paneBack();
     else if (e.key === "Escape" && !$("flow-hud").hidden && !document.querySelector("dialog[open], .cmd-pal:not([hidden])")) selectFlow(null);
     else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
@@ -3586,7 +3589,7 @@ function bindPlan(): void {
     }
     const mod = t.closest<SVGGElement>("[data-mod]");
     // Un module, ou un ensemble modulaire posé à sa place (S14) : son panneau à côté.
-    if (mod?.querySelector(".u-box") || (mod && currentFactory()?.plan?.boxes.find((b) => b.key === mod.dataset.mod)?.assembly)) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: mod.dataset.mod! });
+    if (mod?.querySelector(".u-box") || (mod && (currentFactory()?.plan?.boxes.find((b) => b.key === mod.dataset.mod)?.assembly || assemblyOf(mod.dataset.mod!)))) return go({ page: "plan", goal: settings.goal, tab: "pose", step: USINE, focus: mod.dataset.mod! });
     if (poseSel) {
       poseSel = null;
       applySel($("pose-frame"), null, "pose-pick");
