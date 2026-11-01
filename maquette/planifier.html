@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S58 — Planifier, poste de commande</title>
+<style>
+/* Palette reprise d'Industrialist Calculator (src/index.css, MIT) : charbon, or, vert = entre, rouge = sort, couleurs de tier. */
+:root {
+  --bg: #0a0a0a; --panel: #141414; --panel2: #1c1c1c; --line: #2c2c2c; --line-gold: rgba(212,166,55,.35);
+  --gold: #d4a637; --gold-hi: #f5d56a; --ink: #e8e8e8; --muted: #9a9a9a; --dim: #6a6a6a;
+  --in: #22c55e; --in-bg: #10261a; --in-ink: #86efac;
+  --out: #ef4444; --out-bg: #2a1212; --out-ink: #fca5a5;
+  --t1: #888; --t2: #4ade80; --t3: #60a5fa; --t4: #c084fc; --t5: #fbbf24;
+  --warn: #fbbf24;
+  --f: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif; --fc: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; --fm: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 var(--f); }
+button { font: inherit; color: inherit; cursor: pointer; }
+.note { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 50; background: #3a2c08; color: var(--gold-hi); border: 1px solid var(--gold); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+
+/* Grille : barre du haut, puis rail gauche · plan · rail droit */
+.app { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; }
+.top { display: flex; align-items: center; gap: 16px; padding: 8px 14px; border-bottom: 1px solid var(--line-gold); background: var(--panel); }
+.logo { font: 700 16px var(--fc); color: var(--gold-hi); letter-spacing: .04em; text-transform: uppercase; }
+.nav { display: flex; gap: 2px; }
+.nav a { padding: 6px 10px; color: var(--muted); text-decoration: none; border-radius: 4px; }
+.nav a.on { color: var(--bg); background: var(--gold); font-weight: 600; }
+.top .sp { flex: 1; }
+.kbd { font: 11px var(--fm); border: 1px solid var(--line); border-bottom-width: 2px; padding: 0 5px; border-radius: 3px; color: var(--muted); }
+
+/* Ligne d'objectif : une phrase qu'on édite */
+.goal { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(#171717, #111); border-bottom: 1px solid var(--line); }
+.goal .say { color: var(--muted); font-size: 15px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { background: none; border: 0; padding: 6px 10px; color: var(--muted); }
+.seg button.on { background: var(--gold); color: var(--bg); font-weight: 600; }
+.pick { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; background: var(--panel2); border: 1px solid var(--gold); border-radius: 6px; font-weight: 600; color: var(--gold-hi); }
+.ico { width: 26px; height: 26px; border-radius: 4px; display: inline-grid; place-items: center; font: 700 11px var(--fc); color: #111; flex: none; }
+.num { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); }
+.num button { background: none; border: 0; width: 28px; height: 32px; color: var(--gold); font-size: 16px; }
+.num input { width: 70px; background: none; border: 0; color: var(--ink); text-align: center; font: 600 16px var(--fm); }
+.chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel2); color: var(--muted); font-size: 13px; }
+.chip.on { border-color: var(--gold); color: var(--gold-hi); }
+.chip b { color: var(--ink); }
+.prio { display: inline-flex; gap: 4px; align-items: center; }
+.prio .chip { cursor: grab; }
+.prio .chip::before { content: attr(data-n) " "; color: var(--gold); font-weight: 700; }
+
+/* Corps */
+.body { display: grid; grid-template-columns: 240px 1fr 300px; min-height: 0; }
+.rail { background: var(--panel); border-right: 1px solid var(--line); overflow: auto; }
+.rail.r { border-right: 0; border-left: 1px solid var(--line); }
+.rail h2 { margin: 0; padding: 10px 12px 6px; font: 600 11px var(--fc); letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.step { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-left: 3px solid transparent; }
+.step:hover { background: var(--panel2); }
+.step.on { background: #231d0c; border-left-color: var(--gold); }
+.step .n { font: 600 12px var(--fm); color: var(--dim); width: 16px; }
+.step .x { margin-left: auto; font: 12px var(--fm); color: var(--muted); }
+.step.done .n { color: var(--in); }
+.step.done .nm { color: var(--dim); text-decoration: line-through; }
+.step.warn .x { color: var(--warn); }
+
+/* Plan central */
+.stage { position: relative; min-width: 0; display: grid; grid-template-rows: auto 1fr; }
+.views { display: flex; gap: 2px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: #0f0f0f; align-items: center; }
+.views button { background: none; border: 0; padding: 6px 12px; color: var(--muted); border-bottom: 2px solid transparent; }
+.views button.on { color: var(--gold-hi); border-bottom-color: var(--gold); }
+.views .sp { flex: 1; }
+.tool { width: 30px; height: 30px; border: 1px solid var(--line); background: var(--panel2); border-radius: 4px; color: var(--muted); }
+.canvas { position: relative; overflow: hidden; background: radial-gradient(circle, #222 1px, transparent 1.2px) 0 0/22px 22px, var(--bg); }
+.node { position: absolute; width: 170px; background: var(--panel2); border: 1px solid var(--gold); border-radius: 6px; cursor: pointer; }
+.node.sel { box-shadow: 0 0 0 2px var(--gold-hi), 0 0 24px rgba(245,213,106,.25); }
+.node.target { background: #2d2416; border-color: var(--gold-hi); }
+.node header { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); font-weight: 600; font-size: 13px; }
+.node header .k { margin-left: auto; font: 700 13px var(--fm); color: var(--gold-hi); }
+.node .io { display: flex; justify-content: space-between; padding: 5px 8px; font: 11px var(--fm); }
+.node .i { color: var(--in-ink); } .node .o { color: var(--out-ink); }
+.node .tier { height: 3px; }
+svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Fiche qui glisse par-dessus le rail droit quand on clique */
+.dash { padding: 10px; display: grid; gap: 8px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.kpi { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.kpi .l { font: 600 10px var(--fc); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.kpi .v { font: 700 22px var(--fm); color: var(--gold-hi); }
+.kpi .d { font-size: 11px; color: var(--dim); }
+.kpi.p1 { border-color: var(--gold); }
+.flow { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.flow .row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; font-size: 13px; }
+.flow .row .q { margin-left: auto; font: 600 12px var(--fm); }
+.flow.in { border-color: var(--in); } .flow.in .row { background: var(--in-bg); } .flow.in .q { color: var(--in-ink); }
+.flow.out { border-color: var(--out); } .flow.out .row { background: var(--out-bg); } .flow.out .q { color: var(--out-ink); }
+.flow .hd { padding: 4px 8px; font: 600 10px var(--fc); letter-spacing: .1em; text-transform: uppercase; }
+.flow.in .hd { color: var(--in); } .flow.out .hd { color: var(--out); }
+.alert { display: flex; gap: 8px; padding: 7px 9px; border: 1px solid var(--warn); background: #2a2108; color: #fde68a; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.insp { position: absolute; inset: 0; background: var(--panel); border-left: 2px solid var(--gold); transform: translateX(100%); transition: transform .18s; padding: 12px; overflow: auto; }
+.rail.r { position: relative; }
+.rail.r.open .insp { transform: none; }
+.insp h3 { margin: 0 0 4px; display: flex; gap: 8px; align-items: center; color: var(--gold-hi); }
+.insp .close { margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 4px; width: 26px; height: 26px; color: var(--muted); }
+.insp .sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.cards { display: grid; gap: 6px; }
+.alt { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); }
+.alt.on { border-color: var(--gold); }
+.alt .q { margin-left: auto; font: 12px var(--fm); color: var(--muted); }
+
+/* Palette de commande (Ctrl+K) : le choix d'objet sans menu déroulant */
+.cmd { position: fixed; inset: 0; background: rgba(10,10,10,.8); display: none; place-items: start center; padding-top: 12vh; z-index: 40; }
+.cmd.open { display: grid; }
+.cmd .box { width: min(640px, 92vw); background: var(--panel); border: 1px solid var(--gold); border-radius: 8px; overflow: hidden; }
+.cmd input { width: 100%; padding: 14px; background: var(--panel2); border: 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 17px; }
+.cmd .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; padding: 10px; }
+.cmd .it { display: flex; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; background: var(--panel2); }
+.cmd .it:hover, .cmd .it.f { border-color: var(--gold); color: var(--gold-hi); }
+.cmd .tiers { display: flex; gap: 6px; padding: 8px 10px 0; }
+
+/* Tiroir des réglages : tout à plat, aucun menu imbriqué */
+.drawer { position: fixed; top: 0; bottom: 0; left: 0; width: min(420px, 94vw); background: var(--panel); border-right: 2px solid var(--gold); transform: translateX(-102%); transition: transform .18s; z-index: 30; padding: 14px; overflow: auto; }
+.drawer.open { transform: none; }
+.drawer h2 { font: 600 12px var(--fc); letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin: 16px 0 6px; }
+.tg { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.sw { width: 34px; height: 18px; border-radius: 9px; background: var(--line); position: relative; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); }
+.sw.on { background: var(--gold); } .sw.on::after { left: 18px; background: var(--bg); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+@media (max-width: 900px) {
+  .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .rail { max-height: 30vh; }
+  .rail.l { order: 0; } .stage { min-height: 50vh; }
+}
+</style>
+</head>
+<body>
+<div class="note">Maquette S58 — chiffres de démonstration, non issus du jeu · cliquer sur une machine, sur « Laser » (Ctrl+K) ou sur « Réglages » (R)</div>
+<div class="app">
+
+  <header class="top">
+    <span class="logo">Industrialist · planificateur</span>
+    <nav class="nav"><a class="on" href="#">Planifier</a><a href="#">Arbre</a><a href="#">Recettes</a><a href="#">Bac à sable</a><a href="#">Mon usine</a></nav>
+    <span class="sp"></span>
+    <button class="chip" id="open-set">⚙ Réglages <span class="kbd">R</span></button>
+    <span class="chip">FR / EN</span>
+  </header>
+
+  <!-- L'objectif s'écrit comme une phrase : chaque morceau est un bouton -->
+  <section class="goal" aria-label="Objectif">
+    <span class="seg" role="tablist" aria-label="Type d'objectif">
+      <button class="on">Objet</button><button>Énergie</button><button>Recherche</button><button>Argent</button>
+    </span>
+    <span class="say">Je veux</span>
+    <span class="num"><button aria-label="moins">−</button><input value="2" aria-label="quantité"><button aria-label="plus">+</button></span>
+    <span class="seg"><button class="on">/s</button><button>/min</button><button>/h</button></span>
+    <button class="pick" id="open-cmd"><span class="ico" style="background:var(--t3)">LA</span>Laser <span class="kbd">Ctrl K</span></button>
+    <span class="say">en privilégiant</span>
+    <span class="prio" title="Glisser pour réordonner">
+      <span class="chip on" data-n="1">place</span><span class="chip" data-n="2">machines</span><span class="chip" data-n="3">énergie</span><span class="chip" data-n="4">prix</span>
+    </span>
+    <span class="chip on">Ma progression ✓</span>
+  </section>
+
+  <div class="body">
+    <!-- Rail gauche : les étapes, dans l'ordre de pose, cochables -->
+    <aside class="rail l">
+      <h2>Étapes de pose · 2 / 6</h2>
+      <div class="step done"><span class="n">✓</span><span class="nm">Mine de fer</span><span class="x">×4</span></div>
+      <div class="step done"><span class="n">✓</span><span class="nm">Four</span><span class="x">×3</span></div>
+      <div class="step on"><span class="n">3</span><span class="nm">Presse</span><span class="x">×2</span></div>
+      <div class="step warn"><span class="n">4</span><span class="nm">Assembleur</span><span class="x">⚠ ×5</span></div>
+      <div class="step"><span class="n">5</span><span class="nm">Atelier laser</span><span class="x">×1</span></div>
+      <div class="step"><span class="n">6</span><span class="nm">Évacuation</span><span class="x">→ est</span></div>
+      <h2>Plans enregistrés</h2>
+      <div class="step"><span class="ico" style="background:var(--t2);width:18px;height:18px"></span><span class="nm">Acier 1/s</span></div>
+      <div class="step"><span class="ico" style="background:var(--t4);width:18px;height:18px"></span><span class="nm">Énergie 5 MW</span></div>
+    </aside>
+
+    <!-- Centre : le plan prend toute la place -->
+    <main class="stage">
+      <div class="views" role="tablist">
+        <button class="on">Usine</button><button>Schéma</button><button>Liste</button>
+        <span class="sp"></span>
+        <button class="tool" title="Tout voir (F)">⤢</button><button class="tool">+</button><button class="tool">−</button>
+      </div>
+      <div class="canvas" id="cv">
+        <svg class="edges"><g stroke="#5c5c5c" stroke-width="2" fill="none">
+          <path d="M210 120 C 250 120, 250 120, 290 120"/><path d="M210 260 C 250 260, 250 160, 290 160"/>
+          <path d="M460 140 C 500 140, 500 200, 540 200"/><path d="M710 200 C 750 200, 750 200, 790 200"/>
+        </g></svg>
+        <div class="node" style="left:40px;top:80px"><div class="tier" style="background:var(--t1)"></div><header>Mine de fer<span class="k">×4</span></header><div class="io"><span class="i"></span><span class="o">fer →</span></div></div>
+        <div class="node" style="left:40px;top:220px"><div class="tier" style="background:var(--t1)"></div><header>Mine de cuivre<span class="k">×2</span></header><div class="io"><span class="i"></span><span class="o">cuivre →</span></div></div>
+        <div class="node sel" style="left:290px;top:100px" data-insp><div class="tier" style="background:var(--t2)"></div><header>Presse<span class="k">×2</span></header><div class="io"><span class="i">← fer, cuivre</span><span class="o">pièce →</span></div></div>
+        <div class="node" style="left:540px;top:160px" data-insp><div class="tier" style="background:var(--t3)"></div><header>Assembleur<span class="k" style="color:var(--warn)">⚠ ×5</span></header><div class="io"><span class="i">← pièce</span><span class="o">module →</span></div></div>
+        <div class="node target" style="left:790px;top:160px"><div class="tier" style="background:var(--t3)"></div><header>★ Laser<span class="k">2/s</span></header><div class="io"><span class="i">← module</span><span class="o"></span></div></div>
+      </div>
+    </main>
+
+    <!-- Rail droit : tableau de bord ; la fiche d'une machine glisse par-dessus -->
+    <aside class="rail r" id="rr">
+      <h2>Ce plan</h2>
+      <div class="dash">
+        <div class="kpis">
+          <div class="kpi p1"><div class="l">① Place</div><div class="v">18×12</div><div class="d">tient dans ta parcelle</div></div>
+          <div class="kpi"><div class="l">② Machines</div><div class="v">17</div><div class="d">5 sortes</div></div>
+          <div class="kpi"><div class="l">③ Énergie</div><div class="v">1,2 MW</div><div class="d">40 % du réseau</div></div>
+          <div class="kpi"><div class="l">④ Prix</div><div class="v">$84k</div><div class="d">rentable en 3 h</div></div>
+        </div>
+        <div class="alert" data-insp>⚠ Assembleur : 5 machines, 4,6 suffiraient. Voir les choix</div>
+        <div class="flow in"><div class="hd">À apporter</div>
+          <div class="row"><span class="ico" style="background:var(--t1)">EA</span>Eau<span class="q">12 /s</span></div>
+        </div>
+        <div class="flow out"><div class="hd">À évacuer</div>
+          <div class="row"><span class="ico" style="background:var(--t1)">SC</span>Scories<span class="q">0,4 /s → est</span></div>
+        </div>
+      </div>
+      <section class="insp" aria-label="Fiche">
+        <h3><span class="ico" style="background:var(--t3)">AS</span>Assembleur<button class="close" id="close-insp" aria-label="Fermer">✕</button></h3>
+        <div class="sub">Étape 4 · tier 3 · Échap pour fermer</div>
+        <div class="kpis"><div class="kpi"><div class="l">Nombre</div><div class="v">5</div></div><div class="kpi"><div class="l">Charge</div><div class="v">92 %</div></div></div>
+        <h2 style="padding:12px 0 6px">Recette utilisée</h2>
+        <div class="cards">
+          <div class="alt on">● Recette A<span class="q">5 machines</span></div>
+          <div class="alt">○ Recette B<span class="q">7 machines, −30 % énergie</span></div>
+          <div class="alt">○ Exclure cette machine</div>
+        </div>
+        <h2 style="padding:12px 0 6px">Nombre de machines</h2>
+        <span class="num"><button>−</button><input value="5"><button>+</button></span>
+        <h2 style="padding:12px 0 6px">Entrées / sorties</h2>
+        <div class="flow in"><div class="row">Pièce<span class="q">6 /s</span></div></div>
+        <div class="flow out" style="margin-top:6px"><div class="row">Module<span class="q">2 /s</span></div></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div class="cmd" id="cmd"><div class="box">
+  <input placeholder="Chercher un objet, une machine, une recherche…" value="la">
+  <div class="tiers"><span class="chip on">Tous</span><span class="chip">Tier 1</span><span class="chip">Tier 2</span><span class="chip">Tier 3</span><span class="chip">Récents</span></div>
+  <div class="grid">
+    <div class="it f"><span class="ico" style="background:var(--t3)">LA</span>Laser</div>
+    <div class="it"><span class="ico" style="background:var(--t2)">LA</span>Lampe</div>
+    <div class="it"><span class="ico" style="background:var(--t4)">PL</span>Plaque</div>
+    <div class="it"><span class="ico" style="background:var(--t1)">LA</span>Laine</div>
+  </div>
+  <div style="padding:6px 10px 10px;color:var(--dim);font-size:12px">↑↓ ← → pour choisir · Entrée pour valider · Échap pour fermer</div>
+</div></div>
+
+<aside class="drawer" id="drawer">
+  <div style="display:flex;align-items:center"><b style="color:var(--gold-hi)">Réglages du plan</b><button class="close" style="margin-left:auto;background:none;border:1px solid var(--line);border-radius:4px;color:var(--muted)" id="close-set">✕</button></div>
+  <h2>Machines</h2>
+  <div class="chips"><span class="chip on">Toutes</span><span class="chip">Seulement celles que j'ai</span><span class="chip">Exclure…</span></div>
+  <h2>Calcul</h2>
+  <div class="tg">Module par module<span class="sw on"></span></div>
+  <div class="tg">Arrondir au nombre entier de machines<span class="sw on"></span></div>
+  <div class="tg">Réutiliser les sous-produits<span class="sw"></span></div>
+  <h2>Pose</h2>
+  <div class="tg">Côté de sortie<span class="chips"><span class="chip">N</span><span class="chip on">E</span><span class="chip">S</span><span class="chip">O</span></span></div>
+  <div class="tg">Double rangée<span class="sw"></span></div>
+  <p style="color:var(--dim);font-size:12px">Chaque réglage est visible d'un coup : pas de rubrique à déplier, pas de liste déroulante. Les réglages qui ne concernent pas l'objectif choisi sont masqués.</p>
+</aside>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const rr = $("rr"), cmd = $("cmd"), dr = $("drawer");
+document.querySelectorAll("[data-insp]").forEach((n) => n.addEventListener("click", () => {
+  document.querySelectorAll(".node").forEach((x) => x.classList.remove("sel"));
+  if (n.classList.contains("node")) n.classList.add("sel");
+  rr.classList.add("open");
+}));
+$("close-insp").onclick = () => rr.classList.remove("open");
+$("open-cmd").onclick = () => { cmd.classList.add("open"); cmd.querySelector("input").focus(); };
+cmd.onclick = (e) => { if (e.target === cmd || e.target.closest(".it")) cmd.classList.remove("open"); };
+$("open-set").onclick = () => dr.classList.add("open");
+$("close-set").onclick = () => dr.classList.remove("open");
+document.querySelectorAll(".seg, .chips").forEach((g) => g.addEventListener("click", (e) => {
+  const b = e.target.closest("button, .chip"); if (!b) return;
+  g.querySelectorAll("button, .chip").forEach((x) => x.classList.toggle("on", x === b));
+}));
+document.querySelectorAll(".sw").forEach((s) => s.onclick = () => s.classList.toggle("on"));
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { cmd.classList.remove("open"); dr.classList.remove("open"); rr.classList.remove("open"); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("open-cmd").click(); }
+  if (e.key.toLowerCase() === "r" && !e.ctrlKey && document.activeElement.tagName !== "INPUT") dr.classList.toggle("open");
+});
+</script>
+</body>
+</html>
