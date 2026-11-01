@@ -271,10 +271,11 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
       par.set(find(a), find(b));
     } else if (q.p.d !== "l") {
       terms.push({ u: q.u, p: q.p, lane: a });
-      // Croisement collé à un port (BAS-11) : son autre voie, du même type que le port, y fait entrer son flux aussi
-      // (même par un port de sortie) ; la production ne part que dans la voie branchée sur le port.
+      // Croisement collé à un port (BAS-11) : son autre voie y fait entrer son flux aussi (même par un port de sortie,
+      // et même un fluide par un port objet pour un croisement objet × fluide : testé en jeu, BAS-12) ; la production
+      // ne part que dans la voie branchée sur le port.
       if (pa.role === "croisement") {
-        const other = g.ports.find((o) => o.cells && o.t === q.p.t && laneOf(u, o) !== laneOf(u, p));
+        const other = g.ports.find((o) => o.cells && laneOf(u, o) !== laneOf(u, p));
         if (other) terms.push({ u: q.u, p: { ...q.p, d: "e" }, lane: node(u, laneOf(u, other)), side: true });
       }
     }
@@ -302,6 +303,16 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
   // 3. Recettes déduites de ce qui arrive ; plusieurs possibles → « ? », le choix du joueur est gardé s'il va.
   const MI = new Map<number, MachineState & { fin: number; why: ["in" | "out", string] | null }>();
   for (const [u] of G) { const d = D(u); if (!d.pipe) MI.set(u, { u, rec: null, cand: d.recipes, shown: null, f: 0, fin: 0, reason: null, why: null }); }
+  /** L'infobulle nomme-t-elle une ressource du catalogue (fluide ou objet, comme le port) ? Gardé par texte. */
+  const named = new Map<string, boolean>();
+  const namesSome = (tip: string, fluid: boolean) => {
+    const k = `${fluid}|${tip}`;
+    if (!named.has(k)) {
+      const low = tip.toLowerCase();
+      named.set(k, [...cat.items.values()].some((i) => i.fluid === fluid && i.name.length > 2 && low.includes(i.name.toLowerCase())));
+    }
+    return named.get(k)!;
+  };
   const outItem = (u: number, p: PlacedPort): string | null => {
     const mi = MI.get(u);
     if (!mi?.rec) return null;
@@ -312,6 +323,10 @@ function once(cat: SbCatalog, layout: Layout, settings: SandboxSettings, pcap: M
     if (byItems.length) return byItems[0]!;
     const byTip = p.tip ? outs.filter((i) => p.tip!.toLowerCase().includes((cat.items.get(i)?.name ?? i).toLowerCase())) : [];
     if (byTip.length) return byTip[0]!;
+    // Port de sortie qui ne sert pas au craft : ses objets relevés, ou son infobulle, nomment d'autres ressources et
+    // aucun produit de la recette (« Used water out » d'un Boiler qui fait de la vapeur). Il reste libre, rien n'en sort
+    // (BAS-12, réponse de l'utilisateur). Une infobulle qui ne nomme rien (« Output ») ne dit rien.
+    if (p.items?.length || (p.tip && namesSome(p.tip, p.t === "f"))) return null;
     const ps = G.get(u)!.ports.filter((q) => q.d === "s" && q.t === p.t);
     return outs[ps.indexOf(p) % outs.length]!;
   };

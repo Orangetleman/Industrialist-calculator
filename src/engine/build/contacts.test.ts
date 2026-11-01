@@ -16,7 +16,7 @@ import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts"
 import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildSandboxCatalog, computeSandbox, geo, type Layout, type SbBlock, type SbCatalog } from "../sandbox/index.ts";
-import { layoutFromModule } from "../schematic/convert.ts";
+import { layoutFromFactory, layoutFromModule, touchRoute } from "../schematic/convert.ts";
 import { buildCatalog } from "./catalog.ts";
 import { designFactory, factoryInput } from "./factory.ts";
 import { designModule, portAssignments, requestFromStep, sharedAssignments } from "./module.ts";
@@ -31,13 +31,14 @@ const all = { unlocked: new Set(data.nodes.keys()) };
 
 /**
  * Catalogue d'essai : les vrais tuyaux et croisements, plus des machines de 3 × 3 aux ports choisis et des objets
- * « ta », « tb », « tc », « td » (rien de tout ça n'est une valeur du jeu : seules les règles de contact comptent).
+ * « ta » à « tz » et le fluide « tf » (rien de tout ça n'est une valeur du jeu : seules les règles de contact comptent).
  */
 function testCatalog(machines: Record<string, Pick<SbBlock, "geo" | "recipes">>): SbCatalog {
   const blocks = new Map(sb.blocks);
   for (const [id, m] of Object.entries(machines)) blocks.set(id, { id, name: id, tier: null, cost: 0, poll: 0, incomplete: [], ...m });
   const items = new Map(sb.items);
-  for (const i of ["ta", "tb", "tc", "td"]) items.set(i, { name: i, fluid: false, sell: null });
+  for (const i of ["ta", "tb", "tc", "td", "tz"]) items.set(i, { name: i, fluid: false, sell: null });
+  items.set("tf", { name: "tf", fluid: true, sell: null });
   return { blocks, items };
 }
 const box = (ports: NonNullable<SbBlock["geo"]>["ports"]) => ({ w: 3, h: 3, ports });
@@ -101,6 +102,45 @@ describe("S56 : règles de contact dans le moteur du bac à sable (BAS-11)", () 
     expect(ck.issues.some((i) => i.k === "mixed")).toBe(true);
   });
 
+  it("croisement objet × fluide collé au port objet : ses deux flux entrent (testé en jeu, BAS-12)", () => {
+    const c = testCatalog({ m: { geo: box([{ t: "o", d: "e", s: "N", c: 2 }]), recipes: [{ id: "r", s: 1, in: { ta: 1, tf: 1 }, out: { tc: 1 }, e: null }] } });
+    // Tourné d'un quart de tour : le côté objet touche le port, le fluide passe d'ouest en est.
+    const l = lay([
+      { id: "m", x: 0, y: 1, r: 0 },
+      { id: "fluid-pipe-and-item-intersection", x: 1, y: 0, r: 1 },
+      { id: "short-fluid-pipe", x: 0, y: 0, r: 1 },
+      { id: "short-pipe", x: 1, y: -1, r: 0 },
+    ]);
+    const ck = checkLayout(c, l, [{ x: 0, y: 0, dir: "W", item: "tf" }, { x: 1, y: -1, dir: "N", item: "ta" }], { m: { recipe: "r", need: 1 } });
+    expect(ck.issues).toEqual([]);
+  });
+
+  it("un port de sortie qui ne sert pas au craft reste libre : une entrée peut y arriver par un simple tuyau", () => {
+    const c = testCatalog({ g: { geo: box([{ t: "o", d: "s", s: "N", c: 2, items: ["td"] }]), recipes: [{ id: "r", s: 1, in: { ta: 1 }, out: { tc: 1 }, e: null }] } });
+    const l = lay([
+      { id: "g", x: 0, y: 1, r: 0 },
+      { id: "short-pipe", x: 1, y: 0, r: 0 },
+      { id: "short-pipe", x: 1, y: -1, r: 0 },
+    ]);
+    const ck = checkLayout(c, l, [{ x: 1, y: -1, dir: "N", item: "ta" }], { g: { recipe: "r", need: 1 } });
+    expect(ck.issues).toEqual([]);
+  });
+
+  it("sortie de A collée au port de sortie de B : la liaison d'un bouton à l'autre fait passer le flux (BAS-12)", () => {
+    const c = testCatalog({
+      a: { geo: box([{ t: "o", d: "s", s: "E", c: 2 }]), recipes: [{ id: "ra", s: 1, in: {}, out: { tc: 2 }, e: null }] },
+      b: { geo: box([{ t: "o", d: "s", s: "W", c: 2, items: ["tz"] }]), recipes: [{ id: "rb", s: 1, in: { tc: 1 }, out: { td: 1 }, e: null }] },
+    });
+    const l = lay([{ id: "a", x: 0, y: 0, r: 0 }, { id: "b", x: 3, y: 0, r: 0 }]);
+    const route = touchRoute(c, l.blocks, { x: 3, y: 1, dir: "E" });
+    expect(route).toEqual({ a: 0, ia: 0, b: 1, ib: 0 });
+    const runs = { a: { recipe: "ra", need: 1 }, b: { recipe: "rb", need: 1 } };
+    const ck = checkLayout(c, { ...l, routes: [route!] }, [], runs, true);
+    expect(ck.issues).toEqual([]);
+    // B ne prend que la moitié de ce que A produit : A ralentit (bouchon).
+    expect(ck.result!.machines.get(0)!.f).toBeCloseTo(0.5);
+  });
+
   it("sortie de A collée à l'entrée de B : seul ce que B consomme passe, le surplus fait un bouchon (A ralentit)", () => {
     const c = testCatalog({
       a: { geo: box([{ t: "o", d: "e", s: "W", c: 2 }, { t: "o", d: "s", s: "E", c: 2 }]), recipes: [{ id: "ra", s: 1, in: { ta: 1 }, out: { tc: 2 }, e: null }] },
@@ -132,7 +172,7 @@ function stepReq(item: string, rate: number, machine: string) {
 }
 
 describe("S56 : modules générés et vérifiés", () => {
-  it("variantes « deux ressources par un port » : une entrée prend le port d'une autre ressource du même type", () => {
+  it("variantes « deux ressources par un port » : une entrée prend le port d'une autre ressource (même d'un autre type)", () => {
     const { req, entry } = stepReq("zinc-sulfate", 60, "chemical-reactor");
     const vs = sharedAssignments(portAssignments(entry!, req, 8));
     expect(vs.length).toBeGreaterThan(0);
@@ -140,25 +180,33 @@ describe("S56 : modules générés et vérifiés", () => {
       const s = v.filter((a) => a.shared);
       expect(s).toHaveLength(1);
       const host = v.find((a) => !a.shared && a.port === s[0]!.port)!;
-      expect(host.kind).toBe(s[0]!.kind);
       expect(host.item).not.toBe(s[0]!.item);
     }
   });
 
-  it("Chemical Reactor (Zinc Sulfate) : le Raw Zinc entre par le croisement collé au port de sortie, et le bac à sable le confirme", () => {
-    const { req, entry, size } = stepReq("zinc-sulfate", 60, "chemical-reactor");
+  it("Chemical Reactor (Gunpowder) : le Sulfur n'a pas de port à lui, il entre par le croisement collé au port d'une autre ressource, et le bac à sable le confirme", () => {
+    const { req, entry, size } = stepReq("gunpowder", 60, "chemical-reactor");
     const mod = designModule(req, entry, size, cat, (x) => x, sb);
     expect(mod.checked).toBe(true);
     expect(mod.problems.filter((p) => p.level === "erreur")).toEqual([]);
     const shared = mod.config!.assign.find((a) => a.shared)!;
-    expect(shared.item).toBe("raw-zinc");
+    expect(shared.item).toBe("sulfur");
     const host = mod.config!.assign.find((a) => !a.shared && a.port === shared.port)!;
-    expect(host).toMatchObject({ item: "zinc-sulfate", role: "sortie" });
-    // Le croisement est collé au port de sortie : la production part dans une voie, le Raw Zinc passe dans l'autre.
-    const port = mod.machines[0]!.ports.find((p) => p.index === shared.port)!;
-    const x = mod.pieces.find((p) => p.x === port.cell.x && p.y === port.cell.y)!;
-    expect(x.role).toBe("croisement");
-    expect([x.net, x.crossNet].sort()).toEqual(["raw-zinc", "zinc-sulfate"]);
+    expect(host.item).not.toBe("sulfur");
+    // À chaque machine, un croisement collé au port hôte : la ressource du port dans une voie, le Sulfur dans l'autre.
+    for (const m of mod.machines) {
+      const port = m.ports.find((p) => p.index === shared.port)!;
+      const x = mod.pieces.find((p) => p.x === port.cell.x && p.y === port.cell.y)!;
+      expect(x.role).toBe("croisement");
+      expect([x.net, x.crossNet]).toContain("sulfur");
+    }
+    expect(checkModule(mod, req, sb)!.ok).toBe(true);
+  });
+
+  it("Chemical Reactor (Zinc Sulfate) : vérifié par le bac à sable", () => {
+    const { req, entry, size } = stepReq("zinc-sulfate", 60, "chemical-reactor");
+    const mod = designModule(req, entry, size, cat, (x) => x, sb);
+    expect(mod.checked).toBe(true);
     expect(checkModule(mod, req, sb)!.ok).toBe(true);
   });
 
@@ -191,8 +239,8 @@ describe("S56 : modules générés et vérifiés", () => {
 });
 
 describe("S56 : étapes collées dans l'usine", () => {
-  it("Iron Plate à 30/min, liaisons collées : le port de sortie du Gas Burner touche le Boiler, sans tuyau, et le bac à sable fait tourner les deux", () => {
-    const plan = solve(data, all, { item: "iron-plate", ratePerMin: 30, criterion: "energy", tiers: false });
+  it("Black Dye à 6/min, liaisons collées : le port de sortie du Coal Drill touche la machine suivante, sans tuyau, et le bac à sable fait tourner les deux", () => {
+    const plan = solve(data, all, { item: "black-dye", ratePerMin: 6, criterion: "energy", tiers: false });
     const look = { name: (id: string) => id, isFluid: fluid, machine: (id: string) => data.machines.get(id) ?? null, ports: files.ports.machines, sb };
     const input = factoryInput(plan, look, cat, { w: 160, h: 110 }, { priority: ["place", "forme", "prix", "pieces"] }, { glue: true });
     const f = designFactory(structuredClone(input));
@@ -200,6 +248,8 @@ describe("S56 : étapes collées dans l'usine", () => {
     expect(f.touches.length).toBeGreaterThan(0);
     for (const t of f.touches) {
       expect(f.glued).toContain(`${t.from}>${t.to}`);
+      // Le montage du bac à sable porte la liaison d'un bouton à l'autre.
+      expect(layoutFromFactory(f, sb, cat, fluid).layout.routes?.length).toBeGreaterThan(0);
       // Aucun tuyau pour cette liaison ; la case de contact est une case de la machine suivante.
       expect(f.nets.some((n) => n.id === `${t.from}:${t.item}`)).toBe(false);
       const a = f.boxes.find((b) => b.key === t.from)!;

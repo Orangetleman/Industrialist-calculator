@@ -7,7 +7,7 @@
  * `skipped` et laissées de côté.
  */
 import type { Dir, SbCatalog } from "../sandbox/catalog";
-import { geo, type CrossPair, type Layout, type Placed } from "../sandbox/layout";
+import { geo, type CrossPair, type Layout, type Placed, type Route } from "../sandbox/layout";
 import { pipeFor, type Catalog, type PieceRole } from "../build/catalog";
 import type { ModulePlan, PlacedPiece } from "../build/module";
 import type { FactoryPlan } from "../build/factory";
@@ -70,6 +70,28 @@ class Builder {
   }
 }
 
+const STEP: Record<Dir, [number, number]> = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
+
+/**
+ * Liaison d'une étape collée (S56) : le port de sortie de la machine dont le bord touche la case (x, y) vers le sens `dir`
+ * (case de la machine suivante), vers le port de la machine suivante qui lui fait face. Le flux va d'un bouton à l'autre,
+ * comme le règle le joueur en jeu ; null si l'un des deux ports manque.
+ */
+export function touchRoute(sb: SbCatalog, blocks: Placed[], at: { x: number; y: number; dir: Dir }): Route | null {
+  const from = [at.x - STEP[at.dir][0], at.y - STEP[at.dir][1]] as const;
+  const portOn = (cx: number, cy: number, dir: Dir) => {
+    for (const b of blocks) {
+      const def = sb.blocks.get(b.id);
+      if (!def || def.pipe) continue;
+      const i = geo(def, b)?.ports.findIndex((p) => p.dir === dir && p.cells?.some(([x, y]) => x === cx && y === cy)) ?? -1;
+      if (i >= 0) return { u: b.u, i };
+    }
+    return null;
+  };
+  const a = portOn(from[0], from[1], at.dir), b = portOn(at.x, at.y, OPP[at.dir]);
+  return a && b ? { a: a.u, ia: a.i, b: b.u, ib: b.i } : null;
+}
+
 /** Plusieurs modules, chacun à sa place (S56 : étapes collées, vérifiées ensemble par le bac à sable). */
 export function layoutFromModules(list: { m: ModulePlan; x: number; y: number }[], sb: SbCatalog): Converted & { starts: number[] } {
   const b = new Builder(sb);
@@ -113,5 +135,7 @@ export function layoutFromFactory(f: FactoryPlan, sb: SbCatalog, cat: Catalog, i
       b.piece(set ? set.pieces[role === "croisement" ? "droit" : role].id : null, x, y, [...o.links]);
     }
   }
-  return { layout: { blocks: b.blocks, wires: [] }, width: f.W, height: f.H, skipped: b.skipped };
+  // Étapes collées : la liaison d'un bouton à l'autre, comme le joueur la règle en jeu.
+  const routes = (f.touches ?? []).map((t) => touchRoute(sb, b.blocks, t)).filter((r): r is Route => !!r);
+  return { layout: { blocks: b.blocks, wires: [], ...(routes.length ? { routes } : {}) }, width: f.W, height: f.H, skipped: b.skipped };
 }

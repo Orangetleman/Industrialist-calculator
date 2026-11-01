@@ -9,8 +9,8 @@ import type { PortsEntry } from "../extension-types.ts";
 import type { Catalog } from "./catalog.ts";
 import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
 import type { SbCatalog } from "../sandbox/catalog.ts";
-import { layoutFromModules } from "../schematic/convert.ts";
-import { checkLayout, feedsOf, runFor } from "./verify.ts";
+import { layoutFromModules, touchRoute } from "../schematic/convert.ts";
+import { allKnown, checkCatalog, checkLayout, feedsOf, runFor } from "./verify.ts";
 import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withoutNet, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
 import { Grid, route, type Occupant } from "./route.ts";
 import { msg, type Message } from "../message.ts";
@@ -116,7 +116,7 @@ export type FactoryPlan = {
   /** Liaisons collées (« fournisseur>client »), sans tuyau. */
   glued: string[];
   /** S56 : liaisons collées machine contre machine (le port de sortie du fournisseur touche le client) : la case de contact. */
-  touches: { from: string; to: string; item: string; x: number; y: number }[];
+  touches: { from: string; to: string; item: string; x: number; y: number; dir: Dir }[];
   /** Liaisons non tracées (« objet : fournisseur → client »). */
   problems: Message[];
   /** Tuyaux des produits à évacuer, jusqu'au bord de l'usine (S27). */
@@ -456,7 +456,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   // S56, BAS-11 (Q4) : la sortie d'une étape collée à un port d'entrée de la machine suivante, sans tuyau. Seul ce
   // que la machine suivante consomme passe ; le surplus fait un bouchon (le fournisseur ralentit). Une machine de
   // chaque côté ; essayé seulement avec le bac à sable pour vérifier que chacune reçoit tout.
-  type Touch = { a: ModulePlan; adx: number; ady: number; b: ModulePlan; r: number; ox: number; oy: number; at: Pt };
+  type Touch = { a: ModulePlan; adx: number; ady: number; b: ModulePlan; r: number; ox: number; oy: number; at: Pt; dir: Dir };
   const touchMemo = new WeakMap<ModulePlan, Map<string, Touch | null>>();
   const touchOf = (p: Box, b: Box, item: string): Touch | null => {
     const pm = p.mod;
@@ -484,22 +484,25 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       if (v.count !== 1 || v.folds !== 1 || !v.config || v.config.assign.some((x) => x.shared) || !v.nets.some((n) => n.item === item && n.role === "entrée")) return;
       const bm = withoutNet(v, item, "entrée", b.req!, cat, name).m;
       for (const q of bm.machines[0]!.ports) {
-        if (q.type !== p0.type || q.direction !== "entrée" || q.facing !== OPPOSITE[p0.facing]) continue;
+        // N'importe quel port du même type, même un port de sortie : le flux se règle d'un bouton à l'autre (BAS-12).
+        if (q.type !== p0.type || q.facing !== OPPOSITE[p0.facing]) continue;
         // La case du bord de B, voisine du port, vient sur la case que touche le port de sortie de A.
         const ox = p0.cell.x - (q.cell.x - STEP[q.facing].x);
         const oy = p0.cell.y - (q.cell.y - STEP[q.facing].y);
         if (cellsOf(bm, ox, oy).some((k) => occA.has(k))) continue;
         const x0 = Math.min(0, ox), y0 = Math.min(0, oy);
         const area = (Math.max(a.width, ox + bm.width) - x0) * (Math.max(a.height, oy + bm.height) - y0);
-        tries.push({ a, adx, ady, b: bm, r, ox, oy, at: p0.cell, area });
+        tries.push({ a, adx, ady, b: bm, r, ox, oy, at: p0.cell, dir: p0.facing, area });
       }
     });
-    for (const t of tries.sort((u, v) => u.area - v.area).slice(0, 4)) {
-      const conv = layoutFromModules([{ m: t.a, x: 0, y: 0 }, { m: t.b, x: t.ox, y: t.oy }], input.sb);
+    for (const t of tries.sort((u, v) => u.area - v.area).slice(0, 12)) {
+      const conv = layoutFromModules([{ m: t.a, x: 0, y: 0 }, { m: t.b, x: t.ox, y: t.oy }], checkCatalog(input.sb));
       const fa = feedsOf(t.a), fb = feedsOf(t.b, t.ox, t.oy);
-      if (conv.skipped.length || !fa || !fb) continue;
+      if (conv.skipped.length || !allKnown(input.sb, conv.layout) || !fa || !fb) continue;
       const start = conv.starts[1]!;
-      const ck = checkLayout(input.sb, conv.layout, [...fa, ...fb], (blk) => (blk.id === pm.machine && blk.u < start ? runA : blk.id === b.req!.machine && blk.u >= start ? runB : undefined), true);
+      const route = touchRoute(input.sb, conv.layout.blocks, { x: t.at.x, y: t.at.y, dir: t.dir });
+      if (!route) continue;
+      const ck = checkLayout(input.sb, { ...conv.layout, routes: [route] }, [...fa, ...fb], (blk) => (blk.id === pm.machine && blk.u < start ? runA : blk.id === b.req!.machine && blk.u >= start ? runB : undefined), true);
       if (ck.ok) {
         memo.set(mk, t);
         return t;
@@ -530,7 +533,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
             Object.assign(p, { mod: t.a, x: ax, y: ay, w: t.a.width, h: t.a.height });
             Object.assign(b, { x: ax + t.ox, y: ay + t.oy, placed: true });
             glued.push(`${p.key}>${b.key}`);
-            touchAt.push({ from: p.key, to: b.key, item: e.item, x: t.at.x, y: t.at.y });
+            touchAt.push({ from: p.key, to: b.key, item: e.item, x: t.at.x, y: t.at.y, dir: t.dir });
             continue;
           }
           Object.assign(b, keep);

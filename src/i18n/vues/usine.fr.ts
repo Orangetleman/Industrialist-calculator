@@ -410,7 +410,7 @@ export const usineFr = {
   "uf.tip.sends": "Envoie : {list}",
   "uf.tip.open": "Clique pour ouvrir le module à côté",
   "uf.contact": "Contact direct : {item}, sans tuyau",
-  "uf.touch": "Machines collées : {item} passe du port de sortie directement dans la machine suivante (seul ce qu’elle consomme passe ; le surplus fait un bouchon)",
+  "uf.touch": "Machines collées : {item} passe du port de sortie directement dans la machine suivante (seul ce qu’elle consomme passe ; le surplus fait un bouchon). En jeu, relie le bouton du port de sortie à celui de la machine suivante s’il ne l’est pas tout seul.",
   "uf.svg.aria": "Toute l'usine vue de dessus : {w} × {h} cases",
   "uf.plot.tip": "Ta parcelle : {w} × {h} cases",
   "uf.plot.label": "ta parcelle {w} × {h}",

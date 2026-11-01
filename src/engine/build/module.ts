@@ -174,7 +174,8 @@ export function sharedAssignments(options: Assign[][], max = 6): Assign[][] {
       if (a.role !== "entrée" || a.shared) continue;
       for (const h of o) {
         if (out.length >= max) return out;
-        if (h === a || h.kind !== a.kind || h.item === a.item || h.shared) continue;
+        // Un croisement objet × fluide fait entrer ses deux flux aussi (testé en jeu, BAS-12).
+        if (h === a || h.item === a.item || h.shared) continue;
         const v = o.map((x) => (x === a ? { ...a, port: h.port, shared: true as const } : x));
         if (!out.some((w) => JSON.stringify(w) === JSON.stringify(v))) out.push(v);
       }

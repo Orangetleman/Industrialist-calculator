@@ -931,10 +931,16 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   ralentit, pour qu'on voie le bouchon (surproduction) et ses effets sur les étapes d'avant. Un croisement collé à un port y fait entrer
   ses deux flux, venus de n'importe où. Débit d'un contact : pas de limite connue, seule la vitesse de la machine compte
   (« je pense pas que ça soit limité ») ; rien trouvé sur les wikis : **à vérifier en jeu**.
-- **BAS-12** (S56, 2026-10-31, choix faits en attendant confirmation) : (a) l'autre voie d'un croisement collé à un port
-  n'entre que si elle est du même type que le port (un croisement objet × fluide sur un port objet n'y fait entrer que
-  l'objet, BAS-07 d) ; la maquette S56 (cas a) dessinait un objet et un fluide par un même port : est-ce possible en jeu ?
-  (b) un simple tuyau (pas un croisement) posé sur un port de sortie qui amène une entrée reçoit aussi la production :
-  le moteur y voit un mélange et rejette le plan. (c) étapes collées : seulement une machine contre une machine, et le
-  port de sortie contre un port d'entrée du client (le raccord automatique du bac à sable, BAS-07 b) ; une sortie contre
-  un port de sortie qui consomme reste à faire (liaison choisie à la main).
+- **BAS-12** (S56, répondu par l'utilisateur le 2026-11-01) : (a) **oui, testé en jeu** : un croisement objet × fluide
+  collé à un port par la bonne paire de ports (son côté qui touche le port est du type du port) fait entrer ses deux flux,
+  l'objet et le fluide. **Fait** : l'autre voie entre quel que soit son type. (b) un tuyau au sens indéterminé (autre
+  qu'un tuyau droit) qui ne porte qu'un flux et touche un port de sortie reçoit d'office la production (le joueur peut
+  retirer cette liaison à la main) : une entrée amenée ainsi par un port de sortie bouche la production, l'emplacement
+  est impossible, **sauf si ce port de sortie ne sert pas au craft** : il reste libre. **Fait** : un port de sortie dont
+  les objets relevés ou l'infobulle nomment d'autres ressources et aucun produit de la recette ne fait rien sortir
+  (« Used water out » d'un Boiler). (c) les flux se règlent d'un bouton à l'autre sur tout ce qui en porte (machines,
+  tuyaux) : une sortie collée peut viser n'importe quel port du même type de la machine suivante, même un port de sortie.
+  **Fait** : le collage essaie tous ces ports et le montage porte la liaison (`Layout.routes`). Reste : collage d'une
+  machine à une machine seulement. **Supposition de vérification** : une pièce de tier III d'une case sans ports relevés
+  (Pipe Fluid Turn2…) est jugée avec la forme de la même pièce en tier I (son débit reste le sien) ; à relever.
+  Un module dont la recette du bac à sable a d'autres entrées que le plan (Boiler : eau et eau chaude) n'est pas vérifié.

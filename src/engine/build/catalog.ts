@@ -72,3 +72,14 @@ export function pipeFor(cat: Catalog, kind: PipeKind, perSec: number, tier3Only 
   const ok = cat.pipes.filter((p) => p.kind === kind && p.flowPerSec >= perSec - 1e-9 && (!tier3Only || p.tier === 3));
   return ok.sort((a, b) => (a.pieces.droit.price ?? Infinity) - (b.pieces.droit.price ?? Infinity) || a.tier - b.tier)[0] ?? null;
 }
+
+/**
+ * La même pièce en tier I (même type, même rôle), pour une pièce de tier III d'une case dont les ports ne sont pas
+ * relevés : sa forme sert à vérifier un plan (S56, supposition notée BAS-12 dans data/a-verifier.md). null sinon.
+ */
+export function tierOneTwin(id: string): string | null {
+  const s = SETS.find((x) => x.tier === 3 && Object.values(x.ids).includes(id));
+  if (!s) return null;
+  const role = (Object.keys(s.ids) as (keyof typeof s.ids)[]).find((k) => s.ids[k] === id)!;
+  return SETS.find((x) => x.tier === 1 && x.kind === s.kind)?.ids[role] ?? null;
+}
