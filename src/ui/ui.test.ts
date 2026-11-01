@@ -21,7 +21,7 @@ import { renderVerify } from "./render.ts";
 import { currentRp, EMPTY_PLAYER, exportProgress, fitsPlot, parseOptional, parseProgressExport, plotOf, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
 import { nodeState, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { moveBefore, moveItem } from "./prio-list.ts";
+import { moveBefore, moveItem, moveTo } from "./prio-list.ts";
 import { builtFor, CRITERIA, criteriaList, DEFAULT_SETTINGS, GOALS, isOverridesFile, loadSettings, mergeCorrections, pruneIntegratedCorrections, removeCorrection, setBuilt, setCorrection } from "./state.ts";
 
 describe("mise en forme", () => {
@@ -321,6 +321,23 @@ describe("liste à réordonner", () => {
     expect(moveBefore(["a", "b", "c", "d"], "d", "b")).toEqual(["a", "d", "b", "c"]);
     expect(moveBefore(["a", "b", "c", "d"], "a", "c")).toEqual(["b", "c", "a", "d"]);
     expect(moveBefore(["a", "b"], "a", "a")).toEqual(["a", "b"]);
+  });
+  it("pastilles (S63) : ← → d'un cran, Début / Fin, glisser à une place, bornées", () => {
+    expect(moveTo(["a", "b", "c"], "b", 0)).toEqual(["b", "a", "c"]);
+    expect(moveTo(["a", "b", "c"], "a", Infinity)).toEqual(["b", "c", "a"]);
+    expect(moveTo(["a", "b", "c"], "a", -1)).toEqual(["a", "b", "c"]);
+    expect(moveTo(["a", "b", "c"], "z", 0)).toEqual(["a", "b", "c"]);
+  });
+  it("pastilles et liste : un même ordre donne le même plan", () => {
+    const base = DEFAULT_SETTINGS.criteria.objet;
+    // place en dernier : par les pastilles (Fin), puis par la liste (↓ répétés).
+    const byChips = moveTo(base, "area", Infinity);
+    let byList = [...base];
+    for (let i = 0; i < base.length; i++) byList = moveItem(byList, "area", 1);
+    expect(byChips).toEqual(byList);
+    const plan = (c: typeof base) => solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: c[0], then: c.slice(1), tiers: false });
+    expect(JSON.stringify(plan(byChips))).toBe(JSON.stringify(plan(byList)));
+    expect(JSON.stringify(plan(base))).toBe(JSON.stringify(plan([...base])));
   });
 });
 

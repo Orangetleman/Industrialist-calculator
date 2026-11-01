@@ -205,6 +205,8 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "crit.hint": "{label}: {why} It decides when an item can be made in several ways; the next ones only break ties.",
   "prio.up": "Move {label} up",
   "prio.down": "Move {label} down",
+  "prio.chip": "{label}, priority {n} of {total} (← → to move)",
+  "plan.say.prio": "favouring",
 
   // Machines (filtre, S9)
   "mf.title": "Machines",

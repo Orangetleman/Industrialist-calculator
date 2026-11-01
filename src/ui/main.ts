@@ -71,7 +71,7 @@ import {
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { initBuildings } from "./buildings.ts";
-import { bindPrioList, focusItem, renderPrioItems } from "./prio-list.ts";
+import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
 import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
@@ -1298,6 +1298,7 @@ function renderCriteria(): void {
       .map((c, i) => `<span class="ord"><b>${i + 1}</b> ${esc(criterionText(c).label)}</span>`)
       .join(`<span class="sep" aria-hidden="true">›</span>`) + (list.length > 3 ? `<span class="sep">› …</span>` : "");
   $("criteria-list").innerHTML = renderPrioItems(list.map((c, i) => ({ key: c, label: criterionText(c).label, why: i === 0 ? criterionWhy(goal, c) : criterionText(c).why })));
+  $("criteria-chips").innerHTML = renderPrioChips(list.map((c, i) => ({ key: c, label: t(`pb.crit.${c}`), why: i === 0 ? criterionWhy(goal, c) : criterionText(c).why })));
   $("criterion-hint").textContent = criterionHint(goal, list[0]!);
 }
 
@@ -3305,6 +3306,7 @@ function bindPlan(): void {
     });
   }
   bindPrioList($("criteria-list"), () => settings.criteria[settings.goal], setCriteria);
+  bindPrioChips($("criteria-chips"), () => settings.criteria[settings.goal], setCriteria);
   $("query").addEventListener("submit", (e) => e.preventDefault());
   // Filtre de machines (S9) : le mode, puis une machine cherchée par son nom (Entrée ou choix dans la liste).
   for (const r of document.querySelectorAll<HTMLInputElement>('input[name="mf-mode"]')) {

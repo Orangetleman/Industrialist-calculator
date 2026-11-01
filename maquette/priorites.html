@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Priorités en pastilles</title>
+<style>
+:root{--bg:#17121f;--fg:#eee;--acc:#ff8a1f;--line:#4a3d5c}
+body{background:var(--bg);color:var(--fg);font:15px system-ui;margin:16px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0}
+.chip{border:1px solid var(--line);background:#241c30;color:var(--fg);padding:6px 10px;cursor:grab;touch-action:none;font:inherit}
+.chip b{color:var(--acc);margin-right:4px}
+.chip.first{border-color:var(--acc)}
+.chip.lift{outline:2px dashed var(--acc);cursor:grabbing}
+.chip:focus-visible{outline:2px solid var(--acc)}
+p.n{color:#aaa;max-width:60ch}
+</style></head><body>
+<h1>Priorités dans la barre : proposition</h1>
+<div class="bar" id="bar" role="listbox" aria-label="Priorités, dans l'ordre">
+<span>en privilégiant</span>
+</div>
+<p class="n"><b>Souris et téléphone</b> : on appuie sur une pastille et on la fait glisser à sa place (doigt ou souris, même geste). Un simple appui sans glisser ne fait rien.</p>
+<p class="n"><b>Clavier</b> : Tab va sur une pastille ; ← → la déplacent d'un cran (Début / Fin : tout au début ou à la fin). Le lecteur d'écran annonce « place, 1 sur 4 ».</p>
+<p class="n"><b>Le « ? »</b> qui explique chaque critère reste dans le tiroir R, avec la liste ↑ ↓ actuelle (même ordre, les deux restent liés).</p>
+<script>
+let o=["place","machines","énergie","prix"];const bar=document.getElementById("bar");
+function draw(f){bar.querySelectorAll("button").forEach(b=>b.remove());o.forEach((k,i)=>{const b=document.createElement("button");b.className="chip"+(i?"":" first");b.dataset.k=k;b.innerHTML=`<b>${i+1}</b>${k}`;b.setAttribute("aria-label",`${k}, ${i+1} sur ${o.length}`);bar.append(b);if(k===f)b.focus()})}
+function mv(k,j){o=o.filter(x=>x!==k);o.splice(Math.max(0,Math.min(j,o.length)),0,k);draw(k)}
+bar.addEventListener("keydown",e=>{const k=e.target.dataset?.k;if(!k)return;const i=o.indexOf(k);const m={ArrowLeft:i-1,ArrowRight:i+1,Home:0,End:9}[e.key];if(m!==undefined){e.preventDefault();mv(k,m)}});
+let d=null;bar.addEventListener("pointerdown",e=>{const b=e.target.closest(".chip");if(!b)return;d=b.dataset.k;b.classList.add("lift");b.setPointerCapture(e.pointerId)});
+bar.addEventListener("pointermove",e=>{if(!d)return;const t=[...bar.querySelectorAll(".chip")].find(c=>{const r=c.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom});if(t&&t.dataset.k!==d){mv(d,o.indexOf(t.dataset.k));bar.querySelector(`[data-k="${d}"]`).classList.add("lift")}});
+addEventListener("pointerup",()=>{d=null;bar.querySelectorAll(".lift").forEach(c=>c.classList.remove("lift"))});
+draw();
+</script></body></html>

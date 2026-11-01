@@ -1797,3 +1797,12 @@ table.rh-log td.num { white-space: nowrap; }
   .props-btn .lbl, .me-play { display: none; }
 }
 @media (min-width: 761px) and (max-width: 1000px) { .top-in { flex-wrap: wrap; } }
+
+/* ---------------------------------------------------------------- S63 : priorités en pastilles à glisser dans la barre */
+.prio-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.prio-chip { padding: 4px 8px; font-size: .82rem; cursor: grab; touch-action: none; user-select: none; }
+.prio-chip b { color: var(--accent); margin-right: 4px; font-family: var(--f-mono); }
+.prio-chip.first { border-color: var(--accent); }
+.prio-chip.lift { outline: 2px dashed var(--accent); cursor: grabbing; }
+.prio-bar { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.prio-say { color: var(--muted); }

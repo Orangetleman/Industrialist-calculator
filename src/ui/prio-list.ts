@@ -77,3 +77,57 @@ export function bindPrioList<K extends string>(el: HTMLElement, get: () => K[], 
 export function focusItem(el: HTMLElement, k: string): void {
   el.querySelector<HTMLButtonElement>(`[data-crit="${CSS.escape(k)}"] .mv:not(:disabled)`)?.focus();
 }
+
+/** Pastilles numérotées à glisser (barre d'objectif) : ← → au clavier, doigt ou souris. */
+export function renderPrioChips<K extends string>(items: { key: K; label: string; why: string }[]): string {
+  return items
+    .map(
+      (it, i) =>
+        `<button type="button" class="prio-chip${i === 0 ? " first" : ""}" data-crit="${esc(it.key)}" title="${esc(it.why)}" aria-label="${esc(t("prio.chip", { label: it.label, n: i + 1, total: items.length }))}"><b>${i + 1}</b>${esc(it.label)}</button>`,
+    )
+    .join("");
+}
+
+/** Place `k` à l'indice `j` (borné). */
+export function moveTo<K>(list: K[], k: K, j: number): K[] {
+  if (!list.includes(k)) return [...list];
+  const out = list.filter((x) => x !== k);
+  out.splice(Math.max(0, Math.min(j, out.length)), 0, k);
+  return out;
+}
+
+/** Branche le glisser (événements pointeur : souris et doigt) et les flèches. */
+export function bindPrioChips<K extends string>(el: HTMLElement, get: () => K[], set: (list: K[], focus?: K) => void): void {
+  el.addEventListener("keydown", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-crit]");
+    if (!b) return;
+    const k = b.dataset.crit as K;
+    const i = get().indexOf(k);
+    const j = ({ ArrowLeft: i - 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowDown: i + 1, Home: 0, End: Infinity } as Record<string, number>)[e.key];
+    if (j === undefined) return;
+    e.preventDefault();
+    set(moveTo(get(), k, j));
+    el.querySelector<HTMLElement>(`[data-crit="${CSS.escape(k)}"]`)?.focus();
+  });
+  let dragged: K | null = null;
+  const lift = () => el.querySelector(`[data-crit="${CSS.escape(dragged ?? "")}"]`)?.classList.add("lift");
+  el.addEventListener("pointerdown", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-crit]");
+    if (!b || e.button !== 0) return;
+    dragged = b.dataset.crit as K;
+    lift();
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (!dragged) return;
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-crit]");
+    if (!over || !el.contains(over) || over.dataset.crit === dragged) return;
+    set(moveTo(get(), dragged, get().indexOf(over.dataset.crit as K)));
+    lift();
+  });
+  const drop = () => {
+    dragged = null;
+    for (const x of el.querySelectorAll(".lift")) x.classList.remove("lift");
+  };
+  window.addEventListener("pointerup", drop);
+  window.addEventListener("pointercancel", drop);
+}
