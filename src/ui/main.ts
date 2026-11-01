@@ -1102,6 +1102,7 @@ function renderResultTabs(): void {
     b.tabIndex = on ? 0 : -1;
   }
   for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = t !== tab;
+  $("plan-insp").hidden = tab !== "schema";
   if (tab === "schema") renderFlowCanvas();
   if (tab === "pose") renderPose();
   else fillPoseSteps();
@@ -1418,17 +1419,61 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
   return { mods, asms };
 }
 
+// ---------------------------------------------------------------- plans enregistrés (S64, maquette S58)
+/** Un objectif gardé dans ce navigateur : de quoi le rouvrir d'un clic depuis le rail. */
+type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number };
+const KEY_SAVED = "ind-calc:v1:saved-plans";
+function loadSaved(): SavedPlan[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY_SAVED) ?? "[]");
+    return Array.isArray(raw) ? raw.filter((p) => p && typeof p.name === "string" && typeof p.goal === "string").slice(0, 20) : [];
+  } catch {
+    return [];
+  }
+}
+function storeSaved(list: SavedPlan[]): void {
+  try {
+    localStorage.setItem(KEY_SAVED, JSON.stringify(list.slice(0, 20)));
+  } catch {
+    // stockage indisponible : la liste reste pour cette visite
+  }
+  savedPlans = list;
+}
+let savedPlans = loadSaved();
+const GOAL_HASH: Record<Goal, string> = { objet: "#objet", "énergie": "#energie", recherche: "#rp", argent: "#argent" };
+function savedName(): string {
+  const g = settings.goal;
+  if (g === "objet") return settings.mode === "rate" ? `${fmt(settings.rate, 2)}/min ${itemName(settings.item)}` : `${settings.machines} × ${itemName(settings.item)}`;
+  if (g === "énergie") return `${fmt(settings.energyMFps, 2)} MF/s`;
+  if (g === "argent") return `${fmt(settings.money, 0)}/min`;
+  return t("plan.goal.recherche");
+}
+function renderSaved(): void {
+  $("plan-saved").innerHTML =
+    savedPlans.map((p, i) => `<div class="cmd-row"><button type="button" class="cmd-step" data-saved="${i}"><span class="n">${icon("check")}</span><span class="nm">${esc(p.name)}</span></button><button type="button" class="icon-btn" data-saved-x="${i}" aria-label="${esc(t("plan.saved.del", { name: p.name }))}" title="${esc(t("plan.saved.del", { name: p.name }))}">${icon("close")}</button></div>`).join("") +
+    `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
+}
+
 /** Étapes du rail : nom court, objet, nombre de machines (la liste « Vue » garde le texte long). */
 let railSteps: { key: string; name: string; sub: string; n?: number }[] = [];
 /** Rail des étapes (S60, maquette S58) : les vues de la liste « Vue », toujours visibles ; un clic ouvre l'onglet Usine. */
 function renderStepRail(): void {
   let i = 0;
+  const posed = posedSet();
+  const mods = railSteps.filter((r) => r.key !== USINE);
+  const done = mods.filter((r) => posed.has(r.key)).length;
+  $("plan-steps-n").textContent = mods.length ? t("plan.steps.n", { n: done, total: mods.length }) : "";
   $("plan-steps").innerHTML = railSteps.length
     ? railSteps
         .map((r) => {
           const on = r.key === poseStep && settings.resultTab === "pose";
-          const mark = r.key === USINE ? icon("home") : String(++i);
-          return `<button type="button" class="cmd-step${on ? " on" : ""}" data-step="${esc(r.key)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: r.sub ? `${r.name} — ${r.sub}` : r.name }))}"><span class="n">${mark}</span><span class="nm">${esc(r.name)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</span>${r.n ? `<span class="x">×${r.n}</span>` : ""}</button>`;
+          const isUsine = r.key === USINE;
+          const p = !isUsine && posed.has(r.key);
+          const mark = isUsine ? icon("home") : String(++i);
+          const label = r.sub ? `${r.name} — ${r.sub}` : r.name;
+          // S64 : chaque étape se coche « posée » dans le rail (le même stockage que « module posé ✓ », S25).
+          const box = isUsine ? `<span class="cmd-box"></span>` : `<input type="checkbox" class="cmd-box" data-posed="${esc(r.key)}"${p ? " checked" : ""} aria-label="${esc(t("plan.steps.posed", { name: label }))}" title="${esc(t("plan.steps.posed", { name: label }))}">`;
+          return `<div class="cmd-row${on ? " on" : ""}${p ? " done" : ""}">${box}<button type="button" class="cmd-step" data-step="${esc(r.key)}" aria-pressed="${on}" title="${esc(t("plan.steps.aria", { name: label }))}"><span class="n">${mark}</span><span class="nm">${esc(r.name)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</span>${r.n ? `<span class="x">×${r.n}</span>` : ""}</button>${isUsine ? "" : moduleWarn(r.key)}</div>`;
         })
         .join("")
     : `<p class="hint">${esc(t("plan.steps.none"))}</p>`;
@@ -1812,6 +1857,7 @@ function setPosed(key: string, on: boolean): void {
   const st = currentFactory();
   if (st?.plan) $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn);
   markPosed();
+  renderStepRail();
 }
 /** Un module posé se grise dans le dessin de l'usine. */
 function markPosed(): void {
@@ -3180,7 +3226,32 @@ function bindPlan(): void {
     if ($("page-plan").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
     const typing = e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
     if (e.key === "Escape" && !drawer.hidden) setDrawer(false);
+    else if (e.key === "Escape" && !$("flow-hud").hidden && !document.querySelector("dialog[open], .cmd-pal:not([hidden])")) selectFlow(null);
     else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
+  });
+  // Plans enregistrés (S64).
+  renderSaved();
+  $("plan-saved").addEventListener("click", (e) => {
+    const el = e.target as Element;
+    if (el.closest("#plan-save")) {
+      const p: SavedPlan = { name: savedName(), goal: settings.goal, item: settings.item, mode: settings.mode, rate: settings.rate, machines: settings.machines, energyMFps: settings.energyMFps, money: settings.money };
+      storeSaved([p, ...savedPlans.filter((x) => x.name !== p.name || x.goal !== p.goal)]);
+      return renderSaved();
+    }
+    const x = el.closest<HTMLElement>("[data-saved-x]");
+    if (x) {
+      storeSaved(savedPlans.filter((_, i) => i !== Number(x.dataset.savedX)));
+      return renderSaved();
+    }
+    const b = el.closest<HTMLElement>("[data-saved]");
+    const p = b ? savedPlans[Number(b.dataset.saved)] : undefined;
+    if (!p) return;
+    Object.assign(settings, { item: data.items.has(p.item) ? p.item : settings.item, mode: p.mode, rate: p.rate, machines: p.machines, energyMFps: p.energyMFps, money: p.money });
+    enter(p.goal);
+    settings.goal = p.goal;
+    syncForm();
+    if (location.hash.split("/")[0] !== GOAL_HASH[p.goal]) location.hash = GOAL_HASH[p.goal];
+    update();
   });
   // Rail des étapes (S60) : la même chose que la liste « Vue », dans l'onglet Usine.
   $("plan-steps").addEventListener("click", (e) => {
@@ -3224,7 +3295,7 @@ function bindPlan(): void {
     saveSettings(settings);
     renderPose();
   });
-  for (const id of ["pose-mods", "pose-focus"])
+  for (const id of ["pose-mods", "pose-focus", "plan-steps"])
     $(id).addEventListener("change", (e) => {
       const box = (e.target as Element).closest<HTMLInputElement>("[data-posed]");
       if (!box) return;

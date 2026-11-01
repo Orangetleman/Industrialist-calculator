@@ -172,9 +172,11 @@
 
     <div class="cmd-body">
     <aside class="cmd-rail cmd-left" aria-labelledby="plan-steps-h">
-      <h2 class="cmd-h" id="plan-steps-h" data-i18n="plan.steps">Étapes de pose</h2>
+      <h2 class="cmd-h" id="plan-steps-h"><span data-i18n="plan.steps">Étapes de pose</span> <span class="cmd-n" id="plan-steps-n"></span></h2>
       <div class="cmd-steps" id="plan-steps"></div>
       <div id="pose-mods"></div>
+      <h2 class="cmd-h" data-i18n="plan.saved">Plans enregistrés</h2>
+      <div class="cmd-steps" id="plan-saved"></div>
     </aside>
     <div class="cmd-stage">
 
@@ -196,8 +198,6 @@
           <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne" data-i18n-attr="aria-label=zoom.fit;title=zoom.fit.chain" data-ic="fit"></button>
         </div>
       </div>
-      <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
-      <div id="flow-calc" hidden></div>
       <p class="hint" data-i18n="flow.hint">De gauche (extraction) à droite (objectif). Clique un bloc ou une flèche : la barre du bas mène à son plan de pose ou à son bâtiment, et « Comment c'est calculé » détaille chaque nombre et sa source. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-pose" aria-labelledby="rtab-pose" hidden>
@@ -277,6 +277,11 @@
       </section>
       <div id="plan-bar" hidden></div>
       <div id="fix-bar" hidden></div>
+      <!-- S62 : la fiche du bloc cliqué dans le schéma glisse par-dessus le tableau de bord ; Échap ou ✕ la ferme. -->
+      <section class="cmd-insp" id="plan-insp" aria-label="Fiche" data-i18n-attr="aria-label=plan.insp">
+        <div class="flow-hud" id="flow-hud" aria-live="polite" hidden></div>
+        <div id="flow-calc" hidden></div>
+      </section>
     </aside>
     </div>
   </section>

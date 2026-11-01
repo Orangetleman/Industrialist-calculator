@@ -1494,3 +1494,25 @@ table.rh-log td.num { white-space: nowrap; }
 .cmd-drawer > * { min-width: 0; max-width: 100%; }
 .cmd-drawer .mf-row input[type="search"] { width: 100%; }
 .cmd-drawer .adv label.check { text-indent: 0; padding-left: 0; }
+
+/* ---------------------------------------------------------------- S64 : étapes cochables dans le rail */
+.cmd-row { display: flex; align-items: center; gap: 2px; border-radius: 0 6px 6px 0; }
+.cmd-row .cmd-step { flex: 1; min-width: 0; }
+.cmd-row.on .cmd-step { background: var(--accent-soft); border-left-color: var(--accent); }
+.cmd-box { flex: none; width: 16px; height: 16px; margin: 0 2px 0 4px; accent-color: var(--accent); }
+.cmd-row.done .nm { color: var(--muted); text-decoration: line-through; }
+.cmd-row.done .n { color: var(--in); }
+.cmd-row .warn-btn { flex: none; }
+.cmd-n { color: var(--muted); letter-spacing: 0; text-transform: none; }
+/* La liste « module posé ✓ » est reprise par le rail ; la même liste reste au téléphone et dans le panneau du module. */
+@media (min-width: 900px) { .cmd-left #pose-mods { display: none; } }
+
+/* ---------------------------------------------------------------- S62 : fiche du bloc cliqué, par-dessus le tableau de bord */
+.cmd-insp:not(:has(#flow-hud:not([hidden]))) { display: none; }
+@media (min-width: 900px) {
+  .cmd-insp { position: absolute; inset: 0; z-index: 4; overflow: auto; padding: 10px; background: var(--surface); border-left: 2px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; gap: 8px; animation: insp-in .18s ease-out; }
+  .cmd-insp .flow-hud { margin-top: 0; }
+  .cmd-insp .flow-hud-head { flex-direction: column; align-items: stretch; }
+}
+@keyframes insp-in { from { transform: translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cmd-insp { animation: none; } }
