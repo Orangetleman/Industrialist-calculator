@@ -16,7 +16,7 @@ import { solve } from "../solve.ts";
 import { buildCatalog } from "../build/catalog.ts";
 import { designModule } from "../build/module.ts";
 import { designFactory, factoryInput } from "../build/factory.ts";
-import { buildSandboxCatalog, cellsOf, elecRole, geo } from "../sandbox/index.ts";
+import { buildSandboxCatalog, cellsOf, dims, elecRole, geo, mergeStraights } from "../sandbox/index.ts";
 import { layoutFromFactory, layoutFromModule } from "./convert.ts";
 import { fromCode, toCode } from "./msch.ts";
 
@@ -87,5 +87,15 @@ describe("plan du site → schéma", () => {
     expect(wired.length).toBe(cons.length);
     const poleLinks = L.wires.filter((w) => poles.some((p) => p.u === w.a) && poles.some((p) => p.u === w.b));
     expect(poleLinks.length).toBeGreaterThan(0);
+  });
+  it("chaque machine garde la recette du plan ; une machine sans ports relevés garde sa taille", () => {
+    const m = aModule(), c = layoutFromModule(m, sb);
+    for (const b of c.layout.blocks.filter((x) => x.id === m.machine)) expect(sb.blocks.get(b.id)!.recipes.find((r) => r.id === b.choice)?.out.crankshaft).toBeGreaterThan(0);
+    expect(dims(sb.blocks.get("industrial-electric-furnace")!, 0)).toEqual([12, 12]);
+  });
+
+  it("tuyaux droits du tier III bout à bout : posés en pièces longues, dans le sens du flux", () => {
+    const L = mergeStraights(sb, { blocks: [0, 1, 2, 3, 4].map((i) => ({ u: i, id: "short-pipe2", x: i, y: 0, r: 1 })), wires: [] });
+    expect(L.blocks.map((b) => [b.id, b.x, b.r])).toEqual([["long-pipe2", 0, 1], ["short-pipe2", 4, 1]]);
   });
 });

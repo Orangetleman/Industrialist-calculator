@@ -13,6 +13,7 @@ import type { Dir, SbCatalog } from "../sandbox/catalog";
 import { cellsOf, geo, type CrossPair, type Layout, type Placed, type Route, type Wire } from "../sandbox/layout";
 import { powerWires } from "../sandbox/wires";
 import { orientPipes } from "../sandbox/orient";
+import { mergeStraights } from "../sandbox/path";
 import { pipeFor, type Catalog, type PieceRole } from "../build/catalog";
 import type { ModulePlan, PlacedPiece } from "../build/module";
 import type { FactoryPlan } from "../build/factory";
@@ -75,8 +76,12 @@ class Builder {
   }
   /** Un module ; ses poteaux seulement si `poles` (l'usine pose les siens, gardés ou refaits). */
   module(m: ModulePlan, ox: number, oy: number, key = "", poles = true) {
+    // Recette : celle qui produit la sortie du module (et dont les entrées arrivent au module, s'il y en a plusieurs).
+    const outs = new Set(m.nets.filter((n) => n.role === "sortie").map((n) => n.item)), ins = new Set(m.nets.filter((n) => n.role === "entrée").map((n) => n.item));
+    const recs = (this.sb.blocks.get(m.machine)?.recipes ?? []).filter((r) => Object.keys(r.out).some((i) => outs.has(i)));
+    const choice = (recs.find((r) => Object.keys(r.in).every((i) => ins.has(i))) ?? recs[0])?.id;
     for (const p of m.machines) {
-      const b = this.add({ id: p.machine, x: ox + p.x, y: oy + p.y, r: p.rot });
+      const b = this.add({ id: p.machine, x: ox + p.x, y: oy + p.y, r: p.rot, ...(choice ? { choice } : {}) });
       if (b) this.machines.set(`${key}|${p.id}`, b);
     }
     if (poles) {
@@ -142,13 +147,13 @@ export function layoutFromModules(list: { m: ModulePlan; x: number; y: number }[
     starts.push(b.blocks.length);
     b.module(m, x, y);
   }
-  return { layout: orientPipes(sb, { blocks: b.blocks, wires: b.wires() }), width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts };
+  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.blocks, wires: b.wires() })), width: Math.max(...list.map((o) => o.x + o.m.width)), height: Math.max(...list.map((o) => o.y + o.m.height)), skipped: b.skipped, starts };
 }
 
 export function layoutFromModule(m: ModulePlan, sb: SbCatalog): Converted {
   const b = new Builder(sb);
   b.module(m, 0, 0);
-  return { layout: orientPipes(sb, { blocks: b.blocks, wires: b.wires() }), width: m.width, height: m.height, skipped: b.skipped };
+  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.blocks, wires: b.wires() })), width: m.width, height: m.height, skipped: b.skipped };
 }
 
 /**
@@ -179,7 +184,7 @@ export function layoutFromFactory(f: FactoryPlan, sb: SbCatalog, cat: Catalog, i
   // Étapes collées : la liaison d'un bouton à l'autre, comme le joueur la règle en jeu.
   poles(f, b);
   const routes = (f.touches ?? []).map((t) => touchRoute(sb, b.blocks, t)).filter((r): r is Route => !!r);
-  return { layout: orientPipes(sb, { blocks: b.blocks, wires: b.wires(), ...(routes.length ? { routes } : {}) }), width: f.W, height: f.H, skipped: b.skipped };
+  return { layout: mergeStraights(sb, orientPipes(sb, { blocks: b.blocks, wires: b.wires(), ...(routes.length ? { routes } : {}) })), width: f.W, height: f.H, skipped: b.skipped };
 }
 
 /**

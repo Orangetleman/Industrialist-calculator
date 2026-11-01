@@ -95,7 +95,7 @@ const WORKER_MS = 8;
 const COMPACT_Z = 12;
 
 const KEY_STATE = "ind-calc:v1:bac";
-const KEY_SET = "ind-calc:v1:bac-reglages";
+const KEY_SET = "ind-calc:v2:bac-reglages"; // v2 : catégories vides masquées par défaut (2026-11-01)
 const KEY_KEYS = "ind-calc:v1:bac-touches";
 const KEY_SCHEM = "ind-calc:v1:bac-schemas";
 const SIDE_KEY: Record<string, Key> = { N: "bac.side.N", S: "bac.side.S", W: "bac.side.W", E: "bac.side.E", top: "bac.side.top" };
@@ -120,7 +120,7 @@ const decOld =<T>(s: string): T => JSON.parse(new TextDecoder().decode(Uint8Arra
 export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   // ------------------------------------------------------------ état
   let S: State = { blocks: [], wires: [], routes: [], fills: {}, ...load<Partial<State>>(KEY_STATE, {}) };
-  const SET: Settings = load(KEY_SET, { hideEmptyCats: false, runWithoutPower: true });
+  const SET: Settings = load(KEY_SET, { hideEmptyCats: true, runWithoutPower: true });
   const KB: KeyMap = load(KEY_KEYS, defaultKeys());
   const LAB = new Map<string, string>();
   let undo: string[] = [], redo: string[] = [];
@@ -278,6 +278,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   const hasNodes = (b: Placed) => !!geo(cat.blocks.get(b.id)!, b)?.ports.some((p) => p.dir === "top");
   /** Dessin par bâtiment (B4) : seuls ceux dont l'état dessiné change sont refaits, dans l'ordre de pose. */
   let drawn = new Map<number, { sig: string; el: SVGGElement }>(), drawnCompact = false;
+  /** Zone dessinée (cases) : la vue et une demi-vue de marge de chaque côté. Hors d'elle, rien n'est dans la page (gros montages). */
+  let drawnArea: [number, number, number, number] = [0, 0, 0, 0];
+  const viewArea = (): [number, number, number, number] => { const r = svgEl().getBoundingClientRect(), w = (r.width || 1600) / cam.z, h = (r.height || 900) / cam.z; return [cam.x - w / 2, cam.y - h / 2, cam.x + w * 1.5, cam.y + h * 1.5]; };
   const drawSig = (c: DrawCtx, b: Placed) => {
     const d = cat.blocks.get(b.id), mi = R?.machines.get(b.u);
     let s = `${b.id},${b.x},${b.y},${b.r},${b.open},${b.pair},${c.compact},${c.status},${c.wiring}`;
@@ -293,9 +296,11 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (!ui.mounted) return;
     const c = dctx(), layer = $("bac-layer"), seen = new Set<number>();
     drawnCompact = !!c.compact;
+    const A = (drawnArea = viewArea()), inA = (b: Placed) => { const [w, h] = dims(cat.blocks.get(b.id)!, b.r); return b.x + w >= A[0] && b.x <= A[2] && b.y + h >= A[1] && b.y <= A[3]; };
     if (layer.dataset.n !== "1") { layer.textContent = ""; drawn = new Map(); layer.dataset.n = "1"; } // squelette refait
     let prev: Element | null = null;
     for (const b of S.blocks) {
+      if (!inA(b)) continue;
       seen.add(b.u);
       let d = drawn.get(b.u);
       if (!d) { d = { sig: "", el: document.createElementNS("http://www.w3.org/2000/svg", "g") }; drawn.set(b.u, d); }
@@ -575,8 +580,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
 
   function renderInfo(force = false): void {
     if (!ui.mounted || (pop && !force)) return;
-    const tg = ui.hoverBtn ? { k: "e" as const, e: menu.byKey.get(ui.hoverBtn)! } : ui.sel ? { k: "e" as const, e: ui.sel.e }
-      : ui.hoverU != null && byU.has(ui.hoverU) ? { k: "b" as const, u: ui.hoverU, pin: false } : ui.pinned != null && byU.has(ui.pinned) ? { k: "b" as const, u: ui.pinned, pin: true } : null;
+    // Une pose choisie ou un bâtiment épinglé reste affiché : le survol ne le remplace plus (retour du 2026-11-01).
+    const tg = ui.sel ? { k: "e" as const, e: ui.sel.e } : ui.pinned != null && byU.has(ui.pinned) ? { k: "b" as const, u: ui.pinned, pin: true }
+      : ui.hoverBtn ? { k: "e" as const, e: menu.byKey.get(ui.hoverBtn)! } : ui.hoverU != null && byU.has(ui.hoverU) ? { k: "b" as const, u: ui.hoverU, pin: false } : null;
     const pu = tg?.k === "b" ? portUnder() : null;
     const sig = JSON.stringify([tg, ui.sel?.v, ui.auto, pu && [pu.u, pu.i], ui.routeFrom, R?.machines.size, undo.length, redo.length]);
     if (!force && sig === infoSig) return;
@@ -1118,7 +1124,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (!ui.mounted) return;
     const r = svgEl().getBoundingClientRect();
     if (r.width) svgEl().setAttribute("viewBox", `${cam.x} ${cam.y} ${r.width / cam.z} ${r.height / cam.z}`);
-    if (cam.z < COMPACT_Z !== drawnCompact) drawAll(); // vue compacte quand on dézoome
+    const A = drawnArea, w = r.width / cam.z, h = r.height / cam.z, out = cam.x < A[0] || cam.y < A[1] || cam.x + w > A[2] || cam.y + h > A[3];
+    if (cam.z < COMPACT_Z !== drawnCompact || out) drawAll(); // vue compacte quand on dézoome ; vue sortie de la zone dessinée
   }
   function zoomAt(f: number, cx: number, cy: number): void {
     const r = svgEl().getBoundingClientRect(), px = cx - r.left, py = cy - r.top, wx = cam.x + px / cam.z, wy = cam.y + py / cam.z;

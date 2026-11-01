@@ -158,8 +158,8 @@ describe("cas signalés", () => {
   });
   it("pièce non relevée", () => {
     const { L, put } = builder();
-    put("pipe-fluid-turn2", 0, 0);
-    expect(computeSandbox(cat, L).alerts.map((a) => a.a)).toContainEqual({ k: "missing", id: "pipe-fluid-turn2" });
+    put("water-pump", 0, 0);
+    expect(computeSandbox(cat, L).alerts.map((a) => a.a)).toContainEqual({ k: "missing", id: "water-pump" });
   });
   it("deux entrées face à face ne se raccordent pas", () => {
     const a = builder();

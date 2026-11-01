@@ -161,7 +161,7 @@ function assemble(cat: SbCatalog, cells: Map<string, Cell>): Piece[] {
     const g = cat.blocks.get(id)!.geo, r = g ? [0, 1, 2, 3].find((rr) => sameSet(g.ports.map((p) => rot(p.s as Dir, rr)), o)) : undefined;
     out.push(r === undefined ? { id, x: c.x, y: c.y, r: 0, open: o } : { id, x: c.x, y: c.y, r });
   }
-  const seen = new Set<string>(), same = (a: Cell | undefined, c: Cell) => !!a && a.axis === c.axis && a.fam === c.fam && a.lenMax === c.lenMax;
+  const seen = new Set<string>(), same = (a: Cell | undefined, c: Cell) => !!a && a.axis === c.axis && a.fam === c.fam && a.lenMax === c.lenMax && (!a.fwd || !c.fwd || a.fwd === c.fwd);
   for (const [k, c] of straight) {
     if (seen.has(k)) continue;
     const [dx, dy] = c.axis === "V" ? [0, 1] : [1, 0];
@@ -259,4 +259,25 @@ export function applyPlan(layout: Layout, plan: Plan): Layout {
     wires: layout.wires.filter((w) => !gone.has(w.a) && !gone.has(w.b)),
     ...(layout.routes ? { routes: layout.routes.filter((r) => !gone.has(r.a) && !gone.has(r.b)) } : {}),
   };
+}
+
+/**
+ * Tuyaux droits d'une case mis bout à bout (montage converti d'un plan, une pièce par case) : remplacés par les plus
+ * longs possibles, dans le même sens. Les autres bâtiments gardent leur place dans la liste ; les pièces longues
+ * viennent à la suite, et tout est renuméroté (câbles et liaisons suivent).
+ */
+export function mergeStraights(cat: SbCatalog, layout: Layout): Layout {
+  const cells = new Map<string, Cell>(), gone = new Set<number>();
+  for (const b of layout.blocks) {
+    const d = cat.blocks.get(b.id), f = famOf(cat, b.id);
+    if (!d?.geo || !f || d.pipe!.role !== "droit" || b.open) continue;
+    gone.add(b.u);
+    for (const [x, y] of cellsOf(d, b)) cells.set(K(x, y), { x, y, fam: f, open: cellOpen(d, b, x, y), lenMax: Infinity, axis: b.r % 2 ? "H" : "V", fwd: DIRS[b.r]! });
+  }
+  if (!gone.size) return layout;
+  const keep = layout.blocks.filter((b) => !gone.has(b.u)), blocks = [...keep, ...assemble(cat, cells).map((p) => ({ ...p, u: 0 }))];
+  const re = new Map(keep.map((b, i) => [b.u, i]));
+  blocks.forEach((b, i) => (b.u = i));
+  const map = <T extends { a: number; b: number }>(l: T[]) => l.filter((w) => re.has(w.a) && re.has(w.b)).map((w) => ({ ...w, a: re.get(w.a)!, b: re.get(w.b)! }));
+  return { blocks, wires: map(layout.wires), ...(layout.routes ? { routes: map(layout.routes) } : {}) };
 }
