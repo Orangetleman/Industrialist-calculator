@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S66 / S67 — Planifier, volets et bulle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap">
+<style>
+/* Maquette S66 / S67 (R28 et suite) : volets réductibles et redimensionnables, volet droit en menu qui glisse,
+   bulle d'un module, barres de défilement fines, titres fixes. Jetons de la charte S59 (src/styles.css).
+   Chiffres de démonstration : aucune valeur de jeu. */
+:root {
+  --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
+  --accent: #ff6a1a; --accent-soft: #33190c; --on-accent: #1a0800; --warn: #ffd23f; --warn-soft: #2a220c; --ok: #4ade80; --bad: #ff7a9a;
+  --in: #38bdf8; --in-soft: #0f2235; --out: #e879f9; --out-soft: #2d1436;
+  --cv-bg: #120c20; --cv-line: #4f3d7a; --cv-panel: #221836;
+  --brand-bar: repeating-linear-gradient(45deg, var(--accent) 0 10px, var(--bg) 10px 20px);
+  --f: "Audiowide", system-ui, sans-serif;
+  --lw: 230px; --rw: 290px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--f); }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 1px solid var(--line); border-radius: 3px; padding: 4px 8px; }
+button:hover { border-color: var(--accent); }
+.ic { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Barres de défilement fines, aux couleurs de la charte (toutes les zones qui défilent). */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+::-webkit-scrollbar-track { background: transparent; }
+
+.app { height: 100vh; display: grid; grid-template-rows: auto auto 1fr; }
+/* En-tête sur une ligne, sobre */
+.top { display: flex; align-items: center; gap: 14px; padding: 6px 12px; background: var(--surface); position: relative; }
+.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 3px; background: var(--brand-bar); }
+.logo { font-size: 14px; }
+.nav { display: flex; gap: 2px; }
+.nav a { padding: 4px 9px; color: var(--muted); text-decoration: none; }
+.nav a.on { color: var(--ink); background: var(--panel2); }
+.top .sp { flex: 1; }
+.top .tb { border: 0; color: var(--muted); padding: 4px; }
+
+/* Objectif : une phrase */
+.goal { display: flex; align-items: center; gap: 10px; padding: 9px 12px 7px; margin-top: 3px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; color: var(--muted); padding: 4px 9px; }
+.seg button.on { background: var(--accent); color: var(--on-accent); }
+.say { color: var(--muted); }
+.field { background: var(--bg); border: 1px solid var(--line); padding: 4px 8px; border-radius: 3px; min-width: 56px; text-align: center; }
+.pick { display: inline-flex; align-items: center; gap: 6px; border-color: var(--accent); }
+.pick i { width: 18px; height: 18px; background: var(--panel2); display: inline-block; }
+kbd { font: 10px var(--f); color: var(--muted); border: 1px solid var(--line); border-bottom-width: 2px; padding: 0 4px; border-radius: 3px; }
+.goal .sp { flex: 1; }
+
+/* Corps : volet gauche · séparateur · plan · séparateur · volet droit */
+.body { display: grid; grid-template-columns: var(--lw) 5px minmax(0, 1fr) 5px var(--rw); min-height: 0; }
+.body.l-off { --lw: 38px; } .body.r-off { --rw: 38px; }
+.split { cursor: col-resize; background: var(--line); position: relative; }
+.split::after { content: ""; position: absolute; inset: 0 -4px; }
+.split:hover, .split.drag { background: var(--accent); }
+.rail { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+
+/* Titre fixe de volet, contenu qui défile dessous */
+.rh { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--accent); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.rh .sp { flex: 1; }
+.rh button { border: 0; color: var(--muted); padding: 2px; }
+.rb { flex: 1; min-height: 0; overflow: auto; }
+
+/* Volet réduit : une colonne d'icônes, comme la barre d'outils de Pollywrath */
+.strip { display: none; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; }
+.strip button { border: 0; width: 34px; padding: 6px 0; display: grid; place-items: center; gap: 2px; color: var(--muted); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
+.strip button:hover { color: var(--accent); }
+.body.l-off .rail.l > :not(.strip), .body.r-off .rail.r > :not(.strip) { display: none; }
+.body.l-off .rail.l .strip, .body.r-off .rail.r .strip { display: flex; }
+
+/* Étapes : une ligne chacune, progression en barre */
+.prog { height: 4px; background: var(--line); margin: 8px 10px 4px; }
+.prog i { display: block; height: 100%; background: var(--ok); width: 22%; }
+.lever { display: flex; margin: 6px 10px; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.lever button { flex: 1; border: 0; border-radius: 0; font-size: 11px; color: var(--muted); padding: 3px; }
+.lever button.on { background: var(--accent); color: var(--on-accent); }
+.step { display: flex; align-items: center; gap: 7px; padding: 5px 10px; border-left: 3px solid transparent; cursor: pointer; white-space: nowrap; }
+.step:hover { background: var(--panel2); }
+.step.on { background: var(--accent-soft); border-left-color: var(--accent); }
+.step input { accent-color: var(--accent); margin: 0; }
+.step .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.step .x { color: var(--accent); font-size: 11px; }
+.step .w { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; }
+.step.done .nm { color: var(--muted); text-decoration: line-through; }
+
+/* Plan au centre */
+.stage { position: relative; min-width: 0; overflow: hidden; background: radial-gradient(circle, #2a1f44 1px, transparent 1.3px) 0 0/20px 20px, var(--cv-bg); }
+.tabs { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; }
+.tabs button { border: 0; border-radius: 0; color: var(--muted); padding: 5px 12px; display: inline-flex; gap: 6px; align-items: center; }
+.tabs button.on { color: var(--ink); box-shadow: inset 0 -2px var(--accent); }
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.mod { position: absolute; background: var(--cv-panel); border: 1px solid var(--cv-line); cursor: pointer; display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+.mod:hover { border-color: var(--accent); }
+.mod.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.mod.bad { border: 2px dashed var(--warn); }
+.mod.bad::before { content: "!"; position: absolute; top: -9px; left: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--warn); color: var(--on-accent); display: grid; place-items: center; font-size: 11px; }
+.pipe { position: absolute; background: var(--in); opacity: .7; }
+.pipe.o { background: var(--out); }
+
+/* Outils du plan : icônes flottantes, plus de cases à cocher au-dessus du dessin */
+.tools { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 5; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; }
+.tools button { border: 0; border-radius: 0; width: 34px; height: 32px; display: grid; place-items: center; color: var(--muted); }
+.tools button.on { color: var(--accent); }
+.tools hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+/* Bulle d'un module : dans le monde du plan (elle grandit avec le zoom), agrandie d'un clic */
+.bubble { position: absolute; width: 230px; background: var(--surface); border: 1px solid var(--accent); border-radius: 3px; box-shadow: 0 10px 30px #0008; z-index: 3; font-size: 12px; }
+.bubble::before { content: ""; position: absolute; left: 18px; top: -7px; width: 12px; height: 12px; background: var(--surface); border-left: 1px solid var(--accent); border-top: 1px solid var(--accent); transform: rotate(45deg); }
+.bubble header { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+.bubble header b { flex: 1; font-weight: 400; }
+.bubble header button { border: 0; padding: 2px; color: var(--muted); }
+.bubble .row { display: flex; justify-content: space-between; padding: 4px 8px; }
+.bubble .row span:first-child { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 8px; }
+.chip { padding: 1px 7px; border: 1px solid; border-radius: 3px; font-size: 11px; }
+.chip.i { color: var(--in); border-color: var(--in); background: var(--in-soft); }
+.chip.o { color: var(--out); border-color: var(--out); background: var(--out-soft); }
+.bubble .mini { display: none; margin: 0 8px 8px; height: 160px; border: 1px solid var(--line); background: radial-gradient(circle, #2a1f44 1px, transparent 1.3px) 0 0/10px 10px, var(--cv-bg); position: relative; }
+.bubble.big { width: 420px; }
+.bubble.big .mini { display: block; }
+.bubble .warnl { margin: 0 8px 8px; padding: 4px 6px; border-left: 3px solid var(--warn); background: var(--warn-soft); color: var(--warn); font-size: 11px; }
+
+/* Volet droit : un menu ; chaque titre orange ouvre sa fenêtre, qui glisse par-dessus */
+.r .rb { position: relative; overflow: hidden; }
+.pane { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--surface); transition: transform .2s ease; }
+.pane.sub { transform: translateX(100%); }
+.pane.sub.on { transform: none; }
+.pane.root.away, .pane.sub.on.away { transform: translateX(-30%); opacity: 0; pointer-events: none; }
+.pane { transition: transform .2s ease, opacity .2s ease; }
+.pane > .pb { flex: 1; min-height: 0; overflow: auto; }
+.sec { border-bottom: 1px solid var(--line); }
+.st { display: flex; align-items: center; gap: 7px; width: 100%; border: 0; border-radius: 0; padding: 9px 10px; text-align: left; color: var(--accent); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.st .sp { flex: 1; }
+.st .n { color: var(--muted); letter-spacing: 0; }
+.st:hover { background: var(--panel2); border-color: transparent; }
+.kv { display: flex; align-items: center; gap: 7px; padding: 4px 10px; }
+.kv .ic { color: var(--muted); }
+.kv span { flex: 1; color: var(--muted); }
+.kv b { font-weight: 400; }
+.kv b.good { color: var(--ok); } .kv b.warn { color: var(--warn); }
+.share { display: flex; gap: 6px; padding: 0 10px 10px; }
+.share button { flex: 1; display: inline-flex; gap: 6px; justify-content: center; align-items: center; }
+.share button.p { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.ph { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--accent); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.ph button { border: 0; color: var(--muted); padding: 2px; }
+.li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.li:hover { background: var(--panel2); }
+.li .nm { flex: 1; }
+.li .q { font-size: 11px; color: var(--muted); }
+.bar { height: 6px; background: var(--line); margin: 2px 10px 8px; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+
+.note { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 50; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); padding: 4px 10px; border-radius: 3px; font-size: 11px; }
+
+@media (max-width: 900px) {
+  .body { grid-template-columns: 1fr; grid-template-rows: auto 60vh auto; }
+  .split { display: none; }
+  .rail { max-height: 40vh; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3H15"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-10 16-10 0 9-4 16-9 17z"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="m10 17 5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+</svg>
+<div class="note">Maquette S66 / S67 — chiffres de démonstration · glisser les bords des volets · « ‹ » réduit un volet · cliquer un module · molette = zoom · titres orange à droite</div>
+<div class="app">
+  <header class="top">
+    <span class="logo">Planificateur</span>
+    <nav class="nav"><a class="on" href="#">Planifier</a><a href="#">Arbre</a><a href="#">Recettes</a><a href="#">Bac à sable</a><a href="#">Mon usine</a><a href="#">Contribuer</a></nav>
+    <span class="sp"></span>
+    <button class="tb" title="Thème">☾</button><button class="tb" title="Langue">FR</button><button class="tb" title="Aide">?</button>
+  </header>
+
+  <section class="goal">
+    <span class="seg"><button class="on">Objet</button><button>Énergie</button><button>RP</button><button>Argent</button></span>
+    <span class="say">Je veux</span><span class="field">60</span><span class="say">/min de</span>
+    <button class="pick"><i></i>Gearbox <kbd>Ctrl K</kbd></button>
+    <span class="sp"></span>
+    <button><svg class="ic"><use href="#i-cog"/></svg> Réglages <kbd>R</kbd></button>
+  </section>
+
+  <div class="body" id="body">
+    <!-- Volet gauche : étapes -->
+    <aside class="rail l">
+      <div class="rh"><svg class="ic"><use href="#i-list"/></svg>Étapes<span class="sp"></span><span style="color:var(--muted);letter-spacing:0">2 / 9</span><button data-fold="l" title="Réduire le volet"><svg class="ic"><use href="#i-left"/></svg></button></div>
+      <div class="rb">
+        <div class="prog" title="2 étapes posées sur 9"><i></i></div>
+        <div class="lever"><button class="on">Par module</button><button>Usine entière</button></div>
+        <div class="step on"><svg class="ic"><use href="#i-map"/></svg><span class="nm">Toute l'usine</span></div>
+        <div class="step done"><input type="checkbox" checked><span class="nm">Craft Assembler</span><span class="x">×15</span></div>
+        <div class="step done"><input type="checkbox" checked><span class="nm">Press MK2</span><span class="x">×2</span></div>
+        <div class="step"><input type="checkbox"><span class="nm">Industrial Plastic Molder</span><span class="x">×4</span><i class="w" title="À vérifier"></i></div>
+        <div class="step"><input type="checkbox"><span class="nm">Roller</span><span class="x">×8</span></div>
+        <div class="step"><input type="checkbox"><span class="nm">Blast Furnace</span><span class="x">×5</span><i class="w"></i></div>
+        <div class="step"><input type="checkbox"><span class="nm">Oxidation Plant</span><span class="x">×1</span></div>
+        <div class="step"><input type="checkbox"><span class="nm">Plastic Refinery</span><span class="x">×2</span></div>
+        <div class="step"><input type="checkbox"><span class="nm">Iron Drill</span><span class="x">×60</span></div>
+        <div class="step"><input type="checkbox"><span class="nm">Ferme d'arbres</span><span class="x">×61</span></div>
+        <div class="rh" style="border-top:1px solid var(--line);margin-top:6px">Plans enregistrés</div>
+        <div class="step"><svg class="ic"><use href="#i-box"/></svg><span class="nm">60/min Gearbox</span></div>
+        <div class="step"><svg class="ic"><use href="#i-bolt"/></svg><span class="nm">1,7 MMF/s</span></div>
+      </div>
+      <div class="strip"><button data-fold="l" title="Ouvrir les étapes"><svg class="ic"><use href="#i-list"/></svg>Étapes</button><button title="Plans enregistrés"><svg class="ic"><use href="#i-box"/></svg>Plans</button></div>
+    </aside>
+    <div class="split" data-split="l" title="Glisser pour changer la largeur · double-clic pour revenir"></div>
+
+    <!-- Plan -->
+    <main class="stage" id="stage">
+      <div class="tabs"><button class="on"><svg class="ic"><use href="#i-map"/></svg>Usine</button><button><svg class="ic"><use href="#i-chart"/></svg>Schéma</button><button><svg class="ic"><use href="#i-list"/></svg>Liste</button></div>
+      <div class="tools">
+        <button title="Zoomer"><svg class="ic"><use href="#i-plus"/></svg></button><button title="Dézoomer"><svg class="ic"><use href="#i-minus"/></svg></button><button title="Tout voir"><svg class="ic"><use href="#i-fit"/></svg></button><hr>
+        <button class="on" title="Liaisons"><svg class="ic"><use href="#i-link"/></svg></button><button class="on" title="Réseau électrique"><svg class="ic"><use href="#i-bolt"/></svg></button><button title="Tout afficher (machines dans les modules)"><svg class="ic"><use href="#i-eye"/></svg></button>
+      </div>
+      <div class="world" id="world">
+        <div class="pipe" style="left:330px;top:205px;width:90px;height:4px"></div>
+        <div class="pipe o" style="left:600px;top:250px;width:4px;height:90px"></div>
+        <div class="pipe" style="left:250px;top:300px;width:4px;height:70px"></div>
+        <div class="mod" data-m="Craft Assembler" data-n="15" style="left:160px;top:140px;width:170px;height:150px">Craft Assembler</div>
+        <div class="mod bad" data-m="Industrial Plastic Molder" data-n="4" data-bad="Bâtiment non relevé dans l'éditeur : ports supposés" style="left:420px;top:150px;width:180px;height:100px">Plastic Molder</div>
+        <div class="mod" data-m="Press MK2" data-n="2" style="left:520px;top:340px;width:150px;height:90px">Press MK2</div>
+        <div class="mod bad" data-m="Blast Furnace" data-n="5" data-bad="Prix inconnu pour une pièce" style="left:150px;top:370px;width:230px;height:120px">Blast Furnace</div>
+        <div class="mod" data-m="Roller" data-n="8" style="left:720px;top:140px;width:120px;height:170px">Roller</div>
+        <div class="bubble" id="bubble" hidden>
+          <header><b id="b-name"></b><button id="b-big" title="Agrandir la bulle"><svg class="ic"><use href="#i-max"/></svg></button><button id="b-x" title="Fermer (Échap)"><svg class="ic"><use href="#i-x"/></svg></button></header>
+          <div class="row"><span>Machines</span><b id="b-n"></b></div>
+          <div class="row"><span>Taille</span><b>13 × 64</b></div>
+          <div class="row"><span>Énergie</span><b>60 kMF/s</b></div>
+          <div class="chips"><span class="chip i">Crankshaft</span><span class="chip i">Plastic Casing</span><span class="chip o">Gearbox</span></div>
+          <div class="warnl" id="b-bad" hidden></div>
+          <div class="mini"></div>
+          <div class="chips"><button>Fiche ›</button><button><input type="checkbox"> posé</button></div>
+        </div>
+      </div>
+    </main>
+    <div class="split" data-split="r" title="Glisser pour changer la largeur · double-clic pour revenir"></div>
+
+    <!-- Volet droit : un menu, chaque catégorie glisse vers sa fenêtre -->
+    <aside class="rail r">
+      <div class="rh"><button data-fold="r" title="Réduire le volet"><svg class="ic"><use href="#i-right"/></svg></button><svg class="ic"><use href="#i-chart"/></svg>Ce plan</div>
+      <div class="rb">
+        <div class="pane root" id="root">
+          <div class="pb">
+            <div class="sec">
+              <div class="kv"><svg class="ic"><use href="#i-box"/></svg><span>Machines</span><b>168</b></div>
+              <div class="kv"><svg class="ic"><use href="#i-map"/></svg><span>Place au sol</span><b>6 174 cases</b></div>
+              <div class="kv"><svg class="ic"><use href="#i-bolt"/></svg><span>Énergie</span><b>1,5 MMF/s</b></div>
+              <div class="kv"><svg class="ic"><use href="#i-coin"/></svg><span>Prix</span><b>4,1 M$</b></div>
+              <div class="kv"><svg class="ic"><use href="#i-leaf"/></svg><span>Pollution</span><b class="warn">0,4 %/h</b></div>
+            </div>
+            <div class="sec"><button class="st" data-go="io"><svg class="ic"><use href="#i-in"/></svg>Entrées / sorties<span class="sp"></span><span class="n">4 · 1</span><svg class="ic"><use href="#i-right"/></svg></button></div>
+            <div class="sec"><button class="st" data-go="warn"><svg class="ic"><use href="#i-warn"/></svg>À régler<span class="sp"></span><span class="n">7</span><svg class="ic"><use href="#i-right"/></svg></button></div>
+            <div class="sec"><button class="st" data-go="pose"><svg class="ic"><use href="#i-map"/></svg>Plan de pose<span class="sp"></span><svg class="ic"><use href="#i-right"/></svg></button></div>
+            <div class="sec"><button class="st" data-go="set"><svg class="ic"><use href="#i-cog"/></svg>Ton plan<span class="sp"></span><span class="n">2</span><svg class="ic"><use href="#i-right"/></svg></button></div>
+            <div class="sec">
+              <div class="st" style="cursor:default"><svg class="ic"><use href="#i-edit"/></svg>Modifier ou partager</div>
+              <div class="share"><button class="p"><svg class="ic"><use href="#i-edit"/></svg>Bac à sable</button><button><svg class="ic"><use href="#i-dl"/></svg>.msch</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="pane sub" data-pane="io">
+          <div class="ph"><button data-back title="Retour"><svg class="ic"><use href="#i-left"/></svg></button>Entrées / sorties</div>
+          <div class="pb">
+            <div class="kv" style="color:var(--in)"><svg class="ic" style="color:var(--in)"><use href="#i-in"/></svg><span style="color:var(--in)">À extraire</span></div>
+            <div class="li"><span class="nm">Crude Oil</span><span class="q">56,7 /min</span></div><div class="bar"><i style="width:80%;background:var(--in)"></i></div>
+            <div class="li"><span class="nm">Raw Iron</span><span class="q">240 /min</span></div><div class="bar"><i style="width:100%;background:var(--in)"></i></div>
+            <div class="li"><span class="nm">Coal</span><span class="q">44,4 /min</span></div><div class="bar"><i style="width:30%;background:var(--in)"></i></div>
+            <div class="li"><span class="nm">Water</span><span class="q">272 /min</span></div><div class="bar"><i style="width:95%;background:var(--in)"></i></div>
+            <div class="kv"><svg class="ic" style="color:var(--out)"><use href="#i-out"/></svg><span style="color:var(--out)">À évacuer</span></div>
+            <div class="li"><span class="nm">Paraxylene</span><span class="q">11,7 /min</span></div><div class="bar"><i style="width:15%;background:var(--out)"></i></div>
+          </div>
+        </div>
+        <div class="pane sub" data-pane="warn">
+          <div class="ph"><button data-back title="Retour"><svg class="ic"><use href="#i-left"/></svg></button>À régler</div>
+          <div class="pb">
+            <div class="li" data-go="m1"><svg class="ic" style="color:var(--warn)"><use href="#i-warn"/></svg><span class="nm">Plastic Molder</span><span class="q">non relevé</span><svg class="ic"><use href="#i-right"/></svg></div>
+            <div class="li"><svg class="ic" style="color:var(--warn)"><use href="#i-warn"/></svg><span class="nm">Blast Furnace</span><span class="q">prix</span><svg class="ic"><use href="#i-right"/></svg></div>
+            <div class="li"><svg class="ic" style="color:var(--warn)"><use href="#i-warn"/></svg><span class="nm">Craft Assembler</span><span class="q">durée</span><svg class="ic"><use href="#i-right"/></svg></div>
+          </div>
+        </div>
+        <div class="pane sub" data-pane="m1">
+          <div class="ph"><button data-back title="Retour"><svg class="ic"><use href="#i-left"/></svg></button>Plastic Molder</div>
+          <div class="pb">
+            <div class="kv"><span>Ports</span><b class="warn">supposés</b></div>
+            <div class="kv"><span>Dans l'éditeur</span><b class="warn">non relevé</b></div>
+            <div class="share" style="padding-top:8px"><button class="p">Relever dans l'éditeur</button></div>
+          </div>
+        </div>
+        <div class="pane sub" data-pane="pose">
+          <div class="ph"><button data-back title="Retour"><svg class="ic"><use href="#i-left"/></svg></button>Plan de pose</div>
+          <div class="pb">
+            <div class="kv"><span>Taille</span><b>155 × 112</b></div>
+            <div class="kv"><span>Tuyaux</span><b>2 213 cases</b></div>
+            <div class="kv"><span>Dans la parcelle</span><b class="good">oui</b></div>
+            <div class="li"><span class="nm">Liaisons</span><span class="q">26</span><svg class="ic"><use href="#i-right"/></svg></div>
+            <div class="li"><span class="nm">Machines à compléter</span><span class="q">7</span><svg class="ic"><use href="#i-right"/></svg></div>
+            <div class="li"><span class="nm">Légende</span><svg class="ic"><use href="#i-right"/></svg></div>
+          </div>
+        </div>
+        <div class="pane sub" data-pane="set">
+          <div class="ph"><button data-back title="Retour"><svg class="ic"><use href="#i-left"/></svg></button>Ton plan</div>
+          <div class="pb">
+            <div class="li"><span class="nm">Priorités</span><span class="q">énergie › pollution</span></div>
+            <div class="li"><span class="nm">Machines</span><span class="q">toutes</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="strip"><button data-fold="r" title="Ouvrir le tableau de bord"><svg class="ic"><use href="#i-chart"/></svg>Plan</button><button title="Entrées / sorties"><svg class="ic"><use href="#i-in"/></svg>Flux</button><button title="À régler" style="color:var(--warn)"><svg class="ic"><use href="#i-warn"/></svg>7</button><button title="Partager"><svg class="ic"><use href="#i-edit"/></svg>Bac</button></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const body = $("#body"), root = document.documentElement;
+// Largeurs gardées dans ce navigateur ; double-clic sur un bord : largeur de départ.
+const W = { l: 230, r: 290 };
+try { Object.assign(W, JSON.parse(localStorage.getItem("maq-volets") || "{}")); } catch {}
+const apply = () => { root.style.setProperty("--lw", W.l + "px"); root.style.setProperty("--rw", W.r + "px"); };
+apply();
+for (const s of document.querySelectorAll(".split")) {
+  const side = s.dataset.split;
+  s.addEventListener("pointerdown", (e) => {
+    s.setPointerCapture(e.pointerId); s.classList.add("drag");
+    body.classList.remove(side + "-off");
+    const move = (ev) => {
+      const x = side === "l" ? ev.clientX : innerWidth - ev.clientX;
+      if (x < 90) { body.classList.add(side + "-off"); return; } // tiré presque au bord : le volet se réduit
+      body.classList.remove(side + "-off");
+      W[side] = Math.max(170, Math.min(innerWidth * 0.45, x));
+      apply();
+    };
+    const up = () => { s.classList.remove("drag"); s.removeEventListener("pointermove", move); s.removeEventListener("pointerup", up); try { localStorage.setItem("maq-volets", JSON.stringify(W)); } catch {} };
+    s.addEventListener("pointermove", move); s.addEventListener("pointerup", up);
+  });
+  s.addEventListener("dblclick", () => { W[side] = side === "l" ? 230 : 290; body.classList.remove(side + "-off"); apply(); });
+}
+document.addEventListener("click", (e) => {
+  const f = e.target.closest("[data-fold]");
+  if (f) body.classList.toggle(f.dataset.fold + "-off");
+});
+// Volet droit : les fenêtres glissent ; ‹ revient d'un cran.
+const stack = [];
+document.addEventListener("click", (e) => {
+  const g = e.target.closest("[data-go]");
+  if (g && g.closest(".rail.r")) {
+    const p = $(`[data-pane="${g.dataset.go}"]`); if (!p) return;
+    (stack.at(-1) || $("#root")).classList.add("away");
+    p.classList.add("on"); stack.push(p);
+  }
+  if (e.target.closest("[data-back]")) {
+    const p = stack.pop(); p?.classList.remove("on");
+    (stack.at(-1) || $("#root")).classList.remove("away");
+  }
+});
+// Plan : molette = zoom autour du pointeur, glisser = déplacer ; la bulle vit dans le plan et grandit avec lui.
+const world = $("#world"), stage = $("#stage"), bubble = $("#bubble");
+let z = 1, tx = 20, ty = 30;
+const draw = () => world.style.transform = `translate(${tx}px,${ty}px) scale(${z})`;
+draw();
+stage.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const r = stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const k = Math.exp(-e.deltaY * 0.0015), nz = Math.max(0.3, Math.min(4, z * k));
+  tx = mx - (mx - tx) * nz / z; ty = my - (my - ty) * nz / z; z = nz; draw();
+}, { passive: false });
+let drag = null;
+stage.addEventListener("pointerdown", (e) => { if (e.target.closest(".mod, .bubble, .tools, .tabs")) return; drag = { x: e.clientX - tx, y: e.clientY - ty }; });
+addEventListener("pointermove", (e) => { if (drag) { tx = e.clientX - drag.x; ty = e.clientY - drag.y; draw(); } });
+addEventListener("pointerup", () => drag = null);
+for (const m of document.querySelectorAll(".mod")) m.addEventListener("click", () => {
+  document.querySelectorAll(".mod").forEach((x) => x.classList.toggle("sel", x === m));
+  $("#b-name").textContent = m.dataset.m; $("#b-n").textContent = "×" + m.dataset.n;
+  $("#b-bad").hidden = !m.dataset.bad; $("#b-bad").textContent = "⚠ " + (m.dataset.bad || "");
+  bubble.classList.remove("big");
+  bubble.style.left = m.offsetLeft + "px"; bubble.style.top = (m.offsetTop + m.offsetHeight + 10) + "px";
+  bubble.hidden = false;
+});
+$("#b-big").onclick = () => bubble.classList.toggle("big");
+$("#b-x").onclick = () => { bubble.hidden = true; document.querySelectorAll(".mod").forEach((x) => x.classList.remove("sel")); };
+addEventListener("keydown", (e) => { if (e.key === "Escape") $("#b-x").click(); });
+document.querySelectorAll(".seg, .lever, .tabs").forEach((g) => g.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return; g.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+}));
+document.querySelectorAll(".tools button:nth-child(n+5)").forEach((b) => b.onclick = () => b.classList.toggle("on"));
+</script>
+</body>
+</html>

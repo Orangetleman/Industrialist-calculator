@@ -1593,3 +1593,12 @@ table.rh-log td.num { white-space: nowrap; }
 .cmd-insp .flow-hud-sets label { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .cmd-insp { overflow-x: hidden; } .cmd-insp table.calc-t { display: block; max-width: 100%; overflow-x: auto; font-size: .78rem; }
 .cmd-drawer label > .hint[data-i18n] { display: none; }
+
+/* ---------------------------------------------------------------- Barres de défilement fines, aux couleurs de la charte (R28 suite) */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+/* Les titres des volets restent en haut : seul le contenu défile dessous. */
+.cmd-rail > .cmd-h { position: sticky; top: 0; z-index: 2; background: var(--surface); margin: -10px -12px 0; padding: 10px 12px 6px; }
