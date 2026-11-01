@@ -959,3 +959,6 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   que les produits prennent les ports de sortie **dans l'ordre de la recette** (plan de pose et bac à sable). Avant, le
   plan donnait le premier port au produit principal et le bac à sable au premier produit de la recette : les deux flux
   se croisaient. Question : en jeu, quel produit sort par quel port (et peut-on le régler aux boutons) ?
+  **Répondu le 2026-11-01** : c'est l'infobulle du bouton (port) en jeu qui dit quel produit sort par ce port (ou entre
+  par cette entrée). Le moteur s'en sert déjà quand elle est relevée ; l'ordre de la recette ne sert que faute de relevé.
+  Reste à relever les infobulles des ports de sortie de la Steam Cracking Plant (et des autres machines à plusieurs sorties).
