@@ -267,17 +267,22 @@ export function applyPlan(layout: Layout, plan: Plan): Layout {
  * viennent à la suite, et tout est renuméroté (câbles et liaisons suivent).
  */
 export function mergeStraights(cat: SbCatalog, layout: Layout): Layout {
-  const cells = new Map<string, Cell>(), gone = new Set<number>();
+  const cells = new Map<string, Cell>(), gone = new Set<number>(), cellOfGone = new Map<number, string>();
   for (const b of layout.blocks) {
     const d = cat.blocks.get(b.id), f = famOf(cat, b.id);
     if (!d?.geo || !f || d.pipe!.role !== "droit" || b.open) continue;
     gone.add(b.u);
+    cellOfGone.set(b.u, K(b.x, b.y));
     for (const [x, y] of cellsOf(d, b)) cells.set(K(x, y), { x, y, fam: f, open: cellOpen(d, b, x, y), lenMax: Infinity, axis: b.r % 2 ? "H" : "V", fwd: DIRS[b.r]! });
   }
   if (!gone.size) return layout;
   const keep = layout.blocks.filter((b) => !gone.has(b.u)), blocks = [...keep, ...assemble(cat, cells).map((p) => ({ ...p, u: 0 }))];
   const re = new Map(keep.map((b, i) => [b.u, i]));
   blocks.forEach((b, i) => (b.u = i));
-  const map = <T extends { a: number; b: number }>(l: T[]) => l.filter((w) => re.has(w.a) && re.has(w.b)).map((w) => ({ ...w, a: re.get(w.a)!, b: re.get(w.b)! }));
+  // Une liaison vers un tuyau fusionné suit la pièce longue qui couvre sa case.
+  const newAt = new Map<string, number>();
+  for (const b of blocks.slice(keep.length)) for (const [x, y] of cellsOf(cat.blocks.get(b.id)!, b)) newAt.set(K(x, y), b.u);
+  const to = (u: number) => re.get(u) ?? newAt.get(cellOfGone.get(u) ?? "");
+  const map = <T extends { a: number; b: number }>(l: T[]) => l.filter((w) => to(w.a) != null && to(w.b) != null).map((w) => ({ ...w, a: to(w.a)!, b: to(w.b)! }));
   return { blocks, wires: map(layout.wires), ...(layout.routes ? { routes: map(layout.routes) } : {}) };
 }

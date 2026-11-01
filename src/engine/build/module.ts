@@ -25,6 +25,11 @@ export type ModuleRequest = {
   machineCost: number | null;
   /** N'utiliser que des tuyaux de tier III (plus rapides, plus chers). */
   tier3Only?: boolean;
+  /**
+   * Ordre des produits dans la recette : sans relevé de ce qui sort par quel port, les produits prennent les ports de
+   * sortie dans cet ordre, comme dans le bac à sable (sinon le plan et le bac à sable les croisent ; à vérifier en jeu).
+   */
+  outOrder?: string[];
   /** Ce qui départage les dispositions, dans l'ordre (par défaut : place, prix, pièces). */
   priority?: PoseCriterion[];
   /**
@@ -128,13 +133,17 @@ export type Namer = (id: string) => string;
  * n'importe quel port du même type (objet ou fluide), même un port de sortie ; une sortie, elle, doit
  * partir de son port de sortie. Plafonné à `max`.
  */
-export function portAssignments(entry: Pick<PortsEntry, "ports">, req: Pick<ModuleRequest, "inputs" | "outputs">, max = 24): Assign[][] {
-  // Sorties : chacune part de son port de sortie (relevé du 2026-10-14 : une sortie ne se redirige pas).
+export function portAssignments(entry: Pick<PortsEntry, "ports">, req: Pick<ModuleRequest, "inputs" | "outputs" | "outOrder">, max = 24): Assign[][] {
+  // Sorties : chacune part de son port de sortie (relevé du 2026-10-14 : une sortie ne se redirige pas). Le port qui
+  // nomme le produit (objets relevés) d'abord, sinon dans l'ordre de la recette, comme le bac à sable.
   const used = new Set<number>();
   const outs: Assign[] = [];
-  for (const f of req.outputs) {
+  const rank = (i: string) => { const k = req.outOrder?.indexOf(i) ?? -1; return k < 0 ? Infinity : k; };
+  const isOut = (p: PortsEntry["ports"][number]) => p.direction === "sortie" || p.direction === "les deux";
+  const named = (f: Flow) => entry.ports.findIndex((p, k) => !used.has(k) && p.type === (f.fluid ? "fluide" : "objet") && isOut(p) && !!p.items?.includes(f.item));
+  for (const f of [...req.outputs].sort((a, b) => +(named(b) >= 0) - +(named(a) >= 0) || rank(a.item) - rank(b.item))) {
     const kind: PipeKind = f.fluid ? "fluide" : "objet";
-    const j = entry.ports.findIndex((p, k) => !used.has(k) && p.type === kind && (p.direction === "sortie" || p.direction === "les deux"));
+    const n = named(f), j = n >= 0 ? n : entry.ports.findIndex((p, k) => !used.has(k) && p.type === kind && isOut(p) && !p.items?.length);
     if (j < 0) return [];
     used.add(j);
     outs.push({ port: j, item: f.item, role: "sortie", kind });
@@ -1188,6 +1197,7 @@ export function requestFromStep(
   s: { machine: string; machines: number; machineKind: string; parts?: unknown; item: string; demandPerMin: number; energyAvg: number | null; inputs: { item: string; perMin: number }[]; byproducts: { item: string; perMin: number }[] },
   isFluid: (item: string) => boolean,
   machineCost: number | null,
+  outOrder?: string[],
 ): ModuleRequest | null {
   if (s.machineKind === "farm" || s.parts || s.machines < 1) return null;
   return {
@@ -1197,5 +1207,6 @@ export function requestFromStep(
     outputs: [{ item: s.item, perMin: s.demandPerMin, fluid: isFluid(s.item) }, ...s.byproducts.map((f) => ({ item: f.item, perMin: f.perMin, fluid: isFluid(f.item) }))],
     powerMFps: s.energyAvg !== null ? s.energyAvg / s.machines : null,
     machineCost,
+    ...(outOrder ? { outOrder } : {}),
   };
 }
