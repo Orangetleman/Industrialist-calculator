@@ -1,5 +1,5 @@
 /* S59 : charte « Plasma Chantier » (maquette/charte.html, validée le 2026-11-01) : violet profond, accent orange
-   sécurité, bandeau hachuré, police Oxanium partout. Sombre par défaut ; le clair est une option (bouton de l'en-tête).
+   sécurité, bandeau hachuré, police Audiowide partout (celle des lettres de Mindustry). Sombre par défaut ; le clair est une option (bouton de l'en-tête).
    Entrée = cyan (--in), sortie = mauve (--out), doublées d'une icône : le rouge reste aux erreurs. */
 :root {
   --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
@@ -13,9 +13,9 @@
   --cv-bg: #120c20; --cv-bg2: #181029; --cv-panel: #221836; --cv-raised: #2d2147; --cv-line2: #3a2b5c; --cv-line: #4f3d7a;
   --cv-ink: #f0ecfa; --cv-muted: #b3a7d1; --cv-acc: #ff6a1a; --cv-acc-ink: #ff9a5e; --cv-acc-hi: #ffb489; --cv-acc-soft: #33190c;
   --cv-steel: #c4a1ff; --cv-hud: #1d1430f0;
-  --f-display: "Oxanium", "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
-  --f-body: "Oxanium", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "Oxanium", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-display: "Audiowide", "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Audiowide", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Audiowide", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
