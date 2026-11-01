@@ -1782,3 +1782,18 @@ table.rh-log td.num { white-space: nowrap; }
   body.cmd-on .me-chip:not(:first-child) { display: none; }
   body.cmd-on .unofficial { display: none; }
 }
+/* En-tête sur une ligne sur toutes les pages (Chromium dessine Audiowide un peu plus large que Firefox). */
+@media (min-width: 761px) {
+  .top-in { max-width: none; flex-wrap: nowrap; gap: 6px 8px; }
+  .top-in > * { flex-shrink: 0; }
+  .top-in .me { flex-shrink: 1; min-width: 0; overflow: hidden; flex-wrap: nowrap; }
+}
+@media (min-width: 761px) and (max-width: 1800px) {
+  .brand .long, .remark-btn .lbl, .unofficial { display: none !important; }
+  .mainnav a { padding: 6px 7px; font-size: .86rem; }
+  .me-chip:not(:first-child) { display: none; }
+}
+@media (min-width: 761px) and (max-width: 1150px) {
+  .props-btn .lbl, .me-play { display: none; }
+}
+@media (min-width: 761px) and (max-width: 1000px) { .top-in { flex-wrap: wrap; } }
