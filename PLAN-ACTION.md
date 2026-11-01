@@ -67,6 +67,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | R23 | (2026-10-26, validation de la maquette des icônes) « dev un système de menu déroulant pour permettre d'insérer des image et de le mettre comme nous on veut et pas comme le navigateur le veut […] le plus important c'est de donner les mêmes possibilité et incrustation qu'un navigateur ». | Un menu déroulant maison qui remplace les `<select>` : images et icônes dans les options, même clavier, même lecture d'écran et même envoi de formulaire qu'un `<select>`, sobre en calcul ; il ouvrira des modes de sélection plus riches. En attendant, le ★ de l'option conseillée et le ⚠ des recettes à vérifier restent des caractères dans les listes. | S44 |
 | R24 | (2026-10-26, même message) la visite « doit avoir un rebranding car il manque des trucs important, pourquoi pas faire une visite principal qui est bien, et quand l'utilisateur va sur un autre usage on lui propose la visite de cet usage ». | Une visite principale courte, puis une petite visite proposée à la première entrée dans chaque usage (Recettes, Arbre, Ma recherche, Contribuer…), au lieu d'une seule visite à rallonge. | S45 (plus tard) |
 | R26 | (2026-10-31, avec deux captures du jeu) « la manipulation des flux se fait en jeu grâce à des “boutons” présents sur les machines, lorsqu’on affiche ces flux, ce sont ces boutons qui sont reliés entre eux, j’aimerais que ça soit la même chose avec l’éditeur » ; « la garanti que lors de la connexion automatique, les flux soit bien reliers aux bon ports ». | Boutons de port et flèches entre boutons dans le bac à sable ; tests du raccord automatique. | S57 |
+| R27 | (2026-11-01) Planifier à refaire de A à Z, priorité absolue : plus de menus déroulants en cascade ; l'interface tourne autour de ce qu'on veut traiter (l'essentiel dans le champ de vision, les détails vite accessibles) ; trop « site classique » ; palette d'Industrialist Calculator « qui claque », la nôtre « endort plus que de dynamiser ». | S58 (maquette `maquette/planifier.html`), puis S59 à S64 |
 | R25 | (2026-10-31) « que l'interface des schématique lui corresponde vraiment » (Mindustry) ; un format de fichier existant, pas un format maison, « pour une question homogénéité » ; « un import export valide à travers tout le site » ; refonte de la génération des designs « car ceux ci ne prenaient pas en compte les connexions indirecte ». | Fenêtre des schémas copiée de `SchematicsDialog` ; format `.msch` de Mindustry (en-tête `msch`, version, contenu zlib, chaîne base64 pour le presse-papiers) ; un seul module import / export pour l'Usine, le bac à sable et les liens ; générateur refait. | S53 à S56 |
 | R20 | (2026-10-26, Discord, après la publication) « The only downside is the lag » (Romik, 9/10). | Mesurer les temps de calcul sur une partie neuve, en ligne, au téléphone et sur ordinateur, puis traiter ce qui est le plus lent. | S42 |
 | R21 | (2026-10-26, Discord) « It recommended me hardened casing without even me having a chem reactor unlocked » (Ariral). | Bogue probable : une recette d'une machine non débloquée est proposée. À reproduire sur une partie neuve, puis à corriger et tester. | S43 |
@@ -120,6 +121,13 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S55 | Import / export uniforme (R25) : le même fichier partout (plans de l'Usine et des modules, bac à sable, liens partagés) ; convertisseur plan du site → schéma et schéma → bac à sable ; anciens liens toujours lus | moyenne | S54 | **fait** (2026-10-31) : `src/engine/schematic/convert.ts` (module et usine → montage), fenêtre des schémas du site d’après la maquette S53, code, fichier et lien en .msch, anciens liens lus ; boutons « Exporter en fichier .msch » et « Ouvrir dans le bac à sable » sur le plan d’un module et de l’usine ; 3 tests |
 | S56 | Génération des designs refaite (R25) : prendre en compte les connexions indirectes. Au début du lot : retrouver la consigne d'origine dans les sessions S23 à S27 et dans `feedback-regles-ports` (ne pas la redemander) ; le placement réutilise le moteur du bac à sable (B1, B2) pour vérifier chaque plan ; maquette avant code | grande | S55 | **fait** (2026-10-31) : chaque module essayé passe par le moteur du bac à sable (`src/engine/build/verify.ts`, une source au bout de chaque collecteur d’entrée), rejeté si une machine ne reçoit pas tout ou si un contact mélange ; variantes « deux ressources par un port » (croisement collé au port, même de sortie) ; étapes collées machine contre machine dans l’usine (liaisons collées) ; 10 tests |
 | S57 | Bac à sable : flux d’un bouton à l’autre comme en jeu (R26) : un bouton de couleur par port sur chaque machine et pièce de tuyau, les flèches des flux et des liaisons partent et arrivent sur ces boutons (captures `maquette/img/releves/boutons-ports.png` et `flux-boutons.png`) ; une seule façon de dessiner les connexions au lieu des traits mêlés ; tests qui garantissent que le raccord automatique relie chaque flux au bon port (bonne ressource, bon type, sortie par son port de sortie, BAS-11) ; maquette d’abord | moyenne | S56 (maquette) | **fait** (2026-11-01) : maquette `boutons-ports.html` validée en 3 tours ; mode câblage (touche L) avec un bouton par port et par voie de tuyau, une flèche par pièce, réglage d’un bouton à l’autre sur machines et tuyaux ; tuyaux droits orientés (à l’envers : flux coupé, tuyau qui clignote) ; textures objet / fluide ; 12 tests |
+| S58 | Plan (sans code) : Planifier refait en « poste de commande » (R27) ; analyse des points d'intérêt, maquette `maquette/planifier.html`, lots S59 à S64 | moyenne, sans code | — | fait (2026-11-01) : maquette validée le 2026-11-01 (§ 5, S58 Maquette) |
+| S59 | Charte sombre et vive (palette d'Industrialist Calculator : charbon, or, vert = entre, rouge = sort, couleurs de tier) en jetons CSS, contraste testé ; remplace la palette actuelle sur tout le site (achève S41), thème clair gardé en option. **Identité propre** : proposer 2 ou 3 chartes en maquette qui gardent l’énergie (contraste fort, vert = entre, rouge = sort) sans copier l’or sur charbon d’Industrialist Calculator ; Planifier en premier dans la maquette | moyenne, maquette | S58 validée | à faire |
+| S60 | Squelette de Planifier : barre d'objectif en phrase, rail des étapes, plan au centre, tableau de bord à droite ; plein écran, sans défilement de page | grande | S59 | à faire |
+| S61 | Choix d'objet sans liste déroulante : palette de recherche (Ctrl+K) en grille avec icônes, tiers, récents ; remplace aussi S44 pour Planifier | moyenne | S60 | à faire |
+| S62 | Fiche d'une machine ou d'une alerte qui glisse sur le rail droit : recette, nombre, exclure, entrées / sorties (reprend Détails, S8, S9) | moyenne | S60 | à faire |
+| S63 | Réglages à plat dans un tiroir (touche R) : interrupteurs et pastilles, sans `<details>` ni `<select>` ; priorités en pastilles à glisser dans la barre | moyenne | S60 | à faire |
+| S64 | Étapes de pose cochables dans le rail (reprend « module posé ✓ », S25 et S26), plans enregistrés ; parcours réel avec l'utilisateur et réglage fin | moyenne | S61 à S63 | à faire |
 | B1 | Bac à sable, moteur du montage (`src/engine/sandbox/`, pur et testé) : voir PLAN-BAC-A-SABLE.md § 7 | grande | S17, S38 | **fait** (2026-10-31) |
 | B2 | Bac à sable, tracé des tuyaux (`src/engine/sandbox/path.ts`, pur et testé) : voir PLAN-BAC-A-SABLE.md § 7 | moyenne | B1 | **fait** (2026-10-31) |
 | B3 | Bac à sable, l'écran (page #bac « Bac à sable / Sandbox ») : voir PLAN-BAC-A-SABLE.md § 7 | grande | B2 | **fait** (2026-10-31, non déployé) |
@@ -1026,6 +1034,57 @@ Ordre et critère de fin de chaque lot :
   manque au site). Liste reprise de Pollywrath, contrôlée sur le wiki. Fin : en Hard, Wind Turbine1
   et Hand Crank ne sont plus proposés ; tests ; déployé.
 
+### S58 — Plan : Planifier en « poste de commande » (R27)
+
+Retour du 2026-11-01 (R27). Maquette : [`maquette/planifier.html`](maquette/planifier.html)
+(à valider avant tout code ; chiffres de démonstration, aucune valeur de jeu).
+
+**Ce que le joueur vient faire.** Il arrive avec un but (un objet, de l'énergie, des RP, de
+l'argent) et repart avec quelque chose à poser en jeu. Entre les deux, il regarde toujours les
+mêmes choses, dans cet ordre :
+1. **Mon but** : quoi, combien, par quelle unité de temps. Doit rester visible et modifiable
+   d'un clic à tout moment (aujourd'hui : formulaire en haut, qui disparaît en défilant).
+2. **Est-ce que ça tient** : place, machines, énergie, prix, dans l'ordre de ses priorités
+   (décision S15 Priorités). Quatre grands chiffres, le premier mis en avant.
+3. **Ce qui ne va pas** : les ⚠ (machine en trop, recette non débloquée, parcelle trop petite),
+   cliquables et en tête du tableau de bord, jamais au fond d'un onglet.
+4. **Ce qui entre et ce qui sort** de l'usine (à apporter / à évacuer), en vert et en rouge comme
+   Industrialist Calculator.
+5. **Le plan lui-même** (Usine, Schéma, Liste) : il prend tout le centre de l'écran.
+6. **Où j'en suis** dans la pose : les étapes cochables, à gauche, toujours visibles.
+7. **Les détails d'une machine** (recette, nombre, exclure) : à un clic sur la machine ou sur
+   l'alerte, dans une fiche qui glisse par-dessus le tableau de bord ; Échap la ferme.
+8. **Les réglages rares** (machines possédées, module par module, côté de sortie, double rangée) :
+   un tiroir, tous visibles à plat.
+
+**Principes.** Un écran, pas une page qui défile. Aucun menu imbriqué : un choix parmi peu
+d'options devient un bouton segmenté ou une pastille ; un choix parmi beaucoup (l'objet) devient
+une palette de recherche en grille. Le clavier pour aller vite (Ctrl+K, R, F, Échap, flèches).
+Couleurs qui disent quelque chose : or = ce qu'on règle et ce qui est choisi, vert = entre, rouge
+= sort, jaune = alerte, couleur de tier sur chaque machine.
+
+**Ce qui change par rapport à S15 / S22 à S29** (rien n'est perdu, tout est déplacé) :
+- le formulaire et ses trois `<details>` (critères, machines, options avancées) → barre d'objectif
+  en phrase + tiroir des réglages ;
+- la barre « Ton plan » (S28) → tableau de bord à droite, permanent ;
+- l'onglet Détails → fiche de la machine cliquée ; les onglets Usine, Schéma, Liste restent ;
+- la liste « Vue » des modules (`<select id="pose-step">`) → rail des étapes à gauche.
+
+**Critères validés à garder** (§ 0, règle 5) : mode module par module par défaut (S25), ordre des
+priorités (S15), « module posé ✓ » (S25), ordre de pose (S26), côté de sortie (S27), FR / EN (S30),
+fenêtre d'orientation (S24, à adapter en S64). Le thème clair disparaîtrait : **à proposer** à
+l'utilisateur (Q-S58, point 2).
+
+**Q-S58 (à poser à la validation)** :
+1. La disposition (objectif en haut, étapes à gauche, plan au centre, tableau de bord à droite)
+   convient-elle ?
+2. Thème sombre seul (comme Industrialist Calculator), ou garder un thème clair en option ?
+3. La charte vive (S59) s'applique-t-elle à tout le site d'un coup, ou à Planifier d'abord ?
+4. Sur téléphone : rails empilés (proposé dans la maquette), ou tableau de bord en bandeau ?
+
+Lots S59 à S64 au § 2, dans l'ordre. Chaque lot : maquette déjà validée, donc code direct ;
+parcours réel dans le navigateur avec captures en fin de lot.
+
 ## 4. Questions
 
 À poser au début du lot concerné ; les réponses vont au § 5.
@@ -1461,6 +1520,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S10 Maquette | Validée (`maquette/interfaces.html`) : section « Interface » dans l'éditeur de bâtiments ; ⚙ réglage à faire dans la liste de construction, la barre du bas du schéma, « Comment c'est calculé » et le plan de pose ; Quarry « définitif » ; écran de la Chemical Plant dans la barre du bas, par plan, avec « ↺ 1× ». Les crafts de la Chemical Plant ne sont plus « à vérifier » (valeurs du wiki à 1×, seul l'écran varie). | 2026-10-17 |
 | S40 Recherche | Réponses du 2026-10-27 : masquer la recherche actuelle d'abord (S46) ; refonte complète (chiffres et saisie), journal et temps de jeu gardés ; règle absente du wiki → prise chez Industrialist Calculator, marquée et notée dans `a-verifier.md` ; pollution et mois dans des lots à part (S50) ; difficulté ajoutée (S51, « si tu veux ») ; maquette en 1er lot (S47) ; **items par station gardés** (ils changent la vitesse, Pollywrath les compte aussi). | 2026-10-27 |
 | S57 Maquette | Validée en 3 tours (`maquette/boutons-ports.html`, 2026-11-01) : une flèche par pièce, pointes petites ; un bouton par port de machine (entrée jaune, sortie violette, avec un trait à la place exacte du port) et par voie de tuyau (bleu, 2e voie d'un croisement rouge ; croisement objet × fluide : un bouton objet, un fluide) ; prises électriques rouge, bleu, puis vert, jaune ; logique jaune ; couleurs seulement indicatives ; boutons et flèches seulement en mode câblage ; plus de menu « tout droit / virages » : chaque voie d'un croisement sort sur le côté choisi d'un bouton à l'autre ; un tuyau droit à l'envers coupe le flux, le tuyau clignote avec une infobulle courte ; tuyaux : texture pour le type (objet parallélépipède, fluide cylindre), teinte pour le tier (I laiton, III acier, IV sombre). | 2026-11-01 |
+| S58 Maquette | Validée (`maquette/planifier.html`, Q-S58, 2026-11-01) : 1 disposition « oui » (but en haut, étapes à gauche, plan au centre, tableau de bord à droite) ; 2 **thème clair gardé en option** ; 3 nouvelle charte sur **tout le site**, « mais ça veut pas dire négliger le plan » ; 4 téléphone : colonnes empilées. Réserve : « plein de choses à régler », et la maquette ressemble trop à Industrialist Calculator : « je voulais vraiment avoir ma propre identité visuelle » → à traiter en S59. | 2026-11-01 |
 | S47 Maquette recherche | Réponses du 2026-10-27 (maquette `recherche-refonte.html` validée telle quelle) : un groupe = nombre de stations identiques + items communs ; contrôle « ✓ comme en jeu » sous la saisie ; réglages de partie (pollution, mois, difficulté) dans « Ma recherche ». | 2026-10-27 |
 
 ## 6. Journal des sessions
@@ -1625,6 +1685,10 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-11-01, S57** (662 tests, non déployé) : maquette `boutons-ports.html` validée en 3 tours (voir § 5). Moteur : les tuyaux droits gardent leur entrée et leur sortie relevées ; deux entrées ou deux sorties face à face coupent le flux (`SandboxResult.cuts`, alerte « Flux coupé : … posé à l'envers », sur le tuyau qui a le plus de contacts à contresens) ; une sortie de tuyau droit sur un port de sortie de machine y amène son entrée (et bouche la production, BAS-12 b) ; le calcul donne les flèches d'un bouton à l'autre (`SandboxResult.arrows` : ressource, débit, sens, automatique ou choisie ; arrivée sur le bouton d'entrée qui consomme la ressource) ; `clickRoute` règle aussi les tuyaux (machine → tuyau : production retirée ou rendue ; tuyau → machine : bouton d'arrivée ; voie d'un croisement → côté visé, à la place du menu des voies) ; `orientPipes` tourne les tuyaux droits des plans générés (convertisseur, vérification S56) ; le tracé au glisser pose les tuyaux droits dans son sens (vers le port quand on part d'une entrée) ; `arrowFaults` vérifie chaque flux. Écran : mode câblage (L) avec boutons, traits des ports et flèches, réglage en deux clics (départ allumé, boutons visables éclairés) ; tuyaux texturés ; tuyau à l'envers qui clignote avec « À l'envers : flux coupé ».
   Tests (12) : flux de la Press au Roller bouton à bouton ; tuyau à l'envers (coupure, alerte, réorienté par `orientPipes`) ; croisement objet × fluide ; Boiler (vapeur et eau usée chacune par son port) ; machines collées ; production retirée et rendue ; voie d'un croisement ; bouton d'arrivée choisi ; tracé dans le sens du glisser ; plans générés de Crankshaft, Gunpowder et Glass sans flux fautif ni coupure.
   Contrôlé (serveur `calculateur`, panneau étroit) : coupure et infobulle, mode câblage (boutons, flèches, croisement bleu et rouge), deux clics sortie de Press → coude : « Production retirée de ce tuyau. », puis « rendue ». À surveiller : les montages déjà enregistrés dans le navigateur gardent leurs tuyaux droits tels quels (un tuyau posé à l'envers avant S57 apparaît maintenant coupé) ; les boutons des prises du dessus ne se règlent pas encore au clic en mode câblage (les câbles gardent leur geste) ; la couleur de chaque prise des poteaux à 4 prises suit l'ordre des relevés.
+
+- **2026-11-01, S58 (plan, sans code)** : retour R27 analysé ; palette d'Industrialist Calculator
+  relevée dans leur `src/index.css` (MIT) ; huit points d'intérêt du joueur et maquette
+  `maquette/planifier.html` (poste de commande) ; lots S59 à S64. Validée le 2026-11-01 (réponses au § 5) ; prochain lot : S59.
 
 ## 7. Gestion des sessions
 

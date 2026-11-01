@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S59 — Charte graphique</title>
+<style>
+/* Maquette S59 : 3 chartes au choix, chacune sur l'écran Planifier de maquette/planifier.html (S58), en sombre et en clair.
+   Les jetons sont posés en JS (objet CHARTES plus bas) : un seul écran, recoloré. Chiffres de démonstration, non issus du jeu. */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.4 "IBM Plex Sans", system-ui, "Segoe UI", sans-serif; transition: background .2s; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.fc { font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; }
+.fm { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+/* Barre de choix de la maquette (hors écran du site) */
+.ctl { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 14px; background: #000; color: #eee; border-bottom: 1px solid #444; font-size: 13px; }
+.ctl b { color: #fff; }
+.ctl .g { display: inline-flex; gap: 4px; align-items: center; }
+.ctl .g > span { color: #aaa; margin-right: 4px; }
+.ctl button { background: #222; border: 1px solid #555; border-radius: 6px; padding: 4px 10px; color: #ddd; }
+.ctl button.on { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+
+.wrap { padding: 16px; display: grid; gap: 18px; max-width: 1400px; margin: 0 auto; }
+.intro { color: var(--muted); max-width: 900px; }
+.intro h1 { color: var(--ink); margin: 0 0 4px; font: 700 22px "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; }
+
+/* --- L'écran Planifier (même structure que maquette/planifier.html) --- */
+.app { display: grid; grid-template-rows: auto auto 1fr; height: 640px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.top { display: flex; align-items: center; gap: 16px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); position: relative; }
+.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: var(--brand-bar); }
+.logo { display: flex; align-items: center; gap: 8px; font: 700 16px "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+.logo i { width: 22px; height: 22px; border-radius: var(--r-logo); background: var(--acc); display: inline-block; box-shadow: var(--glow); }
+.logo em { font-style: normal; color: var(--acc-ink); }
+.nav { display: flex; gap: 2px; }
+.nav a { padding: 6px 10px; color: var(--muted); text-decoration: none; border-radius: var(--r); }
+.nav a.on { color: var(--on-acc); background: var(--acc); font-weight: 600; }
+.sp { flex: 1; }
+.kbd { font: 11px "IBM Plex Mono", monospace; border: 1px solid var(--line); border-bottom-width: 2px; padding: 0 5px; border-radius: 3px; color: var(--muted); }
+.chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel2); color: var(--muted); font-size: 13px; }
+.chip.on { border-color: var(--acc); color: var(--acc-ink); }
+
+.goal { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; background: var(--goal-bg); border-bottom: 1px solid var(--line); }
+.say { color: var(--muted); font-size: 15px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button { background: none; border: 0; padding: 6px 10px; color: var(--muted); }
+.seg button.on { background: var(--acc); color: var(--on-acc); font-weight: 600; }
+.pick { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; background: var(--panel2); border: 1px solid var(--acc); border-radius: var(--r); font-weight: 600; color: var(--acc-ink); box-shadow: var(--glow); }
+.ico { width: 26px; height: 26px; border-radius: 4px; display: inline-grid; place-items: center; font: 700 11px "IBM Plex Sans Condensed", sans-serif; color: #111; flex: none; }
+.num { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel2); }
+.num button { background: none; border: 0; width: 28px; height: 32px; color: var(--acc-ink); font-size: 16px; }
+.num input { width: 60px; background: none; border: 0; color: var(--ink); text-align: center; font: 600 16px "IBM Plex Mono", monospace; }
+.prio .chip::before { content: attr(data-n) " "; color: var(--acc-ink); font-weight: 700; }
+
+.body { display: grid; grid-template-columns: 220px 1fr 290px; min-height: 0; }
+.rail { background: var(--panel); border-right: 1px solid var(--line); overflow: auto; }
+.rail.r { border-right: 0; border-left: 1px solid var(--line); }
+.rail h2 { margin: 0; padding: 10px 12px 6px; font: 600 11px "IBM Plex Sans Condensed", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--acc-ink); }
+.step { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-left: 3px solid transparent; }
+.step.on { background: var(--sel); border-left-color: var(--acc); }
+.step .n { font: 600 12px "IBM Plex Mono", monospace; color: var(--muted); width: 16px; }
+.step .x { margin-left: auto; font: 12px "IBM Plex Mono", monospace; color: var(--muted); }
+.step.done .n { color: var(--ok); }
+.step.done .nm { color: var(--muted); text-decoration: line-through; }
+.step.warn .x { color: var(--warn); }
+
+.stage { position: relative; min-width: 0; display: grid; grid-template-rows: auto 1fr; }
+.views { display: flex; gap: 2px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel); align-items: center; }
+.views button { background: none; border: 0; padding: 6px 12px; color: var(--muted); border-bottom: 2px solid transparent; }
+.views button.on { color: var(--acc-ink); border-bottom-color: var(--acc); }
+.canvas { position: relative; overflow: hidden; background: var(--grid), var(--bg); }
+.node { position: absolute; width: 168px; background: var(--panel2); border: 1px solid var(--node-line); border-radius: var(--r); }
+.node.sel { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc), var(--glow); }
+.node.target { border-color: var(--acc2); box-shadow: 0 0 0 1px var(--acc2); }
+.node header { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); font-weight: 600; font-size: 13px; }
+.node header .k { margin-left: auto; font: 700 13px "IBM Plex Mono", monospace; color: var(--acc-ink); }
+.node .tier { height: 3px; border-radius: var(--r) var(--r) 0 0; }
+.node .io { display: flex; justify-content: space-between; gap: 6px; padding: 5px 8px; font: 11px "IBM Plex Mono", monospace; }
+svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.dash { padding: 10px; display: grid; gap: 8px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.kpi { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; }
+.kpi .l { font: 600 10px "IBM Plex Sans Condensed", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.kpi .v { font: 700 21px "IBM Plex Mono", monospace; color: var(--ink); }
+.kpi.p1 { border-color: var(--acc); } .kpi.p1 .v { color: var(--acc-ink); }
+.kpi .d { font-size: 11px; color: var(--muted); }
+.alert { display: flex; gap: 8px; padding: 7px 9px; border: 1px solid var(--warn); background: var(--warn-bg); color: var(--ink); border-radius: var(--r); font-size: 13px; }
+.alert b { color: var(--warn); }
+
+/* --- Codage entrée / sortie : 3 variantes, mêmes classes --- */
+.flow { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.flow .hd { display: flex; align-items: center; gap: 6px; padding: 4px 8px; font: 600 10px "IBM Plex Sans Condensed", sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.flow .row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; font-size: 13px; }
+.flow .q { margin-left: auto; font: 600 12px "IBM Plex Mono", monospace; }
+.mk { display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; font-size: 11px; line-height: 1; }
+/* v1 : vert entre, rouge sort (S58) */
+[data-io="v1"] .flow.in, [data-io="v2"] .flow.in { border-color: var(--in); }
+[data-io="v1"] .flow.out, [data-io="v2"] .flow.out { border-color: var(--out); }
+[data-io="v1"] .flow.in .row, [data-io="v2"] .flow.in .row { background: var(--in-bg); }
+[data-io="v1"] .flow.out .row, [data-io="v2"] .flow.out .row { background: var(--out-bg); }
+[data-io="v1"] .flow.in .hd, [data-io="v1"] .flow.in .q, [data-io="v2"] .flow.in .hd, [data-io="v2"] .flow.in .q, .i { color: var(--in-ink); }
+[data-io="v1"] .flow.out .hd, [data-io="v1"] .flow.out .q, [data-io="v2"] .flow.out .hd, [data-io="v2"] .flow.out .q, .o { color: var(--out-ink); }
+/* v2 : bleu entre, orange (ou mauve) sort + flèches dans le sens du flux */
+/* v3 : pas de couleur, forme + position (entrée = creux, à gauche ; sortie = plein, à droite) */
+[data-io="v3"] .flow { border-color: var(--line); }
+[data-io="v3"] .flow.in { border-left: 4px solid var(--ink); }
+[data-io="v3"] .flow.out { border-right: 4px solid var(--ink); }
+[data-io="v3"] .flow .hd { color: var(--ink); }
+[data-io="v3"] .flow.out .hd { justify-content: flex-end; }
+[data-io="v3"] .flow .q { color: var(--ink); }
+[data-io="v3"] .i, [data-io="v3"] .o { color: var(--ink); }
+.mk-in, .mk-out { display: none; }
+[data-io="v2"] .mk-in, [data-io="v2"] .mk-out, [data-io="v3"] .mk-in, [data-io="v3"] .mk-out { display: inline-grid; }
+[data-io="v3"] .mk-in::before { content: ""; width: 9px; height: 9px; border: 2px solid currentColor; border-radius: 50%; }
+[data-io="v3"] .mk-out::before { content: ""; width: 9px; height: 9px; background: currentColor; border-radius: 2px; }
+[data-io="v2"] .mk-in::before { content: "⇥"; font-size: 14px; }
+[data-io="v2"] .mk-out::before { content: "↦"; font-size: 14px; }
+
+/* --- Panneaux sous l'écran --- */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.panel h2 { margin: 0 0 10px; font: 600 12px "IBM Plex Sans Condensed", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--acc-ink); }
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--bg); display: grid; gap: 8px; align-content: start; }
+.card.cur { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc); }
+.card h3 { margin: 0; font-size: 14px; }
+.card p { margin: 0; color: var(--muted); font-size: 13px; }
+.mini { position: relative; height: 70px; }
+.mini .node { width: 150px; top: 6px; }
+.sims { display: flex; gap: 6px; flex-wrap: wrap; }
+.pros li { margin: 2px 0; }
+.sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.sw div { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; font: 11px "IBM Plex Mono", monospace; }
+.sw div span { display: block; height: 30px; }
+.sw div code { display: block; padding: 3px 6px; color: var(--muted); }
+table.ct { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.ct td { padding: 3px 6px; border-bottom: 1px solid var(--line); }
+table.ct td.r { text-align: right; font-family: "IBM Plex Mono", monospace; }
+.ko { color: var(--bad); font-weight: 700; }
+.qs ol { margin: 0; padding-left: 20px; } .qs li { margin: 6px 0; }
+@media (max-width: 900px) {
+  .cols { grid-template-columns: 1fr; }
+  .app { height: auto; } .body { grid-template-columns: 1fr; } .canvas { height: 320px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Simulation du daltonisme (matrices de Machado et al., 2009, sévérité 1) -->
+  <filter id="deut"><feColorMatrix type="matrix" values="0.367 0.861 -0.228 0 0  0.280 0.673 0.047 0 0  -0.012 0.043 0.969 0 0  0 0 0 1 0"/></filter>
+  <filter id="prot"><feColorMatrix type="matrix" values="0.152 1.053 -0.205 0 0  0.115 0.786 0.099 0 0  -0.004 -0.048 1.052 0 0  0 0 0 1 0"/></filter>
+  <filter id="trit"><feColorMatrix type="matrix" values="1.256 -0.077 -0.179 0 0  -0.078 0.931 0.148 0 0  0.005 0.691 0.304 0 0  0 0 0 1 0"/></filter>
+</svg>
+
+<div class="ctl">
+  <b>Maquette S59</b>
+  <span class="g" id="g-ch"><span>Charte</span><button data-ch="A">A · Signal</button><button data-ch="B">B · Chantier</button><button data-ch="C">C · Plasma</button></span>
+  <span class="g" id="g-th"><span>Thème</span><button data-th="dark">Sombre</button><button data-th="light">Clair (option)</button></span>
+  <span class="g" id="g-io"><span>Entrée / sortie</span><button data-io="v1">1 · vert / rouge</button><button data-io="v2">2 · bleu / orange + flèches</button><button data-io="v3">3 · formes, sans couleur</button></span>
+  <span class="g" id="g-sim"><span>Vue</span><button data-sim="">Normale</button><button data-sim="deut">Deutéranopie</button><button data-sim="prot">Protanopie</button><button data-sim="trit">Tritanopie</button></span>
+</div>
+
+<div class="wrap" id="root">
+  <div class="intro">
+    <h1 id="ch-name"></h1>
+    <div id="ch-desc"></div>
+  </div>
+
+  <!-- L'écran Planifier de la maquette S58, recoloré -->
+  <div class="app" id="app">
+    <header class="top">
+      <span class="logo"><i></i>Industrialist <em>· planificateur</em></span>
+      <nav class="nav"><a class="on" href="#">Planifier</a><a href="#">Arbre</a><a href="#">Recettes</a><a href="#">Bac à sable</a><a href="#">Mon usine</a></nav>
+      <span class="sp"></span>
+      <span class="chip">⚙ Réglages <span class="kbd">R</span></span>
+      <span class="chip">FR / EN</span>
+    </header>
+    <section class="goal">
+      <span class="seg"><button class="on">Objet</button><button>Énergie</button><button>Recherche</button><button>Argent</button></span>
+      <span class="say">Je veux</span>
+      <span class="num"><button>−</button><input value="2" aria-label="quantité"><button>+</button></span>
+      <span class="seg"><button class="on">/s</button><button>/min</button><button>/h</button></span>
+      <span class="pick"><span class="ico" style="background:var(--t3)">LA</span>Laser <span class="kbd">Ctrl K</span></span>
+      <span class="say">en privilégiant</span>
+      <span class="prio"><span class="chip on" data-n="1">place</span> <span class="chip" data-n="2">machines</span> <span class="chip" data-n="3">énergie</span> <span class="chip" data-n="4">prix</span></span>
+    </section>
+    <div class="body">
+      <aside class="rail">
+        <h2>Étapes de pose · 2 / 6</h2>
+        <div class="step done"><span class="n">✓</span><span class="nm">Mine de fer</span><span class="x">×4</span></div>
+        <div class="step done"><span class="n">✓</span><span class="nm">Four</span><span class="x">×3</span></div>
+        <div class="step on"><span class="n">3</span><span class="nm">Presse</span><span class="x">×2</span></div>
+        <div class="step warn"><span class="n">4</span><span class="nm">Assembleur</span><span class="x">⚠ ×5</span></div>
+        <div class="step"><span class="n">5</span><span class="nm">Atelier laser</span><span class="x">×1</span></div>
+        <div class="step"><span class="n">6</span><span class="nm">Évacuation</span><span class="x">→ est</span></div>
+      </aside>
+      <main class="stage">
+        <div class="views"><button class="on">Usine</button><button>Schéma</button><button>Liste</button></div>
+        <div class="canvas">
+          <svg class="edges"><g stroke="var(--edge)" stroke-width="2" fill="none">
+            <path d="M200 112 C 230 112, 230 112, 250 112"/><path d="M200 252 C 230 252, 230 150, 250 150"/>
+            <path d="M418 132 C 440 132, 440 192, 460 192"/><path d="M628 192 C 645 192, 645 192, 660 192"/>
+          </g></svg>
+          <div class="node" style="left:30px;top:72px"><div class="tier" style="background:var(--t1)"></div><header>Mine de fer<span class="k">×4</span></header><div class="io"><span class="i"></span><span class="o">fer <span class="mk mk-out"></span></span></div></div>
+          <div class="node" style="left:30px;top:212px"><div class="tier" style="background:var(--t1)"></div><header>Mine de cuivre<span class="k">×2</span></header><div class="io"><span class="i"></span><span class="o">cuivre <span class="mk mk-out"></span></span></div></div>
+          <div class="node sel" style="left:250px;top:92px"><div class="tier" style="background:var(--t2)"></div><header>Presse<span class="k">×2</span></header><div class="io"><span class="i"><span class="mk mk-in"></span> fer, cuivre</span><span class="o">pièce <span class="mk mk-out"></span></span></div></div>
+          <div class="node" style="left:460px;top:152px"><div class="tier" style="background:var(--t3)"></div><header>Assembleur<span class="k" style="color:var(--warn)">⚠ ×5</span></header><div class="io"><span class="i"><span class="mk mk-in"></span> pièce</span><span class="o">module <span class="mk mk-out"></span></span></div></div>
+          <div class="node target" style="left:660px;top:152px;width:130px"><div class="tier" style="background:var(--t3)"></div><header>★ Laser<span class="k">2/s</span></header><div class="io"><span class="i"><span class="mk mk-in"></span> module</span><span class="o"></span></div></div>
+        </div>
+      </main>
+      <aside class="rail r">
+        <h2>Ce plan</h2>
+        <div class="dash">
+          <div class="kpis">
+            <div class="kpi p1"><div class="l">① Place</div><div class="v">18×12</div><div class="d">tient dans ta parcelle</div></div>
+            <div class="kpi"><div class="l">② Machines</div><div class="v">17</div><div class="d">5 sortes</div></div>
+            <div class="kpi"><div class="l">③ Énergie</div><div class="v">1,2 MW</div><div class="d">40 % du réseau</div></div>
+            <div class="kpi"><div class="l">④ Prix</div><div class="v">$84k</div><div class="d">rentable en 3 h</div></div>
+          </div>
+          <div class="alert"><b>⚠</b> Assembleur : 5 machines, 4,6 suffiraient. Voir les choix</div>
+          <div class="flow in"><div class="hd"><span class="mk mk-in"></span>À apporter</div>
+            <div class="row"><span class="ico" style="background:var(--t1)">EA</span>Eau<span class="q">12 /s</span></div>
+          </div>
+          <div class="flow out"><div class="hd">À évacuer<span class="mk mk-out"></span></div>
+            <div class="row"><span class="ico" style="background:var(--t1)">SC</span>Scories<span class="q">0,4 /s → est</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Question rouverte : entrée / sortie, côte à côte -->
+  <section class="panel">
+    <h2>Ce qui entre, ce qui sort : 3 façons, côte à côte (charte et thème du moment)</h2>
+    <div class="cols" id="io-cols"></div>
+    <p style="color:var(--muted);font-size:13px;margin:10px 0 0">Essayer les boutons « Deutéranopie / Protanopie » en haut : environ 8 % des hommes confondent le vert et le rouge. En variante 1, l'entrée et la sortie ne se distinguent alors plus que par le titre ; en 2, le bleu et l'orange restent distincts ; en 3, la forme et la place suffisent. Dans les trois, le rouge reste libre pour les erreurs et le jaune pour les alertes (⚠).</p>
+  </section>
+
+  <section class="panel">
+    <h2>Les 3 chartes en un coup d'œil</h2>
+    <div class="cols" id="ch-cols"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Contrastes de la charte affichée (texte : 4,5:1 au moins, comme src/ui/contraste.test.ts)</h2>
+    <table class="ct" id="ct"></table>
+  </section>
+
+  <section class="panel qs">
+    <h2>Questions</h2>
+    <ol>
+      <li>Quelle charte : A Signal, B Chantier ou C Plasma (ou un mélange, par exemple « le fond de A avec l'accent de C ») ?</li>
+      <li>Entrée / sortie : variante 1 (vert / rouge, comme S58), 2 (bleu / orange + flèches) ou 3 (formes, sans couleur) ?</li>
+      <li>Le thème clair de cette charte (bouton « Clair ») vous convient-il comme option ?</li>
+      <li>Les polices restent IBM Plex (déjà sur le site) : d'accord, ou voulez-vous essayer une autre police (elle s'ajouterait au site) ?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+// Couleurs de tier : celles de la maquette S58, assombries en clair pour rester lisibles comme pastilles.
+const TIERS = { dark: ["#8a8f98", "#4ade80", "#60a5fa", "#c084fc", "#fbbf24"], light: ["#9aa0a8", "#4ade80", "#60a5fa", "#c084fc", "#fbbf24"] };
+// Entrée / sortie, variante 1 (S58) : même valeurs pour toutes les chartes.
+const V1 = {
+  dark:  { in: "#22c55e", "in-ink": "#86efac", "in-bg": "#10261a", out: "#ef4444", "out-ink": "#fca5a5", "out-bg": "#2a1212" },
+  light: { in: "#16a34a", "in-ink": "#166534", "in-bg": "#e3f5e9", out: "#dc2626", "out-ink": "#991b1b", "out-bg": "#fde8e8" },
+};
+const CHARTES = {
+  A: {
+    name: "A · Signal", tag: "bleu nuit, cyan électrique, touche magenta",
+    desc: "Une salle de contrôle : fond bleu nuit, accent cyan qui « s'allume » (halo léger), la cible du plan en magenta. Froid, net, technique ; très loin de l'or et du charbon.",
+    shape: { r: "6px", logo: "50%" },
+    dark: { bg: "#0a0f1e", panel: "#10172e", panel2: "#172041", line: "#2a3768", "node-line": "#34437a", edge: "#4a5a8f",
+      acc: "#00d1ff", "acc-ink": "#5ee3ff", "on-acc": "#03131d", acc2: "#ff4fd8", ink: "#e9eefc", muted: "#9aa6c8",
+      ok: "#4ade80", warn: "#ffcc33", "warn-bg": "#2a240c", bad: "#ff6b8a", sel: "#0d2a44",
+      glow: "0 0 18px rgba(0,209,255,.28)", grid: "radial-gradient(circle, #1e2a52 1px, transparent 1.2px) 0 0/22px 22px",
+      "brand-bar": "linear-gradient(90deg, #00d1ff, #ff4fd8)", "goal-bg": "linear-gradient(#121a36, #0d1328)",
+      in: "#4da3ff", "in-ink": "#9ccbff", "in-bg": "#0f2140", out: "#ffa040", "out-ink": "#ffc58a", "out-bg": "#33210d" },
+    light: { bg: "#eef3fb", panel: "#ffffff", panel2: "#f4f7fd", line: "#c6d0e6", "node-line": "#aab7d6", edge: "#8d9cc2",
+      acc: "#0072b5", "acc-ink": "#005b91", "on-acc": "#ffffff", acc2: "#b0108f", ink: "#0b1530", muted: "#4a5677",
+      ok: "#15803d", warn: "#8a5a00", "warn-bg": "#fdf3d8", bad: "#c0264b", sel: "#dcefff",
+      glow: "0 0 0 rgba(0,0,0,0)", grid: "radial-gradient(circle, #cdd6ea 1px, transparent 1.2px) 0 0/22px 22px",
+      "brand-bar": "linear-gradient(90deg, #0072b5, #b0108f)", "goal-bg": "#f7f9fe",
+      in: "#1d5fbf", "in-ink": "#1a4f9c", "in-bg": "#e3eeff", out: "#c25a00", "out-ink": "#8f4300", "out-bg": "#fdebd9" },
+  },
+  B: {
+    name: "B · Chantier", tag: "graphite, orange sécurité, bande de chantier",
+    desc: "Un atelier : graphite neutre, accent orange sécurité, liseré à bandes de chantier sous la barre du haut, angles droits. Chaud et franc ; l'orange tire vers le rouge, pas vers l'or.",
+    shape: { r: "2px", logo: "2px" },
+    dark: { bg: "#111315", panel: "#191c20", panel2: "#22262b", line: "#373c43", "node-line": "#4a515a", edge: "#5d6570",
+      acc: "#ff6a1a", "acc-ink": "#ff8f52", "on-acc": "#1a0800", acc2: "#ffd23f", ink: "#f1f1ee", muted: "#a3a7ad",
+      ok: "#4ade80", warn: "#ffd23f", "warn-bg": "#2b250d", bad: "#ff6b6b", sel: "#33200f",
+      glow: "0 0 0 rgba(0,0,0,0)", grid: "linear-gradient(#1c1f23 1px, transparent 1px) 0 0/22px 22px, linear-gradient(90deg, #1c1f23 1px, transparent 1px) 0 0/22px 22px",
+      "brand-bar": "repeating-linear-gradient(45deg, #ff6a1a 0 10px, #111315 10px 20px)", "goal-bg": "#16191c",
+      in: "#38bdf8", "in-ink": "#8fd8fb", "in-bg": "#0d2430", out: "#e879f9", "out-ink": "#f0abfc", "out-bg": "#2d1430" },
+    light: { bg: "#f3f2ef", panel: "#ffffff", panel2: "#f8f7f4", line: "#d4d2cc", "node-line": "#bdbab2", edge: "#a19d94",
+      acc: "#c2410c", "acc-ink": "#9a3412", "on-acc": "#ffffff", acc2: "#a16207", ink: "#1c1d1f", muted: "#55585d",
+      ok: "#15803d", warn: "#8a5a00", "warn-bg": "#fdf3d8", bad: "#b42318", sel: "#ffe8d9",
+      glow: "0 0 0 rgba(0,0,0,0)", grid: "linear-gradient(#e6e4df 1px, transparent 1px) 0 0/22px 22px, linear-gradient(90deg, #e6e4df 1px, transparent 1px) 0 0/22px 22px",
+      "brand-bar": "repeating-linear-gradient(45deg, #c2410c 0 10px, #f3f2ef 10px 20px)", "goal-bg": "#faf9f6",
+      in: "#0369a1", "in-ink": "#075985", "in-bg": "#e0f2fe", out: "#a21caf", "out-ink": "#86198f", "out-bg": "#fae8ff" },
+  },
+  C: {
+    name: "C · Plasma", tag: "violet profond, vert acide, lilas",
+    desc: "Un réacteur : fond violet presque noir, accent vert acide très lumineux, second accent lilas. Le plus original et le plus « jeu vidéo » des trois. En clair, l'accent passe en vert olive foncé pour rester lisible.",
+    shape: { r: "8px", logo: "6px" },
+    dark: { bg: "#0e0a18", panel: "#160f25", panel2: "#201733", line: "#392a5a", "node-line": "#4a3874", edge: "#5c4a8a",
+      acc: "#b6f23a", "acc-ink": "#c9ff5c", "on-acc": "#142000", acc2: "#b388ff", ink: "#f0ecfa", muted: "#a99cc8",
+      ok: "#4ade80", warn: "#ffc94a", "warn-bg": "#2a220c", bad: "#ff7a9a", sel: "#22300c",
+      glow: "0 0 18px rgba(182,242,58,.22)", grid: "radial-gradient(circle, #2a1f45 1px, transparent 1.2px) 0 0/22px 22px",
+      "brand-bar": "linear-gradient(90deg, #b6f23a, #b388ff)", "goal-bg": "linear-gradient(#1a1230, #120c20)",
+      in: "#4da3ff", "in-ink": "#9ccbff", "in-bg": "#11203f", out: "#ffa040", "out-ink": "#ffc58a", "out-bg": "#33210d" },
+    light: { bg: "#f5f2fb", panel: "#ffffff", panel2: "#f8f5fd", line: "#d7cfea", "node-line": "#c2b6de", edge: "#a597c9",
+      acc: "#3f6212", "acc-ink": "#365314", "on-acc": "#ffffff", acc2: "#6d28d9", ink: "#1a1030", muted: "#5b4f78",
+      ok: "#15803d", warn: "#8a5a00", "warn-bg": "#fdf3d8", bad: "#b4234a", sel: "#ecf7d4",
+      glow: "0 0 0 rgba(0,0,0,0)", grid: "radial-gradient(circle, #ddd5ee 1px, transparent 1.2px) 0 0/22px 22px",
+      "brand-bar": "linear-gradient(90deg, #3f6212, #6d28d9)", "goal-bg": "#faf8fe",
+      in: "#1d5fbf", "in-ink": "#1a4f9c", "in-bg": "#e3eeff", out: "#c25a00", "out-ink": "#8f4300", "out-bg": "#fdebd9" },
+  },
+};
+const IO = {
+  v1: { name: "1 · Vert entre, rouge sort", desc: "La maquette S58. Lu d'un coup d'œil… sauf si on confond vert et rouge, et le rouge ressemble à une erreur.",
+    pros: ["+ habitude des jeux de gestion", "− illisible pour un daltonien rouge-vert", "− rouge = « problème » ?"] },
+  v2: { name: "2 · Bleu entre, orange sort + flèches", desc: "Paire froid / chaud, sûre pour les daltonismes courants ; une flèche ⇥ (arrive) ou ↦ (part) double la couleur. (Charte B : bleu / mauve, l'orange étant l'accent.)",
+    pros: ["+ lisible par tous", "+ le rouge reste réservé aux erreurs", "− une couleur de plus à apprendre"] },
+  v3: { name: "3 · Forme et place, sans couleur", desc: "Entrée : rond creux, à gauche, barre à gauche. Sortie : carré plein, à droite, barre à droite. La couleur ne sert plus qu'à l'accent et aux alertes.",
+    pros: ["+ le plus sobre, aucune confusion possible", "+ la page garde une seule couleur vive", "− moins « parlant » au premier regard"] },
+};
+
+const st = { ch: "A", th: "dark", io: "v2", sim: "" };
+try { Object.assign(st, JSON.parse(localStorage.getItem("s59") || "{}")); } catch {}
+
+function tokensOf(ch, th, io) {
+  const c = CHARTES[ch], t = { ...c[th] };
+  if (io === "v1") Object.assign(t, V1[th]);
+  TIERS[th].forEach((v, i) => (t["t" + (i + 1)] = v));
+  t.r = c.shape.r; t["r-logo"] = c.shape.logo;
+  return t;
+}
+function apply(el, t) { for (const [k, v] of Object.entries(t)) el.style.setProperty("--" + k, v); }
+
+function lum(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function ratio(a, b) { const [x, y] = [lum(a), lum(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+// [texte, fond] : les paires que l'écran utilise réellement.
+const PAIRS = [["ink","bg"],["ink","panel"],["ink","panel2"],["muted","bg"],["muted","panel"],["muted","panel2"],["acc-ink","panel"],["acc-ink","panel2"],["acc-ink","sel"],
+  ["on-acc","acc"],["warn","panel"],["warn","panel2"],["ink","warn-bg"],["warn","warn-bg"],["bad","panel"],["ok","panel"],["ink","sel"],
+  ["in-ink","in-bg"],["out-ink","out-bg"],["in-ink","panel2"],["out-ink","panel2"]];
+
+function nodeHTML() {
+  return '<div class="node"><div class="tier" style="background:var(--t3)"></div><header>Assembleur<span class="k">×5</span></header><div class="io"><span class="i"><span class="mk mk-in"></span> pièce</span><span class="o">module <span class="mk mk-out"></span></span></div></div>';
+}
+function flowsHTML() {
+  return '<div class="flow in"><div class="hd"><span class="mk mk-in"></span>À apporter</div><div class="row">Eau<span class="q">12 /s</span></div></div>' +
+    '<div class="flow out"><div class="hd">À évacuer<span class="mk mk-out"></span></div><div class="row">Scories<span class="q">0,4 /s</span></div></div>';
+}
+
+function render() {
+  const root = document.documentElement, t = tokensOf(st.ch, st.th, st.io);
+  apply(root, t);
+  document.getElementById("app").dataset.io = st.io;
+  document.getElementById("root").style.filter = st.sim ? `url(#${st.sim})` : "";
+  for (const k of ["ch", "th", "io", "sim"]) document.querySelectorAll(`[data-${k}]`).forEach((b) => b.tagName === "BUTTON" && b.classList.toggle("on", b.dataset[k] === st[k]));
+  const c = CHARTES[st.ch];
+  document.getElementById("ch-name").textContent = `Charte ${c.name} — ${st.th === "dark" ? "sombre" : "clair"}`;
+  document.getElementById("ch-desc").textContent = c.desc;
+
+  document.getElementById("io-cols").innerHTML = Object.entries(IO).map(([k, v]) =>
+    `<div class="card ${k === st.io ? "cur" : ""}" data-io="${k}" data-pick-io="${k}" style="cursor:pointer"><h3>${v.name}</h3><div class="mini">${nodeHTML()}</div>${flowsHTML()}<p>${v.desc}</p><ul class="pros" style="margin:0;padding-left:16px;font-size:13px">${v.pros.map((p) => `<li>${p}</li>`).join("")}</ul></div>`).join("");
+  document.querySelectorAll("#io-cols .card").forEach((el) => apply(el, tokensOf(st.ch, st.th, el.dataset.io)));
+
+  document.getElementById("ch-cols").innerHTML = Object.entries(CHARTES).map(([k, v]) => {
+    const d = v[st.th];
+    const keys = ["bg", "panel", "acc", "acc2", "ink", "muted", "in", "out"];
+    return `<div class="card ${k === st.ch ? "cur" : ""}" data-pick-ch="${k}" style="cursor:pointer;background:${d.bg};border-color:${d.line};color:${d.ink}">
+      <h3 style="color:${d["acc-ink"]}">${v.name}</h3><p style="color:${d.muted}">${v.tag}</p>
+      <div style="height:6px;border-radius:3px;background:${d["brand-bar"]}"></div>
+      <div class="sw">${keys.map((x) => `<div style="border-color:${d.line}"><span style="background:${d[x]}"></span><code style="color:${d.muted}">${x} ${d[x]}</code></div>`).join("")}</div></div>`;
+  }).join("");
+
+  const rows = PAIRS.map(([f, b]) => { const r = ratio(t[f], t[b]); return `<tr><td>--${f} sur --${b}</td><td class="r">${t[f]} / ${t[b]}</td><td class="r ${r < 4.5 ? "ko" : ""}">${r.toFixed(2).replace(".", ",")}:1</td></tr>`; });
+  document.getElementById("ct").innerHTML = rows.join("");
+  try { localStorage.setItem("s59", JSON.stringify(st)); } catch {}
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-ch],button[data-th],button[data-io],button[data-sim],[data-pick-io],[data-pick-ch]");
+  if (!b) return;
+  if (b.dataset.pickIo) st.io = b.dataset.pickIo;
+  else if (b.dataset.pickCh) st.ch = b.dataset.pickCh;
+  else for (const k of ["ch", "th", "io", "sim"]) if (k in b.dataset) st[k] = b.dataset[k];
+  render();
+});
+render();
+</script>
+</body>
+</html>

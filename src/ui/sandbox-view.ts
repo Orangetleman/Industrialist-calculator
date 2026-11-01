@@ -1523,12 +1523,14 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     fit();
   }
   /** Cadre la vue sur le montage, entre les statistiques et le menu de pose. */
-  function fit(): void {
+  function fit(tries = 0): void {
     if (!S.blocks.length) return;
+    // Page pas encore affichée (ouverture depuis un plan) : on recadre dès qu'elle a une taille.
+    if (!svgEl().getBoundingClientRect().width) { if (tries < 60) requestAnimationFrame(() => fit(tries + 1)); return; }
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const b of S.blocks) for (const [x, y] of cellsOf(cat.blocks.get(b.id)!, b)) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + 1); y1 = Math.max(y1, y + 1); }
     const r = svgEl().getBoundingClientRect(), wide = r.width > 760, L = wide ? 300 : 0, fw = r.width - L - (wide ? 390 : 0);
-    cam.z = Math.max(8, Math.min(48, (fw * 0.85) / (x1 - x0), (r.height * 0.6) / (y1 - y0)));
+    cam.z = Math.max(6, Math.min(48, (fw * 0.85) / (x1 - x0), (r.height * 0.6) / (y1 - y0)));
     cam.x = (x0 + x1) / 2 - (L + fw / 2) / cam.z;
     cam.y = (y0 + y1) / 2 - (r.height * 0.42) / cam.z;
     applyView();
@@ -1540,7 +1542,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     snap();
     S = { blocks: [], wires: [], routes: [], fills: S.fills };
     reindex();
-    apply({ remove: [], add: c.items.map((it) => ({ id: it.id, x: it.dx, y: it.dy, r: it.r, choice: it.choice })) });
+    // Voies des croisements et côtés ouverts gardés (le presse-papiers ne les porte pas).
+    const src = s.layout.blocks.filter((b) => cat.blocks.has(b.id));
+    apply({ remove: [], add: c.items.map((it, i) => ({ id: it.id, x: it.dx, y: it.dy, r: it.r, choice: it.choice, ...(src[i]?.pair != null ? { pair: src[i]!.pair } : {}), ...(src[i]?.open ? { open: src[i]!.open } : {}) })) });
     // Câbles et liaisons : indices de cases du fichier → numéros des bâtiments posés (même ordre, inconnus écartés).
     const kept = s.layout.blocks.map((b) => cat.blocks.has(b.id)), u = new Map<number, number>();
     let k = 0;
@@ -1583,8 +1587,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       reindex();
       placeRoot();
       if (!ui.mounted) { ui.mounted = true; skeleton(); }
-      loadSchematic(s);
-      requestAnimationFrame(fit); // la page vient d'être affichée : sa taille est connue à l'image suivante
+      loadSchematic(s); // recadre dès que la page a sa taille
     },
     /** Langue changée ou données corrigées : tout est redessiné, le montage et la vue gardés. */
     refresh(): void {

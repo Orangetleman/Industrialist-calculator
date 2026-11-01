@@ -15,8 +15,9 @@ import type { OverridesFile } from "../types.ts";
 import { solve } from "../solve.ts";
 import { buildCatalog } from "../build/catalog.ts";
 import { designModule } from "../build/module.ts";
-import { buildSandboxCatalog, geo } from "../sandbox/index.ts";
-import { layoutFromModule } from "./convert.ts";
+import { designFactory, factoryInput } from "../build/factory.ts";
+import { buildSandboxCatalog, cellsOf, elecRole, geo } from "../sandbox/index.ts";
+import { layoutFromFactory, layoutFromModule } from "./convert.ts";
 import { fromCode, toCode } from "./msch.ts";
 
 const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles, [overridesJson as unknown as OverridesFile]);
@@ -61,5 +62,30 @@ describe("plan du site → schéma", () => {
     const c = layoutFromModule(aModule(), sb);
     const back = await fromCode(await toCode({ name: "Module", description: "", labels: [], width: c.width, height: c.height, layout: c.layout }));
     expect(back.layout.blocks.map(({ id, x, y, r }) => [id, x, y, r])).toEqual(c.layout.blocks.map(({ id, x, y, r }) => [id, x, y, r]));
+  });
+  it("un module : chaque machine est reliée à un poteau par câble", () => {
+    const m = aModule(), c = layoutFromModule(m, sb), L = c.layout;
+    expect(m.poles.length).toBeGreaterThan(0);
+    const cons = L.blocks.filter((b) => elecRole(sb, L, b.u) === "cons");
+    for (const b of cons) expect(L.wires.some((w) => w.t === "p" && w.b === b.u), b.id).toBe(true);
+  });
+
+  it("une usine : poteaux posés une seule fois, sans chevauchement, câbles des machines et entre poteaux", () => {
+    const plan = solve(data, { unlocked: new Set(data.nodes.keys()) }, { item: "steel-plate", ratePerMin: 20, criterion: "energy", tiers: false });
+    const name = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
+    const f = designFactory(factoryInput(plan, { name, isFluid: fluid, machine: (id) => data.machines.get(id) ?? null, ports: files.ports.machines }, cat, { w: 160, h: 110 }, { priority: ["forme", "place", "prix", "pieces"] }));
+    const c = layoutFromFactory(f, sb, cat, fluid), L = c.layout;
+    const poles = L.blocks.filter((b) => elecRole(sb, L, b.u) === "pole");
+    expect(poles.length).toBe(f.poleNodes.length + f.links.reduce((s, l) => s + l.relays, 0));
+    const seen = new Map<string, string>();
+    for (const b of L.blocks) for (const [x, y] of cellsOf(sb.blocks.get(b.id)!, b)) {
+      expect(seen.get(`${x},${y}`), `${b.id} sur ${seen.get(`${x},${y}`)} en ${x},${y}`).toBeUndefined();
+      seen.set(`${x},${y}`, b.id);
+    }
+    const cons = L.blocks.filter((b) => elecRole(sb, L, b.u) === "cons");
+    const wired = cons.filter((b) => L.wires.some((w) => w.t === "p" && w.b === b.u));
+    expect(wired.length).toBe(cons.length);
+    const poleLinks = L.wires.filter((w) => poles.some((p) => p.u === w.a) && poles.some((p) => p.u === w.b));
+    expect(poleLinks.length).toBeGreaterThan(0);
   });
 });
