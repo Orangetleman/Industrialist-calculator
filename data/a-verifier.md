@@ -964,3 +964,12 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   **Répondu le 2026-11-01** : c'est l'infobulle du bouton (port) en jeu qui dit quel produit sort par ce port (ou entre
   par cette entrée). Le moteur s'en sert déjà quand elle est relevée ; l'ordre de la recette ne sert que faute de relevé.
   Reste à relever les infobulles des ports de sortie de la Steam Cracking Plant (et des autres machines à plusieurs sorties).
+- **BAS-14** (S39, réponses de l'utilisateur du 2026-11-02) : six pièces de `logistics.json` sont, sous un autre nom, des
+  bâtiments de l'éditeur : Pipe Fluid Turn2 / Junction2 / Section2 = Fluid Pipe Turn2 / Junction2 / Section2 (relevés en
+  jeu le 2026-10-17 : le bac à sable les utilise, la forme empruntée au tier I ne sert plus pour elles), Pipe Valve = Pipe
+  Value, Item Rate Meter = Item Meter, Fluid Rate Meter = Fluid Meter (lien `EDITOR_ID` de `src/engine/sandbox/catalog.ts`).
+  Pipe Valve : ports **fluide** et non objet (correction de l'utilisateur, `ports.json` corrigé). **À vérifier** : (a) prix
+  et taille des compteurs, qui diffèrent d'une source à l'autre : 2 560 $ et 4 × 4 studs (Miraheze, page « Pipes »,
+  section Special Pipes) contre 7 500 $ et 1 × 1 (machines.json, catégorie Logic) ; le bac à sable garde le prix de la
+  page « Pipes ». (b) Les ports fluide de la Pipe Valve (2 × 2) sont relevés sur une seule case : ont-ils 2 cases de
+  large comme les autres ports fluide des grands bâtiments ?

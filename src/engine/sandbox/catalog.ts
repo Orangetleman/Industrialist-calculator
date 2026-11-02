@@ -63,6 +63,22 @@ export function readGeo(entry: PortsEntry | undefined): BlockGeo | null {
   return { w: entry.footprint.w, h: entry.footprint.h, ports: merged.map(({ full: _f, ...p }) => p) };
 }
 
+/**
+ * Pièces de logistics.json qui sont, sous un autre nom, un bâtiment de l'éditeur (machines.json) : leurs ports
+ * relevés et leur fiche sont sous l'id de l'éditeur. Réponses de l'utilisateur du 2026-11-02 (S39).
+ */
+export const EDITOR_ID: Readonly<Record<string, string>> = {
+  "pipe-fluid-turn2": "fluid-pipe-turn2",
+  "pipe-fluid-junction2": "fluid-pipe-junction2",
+  "pipe-fluid-section2": "fluid-pipe-section2",
+  "pipe-valve": "pipe-value",
+  "item-rate-meter": "item-meter",
+  "fluid-rate-meter": "fluid-meter",
+};
+
+/** Id de la fiche de l'éditeur de bâtiments pour un bloc du bac à sable. */
+export const editorId = (id: string): string => EDITOR_ID[id] ?? id;
+
 export function pipeRole(id: string): PipeRole {
   if (/intersection/.test(id)) return "croisement";
   if (/turn/.test(id)) return "coude";
@@ -82,7 +98,7 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
   };
   const extras = (e: PortsEntry | undefined) => ({ ...(e?.buildCategory ? { buildCat: e.buildCategory } : {}), ...(e?.logicRangeTiles ? { logicRange: e.logicRangeTiles * 2 } : {}) });
   const blocks = new Map<string, SbBlock>();
-  const pipeIds = new Set(files.logistics.pipes.map((p) => p.id));
+  const pipeIds = new Set(files.logistics.pipes.flatMap((p) => [p.id, editorId(p.id)]));
   for (const m of data.machines.values()) {
     if (pipeIds.has(m.id) || m.category == null) continue;
     const recipes: SbRecipe[] = [], incomplete: SbIncomplete[] = [];
@@ -103,12 +119,12 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
     blocks.set(m.id, { id: m.id, name: m.name, tier: m.tier, cost: m.cost, poll, geo: readGeo(ports[m.id]), ...(m.size ? { size: { w: m.size.w, h: m.size.l } } : {}), recipes, incomplete, elec: elec(m.id), ...extras(ports[m.id]) });
   }
   for (const p of files.logistics.pipes) {
-    const role = pipeRole(p.id), geo = readGeo(ports[p.id]);
+    const role = pipeRole(p.id), geo = readGeo(ports[editorId(p.id)]);
     const kind = p.kind === "objet" ? "o" : p.kind === "fluide" ? "f" : "m";
     const tier = p.tier ?? (/^large/.test(p.id) ? 4 : 3); // Special Pipes : T3, « Large … » en T4 (décision du 2026-10-27)
     blocks.set(p.id, { id: p.id, name: p.name, tier, cost: p.price, poll: 0, geo, recipes: [], incomplete: [], pipe: { kind, flow: p.flowPerSec, role, len: role === "droit" && geo ? Math.max(geo.w, geo.h) : 1, rusty: /rusty/.test(p.id), tier } });
   }
-  // Coude, té ou croix du tier III sans ports relevés (Pipe Fluid Turn2…) : même forme que la pièce du tier I du même
+  // Coude, té ou croix du tier III sans ports relevés : même forme que la pièce du tier I du même
   // type (supposition confirmée par l'utilisateur le 2026-11-01) ; son débit reste le sien.
   for (const b of blocks.values()) {
     const p = b.pipe;
