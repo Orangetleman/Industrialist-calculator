@@ -73,8 +73,8 @@ input, select, textarea { font: inherit; color: var(--ink); }
 /* ---------------------------------------------------------------- barre du haut */
 .skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 6px 10px; border-radius: 6px; z-index: 20; }
 .skip:focus { left: 8px; }
-.top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
-.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 3px; background: var(--brand-bar); pointer-events: none; }
+.top { position: sticky; top: 0; z-index: 10; background: var(--surface); }
+.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 3px; background: var(--brand-bar); pointer-events: none; }
 .theme-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; flex: none; padding: 0; display: inline-grid; place-items: center; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
 .theme-btn .ic { width: 16px; height: 16px; }
