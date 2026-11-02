@@ -5,7 +5,7 @@
 
 import "../sandbox.css";
 import {
-  applyPlan, autoConnect, cellKey, CROSS_PAIRS, DV, cellsOf, clickRoute, computeSandbox, contacts, crossId, dims, droitLens, elecRole, explicitPlan, facingKey, geo,
+  applyPlan, autoConnect, cellKey, CROSS_PAIRS, DV, cellsOf, clickRoute, computeSandbox, contacts, crossId, dims, editorId, droitLens, elecRole, explicitPlan, facingKey, geo,
   laneAt, occupancy, pipePath, pipePlan, portKey, powerWires, rectPlan, sandboxCache, stillMissing, straightPath, withFills,
   type ClickResult, type Dir, type FlowBtn, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
 } from "../engine/sandbox/index.ts";
@@ -563,9 +563,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
 
   // ------------------------------------------------------------ cadre d'infos
   let infoSig = "";
-  const editorLink = (id: string) => (!deps.inEditor(id)
+  const editorLink = (id: string) => (!deps.inEditor(editorId(id))
     ? `<span class="muted">${esc(t("bac.editor.none", { name: names.block(id) }))}</span>`
-    : `<a href="#contribuer/batiments/${encodeURIComponent(id)}">${esc(cat.blocks.get(id)?.geo ? t("bac.editor.edit") : t("bac.editor.complete", { name: names.block(id) }))} ${ic("next")}</a>`);
+    : `<a href="#contribuer/batiments/${encodeURIComponent(editorId(id))}">${esc(cat.blocks.get(id)?.geo ? t("bac.editor.edit") : t("bac.editor.complete", { name: names.block(id) }))} ${ic("next")}</a>`);
   function head(id: string, name: string, sc: string | null, q: boolean): string {
     return `<div class="i-head">${blockIcon(dctx(), id, 32)}<div><b>${esc(name)}</b>${sc ? `<small>${esc(t("bac.shortcut", { sc }))}</small>` : ""}</div>${q ? `<button type="button" class="i-q" data-info="${esc(id)}" title="${esc(t("bac.info.more"))}" aria-label="${esc(t("bac.info.more"))}">?</button>` : ""}</div>`;
   }

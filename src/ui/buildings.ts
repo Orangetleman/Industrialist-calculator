@@ -1622,7 +1622,9 @@ export function initBuildings(
         ($("#bld-search") as HTMLInputElement).value = "";
       }
       select(id);
-      root.querySelector(`[data-bld="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" });
+      // Ligne amenée vers le haut de la liste (S39) : le bas de la liste peut être sous la fenêtre.
+      const li = root.querySelector(`[data-bld="${CSS.escape(id)}"]`), ul = $("#bld-items");
+      if (li) ul.scrollTop += li.getBoundingClientRect().top - ul.getBoundingClientRect().top - ul.clientHeight / 4;
     },
   };
 }

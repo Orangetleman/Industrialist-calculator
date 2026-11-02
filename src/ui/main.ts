@@ -571,6 +571,13 @@ function showPage(): void {
     revealRcCurrent();
     if (route.card?.craft && !wentBack) revealRcCraft();
   }
+  // Lien vers un bâtiment (S39, R17) : sa fiche est amenée à l'écran, pas seulement choisie.
+  if (page === "donnees" && route.machine && !wentBack) {
+    const ed = document.getElementById("bld-editor");
+    // Juste sous l'en-tête collant, qui cacherait le nom du bâtiment.
+    const top = document.querySelector("header.top")?.getBoundingClientRect().height ?? 0;
+    if (ed && !ed.hidden) window.scrollTo(0, Math.max(0, window.scrollY + ed.getBoundingClientRect().top - top - 8));
+  }
   if (page === "donnees" && route.verify?.field) {
     const el = document.getElementById(`fix-${route.verify.id}-${route.verify.field}`) as HTMLInputElement | null;
     el?.closest(".vrow")?.classList.add("vfocus");

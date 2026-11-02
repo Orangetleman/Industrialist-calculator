@@ -851,11 +851,11 @@
   "pipe-value": {
    "footprint": { "w": 2, "h": 2 },
    "ports": [
-    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 2 },
-    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 2, "shown": "Un valve activable par le joueur" }
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 2 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 2, "shown": "Un valve activable par le joueur" }
    ],
    "noPower": true,
-   "notes": "\"Pipe valve\" pas \"pipe value\"",
+   "notes": "\"Pipe valve\" pas \"pipe value\". Ports fluide et non objet : correction de l'utilisateur du 2026-11-02 (S39).",
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T00:36:22.439Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18)" }
   },
   "pipe2": {
