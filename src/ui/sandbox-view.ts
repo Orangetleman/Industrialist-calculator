@@ -13,6 +13,8 @@ import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
 import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
+import { ic } from "./bac-icons.ts";
+import { closePop, openPopMenu, popAnchorEl, popEl } from "./popmenu.ts";
 import {
   arrowDefs, arrowMarkup, blockIcon, blockMarkup, compactBatch, btnKey, btnMarkup, buttonsOf, cutMarkup, portEdge, PORT_COL, rangeMarkup, rect, type Btn, type DrawCtx, type ImgOf, type ModRange,
 } from "./sandbox-draw.ts";
@@ -21,46 +23,6 @@ import {
   ROMAN, routeErrorText, shortcut, TIERS, wireErrorText, type Action, type Entry, type KeyMap, type Menu, type Names,
 } from "./sandbox-model.ts";
 
-const IC: Record<string, string> = {
-  chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
-  keyboard: '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
-  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
-  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',
-  schem: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
-  db: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
-  tree: '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
-  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-  break: '<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
-  select: '<path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/><path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1"/><path d="M9 21h1"/><path d="M14 3h1"/><path d="M14 21h1"/><path d="M3 9v1"/><path d="M21 9v1"/><path d="M3 14v1"/><path d="M21 14v1"/>',
-  rotate: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
-  close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-  back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
-  next: '<path d="m9 18 6-6-6-6"/>',
-  down: '<path d="m6 9 6 6 6-6"/>',
-  warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
-  save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
-  updown: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
-  swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
-  filter: '<path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/>',
-  pipes: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
-  logic: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
-  power: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
-  deco: '<path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"/><circle cx="12" cy="8" r="2"/><path d="M12 10v12"/><path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z"/><path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z"/>',
-  factory: '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
-  module: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>',
-  misc: '<path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
-  extract: '<path d="M14.531 12.469 6.619 20.38a1 1 0 1 1-3-3l7.912-7.912"/><path d="M15.686 4.314A12.5 12.5 0 0 0 5.461 2.958 1 1 0 0 0 5.58 4.71a22 22 0 0 1 6.318 3.393"/><path d="M17.7 3.7a1 1 0 0 0-1.4 0l-4.6 4.6a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4z"/><path d="M19.686 8.314a12.501 12.501 0 0 1 1.356 10.225 1 1 0 0 1-1.751-.119 22 22 0 0 0-3.393-6.319"/>',
-  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
-  share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
-  pencil: '<path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',
-  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
-  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  tag: '<path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/>',
-  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
-  copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
-  tanks: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/>',
-};
-const ic = (n: string) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${IC[n] ?? ""}</svg>`;
 
 /** Ce que la page reçoit du site : catalogue (données corrigées et relevés du joueur), images, portées, liens. */
 export type SandboxDeps = {
@@ -636,7 +598,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   const hasContact = (u: number, t2: string) => contacts(cat, layout()).some((c) => (c.a === u || c.b === u) && c.t === t2);
 
   function renderInfo(force = false): void {
-    if (!ui.mounted || (pop && !force)) return;
+    if (!ui.mounted || (popEl() && !force)) return;
     // Une pose choisie ou un bâtiment épinglé reste affiché : le survol ne le remplace plus (retour du 2026-11-01).
     const tg = ui.sel ? { k: "e" as const, e: ui.sel.e } : ui.pinned != null && byU.has(ui.pinned) ? { k: "b" as const, u: ui.pinned, pin: true }
       : ui.hoverBtn ? { k: "e" as const, e: menu.byKey.get(ui.hoverBtn)! } : ui.hoverU != null && byU.has(ui.hoverU) ? { k: "b" as const, u: ui.hoverU, pin: false } : null;
@@ -704,35 +666,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   const target = () => ui.pinned ?? ui.hoverU;
 
   // ------------------------------------------------------------ menu déroulant maison (survole la page)
-  let pop: HTMLElement | null = null, popAnchor: HTMLElement | null = null;
-  function closePop(): void {
-    pop?.remove();
-    popAnchor?.setAttribute("aria-expanded", "false");
-    pop = popAnchor = null;
-  }
-  /** Liste flottante par-dessus la page, sous (ou au-dessus de) son bouton ; fermée au clic ailleurs ou par Échap. */
-  function openPop(anchorEl: HTMLElement, html: string, onPick: (el: HTMLElement) => void): void {
-    closePop();
-    const el = document.createElement("div");
-    el.className = "bac-pop";
-    el.setAttribute("role", "listbox");
-    el.innerHTML = html;
-    root.append(el);
-    const r = anchorEl.getBoundingClientRect(), below = innerHeight - r.bottom - 8, above = r.top - 8, up = el.offsetHeight > below && above > below;
-    el.style.minWidth = `${Math.min(r.width, innerWidth - 16)}px`;
-    el.style.maxHeight = `${Math.max(120, up ? above : below)}px`;
-    el.style.left = `${Math.max(8, Math.min(r.left, innerWidth - el.offsetWidth - 8))}px`;
-    el.style.top = up ? `${Math.max(8, r.top - Math.min(el.offsetHeight, above) - 4)}px` : `${r.bottom + 4}px`;
-    pop = el;
-    popAnchor = anchorEl;
-    anchorEl.setAttribute("aria-expanded", "true");
-    el.addEventListener("click", (e) => { const o = (e.target as HTMLElement).closest<HTMLElement>("[data-opt]"); if (o) { const keep = o; closePop(); onPick(keep); } });
-    el.addEventListener("keydown", (e) => {
-      const opts = [...el.querySelectorAll<HTMLElement>("[data-opt]")], i = opts.indexOf(document.activeElement as HTMLElement);
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); opts[(i + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length]?.focus(); }
-    });
-    (el.querySelector<HTMLElement>("[aria-selected=true]") ?? el.querySelector<HTMLElement>("[data-opt]"))?.focus();
-  }
+  const openPop = (anchorEl: HTMLElement, html: string, onPick: (el: HTMLElement) => void) => openPopMenu(root, anchorEl, html, onPick, "bac-pop");
   function recipeMenu(anchorEl: HTMLElement): void {
     const u = target();
     if (u == null) return;
@@ -1390,7 +1324,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     });
     $("bac-ex").addEventListener("click", (e) => {
       const b = e.currentTarget as HTMLElement;
-      if (pop && popAnchor === b) return closePop();
+      if (popEl() && popAnchorEl() === b) return closePop();
       openPop(b, [1, 2, 3].map((n) => `<button type="button" role="option" data-opt="${n}">${esc(t(`bac.ex.${n}` as Key))}</button>`).join(""), (o) => example(Number(o.dataset.opt)));
     });
     $("bac-keys").addEventListener("click", keysDialog);
@@ -1517,7 +1451,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (root.hidden || !ui.mounted) return;
     if (/^Key/.test(e.code) && e.key.length === 1 && !e.ctrlKey && !e.altKey && !LAB.has(e.code)) LAB.set(e.code, e.key.toUpperCase());
     if (kbArm) { e.preventDefault(); if (e.key === "Escape") { KB[kbArm] = null; kbArm = null; store(KEY_KEYS, KB); renderHint(); keysDialog(); } else assignKey(e.code); return; }
-    if (pop) { if (e.key === "Escape") { e.preventDefault(); const a = popAnchor; closePop(); a?.focus(); } return; }
+    if (popEl()) { if (e.key === "Escape") { e.preventDefault(); const a = popAnchorEl(); closePop(); a?.focus(); } return; }
     if (!$("bac-dlg").hidden) { if (e.key === "Escape") closeDlg(); return; }
     if ((e.target as HTMLElement).closest?.("input, select, textarea")) return;
     if (e.ctrlKey || e.metaKey) {
@@ -1591,7 +1525,6 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   });
   window.addEventListener("blur", () => held.clear());
   window.addEventListener("resize", () => { if (!root.hidden) { placeRoot(); applyView(); } });
-  document.addEventListener("pointerdown", (e) => { if (pop && !pop.contains(e.target as Node) && !popAnchor?.contains(e.target as Node)) closePop(); }, true);
   (navigator as Navigator & { keyboard?: { getLayoutMap?: () => Promise<Map<string, string>> } }).keyboard?.getLayoutMap?.()
     .then((m) => { for (const [c, k] of m) LAB.set(c, k.toUpperCase()); if (ui.mounted) { renderHint(); } })
     .catch(() => undefined);

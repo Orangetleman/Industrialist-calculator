@@ -65,6 +65,9 @@ import {
 } from "./buildings-model.ts";
 import { PanZoom } from "./canvas.ts";
 import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
+import { ic } from "./bac-icons.ts";
+import { closePop, openPopMenu, popAnchorEl, popEl } from "./popmenu.ts";
+import { CATS } from "./sandbox-model.ts";
 import { esc, fmt, fmtMF, fmtPct, parseNum, quote, semi } from "./format.ts";
 import { icon, iconAt, noIcons, withIcons, type IconName } from "./icons.ts";
 import { t, type Key } from "../i18n/i18n.ts";
@@ -211,7 +214,7 @@ export function initBuildings(
           <div class="bld-foot" id="bld-foot">
             <label class="bld-check"><input type="checkbox" id="bld-nopower"> <span data-i18n="bld.noPower">${t("bld.noPower")}</span></label>
             <label class="bld-check"><input type="checkbox" id="bld-noports"> <span data-i18n="bld.noPorts">${t("bld.noPorts")}</span></label>
-            <label class="bld-check"><span data-i18n="bld.cat">${t("bld.cat")}</span> <select id="bld-cat"></select></label>
+            <label class="bld-check"><span data-i18n="bld.cat">${t("bld.cat")}</span> <button type="button" class="bld-catbtn" id="bld-cat" aria-haspopup="listbox" aria-expanded="false"></button></label>
             <label class="bld-check" id="bld-lrange-l"><span data-i18n="bld.lrange">${t("bld.lrange")}</span> <input type="number" id="bld-lrange" min="0" step="0.5" placeholder="?" style="width:5em"> <span data-i18n="bld.tiles">${t("bld.tiles")}</span></label>
             <div class="bld-status" id="bld-status" aria-live="polite"></div>
             <div class="actions" id="bld-actions"></div>
@@ -435,13 +438,31 @@ export function initBuildings(
     renderMode();
   }
 
+  /** Une catégorie du menu Build avec son icône (celles du menu de pose du bac à sable). */
+  const catOpt = (c: string) => `${ic(CATS.find((x) => x.id === c)?.ic ?? "")}<span>${esc(t(`bac.cat.${c}` as Key))}</span>`;
+  /** Choix de la catégorie : le menu déroulant maison du bac à sable (popmenu.ts), avec les icônes. */
+  function catMenu(anchorEl: HTMLElement): void {
+    if (!entry || !selectedId) return;
+    if (popEl() && popAnchorEl() === anchorEl) return closePop();
+    const cur = entry.buildCategory ?? "";
+    const opt = (v: string, inner: string) => `<button type="button" role="option" data-opt="${v}" aria-selected="${cur === v}" class="${cur === v ? "on" : ""}">${inner}</button>`;
+    const wiki = data.machines.get(selectedId)?.category;
+    const h = opt("", `<span>${esc(t("bld.cat.none", { wiki: wiki ?? "?" }))}</span>`) + BUILD_CATEGORIES.map((c) => opt(c, catOpt(c))).join("");
+    openPopMenu(root, anchorEl, h, (o) => {
+      if (!entry) return;
+      if (o.dataset.opt) entry.buildCategory = o.dataset.opt;
+      else delete entry.buildCategory;
+      renderSurveyExtras();
+      renderStatus();
+    });
+  }
+
   /** Catégorie du menu Build et portée des câbles logiques (S52). */
   function renderSurveyExtras(): void {
     if (!entry || !selectedId) return;
     const wiki = data.machines.get(selectedId)?.category;
-    const sel = $("#bld-cat") as HTMLSelectElement;
-    sel.innerHTML = `<option value="">${esc(t("bld.cat.none", { wiki: wiki ?? "?" }))}</option>` + BUILD_CATEGORIES.map((c) => `<option value="${c}">${esc(t(`bac.cat.${c}` as Key))}</option>`).join("");
-    sel.value = entry.buildCategory ?? "";
+    const c = entry.buildCategory;
+    $("#bld-cat").innerHTML = `${c ? catOpt(c) : `<span>${esc(t("bld.cat.none", { wiki: wiki ?? "?" }))}</span>`}${ic("down")}`;
     const hasLogic = entry.ports.some((p) => p.type === "logique");
     $("#bld-lrange-l").hidden = !hasLogic && entry.logicRangeTiles == null;
     ($("#bld-lrange") as HTMLInputElement).value = entry.logicRangeTiles != null ? String(entry.logicRangeTiles) : "";
@@ -1194,10 +1215,6 @@ export function initBuildings(
       if (el.checked) entry!.noPower = true;
       else delete entry!.noPower;
       renderStatus();
-    } else if (el.id === "bld-cat") {
-      if (el.value) entry!.buildCategory = el.value;
-      else delete entry!.buildCategory;
-      renderStatus();
     } else if (el.id === "bld-noports") {
       if (el.checked) entry!.noPorts = true;
       else delete entry!.noPorts;
@@ -1341,6 +1358,8 @@ export function initBuildings(
     }
     // Bulle d'un port.
     if (target.closest("[data-bb-close]")) return closeBubble();
+    const catBtn = target.closest<HTMLElement>("#bld-cat");
+    if (catBtn) return catMenu(catBtn);
     const bbType = target.closest<HTMLElement>("[data-bb-type]");
     if (bbType && bubble?.kind === "port") {
       const p = entry.ports[bubble.index]!;

@@ -1806,3 +1806,10 @@ table.rh-log td.num { white-space: nowrap; }
 .prio-chip.lift { outline: 2px dashed var(--accent); cursor: grabbing; }
 .prio-bar { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
 .prio-say { color: var(--muted); }
+
+/* Menu déroulant maison (popmenu.ts) hors du bac à sable : choix de la catégorie dans l'éditeur de bâtiments (S52). */
+.pop-menu { position: fixed; z-index: 40; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 6px 22px rgb(0 0 0 / .45); overflow-y: auto; max-width: min(420px, calc(100vw - 16px)); padding: 3px; display: flex; flex-direction: column; gap: 2px; }
+.pop-menu button { display: flex; align-items: center; gap: 8px; text-align: left; border-color: transparent; background: transparent; min-height: 32px; padding: 4px 8px; }
+.pop-menu button:hover, .pop-menu button:focus-visible { background: var(--panel2); border-color: var(--line); }
+.pop-menu button.on { border-color: var(--accent); background: var(--accent-soft); }
+.bld-catbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
