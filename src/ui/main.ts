@@ -890,6 +890,9 @@ function fitHeaderChips(): void {
 }
 let fitRaf = 0;
 addEventListener("resize", () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(() => { closePop(); renderHeader(); }); });
+// Au premier chargement, Audiowide arrive après le premier rendu et élargit l'en-tête : on remesure.
+document.fonts?.ready.then(() => renderHeader());
+document.fonts?.addEventListener?.("loadingdone", () => renderHeader());
 
 /** Barre du haut : où en est le joueur, en bref (cliquable vers « Mon usine »). */
 function renderHeader(): void {
