@@ -42,6 +42,7 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "header.cta": "Set up my factory",
   "header.research": { one: "{done}/{total} research", other: "{done}/{total} research" },
   "header.research.title": "Unlocked research",
+  "header.more.title": "More: the rest of my status",
   "header.rp.title": "Available RP and real rate (estimated, in playtime): My research",
   "header.rp.over": " {i:warn} threshold",
   "header.money.title": "Money",

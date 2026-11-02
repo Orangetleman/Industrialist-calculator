@@ -47,6 +47,7 @@ export const fr = {
   "header.cta": "Renseigner mon usine",
   "header.research": { one: "{done}/{total} recherche", other: "{done}/{total} recherches" },
   "header.research.title": "Recherches débloquées",
+  "header.more.title": "Voir la suite de mon état",
   "header.rp.title": "RP disponibles et vitesse réelle (estimés, en temps de jeu) : Ma recherche",
   "header.rp.over": " {i:warn} seuil",
   "header.money.title": "Argent",

@@ -1061,7 +1061,6 @@ button.must { cursor: pointer; }
   label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
   .long { display: none; }
   /* L'état du joueur se résume à une pastille. */
-  .me-chip:not(:first-child) { display: none; }
   main { padding: 14px 12px 32px; }
   footer.src { padding-inline: 12px; }
   h1 { font-size: 1.5rem; }
@@ -1785,8 +1784,8 @@ table.rh-log td.num { white-space: nowrap; }
 @media (min-width: 761px) {
   .top-in { max-width: none; flex-wrap: nowrap; gap: 6px 8px; }
   .top-in > * { flex-shrink: 0; }
-  /* Pastilles : celles qui ne tiennent pas passent sur une ligne masquée, jamais rognées à moitié. */
-  .top-in .me { flex-shrink: 1; min-width: 0; overflow: hidden; flex-wrap: wrap; max-height: 24px; row-gap: 40px; justify-content: flex-end; }
+  /* Pastilles : celles qui ne tiennent pas passent dans le bouton « +n » (fitHeaderChips). */
+  .top-in .me { flex-shrink: 1; min-width: 44px; overflow: hidden; flex-wrap: nowrap; }
   .me-chip { flex: none; }
 }
 @media (min-width: 761px) and (max-width: 1800px) {
@@ -1813,3 +1812,6 @@ table.rh-log td.num { white-space: nowrap; }
 .pop-menu button:hover, .pop-menu button:focus-visible { background: var(--panel2); border-color: var(--line); }
 .pop-menu button.on { border-color: var(--accent); background: var(--accent-soft); }
 .bld-catbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
+
+.me-chip[hidden] { display: none !important; }
+.me-more { background: transparent; cursor: pointer; font: inherit; font-family: var(--f-mono); }

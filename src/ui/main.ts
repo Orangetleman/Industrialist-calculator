@@ -162,6 +162,7 @@ import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
 import { buildSandboxCatalog, type SbCatalog } from "../engine/sandbox/index.ts";
 import { fact } from "../engine/modular.ts";
+import { closePop, openPopMenu, popAnchorEl } from "./popmenu.ts";
 import { loadSent, type Piece } from "./remarques.ts";
 import type { Message, Text } from "../engine/message.ts";
 
@@ -860,12 +861,43 @@ const researchTotal = () => [...data.nodes.values()].filter((n) => !n.isRoot).le
 const unlockedCount = () => [...data.nodes.values()].filter((n) => !n.isRoot && (n.startUnlocked || prog.unlocked.includes(n.id))).length;
 const isFresh = () => !prog.unlocked.length && player.money === null && player.rp === null;
 
+/** Les pastilles qui ne tiennent pas dans l'en-tête passent dans un bouton « … » (menu), rien n'est rogné ni caché. */
+function fitHeaderChips(): void {
+  const me = $("me");
+  me.querySelector(".me-more")?.remove();
+  const chips = [...me.querySelectorAll<HTMLElement>(".me-chip")];
+  chips.forEach((c) => { c.hidden = false; });
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "me-chip me-more";
+  more.setAttribute("aria-haspopup", "listbox");
+  more.setAttribute("aria-expanded", "false");
+  me.append(more);
+  const hiddenChips: HTMLElement[] = [];
+  const over = () => me.scrollWidth > me.clientWidth + 1;
+  if (over()) {
+    for (let i = chips.length - 1; i >= 0 && over(); i--) { chips[i]!.hidden = true; hiddenChips.unshift(chips[i]!); }
+  }
+  if (!hiddenChips.length) { more.remove(); return; }
+  more.textContent = `+${hiddenChips.length}`;
+  more.title = t("header.more.title");
+  more.setAttribute("aria-label", t("header.more.title"));
+  more.onclick = () => {
+    if (popAnchorEl() === more) { closePop(); return; }
+    const html = hiddenChips.map((c) => `<button type="button" data-opt data-href="${esc(c.getAttribute("href") ?? "#usine")}" title="${esc(c.title)}">${c.innerHTML}</button>`).join("");
+    openPopMenu(document.body, more, html, (el) => { location.hash = el.dataset.href ?? "#usine"; });
+  };
+}
+let fitRaf = 0;
+addEventListener("resize", () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(() => { closePop(); renderHeader(); }); });
+
 /** Barre du haut : où en est le joueur, en bref (cliquable vers « Mon usine »). */
 function renderHeader(): void {
   $<HTMLAnchorElement>("nav-plan").href = `#${GOAL_ROUTE[settings.goal]}`;
   if (isFresh()) {
     setHtml($("me"), `<a class="me-chip cta" href="#usine">${esc(t("header.cta"))}</a>`);
     $("me-play").hidden = true;
+    fitHeaderChips();
     return;
   }
   const rp = rpNow();
@@ -879,6 +911,7 @@ function renderHeader(): void {
     player.money !== null ? `<a class="me-chip" href="#usine" title="${esc(t("header.money.title"))}">${esc(fmtMoneyShort(player.money))}</a>` : "",
   ];
   setHtml($("me"), chips.join(""));
+  fitHeaderChips();
   // Interrupteur « Je joue » (S21) : un bouton fixe, pour qu'il reste cliquable quand les puces changent.
   const play = $<HTMLButtonElement>("me-play");
   const on = journal.clock.playing;
