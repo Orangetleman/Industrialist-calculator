@@ -122,7 +122,9 @@ export function buildSandboxCatalog(data: GameData, files: SandboxFiles): SbCata
     const role = pipeRole(p.id), geo = readGeo(ports[editorId(p.id)]);
     const kind = p.kind === "objet" ? "o" : p.kind === "fluide" ? "f" : "m";
     const tier = p.tier ?? (/^large/.test(p.id) ? 4 : 3); // Special Pipes : T3, « Large … » en T4 (décision du 2026-10-27)
-    blocks.set(p.id, { id: p.id, name: p.name, tier, cost: p.price, poll: 0, geo, recipes: [], incomplete: [], pipe: { kind, flow: p.flowPerSec, role, len: role === "droit" && geo ? Math.max(geo.w, geo.h) : 1, rusty: /rusty/.test(p.id), tier } });
+    // Pièce reliée à un bâtiment de l'éditeur : son prix et sa taille priment (compteurs : 7 500 $, 1 × 1, confirmé le 2026-11-02).
+    const m = EDITOR_ID[p.id] ? data.machines.get(EDITOR_ID[p.id]!) : undefined;
+    blocks.set(p.id, { id: p.id, name: p.name, tier, cost: m?.cost ?? p.price, poll: 0, geo, ...(!geo && m?.size ? { size: { w: m.size.w, h: m.size.l } } : {}), recipes: [], incomplete: [], pipe: { kind, flow: p.flowPerSec, role, len: role === "droit" && geo ? Math.max(geo.w, geo.h) : 1, rusty: /rusty/.test(p.id), tier } });
   }
   // Coude, té ou croix du tier III sans ports relevés : même forme que la pièce du tier I du même
   // type (supposition confirmée par l'utilisateur le 2026-11-01) ; son débit reste le sien.

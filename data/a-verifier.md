@@ -973,3 +973,5 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   section Special Pipes) contre 7 500 $ et 1 × 1 (machines.json, catégorie Logic) ; le bac à sable garde le prix de la
   page « Pipes ». (b) Les ports fluide de la Pipe Valve (2 × 2) sont relevés sur une seule case : ont-ils 2 cases de
   large comme les autres ports fluide des grands bâtiments ?
+  **Répondu le 2026-11-02** : (a) 7 500 $ et 1 × 1 sont justes : le bac à sable prend désormais le prix et la taille de
+  machines.json pour les pièces reliées. (b) Non, les ports de la Pipe Valve font bien 1 case.
