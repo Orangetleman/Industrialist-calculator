@@ -249,6 +249,8 @@ export const bacFr = {
   "bac.act.info": "Fiche du bloc",
   "bac.act.menus": "Masquer l'interface",
   "bac.act.research": "Arbre de recherche",
+  "bac.act.map": "Grande carte",
+  "bac.map.tip": "Clic : aller à cet endroit",
   "bac.cmd.title": "Toutes les commandes",
   "bac.cmd.move": "Se déplacer | {k} · Maj : plus vite · clic molette glissé",
   "bac.cmd.zoom": "Zoomer | Molette · Ctrl + molette quand un bloc est en main",

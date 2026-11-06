@@ -10,6 +10,7 @@ import {
   type ClickResult, type Dir, type FlowBtn, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
 } from "../engine/sandbox/index.ts";
 import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
+import { clipLayout, clipOf, clipToSchematic, copyZone, flipClip as flipClipItems, relink, rotateClip, type Clip } from "../engine/schematic/clip.ts";
 import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
@@ -38,7 +39,6 @@ export type SandboxDeps = {
 };
 
 type State = { blocks: Placed[]; wires: Wire[]; routes: Route[]; fills: Record<string, RecipeFill> };
-type Clip = { id: number; items: { id: string; dx: number; dy: number; r: number; choice: string | null }[]; W: number; H: number; saved?: string };
 type Op =
   | { t: "line"; s: [number, number] }
   | { t: "break"; s: [number, number]; moved: boolean }
@@ -85,13 +85,13 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   // ------------------------------------------------------------ état
   let S: State = { blocks: [], wires: [], routes: [], fills: {}, ...load<Partial<State>>(KEY_STATE, {}) };
   const SET: Settings = load(KEY_SET, { hideEmptyCats: true, runWithoutPower: true });
-  const KB: KeyMap = load(KEY_KEYS, defaultKeys());
+  const KB: KeyMap = { ...defaultKeys(), ...load(KEY_KEYS, defaultKeys()) }; // une action ajoutée depuis garde sa touche
   const LAB = new Map<string, string>();
   let undo: string[] = [], redo: string[] = [];
   const ui = {
     tier: 1, cat: "Factories", sel: null as Sel | null, auto: true, rot: 0, vec: false, status: true, wires: true, hidden: false,
     pinned: null as number | null, hoverU: null as number | null, hoverBtn: null as string | null, cell: [0, 0] as [number, number], sub: [0.5, 0.5] as [number, number],
-    op: null as Op | null, clip: null as Clip | null, ctrl: false, choice: null as { id: string; c: string } | null, breakMode: false, schemMode: false,
+    dbQ: "", op: null as Op | null, clip: null as Clip | null, ctrl: false, choice: null as { id: string; c: string } | null, breakMode: false, schemMode: false,
     filter: null as { ids: string[]; title: string } | null, routeFrom: null as PortRef | null, unit: 60, mounted: false,
     /** Mode câblage (S57) : bouton de départ d'un réglage de flux. */
     btnFrom: null as Btn | null,
@@ -262,10 +262,36 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   let mini: { box: [number, number, number, number]; img: HTMLCanvasElement } | null = null;
   const miniEl = () => $("bac-mini") as HTMLCanvasElement;
   /** Échelle et décalage (pixels CSS) qui font tenir le cadre dans la mini-carte. */
-  const miniFit = () => {
-    const cv = miniEl(), W = cv.clientWidth, H = cv.clientHeight, [x0, y0, x1, y1] = mini!.box, k = Math.min(W / (x1 - x0), H / (y1 - y0));
+  const fitBox = ([x0, y0, x1, y1]: [number, number, number, number], W: number, H: number) => {
+    const k = Math.min(W / (x1 - x0), H / (y1 - y0));
     return { W, H, k, ox: (W - (x1 - x0) * k) / 2 - x0 * k, oy: (H - (y1 - y0) * k) / 2 - y0 * k };
   };
+  const miniFit = () => fitBox(mini!.box, miniEl().clientWidth, miniEl().clientHeight);
+  /** Fond et bâtiments d'une carte. */
+  function paintMap(g: CanvasRenderingContext2D, f: ReturnType<typeof fitBox>): void {
+    g.fillStyle = "#0b0714"; g.fillRect(0, 0, f.W, f.H);
+    for (const b of S.blocks) {
+      const d = cat.blocks.get(b.id)!, [w, h] = dims(d, b.r);
+      g.fillStyle = d.pipe ? (d.pipe.kind === "f" ? PORT_COL.f! : PORT_COL.o!) : "#8a8a9a";
+      g.fillRect(f.ox + b.x * f.k, f.oy + b.y * f.k, Math.max(1, w * f.k), Math.max(1, h * f.k));
+    }
+  }
+  /** Grande carte (M, comme Mindustry) : le montage entier ; un clic y amène et referme. */
+  let big: ReturnType<typeof fitBox> | null = null;
+  function bigMap(): void {
+    if (!S.blocks.length || !mini) return say(t("bac.sch.empty"));
+    openDlg(`<div class="ttl">${esc(t("bac.act.map"))}</div><canvas id="bac-bigmap" class="bac-bigmap" role="img" aria-label="${esc(t("bac.mini.aria"))}" title="${esc(t("bac.map.tip"))}"></canvas>`);
+    const cv = root.querySelector<HTMLCanvasElement>("#bac-bigmap")!, dpr = devicePixelRatio || 1, r = mapRect();
+    big = fitBox(mini.box, cv.clientWidth, cv.clientHeight);
+    cv.width = Math.round(big.W * dpr); cv.height = Math.round(big.H * dpr);
+    const g = cv.getContext("2d")!;
+    g.scale(dpr, dpr);
+    paintMap(g, big);
+    g.strokeStyle = "#ff8f52"; g.lineWidth = 2;
+    // L'écran peut déborder du montage : le cadre reste dans la carte, pour rester visible.
+    const x = Math.max(1, big.ox + cam.x * big.k), y = Math.max(1, big.oy + cam.y * big.k);
+    g.strokeRect(x, y, Math.min(big.W - 1, big.ox + (cam.x + r.width / cam.z) * big.k) - x, Math.min(big.H - 1, big.oy + (cam.y + r.height / cam.z) * big.k) - y);
+  }
   /** Redessine le montage dans la mini-carte (après un changement du montage, pas en se déplaçant). */
   function miniBuild(): void {
     const cv = miniEl();
@@ -279,12 +305,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     img.width = Math.round(f.W * dpr); img.height = Math.round(f.H * dpr);
     const g = img.getContext("2d")!;
     g.scale(dpr, dpr);
-    g.fillStyle = "#0b0714"; g.fillRect(0, 0, f.W, f.H);
-    for (const b of S.blocks) {
-      const d = cat.blocks.get(b.id)!, [w, h] = dims(d, b.r);
-      g.fillStyle = d.pipe ? (d.pipe.kind === "f" ? PORT_COL.f! : PORT_COL.o!) : "#8a8a9a";
-      g.fillRect(f.ox + b.x * f.k, f.oy + b.y * f.k, Math.max(1, w * f.k), Math.max(1, h * f.k));
-    }
+    paintMap(g, f);
     miniView();
   }
   /** Le montage et, par-dessus, ce que montre l'écran (rectangle). */
@@ -745,11 +766,23 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     h += `<p>${editorLink(id)}</p>`;
     openDlg(h, back);
   }
+  /** Base de données : seuls les blocs dont le nom affiché contient la recherche ; les catégories vides disparaissent. */
+  function filterDb(): void {
+    const q = ui.dbQ.trim().toLowerCase();
+    for (const g of root.querySelectorAll<HTMLElement>("#bac-dlg .db")) {
+      let n = 0;
+      for (const b of g.querySelectorAll<HTMLElement>("[data-db]")) { const on = b.getAttribute("aria-label")!.toLowerCase().includes(q); b.hidden = !on; if (on) n++; }
+      g.hidden = !n;
+      (g.previousElementSibling as HTMLElement).hidden = !n;
+    }
+  }
   function openDb(): void {
-    openDlg(`<div class="ttl">${ic("db")} ${esc(t("bac.tool.db"))}</div>` + CATS.map((c) => {
+    openDlg(`<div class="ttl">${ic("db")} ${esc(t("bac.tool.db"))}</div><div class="row sch-top">${ic("search")}<input id="bac-db-q" value="${esc(ui.dbQ)}" placeholder="${esc(t("bac.sch.search"))}" aria-label="${esc(t("bac.sch.search"))}"></div>` + CATS.map((c) => {
       const bs = [...cat.blocks.values()].filter((b) => (b.pipe ? "Pipes" : deps.category(b.id)) === c.id);
       return bs.length ? `<h3>${ic(c.ic)} ${esc(t(`bac.cat.${c.id}` as Key))}</h3><div class="db">${bs.map((b) => `<button type="button" class="bac-blk ${b.geo ? "" : "locked"}" data-db="${esc(b.id)}" title="${esc(b.name)}" aria-label="${esc(b.name)}">${blockIcon(dctx(), b.id, 34)}</button>`).join("")}</div>` : "";
     }).join(""));
+    filterDb();
+    root.querySelector<HTMLInputElement>("#bac-db-q")!.focus();
   }
 
   // ------------------------------------------------------------ schémas (F, Z / X, T)
@@ -757,29 +790,16 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   type Saved = { name: string; desc?: string; tags?: string[]; clip: Clip };
   const loadSch = (): Saved[] => { try { return JSON.parse(localStorage.getItem(KEY_SCHEM) || "[]") as Saved[]; } catch { return []; } };
   const schUi = { q: "", tags: [] as string[] };
-  const clipToSch = (s: Omit<Saved, "clip">, c: Clip): Schematic => ({
-    name: s.name, description: s.desc ?? "", labels: s.tags ?? [], width: c.W, height: c.H,
-    layout: { blocks: c.items.map((it, u) => ({ u, id: it.id, x: it.dx, y: it.dy, r: it.r, ...(it.choice ? { choice: it.choice } : {}) })), wires: [] },
-  });
-  /** Un schéma lu devient une copie à coller : bâtiments inconnus écartés, coin ramené en (0, 0). */
-  function toClip(items: Clip["items"]): Clip | null {
-    const ok = items.filter((it) => cat.blocks.has(it.id));
-    if (!ok.length) return null;
-    const mx = Math.min(...ok.map((it) => it.dx)), my = Math.min(...ok.map((it) => it.dy));
-    const norm = ok.map((it) => ({ ...it, dx: it.dx - mx, dy: it.dy - my }));
-    const W = Math.max(...norm.map((it) => it.dx + dims(cat.blocks.get(it.id)!, it.r)[0])), H = Math.max(...norm.map((it) => it.dy + dims(cat.blocks.get(it.id)!, it.r)[1]));
-    return { id: Date.now(), items: norm, W, H };
-  }
-  const schItems = (s: Schematic): Clip["items"] => s.layout.blocks.map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null }));
+  const clipToSch = (s: Omit<Saved, "clip">, c: Clip): Schematic => clipToSchematic(c, s);
   /** Lit un code .msch, ou un ancien code (JSON en base64). */
-  async function readCode(code: string): Promise<{ meta: Omit<Saved, "clip">; items: Clip["items"] }> {
+  async function readCode(code: string): Promise<{ meta: Omit<Saved, "clip">; clip: Clip | null }> {
     try {
       const s = await fromCode(code);
-      return { meta: { name: s.name, desc: s.description, tags: s.labels }, items: schItems(s) };
+      return { meta: { name: s.name, desc: s.description, tags: s.labels }, clip: clipOf(cat, s.layout) };
     } catch {
       const c = decOld<{ items: Clip["items"] }>(code);
       if (!Array.isArray(c.items)) throw new Error("items");
-      return { meta: { name: "" }, items: c.items };
+      return { meta: { name: "" }, clip: clipOf(cat, clipLayout({ id: 0, items: c.items, W: 0, H: 0 })) };
     }
   }
   const preview = (c: Clip, px: number) => {
@@ -787,8 +807,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     return `<svg width="${px}" height="${px}" viewBox="-0.5 -0.5 ${m} ${m}" class="sch-pv" aria-hidden="true">${c.items.map((it) => blockMarkup(d, { u: -1, id: it.id, x: it.dx, y: it.dy, r: it.r })).join("")}</svg>`;
   };
   const sbtn = (a: string, i: number, n: string, k: Key) => `<button type="button" data-sch="${a}" data-i="${i}" title="${esc(t(k))}" aria-label="${esc(t(k))}">${ic(n)}</button>`;
-  function addSch(meta: Omit<Saved, "clip">, items: Clip["items"]): boolean {
-    const c = toClip(items);
+  function addSch(meta: Omit<Saved, "clip">, c: Clip | null): boolean {
     if (!c) return false;
     const l = loadSch();
     l.push({ name: meta.name || t("bac.sch.default", { n: l.length + 1 }), desc: meta.desc ?? "", tags: meta.tags ?? [], clip: c });
@@ -813,11 +832,12 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       <h3>${esc(t("bac.sch.cost"))}</h3><div class="kv"><div>${esc(fmtMoney(price))}</div><div>${esc(t("bac.sch.size", { w: c.W, h: c.H }))}</div></div>
       <h3>${esc(t("bac.sch.blocks"))}</h3><div class="kv">${[...n].map(([id, k]) => `<div>${k} × ${esc(cat.blocks.get(id)?.name ?? id)}</div>`).join("")}</div>`, schematics);
   }
-  function schExport(i: number): void {
-    const s = loadSch()[i]!;
+  const linkOf = (code: string) => `${location.origin}${location.pathname}#bac/${encodeURIComponent(code)}`;
+  async function schExport(i: number): Promise<void> {
+    const s = loadSch()[i]!, n = linkOf(await toCode(clipToSch(s, s.clip))).length, ok = n <= 2000;
     openDlg(`<div class="ttl">${ic("share")} ${esc(t("bac.sch.exportOf", { name: s.name }))}</div>
-      <div class="sch-menu"><button type="button" data-sch="copy" data-i="${i}">${ic("copy")} ${esc(t("bac.sch.copy"))}</button><button type="button" data-sch="file" data-i="${i}">${ic("save")} ${esc(t("bac.sch.file"))}</button><button type="button" data-sch="link" data-i="${i}">${ic("link")} ${esc(t("bac.sch.link"))}</button></div>
-      <p class="muted" id="bac-sch-msg"></p>`, schematics);
+      <div class="sch-menu"><button type="button" data-sch="copy" data-i="${i}">${ic("copy")} ${esc(t("bac.sch.copy"))}</button><button type="button" data-sch="file" data-i="${i}">${ic("save")} ${esc(t("bac.sch.file"))}</button><button type="button" data-sch="link" data-i="${i}" ${ok ? "" : "disabled"}>${ic("link")} ${esc(t("bac.sch.link"))}</button></div>
+      <p class="${ok ? "muted" : "warn"}" id="bac-sch-msg">${esc(t(ok ? "bac.sch.linkOk" : "bac.sch.linkLong", { n }))}</p>`, schematics);
   }
   function schImport(): void {
     openDlg(`<div class="ttl">${ic("download")} ${esc(t("bac.sch.import"))}</div>
@@ -841,17 +861,16 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   async function schWhole(): Promise<void> {
     const blocks = S.blocks.filter((b) => !b.open);
     if (!blocks.length) return say(t("bac.sch.empty"));
-    const keep = new Set(blocks.map((b) => b.u)), x0 = Math.min(...blocks.map((b) => b.x)), y0 = Math.min(...blocks.map((b) => b.y));
-    const c = toClip(blocks.map((b) => ({ id: b.id, dx: b.x, dy: b.y, r: b.r, choice: b.choice ?? null })))!;
-    const sch: Schematic = { name: t("bac.sch.wholeName"), description: "", labels: [], width: c.W, height: c.H,
-      layout: { blocks: blocks.map((b) => ({ ...b, x: b.x - x0, y: b.y - y0 })), wires: S.wires.filter((w) => keep.has(w.a) && keep.has(w.b)), routes: S.routes.filter((w) => keep.has(w.a) && keep.has(w.b)) } };
-    const code = await toCode(sch), url = `${location.origin}${location.pathname}#bac/${encodeURIComponent(code)}`;
+    const keep = new Set(blocks.map((b) => b.u)), inside = (w: { a: number; b: number }) => keep.has(w.a) && keep.has(w.b);
+    const c = clipOf(cat, { blocks, wires: S.wires.filter(inside), routes: S.routes.filter(inside) })!;
+    const sch = clipToSchematic(c, { name: t("bac.sch.wholeName") });
+    const code = await toCode(sch), url = linkOf(code);
     openDlg(`<div class="ttl">${ic("share")} ${esc(t("bac.sch.share"))}</div><textarea readonly aria-label="${esc(t("bac.sch.code"))}">${esc(code)}</textarea>
       <div class="sch-menu"><button type="button" data-sch="wcopy">${ic("copy")} ${esc(t("bac.sch.copy"))}</button><button type="button" data-sch="wfile">${ic("save")} ${esc(t("bac.sch.file"))}</button><button type="button" data-sch="wsave">${ic("schem")} ${esc(t("bac.sch.wholeSave"))}</button></div>
       <p class="${url.length <= 2000 ? "muted" : "warn"}">${esc(t(url.length <= 2000 ? "bac.sch.linkOk" : "bac.sch.linkLong", { n: url.length }))}${url.length <= 2000 ? ` <a href="${esc(url)}">${esc(t("bac.sch.link"))}</a>` : ""}</p>`, schematics);
-    wholeCache = { sch, code, items: c.items };
+    wholeCache = { sch, code, clip: c };
   }
-  let wholeCache: { sch: Schematic; code: string; items: Clip["items"] } | null = null;
+  let wholeCache: { sch: Schematic; code: string; clip: Clip } | null = null;
   async function copyText(s: string): Promise<void> {
     try { await navigator.clipboard.writeText(s); say(t("bac.sch.copied")); } catch { say(t("bac.sch.copyFail")); }
   }
@@ -861,28 +880,28 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (a === "use" && s) { ui.clip = { ...structuredClone(s.clip), id: Date.now() }; ui.sel = null; closeDlg(); renderPanel(); renderHint(); drawGhost(); }
     else if (a === "tag") { const x = el.dataset.t!; schUi.tags = schUi.tags.includes(x) ? schUi.tags.filter((y) => y !== x) : [...schUi.tags, x]; schematics(); }
     else if (a === "info") schInfo(i);
-    else if (a === "exp") schExport(i);
+    else if (a === "exp") await schExport(i);
     else if (a === "edit") schEdit(i);
     else if (a === "del" && s && confirm(t("bac.sch.delAsk", { name: s.name }))) { l.splice(i, 1); store(KEY_SCHEM, l); schematics(); }
     else if (a === "impmenu") schImport();
     else if (a === "whole") await schWhole();
     else if (a === "copy" && s) await copyText(await toCode(clipToSch(s, s.clip)));
     else if (a === "file" && s) download(await writeMsch(clipToSch(s, s.clip)), s.name);
-    else if (a === "link" && s) await copyText(`${location.origin}${location.pathname}#bac/${encodeURIComponent(await toCode(clipToSch(s, s.clip)))}`);
+    else if (a === "link" && s) { const u = linkOf(await toCode(clipToSch(s, s.clip))); if (u.length <= 2000) await copyText(u); }
     else if (a === "wcopy" && wholeCache) await copyText(wholeCache.code);
     else if (a === "wfile" && wholeCache) download(await writeMsch(wholeCache.sch), wholeCache.sch.name);
-    else if (a === "wsave" && wholeCache) { addSch({ name: wholeCache.sch.name }, wholeCache.items); schematics(); }
+    else if (a === "wsave" && wholeCache) { addSch({ name: wholeCache.sch.name }, wholeCache.clip); schematics(); }
     else if (a === "paste" || a === "imp") {
       let code = val("bac-sch-in");
       if (a === "paste") try { code = await navigator.clipboard.readText(); } catch { return say(t("bac.sch.pasteFail")); }
-      try { const r = await readCode(code); if (!addSch(r.meta, r.items)) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
+      try { const r = await readCode(code); if (!addSch(r.meta, r.clip)) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
     } else if (a === "openf") {
       const inp = document.createElement("input");
       inp.type = "file"; inp.accept = ".msch";
       inp.onchange = async () => {
         const f = inp.files?.[0];
         if (!f) return;
-        try { const s2 = await readMsch(new Uint8Array(await f.arrayBuffer())); if (!addSch({ name: s2.name || f.name.replace(/\.msch$/i, ""), desc: s2.description, tags: s2.labels }, schItems(s2))) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
+        try { const s2 = await readMsch(new Uint8Array(await f.arrayBuffer())); if (!addSch({ name: s2.name || f.name.replace(/\.msch$/i, ""), desc: s2.description, tags: s2.labels }, clipOf(cat, s2.layout))) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
       };
       inp.click();
     } else if (a === "addtag" && s) {
@@ -910,24 +929,26 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
   function copyRect(s: [number, number], c: [number, number]): void {
     const x0 = Math.min(s[0], c[0]), x1 = Math.max(s[0], c[0]), y0 = Math.min(s[1], c[1]), y1 = Math.max(s[1], c[1]);
-    const items = S.blocks.filter((b) => !b.open && cellsOf(cat.blocks.get(b.id)!, b).every(([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1)).map((b) => ({ id: b.id, dx: b.x - x0, dy: b.y - y0, r: b.r, choice: b.choice ?? null }));
-    if (items.length) { ui.clip = { id: Date.now(), items, W: x1 - x0 + 1, H: y1 - y0 + 1 }; ui.sel = null; renderPanel(); }
+    const clip = copyZone(cat, layout(), x0, y0, x1, y1);
+    if (clip) { ui.clip = clip; ui.sel = null; renderPanel(); }
     renderHint();
     renderInfo(true);
   }
   function pasteClip(c: [number, number]): void {
-    const clip = ui.clip!, a = [c[0] - Math.floor(clip.W / 2), c[1] - Math.floor(clip.H / 2)] as const, add: Piece[] = [];
-    for (const it of clip.items) {
-      const b: Piece = { id: it.id, x: a[0] + it.dx, y: a[1] + it.dy, r: it.r, choice: it.choice };
+    const clip = ui.clip!, a = [c[0] - Math.floor(clip.W / 2), c[1] - Math.floor(clip.H / 2)] as const, add: Piece[] = [], from: number[] = [];
+    for (const { u, ...b } of clipLayout(clip, a[0], a[1]).blocks) {
       const cells = cellsOf(cat.blocks.get(b.id)!, { u: 0, ...b });
-      if (fitsAt(b.id, b.x, b.y, b.r) && !add.some((o) => cellsOf(cat.blocks.get(o.id)!, { u: 0, ...o }).some(([x, y]) => cells.some(([p, q]) => p === x && q === y)))) add.push(b);
+      if (fitsAt(b.id, b.x, b.y, b.r) && !add.some((o) => cellsOf(cat.blocks.get(o.id)!, { u: 0, ...o }).some(([x, y]) => cells.some(([p, q]) => p === x && q === y)))) { add.push(b); from.push(u); }
     }
     apply({ remove: [], add });
+    // Câbles et liaisons de la copie : seulement entre les bâtiments qui ont trouvé leur place.
+    const first = S.blocks.length - add.length, to = new Map(from.map((i, k) => [i, S.blocks[first + k]!.u]));
+    const wires = relink(clip.wires, (i) => to.get(i)), routes = relink(clip.routes, (i) => to.get(i));
+    if (wires.length || routes.length) { S.wires = [...S.wires, ...wires]; S.routes = [...S.routes, ...routes]; changed(); }
   }
   function flipClip(x: boolean): void {
-    const c = ui.clip;
-    if (!c) return;
-    c.items = c.items.map((it) => { const [w, h] = dims(cat.blocks.get(it.id)!, it.r); return x ? { ...it, dx: c.W - (it.dx + w), r: it.r % 2 ? (it.r + 2) % 4 : it.r } : { ...it, dy: c.H - (it.dy + h), r: it.r % 2 ? it.r : (it.r + 2) % 4 }; });
+    if (!ui.clip) return;
+    flipClipItems(cat, ui.clip, x);
     drawGhost();
   }
 
@@ -1170,11 +1191,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     changed();
   }
   function rotateSel(dir = 1): void {
-    if (ui.clip) {
-      const c = ui.clip;
-      c.items = c.items.map((it) => { const [, h] = dims(cat.blocks.get(it.id)!, it.r); return { ...it, dx: c.H - (it.dy + h), dy: it.dx, r: (it.r + 1) % 4 }; });
-      [c.W, c.H] = [c.H, c.W];
-    } else if (ui.sel) ui.rot = (ui.rot + (dir > 0 ? 1 : 3)) % 4;
+    if (ui.clip) rotateClip(cat, ui.clip);
+    else if (ui.sel) ui.rot = (ui.rot + (dir > 0 ? 1 : 3)) % 4;
     else if (ui.hoverU != null) rotatePlaced(ui.hoverU);
     else if (ui.pinned != null) rotatePlaced(ui.pinned);
     drawGhost();
@@ -1358,6 +1376,24 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const dlg = $("bac-dlg");
     $("bac-dlg-back").addEventListener("click", () => { const f = dlgBack; closeDlg(); if (f) f(); });
     dlg.addEventListener("submit", (e) => { e.preventDefault(); if ((e.target as HTMLElement).id === "bac-fill") submitFill(e.target as HTMLFormElement); });
+    dlg.addEventListener("input", (e) => {
+      const el = e.target as HTMLInputElement;
+      if (el.id === "bac-db-q") { ui.dbQ = el.value; filterDb(); }
+      else if (el.id === "bac-sch-q") {
+        schUi.q = el.value;
+        schematics();
+        const q = root.querySelector<HTMLInputElement>("#bac-sch-q")!;
+        q.focus(); q.setSelectionRange(q.value.length, q.value.length);
+      }
+    });
+    dlg.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).id !== "bac-bigmap" || !big) return;
+      const rc = (e.target as HTMLElement).getBoundingClientRect(), r = mapRect();
+      cam.x = (e.clientX - rc.left - big.ox) / big.k - r.width / cam.z / 2;
+      cam.y = (e.clientY - rc.top - big.oy) / big.k - r.height / cam.z / 2;
+      closeDlg();
+      applyView(true);
+    });
     dlg.addEventListener("change", (e) => {
       const k = (e.target as HTMLElement).dataset?.set as keyof Settings | undefined;
       if (!k) return;
@@ -1452,7 +1488,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (/^Key/.test(e.code) && e.key.length === 1 && !e.ctrlKey && !e.altKey && !LAB.has(e.code)) LAB.set(e.code, e.key.toUpperCase());
     if (kbArm) { e.preventDefault(); if (e.key === "Escape") { KB[kbArm] = null; kbArm = null; store(KEY_KEYS, KB); renderHint(); keysDialog(); } else assignKey(e.code); return; }
     if (popEl()) { if (e.key === "Escape") { e.preventDefault(); const a = popAnchorEl(); closePop(); a?.focus(); } return; }
-    if (!$("bac-dlg").hidden) { if (e.key === "Escape") closeDlg(); return; }
+    if (!$("bac-dlg").hidden) { if (e.key === "Escape" || (e.code === KB.map && root.querySelector("#bac-bigmap"))) closeDlg(); return; }
     if ((e.target as HTMLElement).closest?.("input, select, textarea")) return;
     if (e.ctrlKey || e.metaKey) {
       const k = e.key.toLowerCase();
@@ -1484,6 +1520,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
         case "flipX": flipClip(true); break;
         case "flipY": flipClip(false); break;
         case "schemMenu": schematics(); break;
+        case "map": bigMap(); break;
         case "variant": if (ui.sel?.e.fam) { const vs = menu.variants[ui.sel.e.fam]; select(ui.sel.e, vs[(vs.indexOf(ui.sel.v) + 1) % vs.length]); } else cancelAll(); break;
         case "links": toggleLinks(); break;
         case "wires": ui.wires = !ui.wires; drawAll(); say(t(ui.wires ? "bac.wires.on" : "bac.wires.off")); break;
@@ -1559,20 +1596,13 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
   /** Remplace le montage par un schéma (lien partagé, ou plan de l'Usine ouvert dans le bac à sable). */
   function loadSchematic(s: Schematic): void {
-    const items = schItems(s), c = toClip(items);
+    const c = clipOf(cat, s.layout);
     if (!c) return say(t("bac.sch.bad"));
     snap();
-    S = { blocks: [], wires: [], routes: [], fills: S.fills };
-    reindex();
-    // Voies des croisements et côtés ouverts gardés (le presse-papiers ne les porte pas).
-    const src = s.layout.blocks.filter((b) => cat.blocks.has(b.id));
-    apply({ remove: [], add: c.items.map((it, i) => ({ id: it.id, x: it.dx, y: it.dy, r: it.r, choice: it.choice, ...(src[i]?.pair != null ? { pair: src[i]!.pair } : {}), ...(src[i]?.open ? { open: src[i]!.open } : {}) })) });
-    // Câbles et liaisons : indices de cases du fichier → numéros des bâtiments posés (même ordre, inconnus écartés).
-    const kept = s.layout.blocks.map((b) => cat.blocks.has(b.id)), u = new Map<number, number>();
-    let k = 0;
-    kept.forEach((ok, i) => { if (ok) u.set(i, S.blocks[S.blocks.length - c.items.length + k++]?.u ?? -1); });
-    const re = <T extends { a: number; b: number }>(l: T[]) => l.filter((w) => (u.get(w.a) ?? -1) >= 0 && (u.get(w.b) ?? -1) >= 0).map((w) => ({ ...w, a: u.get(w.a)!, b: u.get(w.b)! }));
-    if (s.layout.wires.length || s.layout.routes?.length) { S.wires = re(s.layout.wires); S.routes = re(s.layout.routes ?? []); changed(); }
+    const L = clipLayout(c), next = (i: number) => i + 1; // numéros à partir de 1, comme une pose
+    S = { blocks: L.blocks.map((b) => ({ ...b, u: b.u + 1 })), wires: relink(L.wires, next), routes: relink(L.routes, next), fills: S.fills };
+    ui.pinned = null;
+    changed();
     fit();
   }
   async function importCode(code: string): Promise<void> {
@@ -1580,7 +1610,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       const s = await fromCode(code).catch(() => null);
       if (s) return loadSchematic(s);
       const r = await readCode(code);
-      loadSchematic({ name: "", description: "", labels: [], width: 0, height: 0, layout: { blocks: r.items.map((it, i) => ({ u: i, id: it.id, x: it.dx, y: it.dy, r: it.r, ...(it.choice ? { choice: it.choice } : {}) })), wires: [] } });
+      if (!r.clip) throw new Error("vide");
+      loadSchematic(clipToSchematic(r.clip, { name: "" }));
     } catch {
       say(t("bac.sch.bad"));
     }

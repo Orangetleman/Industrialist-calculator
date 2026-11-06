@@ -94,7 +94,7 @@ export const ACTIONS = [
   ["up", "KeyW", "move"], ["left", "KeyA", "move"], ["down", "KeyS", "move"], ["right", "KeyD", "move"],
   ["rotate", "KeyR", "build"], ["variant", "KeyQ", "build"], ["catPrev", "Comma", "build"], ["catNext", "Period", "build"],
   ["schem", "KeyF", "schem"], ["save", "KeyE", "schem"], ["flipX", "KeyZ", "schem"], ["flipY", "KeyX", "schem"], ["schemMenu", "KeyT", "schem"],
-  ["links", "KeyL", "view"], ["wires", "F5", "view"], ["status", "F6", "view"], ["info", "F1", "view"], ["menus", "KeyC", "view"], ["research", "KeyJ", "view"],
+  ["links", "KeyL", "view"], ["map", "KeyM", "view"], ["wires", "F5", "view"], ["status", "F6", "view"], ["info", "F1", "view"], ["menus", "KeyC", "view"], ["research", "KeyJ", "view"],
 ] as const;
 export type Action = (typeof ACTIONS)[number][0];
 export type KeyMap = Record<Action, string | null>;

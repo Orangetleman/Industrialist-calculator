@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette B5 : le reste</title>
+<style>
+:root { --bg: #0b0714; --pan: #171022; --line: #3a2d4f; --tx: #eee8f5; --mut: #a99dbb; --acc: #ff8f52; --warn: #ffb648; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: var(--bg); color: var(--tx); font: 15px/1.45 system-ui, sans-serif; }
+main { max-width: 980px; margin: auto; }
+h1 { font-size: 22px; } h2 { font-size: 17px; margin: 28px 0 6px; color: var(--acc); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.dlg { background: var(--pan); border: 1px solid var(--line); padding: 12px; }
+.dlg b.t { display: block; margin-bottom: 8px; }
+button { display: block; width: 100%; margin: 4px 0; padding: 8px; color: var(--tx); background: #241a33; border: 1px solid var(--line); font: inherit; text-align: left; }
+button[disabled] { color: var(--mut); opacity: .6; }
+input { width: 100%; padding: 8px; background: var(--bg); color: var(--tx); border: 1px solid var(--line); font: inherit; }
+.mut { color: var(--mut); } .warn { color: var(--warn); }
+.db { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 6px; }
+.db i { aspect-ratio: 1; background: #241a33; border: 1px solid var(--line); }
+.map { position: relative; height: 240px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.map i { position: absolute; background: #8a8a9a; } .map i.p { background: #5aa7ff; height: 3px; }
+.map u { position: absolute; border: 2px solid var(--acc); left: 30%; top: 25%; width: 34%; height: 44%; }
+.small { position: absolute; left: 8px; bottom: 8px; width: 110px; height: 70px; background: var(--bg); border: 1px solid var(--line); }
+.scene { position: relative; height: 240px; background: #120c1d; border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+<h1>B5 : ce qui reste à l'écran</h1>
+<p class="mut">La fenêtre des schémas, F, Z / X, T, le code et le fichier existent déjà et ne changent pas. Seuls ces trois points sont nouveaux.</p>
+
+<h2>1. Exporter un schéma : la longueur du lien</h2>
+<p>Aujourd'hui, le bouton copie le lien quelle que soit sa longueur. La décision était : un lien seulement à 2 000 caractères au plus, longueur affichée.</p>
+<div class="grid">
+  <div class="dlg"><b class="t">Exporter « Fonderie » (lien assez court)</b>
+    <button>Copier dans le presse-papiers</button><button>Exporter en fichier .msch</button><button>Copier le lien</button>
+    <p class="mut">Lien de 612 caractères : assez court pour un lien (2 000 au plus).</p></div>
+  <div class="dlg"><b class="t">Exporter « Usine » (lien trop long)</b>
+    <button>Copier dans le presse-papiers</button><button>Exporter en fichier .msch</button><button disabled>Copier le lien</button>
+    <p class="warn">Lien de 5 240 caractères : trop long pour un lien, partage le code.</p></div>
+</div>
+
+<h2>2. Base de données : une recherche, comme dans Mindustry</h2>
+<div class="grid"><div class="dlg"><b class="t">Base de données</b>
+  <input value="pre" aria-label="Rechercher">
+  <p class="mut" style="margin:8px 0 0">Les catégories sans résultat disparaissent ; la recherche suit le nom affiché (français ou anglais).</p>
+  <h3 style="font-size:14px;margin:10px 0 0">Factories</h3><div class="db"><i></i><i></i></div>
+</div></div>
+
+<h2>3. Touche M : deux choix possibles</h2>
+<div class="grid">
+  <div><b>A (conseillé). Grande carte, comme Mindustry</b>
+    <div class="map"><i style="left:12%;top:20%;width:60px;height:40px"></i><i style="left:48%;top:48%;width:70px;height:50px"></i><i class="p" style="left:24%;top:45%;width:170px"></i><u></u></div>
+    <p class="mut">M ouvre le montage entier en grand ; le cadre orange montre l'écran. Un clic y amène et referme. M ou Échap referme.</p></div>
+  <div><b>B. Afficher ou masquer la petite carte</b>
+    <div class="scene"><div class="small"></div></div>
+    <p class="mut">M masque la petite carte en bas à gauche, et la fait revenir. Le choix reste enregistré.</p></div>
+</div>
+
+<h2>Sans changement d'écran</h2>
+<p>Une zone copiée (F) et un schéma enregistré garderont ses câbles, ses liaisons et les voies de ses croisements. Aujourd'hui, seuls les bâtiments et les recettes sont gardés. Coller, tourner et retourner s'y adaptent.</p>
+</main>
+</body>
+</html>
