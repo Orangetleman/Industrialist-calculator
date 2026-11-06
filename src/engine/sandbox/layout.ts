@@ -2,7 +2,7 @@
 // tuyaux et les prises posées dessus), ouvertures des cases de tuyau, raccords face à face.
 // Repère : x vers la droite, y vers le bas ; r = quarts de tour dans le sens horaire.
 
-import type { Dir, PortRole, PortType, SbBlock, SbCatalog } from "./catalog.ts";
+import type { Dir, PortRole, PortType, RecipeFill, SbBlock, SbCatalog } from "./catalog.ts";
 
 export const DIRS: Dir[] = ["N", "E", "S", "W"];
 export const DV: Record<Dir, [number, number]> = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
@@ -36,7 +36,8 @@ export type Wire = { a: number; ia: number; b: number; ib: number; t: "p" | "g" 
  * raccord automatique de la production dans ce tuyau (BAS-12 b).
  */
 export type Route = { a: number; ia: number; b: number; ib: number; off?: true };
-export type Layout = { blocks: Placed[]; wires: Wire[]; routes?: Route[] };
+/** `fills` : chiffres saisis par le joueur pour les recettes incomplètes, seulement dans une copie ou un schéma. */
+export type Layout = { blocks: Placed[]; wires: Wire[]; routes?: Route[]; fills?: Record<string, RecipeFill> };
 
 /** Port tourné et placé. Côté : `cells` (1 ou 2 cases, dans le bâtiment). Dessus : centre `px`, `py` (en cases). */
 export type PlacedPort = { t: PortType; d: PortRole; tip?: string; items?: string[]; dir: Dir | "top"; cells?: [number, number][]; px?: number; py?: number };

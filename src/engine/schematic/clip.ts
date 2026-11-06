@@ -3,12 +3,16 @@
  * Dans `wires` et `routes`, `a` et `b` sont des indices dans `items`. Module pur : la vue ne fait que le poser.
  */
 import { CROSS_PAIRS, cellsOf, crossLane, dims, type CrossPair, type Layout, type Placed, type Route, type Wire } from "../sandbox/layout";
-import type { Dir, SbCatalog } from "../sandbox/catalog";
+import type { Dir, RecipeFill, SbCatalog } from "../sandbox/catalog";
 import type { Schematic } from "./msch";
 
 export type ClipItem = { id: string; dx: number; dy: number; r: number; choice: string | null; pair?: CrossPair; open?: Dir[] };
 /** `wires` et `routes` manquent dans les schémas enregistrés avant B5. */
-export type Clip = { id: number; items: ClipItem[]; W: number; H: number; wires?: Wire[]; routes?: Route[]; saved?: string };
+export type Clip = { id: number; items: ClipItem[]; W: number; H: number; wires?: Wire[]; routes?: Route[]; fills?: Fills; saved?: string };
+type Fills = Record<string, RecipeFill>;
+
+/** Ajoute les chiffres d'un schéma à ceux du joueur : ce que le joueur a déjà saisi n'est jamais remplacé. */
+export const mergeFills = (mine: Fills, incoming: Fills | undefined): Fills => ({ ...incoming, ...mine });
 
 type Linked = { a: number; b: number };
 /** Renumérote des câbles ou des liaisons ; ceux dont un bout n'est plus là sont écartés. */
@@ -25,10 +29,12 @@ export function clipOf(cat: SbCatalog, layout: Layout, id = Date.now()): Clip | 
     ...(b.pair != null ? { pair: b.pair } : {}), ...(b.open ? { open: b.open } : {}),
   }));
   const size = (i: ClipItem) => dims(cat.blocks.get(i.id)!, i.r);
+  const fills = Object.entries(layout.fills ?? {}).filter(([r]) => items.some((i) => i.choice === r)); // seulement les recettes utilisées
   return {
     id, items,
     W: Math.max(...items.map((i) => i.dx + size(i)[0])), H: Math.max(...items.map((i) => i.dy + size(i)[1])),
     wires: relink(layout.wires, (u) => at.get(u)), routes: relink(layout.routes, (u) => at.get(u)),
+    ...(fills.length ? { fills: Object.fromEntries(fills) } : {}),
   };
 }
 
@@ -36,7 +42,7 @@ export function clipOf(cat: SbCatalog, layout: Layout, id = Date.now()): Clip | 
 export function copyZone(cat: SbCatalog, layout: Layout, x0: number, y0: number, x1: number, y1: number): Clip | null {
   const blocks = layout.blocks.filter((b) => { const d = cat.blocks.get(b.id); return d && !b.open && cellsOf(d, b).every(([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1); });
   const keep = new Set(blocks.map((b) => b.u)), inside = (w: Linked) => keep.has(w.a) && keep.has(w.b);
-  return clipOf(cat, { blocks, wires: layout.wires.filter(inside), routes: (layout.routes ?? []).filter(inside) });
+  return clipOf(cat, { ...layout, blocks, wires: layout.wires.filter(inside), routes: (layout.routes ?? []).filter(inside) });
 }
 
 /** La copie vue comme un montage, numéros = indices (`x`, `y` : coin d'arrivée). */
@@ -46,7 +52,7 @@ export function clipLayout(c: Clip, x = 0, y = 0): Layout {
       u, id: it.id, x: x + it.dx, y: y + it.dy, r: it.r, choice: it.choice,
       ...(it.pair != null ? { pair: it.pair } : {}), ...(it.open ? { open: it.open } : {}),
     })),
-    wires: c.wires ?? [], routes: c.routes ?? [],
+    wires: c.wires ?? [], routes: c.routes ?? [], ...(c.fills ? { fills: c.fills } : {}),
   };
 }
 
@@ -99,7 +105,7 @@ export function flipClip(cat: SbCatalog, c: Clip, x: boolean): void {
 
 /**
  * Empreinte d'un montage : ne dépend ni de sa place sur la grille, ni de l'ordre des bâtiments, ni de leurs numéros.
- * Deux montages de même empreinte ont les mêmes pièces, recettes, voies, câbles et liaisons.
+ * Deux montages de même empreinte ont les mêmes pièces, recettes, chiffres saisis, voies, câbles et liaisons.
  */
 export function fingerprint(l: Layout): string {
   if (!l.blocks.length) return "";
@@ -108,5 +114,7 @@ export function fingerprint(l: Layout): string {
   const sorted = [...l.blocks].sort((p, q) => (line(p) < line(q) ? -1 : 1)), at = new Map(sorted.map((b, i) => [b.u, i]));
   const wires = relink(l.wires, (u) => at.get(u)).map((w) => [w.a, w.ia, w.b, w.ib, w.t].join(",")).sort();
   const routes = relink(l.routes, (u) => at.get(u)).map((r) => [r.a, r.ia, r.b, r.ib, r.off ? 1 : 0].join(",")).sort();
-  return [sorted.map(line).join(";"), wires.join(";"), routes.join(";")].join("|");
+  const nums = (o: Record<string, number> = {}) => Object.entries(o).sort(([p], [q]) => (p < q ? -1 : 1)).join(",");
+  const fills = Object.entries(l.fills ?? {}).map(([r, f]) => [r, f.s ?? "", nums(f.in), nums(f.out)].join(":")).sort();
+  return [sorted.map(line).join(";"), wires.join(";"), routes.join(";"), fills.join(";")].join("|");
 }
