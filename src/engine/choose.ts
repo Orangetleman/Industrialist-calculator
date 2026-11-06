@@ -83,8 +83,8 @@ export function evalRecipe(data: GameData, recipe: Recipe, pollutionPct: number 
   const world = pollutionPct ?? DEFAULT_POLLUTION;
   const byPollution = recipe.verify.find((f) => f.mode === "world_pollution");
   if (byPollution && recipe.outputs.residue === null) {
-    // Reste derrière « valeurs à vérifier » : proposé d'office, il change des plans validés (POL-14).
-    recipe = { ...recipe, outputs: { ...recipe.outputs, residue: asuResidue(world) } };
+    // La quantité est connue : la recette n'attend plus « valeurs à vérifier » (POL-14).
+    recipe = { ...recipe, outputs: { ...recipe.outputs, residue: asuResidue(world) }, verify: recipe.verify.filter((f) => f !== byPollution) };
   }
   if (recipe.id === TREE_SCRUBBER_RECIPE) recipe = { ...recipe, outputs: { residue: treeScrubberResidue(world) }, pollutionPerHour: treeScrubberPollution(world) };
   const logs = recipe.outputs["oak-log"];

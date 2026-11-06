@@ -255,7 +255,41 @@ const fmtNum = (x: number) => Math.round(x * 100) / 100;
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
   const fixed = Object.entries(req.fixedMachines ?? {}).filter(([, n]) => Number.isFinite(n) && n >= 1);
   if (fixed.length && req.demands === undefined) return solveFixed(data, player, req, fixed);
-  return solveInner(data, player, req, false);
+  return withoutIdleAsu(data, player, req, solveInner(data, player, req, false));
+}
+
+const ASU = "air-separation-unit";
+/** Choix du site, pas une valeur du jeu : sous ce taux d'emploi, l'ASU n'est gardée que si rien ne la remplace. */
+const ASU_MIN_USE = 0.1;
+
+/** Ce que le plan coûte selon le critère, en machines entières et à pleine puissance ; null : pas comparable ainsi. */
+function wholeCost(plan: Plan, criterion: Criterion): number | null {
+  const t = plan.totals;
+  if (criterion === "machines") return t.machines;
+  if (criterion === "energy") return t.energyPeak;
+  if (criterion === "steps") return plan.steps.length;
+  if (criterion === "area") return t.footprint;
+  if (criterion === "cost") return t.buildCost;
+  if (criterion === "pollution") return t.pollutionPerHour[0];
+  return null;
+}
+
+/**
+ * L'ASU fournit beaucoup d'un coup : le calcul linéaire en prend 1 % pour un peu d'oxygène, alors qu'il faut en poser
+ * une entière (20 MMF/s, et trois sous-produits à évacuer). On la garde si le plan en a besoin, ou s'il reste
+ * strictement meilleur compté en machines entières, sans tourner presque à vide (POL-14).
+ */
+function withoutIdleAsu(data: GameData, player: PlayerState, req: SolveRequest, plan: Plan): Plan {
+  if (!plan.steps.some((s) => s.machine === ASU)) return plan;
+  if (Object.values(req.forced ?? {}).some((id) => data.recipes.get(id)?.machine === ASU)) return plan;
+  const f = req.machines;
+  const machines: MachineFilter = f?.mode === "seulement" ? { ...f, ids: f.ids.filter((id) => id !== ASU) } : { mode: "exclure", ids: [...(f?.ids ?? []), ASU] };
+  const other = solveInner(data, player, { ...req, machines }, false);
+  if (other.unresolved.length > plan.unresolved.length) return plan;
+  const criterion = req.criterion ?? "machines";
+  const [mine, theirs] = [wholeCost(plan, criterion), wholeCost(other, criterion)];
+  const use = plan.steps.filter((s) => s.machine === ASU).reduce((t, s) => t + s.machinesExact, 0);
+  return use >= ASU_MIN_USE && mine !== null && theirs !== null && mine < theirs ? plan : other;
 }
 
 /** La même demande à un autre débit, quel que soit l'objectif (objet /min, argent $/min, énergie MF/s). */
@@ -275,7 +309,7 @@ function withRate(req: SolveRequest, rate: number): SolveRequest {
  */
 function solveFixed(data: GameData, player: PlayerState, req: SolveRequest, wanted: [string, number][]): Plan {
   const { fixedMachines: _f, ...plain } = req;
-  const base = solveInner(data, player, plain, false);
+  const base = withoutIdleAsu(data, player, plain, solveInner(data, player, plain, false));
   const baseRate = base.target.ratePerMin;
   const fixable: { key: string; recipeId: string; n: number; planMachines: number }[] = [];
   const ignored: string[] = [];

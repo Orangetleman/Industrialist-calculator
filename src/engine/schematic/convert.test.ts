@@ -124,4 +124,22 @@ describe("plan du site → schéma", () => {
     }
     expect(R.power.length).toBe(1);
   }, 60000);
+  it("usine avec une ASU (POL-14) : tous les poteaux sur un même réseau", () => {
+    const name = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
+    const outOrder = (id: string) => { const r = data.recipes.get(id); return r ? Object.keys(r.outputs) : undefined; };
+    const plan = solve(data, { unlocked: new Set(data.nodes.keys()) }, { item: "argon", ratePerMin: 60, criterion: "machines", tiers: false });
+    expect(plan.steps.some((s) => s.machine === "air-separation-unit")).toBe(true);
+    const f = designFactory(factoryInput(plan, { name, isFluid: fluid, machine: (id) => data.machines.get(id) ?? null, ports: files.ports.machines, sb, outOrder }, cat, { w: 100000, h: 100000 }, { priority: ["place", "forme", "prix", "pieces"] }, { glue: false }));
+    expect(f.evacs.filter((e) => !e.ok).map((e) => e.item)).toEqual([]);
+    const R = computeSandbox(sb, layoutFromFactory(f, sb, cat, fluid).layout);
+    // Un poteau a plusieurs nœuds : des câbles en parallèle comptent pour plusieurs réseaux sur les mêmes poteaux.
+    const groups: Set<number>[] = [];
+    for (const n of R.power) {
+      const hit = groups.filter((g) => n.us.some((u) => g.has(u)));
+      const merged = new Set<number>([...n.us, ...hit.flatMap((g) => [...g])]);
+      for (const g of hit) groups.splice(groups.indexOf(g), 1);
+      groups.push(merged);
+    }
+    expect(groups.length).toBe(1);
+  }, 120000);
 });

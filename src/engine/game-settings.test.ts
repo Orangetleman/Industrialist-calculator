@@ -44,6 +44,17 @@ describe("réglages de partie (S50)", () => {
     expect(n({ pollutionPct: 25 })).toBeLessThan(n({ pollutionPct: 150 }));
   });
 
+  it("ASU (POL-14) : hors de « valeurs à vérifier », posée seulement si une machine entière vaut le coup", () => {
+    const uses = (item: string, ratePerMin: number, criterion: "machines" | "energy") => solve(data, { unlocked }, { item, ratePerMin, criterion, tiers: false }).steps.some((s) => s.machine === "air-separation-unit");
+    expect(uses("argon", 60, "machines")).toBe(true); // seule source
+    expect(uses("oxygen", 6000, "machines")).toBe(true); // 3 machines au lieu de 101
+    expect(uses("oxygen", 600, "energy")).toBe(false); // 20 MMF/s pour une ASU presque à l'arrêt
+    expect(uses("light-oil", 60, "machines")).toBe(false); // à égalité de machines, pas de sous-produits en plus
+    expect(uses("8x-microchip", 60, "machines")).toBe(false); // 4 % d'une ASU : l'usine validée reste telle quelle
+    const forced = solve(data, { unlocked }, { item: "oxygen", ratePerMin: 600, criterion: "energy", tiers: false, forced: { "liquid-oxygen": "air_separation_unit_01", oxygen: "vaporizer_02" } });
+    expect(forced.steps.some((s) => s.machine === "air-separation-unit")).toBe(true);
+  });
+
   it("le Tree Scrubber attend d'être possédé", () => {
     expect(data.machines.get(TREE_SCRUBBER)?.unlockedBy).toBeNull();
     const req = { item: "residue", ratePerMin: 60, criterion: "machines", tiers: false } as const;
