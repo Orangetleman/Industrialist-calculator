@@ -132,6 +132,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     forced: req.forced ?? {},
     useUnverified: !!req.useUnverified,
     pollutionPct: player.pollutionPct ?? null,
+    month: player.month ?? null,
+    igloo: !!player.igloo,
     machines: req.machines,
   });
   const name = (id: string) => itemName(data, id);

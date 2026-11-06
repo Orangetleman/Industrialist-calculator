@@ -11,6 +11,12 @@ import { icon, withIcons } from "./icons.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { txtHtml } from "./engine-text.ts";
 
+/** Bûches de l'hiver avec un Igloo Farm Controller (S50). */
+let farmLogsMult = 1;
+export const setFarmLogsMult = (m: number): void => {
+  farmLogsMult = m;
+};
+
 export type ModCalcState = {
   farm: FarmBlocks & { pollution: number };
   diesel: { cylinders: number; airFuel: number; throttle: number; fuel: string };
@@ -37,11 +43,11 @@ export function farmResultHtml(file: ModularFile, data: GameData, st: ModCalcSta
   const rates = farmRates(file);
   if (!rates) return `<p class="must unk">${t("mc.farm.incomplete")}</p>`;
   const g = treeGrowthSeconds(data.treeGrowth, st.farm.pollution);
-  const r = farmOutput(rates, st.farm, g.seconds);
+  const r = farmOutput(rates, st.farm, g.seconds, farmLogsMult);
   const fit = farmBlocks(rates, st.farm.trees);
   const short = (["sprinklers", "tanks", "harvesters"] as const).filter((k) => st.farm[k] < fit[k]);
   const lines = [
-    `<li>${t("mc.logs.html", { rate: fmt(r.logsPerMin, 2), n: fmt(r.harvested, 0), per: String(rates.logsPerTree.value), g: fmt(g.seconds, 1) })}</li>`,
+    `<li>${t("mc.logs.html", { rate: fmt(r.logsPerMin, 2), n: fmt(r.harvested, 0), per: fmt(rates.logsPerTree.value * farmLogsMult, 1), g: fmt(g.seconds, 1) })}</li>`,
     `<li>${esc(t("mc.limit", { x: limitText(r.limit) }))}</li>`,
     `<li>${t("mc.water.html", { l: fmt(r.waterLpm, 1), n: r.activeSprinklers, c: String(rates.waterCycle.litersPerCycle), p: fmt(rates.waterCycle.periodS, 2) })}</li>`,
     `<li>${t("mc.power.html", { e: mfps(r.energyMFps), n: fmt(r.harvested, 0), k: fmt(rates.energyPerCutMF.value / 1000, 0), g: fmt(g.seconds, 1) })}</li>`,

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S50 — Réglages de partie</title>
+<style>
+:root { --bg:#14101f; --panel:#1e1830; --line:#3a3056; --txt:#efeaf8; --muted:#b0a6c6; --accent:#ff8a1f; --ok:#57d39b; --warn:#ffc857; }
+* { box-sizing:border-box; }
+body { margin:0; padding:16px; background:var(--bg); color:var(--txt); font:15px/1.45 system-ui,sans-serif; }
+.mq { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+h1 { font-size:1.3rem; margin:0; } h2 { font-size:1.02rem; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:4px; margin:16px 0 0; }
+p { margin:0; } .note { color:var(--muted); font-size:.88rem; }
+.box { background:var(--panel); border-left:1px solid var(--line); padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
+.fields { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
+label span { display:block; font-size:.8rem; color:var(--muted); margin-bottom:3px; }
+input,select { background:var(--bg); color:var(--txt); border:1px solid var(--line); padding:6px 8px; font:inherit; }
+input.n { width:7em; } .sw { display:flex; gap:8px; align-items:center; font-size:.9rem; } .sw input { width:auto; }
+.tw { overflow-x:auto; } table { border-collapse:collapse; width:100%; min-width:560px; font-size:.87rem; }
+th,td { text-align:left; padding:5px 10px 5px 0; border-top:1px solid var(--line); } th { color:var(--muted); font-weight:500; }
+.num { font-variant-numeric:tabular-nums; color:var(--ok); font-weight:600; } .off { color:var(--muted); }
+.src { font-size:.72rem; border:1px solid var(--line); color:var(--muted); padding:0 6px; white-space:nowrap; }
+.src.ic { color:var(--warn); border-color:var(--warn); }
+.q { border-left:4px solid var(--warn); background:var(--panel); padding:10px 12px; font-size:.92rem; }
+.q ol { margin:6px 0 0; padding-left:20px; } .q li { margin-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S50 — Réglages de partie</h1>
+<p class="note">Complète la maquette S47 (bloc 3 de « Ma recherche »), qui ne montrait qu'un tableau de principe. Les chiffres viennent des pages du wiki citées.</p>
+
+<h2>1. Mon usine › Ma recherche › Réglages de partie</h2>
+<div class="box">
+  <div class="fields">
+    <label><span>Pollution globale (%)</span><input class="n" value="25" inputmode="decimal"></label>
+    <label><span>Mois</span><select><option>Mois du jour (novembre)</option><option selected>Janvier</option></select></label>
+    <label class="sw"><input type="checkbox" checked>Ma ferme a un Igloo Farm Controller</label>
+    <label class="sw"><input type="checkbox">Je possède des Tree Scrubbers</label>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Ce que ça change</th><th>Avec ces réglages</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Pousse d'un arbre</td><td><span class="num">~348 s</span> (normal : ~363 s)</td><td><span class="src">wiki</span></td></tr>
+      <tr><td>Residue de l'Air Separation Unit</td><td><span class="num">2,5 L/s</span> (p ÷ 10, de 1 à 20)</td><td><span class="src">wiki</span></td></tr>
+      <tr><td>Bûches par arbre (Igloo, déc. à févr.)</td><td><span class="num">3</span> au lieu de 2 (+50 %)</td><td><span class="src">wiki</span></td></tr>
+      <tr class="off"><td>Tree Scrubber</td><td>non utilisé</td><td><span class="src">wiki</span> <span class="src ic">courbe : Industrialist Calculator</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">La pollution peut être négative. Sans saisie : 10 % et le mois du jour. Le champ « Pollution » quitte « Ressources et parcelle » : un seul endroit, la valeur déjà saisie est gardée.</p>
+</div>
+
+<h2>2. Dans le plan</h2>
+<div class="box">
+  <p>Oak Log · ferme d'arbres — <b>3 bûches par arbre, ~348 s</b> <span class="src">janvier, Igloo, pollution 25 %</span></p>
+  <p class="note">Une pastille rappelle les réglages sur les étapes concernées ; un clic ouvre « Ma recherche ». Le plan se recalcule dès qu'un réglage change.</p>
+</div>
+
+<h2>3. Ce que dit le wiki</h2>
+<div class="box"><div class="tw"><table>
+  <thead><tr><th>Sujet</th><th>Wiki</th><th>Reste incertain</th></tr></thead>
+  <tbody>
+    <tr><td>Air Separation Unit</td><td>1 L/s jusqu'à 10 %, p ÷ 10, 20 L/s dès 200 %</td><td>rien</td></tr>
+    <tr><td>Igloo Farm Controller</td><td>+50 % de bûches en déc., janv., févr. ; 1 500 $, 4 × 4 ; objet d'événement</td><td>rien pour un Tree normal</td></tr>
+    <tr><td>Tree Scrubber</td><td>18 L/s de Water → 6 L/s de Residue, sans énergie ; 25 000 $, 9 × 8 ; −3,88 %/h à 0 % ; ne filtre plus sous −1 500 % mais boit encore ; objet d'événement</td><td>Le retrait selon la pollution n'a pas de formule sur le wiki ; celle d'Industrialist Calculator se dit elle-même supposée</td></tr>
+  </tbody>
+</table></div></div>
+
+<div class="q"><b>À valider :</b>
+<ol>
+<li><b>Igloo et Tree Scrubber</b> sont des objets d'événement : un interrupteur chacun, éteint par défaut, pour qu'aucun plan ne les propose à qui ne les a pas. D'accord ?</li>
+<li><b>Retrait du Tree Scrubber</b> : (a) courbe d'Industrialist Calculator, marquée « supposée » (proposé) ; ou (b) −3,88 %/h fixe, seule valeur du wiki, juste à 0 % seulement.</li>
+<li><b>Plans existants</b> : avec 10 % par défaut, un arbre passe de ~363 s à ~355 s (tableau du wiki), donc les plans de bûches changent un peu. D'accord ?</li>
+</ol></div>
+</div>
+</body>
+</html>

@@ -3,6 +3,9 @@
 // logique de calcul est dans src/engine ; le rendu du plan dans plan-view.ts.
 
 import "../styles.css";
+import { setFarmLogsMult } from "./modcalc-view.ts";
+import { monthOptions, renderGameEffects, type GameField, type GameView } from "./game-settings-view.ts";
+import { DEFAULT_POLLUTION, logsMultiplier, TREE_SCRUBBER } from "../engine/game-settings.ts";
 import itemsJson from "../../data/items.json";
 import machinesJson from "../../data/machines.json";
 import overridesJson from "../../data/overrides.json";
@@ -342,8 +345,45 @@ function rebuildData(): void {
   rcEntries = null;
 }
 
+/** Réglages de partie en vigueur (S50) : 10 % et le mois du jour sans saisie. */
+function gameView(): GameView {
+  return { pollutionPct: player.pollutionPct ?? DEFAULT_POLLUTION, month: player.month ?? new Date().getMonth() + 1, igloo: player.igloo, scrubber: prog.owned.includes(TREE_SCRUBBER) };
+}
+
+function renderGameBox(): void {
+  const g = gameView();
+  setFarmLogsMult(logsMultiplier(g.month, g.igloo));
+  const month = $("gs-month") as HTMLSelectElement;
+  if (document.activeElement !== month) month.innerHTML = monthOptions(player.month, new Date().getMonth() + 1);
+  input("gs-igloo").checked = g.igloo;
+  input("gs-scrubber").checked = g.scrubber;
+  $("gs-effects").innerHTML = renderGameEffects(data, g);
+}
+
+function setGame(p: Partial<PlayerInfo>): void {
+  player = { ...player, ...p };
+  savePlayer(player);
+  planDirty = true;
+  renderGameBox();
+}
+
+/** Une pastille du plan amène à son réglage : onglet, champ à l'écran, focus. */
+function openGameField(field: GameField): void {
+  go({ page: "usine", usineTab: "recherche" });
+  const id = field === "pollution" ? "p-pollution" : field === "month" ? "gs-month" : "gs-igloo";
+  setTimeout(() => {
+    const el = $(id);
+    el.scrollIntoView({ block: "center" });
+    el.focus();
+    const box = el.closest<HTMLElement>("label") ?? el;
+    box.classList.remove("gs-flash");
+    void box.offsetWidth;
+    box.classList.add("gs-flash");
+  }, 80);
+}
+
 function playerState(): PlayerState {
-  return { ...toEngineProgress(prog), ...player, rp: rpNow() };
+  return { ...toEngineProgress(prog), ...player, pollutionPct: gameView().pollutionPct, month: gameView().month, rp: rpNow() };
 }
 
 // ---------------------------------------------------------------- ma recherche (S20)
@@ -834,7 +874,7 @@ function ensurePlan(): void {
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow() };
+  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow(), game: gameView() };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
@@ -2273,6 +2313,7 @@ function syncPlayerForm(): void {
   renderRpEstimate();
   input("p-spend").checked = player.spendRp;
   input("p-gamepass").checked = player.gamePass;
+  renderGameBox();
   renderResearchBox();
 }
 
@@ -4008,7 +4049,7 @@ function bindUsine(): void {
     $(id).addEventListener("input", (e) => {
       const v = parseOptional((e.target as HTMLInputElement).value);
       $(id).setAttribute("aria-invalid", String(v === "invalide"));
-      $(key === "plotW" || key === "plotH" ? "plot-hint" : key === "rp" || key === "rpPerSec" ? "rp-hint" : "player-hint").textContent = v === "invalide" ? t("m.numOrEmpty") : "";
+      $(key === "plotW" || key === "plotH" ? "plot-hint" : key === "rp" || key === "rpPerSec" ? "rp-hint" : key === "money" ? "money-hint" : "player-hint").textContent = v === "invalide" ? t("m.numOrEmpty") : "";
       if (v === "invalide") return;
       if (key === "rp" || key === "rpPerSec") {
         const t = Date.now();
@@ -4019,9 +4060,24 @@ function bindUsine(): void {
       renderRpLive(key === "rp" || key === "rpPerSec");
       planDirty = true;
       renderHeader();
+      if (key === "pollutionPct") renderGameBox();
     });
   }
   bindResearchBox();
+  $("gs-month").addEventListener("change", (e) => {
+    const v = (e.target as HTMLSelectElement).value;
+    setGame({ month: v ? Number(v) : null });
+  });
+  $("gs-igloo").addEventListener("change", (e) => setGame({ igloo: (e.target as HTMLInputElement).checked }));
+  $("gs-scrubber").addEventListener("change", (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    void setProgress({ ...prog, owned: on ? [...new Set([...prog.owned, TREE_SCRUBBER])] : prog.owned.filter((m) => m !== TREE_SCRUBBER) });
+    planDirty = true;
+  });
+  document.addEventListener("click", (e) => {
+    const b = (e.target as Element).closest<HTMLElement>("[data-gset]");
+    if (b) openGameField(b.dataset.gset as GameField);
+  });
   $("p-spend").addEventListener("change", (e) => {
     player = { ...player, spendRp: (e.target as HTMLInputElement).checked };
     savePlayer(player);

@@ -375,9 +375,8 @@
           <h2 data-i18n="us.res">Ressources et parcelle</h2>
           <div class="row fields4">
             <label for="p-money"><span data-i18n="us.money">Argent ($)</span><input id="p-money" inputmode="decimal" autocomplete="off" placeholder="ex. 250000" data-i18n-attr="placeholder=us.money.ph"></label>
-            <label for="p-pollution"><span data-i18n="us.pollution">Pollution (%)</span><input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="ex. 12" data-i18n-attr="placeholder=us.pollution.ph"></label>
           </div>
-          <p class="hint" id="player-hint" role="status"></p>
+          <p class="hint" id="money-hint" role="status"></p>
           <div class="row fields4">
             <label for="p-plotw"><span data-i18n="us.plotw">Largeur de la parcelle (cases)</span><input id="p-plotw" inputmode="numeric" autocomplete="off" placeholder="ex. 120" data-i18n-attr="placeholder=us.plot.ph"></label>
             <label for="p-ploth"><span data-i18n="us.ploth">Profondeur (cases)</span><input id="p-ploth" inputmode="numeric" autocomplete="off" placeholder="ex. 120" data-i18n-attr="placeholder=us.plot.ph"></label>
@@ -427,6 +426,20 @@
         <h3 class="rh-title" data-i18n="us.rs.history">Historique, en temps de jeu</h3>
         <div class="rh" id="rs-hist"></div>
         <div id="rs-how"></div>
+      </div>
+      <div class="box" id="gs-box">
+        <h2 data-i18n="gs.title">Réglages de partie</h2>
+        <div class="row fields4">
+          <label for="p-pollution"><span data-i18n="gs.pollution">Pollution globale (%)</span><input id="p-pollution" inputmode="decimal" autocomplete="off" placeholder="10"></label>
+          <label for="gs-month"><span data-i18n="gs.month">Mois</span><select id="gs-month"></select></label>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="gs-igloo"> <span data-i18n="gs.igloo">Ma ferme a un Igloo Farm Controller</span></label>
+          <label><input type="checkbox" id="gs-scrubber"> <span data-i18n="gs.scrubber">Je possède des Tree Scrubbers</span></label>
+        </div>
+        <p class="hint" id="player-hint" role="status"></p>
+        <div id="gs-effects"></div>
+        <p class="hint" data-i18n="gs.hint">La pollution peut être négative. Sans saisie : 10 % et le mois du jour.</p>
       </div>
     </div>
   </section>

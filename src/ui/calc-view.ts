@@ -11,6 +11,7 @@
 //   flèche = besoin de l'arrivée × part du départ dans la production de l'objet.
 
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
+import { gameChips } from "./game-settings-view.ts";
 import type { Step } from "../engine/solve.ts";
 import type { Recipe, Source } from "../engine/types.ts";
 import type { MachineInterface } from "../engine/extension-types.ts";
@@ -288,6 +289,8 @@ function stepNote(v: ViewCtx, s: Step): string {
       t("cv.growth.html", { detail: txtHtml(s.growth.detail), src: s.growth.sourceUrl ? ` (<a href="${esc(s.growth.sourceUrl)}" target="_blank" rel="noopener">${t("cv.growth.src")}</a>)` : "" }),
     );
   else if (s.isRaw && s.item !== ENERGY && s.item !== POLLUTION) notes.push(t("cv.raw"));
+  const chips = gameChips(v.data, v.game, s.recipeId);
+  if (chips) notes.push(chips);
   if (!s.access.available) notes.push(`${esc(lockText(v, s.access))} ${accessButton(s.access)}`);
   return notes.length ? `<p class="calc-note">${notes.join(" ")}</p>` : "";
 }

@@ -164,7 +164,7 @@ export type FarmResult = {
 };
 
 /** Production d'une ferme posée (nombres de blocs donnés) à la durée de pousse `growthS`. */
-export function farmOutput(rates: FarmRates, b: FarmBlocks, growthS: number): FarmResult {
+export function farmOutput(rates: FarmRates, b: FarmBlocks, growthS: number, logsMult = 1): FarmResult {
   const problems: Message[] = [];
   if (b.controllers < 1) problems.push(msg("farm.needController"));
   if (b.controllers > 1) problems.push(msg("farm.twoControllers"));
@@ -187,7 +187,7 @@ export function farmOutput(rates: FarmRates, b: FarmBlocks, growthS: number): Fa
     watered,
     harvested,
     activeSprinklers,
-    logsPerMin: (harvested * rates.logsPerTree.value * 60) / g,
+    logsPerMin: (harvested * rates.logsPerTree.value * logsMult * 60) / g,
     waterLpm: activeSprinklers * rates.waterLpsPerSprinkler.value * 60,
     energyMFps: (harvested * rates.energyPerCutMF.value) / g,
     limit,

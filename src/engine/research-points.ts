@@ -284,7 +284,7 @@ function designFor(p: RpParams, data: GameData, kind: StationKind, items: string
  */
 export function designResearch(data: GameData, player: PlayerState, p: RpParams, req: RpRequest): RpResult {
   const warnings: Message[] = [];
-  const chooser = new Chooser(data, player, { criterion: req.criterion, then: req.then, forced: {}, useUnverified: !!req.useUnverified, pollutionPct: player.pollutionPct ?? null });
+  const chooser = new Chooser(data, player, { criterion: req.criterion, then: req.then, forced: {}, useUnverified: !!req.useUnverified, pollutionPct: player.pollutionPct ?? null, month: player.month ?? null, igloo: !!player.igloo });
   const available = (kind: StationKind) => STATION[kind].every((m) => machineAccess(data, player, m).available);
   const kinds = (req.kinds ?? (["rs1", "rs2", "rs3", "rs4"] as StationKind[])).filter(available);
   if (!kinds.length) return { best: null, others: [], warnings: [msg("rs.noStation")] };
