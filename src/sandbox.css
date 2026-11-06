@@ -41,6 +41,7 @@ body.bac-on footer.src { display: none; }
 /* Mini-carte (2026-11-01), en bas à gauche : cadrée sur les bâtiments les plus éloignés */
 .bac-mini { left: 8px; bottom: 8px; width: 220px; height: 140px; padding: 0; cursor: pointer; touch-action: none; }
 .bac-mini[hidden] { display: none; }
+.bac-bigmap { display: block; width: 100%; height: min(70vh, 560px); cursor: pointer; border: 1px solid #333; }
 
 /* Menu de pose, en bas à droite : infos, grille de 4, catégories, tiers ; outils sous la grille */
 .bac-pf { right: 0; bottom: 0; border-radius: 4px 0 0 0; display: flex; flex-direction: column; width: max-content; max-width: 100%; }

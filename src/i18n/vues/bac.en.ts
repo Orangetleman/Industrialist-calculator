@@ -248,6 +248,8 @@ export const bacEn: { [K in keyof typeof bacFr]: Msg } = {
   "bac.act.info": "Block sheet",
   "bac.act.menus": "Hide the interface",
   "bac.act.research": "Research tree",
+  "bac.act.map": "Large map",
+  "bac.map.tip": "Click to go there",
   "bac.cmd.title": "All commands",
   "bac.cmd.move": "Move | {k} · Shift: faster · middle-click drag",
   "bac.cmd.zoom": "Zoom | Wheel · Ctrl + wheel while holding a block",

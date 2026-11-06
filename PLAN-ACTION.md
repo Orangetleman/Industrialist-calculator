@@ -136,6 +136,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | B2 | Bac à sable, tracé des tuyaux (`src/engine/sandbox/path.ts`, pur et testé) : voir PLAN-BAC-A-SABLE.md § 7 | moyenne | B1 | **fait** (2026-10-31) |
 | B3 | Bac à sable, l'écran (page #bac « Bac à sable / Sandbox ») : voir PLAN-BAC-A-SABLE.md § 7 | grande | B2 | **fait** (2026-10-31, non déployé) |
 | B4 | Bac à sable, fluidité (calcul incrémental, aperçu seul pendant un glisser, worker, vue compacte) : voir PLAN-BAC-A-SABLE.md § 5 et § 7 | moyenne | B3 | **fait** (2026-10-31, non déployé) |
+| B5 | Bac à sable, schémas et partage : voir PLAN-BAC-A-SABLE.md § 7 | moyenne | B4, S55 | **fait** (2026-11-06, non déployé : déploiement refusé par le contrôle des permissions) |
 | S38 | Éditeur de bâtiments : objets et fluides de chaque port, choisis parmi les recettes de la machine, enregistrés et exportés ; reprise des infobulles déjà relevées (R16, BAS-03) | moyenne | S17 | **fait** |
 | S39 | Liens qui ouvrent l'élément visé et l'amènent à l'écran ; les 6 pièces de tuyau manquantes ajoutées à l'éditeur (R17) | petite | — | ✅ fait (2026-11-02) |
 | S41 | Refonte graphique : charte inspirée d'Industrialist Calculator (couleurs, typographie, panneaux, barre d'outils, icônes), maquette de chaque page avant le code (R19) | grande | — | ✅ fait (2026-11-01) : icônes Lucide (1er pas), puis la charte faite par S59 (« Plasma Chantier ») sur tout le site |
@@ -1698,6 +1699,9 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-11-01, S58 (plan, sans code)** : retour R27 analysé ; palette d'Industrialist Calculator
   relevée dans leur `src/index.css` (MIT) ; huit points d'intérêt du joueur et maquette
   `maquette/planifier.html` (poste de commande) ; lots S59 à S64. Validée le 2026-11-01 (réponses au § 5) ; prochain lot : S59.
+- **2026-11-06, B5** (697 tests, **non déployé** : `npm run deploy` refusé par le contrôle des permissions de la session) : S53 à S55 avaient fait la fenêtre, le `.msch`, le code et le fichier. Ajouté : `src/engine/schematic/clip.ts` (copie avec câbles, liaisons, voies ; rotation et retournement ; `fingerprint`), lien limité à 2 000 caractères à l'export d'un schéma, touche M = grande carte (choix A de `maquette/b5-reste.html`), recherche de la base de données ; la recherche des schémas, sans effet jusque-là, marche. Une touche ajoutée s'applique aussi aux touches déjà enregistrées.
+  Contrôlé (serveur `calculateur`, 1 366 × 768) : recherches, longueur du lien, schéma collé avec son câble, grande carte (M, clic). Pas fait à la main : F maintenu au glisser, Z / X (couverts par les tests), anglais à l'écran. Erreurs 502 en console : service des remarques absent en local.
+  À surveiller : les chiffres saisis pour une recette incomplète ne voyagent pas dans un schéma (`fills`) ; la grande carte n'a pas de bouton (téléphone : B6).
 
 ## 7. Gestion des sessions
 

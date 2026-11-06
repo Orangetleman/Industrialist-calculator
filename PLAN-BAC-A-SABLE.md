@@ -146,7 +146,7 @@ joueur (`navigator.keyboard.getLayoutMap`, sinon les touches déjà frappées). 
 - les unités, les commandes, le ping, la discussion, la carte des planètes : rien de tel dans le site.
 
 **Prévus plus tard** :
-- la mini-carte (M) et les lignes électriques (F5) : il faut d'abord l'électricité (lot B7) ;
+- les lignes électriques (F5) : il faut d'abord l'électricité (lot B7) ;
 - la file d'attente avec ✓ au téléphone (lot B6).
 
 ## 4. Les tuyaux
