@@ -2,6 +2,7 @@
 // Coût estimé pour 1 unité/min de l'item, par point fixe (type Bellman-Ford) : les boucles ne font pas exploser le calcul.
 
 import type { GameData } from "./data.ts";
+import { asuResidue, DEFAULT_POLLUTION, logsMultiplier, TREE_SCRUBBER_RECIPE, treeScrubberPollution, treeScrubberResidue } from "./game-settings.ts";
 import { machineAllowed, recipeAllowed, type AllowedFn, type MachineFilter } from "./machine-filter.ts";
 import { treeGrowthSeconds, type TreeGrowthResult } from "./pollution.ts";
 import type { Machine, Recipe, VerifyFlag } from "./types.ts";
@@ -20,6 +21,9 @@ export type ChoiceOptions = {
   /** Accepter les recettes « à vérifier » (valeurs variables ou manquantes) dans le choix automatique. */
   useUnverified: boolean;
   pollutionPct: number | null;
+  /** Mois (1 à 12) et Igloo Farm Controller : bûches de l'hiver (S50). */
+  month?: number | null;
+  igloo?: boolean;
   /** Filtre de machines du plan (S9) : les recettes des machines écartées ne sont plus candidates. */
   machines?: MachineFilter | null;
 };
@@ -73,8 +77,19 @@ export type Choice = {
 const BLOCKING_REASONS = new Set(["manquant", "variable"]);
 const isQuantityField = (f: string) => f === "durationS" || f === "outputs" || f.startsWith("inputs.") || f.startsWith("outputs.");
 
-export function evalRecipe(data: GameData, recipe: Recipe, pollutionPct: number | null): EffRecipe {
+export function evalRecipe(data: GameData, recipe: Recipe, pollutionPct: number | null, season: { month?: number | null; igloo?: boolean } = {}): EffRecipe {
   const machine = data.machines.get(recipe.machine);
+  // Réglages de partie (S50) : la pollution et le mois fixent ces quantités.
+  const world = pollutionPct ?? DEFAULT_POLLUTION;
+  const byPollution = recipe.verify.find((f) => f.mode === "world_pollution");
+  if (byPollution && recipe.outputs.residue === null) {
+    // Reste derrière « valeurs à vérifier » : proposé d'office, il change des plans validés (POL-14).
+    recipe = { ...recipe, outputs: { ...recipe.outputs, residue: asuResidue(world) } };
+  }
+  if (recipe.id === TREE_SCRUBBER_RECIPE) recipe = { ...recipe, outputs: { residue: treeScrubberResidue(world) }, pollutionPerHour: treeScrubberPollution(world) };
+  const logs = recipe.outputs["oak-log"];
+  const mult = logsMultiplier(season.month, season.igloo);
+  if (recipe.durationByPollution && mult !== 1 && logs) recipe = { ...recipe, outputs: { ...recipe.outputs, "oak-log": logs * mult } };
   let durationS = recipe.durationS;
   let growth: TreeGrowthResult | undefined;
   if (recipe.durationByPollution) {
@@ -215,7 +230,7 @@ export class Chooser {
   eff(recipe: Recipe): EffRecipe {
     let e = this.effMemo.get(recipe.id);
     if (!e) {
-      e = evalRecipe(this.data, recipe, this.opts.pollutionPct);
+      e = evalRecipe(this.data, recipe, this.opts.pollutionPct, this.opts);
       this.effMemo.set(recipe.id, e);
     }
     return e;

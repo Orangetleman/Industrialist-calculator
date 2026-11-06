@@ -20,6 +20,8 @@ import { msg, type Message } from "./message.ts";
 
 export type PlayerState = Progress & {
   pollutionPct?: number | null;
+  month?: number | null;
+  igloo?: boolean;
   money?: number | null;
   rp?: number | null;
   rpPerSec?: number | null;
@@ -347,6 +349,8 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     forced: req.forced ?? {},
     useUnverified: !!req.useUnverified,
     pollutionPct: player.pollutionPct ?? null,
+    month: player.month ?? null,
+    igloo: !!player.igloo,
     machines: req.machines,
   });
   const name = (id: string) => (id === ENERGY ? "Énergie" : itemName(data, id));

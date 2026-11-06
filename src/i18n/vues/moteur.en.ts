@@ -108,6 +108,7 @@ export const moteurEn: { [K in keyof typeof moteurFr]: Msg } = {
   "eng.farm.needTrees": "trees are needed",
   "eng.farm.dry": { one: "{n} sprinkler without a tank ({k} per tank)", other: "{n} sprinklers without a tank ({k} per tank)" },
   "eng.farm.setup": "Tree farm",
+  "eng.scrubber.curve": "removal by pollution: assumed curve from Industrialist Calculator; the wiki only gives −3.88 %/h at 0 %",
   "eng.farm.note.plan": "Blocks counted from the farm's build plan: at most {spr} trees per sprinkler, {tank} sprinklers per tank, at most {harv} trees per harvester (Miraheze guide), an output within reach of each harvester, one controller per farm (several farms beyond what its range reaches). Water: {l} L every {s} s per sprinkler; power: {k} kMF per tree cut.",
   "eng.farm.note.share": "Per tree: 1/{spr} of a sprinkler, 1/{tankShare} of a tank, 1/{harv} of a harvester (Miraheze guide); 1 controller and 1 output per farm. Water: {l} L every {s} s per sprinkler; power: {k} kMF per tree cut.",
   "eng.farm.harvesters": "{n} trees per harvester according to the Miraheze guide; the real maximum is to be checked in game",

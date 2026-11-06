@@ -912,6 +912,9 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   Residue de l'ASU, Tree Scrubber), mois courant (Igloo Farm Controller × 1,5 en hiver),
   efficacité des paraboles (linéaire chez eux : supposition, voir RP-03), bonus des RS4,
   difficulté. Formules dans COMPARAISON-POLLYWRATH.md, § 4 : à retrouver sur le wiki avant usage.
+- **POL-13** (S50, 2026-11-06) Tree Scrubber : retrait selon la pollution pris chez Industrialist Calculator, qui le dit supposé (« only assumptions ») ; le wiki donne seulement −3,88 %/h à 0 %, « plus efficace que le Scrubber au-dessus de 0 % » et moins en pollution négative. Choix de l'utilisateur : la courbe, marquée. À relever en jeu. Ports non relevés.
+- **POL-14** (S50, 2026-11-06) Air Separation Unit : le Residue est calculé (formule du wiki), mais la recette reste derrière « valeurs à vérifier ». Proposée d'office, elle changeait des plans validés (8x Microchip 60/min : 1 506 → 1 579 machines, réseau électrique en 8 morceaux, Liquid Argon non évacué). À décider : la libérer, après avoir réglé ces trois points.
+- **POL-15** (S50, 2026-11-06) Igloo Farm Controller : l'interrupteur applique le +50 % de bûches, mais le plan dessine et compte un Tree Farm Controller (l'Igloo coûte 1 500 $, 4 × 4 ; absent de nos machines). Candy Cane Tree (sans bonus) non modélisé.
 <!-- notes-manuelles:fin -->
 
 ## S40 — Règles de recherche prises chez Industrialist Calculator (2026-10-27)

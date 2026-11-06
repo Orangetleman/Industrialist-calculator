@@ -119,14 +119,14 @@ describe("progression et « Ma partie »", () => {
 
   it("export puis import de la progression : aller-retour identique", () => {
     const prog = { unlocked: ["a", "b"], reqItemsDone: ["b"], owned: ["limited"] };
-    const player = { pollutionPct: 12.5, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true, plotW: 120, plotH: 96, research: { ...emptySetup(), mode: "detaille" as const, groups: { rs1: [], rs2: [], rs3: [{ count: 4, items: ["crankshaft", "crankshaft"] }], rs4: [] } } };
+    const player = { pollutionPct: 12.5, month: 1, igloo: true, money: 1000, rp: 500, rpPerSec: 2, rpAt: Date.parse("2026-10-12T09:00:00Z"), spendRp: true, gamePass: true, plotW: 120, plotH: 96, research: { ...emptySetup(), mode: "detaille" as const, groups: { rs1: [], rs2: [], rs3: [{ count: 4, items: ["crankshaft", "crankshaft"] }], rs4: [] } } };
     const file = JSON.parse(JSON.stringify(exportProgress(prog, player, new Date("2026-10-12T10:00:00Z"))));
     expect(parseProgressExport(d, file)).toEqual({ ok: true, progress: prog, player, history: null, dropped: 0, exportedAt: "2026-10-12T10:00:00.000Z" }); // ancien fichier, sans journal (S21)
   });
 
   it("les RP évoluent avec les RP/s ; changer la vitesse garde les RP accumulés", () => {
     const t0 = Date.parse("2026-10-12T09:00:00Z");
-    const p = { pollutionPct: null, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
+    const p = { pollutionPct: null, month: null, igloo: false, money: null, rp: 500, rpPerSec: 2, rpAt: t0, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
     expect(currentRp(p, t0 + 60_000)).toBe(620); // + 2 RP/s × 60 s
     expect(currentRp({ ...p, rpPerSec: null }, t0 + 60_000)).toBe(500);
     expect(currentRp({ ...p, rp: null }, t0)).toBeNull();

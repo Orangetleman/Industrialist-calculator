@@ -1,6 +1,7 @@
 // Chargement des données : index en mémoire + application des corrections
 // (data/overrides.json puis corrections locales saisies dans l'appli).
 
+import { addTreeScrubber } from "./game-settings.ts";
 import type {
   AddedItem,
   AddedRecipe,
@@ -57,6 +58,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   const errors: Message[] = [];
   let applied = 0;
   addEnergy(recipes, machines, files.energy);
+  if (items.has("water") && items.has("residue")) addTreeScrubber(machines, recipes);
   if (files.modular) applyModular(recipes, machines, files.modular, files.farmPoles ?? [], files.dieselReadings ?? []);
   for (const o of overrides) {
     const r = applyOverrides({ items, machines, recipes, nodes }, o);

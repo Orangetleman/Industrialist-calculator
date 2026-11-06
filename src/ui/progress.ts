@@ -19,6 +19,10 @@ export type ProgressState = { unlocked: string[]; reqItemsDone: string[]; owned:
  */
 export type PlayerInfo = {
   pollutionPct: number | null;
+  /** Mois de la partie (1 à 12) ; null = mois du jour (S50). */
+  month: number | null;
+  /** La ferme a un Igloo Farm Controller. */
+  igloo: boolean;
   money: number | null;
   rp: number | null;
   rpPerSec: number | null;
@@ -81,7 +85,9 @@ const KEY_PROGRESS = "ind-calc:v1:progress";
 const KEY_PLAYER = "ind-calc:v1:player";
 
 export const EMPTY_PROGRESS: ProgressState = { unlocked: [], reqItemsDone: [], owned: [] };
-export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
+const monthOrNull = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 12 ? v : null);
+
+export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, month: null, igloo: false, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
 
 const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
 const numOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
@@ -106,7 +112,7 @@ export function loadPlayer(): PlayerInfo {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
-    return { pollutionPct: numOrNull(raw.pollutionPct), money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH), research: parseResearchSetup(raw.research) };
+    return { pollutionPct: numOrNull(raw.pollutionPct), month: monthOrNull(raw.month), igloo: raw.igloo === true, money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH), research: parseResearchSetup(raw.research) };
   } catch {
     return { ...EMPTY_PLAYER };
   }
@@ -180,7 +186,7 @@ export function parseProgressExport(
   return {
     ok: true,
     progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
-    player: { pollutionPct: numOrNull(pl.pollutionPct), money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH), research: parseResearchSetup(pl.research) },
+    player: { pollutionPct: numOrNull(pl.pollutionPct), month: monthOrNull(pl.month), igloo: pl.igloo === true, money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH), research: parseResearchSetup(pl.research) },
     history: parseJournal(r.history),
     dropped,
     exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,

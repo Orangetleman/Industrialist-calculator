@@ -3,6 +3,7 @@
 // main.ts les insère et branche les événements.
 
 import { controllerPanel } from "./assembly-view.ts";
+import { gameChips, type GameView } from "./game-settings-view.ts";
 import { renderDieselHud, type DieselChoice } from "./diesel.ts";
 import type { DieselConfig } from "../engine/modular-calc.ts";
 import type { Criterion } from "../engine/choose.ts";
@@ -24,7 +25,7 @@ import { txt, txtHtml } from "./engine-text.ts";
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
 /** `ifaces`, `msettings` : interfaces des machines et réglages chiffrés du plan (S10). */
-export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings; /** Moteur diesel du plan (S18) : configurations connues et choix. */ diesel?: { configs: DieselConfig[]; choice: DieselChoice } };
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings; /** Moteur diesel du plan (S18) : configurations connues et choix. */ diesel?: { configs: DieselConfig[]; choice: DieselChoice }; /** Réglages de partie (S50), pour les pastilles de rappel. */ game?: GameView };
 
 // ---------------------------------------------------------------- priorité
 
@@ -362,7 +363,7 @@ function stepRow(v: ViewCtx, s: Step, stage: Stage): BuildRow {
     buildable: true,
     have: gen || s.item === POLLUTION ? undefined : { item: s.item, perMin: s.demandPerMin },
     pose: isPosable(s) ? s.key : undefined,
-    setting: s.parts ? dieselSetting(v, s) : settingChips(settingLines(v.ifaces, v.msettings, s.machine, s.recipeId)) || undefined,
+    setting: [s.parts ? dieselSetting(v, s) : settingChips(settingLines(v.ifaces, v.msettings, s.machine, s.recipeId)), gameChips(v.data, v.game, s.recipeId)].filter(Boolean).join(" ") || undefined,
     warn: warnButton(v, stepWarnings(v, s)) || undefined,
   };
 }
@@ -591,6 +592,7 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   const notes: string[] = [];
   if (st) notes.push(warnChips(v, stepWarnings(v, st)));
   if (st && !st.parts) notes.push(settingChips(settingLines(v.ifaces, undefined, st.machine, st.recipeId)));
+  if (st) notes.push(gameChips(v.data, v.game, st.recipeId));
   // « Tu peux régler : » (S28) : tout ce qui change ce bloc, au même endroit.
   const sets: string[] = [];
   const planGoal = v.goal !== "recherche";

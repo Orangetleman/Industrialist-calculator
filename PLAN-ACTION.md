@@ -149,7 +149,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S47 | Maquette de la nouvelle « Ma recherche » et des réglages de partie (pollution, mois, difficulté) | moyenne, sans code | — | maquette `maquette/recherche-refonte.html` faite (2026-10-27), validée par l utilisateur (2026-10-27) |
 | S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | fait (2026-10-31) : efficacité des paraboles sans arrondi, cas Industrialist Calculator testés |
 | S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | fait (2026-10-31), déployé ; reste le relevé en jeu après le seuil (< 2 %), à faire par l'utilisateur |
-| S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | à faire |
+| S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | fait (2026-11-06) : maquette `maquette/reglages-partie-s50.html` validée, réglages dans « Ma recherche » (§ 5, § 6) |
 | S51 | Difficulté : recherches bloquées et machines réservées selon le niveau | petite | — | à faire |
 
 Pourquoi cet ordre :
@@ -1531,6 +1531,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S59 Police (suite) | La police latine de Mindustry est **Audiowide** (Astigmatic, OFL, Google Fonts : `core/assets-raw/fonts/font_latin.ttf` du dépôt Anuken/Mindustry v104.6, et Anuken/Mindustry#137 : polices prises sur Google Fonts). Choix de l'utilisateur : Audiowide **partout, comme Mindustry**, à la place d'Oxanium. | 2026-11-01 |
 | S47 Maquette recherche | Réponses du 2026-10-27 (maquette `recherche-refonte.html` validée telle quelle) : un groupe = nombre de stations identiques + items communs ; contrôle « ✓ comme en jeu » sous la saisie ; réglages de partie (pollution, mois, difficulté) dans « Ma recherche ». | 2026-10-27 |
 | S39 Pièces de tuyau | Pipe Fluid Turn2 / Junction2 / Section2 = Fluid Pipe Turn2 / Junction2 / Section2 ; Pipe Valve = Pipe Value, à ports **fluide** (relevé objet corrigé) ; Item / Fluid Rate Meter = Item / Fluid Meter. Pas de doublon dans l'éditeur : un lien relie les deux noms. | 2026-11-02 |
+| S50 Réglages de partie | Réponses du 2026-11-06 sur `maquette/reglages-partie-s50.html` : 1 Igloo et Tree Scrubber derrière un interrupteur chacun, éteint par défaut ; 2 retrait du Tree Scrubber : courbe d'Industrialist Calculator, marquée supposée ; 3 d'accord pour 10 % par défaut (arbres ~355 s) ; 4 chaque pastille de rappel du plan amène au réglage concerné. | 2026-11-06 |
 
 ## 6. Journal des sessions
 
@@ -1758,3 +1759,6 @@ Chaque session de lot :
 - **2026-11-02, S39** (691 tests, déployé) : les 6 pièces « manquantes » existaient déjà dans l'éditeur sous un autre nom (réponses de l'utilisateur au § 5) : lien `EDITOR_ID` (`src/engine/sandbox/catalog.ts`), donc le lien du bac à sable ouvre la bonne fiche, le bac à sable prend les vrais relevés des coudes, tés et croix fluides du tier III, et Item / Fluid Meter ne sont plus en double. Pipe Valve à ports fluide (`ports.json`). Doutes (prix des compteurs, largeur des ports de la valve) : BAS-14. Test `editor-id.test.ts`.
   Lien `#contribuer/batiments/<id>` : la fiche était choisie mais restait sous la fenêtre ; elle est maintenant amenée juste sous l'en-tête collant, et sa ligne vers le haut de la liste. Contrôlé : bac à sable → Pipe Valve → « Modifier » ouvre Pipe Value ; Fluid Rate Meter → « Compléter » ouvre Fluid Meter ; lien direct vers Fluid Pipe Junction 2 ; aucune erreur en console.
   Réponses du même jour (BAS-14) : compteurs à 7 500 $ et 1 × 1 (le bac à sable prend le prix et la taille de machines.json pour les pièces reliées) ; ports de la Pipe Valve d'une case, comme relevés.
+- **2026-11-06, S50** (702 tests, déployé) : réglages de partie dans « Ma recherche » (pollution, déplacée de « Ma partie » ; mois ; interrupteurs Igloo et Tree Scrubber ; tableau « Ce que ça change »), 10 % et mois du jour par défaut, FR / EN. `src/engine/game-settings.ts` : Residue de l'ASU (formule du wiki), +50 % de bûches, Tree Scrubber ajouté (machine d'événement, à posséder ; courbe supposée, POL-13). Pastilles sur les étapes concernées, un clic amène au champ.
+  Parcours : Oak Log, Igloo en janvier 116 arbres, sans Igloo 174 ; pastille « janvier » → champ Mois ; EN ; aucune erreur nouvelle.
+  **Réserve** : l'ASU reste derrière « valeurs à vérifier » (POL-14), car proposé d'office il dégrade des plans validés. Igloo non dessiné (POL-15).

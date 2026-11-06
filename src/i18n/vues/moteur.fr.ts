@@ -111,6 +111,7 @@ export const moteurFr = {
   "eng.farm.needTrees": "il faut des arbres",
   "eng.farm.dry": { one: "{n} arroseur sans réservoir ({k} par réservoir)", other: "{n} arroseurs sans réservoir ({k} par réservoir)" },
   "eng.farm.setup": "Ferme d'arbres",
+  "eng.scrubber.curve": "retrait selon la pollution : courbe supposée d'Industrialist Calculator ; le wiki ne donne que −3,88 %/h à 0 %",
   "eng.farm.note.plan": "Blocs comptés d'après le plan de pose de la ferme : {spr} arbres au plus par arroseur, {tank} arroseurs par réservoir, {harv} arbres au plus par récolteur (guide Miraheze), une sortie à portée de chaque récolteur, un contrôleur par ferme (plusieurs fermes au-delà de ce que touche sa portée). Eau : {l} L toutes les {s} s par arroseur ; électricité : {k} kMF par arbre coupé.",
   "eng.farm.note.share": "Par arbre : 1/{spr} d'arroseur, 1/{tankShare} de réservoir, 1/{harv} de récolteur (guide Miraheze) ; 1 contrôleur et 1 sortie par ferme. Eau : {l} L toutes les {s} s par arroseur ; électricité : {k} kMF par arbre coupé.",
   "eng.farm.harvesters": "{n} arbres par récolteur d'après le guide Miraheze ; le maximum réel est à relever en jeu",
