@@ -10,7 +10,7 @@ import {
   type ClickResult, type Dir, type FlowBtn, type Layout, type Placed, type Plan, type Piece, type PlacedPort, type RecipeFill, type Route, type SandboxResult, type SandboxSettings, type SbCatalog, type SbIncomplete, type Wire, type Fam,
 } from "../engine/sandbox/index.ts";
 import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
-import { clipLayout, clipOf, clipToSchematic, copyZone, flipClip as flipClipItems, relink, rotateClip, type Clip } from "../engine/schematic/clip.ts";
+import { clipLayout, clipOf, clipToSchematic, copyZone, flipClip as flipClipItems, mergeFills, relink, rotateClip, type Clip } from "../engine/schematic/clip.ts";
 import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
@@ -862,7 +862,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const blocks = S.blocks.filter((b) => !b.open);
     if (!blocks.length) return say(t("bac.sch.empty"));
     const keep = new Set(blocks.map((b) => b.u)), inside = (w: { a: number; b: number }) => keep.has(w.a) && keep.has(w.b);
-    const c = clipOf(cat, { blocks, wires: S.wires.filter(inside), routes: S.routes.filter(inside) })!;
+    const c = clipOf(cat, { blocks, wires: S.wires.filter(inside), routes: S.routes.filter(inside), fills: S.fills })!;
     const sch = clipToSchematic(c, { name: t("bac.sch.wholeName") });
     const code = await toCode(sch), url = linkOf(code);
     openDlg(`<div class="ttl">${ic("share")} ${esc(t("bac.sch.share"))}</div><textarea readonly aria-label="${esc(t("bac.sch.code"))}">${esc(code)}</textarea>
@@ -929,7 +929,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
   function copyRect(s: [number, number], c: [number, number]): void {
     const x0 = Math.min(s[0], c[0]), x1 = Math.max(s[0], c[0]), y0 = Math.min(s[1], c[1]), y1 = Math.max(s[1], c[1]);
-    const clip = copyZone(cat, layout(), x0, y0, x1, y1);
+    const clip = copyZone(cat, { ...layout(), fills: S.fills }, x0, y0, x1, y1);
     if (clip) { ui.clip = clip; ui.sel = null; renderPanel(); }
     renderHint();
     renderInfo(true);
@@ -944,7 +944,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     // Câbles et liaisons de la copie : seulement entre les bâtiments qui ont trouvé leur place.
     const first = S.blocks.length - add.length, to = new Map(from.map((i, k) => [i, S.blocks[first + k]!.u]));
     const wires = relink(clip.wires, (i) => to.get(i)), routes = relink(clip.routes, (i) => to.get(i));
-    if (wires.length || routes.length) { S.wires = [...S.wires, ...wires]; S.routes = [...S.routes, ...routes]; changed(); }
+    const fills = add.length ? mergeFills(S.fills, clip.fills) : S.fills; // après apply : annuler retire aussi ces chiffres
+    if (wires.length || routes.length || fills !== S.fills) { S.wires = [...S.wires, ...wires]; S.routes = [...S.routes, ...routes]; S.fills = fills; changed(); }
   }
   function flipClip(x: boolean): void {
     if (!ui.clip) return;
@@ -1600,7 +1601,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (!c) return say(t("bac.sch.bad"));
     snap();
     const L = clipLayout(c), next = (i: number) => i + 1; // numéros à partir de 1, comme une pose
-    S = { blocks: L.blocks.map((b) => ({ ...b, u: b.u + 1 })), wires: relink(L.wires, next), routes: relink(L.routes, next), fills: S.fills };
+    S = { blocks: L.blocks.map((b) => ({ ...b, u: b.u + 1 })), wires: relink(L.wires, next), routes: relink(L.routes, next), fills: mergeFills(S.fills, c.fills) };
     ui.pinned = null;
     changed();
     fit();

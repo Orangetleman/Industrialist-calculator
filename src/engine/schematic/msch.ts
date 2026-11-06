@@ -13,6 +13,7 @@
  */
 import type { Dir } from "../sandbox/catalog";
 import type { CrossPair, Layout, Placed, Route, Wire } from "../sandbox/layout";
+import type { RecipeFill } from "../sandbox/catalog";
 
 export type Schematic = { name: string; description: string; labels: string[]; width: number; height: number; layout: Layout };
 
@@ -60,6 +61,19 @@ async function pipe(data: Uint8Array, s: CompressionStream | DecompressionStream
 
 type Cfg = { c?: string; o?: Dir[]; p?: CrossPair };
 
+const okNum = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0;
+/** Un schéma vient peut-être d'un autre joueur : seuls des nombres positifs sont repris. */
+function cleanFills(raw: unknown): Record<string, RecipeFill> {
+  const side = (o: unknown) => Object.fromEntries(Object.entries(o && typeof o === "object" ? o : {}).filter(([, n]) => okNum(n))) as Record<string, number>;
+  const out: [string, RecipeFill][] = [];
+  for (const [id, v] of Object.entries(raw && typeof raw === "object" ? raw : {})) {
+    const f = (v ?? {}) as RecipeFill, i = side(f.in), o = side(f.out);
+    const fill: RecipeFill = { ...(okNum(f.s) ? { s: f.s } : {}), ...(Object.keys(i).length ? { in: i } : {}), ...(Object.keys(o).length ? { out: o } : {}) };
+    if (Object.keys(fill).length) out.push([id, fill]);
+  }
+  return Object.fromEntries(out);
+}
+
 /** Écrit un schéma en octets .msch. Les bâtiments sont décalés pour que le coin du montage soit en (0, 0). */
 export async function writeMsch(s: Schematic): Promise<Uint8Array> {
   const bl = s.layout.blocks, x0 = Math.min(0, ...bl.map((b) => b.x)), y0 = Math.min(0, ...bl.map((b) => b.y));
@@ -70,6 +84,7 @@ export async function writeMsch(s: Schematic): Promise<Uint8Array> {
   const tags: [string, string][] = [["name", s.name], ["description", s.description], ["labels", JSON.stringify(s.labels)]];
   if (s.layout.wires.length) tags.push(["wires", JSON.stringify(re(s.layout.wires))]);
   if (s.layout.routes?.length) tags.push(["routes", JSON.stringify(re(s.layout.routes))]);
+  if (Object.keys(s.layout.fills ?? {}).length) tags.push(["fills", JSON.stringify(s.layout.fills)]);
   const w = new Writer();
   w.i16(s.width); w.i16(s.height);
   w.u8(tags.length);
@@ -116,10 +131,10 @@ export async function readMsch(data: Uint8Array): Promise<Schematic> {
     blocks.push(b);
   }
   const json = <T>(k: string): T[] => (tags.has(k) ? JSON.parse(tags.get(k)!) : []);
-  const routes = json<Route>("routes");
+  const routes = json<Route>("routes"), fills = cleanFills(tags.has("fills") ? JSON.parse(tags.get("fills")!) : null);
   return {
     name: tags.get("name") ?? "", description: tags.get("description") ?? "", labels: json<string>("labels"), width, height,
-    layout: { blocks, wires: json<Wire>("wires"), ...(routes.length ? { routes } : {}) },
+    layout: { blocks, wires: json<Wire>("wires"), ...(routes.length ? { routes } : {}), ...(Object.keys(fills).length ? { fills } : {}) },
   };
 }
 

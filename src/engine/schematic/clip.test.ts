@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { SbCatalog } from "../sandbox/catalog";
 import type { Layout } from "../sandbox/layout";
-import { clipLayout, clipOf, clipToSchematic, copyZone, fingerprint, flipClip, rotateClip, type Clip } from "./clip";
+import { clipLayout, clipOf, clipToSchematic, copyZone, fingerprint, flipClip, mergeFills, rotateClip, type Clip } from "./clip";
 import { fromCode, readMsch, toCode, writeMsch } from "./msch";
 
 const size = (w: number, h: number, pipe?: object) => ({ size: { w, h }, geo: { w, h, ports: [] }, ...(pipe ? { pipe } : {}) });
@@ -54,6 +54,33 @@ describe("copie d'une zone", () => {
     const old: Clip = { id: 1, items: [{ id: "pole", dx: 2, dy: 3, r: 0, choice: null }], W: 6, H: 6 };
     const c = clipOf(cat, clipLayout(old))!;
     expect([c.W, c.H, c.items[0]!.dx]).toEqual([1, 1, 0]);
+  });
+});
+
+describe("chiffres saisis pour une recette", () => {
+  const fills = { "iron-coil": { s: 12, in: { iron: 3, coal: 1 } }, "autre": { s: 9 } };
+  const c = () => copyZone(cat, { ...mount, fills }, 8, 18, 20, 30)!;
+
+  it("seuls ceux des recettes copiées suivent, et ils passent le code et le fichier", async () => {
+    expect(c().fills).toEqual({ "iron-coil": fills["iron-coil"] });
+    const s = clipToSchematic(stored(c()), { name: "Essai" }), print = fingerprint(clipLayout(c()));
+    for (const back of [await fromCode(await toCode(s)), await readMsch(await writeMsch(s))]) {
+      expect(back.layout.fills).toEqual({ "iron-coil": fills["iron-coil"] });
+      expect(fingerprint(clipLayout(clipOf(cat, back.layout)!, 7, 7))).toBe(print);
+    }
+  });
+
+  it("l'empreinte voit un chiffre changé, pas l'ordre des saisies", () => {
+    const base = clipLayout(c()), print = fingerprint(base);
+    expect(fingerprint({ ...base, fills: { "iron-coil": { s: 13, in: { iron: 3, coal: 1 } } } })).not.toBe(print);
+    expect(fingerprint({ ...base, fills: { "iron-coil": { in: { coal: 1, iron: 3 }, s: 12 } } })).toBe(print);
+  });
+
+  it("un schéma d'un autre joueur ne remplace rien et ne fait pas entrer de valeur fausse", async () => {
+    expect(mergeFills({ a: { s: 1 } }, { a: { s: 2 }, b: { s: 3 } })).toEqual({ a: { s: 1 }, b: { s: 3 } });
+    const bad = { "iron-coil": { s: -1, in: { iron: "x", coal: 2 } }, vide: { s: 0 } } as never;
+    const back = await readMsch(await writeMsch(clipToSchematic({ ...zone(), fills: bad }, { name: "x" })));
+    expect(back.layout.fills).toEqual({ "iron-coil": { in: { coal: 2 } } });
   });
 });
 

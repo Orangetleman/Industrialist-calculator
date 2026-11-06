@@ -1701,7 +1701,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
   `maquette/planifier.html` (poste de commande) ; lots S59 à S64. Validée le 2026-11-01 (réponses au § 5) ; prochain lot : S59.
 - **2026-11-06, B5** (697 tests, **non déployé** : `npm run deploy` refusé par le contrôle des permissions de la session) : S53 à S55 avaient fait la fenêtre, le `.msch`, le code et le fichier. Ajouté : `src/engine/schematic/clip.ts` (copie avec câbles, liaisons, voies ; rotation et retournement ; `fingerprint`), lien limité à 2 000 caractères à l'export d'un schéma, touche M = grande carte (choix A de `maquette/b5-reste.html`), recherche de la base de données ; la recherche des schémas, sans effet jusque-là, marche. Une touche ajoutée s'applique aussi aux touches déjà enregistrées.
   Contrôlé (serveur `calculateur`, 1 366 × 768) : recherches, longueur du lien, schéma collé avec son câble, grande carte (M, clic). Pas fait à la main : F maintenu au glisser, Z / X (couverts par les tests), anglais à l'écran. Erreurs 502 en console : service des remarques absent en local.
-  À surveiller : les chiffres saisis pour une recette incomplète ne voyagent pas dans un schéma (`fills`) ; la grande carte n'a pas de bouton (téléphone : B6).
+  Les chiffres saisis pour une recette incomplète voyagent désormais dans les schémas (`fills`), sans jamais remplacer ceux du joueur. À surveiller : la grande carte n'a pas de bouton (téléphone : B6).
 
 ## 7. Gestion des sessions
 
