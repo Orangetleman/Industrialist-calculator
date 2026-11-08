@@ -1703,6 +1703,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
   Contrôlé (serveur `calculateur`, 1 366 × 768) : recherches, longueur du lien, schéma collé avec son câble, grande carte (M, clic). Pas fait à la main : F maintenu au glisser, Z / X (couverts par les tests), anglais à l'écran. Erreurs 502 en console : service des remarques absent en local.
   Les chiffres saisis pour une recette incomplète voyagent désormais dans les schémas (`fills`), sans jamais remplacer ceux du joueur. À surveiller : la grande carte n'a pas de bouton (téléphone : B6).
 - **2026-11-08, barre de calcul rétablie** (710 tests) : depuis S66, l'avancement de « Toute l'usine » (S33 : temps écoulé, « ■ Arrêter », « module par module »), l'échec, l'arrêt et le plan abrégé de S42 (« Continuer le calcul ») s'écrivaient dans `#pose-head`, rangé dans la fenêtre repliée « Plan de pose » du volet droit, donc invisibles. Ils sont maintenant tous dans la boîte posée sur le plan (`#pose-busy`), et le plan abrégé dans un bandeau en bas du plan (`#pose-cut`), à plat et sans arrondis. Garde-fou : `src/ui/usine-progress.test.ts`. Parcours : Electric Motor en usine entière, barre, coupure à 20 s, Continuer, Arrêter, Relancer.
+  Ajout demandé : « Continuer le calcul » aussi dans « Ce plan » (volet droit), avec la durée déjà passée, quand le plan est abrégé.
 
 ## 7. Gestion des sessions
 

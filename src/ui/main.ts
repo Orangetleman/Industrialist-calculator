@@ -2055,7 +2055,7 @@ function renderFactory(): void {
       $("pose-frame").hidden = false;
       $("pose-canvas").innerHTML = "";
     }
-    $("pose-cut").hidden = true;
+    $("pose-cut").hidden = $("cat-cut").hidden = true;
     $("pose-head").innerHTML = "";
     return;
   }
@@ -2063,7 +2063,9 @@ function renderFactory(): void {
   $("pose-busy").innerHTML = "";
   // S42 : plan abrégé, « Continuer le calcul » sur le plan lui-même (pas seulement dans le volet replié).
   const cut = $("pose-cut");
-  cut.hidden = !st.plan.cut;
+  cut.hidden = $("cat-cut").hidden = !st.plan.cut;
+  // Le même bouton dans « Ce plan » (volet droit), avec la durée déjà passée.
+  $("cat-cut-n").textContent = st.plan.cut ? t("m.f.sec", { s: fmt(st.ms / 1000, 0) }) : "";
   cut.innerHTML = st.plan.cut ? `<span>${t("uf.cut", { s: fmt(st.ms / 1000, 0) })}</span> <button type="button" class="small" data-usine="complete">${t("uf.cut.more")}</button>` : "";
   const plot = plotOf(player);
   const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue, st.cached);
@@ -3489,6 +3491,12 @@ function bindPlan(): void {
     } else return false;
     return true;
   };
+  $("cat-cut").addEventListener("click", () => {
+    startFactory(true);
+    poseStep = USINE;
+    refine({ page: "plan", goal: settings.goal, tab: "pose", step: USINE });
+    renderPose();
+  });
   for (const id of ["pose-busy", "pose-cut"])
     $(id).addEventListener("click", (e) => {
       const u = (e.target as Element).closest<HTMLElement>("[data-usine]");

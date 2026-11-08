@@ -16,6 +16,11 @@ describe("barre de calcul de l'usine", () => {
     expect(frame).toContain('id="pose-busy"');
     expect(frame).toContain('id="pose-cut"');
   });
+  it("« Continuer le calcul » aussi dans « Ce plan » (volet droit)", () => {
+    const root = html.slice(html.indexOf('id="pane-root"'), html.indexOf('data-pane="io" aria-labelledby'));
+    expect(root).toContain('id="cat-cut"');
+    expect(main).toMatch(/\$\("cat-cut"\)\.addEventListener\("click"[^]*?startFactory\(true\)/);
+  });
   it("avancement, temps écoulé, Arrêter, module par module, relancer et continuer y sont branchés", () => {
     for (const s of ['id="usine-progress"', 'class="since', 'data-usine="cancel"', 'data-usine="bymodule"', 'data-usine="run"', 'data-usine="complete"', 'role="status"'])
       expect(main).toContain(s);
