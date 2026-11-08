@@ -1718,6 +1718,8 @@ function renderStepRail(): void {
 }
 
 function renderPose(): void {
+  // La boîte de calcul et le bandeau du plan abrégé ne concernent que « Toute l'usine » ; renderFactory les remet.
+  $("pose-busy").hidden = $("pose-cut").hidden = true;
   const { mods, asms } = fillPoseSteps();
   if (!mods.length && !asms.length) {
     $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
@@ -2040,25 +2042,29 @@ function renderFactory(): void {
     const pct = Math.round(st.done * 100);
     // S33 : le temps écoulé hors de la zone annoncée (il change chaque seconde), « Arrêter » bien visible.
     const progress = `<div class="progress" id="usine-progress"><span class="lbl" role="status" aria-live="polite">${esc(txt(st.label))}</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span><span class="pct">${fmtPct(String(pct))}</span><span class="since hint">${esc(sinceText(st))}</span><button type="button" class="btn-stop" data-usine="cancel">${withIcons(t("m.f.cancel"))}</button></div>${byModuleTip()}`;
+    // Toujours dans la boîte posée sur le plan (#pose-busy) : depuis S66, #pose-head est dans une fenêtre repliée
+    // du volet droit, la barre y devenait invisible (régression). Test : usine-progress.test.ts.
     const busy = $("pose-busy");
-    if (keep && !st.error && !st.cancelled) {
-      // L'avancement par-dessus l'ancien dessin ; le résumé reste en place jusqu'au nouveau.
-      busy.innerHTML = progress;
-      busy.hidden = false;
-      return;
-    }
-    busy.hidden = true;
-    busy.innerHTML = "";
-    panel.classList.remove("computing");
-    $("pose-head").innerHTML = st.error
-      ? `<p class="warn-text">${esc(t("m.f.failed", { err: st.error }))}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>`
+    busy.innerHTML = st.error
+      ? `<p class="warn-text" role="alert">${esc(t("m.f.failed", { err: st.error }))}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>`
       : st.cancelled
-        ? `<p class="muted">${t("m.f.cancelled")}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>${byModuleTip()}`
-        : `<p class="mod-sum">${t("m.f.computing.html", { long: settings.usine.full ? t("m.f.long") : "" })}</p>${progress}`;
+        ? `<p class="muted" role="status">${t("m.f.cancelled")}</p><p><button type="button" data-usine="run">${t("m.f.rerun")}</button></p>${byModuleTip()}`
+        : `${keep ? "" : `<p class="mod-sum">${t("m.f.computing.html", { long: settings.usine.full ? t("m.f.long") : "" })}</p>`}${progress}`;
+    busy.hidden = false;
+    if (!keep) {
+      $("pose-frame").hidden = false;
+      $("pose-canvas").innerHTML = "";
+    }
+    $("pose-cut").hidden = true;
+    $("pose-head").innerHTML = "";
     return;
   }
   $("pose-busy").hidden = true;
   $("pose-busy").innerHTML = "";
+  // S42 : plan abrégé, « Continuer le calcul » sur le plan lui-même (pas seulement dans le volet replié).
+  const cut = $("pose-cut");
+  cut.hidden = !st.plan.cut;
+  cut.innerHTML = st.plan.cut ? `<span>${t("uf.cut", { s: fmt(st.ms / 1000, 0) })}</span> <button type="button" class="small" data-usine="complete">${t("uf.cut.more")}</button>` : "";
   const plot = plotOf(player);
   const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue, st.cached);
   $("pose-head").innerHTML = info.head;
@@ -3471,18 +3477,23 @@ function bindPlan(): void {
       st.job?.cancel();
       Object.assign(st, { job: null, cancelled: true });
       renderPose();
-      $("pose-head").querySelector<HTMLElement>("[data-usine]")?.focus();
+      $("pose-busy").querySelector<HTMLElement>("[data-usine]")?.focus();
     } else if (u.dataset.usine === "bymodule") {
       settings.usine = { ...settings.usine, full: false };
       saveSettings(settings);
       renderPose();
+    } else if (u.dataset.usine === "run" || u.dataset.usine === "complete") {
+      startFactory(u.dataset.usine === "complete");
+      renderPose();
+      $("pose-busy").querySelector<HTMLElement>("[data-usine]")?.focus();
     } else return false;
     return true;
   };
-  $("pose-busy").addEventListener("click", (e) => {
-    const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
-    if (u) onUsine(u);
-  });
+  for (const id of ["pose-busy", "pose-cut"])
+    $(id).addEventListener("click", (e) => {
+      const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
+      if (u) onUsine(u);
+    });
   $("pose-head").addEventListener("click", (e) => {
     const u = (e.target as Element).closest<HTMLElement>("[data-usine]");
     if (u) {
