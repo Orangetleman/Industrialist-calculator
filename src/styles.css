@@ -1,5 +1,5 @@
 /* S59 : charte « Plasma Chantier » (maquette/charte.html, validée le 2026-11-01) : violet profond, accent orange
-   sécurité, bandeau hachuré, police Audiowide partout (celle des lettres de Mindustry). Sombre par défaut ; le clair est une option (bouton de l'en-tête).
+   sécurité, bandeau hachuré, police Audiowide pour les titres, onglets et logo (remarque n° 14 : IBM Plex Sans pour le texte, Plex Mono pour les chiffres). Sombre par défaut ; le clair est une option (bouton de l'en-tête).
    Entrée = cyan (--in), sortie = mauve (--out), doublées d'une icône : le rouge reste aux erreurs. */
 :root {
   --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
@@ -14,8 +14,8 @@
   --cv-ink: #f0ecfa; --cv-muted: #b3a7d1; --cv-acc: #ff6a1a; --cv-acc-ink: #ff9a5e; --cv-acc-hi: #ffb489; --cv-acc-soft: #33190c;
   --cv-steel: #c4a1ff; --cv-hud: #1d1430f0;
   --f-display: "Audiowide", "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
-  --f-body: "Audiowide", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "Audiowide", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -118,6 +118,7 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 .focus-posed label.done { color: var(--ok); }
 /* Visite d'orientation (S24) : voile, projecteur, bulle fixe en bas ; bouton « ? » de l'en-tête. */
 .help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; padding: 0; }
+.help-btn.wide { width: auto; border-radius: 999px; padding: 0 10px; white-space: nowrap; }
 .help-btn:hover { color: var(--accent); border-color: var(--accent); }
 /* S30 : bouton FR / EN (maquette S16, écran 1). */
 .lang-sw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
@@ -301,7 +302,7 @@ ul.notices li.tip::before { background: var(--ok); }
 
 /* Onglets de résultat */
 .rtabs { display: flex; gap: 4px; margin-top: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
-.rtabs button { border: 0; border-radius: 0; background: none; padding: 9px 14px; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
+.rtabs button { font-family: var(--f-display); border: 0; border-radius: 0; background: none; padding: 9px 14px; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
 .rtabs button:hover { color: var(--ink); }
 .rtabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
 .rpanel { background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; padding: 14px 16px; margin-top: -16px; display: flex; flex-direction: column; gap: 10px; }
@@ -1834,3 +1835,6 @@ table.rh-log td.num { white-space: nowrap; }
 .rs-blk { font-size: .85rem; margin: 6px 0; }
 .rs-blk summary { display: inline-block; background: #e5484d; color: #fff; font-weight: 700; padding: 1px 8px; cursor: pointer; }
 .rs-blk p { margin: 4px 0 0; padding: 4px 8px; border-left: 3px solid #e5484d; }
+
+/* Remarque n° 14 : les onglets du site gardent Audiowide (option B). */
+[data-nav] { font-family: var(--f-display); }

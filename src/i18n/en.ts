@@ -52,6 +52,7 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "header.play.off.title": "Not in game: your RP stays the same. Click when you start the game.",
   "header.play.on.aria": "Not playing",
   "header.play.off.aria": "Playing",
+  "header.help.label": "? Tutorial",
   "header.help.title": "Site tour",
   "header.theme.title": "Light / dark theme",
   "header.help.aria": "Replay the site tour",

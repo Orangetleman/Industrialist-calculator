@@ -57,6 +57,7 @@ export const fr = {
   "header.play.off.title": "Hors jeu : les RP ne bougent pas. Clique quand tu lances le jeu.",
   "header.play.on.aria": "Je ne joue plus",
   "header.play.off.aria": "Je joue",
+  "header.help.label": "? Tutoriel",
   "header.help.title": "Visite du site",
   "header.theme.title": "Thème clair / sombre",
   "header.help.aria": "Rejouer la visite du site",
