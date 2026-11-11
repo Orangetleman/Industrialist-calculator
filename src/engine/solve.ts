@@ -255,7 +255,7 @@ const fmtNum = (x: number) => Math.round(x * 100) / 100;
 export function solve(data: GameData, player: PlayerState, req: SolveRequest): Plan {
   const fixed = Object.entries(req.fixedMachines ?? {}).filter(([, n]) => Number.isFinite(n) && n >= 1);
   if (fixed.length && req.demands === undefined) return solveFixed(data, player, req, fixed);
-  return withoutIdleAsu(data, player, req, solveInner(data, player, req, false));
+  return solveAsuAware(data, player, req);
 }
 
 const ASU = "air-separation-unit";
@@ -279,12 +279,37 @@ function wholeCost(plan: Plan, criterion: Criterion): number | null {
  * une entière (20 MMF/s, et trois sous-produits à évacuer). On la garde si le plan en a besoin, ou s'il reste
  * strictement meilleur compté en machines entières, sans tourner presque à vide (POL-14).
  */
-function withoutIdleAsu(data: GameData, player: PlayerState, req: SolveRequest, plan: Plan): Plan {
-  if (!plan.steps.some((s) => s.machine === ASU)) return plan;
-  if (Object.values(req.forced ?? {}).some((id) => data.recipes.get(id)?.machine === ASU)) return plan;
+/** Objets que l'ASU fournit, directement ou après un seul passage (Vaporizer) : sans eux, elle ne sert à rien. */
+const asuItemsMemo = new WeakMap<GameData, Set<string>>();
+function asuItems(data: GameData): Set<string> {
+  let out = asuItemsMemo.get(data);
+  if (!out) {
+    const direct = new Set([...data.recipes.values()].filter((r) => r.machine === ASU).flatMap((r) => Object.keys(r.outputs)));
+    out = new Set(direct);
+    for (const r of data.recipes.values()) if (Object.keys(r.inputs).some((i) => direct.has(i))) for (const o of Object.keys(r.outputs)) out.add(o);
+    asuItemsMemo.set(data, out);
+  }
+  return out;
+}
+
+/**
+ * Le plan sans ASU d'abord (le cas courant, un seul calcul) ; avec elle seulement si ce plan touche à ce
+ * qu'elle fournit, puis la règle de `withoutIdleAsu`.
+ */
+function solveAsuAware(data: GameData, player: PlayerState, req: SolveRequest): Plan {
+  if (!machineAccess(data, player, ASU).available || Object.values(req.forced ?? {}).some((id) => data.recipes.get(id)?.machine === ASU)) return solveInner(data, player, req, false);
   const f = req.machines;
+  if ((f?.mode === "exclure" && f.ids.includes(ASU)) || (f?.mode === "seulement" && !f.ids.includes(ASU))) return solveInner(data, player, req, false);
   const machines: MachineFilter = f?.mode === "seulement" ? { ...f, ids: f.ids.filter((id) => id !== ASU) } : { mode: "exclure", ids: [...(f?.ids ?? []), ASU] };
   const other = solveInner(data, player, { ...req, machines }, false);
+  const items = asuItems(data);
+  const touches = other.steps.some((s) => items.has(s.item) || s.inputs.some((i) => items.has(i.item))) || other.unresolved.some((u) => items.has(u.item));
+  if (!touches) return other;
+  return withoutIdleAsu(data, req, solveInner(data, player, req, false), other);
+}
+
+function withoutIdleAsu(data: GameData, req: SolveRequest, plan: Plan, other: Plan): Plan {
+  if (!plan.steps.some((s) => s.machine === ASU)) return plan;
   if (other.unresolved.length > plan.unresolved.length) return plan;
   const criterion = req.criterion ?? "machines";
   const [mine, theirs] = [wholeCost(plan, criterion), wholeCost(other, criterion)];
@@ -309,7 +334,7 @@ function withRate(req: SolveRequest, rate: number): SolveRequest {
  */
 function solveFixed(data: GameData, player: PlayerState, req: SolveRequest, wanted: [string, number][]): Plan {
   const { fixedMachines: _f, ...plain } = req;
-  const base = withoutIdleAsu(data, player, plain, solveInner(data, player, plain, false));
+  const base = solveAsuAware(data, player, plain);
   const baseRate = base.target.ratePerMin;
   const fixable: { key: string; recipeId: string; n: number; planMachines: number }[] = [];
   const ignored: string[] = [];
