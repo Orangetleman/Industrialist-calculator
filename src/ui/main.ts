@@ -149,6 +149,8 @@ import {
   setBuilt,
   setCorrection,
   DEFAULT_SETTINGS,
+  displayRate,
+  storedRate,
   engineFilter,
   planKey,
   planMachines,
@@ -1045,9 +1047,9 @@ function syncForm(): void {
   };
   set("item", isBlank("objet") ? "" : (data.items.get(settings.item)?.name ?? settings.item));
   renderItemPick();
-  $<HTMLSelectElement>("qty-unit").value = settings.mode;
-  // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste).
-  set("qty", isBlank("objet") ? "" : settings.mode === "rate" ? String(Number(settings.rate.toFixed(4))) : String(settings.machines));
+  $<HTMLSelectElement>("qty-unit").value = settings.mode === "machines" ? "machines" : settings.rateUnit === "s" ? "rate-s" : "rate";
+  // Affichage arrondi ; le réglage garde la valeur exacte (un palier tombe juste), toujours par minute.
+  set("qty", isBlank("objet") ? "" : settings.mode === "rate" ? String(Number(displayRate(settings.rate, settings.rateUnit).toFixed(4))) : String(settings.machines));
   set("money", isBlank("argent") ? "" : String(settings.money));
   $<HTMLSelectElement>("energy-unit").value = settings.energyUnit;
   set("energy", isBlank("énergie") ? "" : String(Number((settings.energyMFps / (settings.energyUnit === "M" ? 1e6 : 1e3)).toFixed(4))));
@@ -1100,7 +1102,7 @@ function renderPlanPage(): void {
     : t("adv.rpCurrent.none.html");
   let goalHint = "";
   if (goal === "recherche" && settings.rpMode === "plan") {
-    const what = settings.mode === "rate" ? `${fmt(settings.rate, 2)} ${itemName(settings.item)}/min` : t("plan.goalHint.machines", { n: String(settings.machines), item: itemName(settings.item) });
+    const what = settings.mode === "rate" ? `${fmt(displayRate(settings.rate, settings.rateUnit), 2)} ${itemName(settings.item)}/${settings.rateUnit === "s" ? "s" : "min"}` : t("plan.goalHint.machines", { n: String(settings.machines), item: itemName(settings.item) });
     goalHint = t("plan.goalHint.html", { what: esc(what) });
   }
   $("goal-hint").innerHTML = goalHint;
@@ -1569,7 +1571,7 @@ let savedPlans = loadSaved();
 const GOAL_HASH: Record<Goal, string> = { objet: "#objet", "énergie": "#energie", recherche: "#rp", argent: "#argent" };
 function savedName(): string {
   const g = settings.goal;
-  if (g === "objet") return settings.mode === "rate" ? `${fmt(settings.rate, 2)}/min ${itemName(settings.item)}` : `${settings.machines} × ${itemName(settings.item)}`;
+  if (g === "objet") return settings.mode === "rate" ? `${fmt(displayRate(settings.rate, settings.rateUnit), 2)}/${settings.rateUnit === "s" ? "s" : "min"} ${itemName(settings.item)}` : `${settings.machines} × ${itemName(settings.item)}`;
   if (g === "énergie") return `${fmt(settings.energyMFps, 2)} MF/s`;
   if (g === "argent") return `${fmt(settings.money, 0)}/min`;
   return t("plan.goal.recherche");
@@ -3350,14 +3352,24 @@ function bindPlan(): void {
     });
   num("qty", (v) => {
     if (!(v! > 0)) return false;
-    if (settings.mode === "rate") settings.rate = v!;
+    if (settings.mode === "rate") settings.rate = storedRate(v!, settings.rateUnit);
     else settings.machines = v!;
     enter("objet");
     return true;
   });
   // Changer d'unité garde la même production : le nombre affiché est converti.
   $("qty-unit").addEventListener("change", (e) => {
-    const mode = (e.target as HTMLSelectElement).value as Settings["mode"];
+    const choice = (e.target as HTMLSelectElement).value;
+    const mode: Settings["mode"] = choice === "machines" ? "machines" : "rate";
+    if (mode === "rate") {
+      const unit = choice === "rate-s" ? "s" : "min";
+      if (settings.mode === "rate") {
+        // Même débit stocké (par minute) : seul l'affichage change.
+        settings.rateUnit = unit;
+        return update();
+      }
+      settings.rateUnit = unit;
+    }
     if (mode === settings.mode) return;
     if (plan && plan.target.kind === "objet" && plan.status !== "impossible") {
       if (mode === "machines") {

@@ -83,6 +83,8 @@ export type Settings = {
   item: string;
   mode: "rate" | "machines";
   rate: number;
+  /** Unité d'affichage/saisie du débit : `rate` reste toujours stocké par minute. */
+  rateUnit: "min" | "s";
   machines: number;
   /** Priorité de chaque objectif (critère d'optimisation). */
   /** Priorités par objectif, dans l'ordre : la première décide, les suivantes départagent. */
@@ -147,6 +149,7 @@ export const DEFAULT_SETTINGS: Settings = {
   entered: [],
   item: "crankshaft",
   mode: "rate",
+  rateUnit: "min",
   rate: 60,
   machines: 15,
   // Objet : l'ordre d'un joueur avancé (S15) : la place, le nombre de machines, l'énergie, puis le prix.
@@ -243,6 +246,7 @@ export function loadSettings(): Settings {
   const ex = out.existing && typeof out.existing === "object" && !Array.isArray(out.existing) ? out.existing : {};
   out.existing = Object.fromEntries(Object.entries(ex).filter(([k, v]) => typeof k === "string" && typeof v === "number" && v > 0));
   if (out.mode !== "rate" && out.mode !== "machines") out.mode = DEFAULT_SETTINGS.mode;
+  if (out.rateUnit !== "min" && out.rateUnit !== "s") out.rateUnit = DEFAULT_SETTINGS.rateUnit;
   if (!(out.rate > 0)) out.rate = DEFAULT_SETTINGS.rate;
   if (!(out.machines > 0)) out.machines = DEFAULT_SETTINGS.machines;
   if (!out.forced || typeof out.forced !== "object") out.forced = {};
@@ -498,3 +502,8 @@ export function isOverridesFile(x: unknown): x is OverridesFile {
   if (!isMap(o.added) || !isMap(o.removed) || !isMap(o.added?.items) || !isMap(o.added?.recipes) || !isMap(o.removed?.recipes)) return false;
   return true;
 }
+
+/** Débit stocké (par minute) → valeur affichée dans l'unité choisie. */
+export const displayRate = (perMin: number, unit: "min" | "s"): number => (unit === "s" ? perMin / 60 : perMin);
+/** Valeur saisie dans l'unité choisie → débit stocké (par minute). */
+export const storedRate = (v: number, unit: "min" | "s"): number => (unit === "s" ? v * 60 : v);
