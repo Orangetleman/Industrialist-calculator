@@ -179,6 +179,7 @@ export const planFr = {
   "rd.own": "Je la possède",
   "rd.unlocked": "Je les ai débloquées",
   "rd.mustOwn": "Il faut posséder la machine {m} (elle ne se débloque pas par la recherche).",
+  "rd.blocked": "{m} : recherche interdite par la difficulté ({list}).",
   "rd.missing": "Recherche manquante pour {m} : {list} ({rp}){sell}.",
   "rd.missing.sell": " et vendre {list}",
   "leaf.verrouillé": "Recherche manquante pour toutes les recettes.",

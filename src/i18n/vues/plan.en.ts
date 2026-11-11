@@ -180,6 +180,7 @@ export const planEn: { [K in keyof typeof planFr]: Msg } = {
   "rd.own": "I own it",
   "rd.unlocked": "I unlocked them",
   "rd.mustOwn": "You need to own the {m} machine (it isn't unlocked by research).",
+  "rd.blocked": "{m}: research blocked by the difficulty ({list}).",
   "rd.missing": "Missing research for {m}: {list} ({rp}){sell}.",
   "rd.missing.sell": " and sell {list}",
   "leaf.verrouillé": "Research missing for every recipe.",

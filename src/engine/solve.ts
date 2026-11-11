@@ -454,7 +454,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     for (const d of req.depots ?? []) {
       if (d.kind !== "objet" || !(d.itemsPerSec! > 0)) continue;
       const a = machineAccess(data, player, d.id);
-      if (!a.available && !a.needsOwnership && (!depotUnlock || a.rpCost < depotUnlock.rpCost)) depotUnlock = a;
+      if (!a.available && !a.needsOwnership && !a.blocked && (!depotUnlock || a.rpCost < depotUnlock.rpCost)) depotUnlock = a;
     }
     const how = depotUnlock ? msg("plan.noDepot.how", { list: { join: depotUnlock.missingNodes.map((n) => data.nodes.get(n)?.name ?? n), by: "flèche" } }) : undefined;
     warnings.push({ code: "dépôt", message: msg("plan.noDepot", { how }) });
@@ -675,7 +675,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     for (const cand of c.candidates) {
       if (cand.status !== "verrouillée" || !cand.access || cand.access.available) continue;
       const a = cand.access;
-      const better = !unlock || (unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost);
+      const better = !unlock || (!!unlock.blocked && !a.blocked) || (!a.blocked && ((unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost)));
       if (better) unlock = { ...a, recipeId: cand.recipeId };
     }
     const loopShortfall = prodOf.has(item);

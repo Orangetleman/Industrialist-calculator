@@ -307,7 +307,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     for (const cand of c.candidates) {
       if (cand.status !== "verrouillée" || !cand.access || cand.access.available) continue;
       const a = cand.access;
-      const better = !unlock || (unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost);
+      const better = !unlock || (!!unlock.blocked && !a.blocked) || (!a.blocked && ((unlock.needsOwnership && !a.needsOwnership) || (!a.needsOwnership && a.rpCost < unlock.rpCost)));
       if (better) unlock = { ...a, recipeId: cand.recipeId };
     }
     const excluded = excludedMachines(c.candidates);
@@ -457,7 +457,9 @@ function fmtNum(x: number): number {
 }
 
 /** Pourquoi un objet n'est pas produit (raison du choix des recettes), pour le message. */
-export function unresolvedWhy(data: GameData, reason: LeafReason, unlock: { needsOwnership: boolean; machine: string; missingNodes: string[] } | undefined): Message {
+export function unresolvedWhy(data: GameData, reason: LeafReason, unlock: { needsOwnership: boolean; machine: string; missingNodes: string[]; blocked?: string[] } | undefined): Message {
+  if (reason === "verrouillé" && unlock?.blocked?.length)
+    return msg("why.blocked", { list: { join: unlock.blocked.map((n) => data.nodes.get(n)?.name ?? n), by: "virgule" } });
   if (reason === "verrouillé")
     return unlock?.needsOwnership
       ? msg("why.own", { m: data.machines.get(unlock.machine)?.name ?? unlock.machine })

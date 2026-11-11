@@ -1825,3 +1825,12 @@ table.rh-log td.num { white-space: nowrap; }
 .gs-eff th, .gs-eff td { text-align: left; padding: 4px 10px 4px 0; border-top: 1px solid var(--line); }
 .gs-flash { animation: gs-flash 1.6s ease-out; }
 @keyframes gs-flash { 0%, 40% { outline: 2px solid var(--accent); outline-offset: 3px; } 100% { outline: 2px solid transparent; outline-offset: 3px; } }
+
+/* S51 : recherches bloquées par la difficulté */
+.rs-node.blocked rect { fill: var(--rs-lock); opacity: .45; stroke-dasharray: 5 3; }
+.rs-node.blocked .rs-name { text-decoration: line-through; opacity: .6; }
+.rs-node .rs-stk rect { fill: #e5484d; stroke: none; opacity: 1; stroke-dasharray: none; }
+.rs-node .rs-stk text { fill: #fff !important; font-size: 10px; font-weight: 700; text-decoration: none; opacity: 1; }
+.rs-blk { font-size: .85rem; margin: 6px 0; }
+.rs-blk summary { display: inline-block; background: #e5484d; color: #fff; font-weight: 700; padding: 1px 8px; cursor: pointer; }
+.rs-blk p { margin: 4px 0 0; padding: 4px 8px; border-left: 3px solid #e5484d; }

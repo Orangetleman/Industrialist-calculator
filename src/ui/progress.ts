@@ -1,6 +1,7 @@
 // Progression du joueur (arbre de recherche, machines possédées) et « Ma partie »
 // (pollution, argent, RP, RP/s). Persistance locale + rendu HTML (pur).
 
+import { isDifficulty, type Difficulty } from "../engine/difficulty.ts";
 import type { GameData } from "../engine/data.ts";
 import { balanceAfter, parseResearchSetup, type ResearchSetup, type RpTier } from "../engine/research-balance.ts";
 import { parseJournal, type RpJournal } from "../engine/rp-history.ts";
@@ -23,6 +24,8 @@ export type PlayerInfo = {
   month: number | null;
   /** La ferme a un Igloo Farm Controller. */
   igloo: boolean;
+  /** Difficulté de la partie (S51) ; agit seulement sur les plans. */
+  difficulty: Difficulty;
   money: number | null;
   rp: number | null;
   rpPerSec: number | null;
@@ -87,7 +90,7 @@ const KEY_PLAYER = "ind-calc:v1:player";
 export const EMPTY_PROGRESS: ProgressState = { unlocked: [], reqItemsDone: [], owned: [] };
 const monthOrNull = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 12 ? v : null);
 
-export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, month: null, igloo: false, money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
+export const EMPTY_PLAYER: PlayerInfo = { pollutionPct: null, month: null, igloo: false, difficulty: "normal", money: null, rp: null, rpPerSec: null, rpAt: null, spendRp: false, gamePass: false, plotW: null, plotH: null, research: null };
 
 const strings = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
 const numOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
@@ -112,7 +115,7 @@ export function loadPlayer(): PlayerInfo {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
-    return { pollutionPct: numOrNull(raw.pollutionPct), month: monthOrNull(raw.month), igloo: raw.igloo === true, money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH), research: parseResearchSetup(raw.research) };
+    return { pollutionPct: numOrNull(raw.pollutionPct), month: monthOrNull(raw.month), igloo: raw.igloo === true, difficulty: isDifficulty(raw.difficulty) ? raw.difficulty : "normal", money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH), research: parseResearchSetup(raw.research) };
   } catch {
     return { ...EMPTY_PLAYER };
   }
@@ -186,7 +189,7 @@ export function parseProgressExport(
   return {
     ok: true,
     progress: { unlocked: [...new Set(clean.unlocked)], reqItemsDone: [...new Set(clean.reqItemsDone)], owned: [...new Set(clean.owned)] },
-    player: { pollutionPct: numOrNull(pl.pollutionPct), month: monthOrNull(pl.month), igloo: pl.igloo === true, money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH), research: parseResearchSetup(pl.research) },
+    player: { pollutionPct: numOrNull(pl.pollutionPct), month: monthOrNull(pl.month), igloo: pl.igloo === true, difficulty: isDifficulty(pl.difficulty) ? pl.difficulty : "normal", money: numOrNull(pl.money), rp: numOrNull(pl.rp), rpPerSec: numOrNull(pl.rpPerSec), rpAt: numOrNull(pl.rpAt), spendRp: pl.spendRp === true, gamePass: pl.gamePass === true, plotW: numOrNull(pl.plotW), plotH: numOrNull(pl.plotH), research: parseResearchSetup(pl.research) },
     history: parseJournal(r.history),
     dropped,
     exportedAt: typeof r.exportedAt === "string" ? r.exportedAt : null,

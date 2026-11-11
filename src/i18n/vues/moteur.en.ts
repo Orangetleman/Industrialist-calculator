@@ -148,6 +148,7 @@ export const moteurEn: { [K in keyof typeof moteurFr]: Msg } = {
   "eng.plan.unresolved": "{item} ({r}/min) isn't produced: {why}.",
   "eng.why.own": "you need to own the machine {m}",
   "eng.why.research": "missing research: {list}",
+  "eng.why.blocked": "research blocked by the difficulty: {list}",
   "eng.why.none": "no known recipe (unknown source)",
   "eng.why.unverified": "only recipes “to check” exist (turn on the option to use them)",
   "eng.why.incomplete": "the known recipes have missing values",

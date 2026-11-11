@@ -62,11 +62,13 @@ export function ownButton(machines: string[]): string {
 }
 export function accessButton(a: Step["access"]): string {
   if (a.available) return "";
+  if (a.blocked?.length) return `<button type="button" class="link" data-gset="difficulty">${t("dif.change")}</button>`;
   return a.needsOwnership ? ownButton([a.machine]) : unlockButton(a.missingNodes, t("rd.unlocked"));
 }
 
 export function lockText(ctx: Ctx, a: Step["access"]): string {
   if (a.available) return "";
+  if (a.blocked?.length) return t("rd.blocked", { m: machineN(ctx, a.machine), list: a.blocked.map((n) => nodeN(ctx, n)).join(", ") });
   if (a.needsOwnership) return t("rd.mustOwn", { m: machineN(ctx, a.machine) });
   const sell = a.reqItems.length ? t("rd.missing.sell", { list: a.reqItems.map((r) => `${r.amount} ${itemN(ctx, r.item)}`).join(", ") }) : "";
   return t("rd.missing", { m: machineN(ctx, a.machine), list: a.missingNodes.map((n) => nodeN(ctx, n)).join(" → "), rp: fmtRP(a.rpCost), sell });

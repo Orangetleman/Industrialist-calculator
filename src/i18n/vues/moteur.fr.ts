@@ -151,6 +151,7 @@ export const moteurFr = {
   "eng.plan.unresolved": "{item} ({r}/min) n'est pas produit : {why}.",
   "eng.why.own": "il faut posséder la machine {m}",
   "eng.why.research": "recherche manquante : {list}",
+  "eng.why.blocked": "recherche interdite par la difficulté : {list}",
   "eng.why.none": "aucune recette connue (source inconnue)",
   "eng.why.unverified": "seules des recettes « à vérifier » existent (active l'option pour les utiliser)",
   "eng.why.incomplete": "les recettes connues ont des valeurs manquantes",

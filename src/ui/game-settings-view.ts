@@ -1,6 +1,7 @@
 // Réglages de partie (S50) : ce qu'ils changent, et les pastilles de rappel sur les étapes du plan.
 
 import type { GameData } from "../engine/data.ts";
+import { BLOCKED_RESEARCH, DIFFICULTIES, type Difficulty } from "../engine/difficulty.ts";
 import { asuResidue, isWinter, logsMultiplier, TREE_SCRUBBER_RECIPE, treeScrubberPollution, treeScrubberResidue } from "../engine/game-settings.ts";
 import { treeGrowthSeconds } from "../engine/pollution.ts";
 import { t } from "../i18n/i18n.ts";
@@ -8,7 +9,7 @@ import { esc, fmt } from "./format.ts";
 
 export type GameView = { pollutionPct: number; month: number; igloo: boolean; scrubber: boolean };
 /** Champ de « Ma recherche » visé par une pastille. */
-export type GameField = "pollution" | "month" | "igloo";
+export type GameField = "pollution" | "month" | "igloo" | "difficulty";
 
 const ASU_RECIPE = "air_separation_unit_01";
 const monthName = (m: number): string => t(`gs.m.${m}` as never);
@@ -49,4 +50,17 @@ export function renderGameEffects(data: GameData, g: GameView): string {
     row(t("gs.eff.logs"), logsText, wiki),
     row(t("gs.eff.scrub"), scrubber, `${wiki} ${ic}`),
   ].join("")}</tbody></table></div>`;
+}
+
+/** Menu de la difficulté (S51). */
+export function difficultyOptions(selected: string): string {
+  return DIFFICULTIES.map((d) => `<option value="${d}"${d === selected ? " selected" : ""}>${esc(t(`dif.${d}` as never))}</option>`).join("");
+}
+
+/** Phrase sous le menu : ce que le niveau change pour les plans. */
+export function difficultyNote(data: GameData, d: Difficulty): string {
+  const names = BLOCKED_RESEARCH[d].map((id) => data.nodes.get(id)?.name ?? id);
+  const src = `<span class="src-tag">${t("gs.src.wiki")}</span> <span class="src-tag warn">${t("dif.src.ic")}</span>`;
+  if (names.length) return `${t("dif.note.blocked", { d: t(`dif.${d}` as never), n: String(names.length), list: esc(names.join(", ")) })} ${src}`;
+  return `${t(`dif.note.${d}` as never)} <span class="src-tag">${t("gs.src.wiki")}</span>`;
 }

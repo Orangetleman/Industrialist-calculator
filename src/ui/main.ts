@@ -4,7 +4,9 @@
 
 import "../styles.css";
 import { setFarmLogsMult } from "./modcalc-view.ts";
-import { monthOptions, renderGameEffects, type GameField, type GameView } from "./game-settings-view.ts";
+import { difficultyNote, difficultyOptions, monthOptions, renderGameEffects, type GameField, type GameView } from "./game-settings-view.ts";
+import { BLOCKED_RESEARCH, isDifficulty, withDifficulty } from "../engine/difficulty.ts";
+import type { Blocked } from "./research-view.ts";
 import { DEFAULT_POLLUTION, logsMultiplier, TREE_SCRUBBER } from "../engine/game-settings.ts";
 import itemsJson from "../../data/items.json";
 import machinesJson from "../../data/machines.json";
@@ -350,8 +352,17 @@ function gameView(): GameView {
   return { pollutionPct: player.pollutionPct ?? DEFAULT_POLLUTION, month: player.month ?? new Date().getMonth() + 1, igloo: player.igloo, scrubber: prog.owned.includes(TREE_SCRUBBER) };
 }
 
+/** Recherches que la difficulté retire des plans, pour l'Arbre (S51). */
+function blockedView(): Blocked | undefined {
+  const ids = BLOCKED_RESEARCH[player.difficulty];
+  return ids.length ? { ids: new Set(ids), level: t(`dif.${player.difficulty}` as never) } : undefined;
+}
+
 function renderGameBox(): void {
   const g = gameView();
+  const dif = $("gs-difficulty") as HTMLSelectElement;
+  if (document.activeElement !== dif) dif.innerHTML = difficultyOptions(player.difficulty);
+  $("gs-dif-note").innerHTML = difficultyNote(data, player.difficulty);
   setFarmLogsMult(logsMultiplier(g.month, g.igloo));
   const month = $("gs-month") as HTMLSelectElement;
   if (document.activeElement !== month) month.innerHTML = monthOptions(player.month, new Date().getMonth() + 1);
@@ -370,7 +381,7 @@ function setGame(p: Partial<PlayerInfo>): void {
 /** Une pastille du plan amène à son réglage : onglet, champ à l'écran, focus. */
 function openGameField(field: GameField): void {
   go({ page: "usine", usineTab: "recherche" });
-  const id = field === "pollution" ? "p-pollution" : field === "month" ? "gs-month" : "gs-igloo";
+  const id = field === "pollution" ? "p-pollution" : field === "month" ? "gs-month" : field === "difficulty" ? "gs-difficulty" : "gs-igloo";
   setTimeout(() => {
     const el = $(id);
     el.scrollIntoView({ block: "center" });
@@ -383,7 +394,7 @@ function openGameField(field: GameField): void {
 }
 
 function playerState(): PlayerState {
-  return { ...toEngineProgress(prog), ...player, pollutionPct: gameView().pollutionPct, month: gameView().month, rp: rpNow() };
+  return { ...withDifficulty(data, toEngineProgress(prog), player.difficulty), ...player, pollutionPct: gameView().pollutionPct, month: gameView().month, rp: rpNow() };
 }
 
 // ---------------------------------------------------------------- ma recherche (S20)
@@ -2464,7 +2475,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const p = toEngineProgress(prog);
   const layout = researchLayout();
   if (ui.selected && data.nodes.get(ui.selected)?.category !== treeView.category) ui.selected = null;
-  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, rpNow());
+  $("rs-canvas").innerHTML = renderResearchSvg(data, p, layout, ui.selected, rpNow(), blockedView());
   const svg = $("rs-canvas").querySelector("svg") as SVGSVGElement;
   if (treeView.filter.trim()) {
     for (const g of svg.querySelectorAll<SVGGElement>("[data-rs]")) g.classList.toggle("dim", !matchesFilter(g.dataset.rs!));
@@ -2474,7 +2485,7 @@ function renderResearchCanvas(focusKey: string | null): void {
   const rootNode = layout.nodes.find((n) => data.nodes.get(n.id)?.isRoot);
   panzoom.attach(svg, layout.width, layout.height, key === lastLayoutKey, rootNode ? { x: rootNode.x, y: rootNode.y + RN_H / 2 } : undefined);
   lastLayoutKey = key;
-  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow(), rpEta);
+  $("rs-detail").innerHTML = renderNodeDetail(data, p, ui.selected, rpNow(), rpEta, blockedView());
   renderHud();
   renderTreeBubble();
   if (focusKey) svg.querySelector<SVGGElement>(focusKey)?.focus({ preventScroll: true });
@@ -2507,7 +2518,7 @@ function setTreeBubble(on: boolean): void {
 
 function renderTreeBubble(): void {
   const box = $("rs-bubble");
-  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, rpNow(), rpEta) : "";
+  const html = treeBubble && bubbleFor && bubbleFor === ui.selected ? renderNodeBubble(data, toEngineProgress(prog), bubbleFor, rpNow(), rpEta, blockedView()) : "";
   box.innerHTML = html;
   box.hidden = !html;
   placeTreeBubble();
@@ -4088,6 +4099,10 @@ function bindUsine(): void {
     setGame({ month: v ? Number(v) : null });
   });
   $("gs-igloo").addEventListener("change", (e) => setGame({ igloo: (e.target as HTMLInputElement).checked }));
+  $("gs-difficulty").addEventListener("change", (e) => {
+    const v = (e.target as HTMLSelectElement).value;
+    if (isDifficulty(v)) setGame({ difficulty: v });
+  });
   $("gs-scrubber").addEventListener("change", (e) => {
     const on = (e.target as HTMLInputElement).checked;
     void setProgress({ ...prog, owned: on ? [...new Set([...prog.owned, TREE_SCRUBBER])] : prog.owned.filter((m) => m !== TREE_SCRUBBER) });
@@ -4181,6 +4196,8 @@ function bindTree(): void {
   bubble.addEventListener("pointerdown", (e) => e.stopPropagation()); // pas de glisser du canevas depuis la bulle
   bubble.addEventListener("click", (e) => {
     e.stopPropagation();
+    const gset = (e.target as Element).closest<HTMLElement>("[data-gset]");
+    if (gset) return openGameField(gset.dataset.gset as GameField);
     if ((e.target as Element).closest("[data-rsb-close]")) {
       bubbleFor = null;
       renderTreeBubble();

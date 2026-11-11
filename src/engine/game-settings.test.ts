@@ -62,3 +62,31 @@ describe("réglages de partie (S50)", () => {
     expect(uses([])).toBe(false);
   });
 });
+
+describe("difficulté (S51)", async () => {
+  const { withDifficulty } = await import("./difficulty.ts");
+  const { machineAccess } = await import("./unlock.ts");
+  const req = { item: "energy", ratePerMin: 0, energyMFps: 50, criterion: "machines", tiers: false } as const;
+  const usesMachine = (diff: "normal" | "hard", m: string) => solve(data, withDifficulty(data, { unlocked }, diff), req as never).steps.some((s) => s.machine === m);
+
+  it("en Hard, Wind Turbine1 et Hand Crank ne sont plus proposés, et pas « à débloquer »", () => {
+    const p = withDifficulty(data, { unlocked }, "hard");
+    for (const m of ["wind-turbine1", "hand-crank"]) {
+      const a = machineAccess(data, p, m);
+      expect(a.available).toBe(false);
+      if (!a.available) expect([a.blocked, a.missingNodes]).toEqual([[m === "hand-crank" ? "hand-crank" : "wind-turbine-1"], []]);
+    }
+    expect(machineAccess(data, p, "wind-turbine2").available).toBe(true); // seules les recherches citées
+  });
+
+  it("le plan d'énergie suit la difficulté", () => {
+    expect(usesMachine("hard", "hand-crank") || usesMachine("hard", "wind-turbine1")).toBe(false);
+  });
+
+  it("Sandbox : tout l'arbre ; Sandbox+ : en plus les machines à posséder", () => {
+    const none = { unlocked: new Set<string>() };
+    expect(machineAccess(data, withDifficulty(data, none, "sandbox"), "wind-turbine1").available).toBe(true);
+    expect(machineAccess(data, withDifficulty(data, none, "sandbox"), TREE_SCRUBBER).available).toBe(false);
+    expect(machineAccess(data, withDifficulty(data, none, "sandbox_plus"), TREE_SCRUBBER).available).toBe(true);
+  });
+});

@@ -150,7 +150,7 @@ Point de départ : commit `6c1e7fd` (branche main), 242 tests. Plans précédent
 | S48 | Moteur de recherche refait : stations par tier avec leurs items, RS4, Satellite buff (sources Miraheze puis Industrialist Calculator) | grande | — | fait (2026-10-31) : efficacité des paraboles sans arrondi, cas Industrialist Calculator testés |
 | S49 | « Ma recherche » refaite d'après la maquette ; objectif recherche branché sur le nouveau moteur ; recherche réaffichée | grande | — | fait (2026-10-31), déployé ; reste le relevé en jeu après le seuil (< 2 %), à faire par l'utilisateur |
 | S50 | Réglages de partie : pollution globale et mois courant appliqués aux recettes concernées | moyenne | — | fait (2026-11-06) : maquette `maquette/reglages-partie-s50.html` validée, réglages dans « Ma recherche » (§ 5, § 6) |
-| S51 | Difficulté : recherches bloquées et machines réservées selon le niveau | petite | — | à faire |
+| S51 | Difficulté : recherches bloquées et machines réservées selon le niveau | petite | — | fait (2026-11-11) : maquette `maquette/difficulte-s51.html` validée, menu dans « Ma recherche », sticker rouge dans l'Arbre (§ 5, § 6) |
 
 Pourquoi cet ordre :
 - **S1 d'abord** : les plots changent la géométrie de tous les plans. Mieux vaut le faire avant de
@@ -1766,3 +1766,5 @@ Chaque session de lot :
   Parcours : Oak Log, Igloo en janvier 116 arbres, sans Igloo 174 ; pastille « janvier » → champ Mois ; EN ; aucune erreur nouvelle.
   **Réserve** : l'ASU reste derrière « valeurs à vérifier » (POL-14), car proposé d'office il dégrade des plans validés. Igloo non dessiné (POL-15).
 - **2026-11-06, POL-14** (707 tests, déployé 20261106-223904) : ASU libérée de « valeurs à vérifier » ; `withoutIdleAsu` (`src/engine/solve.ts`) la retire si elle n'est pas nécessaire ou tourne à moins de 10 %, ou si elle n'est pas strictement meilleure en machines entières. 8x Microchip et Light Oil restent sans ASU ; Argon et gros besoins d'oxygène l'utilisent. **Réserve** : ports non relevés, réseau coupé sur très grosse usine avec ASU forcée.
+- **2026-11-11, S51** (714 tests, déployé) : menu « Difficulté de la partie » dans « Ma recherche » (Normal à Sandbox+), FR / EN, agit seulement sur les plans. `src/engine/difficulty.ts` : recherches citées par Industrialist Calculator bloquées (pas leurs suites), Sandbox prend tout l'arbre, Sandbox+ aussi les machines à posséder. Machine bloquée : jamais proposée « à débloquer ». Arbre : recherche grisée et barrée, sticker rouge « Bloquée · Hard » dépliable (bulle et fiche) avec lien vers le menu.
+  Parcours : Hard → 4 recherches grisées en Energy, lien → menu Difficulté avec focus, plan d'énergie sans Hand Crank ni Wind Turbine1, EN correct.

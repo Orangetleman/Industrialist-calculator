@@ -9,6 +9,9 @@ export type Progress = {
   reqItemsDone?: ReadonlySet<string>;
   /** Machines sans nœud (Limited, variantes) que le joueur possède. */
   owned?: ReadonlySet<string>;
+  /** Recherches interdites par la difficulté (S51) : jamais débloquées, jamais proposées. */
+  blocked?: ReadonlySet<string>;
+  difficulty?: string;
 };
 
 export type ReqItem = { node: string; item: string; amount: number; done: boolean };
@@ -24,10 +27,14 @@ export type MachineAccess =
       rpCost: number;
       /** Machine qui ne dépend d'aucun nœud : il faut la posséder. */
       needsOwnership: boolean;
+      /** Recherches interdites par la difficulté sur le chemin (S51) ; la machine est alors hors d'atteinte. */
+      blocked?: string[];
+      difficulty?: string;
     };
 
 export function isNodeUnlocked(data: GameData, progress: Progress, nodeId: string): boolean {
   const n = data.nodes.get(nodeId);
+  if (progress.blocked?.has(nodeId)) return false;
   return !!n && (n.isRoot || !!n.startUnlocked || progress.unlocked.has(nodeId));
 }
 
@@ -99,6 +106,8 @@ export function machineAccess(data: GameData, progress: Progress, machineId: str
   }
   if (isNodeUnlocked(data, progress, m.unlockedBy)) return { available: true };
   const missing = missingNodes(data, progress, m.unlockedBy);
+  const blocked = progress.blocked ? missing.filter((n) => progress.blocked!.has(n)) : [];
+  if (blocked.length) return { available: false, machine: machineId, missingNodes: [], reqItems: [], rpCost: 0, needsOwnership: false, blocked, ...(progress.difficulty ? { difficulty: progress.difficulty } : {}) };
   return { available: false, machine: machineId, missingNodes: missing, reqItems: reqItemsOf(data, progress, missing), rpCost: rpCost(data, missing), needsOwnership: false };
 }
 

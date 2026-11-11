@@ -32,7 +32,16 @@ function trunc(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
-export function renderResearchSvg(data: GameData, p: Progress, layout: ResearchLayout, selected: string | null, rp: number | null): string {
+/** Recherches bloquées par la difficulté (S51) et le nom du niveau. */
+export type Blocked = { ids: ReadonlySet<string>; level: string };
+
+/** Sticker rouge dépliable : raison et lien vers le réglage. */
+export function blockedSticker(n: ResearchNode, b: Blocked | undefined): string {
+  if (!b?.ids.has(n.id)) return "";
+  return `<details class="rs-blk"><summary>${esc(t("dif.sticker", { d: b.level }))}</summary><p>${esc(t("dif.why", { d: b.level }))} <button type="button" class="link" data-gset="difficulty">${esc(t("dif.change"))}</button></p></details>`;
+}
+
+export function renderResearchSvg(data: GameData, p: Progress, layout: ResearchLayout, selected: string | null, rp: number | null, blk?: Blocked): string {
   let s = `<svg id="rs-svg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="${esc(t("rs.svg.aria"))}" viewBox="0 0 ${layout.width} ${layout.height}">`;
   s += `<g class="rs-edges">`;
   for (const e of layout.edges) {
@@ -45,11 +54,12 @@ export function renderResearchSvg(data: GameData, p: Progress, layout: ResearchL
     const st = nodeState(data, p, n, rp);
     const sel = selected === n.id ? " selected" : "";
     const label = `${n.name}, ${fmt(n.rp, 0)} RP, ${stateLabel(st)}`;
-    s += `<g class="rs-node ${st}${sel}" data-rs="${esc(n.id)}" tabindex="0" role="button" aria-pressed="${selected === n.id}" aria-label="${esc(label)}" transform="translate(${ln.x},${ln.y})">
+    const isBlk = !!blk?.ids.has(n.id);
+    s += `<g class="rs-node ${st}${sel}${isBlk ? " blocked" : ""}" data-rs="${esc(n.id)}" tabindex="0" role="button" aria-pressed="${selected === n.id}" aria-label="${esc(label)}" transform="translate(${ln.x},${ln.y})">
 <rect width="${RN_W}" height="${RN_H}" rx="7"/>
 <text x="9" y="18" class="rs-name" style="font-size:${nameSize(n.name)}px">${esc(trunc(n.name, 34))}</text>
 <text x="${RN_W - 9}" y="38" text-anchor="end" class="rs-rp">${esc(fmt(n.rp, 0))}RP</text>
-${n.reqItems.length ? `<text x="9" y="38" class="rs-req">${t("rs.sale")}</text>` : ""}</g>`;
+${n.reqItems.length ? `<text x="9" y="38" class="rs-req">${t("rs.sale")}</text>` : ""}${isBlk ? `<g class="rs-stk" transform="translate(${RN_W - 92},-9)"><rect width="88" height="16" rx="2"/><text x="44" y="12" text-anchor="middle">${esc(t("dif.sticker", { d: blk!.level }))}</text></g>` : ""}</g>`;
   }
   s += `</g></svg>`;
   return s;
@@ -126,7 +136,7 @@ function nodeActions(data: GameData, p: Progress, n: ResearchNode, missing: stri
  * Bulle à côté de la recherche cliquée (S29, option « Débloquer : Bulle ») : prix, état, durée à ton rythme
  * et les mêmes boutons que le panneau, sans aller jusqu'au panneau. Vide pour la racine.
  */
-export function renderNodeBubble(data: GameData, p: Progress, id: string | null, rp: number | null, eta?: RpEta): string {
+export function renderNodeBubble(data: GameData, p: Progress, id: string | null, rp: number | null, eta?: RpEta, blk?: Blocked): string {
   const n = id ? data.nodes.get(id) : undefined;
   if (!n || n.isRoot) return "";
   const st = nodeState(data, p, n, rp);
@@ -134,13 +144,14 @@ export function renderNodeBubble(data: GameData, p: Progress, id: string | null,
   const nodeName = (x: string) => data.nodes.get(x)?.name ?? x;
   return `<div class="rs-bub-head"><b>${esc(n.name)}</b><button type="button" class="rs-bub-x" data-rsb-close aria-label="${esc(t("rs.bub.close"))}" title="${esc(t("rs.bub.close"))}">${icon("close")}</button></div>
     <p class="rs-bub-st"><span class="num">${esc(fmtRP(n.rp))}</span> · ${esc(stateLabel(st))}${st === "expensive" && rp !== null ? esc(t("rs.short", { x: fmtRP(n.rp - rp) })) : ""}</p>
+    ${blockedSticker(n, blk)}
     ${st === "expensive" || st === "locked" ? etaLine(n, [...missing, n.id], rp, eta) : ""}
     ${missing.length ? `<p class="hint">${esc(t("rs.before", { list: missing.map(nodeName).join(" → ") }))}</p>` : ""}
     <div class="actions">${nodeActions(data, p, n, missing).join("")}</div>`;
 }
 
 /** Fiche détaillée d'une recherche (affichée sous l'arbre, comme le panneau du jeu). */
-export function renderNodeDetail(data: GameData, p: Progress, id: string | null, rp: number | null, eta?: RpEta): string {
+export function renderNodeDetail(data: GameData, p: Progress, id: string | null, rp: number | null, eta?: RpEta, blk?: Blocked): string {
   const n = id ? data.nodes.get(id) : undefined;
   if (!n) return `<p class="muted">${t("rs.pick")}</p>`;
   const st = nodeState(data, p, n, rp);
@@ -154,6 +165,7 @@ export function renderNodeDetail(data: GameData, p: Progress, id: string | null,
       <div><div class="eyebrow">${esc(n.category)}</div><h3>${esc(n.name)}</h3></div>
       <div class="rs-cost num">${n.isRoot ? "" : esc(fmtRP(n.rp))}</div>
     </div>
+    ${blockedSticker(n, blk)}
     <p class="rs-status">${esc(stateLabel(st))}${st === "expensive" && rp !== null ? esc(t("rs.short", { x: fmtRP(n.rp - rp) })) : ""}</p>
     ${st === "expensive" || st === "locked" ? etaLine(n, [...missing, n.id], rp, eta) : ""}
     ${actions.length ? `<div class="actions">${actions.join("")}</div>` : ""}
