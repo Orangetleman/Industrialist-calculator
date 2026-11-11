@@ -22,7 +22,11 @@ th,td { text-align:left; padding:5px 10px 5px 0; border-top:1px solid var(--line
 .nodes { display:flex; flex-wrap:wrap; gap:8px; }
 .node { border:1px solid var(--line); padding:4px 10px; font-size:.85rem; }
 .node.blk { opacity:.45; text-decoration:line-through; border-style:dashed; }
-.lock { color:var(--bad); font-size:.8rem; }
+.nodeb { display:inline-flex; flex-direction:column; gap:4px; }
+.stk { font-size:.78rem; }
+.stk summary { display:inline-block; background:var(--bad); color:#1a0d0d; font-weight:700; padding:1px 8px; cursor:pointer; list-style:none; }
+.stk summary::-webkit-details-marker { display:none; }
+.stk p { max-width:280px; margin-top:4px; padding:6px 8px; border-left:3px solid var(--bad); background:var(--bg); color:var(--txt); }
 .q { border-left:4px solid var(--warn); background:var(--panel); padding:10px 12px; font-size:.92rem; }
 </style>
 </head>
@@ -57,11 +61,11 @@ th,td { text-align:left; padding:5px 10px 5px 0; border-top:1px solid var(--line
 
 <h2>3. Dans l'Arbre et dans le plan</h2>
 <div class="box">
-  <div class="nodes"><span class="node">Solar Panel 1</span><span class="node blk">Solar Panel 2</span><span class="lock">bloquée en Hard</span><span class="node">Solar Panel 3</span></div>
+  <div class="nodes"><span class="node">Solar Panel 1</span><span class="nodeb"><span class="node blk">Solar Panel 2</span><details class="stk" open><summary>Bloquée · Hard ▾</summary><p>En Hard, les renouvelables ne se recherchent pas : les plans n'utilisent pas cette recherche. Ta case cochée est gardée. Change la difficulté dans Mon usine › Ma recherche. <span class="src">wiki</span> <span class="src ic">liste : Industrialist Calculator</span></p></details></span><span class="node">Solar Panel 3</span></div>
   <p>Plan d'énergie : <b>Hand Crank</b> n'apparaît plus ; une ligne « écartée : bloquée en Hard » dans les recettes possibles.</p>
 </div>
 
-<div class="q">À valider : le menu à cet endroit, la phrase d'explication, et les recherches grisées et barrées dans l'Arbre.</div>
+<div class="q">À valider : le menu à cet endroit, la phrase d'explication, et les recherches grisées et barrées dans l'Arbre, avec leur sticker rouge (un clic le déplie, montré ici ouvert).</div>
 </div>
 </body>
 </html>
