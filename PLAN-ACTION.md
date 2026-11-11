@@ -1532,6 +1532,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 | S47 Maquette recherche | Réponses du 2026-10-27 (maquette `recherche-refonte.html` validée telle quelle) : un groupe = nombre de stations identiques + items communs ; contrôle « ✓ comme en jeu » sous la saisie ; réglages de partie (pollution, mois, difficulté) dans « Ma recherche ». | 2026-10-27 |
 | S39 Pièces de tuyau | Pipe Fluid Turn2 / Junction2 / Section2 = Fluid Pipe Turn2 / Junction2 / Section2 ; Pipe Valve = Pipe Value, à ports **fluide** (relevé objet corrigé) ; Item / Fluid Rate Meter = Item / Fluid Meter. Pas de doublon dans l'éditeur : un lien relie les deux noms. | 2026-11-02 |
 | S50 Réglages de partie | Réponses du 2026-11-06 sur `maquette/reglages-partie-s50.html` : 1 Igloo et Tree Scrubber derrière un interrupteur chacun, éteint par défaut ; 2 retrait du Tree Scrubber : courbe d'Industrialist Calculator, marquée supposée ; 3 d'accord pour 10 % par défaut (arbres ~355 s) ; 4 chaque pastille de rappel du plan amène au réglage concerné. | 2026-11-06 |
+| S51 Difficulté | Réponses du 2026-11-11 : 1 en Hard, la Hand Crank de départ n'est plus proposée ; 2 seules les recherches citées sont bloquées (pas leurs suites) ; 3 la difficulté agit seulement sur les plans, la progression cochée reste telle quelle (Sandbox : tout l'arbre ; Sandbox+ : en plus les machines d'événement sans les posséder). | 2026-11-11 |
 
 ## 6. Journal des sessions
 

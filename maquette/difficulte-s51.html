@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette S51 — Difficulté</title>
+<style>
+:root { --bg:#14101f; --panel:#1e1830; --line:#3a3056; --txt:#efeaf8; --muted:#b0a6c6; --accent:#ff8a1f; --ok:#57d39b; --warn:#ffc857; --bad:#ff6b6b; }
+* { box-sizing:border-box; }
+body { margin:0; padding:16px; background:var(--bg); color:var(--txt); font:15px/1.45 system-ui,sans-serif; }
+.mq { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+h1 { font-size:1.3rem; margin:0; } h2 { font-size:1.02rem; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:4px; margin:16px 0 0; }
+p { margin:0; } .note { color:var(--muted); font-size:.88rem; }
+.box { background:var(--panel); border-left:1px solid var(--line); padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
+.fields { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
+label span { display:block; font-size:.8rem; color:var(--muted); margin-bottom:3px; }
+select { background:var(--bg); color:var(--txt); border:1px solid var(--line); padding:6px 8px; font:inherit; }
+.src { font-size:.72rem; border:1px solid var(--line); color:var(--muted); padding:0 6px; white-space:nowrap; }
+.src.ic { color:var(--warn); border-color:var(--warn); }
+.tw { overflow-x:auto; } table { border-collapse:collapse; width:100%; min-width:520px; font-size:.87rem; }
+th,td { text-align:left; padding:5px 10px 5px 0; border-top:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-weight:500; }
+.nodes { display:flex; flex-wrap:wrap; gap:8px; }
+.node { border:1px solid var(--line); padding:4px 10px; font-size:.85rem; }
+.node.blk { opacity:.45; text-decoration:line-through; border-style:dashed; }
+.lock { color:var(--bad); font-size:.8rem; }
+.q { border-left:4px solid var(--warn); background:var(--panel); padding:10px 12px; font-size:.92rem; }
+</style>
+</head>
+<body>
+<div class="mq">
+<h1>Maquette S51 — Difficulté</h1>
+<p class="note">Un menu de plus dans les réglages de partie (S50). Il change seulement les plans : ta progression cochée ne bouge pas.</p>
+
+<h2>1. Mon usine › Ma recherche › Réglages de partie</h2>
+<div class="box">
+  <div class="fields">
+    <label><span>Difficulté de la partie</span><select>
+      <option>Normal</option><option selected>Hard</option><option>Impossible</option><option>Impossible²</option><option>Sandbox</option><option>Sandbox+</option>
+    </select></label>
+  </div>
+  <p><b>Hard</b> : les renouvelables ne se recherchent pas. Les plans n'utilisent plus <b>4 recherches</b> : Hand Crank, Wind Turbine 1, Geothermal Plant, Solar Panel 2. <span class="src">wiki</span> <span class="src ic">liste : Industrialist Calculator</span></p>
+  <p class="note">Sandbox : tout l'arbre est pris pour les plans. Sandbox+ : en plus, les machines d'événement (Tree Scrubber…) sans avoir à les posséder.</p>
+</div>
+
+<h2>2. Ce que chaque niveau bloque</h2>
+<div class="box"><div class="tw"><table>
+  <thead><tr><th>Niveau</th><th>Recherches retirées des plans</th></tr></thead>
+  <tbody>
+    <tr><td>Normal</td><td>aucune</td></tr>
+    <tr><td>Hard</td><td>Hand Crank, Wind Turbine 1, Geothermal Plant, Solar Panel 2</td></tr>
+    <tr><td>Impossible</td><td>celles de Hard, plus Advanced Copper Extraction, Advanced Coal Extraction, LV Pole, Energy Storage, Scrubber, Gold Item Storage Silo, Gold Fluid Storage Silo (11)</td></tr>
+    <tr><td>Impossible²</td><td>les mêmes 11</td></tr>
+    <tr><td>Sandbox, Sandbox+</td><td>aucune ; tout est débloqué</td></tr>
+  </tbody>
+</table></div>
+<p class="note">Seules ces recherches sont bloquées, pas celles qui en dépendent (ta réponse du 2026-11-11).</p></div>
+
+<h2>3. Dans l'Arbre et dans le plan</h2>
+<div class="box">
+  <div class="nodes"><span class="node">Solar Panel 1</span><span class="node blk">Solar Panel 2</span><span class="lock">bloquée en Hard</span><span class="node">Solar Panel 3</span></div>
+  <p>Plan d'énergie : <b>Hand Crank</b> n'apparaît plus ; une ligne « écartée : bloquée en Hard » dans les recettes possibles.</p>
+</div>
+
+<div class="q">À valider : le menu à cet endroit, la phrase d'explication, et les recherches grisées et barrées dans l'Arbre.</div>
+</div>
+</body>
+</html>
