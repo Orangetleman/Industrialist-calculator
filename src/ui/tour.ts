@@ -58,22 +58,28 @@ export function tourSeq(steps: readonly TourStep[], mode: TourMode): number[] {
 }
 
 /** Les cases de la liste « Premiers pas » : les deux premières se cochent pendant le premier parcours, les autres par leur mini-parcours. */
-export const CHECKLIST = ["premier-plan", "plan-pose", "partie", "regler", "arbre", "recettes"] as const;
+export const CHECKLIST = ["premier-plan", "plan-pose", "poser", "regler", "partie", "arbre", "recettes"] as const;
 export type CheckItem = (typeof CHECKLIST)[number];
 
-/** Le premier parcours (remarque n° 14) : le joueur fait SON plan, une action par bulle, textes courts ; puis les mini-parcours. */
+/** Le premier parcours (remarque n° 14) : le joueur fait SON plan, une action par bulle, puis les mini-parcours de « Premiers pas ». */
 export const SITE_TOUR: TourStep[] = [
   { core: true, center: true, hash: "#objet", title: "tour.welcome.title", text: "tour.welcome.html", next: "tour.welcome.next" },
   { core: true, hash: "#objet", target: "#query", play: true, title: "tour.item.title", text: "tour.item.html", act: "tour.item.act", until: "item" },
   { core: true, hash: "#objet", target: "#answer", play: true, title: "tour.answer.title", text: "tour.answer.html", note: { when: "simulated", text: "tour.answer.simulated" } },
-  { core: true, hash: "#objet", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.pose.title", text: "tour.pose.html" },
+  { core: true, hash: "#objet", target: ".prio-bar", play: true, title: "tour.prio.title", text: "tour.prio.html" },
+  { core: true, hash: "#objet/pose", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.pose.title", text: "tour.pose.html" },
+  { core: true, hash: "#objet", target: ".cmd-left", play: true, title: "tour.left.title", text: "tour.left.html" },
   { core: true, hash: "#objet", target: "#rtabs-result", play: true, title: "tour.views.title", text: "tour.views.html", act: "tour.views.act", until: "schema" },
+  { core: true, hash: "#objet", target: ".cmd-right", play: true, title: "tour.right.title", text: "tour.right.html" },
   { core: true, target: "#me", play: true, title: "tour.game.title", text: "tour.game.html", note: { when: "simulated", text: "tour.game.simulated" }, next: "tour.later", alt: { label: "tour.game.open", hash: "#usine" } },
   // Mini-parcours de « Premiers pas » : chacun sur sa page, le joueur y touche.
+  { mini: "poser", hash: "#objet", target: ".cmd-left", play: true, title: "tour.poser1.title", text: "tour.poser1.html", note: { when: "simulated", text: "tour.mini.simulated" } },
+  { mini: "poser", hash: "#objet/pose", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.poser2.title", text: "tour.poser2.html" },
+  { mini: "poser", hash: "#objet", target: "#plan-share", play: true, title: "tour.poser3.title", text: "tour.poser3.html" },
+  { mini: "regler", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.regler1.title", text: "tour.regler1.html", act: "tour.regler1.act", until: "drawer", note: { when: "simulated", text: "tour.mini.simulated" } },
+  { mini: "regler", target: "#plan-drawer", play: true, title: "tour.regler2.title", text: "tour.regler2.html" },
   { mini: "partie", hash: "#usine", target: "#upto-form", play: true, title: "tour.partie.title", text: "tour.partie.html" },
   { mini: "partie", hash: "#usine/recherche", target: "#rs-box", play: true, title: "tour.research.title", text: "tour.research.html" },
-  { mini: "regler", hash: "#objet", target: "#criteria", play: true, title: "tour.prio.title", text: "tour.prio.html" },
-  { mini: "regler", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.machines.title", text: "tour.machines.html" },
   { mini: "arbre", hash: "#arbre", target: ".rs-workspace", play: true, title: "tour.arbre.title", text: "tour.arbre.html" },
   { mini: "recettes", hash: "#recettes", target: "#rc-layout", play: true, title: "tour.recettes.title", text: "tour.recettes.html" },
   { mini: "recettes", hash: "#objet", target: "#remark-btn", play: true, title: "tour.remark.title", text: "tour.remark.html" },
@@ -148,8 +154,10 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     });
     document.body.append(...shades, spot, bubble);
   }
+  const palOpen = () => [...document.querySelectorAll<HTMLElement>(".cmd-pal")].some((e) => !e.hidden);
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape") end();
+    // Échap ferme d'abord la palette d'objets si elle est ouverte ; sinon il quitte le tutoriel.
+    if (e.key === "Escape" && !palOpen()) end();
   };
   // Le projecteur suit sa cible : défilement, fenêtre redimensionnée, page qui change (bloc sélectionné…).
   let frame = 0;
@@ -292,6 +300,15 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
   function place(frame = true): void {
     if (st.i < 0 || st.decision) return;
     const step = steps[st.i]!;
+    // La palette d'objets (fenêtre au-dessus de la page) : la visite s'efface le temps du choix.
+    const pal = palOpen();
+    bubble.style.visibility = pal ? "hidden" : "";
+    if (pal) {
+      for (const d of shades) d.style.display = "none";
+      spot.style.display = "none";
+      st.hole = null;
+      return;
+    }
     const el = !step.center && step.target ? document.querySelector<HTMLElement>(step.target) : null;
     const near = st.bubble === "suit";
     bubble.classList.toggle("near", near && !!el);

@@ -483,12 +483,12 @@ describe("S26 : ordre de pose du joueur", () => {
 describe("Remarque n° 14 : tutoriel « Ton premier plan » et mini-parcours", () => {
   it("le premier parcours : accueil, puis 5 étapes sur la page Planifier, deux guidées par l'action", () => {
     const first = tourSeq(SITE_TOUR, "first");
-    expect(first).toHaveLength(6);
+    expect(first).toHaveLength(9);
     expect(SITE_TOUR[first[0]!]!.center).toBe(true);
     const guided = first.filter((k) => SITE_TOUR[k]!.until);
     expect(guided.map((k) => SITE_TOUR[k]!.until)).toEqual(["item", "schema"]);
     // Toutes sur Planifier ; la dernière reste où l'on est (pas d'adresse : l'onglet Schéma ouvert ne se referme pas).
-    for (const k of first) expect(SITE_TOUR[k]!.hash ?? "#objet").toBe("#objet");
+    for (const k of first) expect((SITE_TOUR[k]!.hash ?? "#objet").startsWith("#objet"), SITE_TOUR[k]!.title).toBe(true);
     // La dernière étape propose d'ouvrir Mon usine.
     expect(SITE_TOUR[first.at(-1)!]!.alt?.hash).toBe("#usine");
     // Une cible par étape, sauf la carte centrée.
@@ -503,6 +503,8 @@ describe("Remarque n° 14 : tutoriel « Ton premier plan » et mini-parcours", (
     expect(tourSeq(SITE_TOUR, "partie").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#usine", "#usine/recherche"]);
     expect(tourSeq(SITE_TOUR, "arbre").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#arbre"]);
     expect(tourSeq(SITE_TOUR, "recettes").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#recettes", "#objet"]);
+    expect(tourSeq(SITE_TOUR, "regler").map((k) => SITE_TOUR[k]!.until)).toEqual(["drawer", undefined]);
+    expect(tourSeq(SITE_TOUR, "poser")).toHaveLength(3);
     expect(tourSeq(SITE_TOUR, "inconnu")).toEqual([]);
     // Aucune étape orpheline : chaque étape est du premier parcours ou d'une case.
     const covered = new Set([...tourSeq(SITE_TOUR, "first"), ...CHECKLIST.flatMap((it) => tourSeq(SITE_TOUR, it))]);
@@ -510,7 +512,7 @@ describe("Remarque n° 14 : tutoriel « Ton premier plan » et mini-parcours", (
   });
   it("les cases du premier parcours se cochent quand on atteint la réponse et les vues", () => {
     const first = tourSeq(SITE_TOUR, "first");
-    expect(first.map((k) => reachedItem("first", k))).toEqual([null, null, "premier-plan", null, "plan-pose", null]);
+    expect(first.map((k) => reachedItem("first", k))).toEqual([null, null, "premier-plan", null, null, null, "plan-pose", null, null]);
     expect(reachedItem("arbre", tourSeq(SITE_TOUR, "arbre")[0]!)).toBeNull();
   });
 });

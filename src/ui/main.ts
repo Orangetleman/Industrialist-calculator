@@ -264,7 +264,8 @@ const tour = createTour(SITE_TOUR, {
     checklist.hide(false);
   },
   onStartMode(mode) {
-    if (mode === "first" && !prog.unlocked.length && !simulated) {
+    // Le premier parcours et les mini-parcours de Planifier (construire, régler) ont besoin d'un plan : partie neuve → simulée.
+    if ((mode === "first" || mode === "poser" || mode === "regler") && !prog.unlocked.length && !simulated) {
       simulated = prog;
       prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
       planDirty = true;
@@ -278,6 +279,7 @@ const tour = createTour(SITE_TOUR, {
     if (cond === "item") return settings.goal === "objet" && !isBlank("objet") && data.items.has(settings.item);
     if (cond === "schema") return settings.resultTab === "schema";
     if (cond === "simulated") return simulated !== null;
+    if (cond === "drawer") return !$("plan-drawer").hidden;
     return true;
   },
   onReach(mode, index) {
