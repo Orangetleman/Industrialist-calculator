@@ -82,7 +82,8 @@ import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeBubble, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { createTour, SITE_TOUR } from "./tour.ts";
+import { createTour, SITE_TOUR, type CheckItem } from "./tour.ts";
+import { createChecklist, reachedItem } from "./checklist.ts";
 import {
   defaultDir,
   draftFrom,
@@ -248,41 +249,55 @@ let dataErrors: Message[] = [];
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
 
-// ---------------------------------------------------------------- visite d'orientation (S24)
-/** Pendant la visite, la page montre un exemple : rien n'est enregistré, la partie revient à la fin. */
-let touring: { settings: string; prog: ProgressState; hash: string } | null = null;
+// ---------------------------------------------------------------- tutoriel (S24, refait remarque n° 14)
+/** Le joueur fait son premier plan pendant le tutoriel : objet et débit sont les siens et restent enregistrés.
+ * Seule exception : une partie neuve (aucune recherche renseignée) ne peut rien produire ; le temps du premier
+ * parcours, la progression est alors simulée « tout débloqué » (la bulle le dit), puis rétablie. */
+let simulated: ProgressState | null = null;
 function saveSettings(s: Settings): void {
-  if (!touring) storeSettings(s);
+  storeSettings(s);
 }
 const KEY_TOUR = "ind-calc:v1:visite";
+const checklist = createChecklist({ start: (mode) => tour.start(mode), replay: () => tour.start("first") });
 const tour = createTour(SITE_TOUR, {
   onStart() {
-    touring = { settings: JSON.stringify(settings), prog, hash: location.hash };
-    // L'exemple : 60 Crankshaft/min, toutes les recherches, usine module par module, sans filtre.
-    prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
-    Object.assign(settings, { goal: "objet", item: "crankshaft", mode: "rate", rate: 60, fixed: null, machineFilters: {}, usine: { ...settings.usine, full: false } });
-    enter("objet");
-    planDirty = true;
-    render(); // l'adresse peut ne pas changer (première visite sur #objet) : l'exemple doit s'afficher tout de suite
+    checklist.hide(false);
+  },
+  onStartMode(mode) {
+    if (mode === "first" && !prog.unlocked.length && !simulated) {
+      simulated = prog;
+      prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
+      planDirty = true;
+      render();
+    }
   },
   go(hash) {
     location.hash = hash;
   },
-  onEnd() {
-    if (!touring) return;
-    const back = touring;
-    touring = null;
-    for (const k of Object.keys(settings)) delete (settings as Record<string, unknown>)[k];
-    Object.assign(settings, JSON.parse(back.settings));
-    prog = back.prog;
-    planDirty = true;
+  test(cond) {
+    if (cond === "item") return settings.goal === "objet" && !isBlank("objet") && data.items.has(settings.item);
+    if (cond === "schema") return settings.resultTab === "schema";
+    if (cond === "simulated") return simulated !== null;
+    return true;
+  },
+  onReach(mode, index) {
+    const it = reachedItem(mode, index);
+    if (it) checklist.check(it);
+  },
+  onEnd(mode) {
     try {
       localStorage.setItem(KEY_TOUR, "1");
     } catch {
-      // stockage indisponible : la visite reviendra à la prochaine première visite
+      // stockage indisponible : la carte d'accueil reviendra à la prochaine première visite
     }
-    if (location.hash !== back.hash && back.hash) location.hash = back.hash;
-    else render();
+    if (mode !== "first") checklist.check(mode as CheckItem);
+    if (simulated) {
+      prog = simulated;
+      simulated = null;
+      planDirty = true;
+      render();
+    }
+    checklist.show();
   },
 });
 /** Journal des RP (S21) : temps de jeu, relevés, configurations, dépenses, sessions. */
@@ -2113,7 +2128,7 @@ function setPosed(key: string, on: boolean): void {
   if (on) keys.add(POSED + key);
   else keys.delete(POSED + key);
   built = setBuilt(built, signature, keys);
-  if (!touring) saveBuilt(built);
+  saveBuilt(built);
   const st = currentFactory();
   if (st?.plan) $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn);
   markPosed();
@@ -3160,8 +3175,8 @@ function bindRecettesEdit(): void {
  * `spend: false` : import d'un fichier ou remise à zéro, sans effet sur les RP.
  */
 async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
-  if (touring) {
-    // Pendant la visite (S24) : on essaie sur l'exemple, rien n'est enregistré ni dépensé.
+  if (simulated) {
+    // Progression simulée pendant le tutoriel : rien n'est enregistré ni dépensé.
     prog = next;
     planDirty = true;
     return render();
@@ -4546,16 +4561,17 @@ const sandbox = initSandbox($("page-bac"), {
 });
 window.addEventListener("hashchange", showPage);
 showPage();
-// Visite d'orientation (S24) : seule à la toute première visite, puis par le bouton « ? ».
-$("help").addEventListener("click", () => tour.start("full"));
-if (isFresh()) {
+// Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
+$("help").addEventListener("click", () => checklist.show());
+{
   let seen: string | null = "1";
   try {
     seen = localStorage.getItem(KEY_TOUR);
   } catch {
     // stockage indisponible : pas de visite automatique
   }
-  if (!seen) tour.start("core");
+  if (!seen && isFresh()) tour.start("first");
+  else if (seen) checklist.render(); // la liste reste là d'une visite à l'autre, tant qu'elle n'est pas masquée
 }
 window.setInterval(tickRp, 5000);
 bindHistory();

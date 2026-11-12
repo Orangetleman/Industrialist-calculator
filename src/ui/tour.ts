@@ -9,18 +9,30 @@
 // la bulle est fixe en bas ou suit le projecteur (choix gardé), et un calcul en cours s'affiche
 // dans la bulle.
 // S31 : les textes sont des clés du catalogue, lues dans la langue choisie.
+// Remarque n° 14 (2026-11-12) : plus de démo ni de visite détaillée. Le joueur fait SON premier plan, guidé par
+// l'action (une étape avance quand l'action est faite), textes ≤ 20 mots ; ensuite la liste « Premiers pas »
+// (checklist.ts) propose des mini-parcours par page. Le moteur (volets, projecteur, bulle) est inchangé.
 
 import { t, type Key } from "../i18n/i18n.ts";
 import { icon, withIcons } from "./icons.ts";
 
 /** Les textes d'une étape sont des clés du catalogue (S31), lues dans la langue choisie à chaque affichage. */
 export type TourStep = {
-  /** Étape de l'essentiel (première visite) ; les autres forment la visite détaillée. */
+  /** Étape du premier parcours (« Ton premier plan ») ; sinon `mini` dit à quel mini-parcours elle appartient. */
   core?: boolean;
-  part: Key;
+  /** Mini-parcours de la liste « Premiers pas » (remarque n° 14) : son identifiant. */
+  mini?: string;
   title: Key;
   /** HTML simple (<b>) écrit par le site, jamais par le joueur. */
   text: Key;
+  /** L'action demandée au joueur (ligne « → … ») ; l'étape avance toute seule quand `until` est vrai. */
+  act?: Key;
+  /** Condition testée par la page (hooks.test) toutes les 250 ms : vraie, l'étape passe à la suivante. */
+  until?: string;
+  /** Ligne de plus sous le texte, seulement quand la page le confirme (hooks.test) : « progression simulée »… */
+  note?: { when: string; text: Key };
+  /** Bouton de plus, qui ouvre une adresse du site et termine le parcours (« Ouvrir Mon usine »). */
+  alt?: { label: Key; hash: string };
   /** Carte centrée, sans projecteur (bienvenue, fin). */
   center?: boolean;
   /** Adresse à ouvrir avant d'éclairer la cible (« #objet/schema »…). */
@@ -34,47 +46,52 @@ export type TourStep = {
   next?: Key;
 };
 
-export type TourMode = "core" | "detail" | "full";
+/** « first » : le premier parcours ; sinon l'identifiant d'un mini-parcours. */
 export type BubbleMode = "fixe" | "suit";
+export type TourMode = string;
 
 /** Indices des étapes jouées selon le mode (fonction pure, testée). */
 export function tourSeq(steps: readonly TourStep[], mode: TourMode): number[] {
   const all = steps.map((_, k) => k);
-  if (mode === "core") return all.filter((k) => steps[k]!.core);
-  if (mode === "detail") return all.filter((k) => !steps[k]!.core);
-  return all;
+  if (mode === "first") return all.filter((k) => steps[k]!.core);
+  return all.filter((k) => steps[k]!.mini === mode);
 }
 
-/** Les étapes de la visite du calculateur. L'exemple affiché pendant la visite : 60 Crankshaft/min. */
+/** Les cases de la liste « Premiers pas » : les deux premières se cochent pendant le premier parcours, les autres par leur mini-parcours. */
+export const CHECKLIST = ["premier-plan", "plan-pose", "partie", "regler", "arbre", "recettes"] as const;
+export type CheckItem = (typeof CHECKLIST)[number];
+
+/** Le premier parcours (remarque n° 14) : le joueur fait SON plan, une action par bulle, textes courts ; puis les mini-parcours. */
 export const SITE_TOUR: TourStep[] = [
-  { core: true, part: "tour.part.welcome", center: true, hash: "#objet", title: "tour.welcome.title", next: "tour.welcome.next", text: "tour.welcome.html" },
-  { core: true, part: "tour.part.game", hash: "#objet", target: "#me", title: "tour.game.title", text: "tour.game.html" },
-  { core: true, part: "tour.part.plan", hash: "#objet", target: "#query", title: "tour.item.title", text: "tour.item.html" },
-  { core: true, part: "tour.part.plan", hash: "#objet", target: "#answer", title: "tour.answer.title", text: "tour.answer.html" },
-  { core: true, part: "tour.part.plan", hash: "#objet", target: "#rtabs-result", play: true, title: "tour.views.title", text: "tour.views.html" },
-  { core: true, part: "tour.part.rest", hash: "#objet", target: "[data-nav=arbre]", title: "tour.tree.title", text: "tour.tree.html" },
-  { core: true, part: "tour.part.rest", hash: "#objet", target: "[data-nav=recettes]", title: "tour.recipes.title", text: "tour.recipes.html" },
-  // S35 : l'étape des remarques, juste avant la dernière (maquette S16, écran 2 : « 8 / 9 »).
-  { core: true, part: "tour.part.rest", hash: "#objet", target: "#remark-btn", title: "tour.remark.title", text: "tour.remark.html" },
-  { core: true, part: "tour.part.end", hash: "#objet", target: "#help", title: "tour.help.title", text: "tour.help.html" },
-  // Visite détaillée : elle entre dans les vues (au minimum le schéma et l'usine complète, Q25), et on y touche.
-  { part: "tour.part.flow", hash: "#objet/schema", target: "#flow-frame", play: true, title: "tour.flow.title", text: "tour.flow.html" },
-  { part: "tour.part.factory", hash: "#objet/pose/usine-entiere", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.factory.title", text: "tour.factory.html" },
-  { part: "tour.part.settings", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.prio.title", text: "tour.prio.html" },
-  { part: "tour.part.settings", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.machines.title", text: "tour.machines.html" },
-  { part: "tour.part.research", hash: "#usine/recherche", target: "#rs-box", title: "tour.research.title", text: "tour.research.html" },
-  { part: "tour.part.tree", hash: "#arbre", target: ".rs-workspace", play: true, title: "tour.arbre.title", text: "tour.arbre.html" },
-  { part: "tour.part.recipes", hash: "#recettes", target: "#rc-layout", play: true, title: "tour.recettes.title", text: "tour.recettes.html" },
-  { part: "tour.part.end", center: true, hash: "#objet", title: "tour.end.title", text: "tour.end.html", next: "tour.finish" },
+  { core: true, center: true, hash: "#objet", title: "tour.welcome.title", text: "tour.welcome.html", next: "tour.welcome.next" },
+  { core: true, hash: "#objet", target: "#query", play: true, title: "tour.item.title", text: "tour.item.html", act: "tour.item.act", until: "item" },
+  { core: true, hash: "#objet", target: "#answer", play: true, title: "tour.answer.title", text: "tour.answer.html", note: { when: "simulated", text: "tour.answer.simulated" } },
+  { core: true, hash: "#objet", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.pose.title", text: "tour.pose.html" },
+  { core: true, hash: "#objet", target: "#rtabs-result", play: true, title: "tour.views.title", text: "tour.views.html", act: "tour.views.act", until: "schema" },
+  { core: true, target: "#me", play: true, title: "tour.game.title", text: "tour.game.html", note: { when: "simulated", text: "tour.game.simulated" }, next: "tour.later", alt: { label: "tour.game.open", hash: "#usine" } },
+  // Mini-parcours de « Premiers pas » : chacun sur sa page, le joueur y touche.
+  { mini: "partie", hash: "#usine", target: "#upto-form", play: true, title: "tour.partie.title", text: "tour.partie.html" },
+  { mini: "partie", hash: "#usine/recherche", target: "#rs-box", play: true, title: "tour.research.title", text: "tour.research.html" },
+  { mini: "regler", hash: "#objet", target: "#criteria", play: true, title: "tour.prio.title", text: "tour.prio.html" },
+  { mini: "regler", hash: "#objet", target: "#plan-set-open", play: true, title: "tour.machines.title", text: "tour.machines.html" },
+  { mini: "arbre", hash: "#arbre", target: ".rs-workspace", play: true, title: "tour.arbre.title", text: "tour.arbre.html" },
+  { mini: "recettes", hash: "#recettes", target: "#rc-layout", play: true, title: "tour.recettes.title", text: "tour.recettes.html" },
+  { mini: "recettes", hash: "#objet", target: "#remark-btn", play: true, title: "tour.remark.title", text: "tour.remark.html" },
 ];
 
 export type TourHooks = {
-  /** Avant la première étape : mettre l'exemple en place (et redessiner la page). */
+  /** Avant la première étape (une seule fois par parcours ouvert). */
   onStart(): void;
+  /** À chaque parcours lancé, avec son mode : la page peut simuler une progression pour le premier. */
+  onStartMode?(mode: TourMode): void;
   /** Ouvrir une adresse du site. */
   go(hash: string): void;
-  /** À la fin (ou si on passe) : rendre la partie du joueur. */
-  onEnd(): void;
+  /** À la fin (ou si on passe) : la liste « Premiers pas » apparaît. */
+  onEnd(mode: TourMode): void;
+  /** Condition d'une étape guidée par l'action (`until`). */
+  test(cond: string): boolean;
+  /** Une étape atteinte : la page coche la case correspondante de « Premiers pas ». */
+  onReach?(mode: TourMode, index: number): void;
 };
 
 const KEY_BUBBLE = "ind-calc:v1:visite-bulle";
@@ -90,7 +107,7 @@ type Rect = { top: number; left: number; width: number; height: number };
 
 /** La visite (une seule instance) : quatre volets sombres autour du projecteur, et la bulle. */
 export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
-  const st = { i: -1, mode: "core" as TourMode, decision: false, timers: [] as number[], poll: 0, hole: null as Rect | null, bubble: readBubble() };
+  const st = { i: -1, mode: "first" as TourMode, decision: false, timers: [] as number[], poll: 0, hole: null as Rect | null, bubble: readBubble() };
   let shades: HTMLDivElement[] = [];
   let pulsed = -1;
   let spot: HTMLDivElement;
@@ -122,13 +139,11 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
         } catch {
           // choix gardé pour cette visite seulement
         }
-        if (st.decision) decide();
-        else render(false);
-      } else if (a === "detail") {
-        st.decision = false;
-        st.mode = "detail";
-        st.i = tourSeq(steps, "detail")[0]!;
-        render();
+        render(false);
+      } else if (a === "alt") {
+        const h = steps[st.i]?.alt?.hash;
+        end();
+        if (h) hooks.go(h);
       }
     });
     document.body.append(...shades, spot, bubble);
@@ -146,9 +161,11 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
   function start(mode: TourMode): void {
     build();
     const fresh = st.i < 0 && !st.decision;
+    const seq = tourSeq(steps, mode);
+    if (!seq.length) return;
     st.mode = mode;
     st.decision = false;
-    st.i = tourSeq(steps, mode)[0]!;
+    st.i = seq[0]!;
     st.hole = null;
     if (fresh) {
       document.addEventListener("keydown", onKey);
@@ -156,6 +173,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
       window.addEventListener("scroll", follow, { passive: true });
       hooks.onStart();
     }
+    hooks.onStartMode?.(mode);
     render();
   }
   function next(): void {
@@ -164,8 +182,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     if (p < s.length - 1) {
       st.i = s[p + 1]!;
       render();
-    } else if (st.mode === "core") decide();
-    else end();
+    } else end();
   }
   function prev(): void {
     const s = tourSeq(steps, st.mode);
@@ -193,48 +210,48 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     document.removeEventListener("keydown", onKey);
     window.removeEventListener("resize", follow);
     window.removeEventListener("scroll", follow);
-    hooks.onEnd();
+    hooks.onEnd(st.mode);
   }
   const toggle = () =>
     `<button type="button" class="tour-pin" data-tour="bubble" title="${t(st.bubble === "fixe" ? "tour.bubble.toFollow" : "tour.bubble.toFixed")}">${t(st.bubble === "fixe" ? "tour.bubble.fixed" : "tour.bubble.follows")}</button>`;
-  function decide(): void {
-    stopTimers();
-    st.decision = true;
-    st.hole = null;
-    document.documentElement.classList.add("touring");
-    shade(null);
-    spot.style.display = "none";
-    bubble.style.display = "block";
-    bubble.classList.remove("near");
-    bubble.innerHTML = withIcons(`${toggle()}<div class="tour-part">${t("tour.decide.part")}</div><div class="tour-title">${t("tour.decide.title")}</div>
-      <div class="tour-text">${t("tour.decide.html")}</div>
-      <div class="tour-decision"><button type="button" class="tour-btn next" data-tour="detail">${t("tour.decide.yes")}</button><button type="button" class="tour-link" data-tour="end">${t("tour.decide.no")}</button></div>`);
-    bubble.style.removeProperty("top");
-    bubble.style.removeProperty("left");
-  }
   function render(navigate = true): void {
     const step = steps[st.i]!;
     const s = tourSeq(steps, st.mode);
     const p = s.indexOf(st.i);
     if (navigate && step.hash && location.hash !== step.hash) hooks.go(step.hash);
+    hooks.onReach?.(st.mode, st.i);
     bubble.style.display = "block";
     const last = p === s.length - 1;
-    const label = t(step.next ?? (last ? (st.mode === "core" ? "tour.continue" : "tour.finish") : "tour.next"));
-    bubble.innerHTML = withIcons(`${toggle()}<div class="tour-part">${t(step.part)}</div><div class="tour-title">${t(step.title)}</div><div class="tour-text">${t(step.text)}</div>
+    // Étape guidée par l'action : pas de « Suivant » tant que l'action n'est pas faite (sauf si elle l'est déjà).
+    const waiting = !!step.until && !hooks.test(step.until);
+    const label = t(step.next ?? (last ? "tour.finish" : "tour.next"));
+    const offset = steps[s[0]!]!.center ? 1 : 0;
+    const head = step.center ? t("tour.part.welcome") : t("tour.step", { n: p + 1 - offset, total: s.length - offset });
+    bubble.innerHTML = withIcons(`${toggle()}<div class="tour-part">${head}</div><div class="tour-title">${t(step.title)}</div><div class="tour-text">${t(step.text)}</div>
+      ${step.act ? `<div class="tour-act${waiting ? "" : " done"}">${t(waiting ? step.act : "tour.act.done")}</div>` : ""}
+      ${step.note && hooks.test(step.note.when) ? `<div class="tour-note">${t(step.note.text)}</div>` : ""}
       <div class="tour-wait" hidden></div>
-      <div class="tour-dots">${s.map((_, j) => `<span class="tour-dot${j < p ? " done" : j === p ? " cur" : ""}"></span>`).join("")}</div>
-      <div class="tour-ctrl">${p > 0 ? `<button type="button" class="tour-btn" data-tour="prev">${t("tour.prev")}</button>` : ""}<button type="button" class="tour-btn next" data-tour="next">${label}</button>
-      <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${t(p === 0 ? "tour.skip" : "tour.skipAll")}</button>`}</span></div>`);
-    bubble.querySelector<HTMLButtonElement>("[data-tour=next]")?.focus({ preventScroll: true });
+      <div class="tour-dots">${s.map((_, j) => (steps[s[j]!]!.center ? "" : `<span class="tour-dot${j < p ? " done" : j === p ? " cur" : ""}"></span>`)).join("")}</div>
+      <div class="tour-ctrl">${p > 0 ? `<button type="button" class="tour-btn" data-tour="prev">${t("tour.prev")}</button>` : ""}
+      ${step.alt ? `<button type="button" class="tour-btn next" data-tour="alt">${t(step.alt.label)}</button>` : ""}
+      ${waiting ? "" : `<button type="button" class="tour-btn${step.alt ? "" : " next"}" data-tour="next">${label}</button>`}
+      <span class="tour-skip">${last ? "" : `<button type="button" class="tour-link" data-tour="end">${t(p === 0 ? "tour.skip" : "tour.quit")}</button>`}</span></div>`);
+    if (!waiting) bubble.querySelector<HTMLButtonElement>("[data-tour=next]")?.focus({ preventScroll: true });
     // On regarde : la page est figée. On essaie (play) : la page défile, le projecteur suit sa cible.
     document.documentElement.classList.toggle("touring", !step.play);
     // Plusieurs passes de cadrage : la page change d'adresse, le schéma et l'usine se dessinent après.
     stopTimers();
     st.timers = [0, 150, 450].map((ms) => window.setTimeout(() => place(true), ms));
-    // Puis le projecteur suit la cible (un bloc sélectionné agrandit la page, l'usine se calcule…).
+    // Puis le projecteur suit la cible (un bloc sélectionné agrandit la page, l'usine se calcule…), et l'action est guettée.
+    let armed = false;
     st.poll = window.setInterval(() => {
       if (step.wait) waitTick(step);
       place(false);
+      if (waiting && !armed && hooks.test(step.until!)) {
+        armed = true;
+        const at = st.i;
+        st.timers.push(window.setTimeout(() => { if (st.i === at) next(); }, 600));
+      }
     }, 250);
   }
   /** Un calcul en cours (usine) : son avancement dans la bulle, puis le projecteur sur le résultat. */

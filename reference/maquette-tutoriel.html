@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maquette tutoriel pas à pas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#120c20;--surface:#1b1328;--line:#3a2b5c;--ink:#f0ecfa;--muted:#b3a7d1;--acc:#ff6a1a;--ok:#5fd38a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",sans-serif;min-height:100vh}
+h1,h2,.brand,.tab,.tt b{font-family:Audiowide,sans-serif;font-weight:400}
+.num{font-family:"IBM Plex Mono",monospace}
+/* ---------- réplique simplifiée du site ---------- */
+header{display:flex;gap:14px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5}
+.brand{color:var(--acc)}
+nav a{color:var(--muted);margin-right:10px;font-family:Audiowide}
+.sp{flex:1}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.85rem;color:var(--muted)}
+.chip.cta{color:var(--acc);border-color:var(--acc)}
+main{max-width:980px;margin:0 auto;padding:18px 14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+input,select,button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 10px}
+button{cursor:pointer}
+#answer{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:none}
+#answer .big{font-size:1.15rem}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:16px}
+.tab{background:none;border:0;border-bottom:3px solid transparent;border-radius:0;color:var(--muted);padding:9px 14px}
+.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--acc)}
+#pose{margin-top:10px;height:220px;border:1px dashed var(--line);border-radius:10px;display:none;place-items:center;color:var(--muted);background:repeating-linear-gradient(0deg,#1b1328 0 19px,#241a36 19px 20px),repeating-linear-gradient(90deg,#1b132800 0 19px,#241a36 19px 20px)}
+/* ---------- le tutoriel ---------- */
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none}
+.spot{position:fixed;z-index:51;border-radius:10px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.6),0 0 0 2px var(--acc);transition:all .35s ease;display:none}
+.tt{position:fixed;z-index:52;width:min(340px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--acc);border-radius:12px;padding:12px 14px 10px;box-shadow:0 8px 30px #000a;display:none}
+.tt::before{content:"";position:absolute;width:12px;height:12px;background:var(--surface);border-left:1px solid var(--acc);border-top:1px solid var(--acc);transform:rotate(45deg);top:-7px;left:28px}
+.tt.up::before{top:auto;bottom:-7px;transform:rotate(225deg)}
+.tt.center{position:fixed;left:50%!important;top:40%!important;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 24px))}
+.tt.center::before{display:none}
+.tt .step{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tt b{display:block;font-size:1rem;margin:2px 0 4px;color:var(--acc)}
+.tt p{margin:0 0 10px}
+.tt .act{color:var(--ok);font-size:.85rem;margin:0 0 8px}
+.tt .act::before{content:"→ "}
+.tt .ctrl{display:flex;gap:8px;align-items:center}
+.tt .ctrl .sp{flex:1}
+.tt .ctrl .lnk{background:none;border:0;color:var(--muted);text-decoration:underline;padding:4px}
+.tt .ctrl .pri{background:var(--acc);border-color:var(--acc);color:#120c20;font-weight:600}
+.dots{display:flex;gap:5px;margin:0 0 8px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--acc)}.dots i.done{background:var(--ok)}
+/* ---------- la liste « Premiers pas » ---------- */
+.check{position:fixed;right:14px;bottom:14px;z-index:40;width:280px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 8px 30px #000a;display:none}
+.check h2{font-size:.95rem;margin:0 0 2px;color:var(--acc)}
+.check .bar{height:5px;background:var(--line);border-radius:3px;margin:6px 0 8px}.check .bar i{display:block;height:100%;width:0;background:var(--ok);border-radius:3px;transition:width .4s}
+.check ul{list-style:none;margin:0;padding:0}.check li{padding:4px 0;display:flex;gap:8px;align-items:center;cursor:pointer}
+.check li::before{content:"○";color:var(--muted)}.check li.done{color:var(--muted);text-decoration:line-through}.check li.done::before{content:"✓";color:var(--ok)}
+.check .foot{display:flex;justify-content:space-between;margin-top:8px;font-size:.8rem}.check .foot button{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0}
+.note{position:fixed;left:14px;bottom:14px;z-index:40;font-size:.78rem;color:var(--muted);max-width:360px}
+@media (max-width:640px){.tt:not(.center){left:12px!important;right:12px;top:auto!important;bottom:12px;width:auto}.tt::before{display:none}}
+</style></head><body>
+
+<header><span class="brand">Planificateur</span><nav><a>Planifier</a><a id="nav-arbre">Arbre</a><a>Recettes</a></nav><span class="sp"></span>
+ <span class="chip cta" id="me">Dis-moi où tu en es</span><span class="chip">FR</span><button class="chip" id="help">? Tutoriel</button></header>
+
+<main>
+ <h1 style="font-size:1.2rem">Que veux-tu produire ?</h1>
+ <div class="row">Je veux <input id="qty" class="num" type="number" value="60" style="width:80px"> <select><option>par minute</option></select> de
+  <input id="item" placeholder="Nom de l'objet, ex. Crankshaft" style="width:260px"></div>
+ <div id="answer"><div class="big">Pour <b id="aItem">Crankshaft</b> × <span class="num" id="aQty">60</span>/min : <b>14 machines</b></div>
+  <div style="color:var(--muted)">place au sol <span class="num">1 240</span> cases · énergie <span class="num">33 MW</span> · prix <span class="num">42,4 M$</span></div></div>
+ <div class="tabs" id="tabs"><button class="tab" aria-selected="true">Usine</button><button class="tab">Schéma</button><button class="tab">Liste des machines</button><button class="tab">Détails</button></div>
+ <div id="pose">plan de pose vu de dessus (glisse · molette · survole un module)</div>
+</main>
+
+<div class="veil" id="veil"></div><div class="spot" id="spot"></div>
+<div class="tt" id="tt"></div>
+<aside class="check" id="check"><h2>Premiers pas</h2><div style="font-size:.8rem;color:var(--muted)"><span id="cnt">2</span> / 6</div><div class="bar"><i id="bar"></i></div>
+ <ul>
+  <li class="done">Mon premier plan</li><li class="done">Voir le plan de pose</li>
+  <li data-mini="me">Dire au site ce que j'ai recherché <small style="color:var(--muted)">(2 étapes)</small></li>
+  <li data-mini="regler">Régler le plan : priorités, machines <small style="color:var(--muted)">(2)</small></li>
+  <li data-mini="arbre">L'arbre de recherche <small style="color:var(--muted)">(1)</small></li>
+  <li data-mini="recettes">Recettes et remarques <small style="color:var(--muted)">(2)</small></li>
+ </ul><div class="foot"><button id="replay">Rejouer le tutoriel</button><button id="hide">Masquer</button></div></aside>
+<div class="note">Maquette : les actions sont réelles (tape un objet, clique un onglet) ; le tutoriel avance tout seul quand l'action est faite. « ? Tutoriel » rouvre la liste.</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const tt=$('#tt'),spot=$('#spot'),veil=$('#veil');
+// Étapes : cible, titre, texte (≤ 20 mots), action attendue (auto), ou bouton Suivant.
+const steps=[
+ {center:true,title:'Ton premier plan en 1 minute',text:'Dis ce que tu veux produire : le site te donne les machines, la place, l’énergie et le plan de pose.',btn:'Commencer'},
+ {target:'#item',title:'1. L’objet',text:'Tape le nom comme dans le Recipe Book du jeu.',act:'Tape « Crankshaft » et valide',until:()=>$('#item').value.trim().length>3},
+ {target:'#qty',title:'2. Le débit',text:'Combien par minute ? Change le nombre si tu veux.',act:'Garde 60 ou change-le, puis Suivant',btn:'Suivant'},
+ {target:'#answer',title:'3. La réponse',text:'Ta chaîne complète : machines, place au sol, énergie, prix.',btn:'Suivant',up:true},
+ {target:'#tabs',title:'4. Le plan de pose',text:'L’onglet Usine dessine ton usine vue de dessus, comme en jeu.',act:'Clique « Usine »',until:()=>poseOpen},
+ {target:'#pose',title:'5. Comme en jeu',text:'Glisse pour bouger, molette pour zoomer, survole un module pour voir ce qu’il produit.',btn:'Suivant',up:true},
+ {target:'#me',title:'Dernier point : ta partie',text:'Là, le site suppose tout débloqué. Dis-lui tes recherches pour des plans réalistes.',btn:'Plus tard',alt:'Ouvrir Mon usine'},
+];
+let i=-1,poll=0,poseOpen=false;
+function show(k){i=k;clearInterval(poll);const s=steps[k];if(!s){end();return}
+ veil.style.display='block';tt.style.display='block';tt.className='tt'+(s.center?' center':'')+(s.up?' up':'');
+ tt.innerHTML=`<div class="step">${s.center?'Tutoriel':`Étape ${k} / ${steps.length-1}`}</div><b>${s.title}</b><p>${s.text}</p>${s.act?`<p class="act">${s.act}</p>`:''}
+  ${s.center?'':`<div class="dots">${steps.slice(1).map((_,j)=>`<i class="${j+1<k?'done':j+1===k?'on':''}"></i>`).join('')}</div>`}
+  <div class="ctrl">${k>1?'<button class="lnk" data-a="prev">Précédent</button>':''}<span class="sp"></span>
+  ${s.alt?`<button class="pri" data-a="alt">${s.alt}</button>`:''}${s.btn?`<button class="${s.alt?'':'pri'}" data-a="next">${s.btn}</button>`:''}
+  <button class="lnk" data-a="end">${k?'Quitter':'Passer'}</button></div>`;
+ place();if(s.until)poll=setInterval(()=>{if(s.until()){clearInterval(poll);const k=i;setTimeout(()=>{if(i===k)show(k+1)},500)}},250);}
+function place(){const s=steps[i];if(!s||s.center){spot.style.display='none';return}
+ const el=$(s.target);if(getComputedStyle(el).display==='none'){spot.style.display='none';return}
+ el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect(),p=6;
+ Object.assign(spot.style,{display:'block',top:r.top-p+'px',left:r.left-p+'px',width:r.width+2*p+'px',height:r.height+2*p+'px'});
+ const h=tt.offsetHeight,w=tt.offsetWidth;let top=s.up?r.top-h-16:r.bottom+16;
+ tt.style.left=Math.min(Math.max(12,r.left-20),innerWidth-w-12)+'px';tt.style.top=top+'px';
+ if(s.until&&s.target==='#item')$('#item').focus();}
+function end(){clearInterval(poll);veil.style.display=tt.style.display=spot.style.display='none';i=-1;$('#check').style.display='block';}
+tt.onclick=e=>{const a=e.target.dataset.a;if(!a)return;if(a==='next')show(i+1);if(a==='prev')show(i-1);if(a==='end')end();if(a==='alt'){end();alert('→ ouvrirait Mon usine, avec un mini-parcours de 2 étapes');}};
+addEventListener('resize',place);addEventListener('scroll',place,{passive:true});
+// la page réagit vraiment
+$('#item').addEventListener('input',e=>{const v=e.target.value.trim();if(v.length>3){$('#aItem').textContent=v;$('#answer').style.display='block';}});
+$('#qty').addEventListener('input',e=>$('#aQty').textContent=e.target.value);
+$('#tabs').addEventListener('click',e=>{if(e.target.classList.contains('tab')){document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===e.target));if(e.target.textContent==='Usine'){poseOpen=true;$('#pose').style.display='grid'}}});
+$('#help').onclick=()=>{$('#check').style.display='block'};$('#hide').onclick=()=>$('#check').style.display='none';$('#replay').onclick=()=>{$('#check').style.display='none';show(0)};
+document.querySelectorAll('[data-mini]').forEach(li=>li.onclick=()=>{li.classList.add('done');const n=document.querySelectorAll('.check li.done').length;$('#cnt').textContent=n;$('#bar').style.width=n/6*100+'%';});
+$('#bar').style.width='33%';
+show(0);
+</script></body></html>

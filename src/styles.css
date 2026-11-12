@@ -1838,3 +1838,24 @@ table.rh-log td.num { white-space: nowrap; }
 
 /* Remarque n° 14 : les onglets du site gardent Audiowide (option B). */
 [data-nav] { font-family: var(--f-display); }
+/* Remarque n° 14 : étape guidée par l'action (ligne « → … ») et liste « Premiers pas » (checklist.ts). */
+.tour-act { margin-top: 8px; font-size: .86rem; color: var(--ok, #5fd38a); font-weight: 600; }
+.tour-act::before { content: "→ "; }
+.tour-act.done { color: var(--muted); font-weight: 400; }
+.tour-act.done::before { content: "✓ "; }
+.tour-note { margin-top: 8px; font-size: .8rem; color: var(--warn); border-left: 3px solid var(--warn); padding-left: 8px; }
+.steps-box { position: fixed; right: 14px; bottom: 14px; z-index: 1250; width: min(300px, calc(100vw - 28px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+.steps-head { display: flex; align-items: baseline; justify-content: space-between; }
+.steps-head h2 { font: 400 .95rem var(--f-display); color: var(--accent); }
+.steps-n { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); }
+.steps-bar { height: 5px; border-radius: 3px; background: var(--line); margin: 6px 0 8px; overflow: hidden; }
+.steps-bar i { display: block; height: 100%; background: var(--accent); transition: width .4s; }
+.steps-box ul { list-style: none; margin: 0; padding: 0; }
+.steps-box li button { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; color: var(--ink); padding: 4px 0; cursor: pointer; font-size: .9rem; }
+.steps-box li button::before { content: "○"; color: var(--muted); flex: none; }
+.steps-box li button:hover { color: var(--accent); }
+.steps-box li.done button { color: var(--muted); text-decoration: line-through; }
+.steps-box li.done button::before { content: "✓"; color: var(--accent); }
+.steps-box li small { color: var(--muted); font-size: .76rem; text-decoration: none; }
+.steps-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: .8rem; color: var(--muted); }
+@media (max-width: 640px) { .steps-box { right: 8px; left: 8px; bottom: 8px; width: auto; } }
