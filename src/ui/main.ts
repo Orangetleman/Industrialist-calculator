@@ -40,6 +40,9 @@ import type { EnergyFile, InterfacesFile, LogisticsFile, PortsEntry, PortsFile, 
 import { applyMachineSettings, type Interfaces, type MachineSettings, mergeInterfaces } from "../engine/interfaces.ts";
 import interfacesJson from "../../data/interfaces.json";
 import modularJson from "../../data/modular.json";
+import mineshaftJson from "../../data/mineshaft.json";
+import { DEFAULT_MINESHAFT, sameMineshaft, withMineshaft, type MineshaftChoice, type MineshaftFile } from "../engine/mineshaft.ts";
+import { mineshaftPatch, type MineshaftView } from "./mineshaft-view.ts";
 import type { ModularFile } from "../engine/modular.ts";
 import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
 import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
@@ -192,7 +195,8 @@ setLang(
 const REPO_IFACES = interfacesJson as unknown as InterfacesFile;
 // Machines modulaires (S13) : la ferme d'arbres et les moteurs diesel relevés entrent dans le calcul.
 const REPO_MODULAR = modularJson as unknown as ModularFile;
-const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES, modular: REPO_MODULAR } as unknown as RawFiles;
+const MINESHAFT = mineshaftJson as unknown as MineshaftFile;
+const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES, modular: REPO_MODULAR, mineshaft: MINESHAFT } as unknown as RawFiles;
 /** Poteaux de transport d'énergie (réseau de l'objectif énergie). */
 const POLES = (powerJson as unknown as PowerFile).entries
   .filter((e) => e.subcategory === "Transfer Poles" && e.transfer)
@@ -827,6 +831,20 @@ function setDieselReadings(list: DieselReading[]): void {
   update();
 }
 
+/** Mineshaft Drill du plan (remarque n°16) : données et réglage (défaut : profondeur auto, Steel, HCl). */
+function mineshaftNow(): MineshaftView {
+  const key = planKey(settings.goal, settings.item);
+  return { file: MINESHAFT, choice: (key && settings.mineshaftChoice[key]) || DEFAULT_MINESHAFT };
+}
+function setMineshaftChoice(patch: Partial<MineshaftChoice>): void {
+  const key = planKey(settings.goal, settings.item);
+  if (!key) return;
+  const next = { ...mineshaftNow().choice, ...patch };
+  const { [key]: _, ...rest } = settings.mineshaftChoice;
+  settings.mineshaftChoice = sameMineshaft(next, DEFAULT_MINESHAFT) ? rest : { ...rest, [key]: next };
+  update();
+}
+
 function msettingsNow(): MachineSettings {
   const key = planKey(settings.goal, settings.item);
   return (key && settings.machineSettings[key]) || {};
@@ -853,8 +871,12 @@ let planDataCache: { base: GameData; sig: string; data: GameData } | null = null
 function planData(): GameData {
   const ms = msettingsNow();
   const all = currentInterfaces();
-  const sig = `${JSON.stringify(ms)}|${all.sig}`;
-  if (!planDataCache || planDataCache.base !== data || planDataCache.sig !== sig) planDataCache = { base: data, sig, data: applyMachineSettings(data, all.all, ms) };
+  const msd = mineshaftNow().choice;
+  const sig = `${JSON.stringify(ms)}|${all.sig}|${JSON.stringify(msd)}`;
+  if (!planDataCache || planDataCache.base !== data || planDataCache.sig !== sig) {
+    const applied = applyMachineSettings(data, all.all, ms);
+    planDataCache = { base: data, sig, data: sameMineshaft(msd, DEFAULT_MINESHAFT) ? applied : withMineshaft(applied, MINESHAFT, msd) };
+  }
   return planDataCache.data;
 }
 let planBuiltFrom: GameData | null = null;
@@ -905,7 +927,7 @@ function ensurePlan(): void {
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow(), game: gameView() };
+  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow(), mineshaft: mineshaftNow(), game: gameView() };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
@@ -1186,6 +1208,7 @@ function planBarInput(advanced: number): PlanBarInput {
     msettings: goal === "recherche" ? {} : msettingsNow(),
     ifaces: currentInterfaces().all,
     diesel: (key && settings.dieselChoice[key]) || null,
+    mineshaft: goal === "recherche" ? null : mineshaftNow(),
     advanced,
   };
 }
@@ -3880,6 +3903,10 @@ function bindPlan(): void {
     if (el.matches("[data-dsl-fuel]")) setDieselChoice({ fuel: el.value, config: null });
     else if (el.matches("[data-dsl-mode]")) setDieselChoice({ mode: (el as HTMLInputElement).dataset.dslMode as DieselChoice["mode"], config: null });
     else if (el.matches("[data-dsl-config]")) setDieselChoice({ config: el.value || null });
+    else {
+      const msd = mineshaftPatch(el);
+      if (msd) setMineshaftChoice(msd);
+    }
   });
   // Nombre de machines d'un bloc (S8) : −/+, molette sur le nombre, ou un nombre tapé (Entrée, ou en quittant le champ).
   const msetInput = () => $("flow-hud").querySelector<HTMLInputElement>("[data-mset-input]");
@@ -3968,6 +3995,7 @@ function bindShared(): void {
       if (what === "fixed") return setFixed(pbx.dataset.key!, null);
       if (what === "forced") return setForced(pbx.dataset.item!, "");
       if (what === "msetting") return setMachineSetting(pbx.dataset.machine!, null, null);
+      if (what === "mineshaft") return setMineshaftChoice({ ...DEFAULT_MINESHAFT });
       if (what === "diesel") {
         const key = planKey(settings.goal, settings.item);
         if (key) {

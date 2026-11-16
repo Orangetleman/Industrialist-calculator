@@ -7,6 +7,7 @@ import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Step, VerifyEntry } from "../engine/solve.ts";
 import type { VerifyFlag } from "../engine/types.ts";
 import { DEFAULT_DIESEL, type DieselChoice } from "./diesel.ts";
+import { mineshaftChipLabel, type MineshaftView } from "./mineshaft-view.ts";
 import { lang, t, type Key } from "../i18n/i18n.ts";
 import { colon, doubtText, esc, fmt, fmtMF, semi } from "./format.ts";
 import { icon, withIcons } from "./icons.ts";
@@ -76,6 +77,8 @@ export type PlanBarInput = {
   ifaces?: Interfaces;
   /** Choix du moteur diesel pour ce plan (S18), s'il a été changé. */
   diesel: DieselChoice | null;
+  /** Réglage du Mineshaft Drill pour ce plan (remarque n°16). */
+  mineshaft?: MineshaftView | null;
   /** Options avancées activées. */
   advanced: number;
 };
@@ -164,6 +167,11 @@ export function renderPlanBar(v: Pick<Ctx, "data" | "plan">, b: PlanBarInput): s
         cancel: { attr: `data-pb-x="diesel"`, title: t("pb.diesel.clear") },
       }),
     );
+  }
+  const msdLabel = b.mineshaft ? mineshaftChipLabel(b.mineshaft, (id) => itemN(v, id)) : null;
+  if (msdLabel) {
+    const s = p.steps.find((x) => x.machine === b.mineshaft!.file.meta.machine);
+    chips.push(chipHtml({ label: msdLabel, open: s ? `data-flow="${esc(s.key)}"` : `data-pb="schema"`, title: t("pb.msd.title"), set: true, cancel: { attr: `data-pb-x="mineshaft"`, title: t("pb.msd.clear") } }));
   }
   if (b.advanced) chips.push(chipHtml({ label: t("pb.advanced", { n: String(b.advanced) }), open: `data-pb="advanced"`, title: t("pb.advanced.title"), set: true }));
   return `<div class="plan-bar" role="group" aria-label="${esc(t("pb.aria"))}"><b class="pb-title">${t("pb.title")}</b>${chips.join("")}${verifyMenu(v)}</div>`;

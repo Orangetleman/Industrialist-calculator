@@ -5,6 +5,7 @@
 import { controllerPanel } from "./assembly-view.ts";
 import { gameChips, type GameView } from "./game-settings-view.ts";
 import { renderDieselHud, type DieselChoice } from "./diesel.ts";
+import { renderMineshaftHud, type MineshaftView } from "./mineshaft-view.ts";
 import type { DieselConfig } from "../engine/modular-calc.ts";
 import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
@@ -25,7 +26,7 @@ import { txt, txtHtml } from "./engine-text.ts";
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
 /** `plot` : la parcelle du joueur (cases), si renseignée. */
 /** `ifaces`, `msettings` : interfaces des machines et réglages chiffrés du plan (S10). */
-export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings; /** Moteur diesel du plan (S18) : configurations connues et choix. */ diesel?: { configs: DieselConfig[]; choice: DieselChoice }; /** Réglages de partie (S50), pour les pastilles de rappel. */ game?: GameView };
+export type ViewCtx = Ctx & { goal: Goal; research?: ResearchView | null; fresh?: boolean; plot?: { w: number; h: number } | null; ifaces?: Interfaces; msettings?: MachineSettings; /** Moteur diesel du plan (S18) : configurations connues et choix. */ diesel?: { configs: DieselConfig[]; choice: DieselChoice }; /** Mineshaft Drill du plan (remarque n°16) : données et réglage. */ mineshaft?: MineshaftView; /** Réglages de partie (S50), pour les pastilles de rappel. */ game?: GameView };
 
 // ---------------------------------------------------------------- priorité
 
@@ -611,6 +612,11 @@ export function renderFlowHud(v: ViewCtx, key: string, survey: (machine: string)
   if (st && !st.parts && planGoal) sets.push(renderScreenInputs(v.ifaces?.[st.machine], st.machine, machineN(v, st.machine), v.msettings?.[st.machine]));
   // Moteur diesel (S18) : carburant, critère ou configuration imposée, et les réglages du contrôleur.
   if (st && st.machine === "diesel-engine-controller" && v.diesel && planGoal) sets.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === st.recipeId) ?? null));
+  // Mineshaft Drill (remarque n°16) : profondeur, tête, acide, huile, pour ce plan.
+  if (st && v.mineshaft && st.machine === v.mineshaft.file.meta.machine && planGoal) {
+    const d = Number(/@(\d+)$/.exec(st.recipeId)?.[1]);
+    sets.push(renderMineshaftHud(v.mineshaft, Number.isFinite(d) ? d : null, (id) => itemN(v, id)));
+  }
   // Filtre de machines (S9) : écarter la machine de ce plan, d'un clic.
   if (st && !st.parts && planGoal) {
     sets.push(`<button type="button" class="flow-hud-btn" data-mf-ban="${esc(st.machine)}" title="${esc(t("pv.ban.title", { m: machineN(v, st.machine) }))}">${withIcons(esc(t("pv.ban", { m: machineN(v, st.machine) })))}</button>`);

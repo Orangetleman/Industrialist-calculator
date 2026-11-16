@@ -232,4 +232,9 @@ export const moteurEn: { [K in keyof typeof moteurFr]: Msg } = {
   "eng.data.unknownItemIn": "unknown item in {k} ({item})",
   "eng.data.quantityPos": "quantity > 0 expected ({item})",
   "eng.data.noOutput": "at least one output expected",
+  "eng.msd.duration": "One drill head cycle = extraction + shaft round trip + 12 s to swap: trip and swap taken from Industrialist Calculator (MSD-02, MSD-03); the wiki's “Resource Modifier” is unknown, counted as 1 (MSD-01).",
+  "eng.msd.energy": "Average over the cycle: 3.1 MMF/s while extracting (wiki), 0.1 MMF/s while swapping heads; travel counted at 3.1 MMF/s for lack of a source (Industrialist Calculator: 2 / 0.5 / 0.1 MMF/s, MSD-04). Needs HV power.",
+  "eng.msd.acid": "Acid counted only while extracting, as in Industrialist Calculator (MSD-05).",
+  "eng.msd.note": "{head} · {acid}{oil}: one head lasts {extract} s of extraction; cycle {cycle} s ({pct}% of the time extracting).",
+  "eng.msd.noAcid": "no acid",
 };

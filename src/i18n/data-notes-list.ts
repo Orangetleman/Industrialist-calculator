@@ -67,5 +67,7 @@ export function shownNotes(file: string, json: unknown): string[] {
         for (const f of b.facts ?? []) if (SHOWN_FACTS.includes(f.key)) add(f.text);
       }
   }
+  // Mineshaft Drill (remarque n°16) : sources des recettes générées (src/engine/mineshaft.ts).
+  if (file === "mineshaft.json") src([(j.sources as { page: Src }).page, (j.travel as { roundTripSource: Src }).roundTripSource, (j.replacement as { source: Src }).source]);
   return [...new Set(out)].filter(looksFrench);
 }

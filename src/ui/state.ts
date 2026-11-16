@@ -1,6 +1,7 @@
 // État de l'interface et persistance locale (localStorage, toujours dans un try/catch).
 
 import { cleanDieselChoice, type DieselChoice } from "./diesel.ts";
+import { cleanMineshaftChoice, type MineshaftChoice } from "../engine/mineshaft.ts";
 import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { MachineFilter } from "../engine/machine-filter.ts";
@@ -102,6 +103,8 @@ export type Settings = {
   machineSettings: Record<string, MachineSettings>;
   /** Moteur diesel de chaque plan (S18) : carburant, critère, configuration imposée, par clé de plan. */
   dieselChoice: Record<string, DieselChoice>;
+  /** Mineshaft Drill de chaque plan (remarque n°16) : profondeur, tête, acide, huile, par clé de plan. */
+  mineshaftChoice: Record<string, MineshaftChoice>;
   /** Bord de l'usine par où sort chaque produit à évacuer (S27), par clé de plan puis par objet. */
   evacSides: Record<string, Record<string, "haut" | "bas" | "gauche" | "droite">>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
@@ -160,6 +163,7 @@ export const DEFAULT_SETTINGS: Settings = {
   machineFilters: {},
   machineSettings: {},
   dieselChoice: {},
+  mineshaftChoice: {},
   evacSides: {},
   money: 10000,
   selfPowered: false,
@@ -263,6 +267,8 @@ export function loadSettings(): Settings {
   out.machineSettings = cleanMachineSettings(out.machineSettings);
   const dc = out.dieselChoice && typeof out.dieselChoice === "object" ? (out.dieselChoice as Record<string, unknown>) : {};
   out.dieselChoice = Object.fromEntries(Object.entries(dc).map(([k, c]) => [k, cleanDieselChoice(c)]).filter((e): e is [string, DieselChoice] => !!e[1]));
+  const mc = out.mineshaftChoice && typeof out.mineshaftChoice === "object" ? (out.mineshaftChoice as Record<string, unknown>) : {};
+  out.mineshaftChoice = Object.fromEntries(Object.entries(mc).map(([k, c]) => [k, cleanMineshaftChoice(c)]).filter((e): e is [string, MineshaftChoice] => !!e[1]));
   return out;
 }
 export function saveSettings(s: Settings): void {

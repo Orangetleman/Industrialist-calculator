@@ -991,3 +991,34 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   inconnus comptent pour zéro dans l'optimisation ; « le moins de matières premières » additionne toutes les
   matières sans distinction d'unité. À décider : faut-il pénaliser les valeurs inconnues comme la taille (10 000
   cases) ou pondérer les matières premières ?
+
+### Mineshaft Drill (remarque joueur n°16, 2026-11-16)
+
+Modélisé dans `data/mineshaft.json` et `src/engine/mineshaft.ts` : une recette par profondeur = le cycle d'une
+tête (extraction jusqu'à 0 % de durabilité, aller-retour du puits, changement de tête). Source principale : page
+Mineshaft Drill de Miraheze (révision 44241) et ses tableaux `Template:Mineshaft-Drill-Table/*`. Ce qui vient
+d'Industrialist Calculator (`special_recipes/mineshaft_drill.ts`, Pollywrath, MIT) est marqué « source :
+Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md` § 6.
+
+- **MSD-01** **Resource Modifier** : le wiki écrit « perte = 0,5 × tête × acide × Resource Modifier × Speed
+  Modifier » sans donner le Resource Modifier. Compté 1 (comme Industrialist Calculator). Dépend-il de l'objet
+  extrait ou de la profondeur ? À relever en jeu (durée de vie d'une tête à une profondeur connue).
+- **MSD-02** **Trajet à chaque changement de tête** : compté aller-retour (2 × profondeur ÷ 50 m/s, ÷ 100 avec
+  Machine Oil), source : Industrialist Calculator. Le wiki donne la vitesse (50 m/s) mais ne dit pas si la tête
+  remonte à chaque changement. À 8 000 m : 320 s par tête, soit 20 % du cycle.
+- **MSD-03** **Durée d'un changement de tête** : 12 s, source : Industrialist Calculator ; absente du wiki.
+- **MSD-04** **Énergie** : le wiki dit 0,1 MMF/s en permanence + 3 MMF/s en forage (3,1 MMF/s), seulement le
+  passif au changement de tête. Industrialist Calculator compte 2 MMF/s en extraction, 0,5 en trajet, 0,1 au
+  changement (contradiction sur l'extraction). Retenu : 3,1 MMF/s en extraction (wiki) **et en trajet** (borne
+  haute, faute de source), 0,1 au changement. Le courant doit être HV : le calcul le compte comme de l'énergie
+  ordinaire (HV Transformer non compté).
+- **MSD-05** **Acide** : 10 L/s Water, 3 L/s Acetic, 1,5 L/s Hydrochloric, 1 L/s Sulfuric (wiki). Compté
+  seulement pendant l'extraction (source : Industrialist Calculator) ; le wiki ne dit pas s'il coule pendant le
+  trajet et le changement.
+- **MSD-06** **Dynamite et premier puits** : la dynamite ne sert qu'à creuser le puits plus vite (24 m / 5 s,
+  wiki) ; le premier forage (1 m/s, 2 m/s avec huile) n'est pas compté : le calcul est en régime établi. Durée
+  de vie d'une tête : 100 % ÷ perte, sans arrondi (Industrialist Calculator arrondit à la seconde au-dessus).
+- **MSD-07** **Écarts de rendement wiki / Industrialist Calculator** : 2 000 m Raw Lead 9,3 / 9,27 ; 4 000 m
+  Table Salt 58,84 / 58,54 ; 7 000 m Rock absent du wiki / 11,65 chez eux ; 7 800 m Medium Earth Fragment 6,67 /
+  7,67 ; 8 200 à 9 000 m : le wiki arrondit à 0,1 (ex. 8 400 m Raw Uranium 0,2 / 0,15) ; 100 m : seulement chez
+  eux (identique à 300 m). Valeurs du wiki retenues. À relever en jeu : 7 000 m et 7 800 m.

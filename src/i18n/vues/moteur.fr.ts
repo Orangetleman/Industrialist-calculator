@@ -235,4 +235,10 @@ export const moteurFr = {
   "eng.data.unknownItemIn": "objet inconnu dans {k} ({item})",
   "eng.data.quantityPos": "quantité > 0 attendue ({item})",
   "eng.data.noOutput": "au moins une sortie attendue",
+  // Mineshaft Drill (remarque n°16) : doutes du cycle d'une tête, résumé du réglage.
+  "eng.msd.duration": "Cycle d'une tête = extraction + aller-retour du puits + 12 s de changement : trajet et changement pris chez Industrialist Calculator (MSD-02, MSD-03) ; « Resource Modifier » du wiki inconnu, compté 1 (MSD-01).",
+  "eng.msd.energy": "Moyenne sur le cycle : 3,1 MMF/s en extraction (wiki), 0,1 MMF/s au changement de tête ; trajet compté 3,1 MMF/s faute de source (Industrialist Calculator : 2 / 0,5 / 0,1 MMF/s, MSD-04). Courant HV obligatoire.",
+  "eng.msd.acid": "Acide compté pendant l'extraction seulement, comme Industrialist Calculator (MSD-05).",
+  "eng.msd.note": "{head} · {acid}{oil} : une tête dure {extract} s d'extraction ; cycle {cycle} s ({pct} % du temps à extraire).",
+  "eng.msd.noAcid": "sans acide",
 } satisfies Record<string, Msg>;

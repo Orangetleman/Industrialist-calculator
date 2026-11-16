@@ -7,6 +7,7 @@ import interfacesJson from "../../data/interfaces.json";
 import itemsJson from "../../data/items.json";
 import machinesJson from "../../data/machines.json";
 import modularJson from "../../data/modular.json";
+import mineshaftJson from "../../data/mineshaft.json";
 import overridesJson from "../../data/overrides.json";
 import recipesJson from "../../data/recipes.json";
 import researchJson from "../../data/research.json";
@@ -27,6 +28,7 @@ const FILES: Record<string, unknown> = {
   "overrides.json": overridesJson,
   "interfaces.json": interfacesJson,
   "modular.json": modularJson,
+  "mineshaft.json": mineshaftJson,
 };
 
 describe("notes des données en anglais (S32)", () => {
