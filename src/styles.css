@@ -1661,20 +1661,20 @@ table.rh-log td.num { white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .cmd-pane, .cmd-prog i { transition: none; } }
 
 /* ---------------------------------------------------------------- S67 : bulle d'un module dans l'Usine */
-[data-focus-big] { display: none; }
 @media (min-width: 900px) {
   #pose-split.focus { display: block; position: relative; }
   #pose-split.focus .pose-frame { height: calc(100cqh - 38px) !important; }
-  #pose-focus { position: absolute; left: 0; top: 0; z-index: 5; width: 310px; max-height: calc(100cqh - 60px); overflow: auto; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px #0008; transform-origin: 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+  #pose-focus { position: absolute; left: 0; top: 0; z-index: 5; width: 360px; max-height: calc(100cqh - 60px); overflow: auto; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px #0008; transform-origin: 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
   #pose-focus[hidden] { display: none; }
-  #pose-focus.big { width: min(580px, 70%); }
-  #pose-focus [data-focus-big] { display: inline-grid; }
-  #pose-focus [data-focus-full], #pose-focus .focus-bar button.link { display: none; }
-  #pose-focus:not(.big) :is(.focus-frame, #focus-bar-opts, #focus-legend, #focus-details) { display: none; }
+  #pose-focus .focus-bar button.link { display: none; }
+  /* R15 : le dessin est dans la bulle dès le clic ; la légende et le détail en plein écran seulement. */
+  #pose-focus:not(.full) :is(#focus-legend, #focus-details) { display: none; }
+  #pose-focus.full { position: fixed; inset: 0; width: auto; max-height: none; transform: none !important; z-index: 50; }
+  #pose-focus.full .focus-frame { flex: 1; height: auto !important; min-height: 240px; }
   #pose-focus .focus-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 1; }
   #pose-focus .focus-title { flex: 1; font-size: .84rem; }
   #pose-focus .focus-info { padding: 8px 10px; font-size: .82rem; }
-  #pose-focus .focus-frame { height: 280px !important; border-radius: 0; margin: 0 10px; }
+  #pose-focus .focus-frame { height: 220px !important; border-radius: 0; margin: 0 10px; }
   #pose-focus #focus-bar-opts { padding: 6px 10px 0; }
   #pose-focus #focus-bar-opts .hint { display: none; }
 }
@@ -1702,7 +1702,7 @@ table.rh-log td.num { white-space: nowrap; }
 .cmd-li .ic-warn { color: var(--warn); }
 /* Bulle petite : l'essentiel seulement (posé, la ligne du module, les actions) ; ⤢ montre le reste. */
 @media (min-width: 900px) {
-  #pose-focus:not(.big) #focus-head > :not(.focus-posed):not(.pose-actions):not(:nth-child(2)) { display: none; }
+  #pose-focus:not(.full) #focus-head > :not(.focus-posed):not(.pose-actions):not(:nth-child(2)) { display: none; }
 }
 
 /* ---------------------------------------------------------------- Plus près de la maquette volets.html */
@@ -1748,7 +1748,7 @@ table.rh-log td.num { white-space: nowrap; }
 .cmd-alerts .cmd-li { font-size: .78rem; }
 .cmd-alerts span.cmd-li { cursor: default; }
 @media (min-width: 900px) {
-  #pose-focus:not(.big) #focus-head > .cmd-alerts { display: flex !important; }
+  #pose-focus:not(.full) #focus-head > .cmd-alerts { display: flex !important; }
 }
 /* Levier aligné sur la ligne « Toute l'usine », pleine largeur. */
 .cmd-row:first-child > .cmd-box { display: none; }

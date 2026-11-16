@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette R15 — Modulaire dans l'usine</title>
+<style>
+/* Maquette remarque 15 : ferme d'arbres dessinée dans l'usine, bulle qui montre le dessin tout de suite,
+   agrandir / plein écran, portées sans fermer la bulle. Dessin de démonstration : aucune valeur de jeu. */
+:root {
+  --bg: #0e0a18; --surface: #160f25; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
+  --accent: #ff6a1a; --cv-bg: #120c20; --cv-bg2: #1a1230; --cv-line: #4f3d7a; --tree: #4ade80; --spr: #38bdf8; --pole: #ffd23f;
+}
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 "IBM Plex Sans", system-ui, sans-serif; }
+header { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+header h1 { margin: 0; font-size: 1rem; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: .82rem; }
+.stage { position: relative; height: calc(100vh - 70px); min-height: 480px; overflow: hidden; }
+.usine { width: 100%; height: 100%; display: block; background: var(--cv-bg); }
+.mod rect.box { fill: var(--cv-bg2); stroke: var(--cv-line); stroke-width: 2; }
+.mod:hover rect.box { stroke: var(--accent); cursor: pointer; }
+.mod text { fill: var(--ink); font-size: 14px; text-anchor: middle; pointer-events: none; }
+.mod text.s { fill: var(--muted); font-size: 11px; }
+.farm-mini { pointer-events: none; }
+.tree { fill: var(--tree); opacity: .8; } .spr { fill: var(--spr); } .pole { fill: var(--pole); } .harv { fill: var(--accent); }
+.rng { fill: none; stroke: var(--spr); stroke-dasharray: 4 3; opacity: .55; display: none; }
+.rng.p { stroke: var(--pole); }
+.ranges .rng { display: inline; }
+.bubble { position: absolute; z-index: 5; width: 440px; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px #0008; display: flex; flex-direction: column; }
+.bubble[hidden] { display: none; }
+.bubble.big { left: 12px !important; top: 12px !important; right: 12px; bottom: 12px; width: auto; }
+.bubble.full { position: fixed; inset: 0; left: 0 !important; top: 0 !important; width: auto; z-index: 50; }
+.bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.bar .t { flex: 1; font-weight: 600; }
+button { background: var(--bg); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; cursor: pointer; font: inherit; font-size: .82rem; }
+button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.frame { position: relative; height: 300px; background: var(--cv-bg); margin: 8px; overflow: hidden; }
+.big .frame, .full .frame { flex: 1 1 auto; height: auto; min-height: 240px; }
+.frame svg { width: 100%; height: 100%; }
+.zoom { position: absolute; right: 6px; top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.info { padding: 0 10px 8px; font-size: .82rem; color: var(--muted); }
+.note { position: absolute; left: 16px; bottom: 12px; max-width: 520px; font-size: .8rem; color: var(--muted); background: #0009; padding: 6px 10px; }
+.num { display: inline-block; background: var(--accent); color: #1a0800; border-radius: 50%; width: 18px; height: 18px; text-align: center; font-size: .72rem; line-height: 18px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Maquette remarque 15 — le modulaire visible dans Usine</h1>
+  <p>Clique la ferme d'arbres. Les pastilles <span class="num">1</span>… renvoient aux questions. Dessin de démonstration (pas les vraies positions).</p>
+</header>
+<div class="stage" id="stage">
+  <svg class="usine" id="usine" viewBox="0 0 1000 620"></svg>
+  <div class="bubble" id="bubble" hidden>
+    <div class="bar">
+      <span class="t">Ferme d'arbres (60 arbres)</span>
+      <button id="b-rng" aria-pressed="false" title="Afficher les portées"><span class="num">4</span>Portées</button>
+      <button id="b-big" aria-pressed="false" title="Agrandir sur toute l'usine"><span class="num">3</span>⤢ Agrandir</button>
+      <button id="b-full" aria-pressed="false" title="Plein écran (Échap pour revenir)">⛶</button>
+      <button id="b-close" title="Fermer">✕</button>
+    </div>
+    <div class="frame" id="frame"><div class="zoom"><button data-z="in">+</button><button data-z="out">−</button><button data-z="fit">⊡</button></div></div>
+    <div class="info"><span class="num">2</span>Le dessin est là dès le clic. Liste des bâtiments, poteau du contrôleur et « Plan de pose seul » restent en dessous.</div>
+  </div>
+  <div class="note"><span class="num">1</span>La ferme n'est plus un rectangle vide en pointillés : son plan (arbres, récolteur, arroseurs, poteaux) est dessiné à sa place, en petit.</div>
+</div>
+<script>
+// Ferme de démonstration : une grille d'arbres, un récolteur au centre, des arroseurs et des poteaux.
+function farm(w, h, ranges) {
+  let s = "";
+  const cols = 10, rows = 6, cw = w / (cols + 1), ch = h / (rows + 1);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) s += `<rect class="tree" x="${(c + .6) * cw}" y="${(r + .6) * ch}" width="${cw * .7}" height="${ch * .7}"/>`;
+  s += `<rect class="harv" x="${w / 2 - cw * .6}" y="${h / 2 - ch * .35}" width="${cw * 1.2}" height="${ch * .7}"/>`;
+  for (const [x, y] of [[.25, .3], [.75, .3], [.25, .75], [.75, .75]]) {
+    s += `<circle class="spr" cx="${x * w}" cy="${y * h}" r="${Math.min(cw, ch) * .25}"/><circle class="rng" cx="${x * w}" cy="${y * h}" r="${w * .2}"/>`;
+  }
+  for (const [x, y] of [[.05, .05], [.95, .05], [.05, .95], [.95, .95]]) s += `<rect class="pole" x="${x * w - 4}" y="${y * h - 4}" width="8" height="8"/><circle class="rng p" cx="${x * w}" cy="${y * h}" r="${w * .3}"/>`;
+  return s;
+}
+const usine = document.getElementById("usine");
+const mods = [
+  { id: "a", x: 20, y: 20, w: 420, h: 300, n: "Oak Log", s: "Ferme d'arbres (60 arbres)", farm: true },
+  { id: "b", x: 470, y: 20, w: 500, h: 120, n: "Crankshaft", s: "15 × Craft Assembler" },
+  { id: "c", x: 470, y: 170, w: 240, h: 150, n: "Gear", s: "16 × Roller" },
+  { id: "d", x: 730, y: 170, w: 240, h: 150, n: "Steel Rod", s: "8 × Roller" },
+  { id: "e", x: 20, y: 350, w: 950, h: 240, n: "Raw Iron", s: "60 × Iron Drill" },
+];
+usine.innerHTML = mods.map((m) => `<g class="mod" data-id="${m.id}"><rect class="box" x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" rx="6"/>` +
+  (m.farm ? `<g class="farm-mini" transform="translate(${m.x + 10} ${m.y + 34})">${farm(m.w - 20, m.h - 44, false)}</g><text x="${m.x + m.w / 2}" y="${m.y + 22}">${m.n} · <tspan class="s">${m.s}</tspan></text>`
+          : `<text x="${m.x + m.w / 2}" y="${m.y + m.h / 2}">${m.n}</text><text class="s" x="${m.x + m.w / 2}" y="${m.y + m.h / 2 + 18}">${m.s}</text>`) + `</g>`).join("");
+const bubble = document.getElementById("bubble"), frame = document.getElementById("frame");
+let ranges = false, scale = 1;
+function draw() {
+  frame.querySelector("svg")?.remove();
+  frame.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 460 330" class="${ranges ? "ranges" : ""}"><g transform="translate(230 165) scale(${scale}) translate(-230 -165)">${farm(460, 330, ranges)}</g></svg>`);
+}
+usine.addEventListener("click", (e) => {
+  const g = e.target.closest(".mod");
+  if (!g || g.dataset.id !== "a") return;
+  bubble.hidden = false; bubble.style.left = "40px"; bubble.style.top = "200px"; draw();
+});
+const toggle = (cls, btn) => { const on = bubble.classList.toggle(cls); btn.setAttribute("aria-pressed", on); };
+document.getElementById("b-rng").onclick = (e) => { ranges = !ranges; e.currentTarget.setAttribute("aria-pressed", ranges); draw(); }; // la bulle reste ouverte et garde sa taille
+document.getElementById("b-big").onclick = (e) => toggle("big", e.currentTarget);
+document.getElementById("b-full").onclick = (e) => toggle("full", e.currentTarget);
+document.getElementById("b-close").onclick = () => { bubble.hidden = true; bubble.classList.remove("big", "full"); };
+frame.addEventListener("click", (e) => { const z = e.target.dataset?.z; if (!z) return; scale = z === "in" ? scale * 1.25 : z === "out" ? scale / 1.25 : 1; draw(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && bubble.classList.contains("full")) toggle("full", document.getElementById("b-full")); });
+</script>
+</body>
+</html>

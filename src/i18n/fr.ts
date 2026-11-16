@@ -439,6 +439,7 @@ export const fr = {
   "pose.help": "Vue de dessus · une case = un Short Pipe · glisse, molette pour zoomer",
   "focus.back": "{i:back} Retour à l'usine",
   "focus.full": "Plein écran (Échap pour revenir)",
+  "focus.unfull": "Quitter le plein écran (Échap)",
   "focus.close": "Fermer le panneau",
   "focus.aria": "Module dans l'usine : glisser pour se déplacer, molette pour zoomer",
   "pose.more": "Plus d'options",

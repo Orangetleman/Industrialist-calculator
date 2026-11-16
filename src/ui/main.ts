@@ -30,7 +30,7 @@ import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engi
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
 import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
-import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
+import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, setDrawnInside, turnText } from "./factory-view.ts";
 import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
@@ -1817,6 +1817,8 @@ type Assembly =
 const asmPole = new Map<string, string>();
 let asmRanges = false;
 const asmCache = new Map<string, Assembly | null>();
+// R15 : un ensemble dont on sait dessiner l'intérieur n'est plus « une place seulement réservée ».
+setDrawnInside((k) => !!assemblyOf(k));
 
 function assemblyOf(key: string): Assembly | null {
   const st = plan?.steps.find((s) => s.key === key);
@@ -2104,7 +2106,10 @@ function renderFactory(): void {
   $("pose-details").innerHTML = info.details;
   // Le panneau d'abord : il change la largeur du cadre de l'usine.
   showFocus(poseFocus);
-  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st)), `${st.key}|${USINE}`, true);
+  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st), (k) => {
+    const asm = assemblyOf(k);
+    return asm ? assemblyView(k, asm).svg : null;
+  }), `${st.key}|${USINE}`, true);
   setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
   markFocused();
   $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn) + renderFactoryEvac(st.plan, anyName, evacNow());
@@ -2193,18 +2198,20 @@ let bubbleRaf = 0;
 function followBubble(key: string): void {
   cancelAnimationFrame(bubbleRaf);
   const panel = $("pose-focus");
-  panel.classList.remove("big");
-  panel.querySelector("[data-focus-big]")?.setAttribute("aria-pressed", "false");
   let w0 = 0;
   const tick = () => {
     if (panel.hidden || !matchMedia("(min-width: 900px)").matches) return;
+    if (panel.classList.contains("full")) {
+      panel.style.transform = ""; // plein écran : la bulle n'est plus accrochée au module
+      bubbleRaf = requestAnimationFrame(tick);
+      return;
+    }
     const box = $("pose-canvas").querySelector(`.u-mod[data-mod="${CSS.escape(key)}"] > rect`); // module (u-box) ou ensemble (u-farm…)
     const host = $("pose-split").getBoundingClientRect();
     if (box && host.width) {
       const r = box.getBoundingClientRect();
       w0 ||= r.width || 1;
-      const big = panel.classList.contains("big");
-      const sc = big ? 1 : Math.max(0.75, Math.min(1.6, r.width / w0));
+      const sc = Math.max(0.75, Math.min(1.6, r.width / w0));
       const pw = panel.offsetWidth * sc, ph = panel.offsetHeight * sc;
       let x = r.left - host.left, y = r.bottom - host.top + 10;
       if (y + ph > host.height) y = r.top - host.top - ph - 10; // pas la place dessous : au-dessus
@@ -3609,13 +3616,6 @@ function bindPlan(): void {
     else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
   });
   bindRails();
-  $("pose-focus").addEventListener("click", (e) => {
-    const b = (e.target as Element).closest<HTMLElement>("[data-focus-big]");
-    if (!b) return;
-    const on = $("pose-focus").classList.toggle("big");
-    b.setAttribute("aria-pressed", String(on));
-    requestAnimationFrame(() => $("focus-frame").querySelector<HTMLElement>("[data-qzoom=\"fit\"]")?.click());
-  });
   // Plans enregistrés (S64).
   renderSaved();
   $("plan-saved").addEventListener("click", (e) => {
@@ -3796,7 +3796,14 @@ function bindPlan(): void {
   const setFull = (on: boolean) => {
     $("pose-focus").classList.toggle("full", on);
     document.body.classList.toggle("focus-full", on);
-    $("pose-focus").querySelector("[data-focus-full]")?.setAttribute("aria-pressed", String(on));
+    // R15 : un seul bouton ; en plein écran il montre l'icône inverse (réduire).
+    const b = $("pose-focus").querySelector<HTMLElement>("[data-focus-full]");
+    if (b) {
+      b.setAttribute("aria-pressed", String(on));
+      b.innerHTML = icon(on ? "shrink" : "full");
+      b.title = t(on ? "focus.unfull" : "focus.full");
+      b.setAttribute("aria-label", b.title);
+    }
     requestAnimationFrame(() => focusPZ?.fit());
   };
   $("pose-focus").addEventListener("click", (e) => {

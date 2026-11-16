@@ -433,6 +433,7 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "pose.help": "Top view · one cell = one Short Pipe · drag, wheel to zoom",
   "focus.back": "{i:back} Back to the factory",
   "focus.full": "Full screen (Esc to go back)",
+  "focus.unfull": "Exit full screen (Esc)",
   "focus.close": "Close the panel",
   "focus.aria": "Module in the factory: drag to move, wheel to zoom",
   "pose.more": "More options",
