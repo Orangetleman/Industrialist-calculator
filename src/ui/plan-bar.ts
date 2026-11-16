@@ -2,6 +2,7 @@
 // valeurs à vérifier sur les blocs, les lignes et les modules. Fonctions pures (chaînes HTML) :
 // main.ts les insère et branche les clics (data-pb, data-pb-x, data-fix).
 
+import type { ImportedGraph } from "./pollywrath-import.ts";
 import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Step, VerifyEntry } from "../engine/solve.ts";
@@ -79,6 +80,8 @@ export type PlanBarInput = {
   diesel: DieselChoice | null;
   /** Réglage du Mineshaft Drill pour ce plan (remarque n°16). */
   mineshaft?: MineshaftView | null;
+  /** Graphe importé (Industrialist Calculator) pour ce plan. */
+  imported?: ImportedGraph | null;
   /** Options avancées activées. */
   advanced: number;
 };
@@ -172,6 +175,10 @@ export function renderPlanBar(v: Pick<Ctx, "data" | "plan">, b: PlanBarInput): s
   if (msdLabel) {
     const s = p.steps.find((x) => x.machine === b.mineshaft!.file.meta.machine);
     chips.push(chipHtml({ label: msdLabel, open: s ? `data-flow="${esc(s.key)}"` : `data-pb="schema"`, title: t("pb.msd.title"), set: true, cancel: { attr: `data-pb-x="mineshaft"`, title: t("pb.msd.clear") } }));
+  }
+  if (b.imported) {
+    const miss = Object.keys(b.imported.unknown).length;
+    chips.push(chipHtml({ label: t("pb.pw", { name: b.imported.name, n: String(b.imported.recipes.length), miss: miss ? t("pb.pw.miss", { n: String(miss) }) : "" }), open: `data-pb="pw"`, title: t("pb.pw.title"), set: true, cancel: { attr: `data-pb-x="pw"`, title: t("pb.pw.clear") } }));
   }
   if (b.advanced) chips.push(chipHtml({ label: t("pb.advanced", { n: String(b.advanced) }), open: `data-pb="advanced"`, title: t("pb.advanced.title"), set: true }));
   return `<div class="plan-bar" role="group" aria-label="${esc(t("pb.aria"))}"><b class="pb-title">${t("pb.title")}</b>${chips.join("")}${verifyMenu(v)}</div>`;

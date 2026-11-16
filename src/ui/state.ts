@@ -6,6 +6,7 @@ import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/bui
 import type { Criterion } from "../engine/choose.ts";
 import type { MachineFilter } from "../engine/machine-filter.ts";
 import type { MachineSettings } from "../engine/interfaces.ts";
+import { cleanImportedGraph, type ImportedGraph } from "./pollywrath-import.ts";
 import type { AddedItem, AddedRecipe, OverrideEntry, OverridesFile, Source } from "../engine/types.ts";
 
 export type Goal = "objet" | "argent" | "énergie" | "recherche";
@@ -105,6 +106,8 @@ export type Settings = {
   dieselChoice: Record<string, DieselChoice>;
   /** Mineshaft Drill de chaque plan (remarque n°16) : profondeur, tête, acide, huile, par clé de plan. */
   mineshaftChoice: Record<string, MineshaftChoice>;
+  /** Graphe importé du calculateur de Pollywrath (remarque n°16) : recettes imposées, par clé de plan. */
+  imports: Record<string, ImportedGraph>;
   /** Bord de l'usine par où sort chaque produit à évacuer (S27), par clé de plan puis par objet. */
   evacSides: Record<string, Record<string, "haut" | "bas" | "gauche" | "droite">>;
   /** Revenu voulu ($/min) pour l'objectif argent. */
@@ -164,6 +167,7 @@ export const DEFAULT_SETTINGS: Settings = {
   machineSettings: {},
   dieselChoice: {},
   mineshaftChoice: {},
+  imports: {},
   evacSides: {},
   money: 10000,
   selfPowered: false,
@@ -269,6 +273,8 @@ export function loadSettings(): Settings {
   out.dieselChoice = Object.fromEntries(Object.entries(dc).map(([k, c]) => [k, cleanDieselChoice(c)]).filter((e): e is [string, DieselChoice] => !!e[1]));
   const mc = out.mineshaftChoice && typeof out.mineshaftChoice === "object" ? (out.mineshaftChoice as Record<string, unknown>) : {};
   out.mineshaftChoice = Object.fromEntries(Object.entries(mc).map(([k, c]) => [k, cleanMineshaftChoice(c)]).filter((e): e is [string, MineshaftChoice] => !!e[1]));
+  const im = out.imports && typeof out.imports === "object" ? (out.imports as Record<string, unknown>) : {};
+  out.imports = Object.fromEntries(Object.entries(im).map(([k, g]) => [k, cleanImportedGraph(g)]).filter((e): e is [string, ImportedGraph] => !!e[1]));
   return out;
 }
 export function saveSettings(s: Settings): void {

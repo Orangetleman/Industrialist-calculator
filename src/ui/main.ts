@@ -121,6 +121,8 @@ import {
   verifyHref,
 } from "./recipes-view.ts";
 import { fieldWord, fixAttr, renderPlanBar, stepWarnings, warnButton, warnChips, type PlanBarInput } from "./plan-bar.ts";
+import pwMap from "../../data/pollywrath-map.json";
+import { parsePollywrathSave, type ImportedGraph, type PollywrathMap } from "./pollywrath-import.ts";
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
@@ -766,6 +768,39 @@ function fixedNow(): Record<string, number> | undefined {
   saveSettings(settings);
   return undefined;
 }
+/** Graphe importé (Industrialist Calculator) du plan affiché, s'il y en a un. */
+function importNow(): ImportedGraph | null {
+  const key = planKey(settings.goal, settings.item);
+  return (key && settings.imports[key]) || null;
+}
+/** Importe un fichier « …_save.json » du calculateur de Pollywrath : objectif, débit, recettes imposées. */
+async function importPollywrath(file: File): Promise<void> {
+  try {
+    const res = parsePollywrathSave(JSON.parse(await file.text()), planData(), pwMap as unknown as PollywrathMap, file.name);
+    settings.goal = "objet";
+    if (!settings.entered.includes("objet")) settings.entered = [...settings.entered, "objet"];
+    settings.item = res.item;
+    settings.mode = "rate";
+    settings.rate = res.ratePerMin;
+    settings.imports = { ...settings.imports, [planKey("objet", res.item)!]: res.graph };
+    update();
+    go({ page: "plan", goal: "objet" });
+  } catch (err) {
+    await ask(t("m.importFailed"), `<p>${esc((err as Error).message)}</p>`, [{ value: "", label: t("m.close"), primary: true }]);
+  }
+}
+/** Fenêtre « graphe importé » : leurs nombres de machines face aux nôtres, recettes non reconnues. */
+async function showImported(): Promise<void> {
+  const g = importNow();
+  if (!g || !plan) return;
+  const v = { data: planData() };
+  const ours = (id: string) => plan!.steps.filter((s) => s.recipeId === id).reduce((n, s) => n + s.machines, 0);
+  const num = (n: number) => fmt(Math.round(n * 100) / 100);
+  const rows = g.recipes.map((id) => { const r = v.data.recipes.get(id); const out = r ? Object.keys(r.outputs)[0] : undefined; return `<tr><td>${esc(out ? itemN(v, out) : id)} <span class="hint">(${esc(r ? machineN(v, r.machine) : "")})</span></td><td class="num">${num(g.theirs[id] ?? 0)}</td><td class="num">${ours(id) ? num(ours(id)) : "—"}</td></tr>`; }).join("");
+  const miss = Object.values(g.unknown);
+  const html = `<p>${esc(t("pw.dlg.intro"))}</p><table class="pw-table"><thead><tr><th>${esc(t("pw.col.recipe"))}</th><th class="num">${esc(t("pw.col.theirs"))}</th><th class="num">${esc(t("pw.col.ours"))}</th></tr></thead><tbody>${rows}</tbody></table>${miss.length ? `<p>${esc(t("pw.unknown"))}</p><ul>${miss.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}<p class="hint"><a href="https://industrialist-calculator.pages.dev" target="_blank" rel="noopener">${esc(t("pw.credit"))}</a></p>`;
+  await ask(t("pw.dlg.title", { name: g.name }), html, [{ value: "", label: t("m.close"), primary: true }]);
+}
 /** Filtre de machines du plan affiché (S9) : un par objet, un pour l'énergie, un pour l'argent. */
 function filterNow(): PlanMachines {
   return planMachines(settings, planKey(settings.goal, settings.item));
@@ -909,6 +944,7 @@ function ensurePlan(): void {
       fixedMachines: fixedNow(),
       machines: engineFilter(filterNow()),
       diesel: dieselRecipeNow(),
+      onlyRecipes: importNow()?.recipes,
     });
   poseSchem = null; // le schéma à exporter suit le nouveau plan
   plan = request(
@@ -1209,6 +1245,7 @@ function planBarInput(advanced: number): PlanBarInput {
     ifaces: currentInterfaces().all,
     diesel: (key && settings.dieselChoice[key]) || null,
     mineshaft: goal === "recherche" ? null : mineshaftNow(),
+    imported: importNow(),
     advanced,
   };
 }
@@ -2960,6 +2997,12 @@ function bindRecettes(): void {
       renderRecettes();
     }
   });
+  $("pw-import").addEventListener("change", async () => {
+    const box = input("pw-import");
+    const file = box.files?.[0];
+    box.value = "";
+    if (file) await importPollywrath(file);
+  });
   $("rc-img-import").addEventListener("change", async () => {
     const box = input("rc-img-import");
     const file = box.files?.[0];
@@ -3987,6 +4030,7 @@ function bindShared(): void {
     // Ton plan (S28) : ouvrir un réglage, ou l'annuler (✕).
     const pb = t.closest<HTMLElement>("[data-pb]")?.dataset.pb;
     if (pb === "criteria" || pb === "mfilter" || pb === "advanced") return openSetting(pb);
+    if (pb === "pw") return void showImported();
     if (pb === "details" || pb === "schema") return go({ page: "plan", goal: settings.goal, tab: pb });
     const pbx = t.closest<HTMLElement>("[data-pb-x]");
     if (pbx) {
@@ -3995,6 +4039,14 @@ function bindShared(): void {
       if (what === "fixed") return setFixed(pbx.dataset.key!, null);
       if (what === "forced") return setForced(pbx.dataset.item!, "");
       if (what === "msetting") return setMachineSetting(pbx.dataset.machine!, null, null);
+      if (what === "pw") {
+        const key = planKey(settings.goal, settings.item);
+        if (key) {
+          const { [key]: _, ...rest } = settings.imports;
+          settings.imports = rest;
+        }
+        return update();
+      }
       if (what === "mineshaft") return setMineshaftChoice({ ...DEFAULT_MINESHAFT });
       if (what === "diesel") {
         const key = planKey(settings.goal, settings.item);

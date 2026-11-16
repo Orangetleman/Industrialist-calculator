@@ -171,6 +171,7 @@
           <label class="inline"><span data-i18n="adv.pollution">Pollution au plus</span> <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="—"> %/h</label>
           <label class="check"><input type="checkbox" id="use-existing"> <span data-i18n="adv.existing">Utiliser ma production déjà en place</span> <span class="hint" id="existing-hint-plan"></span></label>
           <label class="check"><input type="checkbox" id="unverified"> <span data-i18n="adv.unverified">Utiliser aussi les valeurs « à vérifier »</span> <span class="hint" data-i18n="adv.unverified.hint">(recettes aux valeurs variables ou manquantes)</span></label>
+          <label class="inline pw-import" data-goals="objet"><span class="btn" data-i18n="pw.button">Importer un graphe (Industrialist Calculator)</span><input type="file" id="pw-import" accept=".json,application/json" hidden> <span class="hint" data-i18n="pw.hint">Fichier « …_save.json » exporté depuis le panneau Saves du calculateur de Pollywrath. Ses recettes sont imposées et son objet cible devient l'objectif ; nous recalculons les quantités.</span></label>
         </div>
         <p class="hint" id="adv-note"></p>
       </details>
