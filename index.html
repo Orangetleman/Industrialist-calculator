@@ -140,6 +140,7 @@
       <details class="criteria" id="criteria">
         <summary><span class="criteria-title" data-i18n="crit.title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit" data-i18n="crit.edit">changer l'ordre</span></summary>
         <p class="hint" data-i18n="crit.help">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise les flèches.</p>
+        <p class="me-link"><a href="#methodes" data-i18n="me.link" data-i18n-attr="title=me.link.tip" title="Les méthodes de calcul expliquées : priorités, machines entières, limites connues">Comment le calcul choisit ?</a></p>
         <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre" data-i18n-attr="aria-label=crit.list.aria"></ol>
       </details>
       <p class="hint crit-hint" id="criterion-hint"></p>
@@ -576,6 +577,13 @@
     <div id="pr-list" class="pr-list"></div>
   </section>
 
+  <!-- Remarque n° 16 : méthodes de calcul expliquées (src/ui/methods-view.ts), hors du menu ; liens depuis les priorités et le pied de page. -->
+  <section class="page me-page" id="page-methodes" aria-labelledby="h-me" hidden>
+    <h1 id="h-me" data-i18n="page.methodes">Méthodes de calcul</h1>
+    <p class="lead" data-i18n="me.lead">Comment le calculateur trouve une installation : ce qu'il calcule, dans quel ordre, et où il peut se tromper. Cette page décrit le code du site tel qu'il est, sans simplification cachée.</p>
+    <div class="me-body"></div>
+  </section>
+
   <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
     <h1 id="h-data" data-i18n="page.donnees">Contribuer</h1>
     <p class="lead" data-i18n="dn.lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
@@ -632,7 +640,7 @@
 <footer class="src">
   <p data-i18n-html="footer.who.html">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</p>
   <p data-i18n-html="footer.data.html">Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</p>
-  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a></p>
+  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a> · <a href="#methodes" data-i18n="me.foot">Méthodes de calcul</a></p>
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>

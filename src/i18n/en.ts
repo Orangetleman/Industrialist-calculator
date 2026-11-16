@@ -14,6 +14,7 @@ import { pagesEn } from "./vues/pages.en.ts";
 import { moteurEn } from "./vues/moteur.en.ts";
 import { remarquesEn } from "./vues/remarques.en.ts";
 import { propositionsEn } from "./vues/propositions.en.ts";
+import { methodesEn } from "./vues/methodes.en.ts";
 import { bacEn } from "./vues/bac.en.ts";
 
 export const en: { [K in keyof typeof fr]: Msg } = {
@@ -458,5 +459,6 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   ...moteurEn,
   ...remarquesEn,
   ...propositionsEn,
+  ...methodesEn,
   ...bacEn,
 };

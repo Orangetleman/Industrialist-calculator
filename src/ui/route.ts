@@ -11,6 +11,7 @@
 //   #recettes/<objet|machine>/<id>/<craft>  la même fiche, un craft mis en évidence (lien du schéma)
 //   #propositions               page publique des propositions des joueurs (S36, hors du menu)
 //   #bac                        bac à sable (B3) ; #bac/<code> : un montage partagé
+//   #methodes                   méthodes de calcul expliquées (remarque n° 16, hors du menu)
 // Fonctions pures, testées sans navigateur.
 
 import { t } from "../i18n/i18n.ts";
@@ -18,7 +19,7 @@ import type { Goal, ResultTab } from "./state.ts";
 
 // S23 : plus de page d'accueil (l'ancienne adresse #accueil mène à Planifier) ; « Données » devient
 // « Contribuer » (#contribuer ; les adresses #donnees… restent lues).
-export type Page = "plan" | "usine" | "arbre" | "recettes" | "donnees" | "propositions" | "bac";
+export type Page = "plan" | "usine" | "arbre" | "recettes" | "donnees" | "propositions" | "bac" | "methodes";
 export type DataTab = "verifier" | "batiments";
 /** Onglet de Mon usine (S29) : « Ma partie » (#usine) ou « Ma recherche » (#usine/recherche). */
 export type UsineTab = "partie" | "recherche";
@@ -43,7 +44,7 @@ export type Route = {
 /** Entrée « Toute l'usine » de la liste des étapes du plan de pose. */
 export const USINE_STEP = "usine-entiere";
 
-export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees", "propositions", "bac"];
+export const PAGES: Page[] = ["plan", "usine", "arbre", "recettes", "donnees", "propositions", "bac", "methodes"];
 export const GOAL_ROUTE: Record<Goal, string> = { objet: "objet", énergie: "energie", recherche: "rp", argent: "argent" };
 const ROUTE_GOAL: Record<string, Goal> = { objet: "objet", energie: "énergie", rp: "recherche", argent: "argent" };
 /** Titre de la page d'un objectif (« Que veux-tu produire ? »), dans la langue choisie (S30). */

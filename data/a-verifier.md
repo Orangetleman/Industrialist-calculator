@@ -979,3 +979,15 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   large comme les autres ports fluide des grands bâtiments ?
   **Répondu le 2026-11-02** : (a) 7 500 $ et 1 × 1 sont justes : le bac à sable prend désormais le prix et la taille de
   machines.json pour les pièces reliées. (b) Non, les ports de la Pipe Valve font bien 1 case.
+
+## MET — Page « Méthodes de calcul » (remarque n° 16, 2026-11-16)
+
+- **MET-01** Le joueur de la remarque n° 16 voit environ 400 Trommel pour du Purple Gold. Avec toutes les
+  recherches débloquées, pollution 0 % et 60 Purple Gold Ingot/min, le site en pose de 13 à 88 selon la priorité
+  (88 avec « La chaîne la plus courte »). Sa progression, son débit et sa priorité ne sont pas connus : à demander
+  pour reproduire son plan et dire si c'est un manque de recherches, un débit plus élevé ou un défaut de l'arrondi
+  en machines entières (le site ne garantit pas le minimum en machines entières, voir la page).
+- **MET-02** Limites écrites sur la page, tirées du code (optimize.ts) : un prix, une pollution ou une consommation
+  inconnus comptent pour zéro dans l'optimisation ; « le moins de matières premières » additionne toutes les
+  matières sans distinction d'unité. À décider : faut-il pénaliser les valeurs inconnues comme la taille (10 000
+  cases) ou pondérer les matières premières ?

@@ -164,6 +164,7 @@ import {
 import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
+import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
 import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
@@ -930,6 +931,7 @@ function render(): void {
   else if (page === "arbre") renderTreePage();
   else if (page === "recettes") renderRecettes();
   else if (page === "propositions") props.refresh();
+  else if (page === "methodes") methods.show();
   else if (page === "bac") sandbox.show(route.code);
   else renderData();
 }
@@ -4567,6 +4569,8 @@ const remarks = initRemarks(remarkContext, () => {
 });
 // S36 : la page Propositions (son bouton « 💬 Proposer une idée » ouvre la fenêtre Remarque).
 const props = initPropositions($("page-propositions"), (from) => remarks.open(null, from));
+// Remarque n° 16 : la page « Méthodes de calcul », son exemple recalculé avec les données du moment.
+const methods = initMethods($("page-methodes"), () => data);
 // B3 : le bac à sable. Catalogue refait seulement quand les données (corrections) ou les relevés changent.
 let sbCat: { data: GameData; ports: unknown; cat: SbCatalog } | null = null;
 const SB_MODS = new Map<string, ModRange>();
