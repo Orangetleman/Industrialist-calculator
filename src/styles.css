@@ -777,6 +777,8 @@ details.fold > summary { cursor: pointer; }
 .rs-bub-st .num { color: #2ec4c9; font-family: var(--f-mono); }
 .rs-bubble .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .rs-bubble .actions button { padding: 4px 10px; font-size: .82rem; }
+.tree-all { display: inline-flex; gap: 6px; margin-left: auto; }
+.tree-all button { padding: 4px 10px; font-size: .82rem; }
 .tree-unlockmode { display: inline-flex; align-items: center; gap: 6px; }
 .tree-unlockmode .seg button { padding: 4px 10px; font-size: .82rem; }
 /* Canevas + fiche à droite (comme le panneau « Description » du jeu). */

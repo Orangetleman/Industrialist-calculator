@@ -83,6 +83,17 @@ describe("difficulté (S51)", async () => {
     expect(usesMachine("hard", "hand-crank") || usesMachine("hard", "wind-turbine1")).toBe(false);
   });
 
+  it("« Tout débloquer » : tout en Normal, sans les recherches interdites en Hard, sans case orpheline", async () => {
+    const { unlockableNodes } = await import("./difficulty.ts");
+    const { inconsistentNodes } = await import("./unlock.ts");
+    const normal = unlockableNodes(data, [], "normal");
+    for (const n of data.nodes.values()) if (!n.isRoot && !n.startUnlocked) expect(normal.has(n.id)).toBe(true);
+    const hard = unlockableNodes(data, [], "hard");
+    for (const id of ["hand-crank", "wind-turbine-1", "geothermal-plant", "solar-panel-2"]) expect(hard.has(id)).toBe(false);
+    expect(hard.size).toBeLessThan(normal.size);
+    expect(inconsistentNodes(data, { unlocked: hard })).toEqual([]);
+  });
+
   it("Sandbox : tout l'arbre ; Sandbox+ : en plus les machines à posséder", () => {
     const none = { unlocked: new Set<string>() };
     expect(machineAccess(data, withDifficulty(data, none, "sandbox"), "wind-turbine1").available).toBe(true);

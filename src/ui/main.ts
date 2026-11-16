@@ -5,7 +5,7 @@
 import "../styles.css";
 import { setFarmLogsMult } from "./modcalc-view.ts";
 import { difficultyNote, difficultyOptions, monthOptions, renderGameEffects, type GameField, type GameView } from "./game-settings-view.ts";
-import { BLOCKED_RESEARCH, isDifficulty, withDifficulty } from "../engine/difficulty.ts";
+import { BLOCKED_RESEARCH, isDifficulty, unlockableNodes, withDifficulty } from "../engine/difficulty.ts";
 import type { Blocked } from "./research-view.ts";
 import { DEFAULT_POLLUTION, logsMultiplier, TREE_SCRUBBER } from "../engine/game-settings.ts";
 import itemsJson from "../../data/items.json";
@@ -4221,6 +4221,29 @@ function bindTree(): void {
     else if (treeBubble) renderTreeBubble();
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-unlockmode]")) b.addEventListener("click", () => setTreeBubble(b.dataset.unlockmode === "bulle"));
+  $("tree-unlock-all").addEventListener("click", async () => {
+    const target = unlockableNodes(data, prog.unlocked, player.difficulty);
+    const added = [...target].filter((id) => !prog.unlocked.includes(id));
+    if (!added.length) {
+      await ask(t("tr.all.confirm.title"), t("tr.all.none"), [{ value: "", label: t("m.cancel") }]);
+      return;
+    }
+    const left = [...data.nodes.values()].filter((n) => !n.isRoot && !n.startUnlocked && !target.has(n.id)).map((n) => n.name);
+    const skip = left.length ? t("tr.all.skip", { list: esc(left.join(", ")) }) : "";
+    const choice = await ask(t("tr.all.confirm.title"), t("tr.all.confirm.html", { n: String(added.length), d: t(`dif.${player.difficulty}` as never), skip }), [
+      { value: "yes", label: t("tr.all"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (choice === "yes") void setProgress({ ...prog, unlocked: [...target] });
+  });
+  $("tree-lock-all").addEventListener("click", async () => {
+    if (!prog.unlocked.length) return;
+    const choice = await ask(t("tr.none.confirm.title"), t("tr.none.confirm.html", { n: String(prog.unlocked.length) }), [
+      { value: "yes", label: t("tr.none"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (choice === "yes") void setProgress({ ...prog, unlocked: [] }, { spend: false });
+  });
   const bubble = $("rs-bubble");
   bubble.addEventListener("pointerdown", (e) => e.stopPropagation()); // pas de glisser du canevas depuis la bulle
   bubble.addEventListener("click", (e) => {
