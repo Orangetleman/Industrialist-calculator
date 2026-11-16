@@ -149,7 +149,7 @@ export const DEFAULT_SETTINGS: Settings = {
   entered: [],
   item: "crankshaft",
   mode: "rate",
-  rateUnit: "min",
+  rateUnit: "s",
   rate: 60,
   machines: 15,
   // Objet : l'ordre d'un joueur avancé (S15) : la place, le nombre de machines, l'énergie, puis le prix.

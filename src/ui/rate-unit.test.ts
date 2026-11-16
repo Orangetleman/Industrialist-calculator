@@ -9,5 +9,5 @@ describe("débit par seconde", () => {
     expect(storedRate(2, "min")).toBe(2);
     expect(storedRate(displayRate(37.5, "s"), "s")).toBeCloseTo(37.5);
   });
-  it("par défaut : par minute", () => expect(DEFAULT_SETTINGS.rateUnit).toBe("min"));
+  it("par défaut : par seconde", () => expect(DEFAULT_SETTINGS.rateUnit).toBe("s"));
 });
