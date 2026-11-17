@@ -46,6 +46,7 @@ describe("import d'un graphe Industrialist Calculator", () => {
     const plan = solve(data, { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 }, { item: res.item, ratePerMin: res.ratePerMin, onlyRecipes: res.graph.recipes, tiers: false });
     // Mêmes recettes que leur graphe pour la chaîne principale, et mêmes nombres de machines.
     const at = (id: string) => plan.steps.find((s) => s.recipeId === id)?.machines;
+    expect(plan.steps.some((s) => s.recipeId === "atmospheric_distillation_plant_01")).toBe(false);
     for (const [id, n] of Object.entries({ craft_assembler_05: 30, roller_04: 32, roller_03: 16, press_03: 32, blast_furnace_02: 10, blast_furnace_03: 10, industrial_plastic_molder_02: 8 })) expect(at(id)).toBe(n);
     expect(plan.steps.some((s) => s.recipeId === "craft_assembler_06")).toBe(true);
   });

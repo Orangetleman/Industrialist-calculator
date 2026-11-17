@@ -425,6 +425,13 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     const ids = chooser.usableFor(item).map((e) => e.recipe.id).filter((id) => onlySet.has(id));
     return ids.length ? ids : null;
   };
+  // Un objet réservé aux recettes imposées ne vient pas non plus d'une autre recette en sous-produit
+  // (remarque n°16 : pétrole brut d'une Atmospheric Distillation Plant au lieu de l'Oil Rig imposé).
+  const imposedItems = new Set<string>();
+  for (const id of onlySet ?? []) for (const [k, q] of Object.entries(data.recipes.get(id)?.outputs ?? {})) if (q === null || q > 0) imposedItems.add(k);
+  const excludeRecipe = onlySet
+    ? (id: string) => !onlySet.has(id) && Object.entries(data.recipes.get(id)?.outputs ?? {}).some(([k, q]) => (q === null || q > 0) && imposedItems.has(k) && !(data.recipes.get(id)!.inputs[k]! >= (q ?? 0)))
+    : undefined;
   const restrictTo =
     criterion === "steps"
       ? (item: string) => {
@@ -443,6 +450,7 @@ function solveInner(data: GameData, player: PlayerState, req: SolveRequest, nest
     diesel: req.diesel ?? null,
     scrubbers: criterion === "pollution" || req.maxPollution != null,
     restrictTo,
+    excludeRecipe,
     depots: req.depots,
   });
 
