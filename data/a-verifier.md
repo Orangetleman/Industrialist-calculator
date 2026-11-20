@@ -1022,3 +1022,15 @@ Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md`
   Table Salt 58,84 / 58,54 ; 7 000 m Rock absent du wiki / 11,65 chez eux ; 7 800 m Medium Earth Fragment 6,67 /
   7,67 ; 8 200 à 9 000 m : le wiki arrondit à 0,1 (ex. 8 400 m Raw Uranium 0,2 / 0,15) ; 100 m : seulement chez
   eux (identique à 300 m). Valeurs du wiki retenues. À relever en jeu : 7 000 m et 7 800 m.
+
+### Export vers Industrialist Calculator (lot G1 de l'éditeur de graphe, 2026-11-20)
+
+- **GRA-01** **Rang des prises** : leurs arêtes désignent une prise par son rang (`sourceIndex`,
+  `targetIndex`) dans la liste des sorties / entrées de leur recette. L'export prend le rang dans nos listes
+  (`data/recipes.json`). Vérifié seulement sur leur graphe tutoriel « Gearbox » : 21 arêtes sur 21 entre recettes
+  connues tombent juste ainsi (les 9 autres touchent des recettes sans équivalent). Les autres recettes ne sont
+  pas contrôlées.
+- **GRA-02** **Fichier exporté non encore ouvert chez eux** : l'export (`src/engine/graph/pollywrath-export.ts`)
+  est relu par notre import, pas encore par leur site. `globalSettings` ne porte que `global_pollution` (leur
+  `difficulty`, leurs recherches débloquées, etc. ne sont pas écrits, faute de correspondance sûre). À essayer
+  dans leur panneau « Saves » au lot G5.
