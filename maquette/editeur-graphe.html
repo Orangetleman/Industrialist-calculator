@@ -81,7 +81,8 @@ kbd { font: 10px var(--f-mono); color: var(--muted); border: 1px solid var(--lin
 .node .hd .n { font: 500 20px/1 var(--f-mono); color: var(--accent); }
 .node .hd .n small { font-size: 11px; color: var(--muted); margin-right: 2px; }
 .node .hd .lock { color: var(--warn); } .node .hd .lock .ic { width: 12px; height: 12px; }
-.node .mach { padding: 2px 10px 6px; background: var(--node-head); color: var(--muted); font-size: 11px; display: flex; gap: 8px; }
+.node .mach { padding: 2px 10px 6px; background: var(--node-head); color: var(--muted); font-size: 11px; display: flex; gap: 8px; white-space: nowrap; }
+.node .mach span { flex: none; } .node .mach span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .node .mach span + span::before { content: "·"; margin-right: 8px; color: var(--node-line); }
 .node .io { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 8px 0; }
 .node .col { display: flex; flex-direction: column; gap: 5px; }
@@ -92,6 +93,7 @@ kbd { font: 10px var(--f-mono); color: var(--muted); border: 1px solid var(--lin
 .row.part { border-style: dashed; border-color: var(--warn); }
 .row:hover { filter: brightness(1.25); }
 .port { position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6px; background: var(--in); border: 1px solid var(--cv-bg); cursor: crosshair; z-index: 2; transition: transform .1s; }
+.port::after { content: ""; position: absolute; inset: -8px; } /* zone sensible plus large que la prise dessinée */
 .col.i .port { left: -14px; } .col.o .port { right: -14px; background: var(--out); }
 .port:hover, .port.arm { transform: scale(1.5); box-shadow: 0 0 0 2px var(--accent); }
 .port.ok { box-shadow: 0 0 0 3px var(--ok); } .port.no { animation: shake .3s; box-shadow: 0 0 0 3px var(--bad); }
@@ -109,7 +111,7 @@ kbd { font: 10px var(--f-mono); color: var(--muted); border: 1px solid var(--lin
 .tray button.go { color: var(--on-accent); background: var(--accent); } .tray button.go:hover { background: #ff8340; }
 .tray hr { border: 0; border-left: 1px solid var(--line); margin: 0; }
 .tray button:disabled { opacity: .4; cursor: default; }
-.modehint { position: absolute; left: 10px; bottom: 10px; z-index: 5; padding: 4px 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font: 11px var(--f-mono); }
+.modehint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 66px; white-space: nowrap; z-index: 5; padding: 4px 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font: 11px var(--f-mono); }
 .tabs { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; }
 .tabs button { border: 0; border-radius: 0; color: var(--muted); padding: 5px 12px; display: inline-flex; gap: 6px; align-items: center; } .tabs button.on { color: var(--ink); box-shadow: inset 0 -2px var(--accent); }
 
@@ -338,7 +340,8 @@ let z = 0.72, tx = 40, ty = 70;
 function draw() {
   world.style.transform = `translate(${tx}px,${ty}px) scale(${z})`;
   stage.style.setProperty("--cs", 28 * z + "px"); stage.style.setProperty("--cx", tx + "px"); stage.style.setProperty("--cy", ty + "px");
-  stage.classList.toggle("far", z < 0.45);
+  const far = z < 0.28;
+  if (far !== stage.classList.contains("far")) { stage.classList.toggle("far", far); render(); }
 }
 function render() {
   const B = balance();
@@ -352,7 +355,7 @@ function render() {
       <div class="io"><div class="col i">${ins}</div><div class="col o">${outs}</div></div></div>`;
   }).join("");
   // Arêtes : de la prise de sortie à la prise d'entrée, orthogonales ; étiquette = débit attendu.
-  const pos = (id, dir, it) => { const el = $(`.node[data-id="${id}"] .port[data-port="${dir}"][data-item="${it}"]`); if (!el) return null; const nd = byId(id); const row = el.parentElement; return { x: nd.x + (dir === "out" ? 256 + 8 : -8), y: nd.y + row.offsetTop + row.parentElement.offsetTop + row.parentElement.parentElement.offsetTop + row.offsetHeight / 2 }; };
+  const pos = portPos;
   edgesEl.innerHTML = G.edges.map((e, i) => {
     const a = pos(e.from, "out", e.item), b = pos(e.to, "in", e.item); if (!a || !b) return "";
     const s = B.portState[`${e.to}|in|${e.item}`]; const short = s.got < s.need - 1e-9;
@@ -389,34 +392,75 @@ const zoomBy = (k) => { const r = stage.getBoundingClientRect(), mx = r.width / 
 function fit() { const r = stage.getBoundingClientRect(); const xs = G.nodes.map((n) => n.x), ys = G.nodes.map((n) => n.y); const w = Math.max(...xs) + 280 - Math.min(...xs), h = Math.max(...ys) + 200 - Math.min(...ys); z = Math.min(2, (r.width - 90) / w, (r.height - 110) / h); tx = (r.width - 60 - w * z) / 2 - Math.min(...xs) * z; ty = (r.height - h * z) / 2 - Math.min(...ys) * z + 10; draw(); }
 $("#z-in").onclick = () => zoomBy(1.25); $("#z-out").onclick = () => zoomBy(0.8); $("#z-fit").onclick = fit;
 
-let drag = null, link = null, moved = false, tap = null;
+let drag = null, link = null, moved = false, tap = null, press = null;
+const SLOP = 4;
 stage.addEventListener("pointerdown", (e) => {
   if (e.button !== 0 || e.target.closest(".bubble, .tools, .tray, .tabs, .modehint")) return;
   moved = false;
   const port = e.target.closest(".port");
-  if (port && port.dataset.port === "out") { link = { from: port.closest(".node").dataset.id, item: port.dataset.item, el: port }; port.classList.add("arm"); stage.setPointerCapture(e.pointerId); return; }
   const node = e.target.closest(".node");
-  if (node && !e.target.closest(".row")) { const nd = byId(node.dataset.id); drag = { nd, sx: e.clientX, sy: e.clientY, x: nd.x, y: nd.y }; node.style.cursor = "grabbing"; stage.setPointerCapture(e.pointerId); return; }
-  if (!node) { drag = { pan: true, sx: e.clientX - tx, sy: e.clientY - ty }; stage.setPointerCapture(e.pointerId); }
+  if (port) press = port.dataset.port === "out" ? { kind: "link", from: node.dataset.id, item: port.dataset.item, el: port } : null;
+  else if (node && !e.target.closest(".row")) { const nd = byId(node.dataset.id); press = { kind: "node", nd, el: node, x: nd.x, y: nd.y }; }
+  else if (!node) press = { kind: "pan", tx, ty };
+  else press = null;
+  if (press) Object.assign(press, { sx: e.clientX, sy: e.clientY, id: e.pointerId });
 });
 stage.addEventListener("pointermove", (e) => {
-  if (drag) { moved = true; if (drag.pan) { tx = e.clientX - drag.sx; ty = e.clientY - drag.sy; draw(); } else { if (!drag.snapped) { snap(); drag.snapped = true; } drag.nd.x = drag.x + (e.clientX - drag.sx) / z; drag.nd.y = drag.y + (e.clientY - drag.sy) / z; render(); } }
-  if (link) { const p = $("#tmp"); const a = portPos(link.from, "out", link.item); const r = stage.getBoundingClientRect(); const bx = (e.clientX - r.left - tx) / z, by = (e.clientY - r.top - ty) / z; p.hidden = false; p.setAttribute("d", `M${a.x} ${a.y} H${(a.x + bx) / 2} V${by} H${bx}`); const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(".port[data-port=in]"); $$(".port.ok, .port.no").forEach((x) => x.classList.remove("ok", "no")); if (over) over.classList.add(over.dataset.item === link.item ? "ok" : "no"); }
+  if (press && !moved && Math.hypot(e.clientX - press.sx, e.clientY - press.sy) > SLOP) {
+    moved = true; stage.setPointerCapture(press.id);
+    if (press.kind === "link") { link = press; press.el.classList.add("arm"); }
+    else if (press.kind === "node") { snap(); drag = press; press.el.style.cursor = "grabbing"; }
+    else drag = press;
+  }
+  if (drag && drag.kind === "pan") { tx = drag.tx + e.clientX - drag.sx; ty = drag.ty + e.clientY - drag.sy; draw(); }
+  if (drag && drag.kind === "node") { drag.nd.x = drag.x + (e.clientX - drag.sx) / z; drag.nd.y = drag.y + (e.clientY - drag.sy) / z; render(); }
+  if (link) {
+    const p = $("#tmp"); const a = portPos(link.from, "out", link.item); const r = stage.getBoundingClientRect();
+    const bx = (e.clientX - r.left - tx) / z, by = (e.clientY - r.top - ty) / z;
+    p.hidden = false; p.setAttribute("d", `M${a.x} ${a.y} H${(a.x + bx) / 2} V${by} H${bx}`);
+    const over = nearInPort(e.clientX, e.clientY);
+    $$(".port.ok, .port.no").forEach((x) => x.classList.remove("ok", "no"));
+    if (over) over.classList.add(over.dataset.item === link.item ? "ok" : "no");
+  }
 });
-stage.addEventListener("pointerup", (e) => {
-  if (link) { const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(".port[data-port=in]"); if (over) { const to = over.closest(".node").dataset.id; if (over.dataset.item === link.item && to !== link.from && !G.edges.some((x) => x.from === link.from && x.to === to && x.item === link.item)) { snap(); G.edges.push({ from: link.from, to, item: link.item }); } else { over.classList.add("no"); setTimeout(() => over.classList.remove("no"), 400); } } link.el.classList.remove("arm"); link = null; $("#tmp").hidden = true; render(); }
-  if (drag) { if (!drag.pan) $$(".node").forEach((n) => (n.style.cursor = "")); drag = null; }
-});
-function portPos(id, dir, it) { const el = $(`.node[data-id="${id}"] .port[data-port="${dir}"][data-item="${it}"]`); const nd = byId(id); const row = el.parentElement; return { x: nd.x + (dir === "out" ? 264 : -8), y: nd.y + row.offsetTop + row.parentElement.offsetTop + row.parentElement.parentElement.offsetTop + row.offsetHeight / 2 }; }
+// Prises aimantées : la prise d'entrée la plus proche du pointeur, à 22 px près (écran), même si on ne la touche pas pile.
+function nearInPort(x, y) {
+  let best = null, bd = 22;
+  for (const p of $$(".port[data-port=in]")) { const r = p.getBoundingClientRect(); const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)); if (d < bd) { bd = d; best = p; } }
+  return best ?? document.elementFromPoint(x, y)?.closest(".port[data-port=in]");
+}
+const endPress = (e) => {
+  $$(".port.ok").forEach((x) => x.classList.remove("ok"));
+  if (link) {
+    const over = nearInPort(e.clientX, e.clientY);
+    if (over) {
+      const to = over.closest(".node").dataset.id;
+      if (over.dataset.item === link.item && to !== link.from && !G.edges.some((x) => x.from === link.from && x.to === to && x.item === link.item)) { snap(); G.edges.push({ from: link.from, to, item: link.item }); }
+      else { over.classList.add("no"); setTimeout(() => over.classList.remove("no"), 400); }
+    }
+    $("#tmp").hidden = true; link = null; render();
+  }
+  if (drag && drag.kind === "node") drag.el.style.cursor = "";
+  if (moved && stage.hasPointerCapture?.(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+  drag = null; press = null;
+};
+stage.addEventListener("pointerup", endPress);
+stage.addEventListener("pointercancel", endPress);
+// Centre d'une prise dans le monde : la ligne est placée par rapport au nœud, la prise par rapport à la ligne.
+function portPos(id, dir, it) { const el = $(`.node[data-id="${id}"] .port[data-port="${dir}"][data-item="${it}"]`); if (!el) return null; const nd = byId(id); const row = el.parentElement;
+  // Vue allégée (dézoom) : les lignes sont cachées, la liaison part du milieu du bord du nœud.
+  if (!el.offsetParent) { const box = el.closest(".node"); return { x: nd.x + (dir === "out" ? box.offsetWidth : 0), y: nd.y + box.offsetHeight / 2 }; }
+  return { x: nd.x + row.offsetLeft + el.offsetLeft + el.offsetWidth / 2, y: nd.y + row.offsetTop + el.offsetTop + el.offsetHeight / 2 }; }
 
 // ---------------------------------------------------------------- clics : sélection, modes, lignes, arêtes
-const mode = () => held || tool;
+// Le mode du clic : la touche tenue pendant le clic (Alt, Maj, Ctrl), sinon l'outil choisi dans la barre.
+const mode = (e) => (e?.altKey ? "del" : e?.shiftKey ? "target" : e?.ctrlKey || e?.metaKey ? "multi" : null) || held || tool;
 stage.addEventListener("click", (e) => {
   if (moved || e.target.closest(".bubble, .tools, .tray, .tabs")) return;
   const edge = e.target.closest("[data-edge]");
-  if (edge) { if (mode() === "del") { snap(); G.edges.splice(+edge.dataset.edge, 1); render(); } else { $$(".edges .sel").forEach((x) => x.classList.remove("sel")); edge.querySelector(".line").classList.add("sel"); } return; }
+  if (edge) { if (mode(e) === "del") { snap(); G.edges.splice(+edge.dataset.edge, 1); render(); } else { $$(".edges .sel").forEach((x) => x.classList.remove("sel")); edge.querySelector(".line").classList.add("sel"); } return; }
   const node = e.target.closest(".node"); if (!node) { sel = null; render(); return; }
-  const id = node.dataset.id, m = mode();
+  const id = node.dataset.id, m = mode(e);
   if (m === "del") { snap(); removeNode(id); return; }
   if (m === "target") { snap(); G.target = G.target === id ? null : id; render(); return; }
   // Au doigt (ou sans glisser) : un appui sur une prise de sortie, puis un appui sur une prise d'entrée.
@@ -435,7 +479,11 @@ function removeNode(id) { G.nodes = G.nodes.filter((n) => n.id !== id); G.edges 
 $("#steps").addEventListener("click", (e) => { const s = e.target.closest("[data-go]"); if (!s) return; sel = s.dataset.go; const nd = byId(sel); const r = stage.getBoundingClientRect(); tx = r.width / 2 - (nd.x + 128) * z; ty = r.height / 2 - (nd.y + 80) * z; draw(); render(); });
 $("#balance").addEventListener("click", (e) => { const b = e.target.closest("[data-make]"); if (b) openSelector(b.dataset.make, "in", null); });
 // Modes temporaires (Alt, Maj, Ctrl) et outils collants de la barre.
-const HINT = { del: "Alt enfoncée : clic = supprimer", target: "Maj enfoncée : clic = cible", multi: "Ctrl enfoncée : clic = ajouter à la sélection", link: "Relier : tire une prise mauve vers une prise cyan" };
+// Rappel du mode : d'où il vient (touche tenue ou outil de la barre) et ce que fait le clic ; Échap sort de l'outil.
+const KEY = { del: "Alt enfoncée", target: "Maj enfoncée", multi: "Ctrl enfoncée" };
+const TOOL = { del: "Outil Supprimer", target: "Outil Cible", multi: "Outil Sélection", link: "Outil Relier" };
+const DOES = { del: "clic = supprimer un nœud ou une liaison", target: "clic = marquer la cible", multi: "clic = ajouter à la sélection", link: "tire une prise mauve vers une prise cyan" };
+const HINT = new Proxy({}, { get: (_, m) => (DOES[m] ? `${held ? KEY[m] : TOOL[m]} : ${DOES[m]}${held ? "" : " · Échap pour sortir"}` : undefined) });
 addEventListener("keydown", (e) => {
   if (e.target.matches("input, select")) return;
   if (e.key === "Alt") { held = "del"; e.preventDefault(); } if (e.key === "Shift") held = "target"; if (e.key === "Control") held = "multi";
@@ -493,11 +541,17 @@ function openSelector(item, dir, forNode) {
     snap(); const id = "n" + uid++; const anchor = forNode ? byId(forNode) : null;
     const nd = { id, r: c.dataset.add, n: 1, x: anchor ? anchor.x + (dir === "in" ? -330 : 330) : 300, y: anchor ? anchor.y : 300 };
     if (anchor && item) { const need = dir === "in" ? perMin(anchor, R(anchor).in[item]) : perMin(anchor, R(anchor).out[item]); const r = RECIPES[nd.r]; nd.n = need / ((dir === "in" ? r.out[item] : r.in[item]) / r.dur * 60); }
-    G.nodes.push(nd); if (anchor && item) G.edges.push(dir === "in" ? { from: id, to: anchor.id, item } : { from: anchor.id, to: id, item });
+    freeSpot(nd); G.nodes.push(nd); if (anchor && item) G.edges.push(dir === "in" ? { from: id, to: anchor.id, item } : { from: anchor.id, to: id, item });
     sel = id; closeDlg(); render();
   });
 }
 function closeDlg() { $("#dlg")?.remove(); }
+// Un nœud ajouté ne se pose jamais sur un autre : on cherche la place libre la plus proche, en haut ou en bas.
+function freeSpot(nd) {
+  const H = (n) => $(`.node[data-id="${n.id}"]`)?.offsetHeight ?? 190, W = 256, GAP = 24, h = 190;
+  const hits = (y) => G.nodes.some((o) => o.x < nd.x + W + GAP && nd.x < o.x + W + GAP && o.y < y + h + GAP && y < o.y + H(o) + GAP);
+  for (let k = 0; k < 60; k++) { for (const y of [nd.y + k * 30, nd.y - k * 30]) if (!hits(y)) { nd.y = y; return; } }
+}
 
 // ---------------------------------------------------------------- recalculer : aperçu avant / après
 $("#t-calc").onclick = () => {

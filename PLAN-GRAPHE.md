@@ -104,16 +104,29 @@ commit, `npm run deploy`, bilan au § 7, puis feu vert.
 Réglées le 2026-11-17 : l'éditeur remplace l'onglet Schéma (oui) ; équilibre en direct, solveur sur
 demande avec aperçu (oui) ; croix au lieu d'une grille, fond charbon profond (demande de l'utilisateur).
 
-À trancher sur la maquette (G0) :
+Réglées sur la maquette (réponses de l'utilisateur, 2026-11-20) :
 
-1. Les arêtes portent-elles le produit et le débit en étiquette (comme aujourd'hui), ou seulement le
-   débit sur les lignes du nœud (comme chez eux) ? [Étiquette courte sur l'arête, débit sur les lignes du
-   nœud ; l'étiquette s'efface au dézoom.]
-2. Un nœud dont le nombre n'est pas entier : affiché tel quel (8,33) ou arrondi vers le haut avec le
-   taux d'utilisation ? [Entier vers le haut, utilisation en petit ; l'exact dans la bulle.]
-3. Quand le joueur relie une sortie à une entrée d'un autre produit : refusé au tracé (comme le bac à
-   sable, Q14-9) ? [Oui, la prise refuse et clignote.]
+1. Étiquettes : débit en étiquette courte sur l'arête, débit aussi sur les lignes du nœud ; **oui**.
+   L'effacement au dézoom doit venir **beaucoup plus tard** (« très perturbant » quand il arrive tôt) :
+   seuil passé de 45 % à 28 % de zoom ; à ce niveau, les liaisons partent du bord du nœud allégé.
+2. Nombre non entier : entier vers le haut sur le nœud, l'exact et l'utilisation dans la bulle ; **oui**.
+3. Liaison vers un autre produit : refusée au tracé, la prise secoue en rouge ; **oui**.
+
+Exigences tirées de l'essai de la maquette (2026-11-20), à garder dans G2 et G3 :
+
+- Une liaison part et arrive **exactement** au centre de sa prise (bug de la 1re version : décalage
+  vertical compté deux fois).
+- Un clic reste un clic : le glisser ne commence qu'au-delà de 4 px (sinon la bulle, la cible, la
+  suppression et le clic sur une liaison étaient avalés).
+- Les modes Maj / Alt / Ctrl se lisent sur le clic lui-même, pas seulement à l'appui de la touche.
+- Prises à zone sensible élargie (8 px autour) et aimantées à l'arrivée (22 px) : viser une prise de
+  10 px ne doit pas être un exercice d'adresse.
+- Un nœud ajouté se pose à une place libre, jamais sur un autre.
+- Le rappel d'un mode dit d'où il vient (touche tenue ou outil de la barre), au-dessus de la barre.
+- **Tester chaque geste avec de vrais clics** (souris et doigt), pas seulement par des événements
+  simulés : la 1re version passait les essais par script et échouait à la main.
 
 ## 7. Journal
 
 - **2026-11-17, G0** : plan écrit ; maquette fonctionnelle vérifiée dans le navigateur à 1400 px et à 375 px (équilibre, liaison des prises à la souris et au doigt, sélecteur filtré, recalcul, bulle, modes temporaires). Non déployée (serveur de développement seulement). En attente de validation ; les 3 questions du § 6 se tranchent dessus.
+- **2026-11-20, G0 (reprise)** : retour de l'utilisateur : la moitié des gestes ne marchaient pas à la main et les liaisons ne tombaient pas sur les prises (capture). Corrigé (voir § 6, « Exigences ») puis retesté geste par geste avec de vrais clics à 1400 px : bulle et nombre, fixer, Recalculer + Appliquer + Ctrl Z, clic sur une entrée rouge → recette ajoutée et reliée sans chevauchement, Maj + clic (cible, la phrase suit), Alt + clic (nœud et liaison), outil Supprimer + Échap, glisser un nœud, tracer une liaison en glissant et par deux appuis, refus d'un autre produit, Ranger, dézoom à 28 %. Réponses aux 3 questions notées.
