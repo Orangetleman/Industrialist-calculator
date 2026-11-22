@@ -51,7 +51,7 @@ import { fillResearchCalc, renderResearchControl, renderResearchForm, renderRese
 import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
+import { colon, esc, fmt, fmtMF, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { icon, iconAt, withIcons } from "./icons.ts";
 import { createItemPalette, itemTile, type PalItem } from "./item-palette.ts";
 import { applyStatic } from "../i18n/dom.ts";
@@ -78,6 +78,8 @@ import {
   type TreeView,
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
+import { GraphView, type GraphViewOptions, type GraphViewText } from "./graph-view.ts";
+import { balanceGraph, planToGraph, type Graph, type PlanGraph } from "../engine/graph/index.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
@@ -127,7 +129,7 @@ import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, sav
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { allowMachine, banMachine, filterableMachines, filterSummary, findMachine, renderFilterBody, withMode } from "./mfilter-view.ts";
-import { buildRows, buildSignature, criterionHint, criterionWhy, criterionText, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, criterionText, planLabel, renderAnswer, renderBuildList, renderDetails, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
   builtFor,
@@ -1313,19 +1315,15 @@ function renderResultTabs(): void {
   if (tab === "details") $("details").innerHTML = renderDetails(viewCtx());
 }
 
-// Schéma : cadre navigable comme l'arbre de recherche.
-let flowPZ: PanZoom | null = null;
-/** Bloc sélectionné dans le schéma (clé d'étape), ou flèche sélectionnée (numéro). */
+// Schéma : l'éditeur de graphe (PLAN-GRAPHE.md, lot G2). La proposition du solveur devient un graphe
+// (plan → graphe, G1) affiché par graph-view.ts : nœuds HTML, liaisons de prise à prise.
+let graphView: GraphView | null = null;
+/** Graphe du plan affiché : refait quand le plan change ; garde les nœuds déplacés ou rangés sinon. */
+let graphDoc: { plan: Plan; pg: PlanGraph; g: Graph; stepOf: Map<string, string>; arranged: boolean } | null = null;
+/** Bloc sélectionné dans le schéma (clé d'étape), ou liaison sélectionnée. */
 let flowSel: string | null = null;
-let flowEdge: number | null = null;
-let flowEdgeBefore: number | null = null;
+let flowEdge: { from: string; to: string; item: string; perMin: number; loop: boolean } | null = null;
 let flowKey = "";
-/**
- * Échelle de départ (S28) : toute la chaîne, l'objet final compris, dans la largeur du cadre ; le cadre
- * prend la hauteur qu'il faut (entre 240 px et 70 % de l'écran). En dessous de FLOW_FAR, les blocs
- * passent en lecture de loin (nom et machines en gros).
- */
-const FLOW_FAR = 0.75;
 /** Largeur réservée aux boutons de zoom, à droite du cadre. */
 const FLOW_ZOOM_W = 52;
 /** Plan de pose : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
@@ -1333,75 +1331,115 @@ const FLOW_MIN_SCALE = 0.6;
 function flowStartScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
   return Math.max(FLOW_MIN_SCALE, Math.min(1, frame.w / content.w, frame.h / content.h));
 }
-function flowFitScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
-  return Math.min(1, frame.w / content.w, frame.h / content.h);
+
+function graphText(): GraphViewText {
+  const unit = settings.rateUnit;
+  const rate = (perMin: number) => {
+    const x = displayRate(perMin, unit);
+    return `${fmt(x, Math.abs(x) >= 100 ? 0 : Math.abs(x) >= 10 ? 1 : 2)}/${unit === "s" ? "s" : "min"}`;
+  };
+  return {
+    rate,
+    item: (id) => itemName(id),
+    machine: (id) => planData().machines.get(id)?.name ?? id,
+    cycle: (sec) => `${fmt(sec, sec >= 10 ? 0 : 1)} s`,
+    energy: (mf) => fmtMF(mf),
+    pollution: (ph) => `${fmtPct(fmt(ph, Math.abs(ph) >= 10 ? 0 : Math.abs(ph) >= 1 ? 1 : 2))}/h`,
+    target: t("gv.target"),
+    fixed: t("gv.fixed"),
+    missing: t("gv.missing"),
+    partial: (got, need) => t("gv.partial", { got, need }),
+    nodeAria: (product, n, machine) => t("gv.node.aria", { product, n, machine }),
+  };
 }
+
 function renderFlowCanvas(): void {
-  const f = renderFlow(viewCtx());
+  const v = viewCtx();
+  const p = v.plan;
   const canvas = $("flow-canvas");
   const frame = $("flow-frame");
-  frame.classList.toggle("empty", !f);
-  if (!f) {
+  const empty = !p.steps.length;
+  frame.classList.toggle("empty", empty);
+  if (empty) {
     canvas.innerHTML = `<p class="flow-empty">${t("m.flow.empty")}</p>`;
     frame.style.height = "";
+    graphDoc = null;
     return;
   }
-  canvas.innerHTML = f.svg;
-  const fw = frame.clientWidth || 800;
-  const maxH = window.innerHeight * 0.7;
-  const s = flowFitScale({ w: fw - FLOW_ZOOM_W, h: maxH }, { w: f.width, h: f.height });
-  frame.style.height = `${Math.round(Math.max(240, Math.min(maxH, f.height * s + 8)))}px`;
-  flowPZ ??= new PanZoom(frame, {
-    minWidth: 150,
-    initialView: (fr, c) => {
-      // La colonne des boutons de zoom (à droite) ne cache pas l'objet final.
-      const room = Math.max(1, fr.w - FLOW_ZOOM_W);
-      const k = flowFitScale({ w: room, h: fr.h }, c);
-      const w = fr.w / k;
-      const h = fr.h / k;
-      return { x: (c.w - room / k) / 2, y: (c.h - h) / 2, w, h };
+  // Téléphone : le cadre prend 70 % de l'écran (sur ordinateur, toute la hauteur du centre, en CSS).
+  frame.style.height = `${Math.round(Math.max(320, window.innerHeight * 0.7))}px`;
+  if (graphDoc?.plan !== p) {
+    const pg = planToGraph(p);
+    graphDoc = { plan: p, pg, g: pg.graph, stepOf: new Map([...pg.nodeOfStep].map(([k, id]) => [id, k])), arranged: false };
+  }
+  const doc = graphDoc;
+  graphView ??= new GraphView(frame, {
+    data: planData(),
+    world: () => gameView(),
+    text: graphText(),
+    reserveRight: FLOW_ZOOM_W,
+    badge: (id) => {
+      const vc = viewCtx();
+      const st = graphDoc ? vc.plan.steps.find((s) => s.key === graphDoc!.stepOf.get(id)) : undefined;
+      return st ? warnButton(vc, stepWarnings(vc, st)) : "";
     },
-    onView: (k) => frame.classList.toggle("far", k < FLOW_FAR),
+    onSelect: (id) => selectFlow(id && graphDoc ? (graphDoc.stepOf.get(id) ?? null) : null),
+    onEdge: (e) => {
+      const d = graphDoc;
+      const next = e && d ? { from: d.stepOf.get(e.from)!, to: d.stepOf.get(e.to)!, item: e.item, perMin: balanceGraph(d.g, planData(), gameView()).edges.get(e.id) ?? 0, loop: false } : null;
+      // Second clic sur la même liaison : désélectionnée.
+      flowEdge = next && flowEdge && next.from === flowEdge.from && next.to === flowEdge.to && next.item === flowEdge.item ? null : next;
+      applyFlowSel();
+    },
+    onChange: (g) => {
+      if (graphDoc) graphDoc.g = g;
+    },
   });
-  flowPZ.attach(canvas.querySelector("svg")!, f.width, f.height, signature === flowKey);
+  // Les données, la langue et l'unité peuvent avoir changé depuis la création du canevas.
+  Object.assign((graphView as unknown as { opts: GraphViewOptions }).opts, { data: planData(), text: graphText() });
+  const keep = signature === flowKey && doc.arranged;
+  graphView.show(canvas, doc.g, keep);
+  // « Ranger » d'entrée, avec les vraies hauteurs des nœuds (le cadre doit être affiché pour les mesurer).
+  if (!doc.arranged && frame.clientWidth > 0) {
+    graphView.arrange(false);
+    doc.arranged = true;
+  }
   flowKey = signature;
   applyFlowSel();
 }
 
-/** Bloc sélectionné : lui et ses flux en évidence, et la barre du bas pour aller plus loin. */
-function applyFlowSel(): void {
-  const svg = $("flow-canvas").querySelector("svg");
-  const hud = $("flow-hud");
-  if (flowSel && !svg?.querySelector(`.fn[data-key="${CSS.escape(flowSel)}"]`)) flowSel = null;
-  if (svg) {
-    svg.classList.toggle("has-sel", !!flowSel);
-    for (const el of svg.querySelectorAll<SVGElement>(".sel, .hl")) el.classList.remove("sel", "hl");
-    if (flowSel) {
-      const k = CSS.escape(flowSel);
-      const node = svg.querySelector(`.fn[data-key="${k}"]`)!;
-      node.classList.add("sel");
-      const r = node.querySelector("rect")!;
-      const n = (a: string) => Number(r.getAttribute(a));
-      flowPZ?.reveal(n("x") - 20, n("y"), n("width") + 70, n("height")); // à l'écart des boutons de zoom
-      for (const el of svg.querySelectorAll<SVGElement>(`[data-from="${k}"], [data-to="${k}"]`)) el.classList.add("hl");
-      for (const el of svg.querySelectorAll<SVGElement>(".fe.hl, .fl.hl")) {
-        const other = el.dataset.from === flowSel ? el.dataset.to : el.dataset.from;
-        if (other) svg.querySelector(`.fn[data-key="${CSS.escape(other)}"]`)?.classList.add("hl");
-      }
+/**
+ * Test de charge (développement seulement) : le graphe affiché, copié jusqu'à `n` nœuds (copies
+ * décalées, liaisons comprises), pour vérifier que le glisser reste fluide. `__grapheCharge(400)`.
+ */
+if (import.meta.env.DEV) {
+  (window as unknown as { __grapheCharge: (n?: number) => number }).__grapheCharge = (n = 400) => {
+    const base = graphDoc?.pg.graph;
+    if (!base || !graphView) return 0;
+    const nodes: Graph["nodes"] = [];
+    const edges: Graph["edges"] = [];
+    for (let c = 0; nodes.length < n; c++) {
+      const id = (x: string) => (c ? `${x}c${c}` : x);
+      for (const nd of base.nodes) if (nodes.length < n) nodes.push({ ...nd, id: id(nd.id) });
+      for (const e of base.edges) if (nodes.some((x) => x.id === id(e.from)) && nodes.some((x) => x.id === id(e.to))) edges.push({ ...e, id: `${id(e.from)}>${id(e.to)}:${e.item}`, from: id(e.from), to: id(e.to) });
     }
-  }
-  // Flèche sélectionnée : elle, son étiquette et ses deux blocs en évidence.
-  const hit = flowEdge !== null && !flowSel ? svg?.querySelector<SVGElement>(`.fe-hit[data-edge="${flowEdge}"]`) : null;
-  if (!hit) flowEdge = null;
-  if (svg && hit) {
-    svg.classList.add("has-sel");
-    for (const el of svg.querySelectorAll<SVGElement>(`[data-edge="${flowEdge}"]`)) el.classList.add("hl");
-    for (const k of [hit.dataset.from!, hit.dataset.to!]) svg.querySelector(`.fn[data-key="${CSS.escape(k)}"]`)?.classList.add("hl");
-  }
-  hud.hidden = !flowSel && !hit;
-  const edge = hit ? { from: hit.dataset.from!, to: hit.dataset.to!, item: hit.dataset.item!, perMin: Number(hit.dataset.rate), loop: !!hit.dataset.loop } : null;
+    graphView.show($("flow-canvas"), { ...base, nodes, edges }, false);
+    graphView.arrange();
+    return nodes.length;
+  };
+}
+
+/** Bloc sélectionné : lui et ses liaisons en évidence, et sa fiche (S62) à côté. */
+function applyFlowSel(): void {
+  const hud = $("flow-hud");
+  const nodeId = flowSel && graphDoc ? graphDoc.pg.nodeOfStep.get(flowSel) : undefined;
+  if (flowSel && !nodeId) flowSel = null;
+  if (flowSel) flowEdge = null;
+  if (graphView && graphView.selected !== (nodeId ?? null)) graphView.select(nodeId ?? null);
+  const edge = flowEdge;
+  hud.hidden = !flowSel && !edge;
   hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : edge ? renderEdgeHud(viewCtx(), edge) : "";
-  // « Comment c'est calculé » (S7) : sous la barre du bas, pour le bloc ou la flèche sélectionnés.
+  // « Comment c'est calculé » (S7) : sous la barre du bas, pour le bloc ou la liaison sélectionnés.
   const calc = $("flow-calc");
   calc.innerHTML = flowSel ? renderStepCalc(viewCtx(), recipesCtx(), flowSel) : edge ? renderEdgeCalc(viewCtx(), edge) : "";
   calc.hidden = !calc.innerHTML;
@@ -3898,35 +3936,6 @@ function bindPlan(): void {
       else posePZ?.reset();
     });
   }
-  // Schéma : un clic sur un bloc le sélectionne ; ailleurs, désélectionne (pas après un glisser).
-  $("flow-canvas").addEventListener("click", (e) => {
-    if (flowPZ?.suppressClick) return;
-    if ((e.target as Element).closest("[data-fix]")) return; // ⚠ : la correction (bindShared)
-    const node = (e.target as Element).closest<SVGGElement>(".fn[data-key]");
-    const edge = (e.target as Element).closest<SVGElement>("[data-edge]");
-    if (!node && edge) {
-      // Flèche (ou son étiquette) : sélectionnée, ou désélectionnée au second clic.
-      const i = Number(edge.dataset.edge);
-      selectFlow(null);
-      flowEdge = i === flowEdgeBefore ? null : i;
-      flowEdgeBefore = flowEdge;
-      applyFlowSel();
-      return;
-    }
-    flowEdgeBefore = null;
-    selectFlow(node ? (node.dataset.key === flowSel ? null : node.dataset.key!) : null);
-  });
-  // Survol d'une flèche : elle et son étiquette ressortent.
-  let hovered: string | null = null;
-  const hover = (i: string | null) => {
-    const svg = $("flow-canvas").querySelector("svg");
-    if (!svg || i === hovered) return;
-    for (const el of svg.querySelectorAll(".hover")) el.classList.remove("hover");
-    hovered = i;
-    if (i !== null) for (const el of svg.querySelectorAll(`[data-edge="${i}"]`)) el.classList.add("hover");
-  };
-  $("flow-canvas").addEventListener("pointerover", (e) => hover((e.target as Element).closest<SVGElement>("[data-edge]")?.dataset.edge ?? null));
-  $("flow-canvas").addEventListener("pointerleave", () => hover(null));
   $("flow-hud").addEventListener("click", (e) => {
     if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
     // Écran chiffré (S10) : « ↺ 1× » remet tous ses réglages à leur valeur par défaut.
@@ -4010,9 +4019,10 @@ function bindPlan(): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-fzoom]")) {
     b.addEventListener("click", () => {
       const z = b.dataset.fzoom;
-      if (z === "in") flowPZ?.zoom(1.25);
-      else if (z === "out") flowPZ?.zoom(1 / 1.25);
-      else flowPZ?.reset(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
+      if (z === "in") graphView?.zoom(1.25);
+      else if (z === "out") graphView?.zoom(1 / 1.25);
+      else if (z === "arrange") graphView?.arrange(); // « Ranger » : de l'extraction à l'objectif
+      else graphView?.fit(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
     });
   }
 }

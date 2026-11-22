@@ -14,6 +14,8 @@ export type PanZoomOptions = {
   initialView?: (frame: { w: number; h: number }, content: { w: number; h: number }) => Box;
   /** Appelé à chaque changement de vue, avec l'échelle (pixels écran par unité SVG). */
   onView?: (pxPerUnit: number) => void;
+  /** Éléments sur lesquels un appui n'entame pas le déplacement (les nœuds de l'éditeur de graphe, qui se glissent eux-mêmes). */
+  noPan?: string;
 };
 
 export class PanZoom {
@@ -22,7 +24,9 @@ export class PanZoom {
   /** En pause, le cadre laisse la molette, le glisser et les touches à un autre gestionnaire. */
   paused = false;
   private svg: SVGSVGElement | null = null;
-  private content = { w: 1, h: 1 };
+  /** Monde HTML (éditeur de graphe) : déplacé et zoomé par une transformation CSS au lieu d'un viewBox. */
+  private world: HTMLElement | null = null;
+  private content = { x: 0, y: 0, w: 1, h: 1 };
   /** Point à montrer au départ (ex. la racine de l'arbre), calé à gauche et centré en hauteur. */
   private home: { x: number; y: number } | null = null;
   private vb: Box = { x: 0, y: 0, w: 1, h: 1 };
@@ -53,11 +57,42 @@ export class PanZoom {
   /** Branche un nouveau SVG ; `keepView` conserve la position actuelle (re-rendu après un clic). */
   attach(svg: SVGSVGElement, width: number, height: number, keepView: boolean, home?: { x: number; y: number }): void {
     this.svg = svg;
+    this.world = null;
     this.home = home ?? null;
     const changed = this.content.w !== width || this.content.h !== height;
-    this.content = { w: width, h: height };
+    this.content = { x: 0, y: 0, w: width, h: height };
     if (!keepView || changed) this.reset();
     else this.apply();
+  }
+
+  /**
+   * Branche un monde HTML (nœuds HTML, arêtes SVG) : 1 unité = 1 pixel au zoom 100 %. `box` est le
+   * rectangle occupé par le contenu (il peut commencer ailleurs qu'en 0, 0). `keepView` garde la vue.
+   */
+  attachWorld(world: HTMLElement, box: Box, keepView: boolean): void {
+    this.world = world;
+    this.svg = null;
+    this.home = null;
+    this.content = { ...box };
+    if (!keepView) this.reset();
+    else this.apply();
+  }
+
+  /** Contenu agrandi ou déplacé (un nœud glissé hors du cadre) : la vue ne bouge pas. */
+  setContent(box: Box): void {
+    this.content = { ...box };
+  }
+
+  /** Vue courante (en unités du contenu). */
+  view(): Box {
+    return { ...this.vb };
+  }
+
+  /** Point de l'écran → coordonnées du contenu. */
+  toContent(clientX: number, clientY: number): { x: number; y: number } {
+    const r = this.frame.getBoundingClientRect();
+    const s = this.scale();
+    return { x: this.vb.x + (clientX - r.left) * s, y: this.vb.y + (clientY - r.top) * s };
   }
 
   private scale(): number {
@@ -78,7 +113,8 @@ export class PanZoom {
     const w = r.width > 0 ? r.width : 800;
     const h = r.height > 0 ? r.height : 500;
     if (this.opts.initialView) {
-      this.vb = this.opts.initialView({ w, h }, this.content);
+      const v = this.opts.initialView({ w, h }, { w: this.content.w, h: this.content.h });
+      this.vb = { ...v, x: v.x + this.content.x, y: v.y + this.content.y };
       return this.apply();
     }
     if (this.opts.fitOnReset) return this.fit();
@@ -88,7 +124,7 @@ export class PanZoom {
 
   /** Tout voir. */
   fit(): void {
-    this.fitBox({ x: 0, y: 0, w: this.content.w, h: this.content.h });
+    this.fitBox({ ...this.content });
   }
 
   /** Cadre la vue sur un rectangle (en unités SVG), centré. */
@@ -135,11 +171,15 @@ export class PanZoom {
   }
 
   private apply(): void {
-    if (!this.svg) return;
+    if (!this.svg && !this.world) return;
     const r = this.frame.getBoundingClientRect();
     // Garde le rapport du cadre pour que 1 unité = 1 pixel au zoom 100 %.
     if (r.width && r.height) this.vb.h = this.vb.w * (r.height / r.width);
-    this.svg.setAttribute("viewBox", `${this.vb.x} ${this.vb.y} ${this.vb.w} ${this.vb.h}`);
+    if (this.svg) this.svg.setAttribute("viewBox", `${this.vb.x} ${this.vb.y} ${this.vb.w} ${this.vb.h}`);
+    else if (r.width) {
+      const k = r.width / this.vb.w;
+      this.world!.style.transform = `translate(${-this.vb.x * k}px, ${-this.vb.y * k}px) scale(${k})`;
+    }
     this.frame.dataset.zoom = String(Math.round((r.width / this.vb.w) * 100));
     if (r.width) this.opts.onView?.(r.width / this.vb.w);
   }
@@ -154,6 +194,7 @@ export class PanZoom {
     if (e.button !== 0 || this.paused) return;
     // Un bouton du cadre (zoom, ⤢) n'entame pas un glisser : son clic agit sur le dessin, rien d'autre.
     if ((e.target as Element).closest?.("button, input, select, a")) return;
+    if (this.opts.noPan && (e.target as Element).closest?.(this.opts.noPan)) return;
     this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vb: { ...this.vb }, moved: false };
   }
 

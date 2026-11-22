@@ -13,6 +13,10 @@
   --cv-bg: #120c20; --cv-bg2: #181029; --cv-panel: #221836; --cv-raised: #2d2147; --cv-line2: #3a2b5c; --cv-line: #4f3d7a;
   --cv-ink: #f0ecfa; --cv-muted: #b3a7d1; --cv-acc: #ff6a1a; --cv-acc-ink: #ff9a5e; --cv-acc-hi: #ffb489; --cv-acc-soft: #33190c;
   --cv-steel: #c4a1ff; --cv-hud: #1d1430f0;
+  /* Éditeur de graphe (G2) : charbon profond semé de croix (décision n° 3), nœuds et prises ; sombre dans les deux thèmes. */
+  --gv-bg: #08070a; --gv-node: #130f1c; --gv-node-line: #3b2e5a; --gv-node-head: #1a1426; --gv-edge: #7d6fa8;
+  --gv-in: #38bdf8; --gv-in-ink: #8fd8fb; --gv-in-soft: #0f2235; --gv-out: #e879f9; --gv-out-ink: #f0abfc; --gv-out-soft: #2d1436;
+  --gv-bad: #ff7a9a; --gv-bad-soft: #36121e; --gv-warn: #ffd23f;
   --f-display: "Audiowide", "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -1892,3 +1896,58 @@ table.me-ex .me-bar { position: absolute; left: 0; top: 4px; bottom: 4px; backgr
 table.me-ex td.me-best > span { font-weight: 700; color: var(--accent); }
 table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-top: 2px solid var(--line); }
 @media (max-width: 640px) { .me-pipe { border-left: 0; border-top: 3px solid var(--accent); } }
+
+/* ------------------------------------------------------------ Éditeur de graphe (PLAN-GRAPHE.md, G2) */
+/* Volet à plat : pas d'arrondi ; fond charbon profond semé de croix qui suivent le déplacement et le zoom. */
+.flow-frame.gv { border-radius: 0; background-color: var(--gv-bg); cursor: default;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10.5v7M10.5 14h7' stroke='%232b2440' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-size: var(--gv-cs, 28px) var(--gv-cs, 28px); background-position: var(--gv-cx, 0) var(--gv-cy, 0); }
+.flow-frame.gv.dragging { cursor: grabbing; }
+.flow-frame.gv .flow-help { display: none; }
+.gv #flow-canvas { position: absolute; inset: 0; width: auto; height: auto; }
+.gv-world { position: absolute; left: 0; top: 0; width: 1px; height: 1px; transform-origin: 0 0; }
+.gv-edges { position: absolute; left: 0; top: 0; width: 1px !important; height: 1px !important; overflow: visible; display: block; }
+.gv-nodes { position: absolute; left: 0; top: 0; }
+.ge path { fill: none; }
+.ge-line { stroke: var(--gv-edge); stroke-width: 2; pointer-events: none; }
+.ge-hit { stroke: transparent; stroke-width: 14; cursor: pointer; pointer-events: stroke; }
+.ge:hover .ge-line, .ge.hl .ge-line, .ge.on .ge-line { stroke: var(--cv-acc); }
+.ge.short .ge-line { stroke: var(--gv-bad); stroke-dasharray: 6 5; }
+.ge-lab { pointer-events: none; }
+.ge-lab rect { fill: var(--gv-bg); }
+.ge-lab text { font: 11px var(--f-mono); fill: var(--cv-muted); }
+.ge.short .ge-lab text { fill: var(--gv-bad); }
+.ge.hl .ge-lab text, .ge.on .ge-lab text { fill: var(--cv-acc-ink); }
+.gn { position: absolute; left: 0; top: 0; contain: layout style; width: 256px; background: var(--gv-node); border: 1px solid var(--gv-node-line); color: var(--cv-ink); font: 12px/1.45 var(--f-body); font-variant-numeric: tabular-nums; cursor: grab; }
+.gn:hover { border-color: var(--cv-steel); }
+.gn:focus-visible { outline: 2px solid var(--cv-acc); outline-offset: 2px; }
+.gn.dragging { cursor: grabbing; z-index: 3; box-shadow: 0 8px 24px #000a; }
+.gn.sel { border-color: var(--cv-acc); box-shadow: 0 0 0 1px var(--cv-acc); z-index: 2; }
+.gn.target { border-color: var(--cv-acc); }
+.gn.target::before { content: attr(data-target); position: absolute; top: -9px; right: 8px; background: var(--cv-acc); color: var(--on-accent); font: 600 9px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; padding: 3px 6px; }
+.gn-hd { display: flex; align-items: baseline; gap: 8px; padding: 7px 10px 2px; background: var(--gv-node-head); }
+.gn-hd b { font: 400 13px var(--f-display); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gn-n { font: 500 20px/1 var(--f-mono); color: var(--cv-acc); }
+.gn-n small { font-size: 11px; color: var(--cv-muted); margin-right: 2px; }
+.gn-lock { color: var(--gv-warn); align-self: center; } .gn-lock .ic { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+.gn-hd .warn-btn { align-self: center; padding: 0 3px; min-height: 0; }
+.gn-m { padding: 2px 10px 6px; background: var(--gv-node-head); border-bottom: 1px solid var(--gv-node-line); color: var(--cv-muted); font-size: 11px; display: flex; gap: 8px; white-space: nowrap; overflow: hidden; }
+.gn-m span { flex: none; } .gn-m span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gn-m span + span::before { content: "·"; margin-right: 8px; color: var(--gv-node-line); }
+.gn-io { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 8px 0; }
+.gn-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.gn-row { position: relative; display: flex; align-items: center; gap: 6px; padding: 3px 8px; margin: 0 0 0 8px; min-height: 26px; border: 1px solid var(--gv-in); background: var(--gv-in-soft); color: var(--gv-in-ink); }
+.gn-row .q { font: 11px var(--f-mono); white-space: nowrap; }
+.gn-row .it { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gn-col.o .gn-row { margin: 0 8px 0 0; border-color: var(--gv-out); background: var(--gv-out-soft); color: var(--gv-out-ink); flex-direction: row-reverse; text-align: right; }
+.gn-row.miss { border-color: var(--gv-bad); color: var(--gv-bad); background: var(--gv-bad-soft); }
+.gn-row.part { border-style: dashed; border-color: var(--gv-warn); }
+/* Prises : carrés sur le bord, centrés sur la ligne ; les liaisons partent et arrivent en leur centre. */
+.gn-port { position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px; background: var(--gv-in); border: 1px solid var(--gv-bg); }
+.gn-col.i .gn-port { left: -15px; } .gn-col.o .gn-port { right: -15px; background: var(--gv-out); }
+/* Vue allégée (sous 28 %) : machine, nombre et produit ; pas d'étiquettes sur les liaisons. */
+.gv.far .gn-io, .gv.far .ge-lab { display: none; }
+.gv.far .gn-m { border-bottom: 0; }
+.gv.far .gn-hd b, .gv.far .gn-n { font-size: 22px; }
+.gv.far .gn-m { font-size: 18px; } .gv.far .gn-m span + span { display: none; }
+
