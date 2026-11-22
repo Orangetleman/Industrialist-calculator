@@ -1,18 +1,60 @@
-// Canevas de l'éditeur de graphe (PLAN-GRAPHE.md, lot G2) : nœuds en HTML, arêtes SVG orthogonales de
-// prise à prise, le tout dans un « monde » déplacé et zoomé par canvas.ts. Gestes de G2 : se déplacer,
-// zoomer, sélectionner un nœud, le glisser (au-delà de 4 px : un clic reste un clic), « Ranger »
-// (flow-layout.ts) ; sous 28 % de zoom, vue allégée où les liaisons partent du bord du nœud.
-// L'édition (ajouter, relier, supprimer, bulle) viendra au lot G3.
+// Canevas de l'éditeur de graphe (PLAN-GRAPHE.md, lots G2 et G3) : nœuds en HTML, arêtes SVG orthogonales
+// de prise à prise, le tout dans un « monde » déplacé et zoomé par canvas.ts.
+// G2 : se déplacer, zoomer, sélectionner un nœud, le glisser (au-delà de 4 px : un clic reste un clic),
+// « Ranger » (flow-layout.ts) ; sous 28 % de zoom, vue allégée où les liaisons partent du bord du nœud.
+// G3 : l'édition. Chaque geste devient une commande du modèle (src/engine/graph/edit.ts), gardée par
+// GraphHistory (Ctrl Z / Ctrl Y) : ajouter une recette (barre, A), clic sur une ligne d'entrée ou de
+// sortie → le sélecteur filtré, relier deux prises (glisser, ou deux appuis au doigt ; une prise d'un
+// autre produit secoue en rouge), supprimer, cible, bulle du nœud (nombre, chaîne à l'échelle, recette,
+// fixer), modes temporaires Alt / Maj / Ctrl lus sur le clic, sélection multiple.
 
 import type { GameData } from "../engine/data.ts";
-import { applyCommand, balanceGraph, mainOutput, recipePorts, type Graph, type GraphBalance, type GraphEdge, type GraphWorld, type NodeId } from "../engine/graph/index.ts";
+import {
+  addRecipeCommand,
+  applyCommand,
+  balanceGraph,
+  clickMode,
+  countCommand,
+  deleteCommand,
+  energyRecipes,
+  freeSpot,
+  freshId,
+  GraphError,
+  GraphHistory,
+  linkCommand,
+  mainOutput,
+  modeOfKeys,
+  modeSource,
+  needAt,
+  parseCount,
+  recipeAlternatives,
+  recipePorts,
+  recipesFor,
+  snapPort,
+  stepCount,
+  targetCommand,
+  type Graph,
+  type GraphBalance,
+  type GraphCommand,
+  type GraphEdge,
+  type GraphWorld,
+  type Mode,
+  type NodeId,
+  type PortRef,
+} from "../engine/graph/index.ts";
+import { ENERGY } from "../engine/resources.ts";
+import { t } from "../i18n/i18n.ts";
 import { PanZoom, type Box } from "./canvas.ts";
 import { layoutFlow } from "./flow-layout.ts";
+import { icon } from "./icons.ts";
+import { openRecipePicker, type PickerCard, type PickerTab } from "./recipe-picker.ts";
 
 /** Un mouvement de moins de 4 px reste un clic (exigence du § 6). */
 export const DRAG_SLOP = 4;
 /** Sous ce zoom, la vue allégée : machine, nombre et produit ; liaisons au bord du nœud (§ 6, 28 %). */
 export const FAR_ZOOM = 0.28;
+/** Prise aimantée à l'arrivée d'un tracé : la plus proche à 22 px d'écran (exigence du § 6). */
+export const SNAP_PX = 22;
 /** Zoom de départ le plus petit : les lignes des nœuds restent lisibles. */
 const START_ZOOM = 0.55;
 /** Largeur d'un nœud (pixels du monde). */
@@ -27,6 +69,8 @@ const EPS = 1e-7;
 export type GraphViewText = {
   /** Débit lisible (« 12 /min », « 0,2 /s ») d'après une valeur par minute. */
   rate: (perMin: number) => string;
+  /** Nombre lisible (« 2,4 », « 30 »), pour les machines et les quantités d'une recette. */
+  num: (x: number) => string;
   item: (id: string) => string;
   machine: (id: string) => string;
   cycle: (s: number) => string;
@@ -46,11 +90,11 @@ export type GraphViewOptions = {
   text: GraphViewText;
   /** HTML ajouté dans l'en-tête du nœud (⚠ d'une valeur à vérifier…). */
   badge?: (id: NodeId) => string;
-  /** Sélection d'un nœud (null : plus rien). */
+  /** Sélection d'un nœud (null : plus rien, ou plusieurs). */
   onSelect: (id: NodeId | null) => void;
   /** Clic sur une liaison (null : clic dans le vide). */
   onEdge?: (edge: GraphEdge | null) => void;
-  /** Le document a changé par un geste du canevas (glisser, « Ranger »). */
+  /** Le document a changé par un geste du canevas (glisser, « Ranger », édition, annuler). */
   onChange?: (g: Graph) => void;
   /** Largeur réservée à droite (colonne des boutons de zoom), que la vue de départ évite. */
   reserveRight?: number;
@@ -59,8 +103,26 @@ export type GraphViewOptions = {
 type Pt = { x: number; y: number };
 type NodeGeom = { w: number; h: number; ins: Map<string, Pt>; outs: Map<string, Pt> };
 type EdgeEls = { g: SVGGElement; hit: SVGPathElement; line: SVGPathElement; lab: SVGGElement; rect: SVGRectElement; text: SVGTextElement };
+type Cand = Pt & { ref: PortRef };
+type Press = {
+  kind: "node" | "bg" | "port";
+  id: number;
+  sx: number;
+  sy: number;
+  moved: boolean;
+  node?: NodeId;
+  /** Nœuds glissés ensemble (sélection multiple) et leur position de départ. */
+  group?: { id: NodeId; x0: number; y0: number }[];
+  k?: number;
+  /** Ligne d'entrée ou de sortie appuyée (clic : le sélecteur filtré). */
+  row?: PortRef;
+  /** Prise appuyée (glisser : relier ; appui : la choisir). */
+  port?: PortRef;
+  link?: { r: DOMRect; v: Box; k: number; a: Pt; cands: Cand[]; over: Cand | null };
+};
 
 const SVG = "http://www.w3.org/2000/svg";
+const MODES: Mode[] = ["link", "target", "del", "multi"];
 
 /** Centre d'un élément dans le repère de `root` (bordures comprises), sans getBoundingClientRect : juste quel que soit le zoom. */
 function centerIn(el: HTMLElement, root: HTMLElement): Pt {
@@ -91,6 +153,9 @@ export function edgePath(a: Pt, b: Pt, below: number): { d: string; lx: number; 
   return { d: `M${a.x} ${a.y}H${ax}V${below}H${bx}V${b.y}H${b.x}`, lx: (ax + bx) / 2, ly: below };
 }
 
+/** Hauteur probable d'un nœud pas encore dessiné (place libre) : en-tête, puis une ligne par prise. */
+const guessHeight = (rows: number) => 70 + 31 * Math.max(1, rows);
+
 export class GraphView {
   readonly frame: HTMLElement;
   private readonly opts: GraphViewOptions;
@@ -98,16 +163,37 @@ export class GraphView {
   private readonly worldEl: HTMLDivElement;
   private readonly svg: SVGSVGElement;
   private readonly nodesEl: HTMLDivElement;
+  private readonly tmp: SVGPathElement;
+  private readonly bub: HTMLDivElement;
+  private readonly tray: HTMLDivElement;
+  private readonly hintEl: HTMLDivElement;
+  private readonly voidEl: HTMLDivElement;
   private g: Graph | null = null;
+  private hist: GraphHistory | null = null;
   private bal: GraphBalance | null = null;
   private nodeEls = new Map<NodeId, HTMLElement>();
   private geom = new Map<NodeId, NodeGeom>();
   private edgeEls = new Map<string, EdgeEls>();
+  /** Nœuds sélectionnés ; `sel` est celui de la bulle et de la fiche (sélection d'un seul). */
+  private sels = new Set<NodeId>();
   private sel: NodeId | null = null;
+  private edgeSel: string | null = null;
   private far = false;
-  private press: { kind: "node" | "bg"; id: number; sx: number; sy: number; node?: NodeId; x0?: number; y0?: number; k?: number; moved: boolean } | null = null;
+  private k = 1;
+  private press: Press | null = null;
   private frameReq = 0;
   private pending: Pt | null = null;
+  /** Outil collant de la barre, touche tenue (Alt / Maj / Ctrl), prise choisie au premier appui. */
+  private tool: Mode | null = null;
+  private held: Mode | null = null;
+  private armed: PortRef | null = null;
+  /** Numéro du dernier nœud créé : un identifiant n'est jamais réutilisé dans la session. */
+  private seq = 0;
+  /** « Mettre la chaîne à l'échelle » allumé : − / + et la saisie changent aussi tout l'amont. */
+  private chain = false;
+  private bubFor: { id: NodeId; recipe: string } | null = null;
+  private bubH = 0;
+  private closePicker: (() => void) | null = null;
 
   constructor(frame: HTMLElement, opts: GraphViewOptions) {
     this.frame = frame;
@@ -118,12 +204,29 @@ export class GraphView {
     this.svg = document.createElementNS(SVG, "svg");
     this.svg.classList.add("gv-edges");
     this.svg.setAttribute("aria-hidden", "true");
+    this.tmp = document.createElementNS(SVG, "path");
+    this.tmp.classList.add("ge-tmp");
     this.nodesEl = document.createElement("div");
     this.nodesEl.className = "gv-nodes";
     this.worldEl.append(this.svg, this.nodesEl);
+    // Outils posés sur le canevas (hors du monde : ni zoomés ni déplacés).
+    this.bub = document.createElement("div");
+    this.bub.className = "gv-bub gv-ui";
+    this.bub.hidden = true;
+    this.tray = document.createElement("div");
+    this.tray.className = "gv-tray gv-ui";
+    this.tray.setAttribute("role", "toolbar");
+    this.hintEl = document.createElement("div");
+    this.hintEl.className = "gv-hint gv-ui";
+    this.hintEl.hidden = true;
+    this.hintEl.setAttribute("aria-live", "polite");
+    this.voidEl = document.createElement("div");
+    this.voidEl.className = "gv-void";
+    this.voidEl.hidden = true;
+    frame.append(this.voidEl, this.bub, this.hintEl, this.tray);
     const reserve = opts.reserveRight ?? 0;
     this.pz = new PanZoom(frame, {
-      noPan: ".gn",
+      noPan: ".gn, .gv-ui",
       minWidth: 220,
       // Assez loin pour passer sous la vue allégée (28 %), même sur un petit plan.
       maxWidth: () => Math.max(this.contentBox().w * 1.6, frame.getBoundingClientRect().width / 0.12),
@@ -151,31 +254,45 @@ export class GraphView {
         this.pick(n.dataset.id!);
       }
     });
+    // Raccourcis et touches tenues : à l'écoute de la fenêtre (le focus peut être sur la page après une
+    // suppression), en capture pour passer avant Ctrl K de la page quand le canevas a le focus.
+    window.addEventListener("keydown", (e) => this.onKey(e), true);
+    window.addEventListener("keyup", (e) => this.onKeyUp(e));
+    window.addEventListener("blur", () => this.setHeld(null));
+    this.tray.addEventListener("click", (e) => this.onTray(e));
+    this.bindBubble();
   }
 
   get graph(): Graph | null {
     return this.g;
   }
 
+  /** Nœud sélectionné, quand il est seul ; null sinon. */
   get selected(): NodeId | null {
-    return this.sel;
+    return this.sels.size === 1 ? this.sel : null;
   }
 
-  /** Monte le canevas dans `host` (vidé) et dessine le graphe ; `keepView` garde la vue actuelle. */
+  get canUndo(): boolean {
+    return !!this.hist?.canUndo;
+  }
+
+  /**
+   * Monte le canevas dans `host` (vidé) et dessine le graphe ; `keepView` garde la vue actuelle. Un
+   * document neuf (autre que celui de l'historique) repart avec un historique vide.
+   */
   show(host: HTMLElement, g: Graph, keepView: boolean): void {
     if (this.worldEl.parentElement !== host) {
       host.replaceChildren(this.worldEl);
     }
+    if (!this.hist || this.hist.graph !== g) {
+      this.hist = new GraphHistory(g, this.opts.data, this.opts.world());
+      this.armed = null;
+      this.edgeSel = null;
+    }
     this.g = g;
+    this.texts();
     this.render();
     this.pz.attachWorld(this.worldEl, this.contentBox(), keepView);
-  }
-
-  /** Remplace le document (sans toucher à la vue). */
-  update(g: Graph): void {
-    this.g = g;
-    this.render();
-    this.pz.setContent(this.contentBox());
   }
 
   zoom(k: number): void {
@@ -197,22 +314,18 @@ export class GraphView {
   /** Sélectionne un nœud (ou rien) sans prévenir : la sélection vient d'ailleurs (adresse, rail). */
   select(id: NodeId | null, reveal = true): void {
     if (id && !this.nodeEls.has(id)) id = null;
+    this.sels = new Set(id ? [id] : []);
     this.sel = id;
-    for (const [nid, el] of this.nodeEls) el.classList.toggle("sel", nid === id);
-    for (const [eid, els] of this.edgeEls) {
-      const e = this.g!.edges.find((x) => x.id === eid);
-      els.g.classList.toggle("hl", !!id && !!e && (e.from === id || e.to === id));
-    }
-    this.frame.classList.toggle("has-sel", !!id);
-    if (id && reveal) {
-      const n = this.g!.nodes.find((x) => x.id === id)!;
-      const gm = this.geom.get(id);
-      this.pz.reveal(n.x - 10, n.y - 10, (gm?.w ?? NODE_W) + 60, Math.min(gm?.h ?? 120, 400) + 20);
-    }
+    if (id) this.edgeSel = null;
+    this.applySel();
+    if (id && reveal) this.revealNode(id);
   }
 
-  /** « Ranger » : colonnes de l'extraction à l'objectif (flow-layout.ts), sans chevauchement. */
-  arrange(fit = true): void {
+  /**
+   * « Ranger » : colonnes de l'extraction à l'objectif (flow-layout.ts), sans chevauchement. Un pas
+   * d'annulation, sauf au premier affichage (`record` faux : la disposition de départ).
+   */
+  arrange(fit = true, record = true): void {
     if (!this.g || !this.g.nodes.length) return;
     const g = this.g;
     // Hauteurs réelles des nœuds complets (même si la vue est allégée en ce moment).
@@ -221,12 +334,69 @@ export class GraphView {
     const heights = new Map(g.nodes.map((n) => [n.id, this.nodeEls.get(n.id)?.offsetHeight ?? 120]));
     if (wasFar) this.frame.classList.add("far");
     const moves = arrangeGraph(g, this.opts.data, this.opts.world(), heights, this.bal);
-    const next = applyCommand(g, { type: "move", moves }, this.opts.data, this.opts.world());
-    this.update(next);
-    this.opts.onChange?.(next);
+    if (record) this.exec({ type: "move", moves });
+    else {
+      const next = applyCommand(g, { type: "move", moves }, this.opts.data, this.opts.world());
+      this.hist = new GraphHistory(next, this.opts.data, this.opts.world());
+      this.g = next;
+      this.afterChange();
+    }
     if (fit) this.fit();
     else this.home();
-    if (this.sel) this.select(this.sel, false);
+  }
+
+  /** Annuler / rétablir (Ctrl Z / Ctrl Y, boutons de la barre). */
+  undo(): void {
+    if (!this.hist?.canUndo) return;
+    this.g = this.hist.undo();
+    this.afterChange();
+  }
+
+  redo(): void {
+    if (!this.hist?.canRedo) return;
+    this.g = this.hist.redo();
+    this.afterChange();
+  }
+
+  // ------------------------------------------------------------ commandes
+
+  /** Applique une commande (un pas d'annulation) ; un geste refusé ne change rien et rend faux. */
+  private exec(cmd: GraphCommand | null, light = false): boolean {
+    if (!cmd || !this.hist) return false;
+    try {
+      this.g = this.hist.apply(cmd);
+    } catch (err) {
+      if (err instanceof GraphError) return false;
+      throw err;
+    }
+    this.afterChange(light);
+    return true;
+  }
+
+  /**
+   * Après une commande : tout se redessine (l'équilibre a pu changer). `light` : les nœuds sont déjà à
+   * leur place à l'écran (fin d'un glisser), rien à redessiner ; sur 400 nœuds, le relâcher coûtait
+   * une image de 90 ms.
+   */
+  private afterChange(light = false): void {
+    const g = this.g!;
+    if (light) {
+      this.syncTray();
+      this.pz.setContent(this.contentBox());
+      this.opts.onChange?.(g);
+      return;
+    }
+    const has = (id: NodeId) => g.nodes.some((n) => n.id === id);
+    // Un nœud sélectionné a disparu : la sélection se vide (pas de bulle qui s'ouvre d'elle-même sur un voisin).
+    if ([...this.sels].some((id) => !has(id))) {
+      this.sels = new Set();
+      this.sel = null;
+    }
+    if (this.edgeSel && !g.edges.some((e) => e.id === this.edgeSel)) this.edgeSel = null;
+    if (this.armed && !has(this.armed.node)) this.armed = null;
+    this.render();
+    this.pz.setContent(this.contentBox());
+    this.opts.onChange?.(g);
   }
 
   // ------------------------------------------------------------ rendu
@@ -256,6 +426,8 @@ export class GraphView {
     this.bal = balanceGraph(g, data, world);
     const bal = this.bal;
     const html: string[] = [];
+    const rowIn = t("gv.row.in");
+    const rowOut = t("gv.row.out");
     for (const n of g.nodes) {
       const p = recipePorts(data, n.recipeId, world);
       const nb = bal.nodes.get(n.id)!;
@@ -273,16 +445,16 @@ export class GraphView {
         .map((pb) => {
           const cls = pb.perMin - pb.flow <= EPS ? "" : pb.links === 0 ? " miss" : " part";
           const tip = cls === " miss" ? T.missing : cls === " part" ? T.partial(T.rate(pb.flow), T.rate(pb.perMin)) : T.item(pb.item);
-          return `<div class="gn-row${cls}" title="${esc(tip)}"><i class="gn-port" data-dir="in" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`;
+          return `<div class="gn-row${cls}" data-dir="in" data-item="${esc(pb.item)}" title="${esc(`${tip} · ${rowIn}`)}"><i class="gn-port" data-dir="in" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`;
         })
         .join("");
       const outs = nb.outs
-        .map((pb) => `<div class="gn-row" title="${esc(T.item(pb.item))}"><i class="gn-port" data-dir="out" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`)
+        .map((pb) => `<div class="gn-row" data-dir="out" data-item="${esc(pb.item)}" title="${esc(`${T.item(pb.item)} · ${rowOut}`)}"><i class="gn-port" data-dir="out" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`)
         .join("");
       const target = g.target?.node === n.id;
       const lock = n.fixed ? `<span class="gn-lock" title="${esc(T.fixed)}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>` : "";
       html.push(
-        `<div class="gn${target ? " target" : ""}${n.fixed ? " fixed" : ""}${n.id === this.sel ? " sel" : ""}" data-id="${esc(n.id)}" data-target="${esc(T.target)}" style="transform:translate(${n.x}px,${n.y}px)" tabindex="0" role="button" aria-label="${esc(T.nodeAria(product, count, machine))}">` +
+        `<div class="gn${target ? " target" : ""}${n.fixed ? " fixed" : ""}${this.sels.has(n.id) ? " sel" : ""}" data-id="${esc(n.id)}" data-target="${esc(T.target)}" style="transform:translate(${n.x}px,${n.y}px)" tabindex="0" role="button" aria-label="${esc(T.nodeAria(product, count, machine))}">` +
           `<div class="gn-hd"><b>${esc(product)}</b>${this.opts.badge?.(n.id) ?? ""}${lock}<span class="gn-n"><small>×</small>${count}</span></div>` +
           `<div class="gn-m"><span>${esc(machine)}</span>${facts}</div>` +
           `<div class="gn-io"><div class="gn-col i">${ins}</div><div class="gn-col o">${outs}</div></div></div>`,
@@ -292,7 +464,11 @@ export class GraphView {
     this.nodeEls = new Map([...this.nodesEl.children].map((el) => [(el as HTMLElement).dataset.id!, el as HTMLElement]));
     this.measure();
     this.drawEdges();
-    this.select(this.sel, false);
+    this.applySel();
+    if (this.armed) this.portEl(this.armed)?.classList.add("arm");
+    this.voidEl.hidden = g.nodes.length > 0;
+    this.syncTray();
+    this.syncBubble();
   }
 
   /** Prises de chaque nœud, relevées une fois (le rendu) : un glisser ne relit plus le DOM. */
@@ -343,6 +519,8 @@ export class GraphView {
       this.edgeEls.set(e.id, { g: g0, hit, line, lab, rect, text });
       this.placeEdge(e);
     }
+    this.tmp.removeAttribute("d");
+    this.svg.append(this.tmp);
   }
 
   private placeEdge(e: GraphEdge): void {
@@ -370,7 +548,23 @@ export class GraphView {
     return n && o ? { x: n.x + o.x, y: n.y + o.y } : null;
   }
 
+  private portEl(ref: PortRef): HTMLElement | null {
+    return this.nodeEls.get(ref.node)?.querySelector<HTMLElement>(`.gn-port[data-dir="${ref.side}"][data-item="${CSS.escape(ref.item)}"]`) ?? null;
+  }
+
+  private applySel(): void {
+    for (const [nid, el] of this.nodeEls) el.classList.toggle("sel", this.sels.has(nid));
+    for (const [eid, els] of this.edgeEls) {
+      const e = this.g!.edges.find((x) => x.id === eid);
+      els.g.classList.toggle("hl", !!e && (this.sels.has(e.from) || this.sels.has(e.to)));
+      els.g.classList.toggle("on", eid === this.edgeSel);
+    }
+    this.frame.classList.toggle("has-sel", this.sels.size > 0);
+    this.syncBubble();
+  }
+
   private onView(k: number): void {
+    this.k = k;
     const v = this.pz.view();
     const s = this.frame.style;
     s.setProperty("--gv-cs", `${28 * k}px`);
@@ -385,20 +579,369 @@ export class GraphView {
         for (const e of this.g.edges) this.placeEdge(e);
       }
     }
+    this.placeBubble();
+  }
+
+  private revealNode(id: NodeId): void {
+    const n = this.g!.nodes.find((x) => x.id === id);
+    if (!n) return;
+    const gm = this.geom.get(id);
+    this.pz.reveal(n.x - 10, n.y - 10, (gm?.w ?? NODE_W) + 60, Math.min(gm?.h ?? 120, 400) + 20);
+  }
+
+  // ------------------------------------------------------------ barre d'outils, rappel du mode
+
+  /** Textes de la barre et du canevas vide (la langue peut avoir changé). */
+  private texts(): void {
+    const b = (attr: string, ic: Parameters<typeof icon>[0], label: string, title: string) =>
+      `<button type="button" ${attr} title="${esc(title)}" aria-label="${esc(title)}">${icon(ic)}<span>${esc(label)}</span></button>`;
+    this.tray.setAttribute("aria-label", t("gv.tray"));
+    this.tray.innerHTML =
+      b('data-act="add"', "plus", t("gv.t.add"), t("gv.t.add.tip")) +
+      b('data-tool="link" aria-pressed="false"', "link", t("gv.t.link"), t("gv.t.link.tip")) +
+      b('data-tool="target" aria-pressed="false"', "target", t("gv.t.target"), t("gv.t.target.tip")) +
+      b('data-tool="del" aria-pressed="false"', "trash", t("gv.t.del"), t("gv.t.del.tip")) +
+      b('data-tool="multi" aria-pressed="false"', "select", t("gv.t.multi"), t("gv.t.multi.tip")) +
+      "<hr>" +
+      b('data-act="undo"', "undo", t("gv.t.undo"), t("gv.t.undo.tip")) +
+      b('data-act="redo"', "redo", t("gv.t.redo"), t("gv.t.redo.tip"));
+    this.voidEl.textContent = t("gv.void");
+    this.bubFor = null;
+  }
+
+  private syncTray(): void {
+    for (const b of this.tray.querySelectorAll<HTMLButtonElement>("[data-tool]")) b.setAttribute("aria-pressed", String(b.dataset.tool === this.tool));
+    const u = this.tray.querySelector<HTMLButtonElement>('[data-act="undo"]');
+    const r = this.tray.querySelector<HTMLButtonElement>('[data-act="redo"]');
+    if (u) u.disabled = !this.hist?.canUndo;
+    if (r) r.disabled = !this.hist?.canRedo;
+    this.syncHint();
+  }
+
+  private onTray(e: MouseEvent): void {
+    const b = (e.target as Element).closest<HTMLButtonElement>("button");
+    if (!b || b.disabled) return;
+    const act = b.dataset.act;
+    if (act === "add") return this.openPicker(null);
+    if (act === "undo") return this.undo();
+    if (act === "redo") return this.redo();
+    const tool = b.dataset.tool as Mode | undefined;
+    if (tool && MODES.includes(tool)) {
+      this.tool = this.tool === tool ? null : tool;
+      if (this.tool !== "link") this.disarm();
+      this.syncTray();
+    }
+  }
+
+  /** Rappel au-dessus de la barre : le mode, d'où il vient (touche tenue ou outil), ce que fait le clic. */
+  private syncHint(): void {
+    const src = modeSource(this.held, this.tool);
+    let text = "";
+    // Une prise choisie (premier appui) : le rappel dit quoi toucher ensuite, avant celui de l'outil Relier.
+    if (this.armed && (!src || src.mode === "link")) text = t(this.armed.side === "out" ? "gv.armed.out" : "gv.armed.in", { item: this.opts.text.item(this.armed.item) });
+    else if (src) text = `${t(src.from === "key" ? `gv.key.${src.mode}` : `gv.tool.${src.mode}`)} : ${t(`gv.does.${src.mode}`)}${src.from === "tool" ? ` · ${t("gv.esc")}` : ""}`;    this.hintEl.hidden = !text;
+    this.hintEl.textContent = text;
+  }
+
+  private setHeld(m: Mode | null): void {
+    if (m === this.held) return;
+    this.held = m;
+    this.syncHint();
+  }
+
+  private visible(): boolean {
+    return this.frame.isConnected && this.frame.offsetParent !== null && !this.frame.classList.contains("empty");
+  }
+
+  private onKey(e: KeyboardEvent): void {
+    if (!this.visible() || this.closePicker) return;
+    const typing = e.target instanceof Element && !!e.target.closest("input, textarea, select, [contenteditable]");
+    if (typing) return;
+    if (e.key === "Alt" || e.key === "Shift" || e.key === "Control" || e.key === "Meta") {
+      if (e.key === "Alt") e.preventDefault(); // pas de menu du navigateur pendant qu'on tient Alt
+      this.setHeld(modeOfKeys({ altKey: e.key === "Alt", shiftKey: e.key === "Shift", ctrlKey: e.key === "Control", metaKey: e.key === "Meta" }));
+      return;
+    }
+    // Les raccourcis valent quand le canevas a le focus, ou quand plus rien ne l'a (après une suppression).
+    const a = document.activeElement;
+    if (!(a === document.body || !a || this.frame.contains(a))) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    let done = true;
+    if (ctrl && key === "z") e.shiftKey ? this.redo() : this.undo();
+    else if (ctrl && key === "y") this.redo();
+    else if (ctrl && key === "a") {
+      this.sels = new Set(this.g?.nodes.map((n) => n.id) ?? []);
+      this.sel = this.sels.size === 1 ? [...this.sels][0]! : null;
+      this.applySel();
+      this.opts.onSelect(this.selected);
+    } else if ((ctrl && key === "k") || (!ctrl && !e.altKey && key === "a")) this.openPicker(null);
+    else if (!ctrl && (e.key === "Delete" || e.key === "Backspace")) this.deleteSelection();
+    else if (e.key === "Escape" && (this.armed || this.tool)) {
+      this.disarm();
+      this.tool = null;
+      this.syncTray();
+    } else if (e.key === "Escape" && this.sels.size) {
+      this.select(null);
+      this.opts.onSelect(null);
+      done = false; // la page ferme aussi la fiche
+    } else done = false;
+    if (done) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  private onKeyUp(e: KeyboardEvent): void {
+    if (["Alt", "Shift", "Control", "Meta"].includes(e.key)) this.setHeld(modeOfKeys(e));
+  }
+
+  private deleteSelection(): void {
+    if (!this.g) return;
+    this.exec(deleteCommand(this.g, this.sels, this.edgeSel ? [this.edgeSel] : []));
+    if (!this.sels.size) this.opts.onSelect(null);
+  }
+
+  // ------------------------------------------------------------ sélecteur de recettes
+
+  /** Ouvre le sélecteur ; depuis une prise, il est filtré (Produire pour une entrée, Consommer pour une sortie). */
+  private openPicker(port: PortRef | null): void {
+    if (!this.g) return;
+    const { data, text: T } = this.opts;
+    const world = this.opts.world();
+    const all = [...data.recipes.keys()].filter((id) => recipePorts(data, id, world).eff);
+    const gens = energyRecipes(data);
+    const item = port?.item ?? null;
+    const tabs: PickerTab[] = port
+      ? [
+          { key: "produce", label: t("gv.pick.produce", { item: T.item(port.item) }), ids: () => recipesFor(data, port.item, "produce", world) },
+          { key: "consume", label: t("gv.pick.consume", { item: T.item(port.item) }), ids: () => recipesFor(data, port.item, "consume", world) },
+          { key: "energy", label: t("gv.pick.energy"), ids: () => gens },
+        ]
+      : [
+          { key: "all", label: t("gv.pick.all"), ids: () => all },
+          { key: "energy", label: t("gv.pick.energy"), ids: () => gens },
+        ];
+    if (port?.side === "out") tabs.unshift(tabs.splice(1, 1)[0]!);
+    const q = (v: number | null) => (v === null ? "?" : T.num(v));
+    const card = (id: string): PickerCard => {
+      const r = data.recipes.get(id)!;
+      const side = (o: Record<string, number | null>) => Object.entries(o).filter(([k]) => k !== ENERGY).map(([k, v]) => ({ item: k, name: T.item(k), q: q(v) }));
+      const info = [r.durationS ? T.cycle(r.durationS) : "", r.energyMFps ? T.energy(r.energyMFps) : ""].filter(Boolean).join(" · ");
+      return { ins: side(r.inputs), outs: side(r.outputs), machine: T.machine(r.machine), info };
+    };
+    const title = port ? t(port.side === "in" ? "gv.pick.title.in" : "gv.pick.title.out", { item: T.item(port.item) }) : t("gv.pick.title");
+    this.closePicker = openRecipePicker({
+      title,
+      tabs,
+      item,
+      card,
+      onPick: (id) => this.addRecipe(id, port),
+      onClose: () => {
+        this.closePicker = null;
+        this.frame.focus({ preventScroll: true });
+      },
+    });
+  }
+
+  /** Pose la recette choisie à une place libre (à gauche d'une entrée, à droite d'une sortie, au centre sinon). */
+  private addRecipe(recipeId: string, port: PortRef | null): void {
+    const g = this.g!;
+    const { data } = this.opts;
+    const world = this.opts.world();
+    const p = recipePorts(data, recipeId, world);
+    const size = { w: NODE_W, h: guessHeight(Math.max(p.ins.length, p.outs.length)) };
+    let want: Pt;
+    const anchor = port ? g.nodes.find((n) => n.id === port.node) : undefined;
+    if (port && anchor) {
+      const gm = this.geom.get(anchor.id);
+      const py = gm?.[port.side === "in" ? "ins" : "outs"].get(port.item)?.y ?? 40;
+      want = { x: port.side === "in" ? anchor.x - NODE_W - GAP_X : anchor.x + (gm?.w ?? NODE_W) + GAP_X, y: Math.round(anchor.y + py - 60) };
+    } else {
+      const v = this.pz.view();
+      want = { x: Math.round(v.x + v.w / 2 - NODE_W / 2), y: Math.round(v.y + v.h / 2 - size.h / 2) };
+    }
+    const at = freeSpot(g, want, size, (id) => this.geom.get(id) ?? { w: NODE_W, h: 120 });
+    const { id, seq } = freshId(g, this.seq);
+    const cmd = addRecipeCommand(data, recipeId, { id, at, world, ...(port && this.bal ? { from: { port, perMin: needAt(this.bal, port) } } : {}) });
+    if (!this.exec(cmd)) return;
+    this.seq = seq;
+    this.edgeSel = null;
+    this.select(id);
+    this.opts.onSelect(id);
+  }
+
+  // ------------------------------------------------------------ bulle du nœud (S67)
+
+  private bindBubble(): void {
+    const b = this.bub;
+    // La molette et les touches de la bulle restent à elle (pas de zoom, pas de Suppr du nœud).
+    b.addEventListener("wheel", (e) => {
+      e.stopPropagation();
+      if ((e.target as Element).closest("[data-b=n]")) {
+        e.preventDefault();
+        this.bumpCount(e.deltaY < 0 ? 1 : -1);
+      }
+    });
+    b.addEventListener("click", (e) => {
+      const el = (e.target as Element).closest<HTMLElement>("[data-b]");
+      const id = this.sel;
+      if (!el || !id || !this.g) return;
+      const n = this.g.nodes.find((x) => x.id === id);
+      if (!n) return;
+      switch (el.dataset.b) {
+        case "less":
+          return this.bumpCount(-1);
+        case "more":
+          return this.bumpCount(1);
+        case "fix":
+          this.exec({ type: "setFixed", id, fixed: !n.fixed });
+          return;
+        case "chain":
+          this.chain = !this.chain;
+          return this.syncBubble();
+        case "target":
+          this.exec(targetCommand(this.g, id));
+          return;
+        case "del":
+          this.exec(deleteCommand(this.g, [id]));
+          this.opts.onSelect(null);
+          this.frame.focus({ preventScroll: true });
+          return;
+        case "close":
+          this.select(null);
+          this.opts.onSelect(null);
+          this.frame.focus({ preventScroll: true });
+          return;
+      }
+    });
+    b.addEventListener("change", (e) => {
+      const el = e.target as HTMLInputElement | HTMLSelectElement;
+      const id = this.sel;
+      if (!id || !this.g) return;
+      if (el.dataset.b === "n") {
+        const v = parseCount(el.value);
+        if (v === null || !this.exec(countCommand(this.g, id, v, this.chain))) this.syncBubble(true);
+      } else if (el.dataset.b === "recipe") this.exec({ type: "replaceRecipe", id, recipeId: el.value });
+    });
+    b.addEventListener("keydown", (e) => {
+      const el = e.target as HTMLElement;
+      if (el.dataset.b !== "n") return;
+      if (e.key === "Enter") (el as HTMLInputElement).blur();
+      else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        this.bumpCount(e.key === "ArrowUp" ? 1 : -1);
+      } else if (e.key === "Escape") {
+        this.syncBubble(true);
+        (el as HTMLInputElement).blur();
+      }
+    });
+  }
+
+  private bumpCount(d: 1 | -1): void {
+    const id = this.sel;
+    const n = id && this.g?.nodes.find((x) => x.id === id);
+    if (!n || !this.g) return;
+    this.exec(countCommand(this.g, n.id, stepCount(n.machines, d), this.chain));
+    this.syncBubble(true);
+  }
+
+  /** La bulle du nœud sélectionné seul (construite à la sélection, remplie à chaque changement). */
+  private syncBubble(forceCount = false): void {
+    const id = this.sels.size === 1 ? this.sel : null;
+    const n = id ? this.g?.nodes.find((x) => x.id === id) : undefined;
+    if (!n) {
+      this.bub.hidden = true;
+      this.bubFor = null;
+      return;
+    }
+    const { data, text: T } = this.opts;
+    const world = this.opts.world();
+    if (this.bubFor?.id !== n.id) this.chain = false;
+    const r = data.recipes.get(n.recipeId);
+    const product = T.item(mainOutput(data, n.recipeId, world) ?? n.recipeId);
+    if (this.bubFor?.id !== n.id || this.bubFor.recipe !== n.recipeId) {
+      const alts = recipeAlternatives(data, n.recipeId, world);
+      const opt = (rid: string) => {
+        const x = data.recipes.get(rid)!;
+        const ins = Object.keys(x.inputs).filter((k) => k !== ENERGY).map((k) => T.item(k));
+        return `<option value="${esc(rid)}"${rid === n.recipeId ? " selected" : ""}>${esc([T.machine(x.machine), x.durationS ? T.cycle(x.durationS) : "", ins.join(" + ")].filter(Boolean).join(" · "))}</option>`;
+      };
+      this.bub.innerHTML = `<header><b data-b-title></b><button type="button" data-b="close" title="${esc(t("gv.close"))}" aria-label="${esc(t("gv.close"))}">${icon("close")}</button></header>
+        <div class="gv-brow"><span>${esc(t("gv.b.machines"))}</span><span class="gv-cnt"><button type="button" data-b="less" title="${esc(t("gv.b.less"))}" aria-label="${esc(t("gv.b.less"))}">−</button><input data-b="n" inputmode="decimal" aria-label="${esc(t("gv.b.machines"))}" title="${esc(t("gv.b.n.tip"))}"><button type="button" data-b="more" title="${esc(t("gv.b.more"))}" aria-label="${esc(t("gv.b.more"))}">+</button></span></div>
+        <div class="gv-brow"><span>${esc(t("gv.b.exact"))}</span><span class="num" data-b-exact></span></div>
+        <div class="gv-brow"><span>${esc(t("gv.b.recipe"))}</span><select data-b="recipe" aria-label="${esc(t("gv.b.recipe"))}"${alts.length < 2 ? " disabled" : ""}>${alts.map(opt).join("")}</select></div>
+        <div class="gv-brow"><span>${esc(t("gv.b.fix"))}</span><button type="button" class="gv-sw" data-b="fix" role="switch" title="${esc(t("gv.fixed"))}"><i></i><small>${esc(t("gv.b.fix.note"))}</small></button></div>
+        <div class="gv-acts"><button type="button" data-b="chain" title="${esc(t("gv.b.chain.tip"))}">${icon("scale")}${esc(t("gv.b.chain"))}</button><button type="button" data-b="target" title="${esc(t("gv.t.target.tip"))}">${icon("target")}${esc(t("gv.b.target"))}</button><button type="button" data-b="del" title="${esc(t("gv.t.del.tip"))}">${icon("trash")}${esc(t("gv.b.del"))}</button></div>`;
+      this.bub.setAttribute("role", "dialog");
+      this.bub.setAttribute("aria-label", t("gv.b.aria", { product }));
+      forceCount = true;
+    }
+    this.bubFor = { id: n.id, recipe: n.recipeId };
+    this.bub.querySelector("[data-b-title]")!.textContent = `${r ? T.machine(r.machine) : n.recipeId} — ${product}`;
+    const input = this.bub.querySelector<HTMLInputElement>("[data-b=n]")!;
+    const whole = Math.ceil(n.machines - 1e-9);
+    if (forceCount || document.activeElement !== input) input.value = T.num(whole);
+    const exact = Math.abs(n.machines - Math.round(n.machines)) < 1e-9 ? T.num(Math.round(n.machines)) : t("gv.b.use", { n: T.num(n.machines), pct: T.num(Math.round((n.machines / whole) * 100)) });
+    this.bub.querySelector("[data-b-exact]")!.textContent = exact;
+    const fix = this.bub.querySelector<HTMLElement>("[data-b=fix]")!;
+    fix.setAttribute("aria-checked", String(!!n.fixed));
+    this.bub.querySelector("[data-b=chain]")!.setAttribute("aria-pressed", String(this.chain));
+    this.bub.querySelector("[data-b=target]")!.setAttribute("aria-pressed", String(this.g?.target?.node === n.id));
+    const less = this.bub.querySelector<HTMLButtonElement>("[data-b=less]")!;
+    less.disabled = n.machines <= 1 + 1e-9;
+    this.bub.hidden = false;
+    this.bubH = this.bub.offsetHeight;
+    this.placeBubble();
+  }
+
+  /** Bulle accrochée sous le nœud (au-dessus s'il n'y a pas la place), dans le cadre, à l'échelle de l'écran. */
+  private placeBubble(): void {
+    if (this.bub.hidden || !this.sel || !this.g) return;
+    const n = this.g.nodes.find((x) => x.id === this.sel);
+    if (!n) return;
+    const v = this.pz.view();
+    const k = this.k;
+    const h = this.geom.get(n.id)?.h ?? 120;
+    const fw = this.frame.clientWidth;
+    const fh = this.frame.clientHeight;
+    const bw = 264;
+    const bh = this.bubH || 200;
+    let x = (n.x - v.x) * k;
+    let y = (n.y + h - v.y) * k + 10;
+    // Pas la place dessous (la barre d'outils occupe le bas) : au-dessus du nœud.
+    if (y + bh > fh - 64) y = (n.y - v.y) * k - bh - 10;
+    x = Math.max(6, Math.min(x, fw - bw - 6));
+    y = Math.max(6, Math.min(y, fh - bh - 64));
+    this.bub.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
   }
 
   // ------------------------------------------------------------ gestes
 
   private onDown(e: PointerEvent): void {
     if (e.button !== 0 || !this.g) return;
-    const t = e.target as Element;
-    if (t.closest("button, input, select, a, .rs-zoom")) return;
-    const node = t.closest<HTMLElement>(".gn");
+    const t0 = e.target as Element;
+    if (t0.closest("button, input, select, a, .rs-zoom, .gv-ui")) return;
+    const node = t0.closest<HTMLElement>(".gn");
+    const base = { id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false };
     if (node) {
       const n = this.g.nodes.find((x) => x.id === node.dataset.id)!;
-      this.press = { kind: "node", id: e.pointerId, sx: e.clientX, sy: e.clientY, node: n.id, x0: n.x, y0: n.y, moved: false };
-    } else if (t.closest(".gv-world, #flow-canvas") || t === this.frame) {
-      this.press = { kind: "bg", id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false };
+      const portEl = t0.closest<HTMLElement>(".gn-port");
+      if (portEl && !this.far) {
+        this.press = { ...base, kind: "port", node: n.id, port: { node: n.id, item: portEl.dataset.item!, side: portEl.dataset.dir === "in" ? "in" : "out" } };
+        return;
+      }
+      const row = t0.closest<HTMLElement>(".gn-row");
+      const group = this.sels.has(n.id) && this.sels.size > 1 ? this.g.nodes.filter((x) => this.sels.has(x.id)) : [n];
+      this.press = {
+        ...base,
+        kind: "node",
+        node: n.id,
+        group: group.map((x) => ({ id: x.id, x0: x.x, y0: x.y })),
+        ...(row ? { row: { node: n.id, item: row.dataset.item!, side: row.dataset.dir === "in" ? "in" : "out" } } : {}),
+      };
+    } else if (t0.closest(".gv-world, #flow-canvas") || t0 === this.frame) {
+      this.press = { ...base, kind: "bg" };
     }
   }
 
@@ -410,25 +953,27 @@ export class GraphView {
     if (!p.moved) {
       if (Math.hypot(dx, dy) <= DRAG_SLOP) return;
       p.moved = true;
+      if (p.kind === "bg") return;
+      try {
+        this.frame.setPointerCapture(e.pointerId);
+      } catch {
+        // Pointeur déjà relâché : le geste continue sans capture.
+      }
+      document.body.classList.add("panning");
       if (p.kind === "node") {
         // Échelle lue une fois : pendant le glisser, aucune lecture de mise en page.
         p.k = this.scale();
-        try {
-          this.frame.setPointerCapture(e.pointerId);
-        } catch {
-          // Pointeur déjà relâché : le glisser continue sans capture.
-        }
-        this.nodeEls.get(p.node!)?.classList.add("dragging");
-        document.body.classList.add("panning");
-      }
+        for (const m of p.group!) this.nodeEls.get(m.id)?.classList.add("dragging");
+      } else if (p.kind === "port") this.startLink(p);
     }
+    if (p.kind === "port" && p.link) return this.dragLink(p, e);
     if (p.kind !== "node") return;
     const k = p.k!;
-    this.pending = { x: p.x0! + dx / k, y: p.y0! + dy / k };
+    this.pending = { x: dx / k, y: dy / k };
     // Un seul dessin par image : le glisser reste fluide même avec des centaines de nœuds.
     this.frameReq ||= requestAnimationFrame(() => {
       this.frameReq = 0;
-      if (this.pending && this.press?.node) this.moveNode(this.press.node, this.pending);
+      if (this.pending && this.press?.group) this.moveGroup(this.press.group, this.pending);
     });
   }
 
@@ -436,56 +981,185 @@ export class GraphView {
     const p = this.press;
     if (!p || p.id !== e.pointerId) return;
     this.press = null;
+    if (this.frame.hasPointerCapture(e.pointerId)) this.frame.releasePointerCapture(e.pointerId);
+    document.body.classList.remove("panning");
     if (p.kind === "node" && p.moved) {
       if (this.frameReq) cancelAnimationFrame(this.frameReq);
       this.frameReq = 0;
-      if (this.pending) this.moveNode(p.node!, this.pending);
+      if (this.pending) this.moveGroup(p.group!, this.pending);
       this.pending = null;
-      this.nodeEls.get(p.node!)?.classList.remove("dragging");
-      document.body.classList.remove("panning");
-      if (this.frame.hasPointerCapture(e.pointerId)) this.frame.releasePointerCapture(e.pointerId);
-      const n = this.g!.nodes.find((x) => x.id === p.node)!;
-      // Le document reçoit la position finale en une commande (un pas d'annulation, au lot G3).
-      const next = applyCommand(this.g!, { type: "move", moves: [{ id: n.id, x: n.x, y: n.y }] }, this.opts.data, this.opts.world());
-      this.g = next;
-      this.pz.setContent(this.contentBox());
-      this.opts.onChange?.(next);
+      for (const m of p.group!) this.nodeEls.get(m.id)?.classList.remove("dragging");
+      // Le document reçoit les positions finales en une commande : un pas d'annulation.
+      const at = new Map(this.g!.nodes.map((n) => [n.id, n]));
+      const moves = p.group!.map((m) => ({ id: m.id, x: at.get(m.id)!.x, y: at.get(m.id)!.y })).filter((m) => {
+        const m0 = p.group!.find((x) => x.id === m.id)!;
+        return m.x !== m0.x0 || m.y !== m0.y0;
+      });
+      if (moves.length) this.exec({ type: "move", moves }, true);
       return;
     }
+    if (p.kind === "port" && p.moved) return this.endLink(p, cancel);
     if (cancel || p.moved) return;
-    if (p.kind === "node") return this.pick(p.node!);
-    // Clic dans le vide ou sur une liaison.
-    const hit = (e.target as Element).closest?.<SVGGElement>(".ge");
-    const edge = hit ? (this.g!.edges.find((x) => x.id === hit.dataset.edge) ?? null) : null;
-    if (this.sel) {
-      this.select(null);
-      this.opts.onSelect(null);
+    this.onTap(p, e);
+  }
+
+  /** Un clic (moins de 4 px) : son mode se lit sur le clic lui-même (Alt, Maj, Ctrl), puis la touche tenue, puis l'outil. */
+  private onTap(p: Press, e: PointerEvent): void {
+    const g = this.g!;
+    const m = clickMode(e, this.held, this.tool);
+    if (p.kind === "bg") {
+      const hit = (e.target as Element).closest?.<SVGGElement>(".ge");
+      const edge = hit ? (g.edges.find((x) => x.id === hit.dataset.edge) ?? null) : null;
+      if (edge && m === "del") {
+        this.exec(deleteCommand(g, [], [edge.id]));
+        this.opts.onEdge?.(null);
+        return;
+      }
+      this.disarm();
+      if (this.sels.size) {
+        this.select(null);
+        this.opts.onSelect(null);
+      }
+      this.edgeSel = edge && this.edgeSel !== edge.id ? edge.id : null;
+      this.applySel();
+      this.opts.onEdge?.(edge);
+      return;
     }
-    this.opts.onEdge?.(edge);
-    for (const [id, els] of this.edgeEls) els.g.classList.toggle("on", !!edge && id === edge.id);
+    const id = p.node!;
+    const item = p.port?.side === "out" ? p.port.item : p.row?.side === "out" ? p.row.item : undefined;
+    if (m === "del") {
+      this.exec(deleteCommand(g, [id]));
+      if (!this.sels.size) this.opts.onSelect(null);
+      return;
+    }
+    if (m === "target") {
+      this.exec(targetCommand(g, id, item));
+      return;
+    }
+    if (m === "multi") {
+      if (this.sels.has(id)) this.sels.delete(id);
+      else this.sels.add(id);
+      this.sel = this.sels.size === 1 ? [...this.sels][0]! : this.sels.has(id) ? id : null;
+      this.edgeSel = null;
+      this.applySel();
+      this.opts.onSelect(this.selected);
+      return;
+    }
+    // Prise touchée (ou, avec l'outil Relier, n'importe où sur sa ligne) : relier en deux appuis.
+    const port = p.port ?? (m === "link" ? p.row : undefined);
+    if (port) return this.tapPort(port);
+    if (p.row) return this.openPicker(p.row);
+    this.pick(id);
   }
 
   /** Clic sur un nœud : sélectionné, ou désélectionné au second clic. */
   private pick(id: NodeId): void {
-    const next = this.sel === id ? null : id;
-    for (const els of this.edgeEls.values()) els.g.classList.remove("on");
+    const next = this.sel === id && this.sels.size === 1 ? null : id;
+    this.edgeSel = null;
     this.select(next, false);
     this.opts.onSelect(next);
   }
 
-  /** Déplace un nœud pendant le glisser : sa boîte et ses seules liaisons, sans tout redessiner. */
-  private moveNode(id: NodeId, to: Pt): void {
+  // ------------------------------------------------------------ relier
+
+  private disarm(): void {
+    if (!this.armed) return;
+    this.portEl(this.armed)?.classList.remove("arm");
+    this.armed = null;
+    this.syncHint();
+  }
+
+  /** Au doigt : un appui choisit une prise, un appui sur une prise de l'autre côté relie. */
+  private tapPort(ref: PortRef): void {
+    const a = this.armed;
+    if (a && a.node === ref.node && a.item === ref.item && a.side === ref.side) return this.disarm();
+    if (!a || a.side === ref.side) {
+      this.disarm();
+      this.armed = ref;
+      this.portEl(ref)?.classList.add("arm");
+      this.syncHint();
+      return;
+    }
+    const r = linkCommand(this.g!, a, ref);
+    if ("refused" in r) return this.refuse(ref);
+    this.armed = null;
+    this.exec(r.cmd);
+    this.syncHint();
+  }
+
+  /** Liaison refusée (autre produit, même nœud, déjà là) : la prise secoue en rouge. */
+  private refuse(ref: PortRef): void {
+    const el = this.portEl(ref);
+    if (!el) return;
+    el.classList.remove("no");
+    void el.offsetWidth; // relance l'animation si la prise secouait déjà
+    el.classList.add("no");
+    setTimeout(() => el.classList.remove("no"), 450);
+  }
+
+  private startLink(p: Press): void {
     const g = this.g!;
-    const i = g.nodes.findIndex((n) => n.id === id);
-    if (i < 0) return;
+    const from = p.port!;
+    const r = this.frame.getBoundingClientRect();
+    const v = this.pz.view();
+    const k = r.width / Math.max(1, v.w);
+    const a = this.portAt(from.node, from.side === "out" ? "outs" : "ins", from.item);
+    if (!a) return;
+    // Prises de l'autre côté, en coordonnées du monde, relevées une fois.
+    const cands: Cand[] = [];
+    const other = from.side === "out" ? "ins" : "outs";
+    for (const n of g.nodes)
+      for (const [item, o] of this.geom.get(n.id)?.[other] ?? []) cands.push({ x: n.x + o.x, y: n.y + o.y, ref: { node: n.id, item, side: from.side === "out" ? "in" : "out" } });
+    this.disarm();
+    this.portEl(from)?.classList.add("arm");
+    p.link = { r, v, k, a, cands, over: null };
+    this.frame.classList.add("linking");
+  }
+
+  private dragLink(p: Press, e: PointerEvent): void {
+    const L = p.link!;
+    const at = { x: L.v.x + (e.clientX - L.r.left) / L.k, y: L.v.y + (e.clientY - L.r.top) / L.k };
+    const over = snapPort(L.cands, at, SNAP_PX / L.k);
+    if (over !== L.over) {
+      if (L.over) this.portEl(L.over.ref)?.classList.remove("ok", "bad");
+      if (over) this.portEl(over.ref)?.classList.add("cmd" in linkCommand(this.g!, p.port!, over.ref) ? "ok" : "bad");
+      L.over = over;
+    }
+    const b = over ?? at;
+    const [s, d] = p.port!.side === "out" ? [L.a, b] : [b, L.a];
+    this.tmp.setAttribute("d", edgePath(s, d, Math.max(s.y, d.y) + 40).d);
+  }
+
+  private endLink(p: Press, cancel: boolean): void {
+    const L = p.link;
+    this.frame.classList.remove("linking");
+    this.tmp.removeAttribute("d");
+    this.portEl(p.port!)?.classList.remove("arm");
+    if (!L) return;
+    if (L.over) this.portEl(L.over.ref)?.classList.remove("ok", "bad");
+    if (cancel || !L.over) return;
+    const r = linkCommand(this.g!, p.port!, L.over.ref);
+    if ("refused" in r) this.refuse(L.over.ref);
+    else this.exec(r.cmd);
+  }
+
+  /** Déplace des nœuds pendant le glisser : leurs boîtes et leurs seules liaisons, sans tout redessiner. */
+  private moveGroup(group: { id: NodeId; x0: number; y0: number }[], d: Pt): void {
+    const g = this.g!;
+    const at = new Map(group.map((m) => [m.id, m]));
     // Copie locale (le document lui-même change au lâcher, par une commande).
-    const nodes = g.nodes.slice();
-    nodes[i] = { ...nodes[i]!, x: Math.round(to.x), y: Math.round(to.y) };
+    const nodes = g.nodes.map((n) => {
+      const m = at.get(n.id);
+      return m ? { ...n, x: Math.round(m.x0 + d.x), y: Math.round(m.y0 + d.y) } : n;
+    });
     this.g = { ...g, nodes };
-    const el = this.nodeEls.get(id)!;
-    // Position par transformation : le navigateur ne refait pas la mise en page des autres nœuds.
-    el.style.transform = `translate(${nodes[i]!.x}px,${nodes[i]!.y}px)`;
-    for (const e of g.edges) if (e.from === id || e.to === id) this.placeEdge(e);
+    for (const n of nodes) {
+      if (!at.has(n.id)) continue;
+      // Position par transformation : le navigateur ne refait pas la mise en page des autres nœuds.
+      this.nodeEls.get(n.id)!.style.transform = `translate(${n.x}px,${n.y}px)`;
+    }
+    for (const e of g.edges) if (at.has(e.from) || at.has(e.to)) this.placeEdge(e);
+    if (this.sel && at.has(this.sel)) this.placeBubble();
   }
 
   private scale(): number {

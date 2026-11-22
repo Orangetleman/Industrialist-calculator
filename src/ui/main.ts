@@ -1340,6 +1340,7 @@ function graphText(): GraphViewText {
   };
   return {
     rate,
+    num: (x) => fmt(x, Math.abs(x) >= 100 || Number.isInteger(x) ? 0 : 2),
     item: (id) => itemName(id),
     machine: (id) => planData().machines.get(id)?.name ?? id,
     cycle: (sec) => `${fmt(sec, sec >= 10 ? 0 : 1)} s`,
@@ -1351,6 +1352,17 @@ function graphText(): GraphViewText {
     partial: (got, need) => t("gv.partial", { got, need }),
     nodeAria: (product, n, machine) => t("gv.node.aria", { product, n, machine }),
   };
+}
+
+/**
+ * Étape du plan d'un nœud du graphe : seulement s'il fait encore la recette de cette étape (un nœud
+ * ajouté à la main, ou dont la recette a été remplacée, n'a pas de fiche du plan).
+ */
+function stepOfNode(id: string): string | undefined {
+  const d = graphDoc;
+  const key = d?.stepOf.get(id);
+  const node = d?.g.nodes.find((n) => n.id === id);
+  return key && node && d!.plan.steps.find((s) => s.key === key)?.recipeId === node.recipeId ? key : undefined;
 }
 
 function renderFlowCanvas(): void {
@@ -1380,13 +1392,17 @@ function renderFlowCanvas(): void {
     reserveRight: FLOW_ZOOM_W,
     badge: (id) => {
       const vc = viewCtx();
-      const st = graphDoc ? vc.plan.steps.find((s) => s.key === graphDoc!.stepOf.get(id)) : undefined;
+      const key = stepOfNode(id);
+      const st = key ? vc.plan.steps.find((s) => s.key === key) : undefined;
       return st ? warnButton(vc, stepWarnings(vc, st)) : "";
     },
-    onSelect: (id) => selectFlow(id && graphDoc ? (graphDoc.stepOf.get(id) ?? null) : null),
+    onSelect: (id) => selectFlow(id ? (stepOfNode(id) ?? null) : null),
     onEdge: (e) => {
       const d = graphDoc;
-      const next = e && d ? { from: d.stepOf.get(e.from)!, to: d.stepOf.get(e.to)!, item: e.item, perMin: balanceGraph(d.g, planData(), gameView()).edges.get(e.id) ?? 0, loop: false } : null;
+      // Une liaison tirée à la main (vers un nœud ajouté) n'a pas de fiche du plan.
+      const from = e ? stepOfNode(e.from) : undefined;
+      const to = e ? stepOfNode(e.to) : undefined;
+      const next = e && d && from && to ? { from, to, item: e.item, perMin: balanceGraph(d.g, planData(), gameView()).edges.get(e.id) ?? 0, loop: false } : null;
       // Second clic sur la même liaison : désélectionnée.
       flowEdge = next && flowEdge && next.from === flowEdge.from && next.to === flowEdge.to && next.item === flowEdge.item ? null : next;
       applyFlowSel();
@@ -1401,7 +1417,7 @@ function renderFlowCanvas(): void {
   graphView.show(canvas, doc.g, keep);
   // « Ranger » d'entrée, avec les vraies hauteurs des nœuds (le cadre doit être affiché pour les mesurer).
   if (!doc.arranged && frame.clientWidth > 0) {
-    graphView.arrange(false);
+    graphView.arrange(false, false); // disposition de départ : pas un pas d'annulation
     doc.arranged = true;
   }
   flowKey = signature;
@@ -1435,7 +1451,10 @@ function applyFlowSel(): void {
   const nodeId = flowSel && graphDoc ? graphDoc.pg.nodeOfStep.get(flowSel) : undefined;
   if (flowSel && !nodeId) flowSel = null;
   if (flowSel) flowEdge = null;
-  if (graphView && graphView.selected !== (nodeId ?? null)) graphView.select(nodeId ?? null);
+  // La sélection du canevas suit la fiche, sauf un nœud sans étape du plan (ajouté à la main) ou une
+  // sélection multiple : le canevas les garde.
+  const gsel = graphView?.selected ?? null;
+  if (graphView && gsel !== (nodeId ?? null) && (flowSel || (gsel && stepOfNode(gsel)))) graphView.select(nodeId ?? null);
   const edge = flowEdge;
   hud.hidden = !flowSel && !edge;
   hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : edge ? renderEdgeHud(viewCtx(), edge) : "";

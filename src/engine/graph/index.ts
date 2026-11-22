@@ -2,6 +2,7 @@
 export * from "./model.ts";
 export { recipePorts, mainOutput, type GraphWorld, type Ports } from "./ports.ts";
 export { balanceGraph, type GraphBalance, type NodeBalance, type PortBalance, type ItemGap, type GraphTotals } from "./balance.ts";
+export * from "./edit.ts";
 export { planToGraph, type PlanGraph } from "./from-plan.ts";
 export { graphToRequest, solveFromGraph, compareWithPlan, applyComparison, type GraphRequest, type GraphSolve, type GraphComparison, type NodeChange } from "./solve-from-graph.ts";
 export { writeGraphFile, readGraphFile, GRAPH_FORMAT, GRAPH_VERSION, type FileWarning } from "./file.ts";
