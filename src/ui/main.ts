@@ -33,7 +33,7 @@ import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, render
 import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, setDrawnInside, turnText } from "./factory-view.ts";
 import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
-import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
+import { solve, type Plan, type PlayerState, type SolveRequest } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import type { EnergyFile, InterfacesFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
@@ -79,7 +79,8 @@ import {
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { GraphView, type GraphViewOptions, type GraphViewText } from "./graph-view.ts";
-import { balanceGraph, planToGraph, type Graph, type PlanGraph } from "../engine/graph/index.ts";
+import { applyComparison, balanceGraph, compareWithPlan, planToGraph, solveFromGraph, type Graph } from "../engine/graph/index.ts";
+import { graphMatchesPlan, linkSteps, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
@@ -344,6 +345,34 @@ let rpView: ResearchView | null = null;
 let planDirty = true;
 let rows: BuildRow[] = [];
 let signature = "";
+
+/** Graphe édité de Planifier (G4, graph-edit.ts) ; null : l'onglet Schéma suit la proposition. Enregistré au rechargement. */
+const KEY_GRAPH = "ind-calc:v1:graph";
+let gedit: GraphEdit | null = (() => {
+  try {
+    return loadGraphEdit(JSON.parse(localStorage.getItem(KEY_GRAPH) ?? "null"));
+  } catch {
+    return null;
+  }
+})();
+/** Plan montré dans l'aperçu de « Recalculer », repris tel quel par le calcul qui suit « Appliquer ». */
+let pendingGraphPlan: { g: Graph; plan: Plan } | null = null;
+/** Test de charge en cours (`__grapheCharge`) : ce graphe-là ne s'enregistre pas. */
+let graphLoad = false;
+let graphSaveTimer: number | undefined;
+function saveGraphEdit(now = false): void {
+  clearTimeout(graphSaveTimer);
+  const write = () => {
+    try {
+      if (gedit?.touched) localStorage.setItem(KEY_GRAPH, JSON.stringify(storeGraphEdit(gedit)));
+      else localStorage.removeItem(KEY_GRAPH);
+    } catch {
+      // stockage indisponible : le graphe reste pour cette visite
+    }
+  };
+  if (now) write();
+  else graphSaveTimer = window.setTimeout(write, 400);
+}
 
 const KEY_UI = "ind-calc:v1:ui";
 let ui: { view: "tree" | "list"; selected: string | null; dataTab: "verifier" | "batiments" } = { view: "tree", selected: null, dataTab: "verifier" };
@@ -918,6 +947,27 @@ function planData(): GameData {
 }
 let planBuiltFrom: GameData | null = null;
 
+/** Réglages du calcul autres que l'objectif (critères, filtres, contraintes…), communs à la proposition et au recalcul du graphe. */
+function baseRequest(): Omit<SolveRequest, "item"> {
+  const goal = settings.goal;
+  return {
+    poles: POLES,
+    distanceTiles: settings.distanceTiles === null ? null : settings.distanceTiles / CELLS_PER_TILE,
+    criterion: settings.criteria[goal][0], then: settings.criteria[goal].slice(1),
+    forced: settings.forced,
+    useUnverified: settings.useUnverified,
+    selfPowered: settings.selfPowered,
+    maxPollution: settings.maxPollution,
+    budget: settings.useBudget && player.money !== null ? player.money : null,
+    depots: DEPOTS,
+    existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
+    fixedMachines: fixedNow(),
+    machines: engineFilter(filterNow()),
+    diesel: dieselRecipeNow(),
+    onlyRecipes: importNow()?.recipes,
+  };
+}
+
 function ensurePlan(): void {
   const pd = planData();
   if (!planDirty && plan && planBuiltFrom === pd) return;
@@ -929,25 +979,21 @@ function ensurePlan(): void {
     plan = rpView?.best?.plan ?? solve(pd, playerState(), { item: "", demands: {}, tiers: false });
     return;
   }
-  const request = (target: Partial<Parameters<typeof solve>[2]>) =>
-    solve(pd, playerState(), {
-      item: settings.item,
-      ...target,
-      poles: POLES,
-      distanceTiles: settings.distanceTiles === null ? null : settings.distanceTiles / CELLS_PER_TILE,
-      criterion: settings.criteria[goal][0], then: settings.criteria[goal].slice(1),
-      forced: settings.forced,
-      useUnverified: settings.useUnverified,
-      selfPowered: settings.selfPowered,
-      maxPollution: settings.maxPollution,
-      budget: settings.useBudget && player.money !== null ? player.money : null,
-      depots: DEPOTS,
-      existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
-      fixedMachines: fixedNow(),
-      machines: engineFilter(filterNow()),
-      diesel: dieselRecipeNow(),
-      onlyRecipes: importNow()?.recipes,
-    });
+  const request = (target: Partial<Parameters<typeof solve>[2]>) => solve(pd, playerState(), { item: settings.item, ...target, ...baseRequest() });
+  // Graphe édité puis recalculé (G4) : le plan vient de lui (recettes posées, nœuds fixés, cible et
+  // débit), plus de la proposition brute. Le solveur ne tourne ici que parce qu'un réglage a changé ;
+  // juste après « Appliquer », c'est le plan montré dans l'aperçu.
+  const ge = gedit;
+  if (goal === "objet" && ge?.solved && ge.sig === goalSig()) {
+    poseSchem = null;
+    const ready = pendingGraphPlan?.g === ge.solved ? pendingGraphPlan.plan : null;
+    pendingGraphPlan = null;
+    const p = ready ?? solveFromGraph(pd, playerState(), ge.solved, baseRequest()).plan;
+    if (p) {
+      plan = p;
+      return;
+    }
+  }
   poseSchem = null; // le schéma à exporter suit le nouveau plan
   plan = request(
     goal === "argent"
@@ -1223,6 +1269,8 @@ function renderPlanPage(): void {
   planBar.hidden = noResult;
   if (openWarn) planBar.querySelector<HTMLDetailsElement>(".pb-warn")?.setAttribute("open", "");
   $("rtabs-result").hidden = noResult;
+  if (!noResult) syncGraphDoc(v.plan);
+  renderGraphBar();
   if (noResult) {
     for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = true;
     return;
@@ -1318,8 +1366,11 @@ function renderResultTabs(): void {
 // Schéma : l'éditeur de graphe (PLAN-GRAPHE.md, lot G2). La proposition du solveur devient un graphe
 // (plan → graphe, G1) affiché par graph-view.ts : nœuds HTML, liaisons de prise à prise.
 let graphView: GraphView | null = null;
-/** Graphe du plan affiché : refait quand le plan change ; garde les nœuds déplacés ou rangés sinon. */
-let graphDoc: { plan: Plan; pg: PlanGraph; g: Graph; stepOf: Map<string, string>; arranged: boolean } | null = null;
+/**
+ * Graphe affiché et plan qu'il accompagne : étape du plan → nœud (par recette) et l'inverse. `arranged` :
+ * la disposition de départ est faite (« Ranger » d'entrée, avec les vraies hauteurs des nœuds).
+ */
+let graphDoc: { plan: Plan; g: Graph; nodeOfStep: Map<string, string>; stepOf: Map<string, string>; arranged: boolean } | null = null;
 /** Bloc sélectionné dans le schéma (clé d'étape), ou liaison sélectionnée. */
 let flowSel: string | null = null;
 let flowEdge: { from: string; to: string; item: string; perMin: number; loop: boolean } | null = null;
@@ -1380,11 +1431,8 @@ function renderFlowCanvas(): void {
   }
   // Téléphone : le cadre prend 70 % de l'écran (sur ordinateur, toute la hauteur du centre, en CSS).
   frame.style.height = `${Math.round(Math.max(320, window.innerHeight * 0.7))}px`;
-  if (graphDoc?.plan !== p) {
-    const pg = planToGraph(p);
-    graphDoc = { plan: p, pg, g: pg.graph, stepOf: new Map([...pg.nodeOfStep].map(([k, id]) => [id, k])), arranged: false };
-  }
-  const doc = graphDoc;
+  syncGraphDoc(p);
+  const doc = graphDoc!;
   graphView ??= new GraphView(frame, {
     data: planData(),
     world: () => gameView(),
@@ -1407,20 +1455,21 @@ function renderFlowCanvas(): void {
       flowEdge = next && flowEdge && next.from === flowEdge.from && next.to === flowEdge.to && next.item === flowEdge.item ? null : next;
       applyFlowSel();
     },
-    onChange: (g) => {
-      if (graphDoc) graphDoc.g = g;
-    },
+    onChange: (g) => onGraphChange(g),
+    onRecalc: () => void recalcGraph(),
   });
   // Les données, la langue et l'unité peuvent avoir changé depuis la création du canevas.
   Object.assign((graphView as unknown as { opts: GraphViewOptions }).opts, { data: planData(), text: graphText() });
   const keep = signature === flowKey && doc.arranged;
+  graphLoad = false;
   graphView.show(canvas, doc.g, keep);
   // « Ranger » d'entrée, avec les vraies hauteurs des nœuds (le cadre doit être affiché pour les mesurer).
   if (!doc.arranged && frame.clientWidth > 0) {
-    graphView.arrange(false, false); // disposition de départ : pas un pas d'annulation
     doc.arranged = true;
+    graphView.arrange(false, false); // disposition de départ : pas un pas d'annulation
   }
   flowKey = signature;
+  graphView.setStale(graphStale());
   applyFlowSel();
 }
 
@@ -1430,8 +1479,9 @@ function renderFlowCanvas(): void {
  */
 if (import.meta.env.DEV) {
   (window as unknown as { __grapheCharge: (n?: number) => number }).__grapheCharge = (n = 400) => {
-    const base = graphDoc?.pg.graph;
+    const base = graphDoc ? planToGraph(graphDoc.plan).graph : null;
     if (!base || !graphView) return 0;
+    graphLoad = true; // le graphe de charge ne s'enregistre pas
     const nodes: Graph["nodes"] = [];
     const edges: Graph["edges"] = [];
     for (let c = 0; nodes.length < n; c++) {
@@ -1445,10 +1495,223 @@ if (import.meta.env.DEV) {
   };
 }
 
+// ---------------------------------------------------------------- graphe édité (G4)
+
+/**
+ * Le graphe à afficher pour ce plan. Pas modifié : il suit la proposition (refait quand le plan change).
+ * Modifié : il est gardé, même si l'objectif change (le bandeau le dit et propose quoi faire).
+ */
+function syncGraphDoc(p: Plan): void {
+  const sig = goalSig();
+  if (!gedit?.touched && (gedit?.sig !== sig || graphDoc?.plan !== p || graphDoc.g !== gedit.graph)) {
+    gedit = { sig, graph: planToGraph(p).graph, solved: null, touched: false };
+    graphDoc = null;
+  }
+  const ge = gedit!;
+  const g = ge.graph;
+  if (graphDoc?.plan === p && graphDoc.g === g) return;
+  // Étape ↔ nœud seulement si le graphe vaut pour cet objectif (sinon, pas de fiche du plan sur ses nœuds).
+  const nodeOfStep = ge.sig === sig ? linkSteps(p, g) : new Map<string, string>();
+  graphDoc = { plan: p, g, nodeOfStep, stepOf: new Map([...nodeOfStep].map(([k, id]) => [id, k])), arranged: graphDoc ? graphDoc.arranged : ge.touched };
+}
+
+/** Un geste du canevas (ou « Appliquer ») : le document suit, s'enregistre, et le bandeau se met à jour. */
+function onGraphChange(g: Graph): void {
+  if (graphLoad || !gedit) return;
+  gedit.graph = g;
+  if (graphView?.canUndo) gedit.touched = true;
+  if (graphDoc) {
+    graphDoc.g = g;
+    graphDoc.nodeOfStep = gedit.sig === goalSig() ? linkSteps(graphDoc.plan, g) : new Map();
+    graphDoc.stepOf = new Map([...graphDoc.nodeOfStep].map(([k, id]) => [id, k]));
+  }
+  saveGraphEdit();
+  renderGraphBar();
+}
+
+/** Le plan affiché ne suit plus le graphe édité (pour cet objectif). */
+function graphStale(): boolean {
+  return !!gedit?.touched && gedit.sig === goalSig() && !!plan && !graphMatchesPlan(gedit.graph, plan);
+}
+
+/** « 120/min Gearbox » : la cible du graphe, pour le bandeau. */
+function graphGoalLabel(g: Graph): string | null {
+  return g.target && g.rate ? `${graphText().rate(g.rate)} ${itemName(g.target.item)}` : null;
+}
+
+/** Bandeau au-dessus du résultat : plan tiré du graphe, graphe à recalculer, ou objectif changé. */
+function renderGraphBar(): void {
+  const bar = $("graph-bar");
+  const ge = gedit;
+  const b = (attr: string, label: string, primary = false) => `<button type="button"${primary ? ' class="primary"' : ""} ${attr}>${esc(label)}</button>`;
+  let cls = "";
+  let html = "";
+  if (ge?.touched && settings.goal !== "recherche" && !isBlank(settings.goal)) {
+    if (ge.sig !== goalSig()) {
+      cls = "goal";
+      const what = graphGoalLabel(ge.graph);
+      const sameItem = settings.goal === "objet" && settings.mode === "rate" && ge.graph.target?.item === settings.item;
+      html =
+        `<p>${esc(t("gbar.goal", { what: what ?? t("gbar.goal.other") }))}</p><span class="gbar-b">` +
+        (sameItem ? b('data-gbar="rate"', t("gbar.rate", { rate: graphText().rate(settings.rate) }), true) : "") +
+        (what ? b('data-gbar="restore"', t("gbar.restore"), !sameItem) : "") +
+        b('data-gbar="take"', t("gbar.take")) +
+        "</span>";
+    } else if (graphStale()) {
+      cls = "due";
+      html = `<p>${esc(t("gbar.due", { what: t(ge.solved ? "gbar.due.last" : "gbar.due.prop") }))}</p><span class="gbar-b">${b('data-gbar="recalc"', t("gbar.recalc"), true)}${b('data-gbar="back"', t("gbar.back"))}</span>`;
+    } else if (ge.solved) {
+      html = `<p>${esc(t("gbar.solved"))}</p><span class="gbar-b">${b('data-gbar="back"', t("gbar.back"))}</span>`;
+    }
+  }
+  bar.className = `gbar${cls ? ` ${cls}` : ""}`;
+  bar.innerHTML = html;
+  bar.hidden = !html;
+  graphView?.setStale(cls === "due");
+}
+
+/** Oublie le graphe édité : l'onglet Schéma revient à la proposition (après accord si `confirm`). */
+async function dropGraphEdit(confirm: boolean): Promise<void> {
+  if (confirm) {
+    const ok = await ask(t("gbar.drop.title"), t("gbar.drop.html"), [
+      { value: "ok", label: t("gbar.drop.ok"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (ok !== "ok") return;
+  }
+  gedit = null;
+  graphDoc = null;
+  saveGraphEdit(true);
+  update();
+}
+
+/** Objectif du site = cible et débit du graphe (« Appliquer », « Revenir à l'objectif du graphe »). */
+function setGoalFromGraph(g: Graph): void {
+  enter("objet");
+  settings.goal = "objet";
+  settings.item = g.target!.item;
+  settings.mode = "rate";
+  settings.rate = g.rate!;
+  // Les machines fixées par l'ancienne fiche (S8) sont dans le graphe (cadenas) : plus de réglage à part.
+  settings.fixed = null;
+  syncForm();
+  if (location.hash.split("/")[0] !== GOAL_HASH.objet) location.hash = GOAL_HASH.objet;
+}
+
+function restoreGraphGoal(): void {
+  const g = gedit?.graph;
+  if (!g?.target || !g.rate) return;
+  setGoalFromGraph(g);
+  gedit!.sig = goalSig();
+  saveGraphEdit(true);
+  update();
+}
+
+/**
+ * « Recalculer » (PLAN-GRAPHE.md § 2, décision 2) : le graphe devient une requête pour le solveur
+ * (recettes posées, nœuds fixés, cible et débit) ; l'aperçu montre avant / après par nœud et les
+ * manques ; « Appliquer » écrit les nombres (un pas d'annulation) et le plan du site suit le graphe.
+ * `rate` : un autre débit pour la cible (bandeau « objectif changé »).
+ */
+async function recalcGraph(rate?: number): Promise<void> {
+  const g0 = graphView?.graph ?? gedit?.graph;
+  if (!g0) return;
+  const pd = planData();
+  const world = gameView();
+  const T = graphText();
+  const close = [{ value: "", label: t("m.close"), primary: true }];
+  if (!g0.target) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noTarget"))}</p>`, close));
+  let g: Graph = rate ? { ...g0, rate } : g0;
+  let fromGraph = "";
+  if (!(g.rate !== null && g.rate > 0)) {
+    // Pas de débit (graphe monté à la main) : celui que la cible produit aujourd'hui.
+    const out = balanceGraph(g, pd, world).output?.perMin ?? 0;
+    if (!(out > 0)) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noRate"))}</p>`, close));
+    g = { ...g, rate: Math.round(out * 1e4) / 1e4 };
+    fromGraph = `<p class="hint">${esc(t("gv.rc.fromGraph", { rate: T.rate(g.rate!) }))}</p>`;
+  }
+  const target = g.target!;
+  const r = solveFromGraph(pd, playerState(), g, baseRequest());
+  if (!r.plan) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noTarget"))}</p>`, close));
+  const solved = r.plan;
+  const cmp = compareWithPlan(g, solved);
+  const name = (recipeId: string) => {
+    const rc = pd.recipes.get(recipeId);
+    const out = rc ? Object.keys(rc.outputs)[0] : undefined;
+    return `${esc(itemName(out ?? recipeId))} <span class="hint">(${esc(rc ? (pd.machines.get(rc.machine)?.name ?? rc.machine) : recipeId)})</span>`;
+  };
+  const n = (x: number) => esc(T.num(Math.round(x * 100) / 100));
+  const rowsHtml =
+    cmp.nodes
+      .map((c) => {
+        const after = c.after === null ? `<i>${esc(t("gv.rc.unused"))}</i>` : n(c.after);
+        const cls = c.after === null ? "gone" : Math.abs(c.after - c.before) > 1e-6 ? "up" : "";
+        return `<tr class="${cls}"><td>${name(c.recipeId)}${c.fixed ? ` ${icon("lock")}` : ""}</td><td class="num">${n(c.before)}</td><td class="num">${after}</td></tr>`;
+      })
+      .join("") + cmp.added.map((a) => `<tr class="new"><td>${name(a.recipeId)} · ${esc(t("gv.rc.added"))}</td><td class="num">—</td><td class="num">${n(a.machines)}</td></tr>`).join("");
+  const unused = cmp.nodes.filter((c) => c.after === null).length;
+  const preview = applyComparison(g, solved, cmp);
+  const gapList = (x: Graph) => {
+    const s = balanceGraph(x, pd, world).shortages;
+    return s.length ? s.map((q) => `${T.rate(q.perMin)} ${itemName(q.item)}`).join(", ") : t("gv.rc.none");
+  };
+  const unknown = r.problems.filter((p) => p.code === "recette-inconnue").map((p) => p.id ?? "");
+  const html =
+    `<p>${esc(t("gv.rc.intro", { rate: T.rate(g.rate!), item: itemName(target.item) }))}</p>${fromGraph}` +
+    `<div class="rc-wrap"><table class="rc-table"><thead><tr><th>${esc(t("gv.rc.col.node"))}</th><th class="num">${esc(t("gv.rc.col.before"))}</th><th class="num">${esc(t("gv.rc.col.after"))}</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>` +
+    `<p class="rc-gaps">${esc(t("gv.rc.rate", { before: T.rate(g.rate!), after: T.rate(cmp.rate.after) }))}<br>${esc(t("gv.rc.gaps", { before: gapList(g), after: gapList(preview) }))}</p>` +
+    (solved.unresolved.length ? `<p class="hint">${esc(t("gv.rc.unresolved", { list: solved.unresolved.map((u) => itemName(u.item)).join(", ") }))}</p>` : "") +
+    (unknown.length ? `<p class="hint">${esc(t("gv.rc.unknown", { list: unknown.join(", ") }))}</p>` : "") +
+    (unused ? `<label class="ask-field"><input type="checkbox" id="rc-drop"> ${esc(t("gv.rc.drop", { n: unused }))}</label>` : "");
+  const choice = await ask(t("gv.rc.title"), html, [
+    { value: "apply", label: t("gv.rc.apply"), primary: true },
+    { value: "", label: t("m.cancel") },
+  ]);
+  if (choice !== "apply") return;
+  const removeUnused = (document.getElementById("rc-drop") as HTMLInputElement | null)?.checked ?? false;
+  const next = removeUnused ? applyComparison(g, solved, cmp, { removeUnused }) : preview;
+  if (graphView?.graph === g0) graphView.run({ type: "replace", graph: next });
+  const ge: GraphEdit = gedit ?? { sig: "", graph: next, solved: null, touched: true };
+  gedit = ge;
+  ge.graph = next;
+  ge.solved = next;
+  ge.touched = true;
+  if (graphDoc) graphDoc.g = next;
+  setGoalFromGraph(next);
+  ge.sig = goalSig();
+  pendingGraphPlan = { g: next, plan: solved };
+  saveGraphEdit(true);
+  update();
+}
+
+/**
+ * Nombre de machines réglé dans la fiche (S62) : il passe par le graphe (nombre fixé, cadenas), comme
+ * dans la bulle ; plus de calcul en douce. null : le nombre n'est plus fixé.
+ */
+function graphMachines(stepKey: string, n: number | null): void {
+  const id = graphDoc?.nodeOfStep.get(stepKey);
+  if (!id || !graphView) return;
+  const node = graphView.graph?.nodes.find((x) => x.id === id);
+  if (!node) return;
+  if (n === null) graphView.run({ type: "setFixed", id, fixed: false });
+  else if (n !== node.machines || !node.fixed) graphView.run({ type: "batch", commands: [{ type: "setMachines", id, machines: n }, { type: "setFixed", id, fixed: true }] });
+  syncHudCount();
+}
+
+/** La fiche (S62) montre le nombre du graphe (pas celui du dernier calcul) et s'il est fixé. */
+function syncHudCount(): void {
+  const inp = $("flow-hud").querySelector<HTMLInputElement>("[data-mset-input]");
+  const id = inp && graphDoc?.nodeOfStep.get(inp.dataset.key!);
+  const node = id ? graphView?.graph?.nodes.find((x) => x.id === id) : undefined;
+  if (!inp || !node) return;
+  if (document.activeElement !== inp) inp.value = String(Math.ceil(node.machines - 1e-9));
+  inp.closest(".mset")?.classList.toggle("on", !!node.fixed);
+}
+
 /** Bloc sélectionné : lui et ses liaisons en évidence, et sa fiche (S62) à côté. */
 function applyFlowSel(): void {
   const hud = $("flow-hud");
-  const nodeId = flowSel && graphDoc ? graphDoc.pg.nodeOfStep.get(flowSel) : undefined;
+  const nodeId = flowSel && graphDoc ? graphDoc.nodeOfStep.get(flowSel) : undefined;
   if (flowSel && !nodeId) flowSel = null;
   if (flowSel) flowEdge = null;
   // La sélection du canevas suit la fiche, sauf un nœud sans étape du plan (ajouté à la main) ou une
@@ -1459,6 +1722,7 @@ function applyFlowSel(): void {
   hud.hidden = !flowSel && !edge;
   hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : edge ? renderEdgeHud(viewCtx(), edge) : "";
   // « Comment c'est calculé » (S7) : sous la barre du bas, pour le bloc ou la liaison sélectionnés.
+  syncHudCount();
   const calc = $("flow-calc");
   calc.innerHTML = flowSel ? renderStepCalc(viewCtx(), recipesCtx(), flowSel) : edge ? renderEdgeCalc(viewCtx(), edge) : "";
   calc.hidden = !calc.innerHTML;
@@ -1685,7 +1949,7 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
 
 // ---------------------------------------------------------------- plans enregistrés (S64, maquette S58)
 /** Un objectif gardé dans ce navigateur : de quoi le rouvrir d'un clic depuis le rail. */
-type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number };
+type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number; graph?: StoredGraphEdit };
 const KEY_SAVED = "ind-calc:v1:saved-plans";
 function loadSaved(): SavedPlan[] {
   try {
@@ -3746,7 +4010,9 @@ function bindPlan(): void {
   $("plan-saved").addEventListener("click", (e) => {
     const el = e.target as Element;
     if (el.closest("#plan-save")) {
-      const p: SavedPlan = { name: savedName(), goal: settings.goal, item: settings.item, mode: settings.mode, rate: settings.rate, machines: settings.machines, energyMFps: settings.energyMFps, money: settings.money };
+      // G4 : un graphe modifié pour cet objectif s'enregistre avec le plan (les anciens plans n'en ont pas).
+      const withGraph = !!gedit?.touched && gedit.sig === goalSig();
+      const p: SavedPlan = { name: withGraph ? `${savedName()} · ${t("plan.saved.graph")}` : savedName(), goal: settings.goal, item: settings.item, mode: settings.mode, rate: settings.rate, machines: settings.machines, energyMFps: settings.energyMFps, money: settings.money, ...(withGraph ? { graph: storeGraphEdit(gedit!) } : {}) };
       storeSaved([p, ...savedPlans.filter((x) => x.name !== p.name || x.goal !== p.goal)]);
       return renderSaved();
     }
@@ -3758,12 +4024,36 @@ function bindPlan(): void {
     const b = el.closest<HTMLElement>("[data-saved]");
     const p = b ? savedPlans[Number(b.dataset.saved)] : undefined;
     if (!p) return;
+    void openSaved(p);
+  });
+  async function openSaved(p: SavedPlan): Promise<void> {
+    const ge = p.graph ? loadGraphEdit(p.graph) : null;
+    if (ge && gedit?.touched && JSON.stringify(storeGraphEdit(gedit)) !== JSON.stringify(storeGraphEdit(ge))) {
+      const ok = await ask(t("gbar.load.title"), t("gbar.load.html"), [
+        { value: "ok", label: t("gbar.drop.ok"), primary: true },
+        { value: "", label: t("m.cancel") },
+      ]);
+      if (ok !== "ok") return;
+    }
+    if (ge) {
+      gedit = ge;
+      graphDoc = null;
+      saveGraphEdit(true);
+    }
     Object.assign(settings, { item: data.items.has(p.item) ? p.item : settings.item, mode: p.mode, rate: p.rate, machines: p.machines, energyMFps: p.energyMFps, money: p.money });
     enter(p.goal);
     settings.goal = p.goal;
     syncForm();
     if (location.hash.split("/")[0] !== GOAL_HASH[p.goal]) location.hash = GOAL_HASH[p.goal];
     update();
+  }
+  // Bandeau du graphe édité (G4).
+  $("graph-bar").addEventListener("click", (e) => {
+    const a = (e.target as Element).closest<HTMLElement>("[data-gbar]")?.dataset.gbar;
+    if (a === "recalc") void recalcGraph();
+    else if (a === "rate") void recalcGraph(settings.rate);
+    else if (a === "restore") restoreGraphGoal();
+    else if (a === "back" || a === "take") void dropGraphEdit(true);
   });
   // Rail des étapes (S60) : la même chose que la liste « Vue », dans l'onglet Usine.
   $("plan-steps").addEventListener("click", (e) => {
@@ -3986,7 +4276,7 @@ function bindPlan(): void {
     if (!inp) return;
     const n = Math.max(1, (parseInt(inp.value, 10) || 1) + d);
     inp.value = String(n);
-    setFixed(inp.dataset.key!, n);
+    graphMachines(inp.dataset.key!, n);
   };
   $("flow-hud").addEventListener(
     "wheel",
@@ -4002,7 +4292,7 @@ function bindPlan(): void {
     if (!inp) return;
     const raw = inp.value.trim();
     const n = parseInt(raw, 10);
-    setFixed(inp.dataset.key!, raw ? (n >= 1 ? n : 1) : null);
+    graphMachines(inp.dataset.key!, raw ? (n >= 1 ? n : 1) : null);
   });
   // Écran chiffré d'une machine (S10) : un nombre tapé (« 1,67 »), appliqué en quittant le champ ou avec Entrée.
   $("flow-hud").addEventListener("change", (e) => {
@@ -4126,6 +4416,18 @@ function bindShared(): void {
       return update();
     }
     if (t.closest("[data-fix-reset]")) {
+      // Plan tiré du graphe (G4) : les nombres fixés sont ses cadenas ; on les retire du graphe (à recalculer).
+      const fixedNodes = gedit?.solved && gedit.sig === goalSig() ? gedit.graph.nodes.filter((n) => n.fixed) : [];
+      if (fixedNodes.length) {
+        if (graphView?.graph === gedit!.graph) graphView.run({ type: "batch", commands: fixedNodes.map((n) => ({ type: "setFixed" as const, id: n.id, fixed: false })) });
+        else {
+          gedit!.graph = { ...gedit!.graph, nodes: gedit!.graph.nodes.map(({ fixed: _f, ...n }) => n) };
+          graphDoc = null;
+          saveGraphEdit(true);
+          render();
+        }
+        return;
+      }
       settings.fixed = null;
       return update();
     }

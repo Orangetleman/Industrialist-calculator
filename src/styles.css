@@ -1732,6 +1732,9 @@ table.rh-log td.num { white-space: nowrap; }
   #page-plan .rtabs button[aria-selected="true"] { box-shadow: inset 0 -2px var(--accent); }
   #page-plan .cmd-help { position: absolute; right: -26px; top: 50%; transform: translateY(-50%); margin: 0; }
   #rpanel-liste:not([hidden]), #rpanel-details:not([hidden]) { padding-top: 52px !important; }
+  /* Bandeau du graphe édité (G4) : sous les onglets, posé sur le plan comme eux. */
+  #page-plan .gbar { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); z-index: 6; width: max-content; max-width: calc(100% - 130px); margin: 0; background: var(--surface); }
+  .cmd-stage:has(> .gbar:not([hidden])) :is(#rpanel-liste, #rpanel-details):not([hidden]) { padding-top: 120px !important; }
   /* Outils : une seule colonne à droite, le zoom puis les affichages. */
   #page-plan .rs-zoom { top: 50%; right: 10px; transform: translateY(-100%); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; gap: 0; }
   #page-plan .rs-zoom button { border: 0; border-radius: 0; }
@@ -1966,7 +1969,8 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
 @keyframes gv-shake { 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
 @media (prefers-reduced-motion: reduce) { .gn-port.no { animation: none; } .gn-port { transition: none; } }
 .ge-tmp { fill: none; stroke: var(--cv-acc); stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
-.gv.linking, .gv.linking .gn { cursor: crosshair; }
+/* Le cadre a la capture du pointeur pendant le tracé : son curseur suffit. Pas de règle sur les nœuds (400 nœuds : 30 à 40 ms de style à chaque début et fin de tracé). */
+.gv.linking { cursor: crosshair; }
 
 /* Barre d'outils en bas du canevas, rappel du mode au-dessus, canevas vide : volets à plat. */
 .gv-tray { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 5; display: flex; max-width: calc(100% - 20px); overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 0; }
@@ -1977,6 +1981,26 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
 .gv-tray button:disabled { opacity: .4; cursor: default; }
 .gv-tray button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .gv-tray hr { border: 0; border-left: 1px solid var(--line); margin: 0; }
+.gv-tray button.gv-recalc { color: var(--accent); position: relative; }
+.gv-tray button.gv-recalc[hidden] { display: none; }
+/* Le plan du site ne suit plus le graphe : une pastille sur « Recalculer » (rien ne se relance seul). */
+.gv-tray button.gv-recalc.due { background: var(--accent-soft); }
+.gv-tray button.gv-recalc.due::after { content: ""; position: absolute; top: 5px; right: 14px; width: 7px; height: 7px; background: var(--accent); }
+/* Bandeau du graphe édité (G4), au-dessus du résultat : plan tiré du graphe, à recalculer, objectif changé. */
+.gbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 10px; margin: 0 0 6px; background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--steel); font-size: 13px; }
+.gbar.due, .gbar.goal { border-left-color: var(--accent); }
+.gbar[hidden] { display: none; }
+.gbar p { margin: 0; flex: 1 1 260px; }
+.gbar .gbar-b { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Aperçu du recalcul : avant / après par nœud. */
+.rc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rc-table th, .rc-table td { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.rc-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rc-table tr.up td.num:last-child { color: var(--accent); }
+.rc-table tr.gone td { color: var(--muted); }
+.rc-table tr.new td:first-child { color: var(--ok); }
+.rc-wrap { max-height: 46vh; overflow: auto; margin: 8px 0; }
+.rc-gaps { margin: 6px 0; }
 .gv-hint { position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 5; max-width: calc(100% - 20px); padding: 4px 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font: 11px var(--f-mono); text-align: center; pointer-events: none; }
 .gv-void { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 1; max-width: 80%; color: var(--cv-muted); font-size: .9rem; text-align: center; pointer-events: none; }
 .flow-frame.empty :is(.gv-tray, .gv-hint, .gv-bub, .gv-void) { display: none; }

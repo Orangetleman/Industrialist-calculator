@@ -98,6 +98,8 @@ export type GraphViewOptions = {
   onChange?: (g: Graph) => void;
   /** Largeur réservée à droite (colonne des boutons de zoom), que la vue de départ évite. */
   reserveRight?: number;
+  /** « Recalculer » (G4) : le graphe part au solveur ; la page montre l'avant / après et n'applique rien sans accord. */
+  onRecalc?: () => void;
 };
 
 type Pt = { x: number; y: number };
@@ -194,6 +196,7 @@ export class GraphView {
   private bubFor: { id: NodeId; recipe: string } | null = null;
   private bubH = 0;
   private closePicker: (() => void) | null = null;
+  private stale = false;
 
   constructor(frame: HTMLElement, opts: GraphViewOptions) {
     this.frame = frame;
@@ -343,6 +346,21 @@ export class GraphView {
     }
     if (fit) this.fit();
     else this.home();
+  }
+
+  /**
+   * Le plan du site ne suit plus le graphe (modifié depuis le dernier calcul) : « Recalculer » le signale
+   * (pastille), sans rien relancer.
+   */
+  setStale(on: boolean): void {
+    if (this.stale === on) return;
+    this.stale = on;
+    this.syncTray();
+  }
+
+  /** Une commande venue d'ailleurs (fiche S62, « Appliquer » du recalcul) : un pas d'annulation comme un geste. */
+  run(cmd: GraphCommand): boolean {
+    return this.exec(cmd);
   }
 
   /** Annuler / rétablir (Ctrl Z / Ctrl Y, boutons de la barre). */
@@ -597,6 +615,8 @@ export class GraphView {
       `<button type="button" ${attr} title="${esc(title)}" aria-label="${esc(title)}">${icon(ic)}<span>${esc(label)}</span></button>`;
     this.tray.setAttribute("aria-label", t("gv.tray"));
     this.tray.innerHTML =
+      b('data-act="recalc" class="gv-recalc"', "rotate", t("gv.t.recalc"), t("gv.t.recalc.tip")) +
+      "<hr>" +
       b('data-act="add"', "plus", t("gv.t.add"), t("gv.t.add.tip")) +
       b('data-tool="link" aria-pressed="false"', "link", t("gv.t.link"), t("gv.t.link.tip")) +
       b('data-tool="target" aria-pressed="false"', "target", t("gv.t.target"), t("gv.t.target.tip")) +
@@ -615,6 +635,11 @@ export class GraphView {
     const r = this.tray.querySelector<HTMLButtonElement>('[data-act="redo"]');
     if (u) u.disabled = !this.hist?.canUndo;
     if (r) r.disabled = !this.hist?.canRedo;
+    const rc = this.tray.querySelector<HTMLButtonElement>('[data-act="recalc"]');
+    if (rc) {
+      rc.hidden = !this.opts.onRecalc;
+      rc.classList.toggle("due", this.stale);
+    }
     this.syncHint();
   }
 
@@ -622,6 +647,7 @@ export class GraphView {
     const b = (e.target as Element).closest<HTMLButtonElement>("button");
     if (!b || b.disabled) return;
     const act = b.dataset.act;
+    if (act === "recalc") return this.opts.onRecalc?.();
     if (act === "add") return this.openPicker(null);
     if (act === "undo") return this.undo();
     if (act === "redo") return this.redo();

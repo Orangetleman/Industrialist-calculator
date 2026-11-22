@@ -73,7 +73,7 @@ export const planEn: { [K in keyof typeof planFr]: Msg } = {
   "pv.hud.fixed": " (fixed)",
   "pv.hud.flows": " · receives {a} flows · sends {b}",
   "pv.mset": "Machines:",
-  "pv.mset.title": "Wheel on the number: one more or one less. Enter to apply a typed number.",
+  "pv.mset.title": "Wheel on the number: one more or one less. Enter to apply a typed number. The count is fixed in the graph (padlock); “Recalculate” takes it into account.",
   "pv.mset.less": "One machine less",
   "pv.mset.more": "One machine more",
   "pv.mset.input": "Number of machines ({name})",

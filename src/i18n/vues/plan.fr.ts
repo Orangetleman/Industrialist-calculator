@@ -72,7 +72,7 @@ export const planFr = {
   "pv.hud.fixed": " (fixé)",
   "pv.hud.flows": " · reçoit {a} flux · en envoie {b}",
   "pv.mset": "Machines :",
-  "pv.mset.title": "Molette sur le nombre : une de plus ou de moins. Entrée pour appliquer un nombre tapé.",
+  "pv.mset.title": "Molette sur le nombre : une de plus ou de moins. Entrée pour appliquer un nombre tapé. Le nombre est fixé dans le graphe (cadenas) ; « Recalculer » le prend en compte.",
   "pv.mset.less": "Une machine de moins",
   "pv.mset.more": "Une machine de plus",
   "pv.mset.input": "Nombre de machines ({name})",
