@@ -1731,6 +1731,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-11-23, G6** (796 tests, déployé) : ancien Schéma retiré (`renderFlow`, 24 textes, CSS `.fn` / `.fe` / `.fl`, tests ajustés) ; rendu partiel de l'éditeur (seuls les nœuds et liaisons qui changent se réécrivent) : relâcher d'une liaison à 400 nœuds 156-216 → 39-50 ms de script, 212-285 → 70-89 ms jusqu'à l'image (panneau affiché).
   Parcours chronométrés notés au § 7 de PLAN-GRAPHE.md (1400 px : 13,4 s / 40,8 s / 16,3 s / 8,5 s ; 375 px : 17,0 s / 12,8 s) ; 4 remarques d'ergonomie relevées pour plus tard. Fin des lots G.
 - **2026-11-23, après G6** : les 4 remarques corrigées (détail au § 7 de PLAN-GRAPHE.md) : le nombre choisi dans la bulle pose le cadenas ; un nœud ajouté à la main n'a plus la fiche de l'étape de même recette ; au téléphone, bulle et rappel du mode dans la partie visible sous l'en-tête collant ; Ctrl + clic à travers la bulle.
+- **2026-11-24** : lien étape ↔ nœud enregistré avec le graphe : au rechargement, un nœud ajouté à la main reste sans la fiche de l'étape de même recette (et les identifiants neufs ne reprennent plus celui d'un nœud supprimé).
 
 ## 7. Gestion des sessions
 

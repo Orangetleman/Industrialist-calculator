@@ -379,6 +379,9 @@ export class GraphView {
     }
     if (!this.hist || this.hist.graph !== g) {
       this.hist = new GraphHistory(g, this.opts.data, this.opts.world());
+      // Les identifiants neufs passent au-dessus de ceux du graphe montré : après un rechargement, un
+      // nœud supprimé puis un nœud ajouté ne partagent pas d'identifiant (ni le lien d'étape de l'ancien).
+      this.seq = Math.max(this.seq, freshId(g, 0).seq - 1);
       this.armed = null;
       this.edgeSel = null;
     }

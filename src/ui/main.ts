@@ -80,7 +80,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { GraphView, type GraphViewOptions, type GraphViewText } from "./graph-view.ts";
 import { applyComparison, balanceGraph, compareWithPlan, exportPollywrath, planToGraph, pollywrathToGraph, solveFromGraph, type Graph, type PollywrathMapFile } from "../engine/graph/index.ts";
-import { graphMatchesPlan, keepLinks, linkSteps, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
+import { graphMatchesPlan, keepLinks, linksSig, restoreLinks, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
@@ -1667,7 +1667,11 @@ function syncGraphDoc(p: Plan): void {
   const g = ge.graph;
   if (graphDoc?.plan === p && graphDoc.g === g) return;
   // Étape ↔ nœud seulement si le graphe vaut pour cet objectif (sinon, pas de fiche du plan sur ses nœuds).
-  const nodeOfStep = ge.sig === sig ? linkSteps(p, g) : new Map<string, string>();
+  const nodeOfStep = ge.sig === sig ? restoreLinks(p, g, ge.links, ge.linksFor) : new Map<string, string>();
+  if (ge.sig === sig) {
+    ge.links = Object.fromEntries(nodeOfStep);
+    ge.linksFor = linksSig(p);
+  }
   graphDoc = { plan: p, g, links: nodeOfStep, nodeOfStep, stepOf: new Map([...nodeOfStep].map(([k, id]) => [id, k])), arranged: graphDoc ? graphDoc.arranged : ge.touched };
 }
 
@@ -1680,6 +1684,10 @@ function onGraphChange(g: Graph): void {
     graphDoc.g = g;
     graphDoc.nodeOfStep = gedit.sig === goalSig() ? keepLinks(graphDoc.links, graphDoc.plan, g) : new Map();
     graphDoc.stepOf = new Map([...graphDoc.nodeOfStep].map(([k, id]) => [id, k]));
+    // Enregistrés (ceux qui valent encore : après un rechargement, un identifiant supprimé peut revenir
+    // sur un nœud neuf) : au rechargement, un nœud ajouté à la main reste sans étape.
+    gedit.links = Object.fromEntries(graphDoc.nodeOfStep);
+    gedit.linksFor = linksSig(graphDoc.plan);
   }
   saveGraphEdit();
   renderGraphBar();

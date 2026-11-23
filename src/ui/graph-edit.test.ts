@@ -23,7 +23,7 @@ import { buildSandboxCatalog } from "../engine/sandbox/index.ts";
 import { layoutFromFactory } from "../engine/schematic/convert.ts";
 import { fromCode, toCode } from "../engine/schematic/msch.ts";
 import { solve } from "../engine/solve.ts";
-import { graphMatchesPlan, keepLinks, linkSteps, loadGraphEdit, storeGraphEdit } from "./graph-edit.ts";
+import { graphMatchesPlan, keepLinks, linkSteps, linksSig, restoreLinks, loadGraphEdit, storeGraphEdit } from "./graph-edit.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: interfacesJson, modular: modularJson } as unknown as RawFiles;
 const { data } = buildGameData(files, [overridesJson as never]);
@@ -60,6 +60,28 @@ describe("graphe édité ↔ plan", () => {
     // Un autre nœud supprimé : son lien tombe, les autres restent.
     const other = g.nodes.find((n) => n.recipeId !== node.recipeId)!;
     expect(keepLinks(links, proposal, applyCommand(g, { type: "removeNode", id: other.id }, data, world)).size).toBe(links.size - 1);
+  });
+
+  it("rechargé : les liens enregistrés reviennent, un nœud ajouté à la main reste sans étape", () => {
+    const g = planToGraph(proposal).graph;
+    const step = proposal.steps[proposal.steps.length - 1]!;
+    const links = linkSteps(proposal, g);
+    const id = links.get(step.key)!;
+    const recipeId = g.nodes.find((n) => n.id === id)!.recipeId;
+    let e = applyCommand(g, { type: "removeNode", id }, data, world);
+    e = applyCommand(e, { type: "addNode", node: { id: `n${g.nodes.length + 1}`, recipeId, machines: 1, x: 0, y: 0 } }, data, world);
+    const kept = keepLinks(links, proposal, e);
+    const saved = { sig: "s", graph: e, solved: null, touched: true, links: Object.fromEntries(kept), linksFor: linksSig(proposal) };
+    const back = loadGraphEdit(JSON.parse(JSON.stringify(storeGraphEdit(saved))))!;
+    expect(back.links).toEqual(saved.links);
+    expect(back.linksFor).toBe(linksSig(proposal));
+    // Le nœud ajouté a les nombres de l'étape (le graphe correspond au plan) : toujours sans étape.
+    const again = restoreLinks(proposal, back.graph, back.links, back.linksFor);
+    expect(again.has(step.key)).toBe(false);
+    expect(again.size).toBe(links.size - 1);
+    // Sans liens enregistrés (ancien état) ou pour un autre plan (« Appliquer ») : par recette.
+    expect(restoreLinks(proposal, back.graph, undefined, undefined).has(step.key)).toBe(true);
+    expect(restoreLinks(proposal, back.graph, back.links, "autre").has(step.key)).toBe(true);
   });
 
   it("un nombre changé à la main : le plan ne suit plus le graphe (à recalculer)", () => {

@@ -10,13 +10,17 @@
 import { compareWithPlan, readGraphFile, writeGraphFile, type Graph, type NodeId } from "../engine/graph/index.ts";
 import type { Plan } from "../engine/solve.ts";
 
-export type GraphEdit = { sig: string; graph: Graph; solved: Graph | null; touched: boolean };
+/**
+ * `links` : étape du plan → nœud, tels que posés avec le plan puis gardés par les gestes (`keepLinks`) ;
+ * enregistrés pour qu'au rechargement un nœud ajouté à la main ne reprenne pas l'étape de même recette.
+ */
+export type GraphEdit = { sig: string; graph: Graph; solved: Graph | null; touched: boolean; links?: Record<string, NodeId>; linksFor?: string };
 
 /** Ce qui s'enregistre (localStorage, plan enregistré) : les deux documents au format du fichier. */
-export type StoredGraphEdit = { v: 1; sig: string; graph: string; solved: string | null; touched: boolean };
+export type StoredGraphEdit = { v: 1; sig: string; graph: string; solved: string | null; touched: boolean; links?: Record<string, NodeId>; linksFor?: string };
 
 export function storeGraphEdit(e: GraphEdit): StoredGraphEdit {
-  return { v: 1, sig: e.sig, graph: writeGraphFile(e.graph), solved: e.solved ? writeGraphFile(e.solved) : null, touched: e.touched };
+  return { v: 1, sig: e.sig, graph: writeGraphFile(e.graph), solved: e.solved ? writeGraphFile(e.solved) : null, touched: e.touched, ...(e.links ? { links: e.links, linksFor: e.linksFor ?? "" } : {}) };
 }
 
 /** Relit un état enregistré ; null si abîmé (on repart de la proposition, sans rien deviner). */
@@ -27,7 +31,8 @@ export function loadGraphEdit(raw: unknown): GraphEdit | null {
   try {
     const graph = readGraphFile(r.graph).graph;
     const solved = typeof r.solved === "string" ? readGraphFile(r.solved).graph : null;
-    return { sig: r.sig, graph, solved, touched: r.touched === true || !!solved };
+    const links = r.links && typeof r.links === "object" ? Object.fromEntries(Object.entries(r.links).filter(([, v]) => typeof v === "string")) : undefined;
+    return { sig: r.sig, graph, solved, touched: r.touched === true || !!solved, ...(links ? { links, linksFor: typeof r.linksFor === "string" ? r.linksFor : "" } : {}) };
   } catch {
     return null;
   }
@@ -48,6 +53,20 @@ export function linkSteps(plan: Plan, g: Graph): Map<string, NodeId> {
     out.set(s.key, n.id);
   }
   return out;
+}
+
+/** Signature d'un plan pour ses liens : étapes, recettes et nombres (le même plan recalculé au rechargement la redonne). */
+export function linksSig(plan: Plan): string {
+  return plan.steps.map((s) => `${s.key}:${s.recipeId}:${s.machinesExact.toFixed(6)}`).join("|");
+}
+
+/**
+ * Liens étape → nœud pour un graphe rouvert : ceux enregistrés pour ce même plan, encore valables (un
+ * nœud ajouté à la main reste sans étape) ; sinon (rien d'enregistré, autre plan) par recette (`linkSteps`).
+ */
+export function restoreLinks(plan: Plan, g: Graph, stored: Record<string, NodeId> | undefined, storedFor: string | undefined): Map<string, NodeId> {
+  if (!stored || storedFor !== linksSig(plan)) return linkSteps(plan, g);
+  return keepLinks(new Map(Object.entries(stored)), plan, g);
 }
 
 /**
