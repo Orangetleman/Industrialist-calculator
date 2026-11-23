@@ -1034,5 +1034,11 @@ Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md`
   est relu par notre import, pas encore par leur site. `globalSettings` ne porte que `global_pollution` (leur
   `difficulty`, leurs recherches débloquées, etc. ne sont pas écrits, faute de correspondance sûre). À essayer
   dans leur panneau « Saves » au lot G5. **G5 (2026-11-23)** : l'export est maintenant dans l'éditeur (bouton
-  Fichier) ; toujours pas ouvert dans leur site (le charger chez eux est un envoi de fichier à un site tiers :
-  à faire par l'utilisateur). Leurs groupes ne sont ni lus ni écrits (format non relevé).
+  Fichier). **Ouvert dans leur site le 2026-11-23** (à la demande de l'utilisateur) : panneau Saves, import du
+  `Gearbox_save.json` (Gearbox 120/min, 18 nœuds, 19 liaisons ; Steam Cracking Plant et Tree laissés de côté) →
+  « Gearbox (Imported), Nodes: 18 », chargé sans erreur (nombres de machines décimaux acceptés). Leur bilan :
+  Gearbox +2/s (= 120/min), manques seulement Ethylene 1,33/s et Paraxylene 0,5/s (ce que faisait la recette
+  laissée de côté ; notre aperçu disait 80/min et 30/min), excédents Crude Oil 0,889/s et Water 2,22/s (notre
+  équilibre : 53,3/min et 133/min), Coal 0,37/s. Aucun autre manque : les 19 liaisons tombent sur les bonnes
+  prises (confirme GRA-01 pour ces recettes). Reste ouvert : l'excédent de Coal (non comparé chez nous), les
+  champs de `globalSettings` autres que la pollution, et leurs groupes (ni lus ni écrits, format non relevé).
