@@ -1730,6 +1730,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
   Vrais clics : tutoriel FR (1400 et 375 px) et EN de bout en bout, groupes, export, import, bulle ; 7 défauts trouvés à la main et corrigés. Tracé de liaison à 400 nœuds, panneau affiché : 16,7 ms par image, relâcher 209-223 ms (à alléger en G6). Suite : G6 sur feu vert.
 - **2026-11-23, G6** (796 tests, déployé) : ancien Schéma retiré (`renderFlow`, 24 textes, CSS `.fn` / `.fe` / `.fl`, tests ajustés) ; rendu partiel de l'éditeur (seuls les nœuds et liaisons qui changent se réécrivent) : relâcher d'une liaison à 400 nœuds 156-216 → 39-50 ms de script, 212-285 → 70-89 ms jusqu'à l'image (panneau affiché).
   Parcours chronométrés notés au § 7 de PLAN-GRAPHE.md (1400 px : 13,4 s / 40,8 s / 16,3 s / 8,5 s ; 375 px : 17,0 s / 12,8 s) ; 4 remarques d'ergonomie relevées pour plus tard. Fin des lots G.
+- **2026-11-23, après G6** : les 4 remarques corrigées (détail au § 7 de PLAN-GRAPHE.md) : le nombre choisi dans la bulle pose le cadenas ; un nœud ajouté à la main n'a plus la fiche de l'étape de même recette ; au téléphone, bulle et rappel du mode dans la partie visible sous l'en-tête collant ; Ctrl + clic à travers la bulle.
 
 ## 7. Gestion des sessions
 

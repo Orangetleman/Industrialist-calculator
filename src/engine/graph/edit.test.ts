@@ -218,6 +218,18 @@ describe("supprimer, cible, nombre", () => {
     const chain = applyCommand(g, countCommand(g, "a", 15, true), data, world);
     expect(chain.nodes.map((n) => n.machines)).toEqual([15, 15]);
   });
+  it("un nombre choisi dans la bulle pose le cadenas, en un seul pas d'annulation", () => {
+    const g = G0();
+    for (const chain of [false, true]) {
+      const h = new GraphHistory(g, data, world);
+      h.apply(countCommand(h.graph, "a", 15, chain));
+      expect(h.graph.nodes.find((n) => n.id === "a")!.fixed).toBe(true);
+      // Déjà fixé : le nombre seul change.
+      expect(countCommand(h.graph, "a", 14, chain).type).not.toBe("batch");
+      h.undo();
+      expect(h.graph).toEqual(g);
+    }
+  });
 });
 
 describe("parcours : construire Gearbox à la main depuis un canevas vide", () => {

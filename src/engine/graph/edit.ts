@@ -208,8 +208,13 @@ export function parseCount(s: string): number | null {
   return s.trim() && Number.isFinite(v) && v > 0 ? v : null;
 }
 
-/** Le nombre du nœud, seul ou avec toute la chaîne en amont au même rapport (« Mettre la chaîne à l'échelle »). */
+/**
+ * Le nombre du nœud, seul ou avec toute la chaîne en amont au même rapport (« Mettre la chaîne à l'échelle »).
+ * Un nombre choisi à la main est fixé (cadenas) dans le même pas d'annulation : sans cela, « Recalculer »
+ * remettait la valeur de la proposition sans que le joueur comprenne pourquoi (remarque de G6).
+ */
 export function countCommand(g: Graph, id: NodeId, machines: number, chain: boolean): GraphCommand {
   const n = g.nodes.find((x) => x.id === id);
-  return chain && n && n.machines > 0 ? { type: "scaleChain", id, machines } : { type: "setMachines", id, machines };
+  const set: GraphCommand = chain && n && n.machines > 0 ? { type: "scaleChain", id, machines } : { type: "setMachines", id, machines };
+  return n && !n.fixed ? { type: "batch", commands: [set, { type: "setFixed", id, fixed: true }] } : set;
 }

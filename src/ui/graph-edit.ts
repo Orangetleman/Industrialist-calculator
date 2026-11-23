@@ -51,6 +51,22 @@ export function linkSteps(plan: Plan, g: Graph): Map<string, NodeId> {
 }
 
 /**
+ * Les liens étape → nœud posés avec le plan (`linkSteps`), après un geste : seuls restent ceux dont le
+ * nœud est encore là avec la recette de l'étape. Aucun lien nouveau : un nœud ajouté à la main n'est
+ * pas l'étape du plan de même recette (sa fiche montrait les nombres du plan, remarque de G6) ; un
+ * nœud supprimé puis rendu par Ctrl Z retrouve le sien, puisqu'on repart toujours des liens d'origine.
+ */
+export function keepLinks(base: Map<string, NodeId>, plan: Plan, g: Graph): Map<string, NodeId> {
+  const out = new Map<string, NodeId>();
+  const recipe = new Map(g.nodes.map((n) => [n.id, n.recipeId]));
+  for (const s of plan.steps) {
+    const id = base.get(s.key);
+    if (id && recipe.get(id) === s.recipeId) out.set(s.key, id);
+  }
+  return out;
+}
+
+/**
  * Le plan affiché correspond-il encore au graphe ? Faux dès qu'un nombre de machines, une recette, la
  * cible ou le débit diffère (les positions et les liaisons ne comptent pas : le solveur relie par produit).
  */

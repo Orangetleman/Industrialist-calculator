@@ -80,7 +80,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { GraphView, type GraphViewOptions, type GraphViewText } from "./graph-view.ts";
 import { applyComparison, balanceGraph, compareWithPlan, exportPollywrath, planToGraph, pollywrathToGraph, solveFromGraph, type Graph, type PollywrathMapFile } from "../engine/graph/index.ts";
-import { graphMatchesPlan, linkSteps, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
+import { graphMatchesPlan, keepLinks, linkSteps, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
@@ -1490,7 +1490,8 @@ let graphView: GraphView | null = null;
  * Graphe affiché et plan qu'il accompagne : étape du plan → nœud (par recette) et l'inverse. `arranged` :
  * la disposition de départ est faite (« Ranger » d'entrée, avec les vraies hauteurs des nœuds).
  */
-let graphDoc: { plan: Plan; g: Graph; nodeOfStep: Map<string, string>; stepOf: Map<string, string>; arranged: boolean } | null = null;
+/** `links` : les liens étape → nœud posés avec le plan ; `nodeOfStep` : ceux qui valent encore (`keepLinks`). */
+let graphDoc: { plan: Plan; g: Graph; links: Map<string, string>; nodeOfStep: Map<string, string>; stepOf: Map<string, string>; arranged: boolean } | null = null;
 /** Bloc sélectionné dans le schéma (clé d'étape), ou liaison sélectionnée. */
 let flowSel: string | null = null;
 let flowEdge: { from: string; to: string; item: string; perMin: number; loop: boolean } | null = null;
@@ -1559,6 +1560,7 @@ function renderFlowCanvas(): void {
     world: () => gameView(),
     text: graphText(),
     reserveRight: FLOW_ZOOM_W,
+    coverTop: () => document.querySelector(".top")?.getBoundingClientRect().bottom ?? 0,
     badge: (id) => {
       const key = stepOfNode(id);
       if (!key) return ""; // nœud sans étape du plan : rien à vérifier (et pas de contexte à construire, ×400 en charge)
@@ -1666,7 +1668,7 @@ function syncGraphDoc(p: Plan): void {
   if (graphDoc?.plan === p && graphDoc.g === g) return;
   // Étape ↔ nœud seulement si le graphe vaut pour cet objectif (sinon, pas de fiche du plan sur ses nœuds).
   const nodeOfStep = ge.sig === sig ? linkSteps(p, g) : new Map<string, string>();
-  graphDoc = { plan: p, g, nodeOfStep, stepOf: new Map([...nodeOfStep].map(([k, id]) => [id, k])), arranged: graphDoc ? graphDoc.arranged : ge.touched };
+  graphDoc = { plan: p, g, links: nodeOfStep, nodeOfStep, stepOf: new Map([...nodeOfStep].map(([k, id]) => [id, k])), arranged: graphDoc ? graphDoc.arranged : ge.touched };
 }
 
 /** Un geste du canevas (ou « Appliquer ») : le document suit, s'enregistre, et le bandeau se met à jour. */
@@ -1676,7 +1678,7 @@ function onGraphChange(g: Graph): void {
   if (graphView?.canUndo) gedit.touched = true;
   if (graphDoc) {
     graphDoc.g = g;
-    graphDoc.nodeOfStep = gedit.sig === goalSig() ? linkSteps(graphDoc.plan, g) : new Map();
+    graphDoc.nodeOfStep = gedit.sig === goalSig() ? keepLinks(graphDoc.links, graphDoc.plan, g) : new Map();
     graphDoc.stepOf = new Map([...graphDoc.nodeOfStep].map(([k, id]) => [id, k]));
   }
   saveGraphEdit();

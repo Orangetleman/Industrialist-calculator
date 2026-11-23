@@ -23,7 +23,7 @@ import { buildSandboxCatalog } from "../engine/sandbox/index.ts";
 import { layoutFromFactory } from "../engine/schematic/convert.ts";
 import { fromCode, toCode } from "../engine/schematic/msch.ts";
 import { solve } from "../engine/solve.ts";
-import { graphMatchesPlan, linkSteps, loadGraphEdit, storeGraphEdit } from "./graph-edit.ts";
+import { graphMatchesPlan, keepLinks, linkSteps, loadGraphEdit, storeGraphEdit } from "./graph-edit.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: interfacesJson, modular: modularJson } as unknown as RawFiles;
 const { data } = buildGameData(files, [overridesJson as never]);
@@ -40,6 +40,26 @@ describe("graphe édité ↔ plan", () => {
     const link = linkSteps(proposal, g);
     expect(link.size).toBe(proposal.steps.length);
     for (const s of proposal.steps) expect(g.nodes.find((n) => n.id === link.get(s.key))!.recipeId).toBe(s.recipeId);
+  });
+
+  it("un nœud ajouté à la main n'hérite pas de l'étape du plan de même recette ; Ctrl Z rend le lien", () => {
+    const g = planToGraph(proposal).graph;
+    const links = linkSteps(proposal, g);
+    const step = proposal.steps[proposal.steps.length - 1]!;
+    const id = links.get(step.key)!;
+    const node = g.nodes.find((n) => n.id === id)!;
+    // Supprimé, puis la même recette posée à la main (identifiant neuf, comme l'éditeur) : plus de lien.
+    let e = applyCommand(g, { type: "removeNode", id }, data, world);
+    e = applyCommand(e, { type: "addNode", node: { id: `n${g.nodes.length + 1}`, recipeId: node.recipeId, machines: 1, x: 0, y: 0 } }, data, world);
+    const kept = keepLinks(links, proposal, e);
+    expect(kept.has(step.key)).toBe(false);
+    expect(kept.size).toBe(links.size - 1);
+    expect(linkSteps(proposal, e).has(step.key)).toBe(true); // ce que faisait l'ancien lien par recette
+    // Le nœud d'origine revenu (Ctrl Z) : son lien aussi.
+    expect(keepLinks(links, proposal, g)).toEqual(links);
+    // Un autre nœud supprimé : son lien tombe, les autres restent.
+    const other = g.nodes.find((n) => n.recipeId !== node.recipeId)!;
+    expect(keepLinks(links, proposal, applyCommand(g, { type: "removeNode", id: other.id }, data, world)).size).toBe(links.size - 1);
   });
 
   it("un nombre changé à la main : le plan ne suit plus le graphe (à recalculer)", () => {

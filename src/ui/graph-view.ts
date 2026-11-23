@@ -113,6 +113,11 @@ export type GraphViewOptions = {
   onFile?: (anchor: HTMLElement) => void;
   /** Réglages spéciaux d'un nœud dans sa bulle (G5 : écrans S10, diesel S18, Mineshaft) : HTML de la page, "" s'il n'y en a pas. */
   extra?: (id: NodeId) => string;
+  /**
+   * Bas de ce qui couvre le haut de l'écran (en-tête collant), en pixels de la fenêtre : la bulle et le
+   * rappel du mode restent dessous (au téléphone, l'en-tête cache le haut du canevas).
+   */
+  coverTop?: () => number;
 };
 
 type Pt = { x: number; y: number };
@@ -305,6 +310,45 @@ export class GraphView {
       else if (b.dataset.gfold) this.setCollapsed(b.dataset.gfold, true);
     });
     this.bindBubble();
+    // La page défile (téléphone) : la partie du canevas cachée par l'en-tête change ; bulle et rappel suivent.
+    let raf = 0;
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (raf || (this.bub.hidden && this.hintEl.hidden)) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          this.placeHint();
+          this.placeBubble();
+        });
+      },
+      { passive: true },
+    );
+  }
+
+  /**
+   * Bande du cadre que le joueur voit, en pixels du cadre : sous l'en-tête collant et au-dessus du bas
+   * de la fenêtre (le cadre peut dépasser l'un ou l'autre quand la page défile).
+   */
+  private band(): { top: number; bottom: number } {
+    const r = this.frame.getBoundingClientRect();
+    const h = this.frame.clientHeight;
+    const top = Math.min(h, Math.max(0, (this.opts.coverTop?.() ?? 0) - r.top));
+    const bottom = Math.max(top, Math.min(h, window.innerHeight - r.top));
+    return { top, bottom };
+  }
+
+  /** Écran étroit : le rappel se met en haut de la partie visible du canevas, pas sur la ligne du bas qu'il faut toucher. */
+  private narrow(): boolean {
+    return this.frame.clientWidth <= 640;
+  }
+
+  private placeHint(): void {
+    if (this.hintEl.hidden || !this.narrow()) {
+      this.hintEl.style.top = "";
+      return;
+    }
+    this.hintEl.style.top = `${Math.round(this.band().top + 6)}px`;
   }
 
   get graph(): Graph | null {
@@ -961,6 +1005,12 @@ export class GraphView {
     if (this.armed && (!src || src.mode === "link")) text = t(this.armed.side === "out" ? "gv.armed.out" : "gv.armed.in", { item: this.opts.text.item(this.armed.item) });
     else if (src) text = `${t(src.from === "key" ? `gv.key.${src.mode}` : `gv.tool.${src.mode}`)} : ${t(`gv.does.${src.mode}`)}${src.from === "tool" ? ` · ${t("gv.esc")}` : ""}`;    this.hintEl.hidden = !text;
     this.hintEl.textContent = text;
+    // Ctrl tenu (ou outil Sélection) : la bulle du nœud choisi s'efface et laisse passer les clics, pour
+    // qu'un Ctrl + clic sur un nœud qu'elle couvrait l'ajoute bien (remarque de G6 : le clic tombait sur
+    // la bulle et la sélection restait d'un seul nœud).
+    this.frame.classList.toggle("gv-multi", src?.mode === "multi");
+    this.placeHint();
+    if (!this.bub.hidden) this.placeBubble();
   }
 
   private setHeld(m: Mode | null): void {
@@ -1108,6 +1158,7 @@ export class GraphView {
       }
     });
     b.addEventListener("click", (e) => {
+      if (clickMode(e, this.held, this.tool) === "multi") return; // passé au nœud dessous (onDown)
       const el = (e.target as Element).closest<HTMLElement>("[data-b]");
       const gid = this.gsel;
       if (el && gid && this.g) {
@@ -1310,12 +1361,19 @@ export class GraphView {
     const fh = this.frame.clientHeight;
     const bw = 264;
     const bh = this.bubH || 200;
+    // Partie visible du cadre : sous l'en-tête collant (et sous le rappel du mode, en haut au
+    // téléphone), au-dessus de la barre d'outils et du bas de la fenêtre.
+    const band = this.band();
+    const hintH = !this.hintEl.hidden && this.narrow() ? this.hintEl.offsetHeight + 6 : 0;
+    const lo = band.top + 6 + hintH;
+    const hi = Math.min(fh - 64, band.bottom - 6);
     let x = (n.x - v.x) * k;
     let y = (n.y + h - v.y) * k + 10;
     // Pas la place dessous (la barre d'outils occupe le bas) : au-dessus du nœud.
-    if (y + bh > fh - 64) y = (n.y - v.y) * k - bh - 10;
+    if (y + bh > hi) y = (n.y - v.y) * k - bh - 10;
     x = Math.max(6, Math.min(x, fw - bw - 6));
-    y = Math.max(6, Math.min(y, fh - bh - 64));
+    // Le haut de la bulle (son titre, sa croix) d'abord : jamais sous l'en-tête.
+    y = Math.max(lo, Math.min(y, hi - bh));
     this.bub.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
   }
 
@@ -1323,7 +1381,14 @@ export class GraphView {
 
   private onDown(e: PointerEvent): void {
     if (e.button !== 0 || !this.g) return;
-    const t0 = e.target as Element;
+    let t0 = e.target as Element;
+    // Ctrl + clic (ou outil Sélection) sur la bulle : le clic va au nœud qu'elle couvre (remarque de G6 :
+    // il tombait sur la bulle et la sélection restait d'un seul nœud). Rien dessous : rien ne se passe.
+    if (this.bub.contains(t0) && clickMode(e, this.held, this.tool) === "multi") {
+      const under = document.elementsFromPoint(e.clientX, e.clientY).find((el) => !this.bub.contains(el) && this.frame.contains(el));
+      if (!under?.closest(".gn")) return;
+      t0 = under;
+    }
     if (t0.closest("button, input, select, a, .rs-zoom, .gv-ui")) return;
     const node = t0.closest<HTMLElement>(".gn");
     const base = { id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false };

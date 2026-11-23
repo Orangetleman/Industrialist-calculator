@@ -1989,6 +1989,9 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
 
 /* Bulle du nœud (S67) : accrochée sous lui, dans le cadre (à l'échelle de l'écran, pas du zoom). */
 .gv-bub { position: absolute; left: 0; top: 0; z-index: 6; width: 264px; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 0; box-shadow: 0 10px 30px #000a; font-size: 12px; cursor: default; }
+/* Ctrl tenu ou outil Sélection : la bulle laisse passer les clics vers les nœuds qu'elle couvre (effacée
+   après un instant, pour ne pas clignoter sur Ctrl Z). */
+.gv-multi .gv-bub { pointer-events: none; opacity: .15; transition: opacity .12s .15s; }
 .gv-bub header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .gv-bub header b { flex: 1; min-width: 0; font: 400 12px var(--f-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gv-bub header button { border: 0; background: none; padding: 2px; color: var(--muted); min-height: 0; }
@@ -2045,7 +2048,9 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
   /* Annuler / rétablir : la flèche suffit (libellé dans le titre et pour les lecteurs d'écran). */
   .gv-tray [data-act="undo"], .gv-tray [data-act="redo"] { min-width: 34px; align-content: center; }
   .gv-tray [data-act="undo"] span, .gv-tray [data-act="redo"] span { display: none; }
-  .gv-hint { bottom: 56px; font-size: 10px; }
+  /* Rappel du mode en haut de la partie visible (top réglé par le canevas, sous l'en-tête collant) :
+     en bas, il cachait la ligne d'un nœud qu'il fallait toucher. */
+  .gv-hint { top: 6px; bottom: auto; left: 8px; right: 52px; transform: none; max-width: none; font-size: 10px; }
   .gv-rc { grid-template-columns: 1fr; gap: 4px; }
   .gv-rc .mid { text-align: left; }
   .gv-rc .side.o { align-items: flex-start; }
