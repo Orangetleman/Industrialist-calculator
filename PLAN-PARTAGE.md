@@ -97,3 +97,10 @@ option ; le format `.msch` reste lisible (anciens schémas) mais n'est plus mis 
 - **P3** — Empreinte du plan de pose et message « le site a changé ».
 - **P4** — Clarification du .msch (« Plus d'options », fichier `.indus`), anciens codes toujours lus.
 - **P5** — Parcours réel chronométré à la souris (panneau visible), déploiement.
+
+## 7. Ne pas toucher
+L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`
+et `ui/pollywrath-import.ts`) ainsi que les fichiers du graphe (`src/engine/graph/`, `ui/graph-edit.ts`, `ui/graph-view.ts`)
+sont à une autre session et restent tels quels. Le codec de partage ne fait que **lire** le graphe
+(`Graph`, `StoredGraphEdit`), dans son propre dossier `src/engine/share/`. Si un champ du graphe change, on ajoute une
+version du format, sans modifier leur code.
