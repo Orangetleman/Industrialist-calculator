@@ -63,8 +63,8 @@ Les positions aléatoires compressent moins bien qu'un vrai design aligné : ces
 2. Le nom « .msch » vient de Mindustry ; Mindustry ne l'ouvre pas (noms Industrialist) → trompeur.
 3. Le lien est refusé au-delà de 2 000 caractères sans explication ni alternative proposée.
 4. Le schéma ne contient que le bac à sable : ni graphe, ni réglages.
-Proposition : un seul bouton **Partager** (lien copié), « Plus d'options » pour fichier / code ; un mot d'aide par
-option ; le format `.msch` reste lisible (anciens schémas) mais n'est plus mis en avant.
+Décision (2026-11-24) : le `.msch` est **remplacé jusqu'au bout** : plus aucun bouton, mot ni mention à l'écran.
+Seule reste, invisible, la lecture des anciens liens et fichiers `.msch` (convertis en design à l'ouverture).
 
 ## 5. Maquette
 
@@ -89,13 +89,34 @@ option ; le format `.msch` reste lisible (anciens schémas) mais n'est plus mis 
  └──────────────────────────────────────────────────┘
 ```
 
+## 5 bis. Décisions de l'utilisateur (2026-11-24)
+1. Le lien contient graphe + réglages + bac à sable (case cochée par défaut).
+2. Site changé depuis le lien → on prévient et on ouvre quand même. On **dit au joueur** : « pour un design
+   indestructible, qui ne vieillit pas avec les mises à jour du site, téléchargez-le ». Le **fichier** porte la
+   version du site qui l'a créé ; à l'ouverture, la dernière version du site capable de le traiter le génère avec le
+   moteur correspondant (voir question A).
+3. Lien de plus de ~1 900 caractères → on propose le fichier, avec ce même message.
+4. `.msch` : plus affiché nulle part (§ 4).
+5. Ouvrir un lien alors qu'une page du site est ouverte → confirmation ; le design importé est enregistré et
+   affiché ; le design précédent n'est pas perdu : il reste dans les designs avec la mention **« design actif,
+   non enregistré »**. Les designs se rangent dans un **explorateur façon IDE** (dossiers, renommer, glisser,
+   supprimer avec corbeille), voir maquette `maquette/partage.html`.
+6. P0 (maquette cliquable) : accord.
+
+### Question A ouverte : « le moteur correspondant »
+Proposition : le fichier contient **aussi l'usine calculée telle quelle** (blocs, positions, câbles), donc il
+s'affiche à l'identique sans rien recalculer, à vie. Pour la recalculer avec l'ancien moteur, chaque version
+déployée reste servie sur le Pi sous `/v/<version>/` (c'est le site lui-même, pas un stockage de données) et le
+fichier propose « ouvrir avec la version d'origine ».
+
 ## 6. Lots (une session = un lot, validation entre lots)
 - **P0** — Maquette cliquable dans `maquette/` (bouton, fenêtre, aperçu) ; validation.
 - **P1** — Codec pur `src/engine/share/` (binaire v1, tables d'ids, varint, deflate, base64url) + tests aller-retour,
   fuzz, liens figés ; mesures sur vrais designs.
-- **P2** — Bouton Partager + ouverture du lien (aperçu, sauvegarde du plan en cours avant remplacement).
+- **P2** — Bouton Partager + ouverture du lien (confirmation, design importé enregistré, précédent gardé en « design actif »).
+- **P2 bis** — Explorateur de designs façon IDE (dossiers, renommer, glisser, corbeille), reprend « Plans enregistrés ».
 - **P3** — Empreinte du plan de pose et message « le site a changé ».
-- **P4** — Clarification du .msch (« Plus d'options », fichier `.indus`), anciens codes toujours lus.
+- **P4** — Fichier `.indus` versionné (version du site + usine figée), retrait de toute trace du .msch à l'écran, anciens codes toujours lus.
 - **P5** — Parcours réel chronométré à la souris (panneau visible), déploiement.
 
 ## 7. Ne pas toucher

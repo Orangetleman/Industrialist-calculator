@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette P0 : partager un design</title>
+<style>
+/* Maquette P0 (PLAN-PARTAGE.md) : volets à plat, sans arrondis. Rien n'est relié au vrai site. */
+:root { --bg:#0b0714; --pan:#171022; --line:#3a2d4f; --tx:#eee8f5; --mut:#a99dbb; --acc:#ff8f52; --ok:#5ce677; --warn:#ffb648; --sel:#2c1f40; }
+* { box-sizing:border-box; border-radius:0; }
+body { margin:0; background:var(--bg); color:var(--tx); font:14px/1.45 system-ui, sans-serif; }
+button { font:inherit; color:var(--tx); background:#241a33; border:1px solid var(--line); padding:6px 12px; cursor:pointer; }
+button:hover { border-color:var(--acc); }
+button.pri { background:var(--acc); color:#1a0f05; border-color:var(--acc); font-weight:600; }
+.mut { color:var(--mut); } .warn { color:var(--warn); } .ok { color:var(--ok); }
+header { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--pan); }
+header .t { font-weight:600; } header .sp { flex:1; }
+#app { display:grid; grid-template-columns:300px 1fr; height:calc(100vh - 47px); }
+/* Explorateur façon IDE */
+#ex { border-right:1px solid var(--line); background:var(--pan); overflow:auto; user-select:none; }
+#ex .bar { display:flex; gap:4px; padding:6px; border-bottom:1px solid var(--line); }
+#ex .bar button { padding:3px 7px; font-size:12px; }
+.row { display:flex; align-items:center; gap:6px; padding:3px 8px; cursor:pointer; white-space:nowrap; }
+.row:hover { background:#20172e; } .row.sel { background:var(--sel); outline:1px solid var(--acc); }
+.row .tw { width:12px; color:var(--mut); } .row .tag { font-size:11px; padding:0 5px; border:1px solid var(--warn); color:var(--warn); }
+.row.drop { outline:1px dashed var(--acc); }
+.row input { background:var(--bg); color:var(--tx); border:1px solid var(--acc); font:inherit; padding:0 4px; width:150px; }
+/* Plan (fictif) */
+#main { position:relative; padding:16px; overflow:auto; }
+.graph { position:relative; height:320px; border:1px solid var(--line); background:#120c1d; }
+.graph i { position:absolute; width:120px; height:46px; background:var(--pan); border:1px solid var(--line); font-style:normal; font-size:12px; padding:4px 6px; }
+.graph svg { position:absolute; inset:0; }
+/* Fenêtres */
+.pop { position:absolute; right:12px; top:52px; width:440px; background:var(--pan); border:1px solid var(--acc); padding:12px; z-index:5; box-shadow:0 8px 30px #0009; }
+.pop b.h { display:block; margin-bottom:8px; }
+.link { font:12px ui-monospace, monospace; background:var(--bg); border:1px solid var(--line); padding:6px; word-break:break-all; max-height:56px; overflow:hidden; }
+.pop label { display:inline-flex; gap:4px; margin-right:12px; }
+.pop .acts { display:flex; gap:8px; margin-top:10px; }
+.veil { position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:9; }
+.dlg { width:480px; background:var(--pan); border:1px solid var(--acc); padding:14px; }
+.mini { height:110px; border:1px solid var(--line); background:#120c1d; margin:8px 0; position:relative; }
+.mini i { position:absolute; width:46px; height:18px; background:var(--line); }
+.menu { position:fixed; background:var(--pan); border:1px solid var(--line); z-index:8; min-width:170px; }
+.menu div { padding:5px 12px; cursor:pointer; } .menu div:hover { background:var(--sel); }
+#toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--pan); border:1px solid var(--ok); padding:6px 14px; display:none; z-index:10; }
+.demo { margin-top:16px; padding:10px; border:1px dashed var(--line); }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <span class="t">Planifier</span><span class="mut" id="cur">— Vilebrequin 60/s</span><span class="sp"></span>
+  <button id="bShare" class="pri">Partager ⤴</button>
+</header>
+<div id="app">
+  <aside id="ex">
+    <div class="bar"><button id="bNewD" title="Nouveau design">+ Design</button><button id="bNewF" title="Nouveau dossier">+ Dossier</button><button id="bOpenF" title="Ouvrir un fichier .indus">Ouvrir…</button></div>
+    <div id="tree"></div>
+  </aside>
+  <section id="main">
+    <div class="graph" id="graph"></div>
+    <div class="demo">
+      <b>Simulation (maquette seulement)</b>
+      <p class="mut">Ce bouton fait comme si quelqu'un ouvrait un lien partagé alors que cette page est déjà ouverte.</p>
+      <button id="bSimLink">Ouvrir un lien reçu : « Usine de plastique » (créé avec une version plus ancienne du site)</button>
+      <button id="bSimLong">Partager un gros design (lien trop long)</button>
+    </div>
+  </section>
+</div>
+
+<div class="pop" id="pop" hidden>
+  <b class="h">Partager « <span id="pName"></span> »</b>
+  <div id="pOk"><span class="ok">✓ Lien copié</span> <span class="mut" id="pLen"></span></div>
+  <div id="pLong" class="warn" hidden>Lien trop long pour Discord (<span id="pLen2"></span> caractères, 2 000 au plus). Téléchargez le fichier et envoyez-le.</div>
+  <div class="link" id="pLink"></div>
+  <p style="margin:8px 0 4px">Contient : <label><input type="checkbox" checked disabled> graphe</label><label><input type="checkbox" checked disabled> réglages</label><label><input type="checkbox" id="pSand" checked> bac à sable</label></p>
+  <p class="mut" style="margin:6px 0">Un lien se recalcule avec la version du site du jour : après une mise à jour, l'usine peut changer.
+  Pour un design <b>indestructible</b>, qui ne vieillit pas, téléchargez-le.</p>
+  <div class="acts"><button id="pCopy">Copier à nouveau</button><button id="pDl">Télécharger le fichier (.indus)</button><span class="sp" style="flex:1"></span><button id="pClose">Fermer</button></div>
+</div>
+
+<div class="veil" id="veil" hidden>
+  <div class="dlg">
+    <b>Ouvrir le design partagé « Usine de plastique » ?</b>
+    <div class="mini"><i style="left:20px;top:20px"></i><i style="left:110px;top:20px"></i><i style="left:200px;top:46px"></i><i style="left:110px;top:72px"></i><i style="left:300px;top:46px"></i></div>
+    <p class="mut" style="margin:4px 0">5 étapes · 18 machines · plastique 30/min · bac à sable : 112 blocs</p>
+    <p class="warn" style="margin:4px 0">Créé avec une version plus ancienne du site : l'usine est recalculée et peut différer un peu.</p>
+    <p style="margin:6px 0">Il sera enregistré dans vos designs et affiché. « <span id="vPrev"></span> » n'est pas perdu : il reste dans vos designs.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button id="vNo">Annuler</button><button id="vYes" class="pri">Ouvrir</button></div>
+  </div>
+</div>
+<div class="menu" id="menu" hidden></div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let uid = 10;
+// Arbre : dossiers et designs. `active` : le design affiché ; `unsaved` : modifié et pas enregistré.
+const root = { id: 0, type: "dir", name: "Mes designs", open: true, kids: [
+  { id: 1, type: "dir", name: "Métal", open: true, kids: [
+    { id: 2, type: "des", name: "Vilebrequin 60/s", unsaved: true },
+    { id: 3, type: "des", name: "Barres d'acier" } ] },
+  { id: 4, type: "dir", name: "Énergie", open: false, kids: [ { id: 5, type: "des", name: "Centrale diesel" } ] },
+  { id: 6, type: "des", name: "Essai rapide" },
+  { id: 7, type: "dir", name: "Corbeille", trash: true, open: false, kids: [] } ] };
+let active = 2, sel = 2, renaming = null;
+
+function find(id, n = root, p = null) { if (n.id === id) return [n, p]; for (const k of n.kids ?? []) { const r = find(id, k, n); if (r) return r; } return null; }
+const node = (id) => find(id)[0];
+function inside(a, b) { const [n] = find(a); return !!find(b, n); } // b est dans a ?
+
+function render() {
+  const t = $("tree"); t.innerHTML = "";
+  const walk = (n, depth) => {
+    const r = document.createElement("div");
+    r.className = "row" + (n.id === sel ? " sel" : ""); r.style.paddingLeft = 8 + depth * 14 + "px"; r.dataset.id = n.id;
+    r.draggable = n.id !== 0 && !n.trash;
+    const tw = n.type === "dir" ? (n.open ? "▾" : "▸") : "";
+    const ic = n.type === "dir" ? (n.trash ? "🗑" : "📁") : (n.id === active ? "▶" : "📄");
+    r.innerHTML = `<span class="tw">${tw}</span><span>${ic}</span>`;
+    if (renaming === n.id) {
+      const inp = document.createElement("input"); inp.value = n.name; r.append(inp);
+      setTimeout(() => { inp.focus(); inp.select(); });
+      const done = (ok) => { if (ok && inp.value.trim()) n.name = inp.value.trim(); renaming = null; render(); };
+      inp.onkeydown = (e) => { if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); };
+      inp.onblur = () => done(true);
+    } else {
+      const s = document.createElement("span"); s.textContent = n.name; r.append(s);
+      if (n.unsaved) r.insertAdjacentHTML("beforeend", `<span class="tag" title="Modifié depuis le dernier enregistrement : gardé ici, jamais perdu">${n.id === active ? "actif · " : ""}non enregistré</span>`);
+      else if (n.id === active) r.insertAdjacentHTML("beforeend", `<span class="tag" style="border-color:var(--acc);color:var(--acc)">affiché</span>`);
+    }
+    t.append(r);
+    if (n.type === "dir" && n.open) for (const k of n.kids) walk(k, depth + 1);
+  };
+  walk(root, 0);
+  const a = node(active); $("cur").textContent = "— " + a.name + (a.unsaved ? " (non enregistré)" : "");
+  drawGraph(a.name);
+}
+
+function drawGraph(name) {
+  const seed = [...name].reduce((s, c) => s + c.charCodeAt(0), 0), g = $("graph");
+  const pos = [[20, 30], [180, 30], [340, 100], [180, 180], [500, 100]].map(([x, y], i) => [x, y + ((seed * (i + 3)) % 40)]);
+  g.innerHTML = `<svg>${[[0, 2], [1, 2], [3, 2], [2, 4]].map(([a, b]) => { const p = pos[a], q = pos[b]; return `<line x1="${p[0] + 60}" y1="${p[1] + 23}" x2="${q[0] + 60}" y2="${q[1] + 23}" stroke="#ff8f52" />`; }).join("")}</svg>` +
+    pos.map(([x, y], i) => `<i style="left:${x}px;top:${y}px">${["Fonderie", "Laminoir", "Assembleur", "Foreuse", name][i]}<br><span class="mut">×${(seed % 7) + i + 1}</span></i>`).join("");
+}
+
+function toast(m) { const e = $("toast"); e.textContent = m; e.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => (e.style.display = "none"), 2200); }
+
+// --- Explorateur : clic, double clic, menu, glisser
+$("tree").addEventListener("click", (e) => {
+  const r = e.target.closest(".row"); if (!r || e.target.tagName === "INPUT") return;
+  const n = node(+r.dataset.id); sel = n.id;
+  if (n.type === "dir") n.open = !n.open;
+  else if (n.id !== active) { active = n.id; toast(`« ${n.name} » affiché`); }
+  render();
+});
+$("tree").addEventListener("dblclick", (e) => { const r = e.target.closest(".row"); if (r && +r.dataset.id) { renaming = +r.dataset.id; render(); } });
+$("tree").addEventListener("contextmenu", (e) => {
+  const r = e.target.closest(".row"); if (!r) return; e.preventDefault();
+  const n = node(+r.dataset.id); sel = n.id; render();
+  const items = [];
+  if (n.type === "des") items.push(["Ouvrir", () => { active = n.id; }], ["Partager", () => { active = n.id; openShare(false); }]);
+  if (n.type === "des" && n.unsaved) items.push(["Enregistrer", () => { n.unsaved = false; toast("Enregistré"); }]);
+  if (n.type === "des") items.push(["Dupliquer", () => { const [, p] = find(n.id); p.kids.push({ id: ++uid, type: "des", name: n.name + " (copie)" }); }]);
+  if (n.type === "dir" && !n.trash) items.push(["Nouveau design ici", () => newItem("des", n)], ["Nouveau dossier ici", () => newItem("dir", n)]);
+  if (n.id && !n.trash) items.push(["Renommer (F2)", () => { renaming = n.id; }]);
+  if (n.id && !n.trash && n.id !== active) items.push(["Mettre à la corbeille", () => moveTo(n.id, 7)]);
+  if (n.trash) items.push(["Vider la corbeille…", () => { if (confirm("Supprimer définitivement le contenu de la corbeille ?")) n.kids = []; }]);
+  const m = $("menu"); m.innerHTML = ""; m.hidden = false; m.style.left = e.clientX + "px"; m.style.top = e.clientY + "px";
+  for (const [lab, fn] of items) { const d = document.createElement("div"); d.textContent = lab; d.onclick = () => { m.hidden = true; fn(); render(); }; m.append(d); }
+});
+document.addEventListener("click", (e) => { if (!e.target.closest("#menu")) $("menu").hidden = true; });
+document.addEventListener("keydown", (e) => { if (e.key === "F2" && sel && !renaming) { renaming = sel; render(); } });
+
+let drag = null;
+$("tree").addEventListener("dragstart", (e) => { drag = +e.target.closest(".row").dataset.id; });
+$("tree").addEventListener("dragover", (e) => {
+  const r = e.target.closest(".row"); if (!r || drag == null) return;
+  const n = node(+r.dataset.id); if (n.type !== "dir" || inside(drag, n.id)) return;
+  e.preventDefault(); document.querySelectorAll(".drop").forEach((x) => x.classList.remove("drop")); r.classList.add("drop");
+});
+$("tree").addEventListener("drop", (e) => { e.preventDefault(); const r = e.target.closest(".row"); if (r) moveTo(drag, +r.dataset.id); drag = null; render(); });
+$("tree").addEventListener("dragend", () => { drag = null; render(); });
+
+function moveTo(id, dirId) {
+  if (id === dirId || inside(id, dirId)) return;
+  const [n, p] = find(id), d = node(dirId); p.kids.splice(p.kids.indexOf(n), 1); d.kids.push(n); d.open = true;
+  toast(d.trash ? `« ${n.name} » mis à la corbeille` : `« ${n.name} » rangé dans ${d.name}`);
+}
+function newItem(type, dir) {
+  const n = type === "dir" ? { id: ++uid, type, name: "Nouveau dossier", open: true, kids: [] } : { id: ++uid, type, name: "Nouveau design", unsaved: true };
+  dir.kids.push(n); dir.open = true; sel = n.id; renaming = n.id; if (type === "des") active = n.id;
+}
+$("bNewD").onclick = () => { newItem("des", node(sel)?.type === "dir" && !node(sel).trash ? node(sel) : root); render(); };
+$("bNewF").onclick = () => { newItem("dir", node(sel)?.type === "dir" && !node(sel).trash ? node(sel) : root); render(); };
+$("bOpenF").onclick = () => toast("Maquette : ouvrirait le sélecteur de fichier .indus");
+
+// --- Partager
+function openShare(long) {
+  const a = node(active), n = long ? 4712 : ($("pSand").checked ? 1240 : 386);
+  $("pName").textContent = a.name;
+  $("pLink").textContent = "https://industrialist.myprisme.fr/#d=1." + "eJyFk0tPwzAQhP9K5HMOdlLaYk0q3KRxjZhQ8Q".repeat(Math.ceil(n / 40)).slice(0, n - 44);
+  $("pOk").hidden = long; $("pLong").hidden = !long; $("pLen").textContent = `(${n} caractères — passe sur Discord)`; $("pLen2").textContent = n;
+  $("pCopy").hidden = long; $("pop").hidden = false;
+  if (!long) toast("Lien copié");
+}
+$("bShare").onclick = (e) => { e.stopPropagation(); $("pop").hidden ? openShare(false) : ($("pop").hidden = true); };
+$("pSand").onchange = () => openShare(false);
+$("pCopy").onclick = () => toast("Lien copié");
+$("pDl").onclick = () => toast(`Maquette : téléchargerait « ${node(active).name}.indus » (version du site 0.1.0, usine figée)`);
+$("pClose").onclick = () => ($("pop").hidden = true);
+$("bSimLong").onclick = () => openShare(true);
+
+// --- Ouvrir un lien reçu
+$("bSimLink").onclick = () => { $("vPrev").textContent = node(active).name; $("veil").hidden = false; };
+$("vNo").onclick = () => ($("veil").hidden = true);
+$("vYes").onclick = () => {
+  let inbox = root.kids.find((k) => k.name === "Reçus");
+  if (!inbox) { inbox = { id: ++uid, type: "dir", name: "Reçus", open: true, kids: [] }; root.kids.splice(root.kids.length - 1, 0, inbox); }
+  const n = { id: ++uid, type: "des", name: "Usine de plastique" }; inbox.kids.push(n); inbox.open = true;
+  active = sel = n.id; $("veil").hidden = true; render(); toast("Design importé, rangé dans « Reçus »");
+};
+render();
+</script>
+</body>
+</html>
