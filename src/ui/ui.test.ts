@@ -505,6 +505,10 @@ describe("Remarque n° 14 : tutoriel « Ton premier plan » et mini-parcours", (
     expect(tourSeq(SITE_TOUR, "recettes").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#recettes", "#objet"]);
     expect(tourSeq(SITE_TOUR, "regler").map((k) => SITE_TOUR[k]!.until)).toEqual(["drawer", undefined]);
     expect(tourSeq(SITE_TOUR, "poser")).toHaveLength(3);
+    // « Modifier la proposition » (G5) : Schéma, un nœud, la bulle, les outils, Recalculer, le bandeau.
+    const mod = tourSeq(SITE_TOUR, "modifier");
+    expect(mod.map((k) => SITE_TOUR[k]!.target)).toEqual(["#rtabs-result", "#flow-frame", "#flow-frame", ".gv-tray", ".gv-recalc", "#graph-bar"]);
+    expect(mod.map((k) => SITE_TOUR[k]!.until)).toEqual(["schema", "gnode", "gchanged", undefined, "gsolved", undefined]);
     expect(tourSeq(SITE_TOUR, "inconnu")).toEqual([]);
     // Aucune étape orpheline : chaque étape est du premier parcours ou d'une case.
     const covered = new Set([...tourSeq(SITE_TOUR, "first"), ...CHECKLIST.flatMap((it) => tourSeq(SITE_TOUR, it))]);

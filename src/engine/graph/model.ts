@@ -34,12 +34,22 @@ export type GraphEdge = {
 
 export type GraphTarget = { node: NodeId; item: string };
 
+/**
+ * Groupe (lot G5) : des nœuds rangés ensemble sous un nom. Replié, il se montre comme une seule boîte
+ * dont les prises (mandataires) sont ce que le groupe reçoit du reste du graphe et ce qu'il lui donne.
+ * Purement visuel : l'équilibre et « Recalculer » voient toujours les nœuds. Les membres sont les nœuds
+ * dont `group` vaut l'identifiant du groupe.
+ */
+export type GraphGroup = { id: string; name: string; collapsed?: boolean };
+
 export type Graph = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   target: GraphTarget | null;
   /** Débit voulu pour la cible, par minute (la phrase d'objectif). */
   rate: number | null;
+  /** Groupes (G5) ; absent tant qu'il n'y en a pas. */
+  groups?: GraphGroup[];
 };
 
 export const emptyGraph = (): Graph => ({ nodes: [], edges: [], target: null, rate: null });
@@ -70,6 +80,12 @@ export type GraphCommand =
   | { type: "move"; moves: { id: NodeId; x: number; y: number }[] }
   /** Le nœud passe à `machines`, et tout ce qui l'alimente (en amont) suit le même rapport. */
   | { type: "scaleChain"; id: NodeId; machines: number }
+  /** Range des nœuds dans un nouveau groupe (ils quittent leur ancien groupe). */
+  | { type: "group"; id: string; name: string; nodes: NodeId[] }
+  /** Défait le groupe : ses nœuds restent où ils sont. */
+  | { type: "ungroup"; id: string }
+  /** Replie / déplie, renomme. */
+  | { type: "setGroup"; id: string; collapsed?: boolean; name?: string }
   /** Plusieurs commandes en un seul pas d'annulation (ajouter une recette et la relier…). */
   | { type: "batch"; commands: GraphCommand[] }
   /** Remplace tout le document (proposition du solveur, « Appliquer », fichier ouvert). */
@@ -87,7 +103,9 @@ export type GraphErrorCode =
   | "arête-existe"
   | "produit-absent"
   | "pas-un-graphe"
-  | "version-future";
+  | "version-future"
+  | "groupe-inconnu"
+  | "groupe-vide";
 
 /** Geste refusé : `code` se traduit dans l'interface (la prise secoue en rouge…). */
 export class GraphError extends Error {
@@ -120,6 +138,23 @@ export function linkError(g: Graph, data: GameData, from: NodeId, to: NodeId, it
   return null;
 }
 
+/** Groupes sans membre retirés (un nœud supprimé, un groupe vidé) ; `groups` absent s'il n'en reste aucun. */
+export function pruneGroups(g: Graph): Graph {
+  if (!g.groups) return g;
+  const used = new Set(g.nodes.map((n) => n.group).filter(Boolean));
+  const groups = g.groups.filter((x) => used.has(x.id));
+  const nodes = g.nodes.some((n) => n.group && !groups.some((x) => x.id === n.group)) ? g.nodes.map(({ group, ...n }) => (group && groups.some((x) => x.id === group) ? { ...n, group } : n)) : g.nodes;
+  if (groups.length === g.groups.length && nodes === g.nodes) return g;
+  const { groups: _g, ...rest } = g;
+  return groups.length ? { ...rest, nodes, groups } : { ...rest, nodes };
+}
+
+const groupOf = (g: Graph, id: string) => {
+  const x = g.groups?.find((y) => y.id === id);
+  if (!x) throw new GraphError("groupe-inconnu", id);
+  return x;
+};
+
 const patchNode = (g: Graph, id: NodeId, f: (n: GraphNode) => GraphNode): Graph => {
   nodeOf(g, id);
   return { ...g, nodes: g.nodes.map((n) => (n.id === id ? f(n) : n)) };
@@ -140,12 +175,12 @@ export function applyCommand(g: Graph, cmd: GraphCommand, data: GameData, world:
     }
     case "removeNode": {
       nodeOf(g, cmd.id);
-      return {
+      return pruneGroups({
         ...g,
         nodes: g.nodes.filter((n) => n.id !== cmd.id),
         edges: g.edges.filter((e) => e.from !== cmd.id && e.to !== cmd.id),
         target: g.target?.node === cmd.id ? null : g.target,
-      };
+      });
     }
     case "addEdge": {
       const err = linkError(g, data, cmd.from, cmd.to, cmd.item, world);
@@ -209,6 +244,32 @@ export function applyCommand(g: Graph, cmd: GraphCommand, data: GameData, world:
         }
       }
       return { ...g, nodes: g.nodes.map((n) => (n.id === cmd.id ? { ...n, machines: cmd.machines } : scaled.has(n.id) ? { ...n, machines: n.machines * k } : n)) };
+    }
+    case "group": {
+      const ids = new Set(cmd.nodes);
+      for (const id of ids) nodeOf(g, id);
+      if (!ids.size) throw new GraphError("groupe-vide", cmd.id);
+      if (g.groups?.some((x) => x.id === cmd.id)) throw new GraphError("id-pris", cmd.id);
+      const name = cmd.name.trim() || cmd.id;
+      return pruneGroups({
+        ...g,
+        nodes: g.nodes.map((n) => (ids.has(n.id) ? { ...n, group: cmd.id } : n)),
+        groups: [...(g.groups ?? []), { id: cmd.id, name }],
+      });
+    }
+    case "ungroup": {
+      groupOf(g, cmd.id);
+      const { groups: _g, ...rest } = g;
+      const groups = (g.groups ?? []).filter((x) => x.id !== cmd.id);
+      const nodes = g.nodes.map(({ group, ...n }) => (group && group !== cmd.id ? { ...n, group } : n));
+      return groups.length ? { ...rest, nodes, groups } : { ...rest, nodes };
+    }
+    case "setGroup": {
+      const x = groupOf(g, cmd.id);
+      const { collapsed: _c, ...base } = x;
+      const collapsed = cmd.collapsed ?? !!x.collapsed;
+      const next = { ...base, name: cmd.name !== undefined ? cmd.name.trim() || x.name : x.name, ...(collapsed ? { collapsed: true } : {}) };
+      return { ...g, groups: g.groups!.map((y) => (y.id === cmd.id ? next : y)) };
     }
     case "batch":
       return cmd.commands.reduce((acc, c) => applyCommand(acc, c, data, world), g);

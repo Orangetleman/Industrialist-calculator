@@ -58,7 +58,7 @@ export function tourSeq(steps: readonly TourStep[], mode: TourMode): number[] {
 }
 
 /** Les cases de la liste « Premiers pas » : les deux premières se cochent pendant le premier parcours, les autres par leur mini-parcours. */
-export const CHECKLIST = ["premier-plan", "plan-pose", "poser", "regler", "partie", "arbre", "recettes"] as const;
+export const CHECKLIST = ["premier-plan", "plan-pose", "modifier", "poser", "regler", "partie", "arbre", "recettes"] as const;
 export type CheckItem = (typeof CHECKLIST)[number];
 
 /** Le premier parcours (remarque n° 14) : le joueur fait SON plan, une action par bulle, puis les mini-parcours de « Premiers pas ». */
@@ -73,6 +73,13 @@ export const SITE_TOUR: TourStep[] = [
   { core: true, hash: "#objet", target: ".cmd-right", play: true, title: "tour.right.title", text: "tour.right.html" },
   { core: true, target: "#me", play: true, title: "tour.game.title", text: "tour.game.html", note: { when: "simulated", text: "tour.game.simulated" }, next: "tour.later", alt: { label: "tour.game.open", hash: "#usine" } },
   // Mini-parcours de « Premiers pas » : chacun sur sa page, le joueur y touche.
+  // « Modifier la proposition » (lot G5 de PLAN-GRAPHE.md) : l'éditeur de graphe de l'onglet Schéma, geste par geste.
+  { mini: "modifier", hash: "#objet", target: "#rtabs-result", play: true, title: "tour.mod1.title", text: "tour.mod1.html", act: "tour.mod1.act", until: "schema", note: { when: "noplan", text: "tour.mod.noplan" } },
+  { mini: "modifier", target: "#flow-frame", play: true, title: "tour.mod2.title", text: "tour.mod2.html", act: "tour.mod2.act", until: "gnode" },
+  { mini: "modifier", target: "#flow-frame", play: true, title: "tour.mod3.title", text: "tour.mod3.html", act: "tour.mod3.act", until: "gchanged" },
+  { mini: "modifier", target: ".gv-tray", play: true, title: "tour.mod4.title", text: "tour.mod4.html" },
+  { mini: "modifier", target: ".gv-recalc", play: true, title: "tour.mod5.title", text: "tour.mod5.html", act: "tour.mod5.act", until: "gsolved" },
+  { mini: "modifier", target: "#graph-bar", play: true, title: "tour.mod6.title", text: "tour.mod6.html" },
   { mini: "poser", hash: "#objet", target: ".cmd-left", play: true, title: "tour.poser1.title", text: "tour.poser1.html", note: { when: "simulated", text: "tour.mini.simulated" } },
   { mini: "poser", hash: "#objet/pose", target: "#pose-frame", play: true, wait: "#usine-progress", title: "tour.poser2.title", text: "tour.poser2.html" },
   { mini: "poser", hash: "#objet", target: "#plan-share", play: true, title: "tour.poser3.title", text: "tour.poser3.html" },
@@ -323,13 +330,21 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     // La cible doit tenir sous l'en-tête et, bulle fixe, au-dessus de la bulle.
     const header = document.querySelector(".top")?.getBoundingClientRect().bottom ?? 0;
     const minTop = Math.max(8, header + 8);
-    const room = near ? window.innerHeight - 8 : window.innerHeight - bubble.offsetHeight - 24;
+    let room = near ? window.innerHeight - 8 : window.innerHeight - bubble.offsetHeight - 24;
     let r = el.getBoundingClientRect();
     const inHeader = !!el.closest(".top");
     if (frame && !inHeader && (r.top < minTop || r.bottom > room)) {
       window.scrollBy(0, r.top - minTop);
       r = el.getBoundingClientRect();
     }
+    // Bulle fixe sur une cible collée au bas de l'écran (barre d'outils du graphe, G5) : la bulle passe en haut.
+    const up = !near && !inHeader && r.bottom > room && r.top - 6 > minTop + bubble.offsetHeight + 12;
+    bubble.classList.toggle("up", up);
+    if (!near) {
+      if (up) bubble.style.top = `${minTop}px`;
+      else bubble.style.removeProperty("top");
+    }
+    if (up) room = window.innerHeight - 8;
     const pad = 6;
     // La partie visible de la cible : sous l'en-tête et, bulle fixe, au-dessus de la bulle.
     const top = inHeader ? Math.max(4, r.top - pad) : Math.max(header + 2, r.top - pad);

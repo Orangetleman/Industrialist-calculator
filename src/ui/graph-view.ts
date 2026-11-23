@@ -7,6 +7,9 @@
 // sortie → le sélecteur filtré, relier deux prises (glisser, ou deux appuis au doigt ; une prise d'un
 // autre produit secoue en rouge), supprimer, cible, bulle du nœud (nombre, chaîne à l'échelle, recette,
 // fixer), modes temporaires Alt / Maj / Ctrl lus sur le clic, sélection multiple.
+// G5 : groupes (sélection multiple → « Grouper », Ctrl G) : un cadre autour des nœuds, ou replié en une boîte
+// dont les prises mandataires mènent au nœud du groupe concerné ; réglages spéciaux du nœud dans la bulle
+// (fournis par la page) ; bouton Fichier (échange avec Industrialist Calculator, fourni par la page).
 
 import type { GameData } from "../engine/data.ts";
 import {
@@ -14,6 +17,7 @@ import {
   applyCommand,
   balanceGraph,
   clickMode,
+  collapsedOwners,
   countCommand,
   deleteCommand,
   energyRecipes,
@@ -21,12 +25,16 @@ import {
   freshId,
   GraphError,
   GraphHistory,
+  groupCommand,
+  groupPorts,
   linkCommand,
+  liveGroups,
   mainOutput,
   modeOfKeys,
   modeSource,
   needAt,
   parseCount,
+  proxyMember,
   recipeAlternatives,
   recipePorts,
   recipesFor,
@@ -100,6 +108,10 @@ export type GraphViewOptions = {
   reserveRight?: number;
   /** « Recalculer » (G4) : le graphe part au solveur ; la page montre l'avant / après et n'applique rien sans accord. */
   onRecalc?: () => void;
+  /** Bouton « Fichier » de la barre (G5) : la page ouvre son menu (import / export) sous le bouton. */
+  onFile?: (anchor: HTMLElement) => void;
+  /** Réglages spéciaux d'un nœud dans sa bulle (G5 : écrans S10, diesel S18, Mineshaft) : HTML de la page, "" s'il n'y en a pas. */
+  extra?: (id: NodeId) => string;
 };
 
 type Pt = { x: number; y: number };
@@ -108,6 +120,8 @@ type EdgeEls = { g: SVGGElement; hit: SVGPathElement; line: SVGPathElement; lab:
 type Cand = Pt & { ref: PortRef };
 type Press = {
   kind: "node" | "bg" | "port";
+  /** Appui sur un groupe (boîte repliée ou en-tête du cadre) : le groupe. */
+  grp?: string;
   id: number;
   sx: number;
   sy: number;
@@ -197,6 +211,15 @@ export class GraphView {
   private bubH = 0;
   private closePicker: (() => void) | null = null;
   private stale = false;
+  /** Groupes (G5) : boîtes repliées, cadres dépliés, groupe sélectionné, nœud → groupe replié qui le cache. */
+  private groupEls = new Map<string, HTMLElement>();
+  private frameEls = new Map<string, HTMLElement>();
+  private readonly framesEl: HTMLDivElement;
+  private gsel: string | null = null;
+  private owners = new Map<NodeId, string>();
+  private extraHtml = "";
+  /** Sélection faite au Ctrl + clic (outil Sélection) : pas de bulle, elle cacherait les voisins à ajouter. */
+  private multiPick = false;
 
   constructor(frame: HTMLElement, opts: GraphViewOptions) {
     this.frame = frame;
@@ -211,7 +234,9 @@ export class GraphView {
     this.tmp.classList.add("ge-tmp");
     this.nodesEl = document.createElement("div");
     this.nodesEl.className = "gv-nodes";
-    this.worldEl.append(this.svg, this.nodesEl);
+    this.framesEl = document.createElement("div");
+    this.framesEl.className = "gv-frames";
+    this.worldEl.append(this.framesEl, this.svg, this.nodesEl);
     // Outils posés sur le canevas (hors du monde : ni zoomés ni déplacés).
     this.bub = document.createElement("div");
     this.bub.className = "gv-bub gv-ui";
@@ -229,7 +254,7 @@ export class GraphView {
     frame.append(this.voidEl, this.bub, this.hintEl, this.tray);
     const reserve = opts.reserveRight ?? 0;
     this.pz = new PanZoom(frame, {
-      noPan: ".gn, .gv-ui",
+      noPan: ".gn, .gv-ui, .gf-hd",
       minWidth: 220,
       // Assez loin pour passer sous la vue allégée (28 %), même sur un petit plan.
       maxWidth: () => Math.max(this.contentBox().w * 1.6, frame.getBoundingClientRect().width / 0.12),
@@ -252,9 +277,10 @@ export class GraphView {
     frame.addEventListener("pointercancel", (e) => this.onUp(e, true));
     frame.addEventListener("keydown", (e) => {
       const n = (e.target as Element).closest?.<HTMLElement>(".gn");
-      if (n && (e.key === "Enter" || e.key === " ")) {
+      if (n && (e.key === "Enter" || e.key === " ") && !(e.target as Element).closest("button")) {
         e.preventDefault();
-        this.pick(n.dataset.id!);
+        if (n.dataset.group) this.pickGroup(n.dataset.group);
+        else this.pick(n.dataset.id!);
       }
     });
     // Raccourcis et touches tenues : à l'écoute de la fenêtre (le focus peut être sur la page après une
@@ -263,11 +289,24 @@ export class GraphView {
     window.addEventListener("keyup", (e) => this.onKeyUp(e));
     window.addEventListener("blur", () => this.setHeld(null));
     this.tray.addEventListener("click", (e) => this.onTray(e));
+    // Boutons des groupes : déplier la boîte repliée (⌄), replier le cadre (‹).
+    this.worldEl.addEventListener("click", (e) => {
+      const b = (e.target as Element).closest<HTMLElement>("[data-gopen], [data-gfold]");
+      if (!b) return;
+      e.stopPropagation();
+      if (b.dataset.gopen) this.setCollapsed(b.dataset.gopen, false);
+      else if (b.dataset.gfold) this.setCollapsed(b.dataset.gfold, true);
+    });
     this.bindBubble();
   }
 
   get graph(): Graph | null {
     return this.g;
+  }
+
+  /** La bulle du nœud (la page y branche les réglages spéciaux qu'elle fournit par `extra`). */
+  get bubbleEl(): HTMLElement {
+    return this.bub;
   }
 
   /** Nœud sélectionné, quand il est seul ; null sinon. */
@@ -319,7 +358,11 @@ export class GraphView {
     if (id && !this.nodeEls.has(id)) id = null;
     this.sels = new Set(id ? [id] : []);
     this.sel = id;
-    if (id) this.edgeSel = null;
+    this.multiPick = false;
+    if (id) {
+      this.edgeSel = null;
+      this.gsel = null;
+    }
     this.applySel();
     if (id && reveal) this.revealNode(id);
   }
@@ -412,6 +455,7 @@ export class GraphView {
     }
     if (this.edgeSel && !g.edges.some((e) => e.id === this.edgeSel)) this.edgeSel = null;
     if (this.armed && !has(this.armed.node)) this.armed = null;
+    if (this.gsel && !liveGroups(g).some((x) => x.id === this.gsel)) this.gsel = null;
     this.render();
     this.pz.setContent(this.contentBox());
     this.opts.onChange?.(g);
@@ -446,7 +490,9 @@ export class GraphView {
     const html: string[] = [];
     const rowIn = t("gv.row.in");
     const rowOut = t("gv.row.out");
+    this.owners = collapsedOwners(g);
     for (const n of g.nodes) {
+      if (this.owners.has(n.id)) continue; // caché dans son groupe replié
       const p = recipePorts(data, n.recipeId, world);
       const nb = bal.nodes.get(n.id)!;
       const main = mainOutput(data, n.recipeId, world);
@@ -478,9 +524,13 @@ export class GraphView {
           `<div class="gn-io"><div class="gn-col i">${ins}</div><div class="gn-col o">${outs}</div></div></div>`,
       );
     }
+    for (const grp of liveGroups(g)) if (grp.collapsed) html.push(this.groupBox(grp.id, grp.name));
     this.nodesEl.innerHTML = html.join("");
-    this.nodeEls = new Map([...this.nodesEl.children].map((el) => [(el as HTMLElement).dataset.id!, el as HTMLElement]));
+    const kids = [...this.nodesEl.children] as HTMLElement[];
+    this.nodeEls = new Map(kids.filter((el) => el.dataset.id).map((el) => [el.dataset.id!, el]));
+    this.groupEls = new Map(kids.filter((el) => el.dataset.group).map((el) => [el.dataset.group!, el]));
     this.measure();
+    this.drawFrames();
     this.drawEdges();
     this.applySel();
     if (this.armed) this.portEl(this.armed)?.classList.add("arm");
@@ -501,6 +551,135 @@ export class GraphView {
       }
       this.geom.set(id, gm);
     }
+    for (const [gid, el] of this.groupEls) {
+      const gm: NodeGeom = { w: el.offsetWidth, h: el.offsetHeight, ins: new Map(), outs: new Map() };
+      for (const port of el.querySelectorAll<HTMLElement>(".gn-port")) {
+        const dir = port.dataset.dir === "in" ? gm.ins : gm.outs;
+        dir.set(port.dataset.item!, this.far ? { x: port.dataset.dir === "in" ? 0 : gm.w, y: gm.h / 2 } : centerIn(port, el));
+      }
+      this.geom.set(`@${gid}`, gm);
+    }
+  }
+
+  // ------------------------------------------------------------ groupes (G5)
+
+  /** Coin haut gauche d'un groupe : celui de ses nœuds (la boîte repliée s'y pose ; la glisser les déplace tous). */
+  private groupPos(gid: string): Pt {
+    let x = Infinity;
+    let y = Infinity;
+    for (const n of this.g!.nodes)
+      if (n.group === gid) {
+        x = Math.min(x, n.x);
+        y = Math.min(y, n.y);
+      }
+    return { x: Number.isFinite(x) ? x : 0, y: Number.isFinite(y) ? y : 0 };
+  }
+
+  /** Cadre d'un groupe déplié : la boîte qui entoure ses nœuds, avec la place de l'en-tête. */
+  private groupRect(gid: string): Box {
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (const n of this.g!.nodes) {
+      if (n.group !== gid) continue;
+      const gm = this.geom.get(n.id);
+      x0 = Math.min(x0, n.x);
+      y0 = Math.min(y0, n.y);
+      x1 = Math.max(x1, n.x + (gm?.w ?? NODE_W));
+      y1 = Math.max(y1, n.y + (gm?.h ?? 120));
+    }
+    const m = 22;
+    return { x: x0 - m, y: y0 - m - 26, w: x1 - x0 + 2 * m, h: y1 - y0 + 2 * m + 26 };
+  }
+
+  /** Boîte visible d'un nœud : la sienne, ou celle de son groupe replié. */
+  private boxOf(id: NodeId): Box | null {
+    const gid = this.owners.get(id);
+    if (gid) {
+      const p = this.groupPos(gid);
+      const gm = this.geom.get(`@${gid}`);
+      return { x: p.x, y: p.y, w: gm?.w ?? NODE_W, h: gm?.h ?? 120 };
+    }
+    const n = this.g!.nodes.find((x) => x.id === id);
+    const gm = this.geom.get(id);
+    return n ? { x: n.x, y: n.y, w: gm?.w ?? NODE_W, h: gm?.h ?? 120 } : null;
+  }
+
+  /** Boîte d'un groupe replié : son nom, le nombre de nœuds, et ses prises mandataires (ce qu'il reçoit et donne). */
+  private groupBox(gid: string, name: string): string {
+    const g = this.g!;
+    const T = this.opts.text;
+    const ports = groupPorts(g, this.bal!, gid);
+    const n = g.nodes.filter((x) => x.group === gid).length;
+    const p = this.groupPos(gid);
+    const rowIn = t("gv.row.in");
+    const rowOut = t("gv.row.out");
+    const ins = ports.ins
+      .map((pb) => {
+        const cls = pb.perMin - pb.flow <= EPS ? "" : pb.links === 0 ? " miss" : " part";
+        return `<div class="gn-row${cls}" data-dir="in" data-item="${esc(pb.item)}" title="${esc(`${T.item(pb.item)} · ${rowIn}`)}"><i class="gn-port" data-dir="in" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`;
+      })
+      .join("");
+    const outs = ports.outs
+      .map((pb) => `<div class="gn-row" data-dir="out" data-item="${esc(pb.item)}" title="${esc(`${T.item(pb.item)} · ${rowOut}`)}"><i class="gn-port" data-dir="out" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`)
+      .join("");
+    const target = !!g.target && g.nodes.find((x) => x.id === g.target!.node)?.group === gid;
+    return (
+      `<div class="gn gg${target ? " target" : ""}${this.gsel === gid ? " sel" : ""}" data-group="${esc(gid)}" data-target="${esc(T.target)}" style="transform:translate(${p.x}px,${p.y}px)" tabindex="0" role="button" aria-label="${esc(t("gv.g.aria", { name, n }))}">` +
+      `<div class="gn-hd"><b>${esc(name)}</b><button type="button" class="gg-open" data-gopen="${esc(gid)}" title="${esc(t("gv.g.open"))}" aria-label="${esc(t("gv.g.open"))}">${icon("more")}</button></div>` +
+      `<div class="gn-m"><span>${esc(t("gv.g.count", { n }))}</span></div>` +
+      `<div class="gn-io"><div class="gn-col i">${ins}</div><div class="gn-col o">${outs}</div></div></div>`
+    );
+  }
+
+  /** Cadres des groupes dépliés, sous les nœuds ; leur en-tête se glisse (tout le groupe suit) et se clique. */
+  private drawFrames(): void {
+    const g = this.g!;
+    const html: string[] = [];
+    for (const grp of liveGroups(g)) {
+      if (grp.collapsed) continue;
+      const n = g.nodes.filter((x) => x.group === grp.id).length;
+      html.push(
+        `<div class="gf${this.gsel === grp.id ? " sel" : ""}" data-group="${esc(grp.id)}"><div class="gf-hd" title="${esc(t("gv.g.hd.tip"))}"><b>${esc(grp.name)}</b><small>${esc(t("gv.g.count", { n }))}</small><button type="button" data-gfold="${esc(grp.id)}" title="${esc(t("gv.g.fold"))}" aria-label="${esc(t("gv.g.fold"))}">${icon("prev")}</button></div></div>`,
+      );
+    }
+    this.framesEl.innerHTML = html.join("");
+    this.frameEls = new Map(([...this.framesEl.children] as HTMLElement[]).map((el) => [el.dataset.group!, el]));
+    for (const gid of this.frameEls.keys()) this.placeFrame(gid);
+  }
+
+  private placeFrame(gid: string): void {
+    const el = this.frameEls.get(gid);
+    if (!el) return;
+    const r = this.groupRect(gid);
+    el.style.transform = `translate(${r.x}px,${r.y}px)`;
+    el.style.width = `${r.w}px`;
+    el.style.height = `${r.h}px`;
+  }
+
+  /** Clic sur un groupe : sa bulle (nom, replier / déplier, dégrouper) ; second clic : désélectionné. */
+  private pickGroup(gid: string | null): void {
+    const next = gid && this.gsel === gid ? null : gid;
+    this.sels = new Set();
+    this.sel = null;
+    this.edgeSel = null;
+    this.gsel = next;
+    this.applySel();
+    this.opts.onSelect(null);
+  }
+
+  /** « Grouper » (barre, Ctrl G) : les nœuds sélectionnés, en un pas ; le groupe neuf est sélectionné. */
+  private groupSelection(): void {
+    if (!this.g) return;
+    const cmd = groupCommand(this.g, this.sels, (n) => t("gv.g.name", { n }));
+    if (!cmd || cmd.type !== "group") return;
+    if (!this.exec(cmd)) return;
+    this.pickGroup(cmd.id);
+  }
+
+  private setCollapsed(gid: string, collapsed: boolean): void {
+    this.exec({ type: "setGroup", id: gid, collapsed });
   }
 
   private drawEdges(): void {
@@ -546,13 +725,15 @@ export class GraphView {
     const a = this.portAt(e.from, "outs", e.item);
     const b = this.portAt(e.to, "ins", e.item);
     if (!els) return;
-    if (!a || !b) {
-      els.g.style.display = "none";
+    const ga = this.owners.get(e.from);
+    if (!a || !b || (ga && ga === this.owners.get(e.to))) {
+      els.g.style.display = "none"; // liaison à l'intérieur d'un groupe replié : cachée
       return;
     }
-    const na = this.g!.nodes.find((n) => n.id === e.from)!;
-    const nbn = this.g!.nodes.find((n) => n.id === e.to)!;
-    const below = Math.max(na.y + (this.geom.get(na.id)?.h ?? 0), nbn.y + (this.geom.get(nbn.id)?.h ?? 0)) + 24;
+    els.g.style.display = "";
+    const na = this.boxOf(e.from)!;
+    const nbn = this.boxOf(e.to)!;
+    const below = Math.max(na.y + na.h, nbn.y + nbn.h) + 24;
     const p = edgePath(a, b, below);
     els.hit.setAttribute("d", p.d);
     els.line.setAttribute("d", p.d);
@@ -561,23 +742,35 @@ export class GraphView {
   }
 
   private portAt(id: NodeId, dir: "ins" | "outs", item: string): Pt | null {
+    const gid = this.owners.get(id);
+    if (gid) {
+      const o = this.geom.get(`@${gid}`)?.[dir].get(item);
+      const p = this.groupPos(gid);
+      return o ? { x: p.x + o.x, y: p.y + o.y } : null;
+    }
     const n = this.g!.nodes.find((x) => x.id === id);
     const o = this.geom.get(id)?.[dir].get(item);
     return n && o ? { x: n.x + o.x, y: n.y + o.y } : null;
   }
 
   private portEl(ref: PortRef): HTMLElement | null {
+    const gid = this.owners.get(ref.node);
+    if (gid) return this.groupEls.get(gid)?.querySelector<HTMLElement>(`.gn-port[data-dir="${ref.side}"][data-item="${CSS.escape(ref.item)}"]`) ?? null;
     return this.nodeEls.get(ref.node)?.querySelector<HTMLElement>(`.gn-port[data-dir="${ref.side}"][data-item="${CSS.escape(ref.item)}"]`) ?? null;
   }
 
   private applySel(): void {
     for (const [nid, el] of this.nodeEls) el.classList.toggle("sel", this.sels.has(nid));
+    for (const [gid, el] of this.groupEls) el.classList.toggle("sel", this.gsel === gid || [...this.sels].some((id) => this.owners.get(id) === gid));
+    for (const [gid, el] of this.frameEls) el.classList.toggle("sel", this.gsel === gid);
     for (const [eid, els] of this.edgeEls) {
       const e = this.g!.edges.find((x) => x.id === eid);
       els.g.classList.toggle("hl", !!e && (this.sels.has(e.from) || this.sels.has(e.to)));
       els.g.classList.toggle("on", eid === this.edgeSel);
     }
-    this.frame.classList.toggle("has-sel", this.sels.size > 0);
+    this.frame.classList.toggle("has-sel", this.sels.size > 0 || !!this.gsel);
+    const gr = this.tray.querySelector<HTMLButtonElement>('[data-act="group"]');
+    if (gr) gr.disabled = this.sels.size < 2;
     this.syncBubble();
   }
 
@@ -594,6 +787,7 @@ export class GraphView {
       this.frame.classList.toggle("far", far);
       if (this.g) {
         this.measure();
+        for (const gid of this.frameEls.keys()) this.placeFrame(gid);
         for (const e of this.g.edges) this.placeEdge(e);
       }
     }
@@ -622,9 +816,11 @@ export class GraphView {
       b('data-tool="target" aria-pressed="false"', "target", t("gv.t.target"), t("gv.t.target.tip")) +
       b('data-tool="del" aria-pressed="false"', "trash", t("gv.t.del"), t("gv.t.del.tip")) +
       b('data-tool="multi" aria-pressed="false"', "select", t("gv.t.multi"), t("gv.t.multi.tip")) +
+      b('data-act="group"', "group", t("gv.t.group"), t("gv.t.group.tip")) +
       "<hr>" +
       b('data-act="undo"', "undo", t("gv.t.undo"), t("gv.t.undo.tip")) +
-      b('data-act="redo"', "redo", t("gv.t.redo"), t("gv.t.redo.tip"));
+      b('data-act="redo"', "redo", t("gv.t.redo"), t("gv.t.redo.tip")) +
+      (this.opts.onFile ? "<hr>" + b('data-act="file" aria-haspopup="true" aria-expanded="false"', "folder", t("gv.t.file"), t("gv.t.file.tip")) : "");
     this.voidEl.textContent = t("gv.void");
     this.bubFor = null;
   }
@@ -635,6 +831,8 @@ export class GraphView {
     const r = this.tray.querySelector<HTMLButtonElement>('[data-act="redo"]');
     if (u) u.disabled = !this.hist?.canUndo;
     if (r) r.disabled = !this.hist?.canRedo;
+    const gr = this.tray.querySelector<HTMLButtonElement>('[data-act="group"]');
+    if (gr) gr.disabled = this.sels.size < 2;
     const rc = this.tray.querySelector<HTMLButtonElement>('[data-act="recalc"]');
     if (rc) {
       rc.hidden = !this.opts.onRecalc;
@@ -651,6 +849,8 @@ export class GraphView {
     if (act === "add") return this.openPicker(null);
     if (act === "undo") return this.undo();
     if (act === "redo") return this.redo();
+    if (act === "group") return this.groupSelection();
+    if (act === "file") return this.opts.onFile?.(b);
     const tool = b.dataset.tool as Mode | undefined;
     if (tool && MODES.includes(tool)) {
       this.tool = this.tool === tool ? null : tool;
@@ -696,6 +896,7 @@ export class GraphView {
     let done = true;
     if (ctrl && key === "z") e.shiftKey ? this.redo() : this.undo();
     else if (ctrl && key === "y") this.redo();
+    else if (ctrl && key === "g") this.groupSelection();
     else if (ctrl && key === "a") {
       this.sels = new Set(this.g?.nodes.map((n) => n.id) ?? []);
       this.sel = this.sels.size === 1 ? [...this.sels][0]! : null;
@@ -707,6 +908,8 @@ export class GraphView {
       this.disarm();
       this.tool = null;
       this.syncTray();
+    } else if (e.key === "Escape" && this.gsel) {
+      this.pickGroup(null);
     } else if (e.key === "Escape" && this.sels.size) {
       this.select(null);
       this.opts.onSelect(null);
@@ -724,7 +927,9 @@ export class GraphView {
 
   private deleteSelection(): void {
     if (!this.g) return;
-    this.exec(deleteCommand(this.g, this.sels, this.edgeSel ? [this.edgeSel] : []));
+    // Un groupe sélectionné : Suppr retire ses nœuds (un pas, Ctrl Z les rend).
+    const ids = this.gsel ? this.g.nodes.filter((n) => n.group === this.gsel).map((n) => n.id) : this.sels;
+    this.exec(deleteCommand(this.g, ids, this.edgeSel ? [this.edgeSel] : []));
     if (!this.sels.size) this.opts.onSelect(null);
   }
 
@@ -778,11 +983,10 @@ export class GraphView {
     const p = recipePorts(data, recipeId, world);
     const size = { w: NODE_W, h: guessHeight(Math.max(p.ins.length, p.outs.length)) };
     let want: Pt;
-    const anchor = port ? g.nodes.find((n) => n.id === port.node) : undefined;
+    const anchor = port ? this.boxOf(port.node) : null;
     if (port && anchor) {
-      const gm = this.geom.get(anchor.id);
-      const py = gm?.[port.side === "in" ? "ins" : "outs"].get(port.item)?.y ?? 40;
-      want = { x: port.side === "in" ? anchor.x - NODE_W - GAP_X : anchor.x + (gm?.w ?? NODE_W) + GAP_X, y: Math.round(anchor.y + py - 60) };
+      const py = (this.portAt(port.node, port.side === "in" ? "ins" : "outs", port.item)?.y ?? anchor.y + 40) - anchor.y;
+      want = { x: port.side === "in" ? anchor.x - NODE_W - GAP_X : anchor.x + anchor.w + GAP_X, y: Math.round(anchor.y + py - 60) };
     } else {
       const v = this.pz.view();
       want = { x: Math.round(v.x + v.w / 2 - NODE_W / 2), y: Math.round(v.y + v.h / 2 - size.h / 2) };
@@ -811,6 +1015,20 @@ export class GraphView {
     });
     b.addEventListener("click", (e) => {
       const el = (e.target as Element).closest<HTMLElement>("[data-b]");
+      const gid = this.gsel;
+      if (el && gid && this.g) {
+        const grp = this.g.groups?.find((x) => x.id === gid);
+        if (el.dataset.b === "fold" && grp) this.setCollapsed(gid, !grp.collapsed);
+        else if (el.dataset.b === "ungroup") {
+          this.exec({ type: "ungroup", id: gid });
+          this.frame.focus({ preventScroll: true });
+        } else if (el.dataset.b === "gdel") this.deleteSelection();
+        else if (el.dataset.b === "close") {
+          this.pickGroup(null);
+          this.frame.focus({ preventScroll: true });
+        }
+        return;
+      }
       const id = this.sel;
       if (!el || !id || !this.g) return;
       const n = this.g.nodes.find((x) => x.id === id);
@@ -843,6 +1061,10 @@ export class GraphView {
     });
     b.addEventListener("change", (e) => {
       const el = e.target as HTMLInputElement | HTMLSelectElement;
+      if (el.dataset.b === "gname" && this.gsel) {
+        this.exec({ type: "setGroup", id: this.gsel, name: el.value });
+        return;
+      }
       const id = this.sel;
       if (!id || !this.g) return;
       if (el.dataset.b === "n") {
@@ -852,6 +1074,7 @@ export class GraphView {
     });
     b.addEventListener("keydown", (e) => {
       const el = e.target as HTMLElement;
+      if (el.dataset.b === "gname" && e.key === "Enter") return (el as HTMLInputElement).blur();
       if (el.dataset.b !== "n") return;
       if (e.key === "Enter") (el as HTMLInputElement).blur();
       else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -874,7 +1097,8 @@ export class GraphView {
 
   /** La bulle du nœud sélectionné seul (construite à la sélection, remplie à chaque changement). */
   private syncBubble(forceCount = false): void {
-    const id = this.sels.size === 1 ? this.sel : null;
+    if (this.gsel) return this.syncGroupBubble();
+    const id = this.sels.size === 1 && !this.multiPick ? this.sel : null;
     const n = id ? this.g?.nodes.find((x) => x.id === id) : undefined;
     if (!n) {
       this.bub.hidden = true;
@@ -898,7 +1122,9 @@ export class GraphView {
         <div class="gv-brow"><span>${esc(t("gv.b.exact"))}</span><span class="num" data-b-exact></span></div>
         <div class="gv-brow"><span>${esc(t("gv.b.recipe"))}</span><select data-b="recipe" aria-label="${esc(t("gv.b.recipe"))}"${alts.length < 2 ? " disabled" : ""}>${alts.map(opt).join("")}</select></div>
         <div class="gv-brow"><span>${esc(t("gv.b.fix"))}</span><button type="button" class="gv-sw" data-b="fix" role="switch" title="${esc(t("gv.fixed"))}"><i></i><small>${esc(t("gv.b.fix.note"))}</small></button></div>
+        <div class="gv-bx" data-b-extra></div>
         <div class="gv-acts"><button type="button" data-b="chain" title="${esc(t("gv.b.chain.tip"))}">${icon("scale")}${esc(t("gv.b.chain"))}</button><button type="button" data-b="target" title="${esc(t("gv.t.target.tip"))}">${icon("target")}${esc(t("gv.b.target"))}</button><button type="button" data-b="del" title="${esc(t("gv.t.del.tip"))}">${icon("trash")}${esc(t("gv.b.del"))}</button></div>`;
+      this.extraHtml = "";
       this.bub.setAttribute("role", "dialog");
       this.bub.setAttribute("aria-label", t("gv.b.aria", { product }));
       forceCount = true;
@@ -916,6 +1142,47 @@ export class GraphView {
     this.bub.querySelector("[data-b=target]")!.setAttribute("aria-pressed", String(this.g?.target?.node === n.id));
     const less = this.bub.querySelector<HTMLButtonElement>("[data-b=less]")!;
     less.disabled = n.machines <= 1 + 1e-9;
+    // Réglages spéciaux (écrans S10, diesel S18, Mineshaft) : ceux de la fiche S62, fournis par la page ;
+    // réécrits seulement s'ils changent (un champ en cours de saisie garde son focus).
+    const extra = this.opts.extra?.(n.id) ?? "";
+    if (extra !== this.extraHtml) {
+      const box = this.bub.querySelector<HTMLElement>("[data-b-extra]")!;
+      if (!box.contains(document.activeElement)) {
+        box.innerHTML = extra;
+        box.hidden = !extra;
+        this.extraHtml = extra;
+      }
+    }
+    this.bub.hidden = false;
+    this.bubH = this.bub.offsetHeight;
+    this.placeBubble();
+  }
+
+  /** Bulle d'un groupe (G5) : nom, nombre de nœuds, replier / déplier, dégrouper, supprimer ses nœuds. */
+  private syncGroupBubble(): void {
+    const g = this.g;
+    const grp = g?.groups?.find((x) => x.id === this.gsel);
+    const n = grp ? g!.nodes.filter((x) => x.group === grp.id).length : 0;
+    if (!grp || !n) {
+      this.bub.hidden = true;
+      this.bubFor = null;
+      return;
+    }
+    const key = `@${grp.id}`;
+    if (this.bubFor?.id !== key || this.bubFor.recipe !== String(!!grp.collapsed)) {
+      this.bub.innerHTML = `<header><b data-b-title></b><button type="button" data-b="close" title="${esc(t("gv.close"))}" aria-label="${esc(t("gv.close"))}">${icon("close")}</button></header>
+        <div class="gv-brow"><span>${esc(t("gv.g.nameLabel"))}</span><input data-b="gname" class="gv-gname" aria-label="${esc(t("gv.g.nameLabel"))}"></div>
+        <div class="gv-brow"><span>${esc(t("gv.g.nodes"))}</span><span class="num" data-b-count></span></div>
+        <p class="gv-bnote">${esc(t(grp.collapsed ? "gv.g.note.shut" : "gv.g.note.open"))}</p>
+        <div class="gv-acts"><button type="button" data-b="fold">${icon(grp.collapsed ? "more" : "prev")}${esc(t(grp.collapsed ? "gv.g.open" : "gv.g.fold"))}</button><button type="button" data-b="ungroup" title="${esc(t("gv.g.ungroup.tip"))}">${icon("select")}${esc(t("gv.g.ungroup"))}</button><button type="button" data-b="gdel" title="${esc(t("gv.g.del.tip"))}">${icon("trash")}${esc(t("gv.b.del"))}</button></div>`;
+      this.bub.setAttribute("role", "dialog");
+      this.bub.setAttribute("aria-label", t("gv.g.bubble", { name: grp.name }));
+      this.bubFor = { id: key, recipe: String(!!grp.collapsed) };
+    }
+    this.bub.querySelector("[data-b-title]")!.textContent = grp.name;
+    const inp = this.bub.querySelector<HTMLInputElement>("[data-b=gname]")!;
+    if (document.activeElement !== inp) inp.value = grp.name;
+    this.bub.querySelector("[data-b-count]")!.textContent = String(n);
     this.bub.hidden = false;
     this.bubH = this.bub.offsetHeight;
     this.placeBubble();
@@ -923,12 +1190,28 @@ export class GraphView {
 
   /** Bulle accrochée sous le nœud (au-dessus s'il n'y a pas la place), dans le cadre, à l'échelle de l'écran. */
   private placeBubble(): void {
-    if (this.bub.hidden || !this.sel || !this.g) return;
-    const n = this.g.nodes.find((x) => x.id === this.sel);
-    if (!n) return;
+    if (this.bub.hidden || !this.g) return;
+    let n: { x: number; y: number } | undefined;
+    let h = 120;
+    if (this.gsel) {
+      const grp = this.g.groups?.find((x) => x.id === this.gsel);
+      if (!grp) return;
+      if (grp.collapsed) {
+        n = this.groupPos(grp.id);
+        h = this.geom.get(`@${grp.id}`)?.h ?? 120;
+      } else {
+        const r = this.groupRect(grp.id);
+        n = { x: r.x, y: r.y };
+        h = r.h; // sous le cadre (au-dessus faute de place)
+      }
+    } else {
+      if (!this.sel) return;
+      n = this.g.nodes.find((x) => x.id === this.sel);
+      if (!n) return;
+      h = this.geom.get(this.sel)?.h ?? 120;
+    }
     const v = this.pz.view();
     const k = this.k;
-    const h = this.geom.get(n.id)?.h ?? 120;
     const fw = this.frame.clientWidth;
     const fh = this.frame.clientHeight;
     const bw = 264;
@@ -950,6 +1233,23 @@ export class GraphView {
     if (t0.closest("button, input, select, a, .rs-zoom, .gv-ui")) return;
     const node = t0.closest<HTMLElement>(".gn");
     const base = { id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false };
+    const gid = node?.dataset.group ?? t0.closest<HTMLElement>(".gf-hd")?.closest<HTMLElement>(".gf")?.dataset.group;
+    if (gid) {
+      // Boîte repliée ou en-tête du cadre : glisser déplace tout le groupe ; une prise ou une ligne mène au nœud du groupe concerné.
+      const g = this.g;
+      const members = g.nodes.filter((x) => x.group === gid);
+      const portEl = node ? t0.closest<HTMLElement>(".gn-port") : null;
+      const row = node ? t0.closest<HTMLElement>(".gn-row") : null;
+      const at = (el: HTMLElement) => (this.bal ? proxyMember(g, this.bal, gid, el.dataset.item!, el.dataset.dir === "in" ? "in" : "out") : null);
+      if (portEl && !this.far) {
+        const ref = at(portEl);
+        if (ref) this.press = { ...base, kind: "port", node: ref.node, grp: gid, port: ref };
+        return;
+      }
+      const rowRef = row ? at(row) : null;
+      this.press = { ...base, kind: "node", grp: gid, group: members.map((x) => ({ id: x.id, x0: x.x, y0: x.y })), ...(rowRef ? { row: rowRef } : {}) };
+      return;
+    }
     if (node) {
       const n = this.g.nodes.find((x) => x.id === node.dataset.id)!;
       const portEl = t0.closest<HTMLElement>(".gn-port");
@@ -990,6 +1290,7 @@ export class GraphView {
         // Échelle lue une fois : pendant le glisser, aucune lecture de mise en page.
         p.k = this.scale();
         for (const m of p.group!) this.nodeEls.get(m.id)?.classList.add("dragging");
+        if (p.grp) this.groupEls.get(p.grp)?.classList.add("dragging");
       } else if (p.kind === "port") this.startLink(p);
     }
     if (p.kind === "port" && p.link) return this.dragLink(p, e);
@@ -1015,6 +1316,7 @@ export class GraphView {
       if (this.pending) this.moveGroup(p.group!, this.pending);
       this.pending = null;
       for (const m of p.group!) this.nodeEls.get(m.id)?.classList.remove("dragging");
+      if (p.grp) this.groupEls.get(p.grp)?.classList.remove("dragging");
       // Le document reçoit les positions finales en une commande : un pas d'annulation.
       const at = new Map(this.g!.nodes.map((n) => [n.id, n]));
       const moves = p.group!.map((m) => ({ id: m.id, x: at.get(m.id)!.x, y: at.get(m.id)!.y })).filter((m) => {
@@ -1042,7 +1344,8 @@ export class GraphView {
         return;
       }
       this.disarm();
-      if (this.sels.size) {
+      if (this.sels.size || this.gsel) {
+        this.gsel = null;
         this.select(null);
         this.opts.onSelect(null);
       }
@@ -1051,6 +1354,7 @@ export class GraphView {
       this.opts.onEdge?.(edge);
       return;
     }
+    if (p.grp) return this.tapGroup(p, m);
     const id = p.node!;
     const item = p.port?.side === "out" ? p.port.item : p.row?.side === "out" ? p.row.item : undefined;
     if (m === "del") {
@@ -1063,6 +1367,8 @@ export class GraphView {
       return;
     }
     if (m === "multi") {
+      this.multiPick = true;
+      this.gsel = null;
       if (this.sels.has(id)) this.sels.delete(id);
       else this.sels.add(id);
       this.sel = this.sels.size === 1 ? [...this.sels][0]! : this.sels.has(id) ? id : null;
@@ -1078,10 +1384,44 @@ export class GraphView {
     this.pick(id);
   }
 
+  /** Clic sur un groupe : mêmes modes que sur un nœud, appliqués à ses nœuds ; une prise ou une ligne mandataire agit sur le nœud concerné. */
+  private tapGroup(p: Press, m: Mode | null): void {
+    const g = this.g!;
+    const gid = p.grp!;
+    const ids = g.nodes.filter((x) => x.group === gid).map((x) => x.id);
+    if (m === "del") {
+      this.exec(deleteCommand(g, ids));
+      this.opts.onSelect(null);
+      return;
+    }
+    if (m === "multi") {
+      this.multiPick = true;
+      const all = ids.every((id) => this.sels.has(id));
+      for (const id of ids) all ? this.sels.delete(id) : this.sels.add(id);
+      this.sel = this.sels.size === 1 ? [...this.sels][0]! : null;
+      this.gsel = null;
+      this.edgeSel = null;
+      this.applySel();
+      this.opts.onSelect(this.selected);
+      return;
+    }
+    const out = p.port?.side === "out" ? p.port : p.row?.side === "out" ? p.row : undefined;
+    if (m === "target") {
+      if (out) this.exec(targetCommand(g, out.node, out.item));
+      return;
+    }
+    const port = p.port ?? (m === "link" ? p.row : undefined);
+    if (port) return this.tapPort(port);
+    if (p.row) return this.openPicker(p.row);
+    this.pickGroup(gid);
+  }
+
   /** Clic sur un nœud : sélectionné, ou désélectionné au second clic. */
   private pick(id: NodeId): void {
     const next = this.sel === id && this.sels.size === 1 ? null : id;
     this.edgeSel = null;
+    this.gsel = null;
+    this.multiPick = false;
     this.select(next, false);
     this.opts.onSelect(next);
   }
@@ -1134,8 +1474,20 @@ export class GraphView {
     // Prises de l'autre côté, en coordonnées du monde, relevées une fois.
     const cands: Cand[] = [];
     const other = from.side === "out" ? "ins" : "outs";
-    for (const n of g.nodes)
-      for (const [item, o] of this.geom.get(n.id)?.[other] ?? []) cands.push({ x: n.x + o.x, y: n.y + o.y, ref: { node: n.id, item, side: from.side === "out" ? "in" : "out" } });
+    const side = from.side === "out" ? "in" : "out";
+    for (const n of g.nodes) {
+      if (this.owners.has(n.id)) continue;
+      for (const [item, o] of this.geom.get(n.id)?.[other] ?? []) cands.push({ x: n.x + o.x, y: n.y + o.y, ref: { node: n.id, item, side } });
+    }
+    // Groupe replié : chaque prise mandataire mène au nœud du groupe concerné (pas à un nœud du groupe d'où l'on part).
+    for (const grp of liveGroups(g)) {
+      if (!grp.collapsed || this.owners.get(from.node) === grp.id || !this.bal) continue;
+      const at = this.groupPos(grp.id);
+      for (const [item, o] of this.geom.get(`@${grp.id}`)?.[other] ?? []) {
+        const ref = proxyMember(g, this.bal, grp.id, item, side);
+        if (ref) cands.push({ x: at.x + o.x, y: at.y + o.y, ref });
+      }
+    }
     this.disarm();
     this.portEl(from)?.classList.add("arm");
     p.link = { r, v, k, a, cands, over: null };
@@ -1179,13 +1531,24 @@ export class GraphView {
       return m ? { ...n, x: Math.round(m.x0 + d.x), y: Math.round(m.y0 + d.y) } : n;
     });
     this.g = { ...g, nodes };
+    const groups = new Set<string>();
     for (const n of nodes) {
       if (!at.has(n.id)) continue;
+      if (n.group) groups.add(n.group);
       // Position par transformation : le navigateur ne refait pas la mise en page des autres nœuds.
-      this.nodeEls.get(n.id)!.style.transform = `translate(${n.x}px,${n.y}px)`;
+      const el = this.nodeEls.get(n.id);
+      if (el) el.style.transform = `translate(${n.x}px,${n.y}px)`;
+    }
+    for (const gid of groups) {
+      const box = this.groupEls.get(gid);
+      if (box) {
+        const p = this.groupPos(gid);
+        box.style.transform = `translate(${p.x}px,${p.y}px)`;
+      }
+      this.placeFrame(gid);
     }
     for (const e of g.edges) if (at.has(e.from) || at.has(e.to)) this.placeEdge(e);
-    if (this.sel && at.has(this.sel)) this.placeBubble();
+    if ((this.sel && at.has(this.sel)) || (this.gsel && groups.has(this.gsel))) this.placeBubble();
   }
 
   private scale(): number {

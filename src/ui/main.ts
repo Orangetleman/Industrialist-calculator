@@ -28,7 +28,7 @@ import type { Step } from "../engine/solve.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
 import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
-import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
+import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, renderDieselHud, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
 import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, setDrawnInside, turnText } from "./factory-view.ts";
 import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
@@ -42,9 +42,9 @@ import interfacesJson from "../../data/interfaces.json";
 import modularJson from "../../data/modular.json";
 import mineshaftJson from "../../data/mineshaft.json";
 import { DEFAULT_MINESHAFT, sameMineshaft, withMineshaft, type MineshaftChoice, type MineshaftFile } from "../engine/mineshaft.ts";
-import { mineshaftPatch, type MineshaftView } from "./mineshaft-view.ts";
+import { mineshaftPatch, renderMineshaftHud, type MineshaftView } from "./mineshaft-view.ts";
 import type { ModularFile } from "../engine/modular.ts";
-import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
+import { parseFactor, renderScreenInputs, settingChips, settingLines } from "./iface-view.ts";
 import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
 import { balanceTimeline, emptySetup, nominalRate, TIERS, proposeAddStations, rateAt, researchModel, timeToReach, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
 import { fillResearchCalc, renderResearchControl, renderResearchForm, renderResearchOut, researchHow } from "./research-mine.ts";
@@ -79,7 +79,7 @@ import {
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
 import { GraphView, type GraphViewOptions, type GraphViewText } from "./graph-view.ts";
-import { applyComparison, balanceGraph, compareWithPlan, planToGraph, solveFromGraph, type Graph } from "../engine/graph/index.ts";
+import { applyComparison, balanceGraph, compareWithPlan, exportPollywrath, planToGraph, pollywrathToGraph, solveFromGraph, type Graph, type PollywrathMapFile } from "../engine/graph/index.ts";
 import { graphMatchesPlan, linkSteps, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
@@ -268,6 +268,10 @@ function saveSettings(s: Settings): void {
   storeSettings(s);
 }
 const KEY_TOUR = "ind-calc:v1:visite";
+/** « Modifier la proposition » (G5) : le graphe et le dernier « Appliquer » quand l'étape est atteinte (l'étape avance quand ils changent). */
+let tourGraph: { g: Graph | null; solved: Graph | null } = { g: null, solved: null };
+/** Graphe édité d'avant le parcours « Modifier la proposition » joué sur une progression simulée : rendu à la fin. */
+let tourGedit: { saved: StoredGraphEdit | null } | null = null;
 const checklist = createChecklist({ start: (mode) => tour.start(mode), replay: () => tour.start("first") });
 const tour = createTour(SITE_TOUR, {
   onStart() {
@@ -275,8 +279,9 @@ const tour = createTour(SITE_TOUR, {
   },
   onStartMode(mode) {
     // Le premier parcours et les mini-parcours de Planifier (construire, régler) ont besoin d'un plan : partie neuve → simulée.
-    if ((mode === "first" || mode === "poser" || mode === "regler") && !prog.unlocked.length && !simulated) {
+    if ((mode === "first" || mode === "poser" || mode === "regler" || mode === "modifier") && !prog.unlocked.length && !simulated) {
       simulated = prog;
+      if (mode === "modifier") tourGedit = { saved: gedit?.touched ? storeGraphEdit(gedit) : null };
       prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
       planDirty = true;
       render();
@@ -290,9 +295,14 @@ const tour = createTour(SITE_TOUR, {
     if (cond === "schema") return settings.resultTab === "schema";
     if (cond === "simulated") return simulated !== null;
     if (cond === "drawer") return !$("plan-drawer").hidden;
+    if (cond === "noplan") return settings.goal !== "objet" || isBlank("objet");
+    if (cond === "gnode") return !!graphView?.selected;
+    if (cond === "gchanged") return !!graphView?.graph && graphView.graph !== tourGraph.g;
+    if (cond === "gsolved") return !!gedit?.solved && gedit.solved !== tourGraph.solved;
     return true;
   },
   onReach(mode, index) {
+    if (mode === "modifier") tourGraph = { g: graphView?.graph ?? null, solved: gedit?.solved ?? null };
     const it = reachedItem(mode, index);
     if (it) checklist.check(it);
   },
@@ -304,6 +314,13 @@ const tour = createTour(SITE_TOUR, {
     }
     if (mode !== "first") checklist.check(mode as CheckItem);
     if (simulated) {
+      // Le graphe modifié pendant un parcours simulé ne reste pas : on rend celui d'avant (ou la proposition).
+      if (tourGedit) {
+        gedit = tourGedit.saved ? loadGraphEdit(tourGedit.saved) : null;
+        graphDoc = null;
+        tourGedit = null;
+        saveGraphEdit(true);
+      }
       prog = simulated;
       simulated = null;
       planDirty = true;
@@ -804,21 +821,124 @@ function importNow(): ImportedGraph | null {
   const key = planKey(settings.goal, settings.item);
   return (key && settings.imports[key]) || null;
 }
-/** Importe un fichier « …_save.json » du calculateur de Pollywrath : objectif, débit, recettes imposées. */
+/**
+ * Importe un fichier « …_save.json » du calculateur de Pollywrath. Son graphe s'ouvre tel quel dans
+ * l'éditeur (G5 : nœuds, nombres, positions, liaisons, cible), gardé comme un graphe modifié ; son nœud
+ * cible donne l'objectif et le débit, ses recettes deviennent les recettes imposées (remarque n°16).
+ * Ce qui n'a pas d'équivalent chez nous est signalé, jamais remplacé.
+ */
 async function importPollywrath(file: File): Promise<void> {
+  const close = [{ value: "", label: t("m.close"), primary: true }];
+  let raw: unknown;
   try {
-    const res = parsePollywrathSave(JSON.parse(await file.text()), planData(), pwMap as unknown as PollywrathMap, file.name);
+    raw = JSON.parse(await file.text());
+  } catch {
+    return void (await ask(t("m.importFailed"), `<p>${esc(t("gv.f.imp.bad"))}</p>`, close));
+  }
+  const pg = pollywrathToGraph(raw, planData(), pwMap as unknown as PollywrathMapFile, { world: gameView(), fileName: file.name });
+  if (!pg || !pg.graph.nodes.length) {
+    let msg = t("gv.f.imp.bad");
+    try {
+      parsePollywrathSave(raw, planData(), pwMap as unknown as PollywrathMap, file.name);
+    } catch (err) {
+      msg = (err as Error).message;
+    }
+    return void (await ask(t("m.importFailed"), `<p>${esc(msg)}</p>`, close));
+  }
+  // Objectif tiré de leur cible (si elle est reconnue) ; sinon l'objectif ne change pas.
+  try {
+    const res = parsePollywrathSave(raw, planData(), pwMap as unknown as PollywrathMap, file.name);
     settings.goal = "objet";
     if (!settings.entered.includes("objet")) settings.entered = [...settings.entered, "objet"];
     settings.item = res.item;
     settings.mode = "rate";
     settings.rate = res.ratePerMin;
     settings.imports = { ...settings.imports, [planKey("objet", res.item)!]: res.graph };
-    update();
-    go({ page: "plan", goal: "objet" });
-  } catch (err) {
-    await ask(t("m.importFailed"), `<p>${esc((err as Error).message)}</p>`, [{ value: "", label: t("m.close"), primary: true }]);
+    syncForm();
+  } catch {
+    // pas de cible reconnue : le graphe s'ouvre quand même, la cible se marque à la main
   }
+  gedit = { sig: goalSig(), graph: pg.graph, solved: null, touched: true };
+  graphDoc = null;
+  saveGraphEdit(true);
+  settings.resultTab = "schema";
+  update();
+  go({ page: "plan", goal: "objet", tab: "schema" });
+  const label = (recipeLabel: string) => `<li>${esc(recipeLabel)}</li>`;
+  const html =
+    `<p>${esc(t("gv.f.imp.ok"))}</p>` +
+    (pg.unknown.length ? `<p>${esc(t("gv.f.imp.unknown"))}</p><ul>${pg.unknown.map((u) => label(u.nodes > 1 ? `${u.label} ×${u.nodes}` : u.label)).join("")}</ul>` : "") +
+    (pg.droppedEdges ? `<p class="hint">${esc(t("gv.f.imp.edges", { n: pg.droppedEdges }))}</p>` : "") +
+    (pg.targetLost || !pg.graph.target ? `<p class="hint">${esc(t("gv.f.imp.target"))}</p>` : "") +
+    `<p class="hint"><a href="https://industrialist-calculator.pages.dev" target="_blank" rel="noopener">${esc(t("pw.credit"))}</a></p>`;
+  await ask(t("gv.f.imp.title", { name: pg.name }), html, close);
+}
+
+/**
+ * Export du graphe de l'éditeur vers Industrialist Calculator (G5) : leur fichier « …_save.json ». Les
+ * nœuds sans équivalent chez eux sont signalés avant, et laissés de côté (jamais remplacés).
+ */
+async function exportGraphPollywrath(): Promise<void> {
+  const g = graphView?.graph ?? gedit?.graph;
+  if (!g) return;
+  const pd = planData();
+  const close = [{ value: "", label: t("m.close"), primary: true }];
+  const name = g.target ? itemName(g.target.item) : "Industrialist";
+  const ex = exportPollywrath(g, pd, pwMap as unknown as PollywrathMapFile, { name, pollutionPct: gameView().pollutionPct ?? null });
+  if (!ex.save.data.nodes.length) return void (await ask(t("gv.f.exp.title"), `<p>${esc(t("gv.f.exp.empty"))}</p>`, close));
+  const recipeLabel = (id: string) => {
+    const r = pd.recipes.get(id);
+    const out = r ? Object.keys(r.outputs)[0] : undefined;
+    return `${itemName(out ?? id)} (${r ? (pd.machines.get(r.machine)?.name ?? r.machine) : id})`;
+  };
+  const notes: string[] = [];
+  if (ex.missing.length) notes.push(`<p>${esc(t("gv.f.exp.missing"))}</p><ul>${ex.missing.map((m) => `<li>${esc(recipeLabel(m.recipeId))}</li>`).join("")}</ul>`);
+  if (ex.droppedEdges) notes.push(`<p class="hint">${esc(t("gv.f.exp.edges", { n: ex.droppedEdges }))}</p>`);
+  if (ex.targetLost) notes.push(`<p class="hint">${esc(t("gv.f.exp.target"))}</p>`);
+  if (g.groups?.length) notes.push(`<p class="hint">${esc(t("gv.f.exp.groups"))}</p>`);
+  const fileName = `${name.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Industrialist"}_save.json`;
+  if (notes.length) {
+    const ok = await ask(t("gv.f.exp.title"), notes.join("") + `<p class="hint">${esc(t("gv.f.exp.done", { file: fileName }))}</p>`, [
+      { value: "ok", label: t("gv.f.exp.ok"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (ok !== "ok") return;
+  }
+  downloadJson(ex.save, fileName);
+}
+
+/** Menu « Fichier » de la barre du canevas (G5) : échange avec Industrialist Calculator. */
+function openGraphFileMenu(anchor: HTMLElement): void {
+  if (popAnchorEl() === anchor) return closePop();
+  const opt = (v: string, label: string, note = "") => `<button type="button" data-opt="${v}">${esc(label)}${note ? `<small class="hint">${esc(note)}</small>` : ""}</button>`;
+  openPopMenu(document.body, anchor, opt("import", t("gv.f.import"), t("gv.f.note")) + opt("export", t("gv.f.export")), (el) => {
+    if (el.dataset.opt === "import") $("pw-import").click();
+    else void exportGraphPollywrath();
+  }, "pop-menu gv-file-pop");
+}
+
+/**
+ * Réglages spéciaux d'un nœud dans sa bulle (G5) : ceux de la fiche S62, pour le même plan (écran chiffré
+ * S10, moteur diesel S18, Mineshaft Drill), sans rien changer à leur calcul. "" s'il n'y en a pas.
+ */
+function graphExtra(id: string): string {
+  const v = viewCtx();
+  if (v.goal === "recherche") return "";
+  const node = graphView?.graph?.nodes.find((n) => n.id === id);
+  const r = node ? v.data.recipes.get(node.recipeId) : undefined;
+  if (!node || !r) return "";
+  const m = r.machine;
+  const sets: string[] = [renderScreenInputs(v.ifaces?.[m], m, machineN(v, m), v.msettings?.[m])];
+  if (m === "diesel-engine-controller" && v.diesel) {
+    // Un autre nom de groupe que celui de la fiche : les deux réglages peuvent être à l'écran ensemble.
+    sets.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === node.recipeId) ?? null).replace(/name="dsl-mode"/g, 'name="dsl-mode-gv"'));
+  }
+  if (v.mineshaft && m === v.mineshaft.file.meta.machine) {
+    const d = Number(/@(\d+)$/.exec(node.recipeId)?.[1]);
+    sets.push(renderMineshaftHud(v.mineshaft, Number.isFinite(d) ? d : null, (x) => itemN(v, x)));
+  }
+  const html = sets.filter(Boolean).join("");
+  return html ? `<p class="gv-bx-h">${esc(t("gv.b.extra"))}</p>${html}` : "";
 }
 /** Fenêtre « graphe importé » : leurs nombres de machines face aux nôtres, recettes non reconnues. */
 async function showImported(): Promise<void> {
@@ -1457,7 +1577,10 @@ function renderFlowCanvas(): void {
     },
     onChange: (g) => onGraphChange(g),
     onRecalc: () => void recalcGraph(),
+    onFile: (b) => openGraphFileMenu(b),
+    extra: (id) => graphExtra(id),
   });
+  bindGraphBubbleSettings(graphView.bubbleEl);
   // Les données, la langue et l'unité peuvent avoir changé depuis la création du canevas.
   Object.assign((graphView as unknown as { opts: GraphViewOptions }).opts, { data: planData(), text: graphText() });
   const keep = signature === flowKey && doc.arranged;
@@ -1495,6 +1618,35 @@ if (import.meta.env.DEV) {
   };
 }
 
+/**
+ * Réglages spéciaux dans la bulle d'un nœud (G5) : mêmes gestes que dans la fiche S62, mêmes réglages du
+ * plan (écran chiffré, moteur diesel, Mineshaft Drill). Branché une fois.
+ */
+let graphBubbleBound = false;
+function bindGraphBubbleSettings(bub: HTMLElement): void {
+  if (graphBubbleBound) return;
+  graphBubbleBound = true;
+  bub.addEventListener("click", (e) => {
+    const reset = (e.target as Element).closest<HTMLElement>("[data-iset-reset]");
+    if (reset) setMachineSetting(reset.dataset.isetReset!, null, null);
+  });
+  bub.addEventListener("change", (e) => {
+    const el = e.target as HTMLInputElement | HTMLSelectElement;
+    if (el.matches("[data-iset-input]")) return setMachineSetting(el.dataset.machine!, el.dataset.setting!, parseFactor(el.value));
+    if (el.matches("[data-dsl-fuel]")) setDieselChoice({ fuel: el.value, config: null });
+    else if (el.matches("[data-dsl-mode]")) setDieselChoice({ mode: (el as HTMLInputElement).dataset.dslMode as DieselChoice["mode"], config: null });
+    else if (el.matches("[data-dsl-config]")) setDieselChoice({ config: el.value || null });
+    else {
+      const msd = mineshaftPatch(el);
+      if (msd) setMineshaftChoice(msd);
+    }
+  });
+  bub.addEventListener("keydown", (e) => {
+    const inp = (e.target as Element).closest<HTMLInputElement>("[data-iset-input]");
+    if (inp && e.key === "Enter") inp.blur();
+  });
+}
+
 // ---------------------------------------------------------------- graphe édité (G4)
 
 /**
@@ -1527,6 +1679,7 @@ function onGraphChange(g: Graph): void {
   }
   saveGraphEdit();
   renderGraphBar();
+  syncHudCount(); // la fiche S62 montre le nombre du graphe (bulle, Ctrl Z…)
 }
 
 /** Le plan affiché ne suit plus le graphe édité (pour cet objectif). */
@@ -5111,6 +5264,8 @@ function bindLang(): void {
     remarks.refresh();
     props.refresh();
     sandbox.refresh();
+    // La liste « Premiers pas » (et sa case « Modifier la proposition ») suit la langue.
+    if (!document.getElementById("steps-box")?.hidden) checklist.render();
   });
 }
 

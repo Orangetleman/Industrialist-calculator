@@ -1033,4 +1033,6 @@ Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md`
 - **GRA-02** **Fichier exporté non encore ouvert chez eux** : l'export (`src/engine/graph/pollywrath-export.ts`)
   est relu par notre import, pas encore par leur site. `globalSettings` ne porte que `global_pollution` (leur
   `difficulty`, leurs recherches débloquées, etc. ne sont pas écrits, faute de correspondance sûre). À essayer
-  dans leur panneau « Saves » au lot G5.
+  dans leur panneau « Saves » au lot G5. **G5 (2026-11-23)** : l'export est maintenant dans l'éditeur (bouton
+  Fichier) ; toujours pas ouvert dans leur site (le charger chez eux est un envoi de fichier à un site tiers :
+  à faire par l'utilisateur). Leurs groupes ne sont ni lus ni écrits (format non relevé).

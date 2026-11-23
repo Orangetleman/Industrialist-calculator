@@ -66,7 +66,8 @@ function sections(): string {
   <section class="me-sec" id="me-s4"><h2>${esc(t("me.s4.h"))}</h2>${p("me.s4.p1.html")}${p("me.s4.p2.html")}<p class="me-warn">${t("me.s4.p3.html")}</p>${p("me.s4.p4.html")}${p("me.s4.p5.html")}</section>
   <section class="me-sec" id="me-s5"><h2>${esc(t("me.s5.h"))}</h2><ul class="me-list">${(["rate", "energy", "pollution", "budget", "existing", "depots", "fixed"] as const).map((k) => `<li>${t(`me.s5.${k}.html` as Key)}</li>`).join("")}</ul></section>
   <section class="me-sec" id="me-s6"><h2>${esc(t("me.s6.h"))}</h2>${p("me.s6.p1.html")}${p("me.s6.p2.html")}</section>
-  <section class="me-sec" id="me-s7"><h2>${esc(t("me.s7.h"))}</h2><p class="lead">${esc(t("me.s7.lead", { rate: EXAMPLE_RATE }))}</p><div id="me-example"><p class="hint">${esc(t("me.s7.wait"))}</p></div></section>`;
+  <section class="me-sec" id="me-s7"><h2>${esc(t("me.s7.h"))}</h2><p class="lead">${esc(t("me.s7.lead", { rate: EXAMPLE_RATE }))}</p><div id="me-example"><p class="hint">${esc(t("me.s7.wait"))}</p></div></section>
+  <p class="me-credit hint"><a href="https://industrialist-calculator.pages.dev" target="_blank" rel="noopener">${esc(t("credit.editor"))}</a></p>`;
 }
 
 /** Tableau et commentaire de l'exemple ; la plus petite valeur de chaque colonne est marquée. Pur (testé). */

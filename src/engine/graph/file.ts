@@ -3,7 +3,7 @@
 // Lecture prudente : ce qui est abîmé est écarté et signalé, jamais deviné ; un fichier d'une
 // version plus récente est refusé (on ne sait pas ce qu'il contient).
 
-import { edgeId, GraphError, type Graph, type GraphEdge, type GraphNode } from "./model.ts";
+import { edgeId, GraphError, pruneGroups, type Graph, type GraphEdge, type GraphGroup, type GraphNode } from "./model.ts";
 
 export const GRAPH_FORMAT = "industrialist-graph";
 export const GRAPH_VERSION = 1;
@@ -15,7 +15,8 @@ export type FileWarning = { code: FileWarningCode; at: number | string };
 
 
 /** Écrit le document : champs dans un ordre fixe, pour qu'un aller-retour donne le même texte. */
-export function writeGraphFile(g: Graph, name?: string): string {
+export function writeGraphFile(g0: Graph, name?: string): string {
+  const g = pruneGroups(g0);
   const node = (n: GraphNode) => ({
     id: n.id,
     recipeId: n.recipeId,
@@ -36,6 +37,7 @@ export function writeGraphFile(g: Graph, name?: string): string {
       edges: g.edges.map((e) => ({ from: e.from, to: e.to, item: e.item })),
       target: g.target ? { node: g.target.node, item: g.target.item } : null,
       rate: g.rate,
+      ...(g.groups ? { groups: g.groups.map((x) => ({ id: x.id, name: x.name, ...(x.collapsed ? { collapsed: true } : {}) })) } : {}),
     },
   };
   return JSON.stringify(file, null, 1) + "\n";
@@ -102,5 +104,12 @@ export function readGraphFile(raw: unknown): { graph: Graph; name: string | null
     if (num(gr.rate) && gr.rate > 0) rate = gr.rate;
     else warnings.push({ code: "débit-abîmé", at: "rate" });
   }
-  return { graph: { nodes, edges, target, rate }, name: str(r.name) ? r.name : null, warnings };
+  // Groupes (G5) : ceux qui ont un identifiant et un nom ; un nœud d'un groupe absent n'en a plus.
+  const groups: GraphGroup[] = [];
+  for (const x of Array.isArray(gr.groups) ? gr.groups : []) {
+    if (!isObj(x) || !str(x.id) || typeof x.name !== "string" || groups.some((y) => y.id === x.id)) continue;
+    groups.push({ id: x.id, name: x.name || x.id, ...(x.collapsed === true ? { collapsed: true } : {}) });
+  }
+  const graph = pruneGroups({ nodes, edges, target, rate, ...(groups.length ? { groups } : {}) });
+  return { graph, name: str(r.name) ? r.name : null, warnings };
 }

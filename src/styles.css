@@ -208,6 +208,7 @@ html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête 
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-spot.pulse { animation: none; } }
 .tour-bubble { position: fixed; z-index: 1302; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); display: none; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); transition: top .3s, left .3s; }
 .tour-bubble.near { transform: none; bottom: auto; width: min(400px, calc(100vw - 24px)); }
+.tour-bubble.up { bottom: auto; }
 .tour-pin { position: absolute; top: 8px; right: 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font-size: .72rem; padding: 1px 8px; cursor: pointer; }
 .tour-pin:hover { color: var(--accent); border-color: var(--accent); }
 .tour-wait { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--ink); }
@@ -241,6 +242,9 @@ main:focus { outline: none; }
 .page { display: flex; flex-direction: column; gap: 16px; }
 footer.src { max-width: 1120px; margin: 0 auto; padding: 14px 16px 40px; border-top: 1px solid var(--line); font-size: .8rem; color: var(--muted); display: grid; gap: 4px; }
 footer.src p { margin: 0; }
+.foot-credit { font-size: .8rem; color: var(--muted); }
+.foot-credit a { color: var(--muted); }
+.me-credit { margin-top: 2rem; font-size: .85rem; }
 footer.src a { color: var(--muted); }
 
 /* ---------------------------------------------------------------- accueil */
@@ -1822,6 +1826,8 @@ table.rh-log td.num { white-space: nowrap; }
 .pop-menu { position: fixed; z-index: 40; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 6px 22px rgb(0 0 0 / .45); overflow-y: auto; max-width: min(420px, calc(100vw - 16px)); padding: 3px; display: flex; flex-direction: column; gap: 2px; }
 .pop-menu button { display: flex; align-items: center; gap: 8px; text-align: left; border-color: transparent; background: transparent; min-height: 32px; padding: 4px 8px; }
 .pop-menu button:hover, .pop-menu button:focus-visible { background: var(--panel2); border-color: var(--line); }
+.pop-menu.gv-file-pop { z-index: 1260; min-width: min(320px, calc(100vw - 16px)); }
+.gv-file-pop button { flex-direction: column; align-items: flex-start; gap: 0; }
 .pop-menu button.on { border-color: var(--accent); background: var(--accent-soft); }
 .bld-catbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
 
@@ -1911,6 +1917,21 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
 .gv-world { position: absolute; left: 0; top: 0; width: 1px; height: 1px; transform-origin: 0 0; }
 .gv-edges { position: absolute; left: 0; top: 0; width: 1px !important; height: 1px !important; overflow: visible; display: block; }
 .gv-nodes { position: absolute; left: 0; top: 0; }
+/* Groupes (G5) : cadre en tirets autour des nœuds (seul son en-tête se saisit), ou boîte repliée « empilée ». */
+.gv-frames { position: absolute; left: 0; top: 0; }
+.gf { position: absolute; left: 0; top: 0; border: 1px dashed var(--gv-edge); background: #ffffff06; pointer-events: none; }
+.gf.sel { border-color: var(--cv-acc); border-style: solid; }
+.gf-hd { pointer-events: auto; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 2px 0 10px; background: var(--gv-node-head); border-bottom: 1px dashed var(--gv-edge); color: var(--cv-ink); cursor: grab; }
+.gf.sel .gf-hd { border-bottom-color: var(--cv-acc); }
+.gf-hd b { font: 400 12px var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gf-hd small { flex: 1; color: var(--cv-muted); font: 10px var(--f-mono); white-space: nowrap; }
+.gf-hd button, .gg-open { border: 0; border-radius: 0; background: none; color: var(--cv-muted); padding: 3px; min-height: 0; cursor: pointer; display: inline-grid; place-items: center; }
+.gf-hd button:hover, .gg-open:hover { color: var(--cv-acc); }
+.gf-hd button .ic, .gg-open .ic { width: 15px; height: 15px; }
+.gn.gg { box-shadow: 5px 5px 0 -1px var(--gv-node), 5px 5px 0 0 var(--gv-node-line); }
+.gn.gg.sel { box-shadow: 0 0 0 1px var(--cv-acc), 5px 5px 0 0 var(--cv-acc); }
+.gn.gg .gn-hd { align-items: center; }
+.gv.far .gg-open { display: none; }
 .ge path { fill: none; }
 .ge-line { stroke: var(--gv-edge); stroke-width: 2; pointer-events: none; }
 .ge-hit { stroke: transparent; stroke-width: 14; cursor: pointer; pointer-events: stroke; }
@@ -2028,6 +2049,16 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
 .gv-acts button { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 7px; border-radius: 0; min-height: 0; }
 .gv-acts button .ic { width: 13px; height: 13px; }
 .gv-acts button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.gv-bnote { margin: 0; padding: 2px 8px 4px; color: var(--muted); font-size: 11px; }
+.gv-gname { flex: 1; min-width: 0; max-width: 170px; border-radius: 0; font-size: 12px; padding: 3px 5px; }
+/* Réglages spéciaux de la machine (G5), ceux de la fiche S62, à la ligne dans la bulle étroite. */
+.gv-bx { padding: 4px 8px 6px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 11px; line-height: 1.8; }
+.gv-bx[hidden] { display: none; }
+.gv-bx-h { flex-basis: 100%; margin: 0; color: var(--muted); }
+.gv-bx .mset { display: inline; }
+.gv-bx select { max-width: 100%; font-size: 11px; }
+.gv-bx input[type="text"] { width: 4.5em; border-radius: 0; font: 11px var(--f-mono); padding: 1px 3px; }
+.gv-bx .flow-hud-btn { font-size: 11px; padding: 1px 6px; min-height: 0; border-radius: 0; }
 
 /* Sélecteur de recettes : la palette S61, chaque recette dessinée « entrées → machine → sorties ». */
 .gv-pick-box { border-radius: 0; }

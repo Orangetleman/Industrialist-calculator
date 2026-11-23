@@ -10,7 +10,7 @@ import type { GameData } from "../data.ts";
 import { solve, type Plan, type PlayerState, type SolveRequest } from "../solve.ts";
 import { ENERGY } from "../resources.ts";
 import { COL_W, ROW_H } from "./from-plan.ts";
-import { edgeId, nextNodeId, type Graph, type GraphEdge, type GraphNode, type NodeId } from "./model.ts";
+import { edgeId, nextNodeId, pruneGroups, type Graph, type GraphEdge, type GraphNode, type NodeId } from "./model.ts";
 
 const ceilTol = (x: number) => Math.ceil(x - 1e-9);
 
@@ -140,5 +140,6 @@ export function applyComparison(g: Graph, plan: Plan, cmp: GraphComparison, opts
     if (!edges.some((x) => x.id === id)) edges = [...edges, { id, from, to, item: e.item }];
   }
   const target = g.target && !drop.has(g.target.node) ? g.target : null;
-  return { nodes, edges, target, rate: target ? cmp.rate.after : g.rate };
+  // Les groupes (G5) restent ; un groupe vidé par « Retirer les nœuds plus utilisés » disparaît.
+  return pruneGroups({ nodes, edges, target, rate: target ? cmp.rate.after : g.rate, ...(g.groups ? { groups: g.groups } : {}) });
 }

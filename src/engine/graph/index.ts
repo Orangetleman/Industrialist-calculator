@@ -7,3 +7,5 @@ export { planToGraph, type PlanGraph } from "./from-plan.ts";
 export { graphToRequest, solveFromGraph, compareWithPlan, applyComparison, type GraphRequest, type GraphSolve, type GraphComparison, type NodeChange } from "./solve-from-graph.ts";
 export { writeGraphFile, readGraphFile, GRAPH_FORMAT, GRAPH_VERSION, type FileWarning } from "./file.ts";
 export { exportPollywrath, invertPollywrathMap, type PollywrathExport, type PollywrathSave, type PollywrathMapFile } from "./pollywrath-export.ts";
+export { groupCommand, groupPorts, proxyMember, collapsedOwners, liveGroups, membersOf, nextGroupId, type ProxyPort } from "./groups.ts";
+export { pollywrathToGraph, type PollywrathGraph } from "./pollywrath-graph.ts";
