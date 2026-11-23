@@ -10,9 +10,9 @@ import type { DieselConfig } from "../engine/modular-calc.ts";
 import type { Criterion } from "../engine/choose.ts";
 import { ENERGY, POLLUTION } from "../engine/resources.ts";
 import type { Plan, Step, Unresolved, Warning } from "../engine/solve.ts";
-import { FH, FW, flowLabel, LABEL_H, layoutFlow } from "./flow-layout.ts";
+import { flowLabel } from "./flow-layout.ts";
 import { colon, esc, fmt, fmtDuration, fmtMF, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, semi } from "./format.ts";
-import { icon, iconAt, withIcons } from "./icons.ts";
+import { icon, withIcons } from "./icons.ts";
 import { joinList, t, type Key } from "../i18n/i18n.ts";
 import { designLine, researchAddBlock, researchAlternatives, researchExplain, researchHowBlock, researchMergeNote, researchTimeline, STATION_KIND, type ResearchView } from "./research-plan.ts";
 import { accessButton, itemN, leafText, lockText, machineN, nodeN, ownButton, recipeSelect, recipeText, sourceLink, unlockButton, type Ctx } from "./render.ts";
@@ -20,7 +20,7 @@ import { planKey, planMachines, type Goal } from "./state.ts";
 import { verifyHref } from "./recipes-view.ts";
 import type { Interfaces, MachineSettings } from "../engine/interfaces.ts";
 import { renderScreenInputs, settingChips, settingLines } from "./iface-view.ts";
-import { doubtText, fieldWord, fixAttr, stepWarnings, warnButton, warnChips } from "./plan-bar.ts";
+import { stepWarnings, warnButton, warnChips } from "./plan-bar.ts";
 import { txt, txtHtml } from "./engine-text.ts";
 
 /** `fresh` : rien n'est encore renseigné dans Mon usine (partie neuve supposée). */
@@ -49,7 +49,6 @@ export function criterionHint(goal: Goal, c: Criterion): string {
 const plural = (key: Key, n: number) => t(key, { n: Math.round(n) });
 const pctText = (x: number, d = 0) => fmtPct(fmt(x * 100, d));
 const fmtRate = (x: number) => fmt(x, x >= 100 ? 0 : x >= 10 ? 1 : 2);
-const trunc = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 /** Pollution lisible : « 33 %/h », « 1,1 %/h », « 0,17 %/h » (fourchette si elle varie ; « 33%/h » en anglais). */
 function fmtPol(p: [number, number]): string {
   const f = (x: number) => fmt(x, Math.abs(x) >= 10 ? 0 : Math.abs(x) >= 1 ? 1 : 2);
@@ -674,66 +673,6 @@ export function renderFixBar(v: ViewCtx): string {
       ? `<p class="big">${t("fix.none")}</p>`
       : `<p class="big">${t("fix.rate", { x: esc(rateText(f.rate)) })}${Math.abs(f.rate - f.baseRate) > 1e-9 * f.baseRate ? ` <span class="muted">${t("fix.rate.instead", { x: esc(rateText(f.baseRate)) })}</span>` : ""}</p>`;
   return `<div class="fixbar" role="status"><div>${head}${lines.join("")}</div><button type="button" data-fix-reset>${t("fix.reset")}</button></div>`;
-}
-
-/** Schéma des flux (SVG), à placer dans un cadre navigable. */
-export function renderFlow(v: ViewCtx): { svg: string; width: number; height: number } | null {
-  const p = v.plan;
-  if (!p.steps.length && !p.unresolved.length) return null;
-  const L = layoutFlow(p, (id) => itemN(v, id));
-  const steps = new Map(p.steps.map((s) => [s.key, s]));
-  const unres = new Map(p.unresolved.map((u) => [u.item, u]));
-  const existing = new Map(p.existing.map((x) => [x.key, x]));
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.width} ${L.height}" role="img" aria-label="${esc(t("pv.flow.aria"))}">
-<defs><marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="fa"/></marker></defs>`;
-  L.edges.forEach((e, i) => {
-    s += `<path d="${e.d}" class="fe${e.loop ? " loop" : ""}" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" marker-end="url(#fa)"/>`;
-  });
-  // Zones de survol larges et invisibles : une flèche fine se survole et se sélectionne facilement.
-  L.edges.forEach((e, i) => {
-    const tip = `${itemN(v, e.item)}${colon()}${flowLabel(e.perMin)}${e.loop ? t("pv.flow.loopTip") : ""}`;
-    s += `<path d="${e.d}" class="fe-hit" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" data-item="${esc(e.item)}" data-rate="${e.perMin}"${e.loop ? ' data-loop="1"' : ""}><title>${esc(tip)}</title></path>`;
-  });
-  for (const n of L.nodes) {
-    const st = steps.get(n.id);
-    const u = unres.get(n.id);
-    const ex = existing.get(n.id);
-    const name = itemN(v, st?.item ?? ex?.item ?? n.id);
-    const final = n.kind === "final";
-    let sub: string;
-    if (ex) sub = t("pv.flow.existing", { x: fmtRate(ex.used) });
-    else if (st?.machineKind === "farm") sub = `≈ ${st.machines} × ${machineN(v, st.machine)}`;
-    else if (st?.parts) sub = st.parts.map((q) => `${q.count} ${machineN(v, q.machine)}`).join(" + ");
-    else if (st) sub = `${st.machines} × ${machineN(v, st.machine)}`;
-    else sub = t(u?.loopShortfall ? "pv.flow.loopMargin" : "pv.flow.missing");
-    const rate = final && st ? (st.item === ENERGY ? fmtMF(-(st.energyAvg ?? 0)) : `${fmtRate(st.demandPerMin)}/min`) : "";
-    const tip = st
-      ? `${name} — ${st.parts ? sub : `${st.machines} × ${machineN(v, st.machine)}`}, ${st.item === ENERGY ? fmtMF(-(st.energyAvg ?? 0)) : `${fmtRate(st.demandPerMin)}/min`}${st.energyAvg !== null && st.energyAvg > 0 ? `, ${fmtMF(st.energyAvg)}` : ""}`
-      : ex
-        ? t("pv.flow.existingTip", { name, used: fmtRate(ex.used), available: fmtRate(ex.available) })
-        : `${name} — ${u ? (leafText(u.reason)) : ""}`;
-    // Machines fixées (S8) : cadre en tirets ; celle qui limite en orange, les autres avec leur utilisation.
-    const fx = p.fixed?.steps.find((x) => x.key === n.id);
-    const limit = !!fx && p.fixed!.limit === n.id;
-    const fixedText = t("pv.flow.fixed");
-    if (fx) sub += fixedText;
-    const tag = fx ? (limit ? t("pv.flow.limit") : pctText(fx.utilization)) : "";
-    // Valeur à vérifier (S28) : un ⚠ cliquable qui ouvre la correction de la première.
-    const doubts = st ? stepWarnings(v, st) : [];
-    const warn = doubts.length
-      ? `<g class="fn-warn" ${fixAttr(doubts[0]!)} role="button" aria-label="${esc(t("pv.flow.warn.aria", { name }))}"><title>${esc(t("pv.flow.warn.title", { list: doubts.map((d) => `${fieldWord(v, d.flag.field)} (${doubtText(d.flag)})`).join(semi()) }))}</title><rect x="${n.x + FW - 30}" y="${n.y + 28}" width="26" height="24" rx="6"/>${iconAt("warn", n.x + FW - 26, n.y + 31, 18)}</g>`
-      : "";
-    const fixTip = fx ? `${t("pv.flow.fixTip", { n: fx.machines })}${limit ? t("pv.flow.isLimit") : t("pv.flow.usedAt", { n: fx.machines, pct: pctText(fx.utilization, 1) })}` : "";
-    s += `<g class="fn ${n.kind}${fx ? " fixed" : ""}${limit ? " limit" : ""}" data-key="${esc(n.id)}"><title>${esc(tip + fixTip)}</title><rect x="${n.x}" y="${n.y}" width="${FW}" height="${FH}" rx="9"/>
-<g class="fn-near"><text class="fn-name" x="${n.x + 12}" y="${n.y + 23}">${esc(trunc(name, rate || tag ? 14 : 23))}</text>${rate ? `<text class="fn-rate" x="${n.x + FW - 10}" y="${n.y + 23}" text-anchor="end">${esc(rate)}</text>` : tag ? `<text class="fn-tag${limit ? " limit" : ""}" x="${n.x + FW - 10}" y="${n.y + 21}" text-anchor="end">${esc(tag)}</text>` : ""}
-<text class="fn-sub" x="${n.x + 12}" y="${n.y + 42}">${esc(trunc(sub, doubts.length ? 22 : 26))}</text></g>
-<g class="fn-far" aria-hidden="true"><text class="fn-fname" x="${n.x + 9}" y="${n.y + 27}">${esc(trunc(name, 12))}</text><text class="fn-fsub" x="${n.x + 9}" y="${n.y + 50}">${esc(trunc(rate || (fx && sub.endsWith(fixedText) ? sub.slice(0, -fixedText.length) + fixedText.replace(" · ", " ·") : sub), doubts.length ? 12 : 15))}</text></g>${warn}</g>`;
-  }
-  for (const [i, e] of L.edges.entries()) {
-    // Étiquette sur deux lignes : le produit, puis son débit (nom entier au survol).
-    s += `<g class="fl" data-edge="${i}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"><title>${esc(`${itemN(v, e.item)}${colon()}${flowLabel(e.perMin)}`)}</title><rect x="${(e.lx - e.lw / 2).toFixed(1)}" y="${(e.ly - LABEL_H / 2).toFixed(1)}" width="${e.lw.toFixed(1)}" height="${LABEL_H}" rx="8"/><text class="fl-name" x="${e.lx.toFixed(1)}" y="${(e.ly - 2).toFixed(1)}" text-anchor="middle">${esc(e.name)}</text><text x="${e.lx.toFixed(1)}" y="${(e.ly + 10).toFixed(1)}" text-anchor="middle">${esc(flowLabel(e.perMin))}</text></g>`;
-  }
-  return { svg: s + "</svg>", width: L.width, height: L.height };
 }
 
 // ---------------------------------------------------------------- détails

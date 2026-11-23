@@ -45,6 +45,7 @@ import {
   type GraphBalance,
   type GraphCommand,
   type GraphEdge,
+  type GraphNode,
   type GraphWorld,
   type Mode,
   type NodeId,
@@ -116,7 +117,7 @@ export type GraphViewOptions = {
 
 type Pt = { x: number; y: number };
 type NodeGeom = { w: number; h: number; ins: Map<string, Pt>; outs: Map<string, Pt> };
-type EdgeEls = { g: SVGGElement; hit: SVGPathElement; line: SVGPathElement; lab: SVGGElement; rect: SVGRectElement; text: SVGTextElement };
+type EdgeEls = { g: SVGGElement; hit: SVGPathElement; line: SVGPathElement; lab: SVGGElement; rect: SVGRectElement; text: SVGTextElement; title: SVGTitleElement };
 type Cand = Pt & { ref: PortRef };
 type Press = {
   kind: "node" | "bg" | "port";
@@ -190,6 +191,12 @@ export class GraphView {
   private nodeEls = new Map<NodeId, HTMLElement>();
   private geom = new Map<NodeId, NodeGeom>();
   private edgeEls = new Map<string, EdgeEls>();
+  /** HTML de chaque boîte affichée (nœud, ou `@groupe` replié), pour ne remplacer que celles qui changent. */
+  private boxHtml = new Map<string, string>();
+  /** HTML d'un nœud selon sa clé (recette, nombre, place, équilibre de ses prises…) : rien à refaire s'il n'a pas bougé. */
+  private nodeCache = new Map<NodeId, { key: string; html: string }>();
+  /** Signature de chaque liaison dessinée (débit, manque) : seules celles qui changent se réécrivent. */
+  private edgeSig = new Map<string, string>();
   /** Nœuds sélectionnés ; `sel` est celui de la bulle et de la fiche (sélection d'un seul). */
   private sels = new Set<NodeId>();
   private sel: NodeId | null = null;
@@ -333,7 +340,7 @@ export class GraphView {
     }
     this.g = g;
     this.texts();
-    this.render();
+    this.render(true);
     this.pz.attachWorld(this.worldEl, this.contentBox(), keepView);
   }
 
@@ -481,57 +488,43 @@ export class GraphView {
     return { x: x0 - m, y: y0 - m, w: x1 - x0 + 2 * m, h: y1 - y0 + 2 * m };
   }
 
-  private render(): void {
+  /**
+   * Dessine le graphe. Quand les boîtes affichées sont les mêmes qu'avant (une liaison ajoutée ou
+   * retirée, un nombre, une cible…), seules les boîtes et les liaisons qui ont changé se réécrivent et se
+   * remesurent : sur 400 nœuds, tout reconstruire coûtait plus de 200 ms au relâcher d'une liaison (G6).
+   * `full` force la reconstruction (langue, données, document neuf).
+   */
+  private render(full = false): void {
     const g = this.g!;
-    const { data, text: T } = this.opts;
-    const world = this.opts.world();
-    this.bal = balanceGraph(g, data, world);
-    const bal = this.bal;
-    const html: string[] = [];
-    const rowIn = t("gv.row.in");
-    const rowOut = t("gv.row.out");
+    this.bal = balanceGraph(g, this.opts.data, this.opts.world());
     this.owners = collapsedOwners(g);
+    const boxes: [string, string][] = [];
+    if (full) this.nodeCache.clear();
     for (const n of g.nodes) {
-      if (this.owners.has(n.id)) continue; // caché dans son groupe replié
-      const p = recipePorts(data, n.recipeId, world);
-      const nb = bal.nodes.get(n.id)!;
-      const main = mainOutput(data, n.recipeId, world);
-      const product = T.item(main ?? n.recipeId);
-      const machineId = p.eff?.recipe.machine ?? "";
-      const machine = machineId ? T.machine(machineId) : "";
-      const count = Math.ceil(n.machines - 1e-9);
-      const facts = [
-        p.eff?.durationS ? `<span>${esc(T.cycle(p.eff.durationS))}</span>` : "",
-        nb.energyMFps ? `<span>${esc(T.energy(nb.energyMFps))}</span>` : "",
-        nb.pollutionPerHour ? `<span>${esc(T.pollution(nb.pollutionPerHour))}</span>` : "",
-      ].join("");
-      const ins = nb.ins
-        .map((pb) => {
-          const cls = pb.perMin - pb.flow <= EPS ? "" : pb.links === 0 ? " miss" : " part";
-          const tip = cls === " miss" ? T.missing : cls === " part" ? T.partial(T.rate(pb.flow), T.rate(pb.perMin)) : T.item(pb.item);
-          return `<div class="gn-row${cls}" data-dir="in" data-item="${esc(pb.item)}" title="${esc(`${tip} · ${rowIn}`)}"><i class="gn-port" data-dir="in" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`;
-        })
-        .join("");
-      const outs = nb.outs
-        .map((pb) => `<div class="gn-row" data-dir="out" data-item="${esc(pb.item)}" title="${esc(`${T.item(pb.item)} · ${rowOut}`)}"><i class="gn-port" data-dir="out" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`)
-        .join("");
-      const target = g.target?.node === n.id;
-      const lock = n.fixed ? `<span class="gn-lock" title="${esc(T.fixed)}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>` : "";
-      html.push(
-        `<div class="gn${target ? " target" : ""}${n.fixed ? " fixed" : ""}${this.sels.has(n.id) ? " sel" : ""}" data-id="${esc(n.id)}" data-target="${esc(T.target)}" style="transform:translate(${n.x}px,${n.y}px)" tabindex="0" role="button" aria-label="${esc(T.nodeAria(product, count, machine))}">` +
-          `<div class="gn-hd"><b>${esc(product)}</b>${this.opts.badge?.(n.id) ?? ""}${lock}<span class="gn-n"><small>×</small>${count}</span></div>` +
-          `<div class="gn-m"><span>${esc(machine)}</span>${facts}</div>` +
-          `<div class="gn-io"><div class="gn-col i">${ins}</div><div class="gn-col o">${outs}</div></div></div>`,
-      );
+      if (this.owners.has(n.id)) continue;
+      const nb = this.bal.nodes.get(n.id)!;
+      const badge = this.opts.badge?.(n.id) ?? "";
+      const key = [
+        n.recipeId, n.machines, n.x, n.y, n.fixed ? 1 : 0, g.target?.node === n.id ? 1 : 0, badge, nb.energyMFps, nb.pollutionPerHour,
+        nb.ins.map((p) => `${p.item}:${p.perMin}:${p.flow}:${p.links}`).join(","),
+        nb.outs.map((p) => `${p.item}:${p.perMin}`).join(","),
+      ].join("|");
+      let c = this.nodeCache.get(n.id);
+      if (c?.key !== key) this.nodeCache.set(n.id, (c = { key, html: this.nodeBox(n, badge) }));
+      boxes.push([n.id, c.html]);
     }
-    for (const grp of liveGroups(g)) if (grp.collapsed) html.push(this.groupBox(grp.id, grp.name));
-    this.nodesEl.innerHTML = html.join("");
-    const kids = [...this.nodesEl.children] as HTMLElement[];
-    this.nodeEls = new Map(kids.filter((el) => el.dataset.id).map((el) => [el.dataset.id!, el]));
-    this.groupEls = new Map(kids.filter((el) => el.dataset.group).map((el) => [el.dataset.group!, el]));
-    this.measure();
+    for (const grp of liveGroups(g)) if (grp.collapsed) boxes.push([`@${grp.id}`, this.groupBox(grp.id, grp.name)]);
+    const changed = full ? null : this.patchBoxes(boxes);
+    if (!changed) {
+      this.nodesEl.innerHTML = boxes.map((b) => b[1]).join("");
+      this.boxHtml = new Map(boxes);
+      const kids = [...this.nodesEl.children] as HTMLElement[];
+      this.nodeEls = new Map(kids.filter((el) => el.dataset.id).map((el) => [el.dataset.id!, el]));
+      this.groupEls = new Map(kids.filter((el) => el.dataset.group).map((el) => [el.dataset.group!, el]));
+      this.measure();
+    } else this.measure(changed);
     this.drawFrames();
-    this.drawEdges();
+    this.drawEdges(changed);
     this.applySel();
     if (this.armed) this.portEl(this.armed)?.classList.add("arm");
     this.voidEl.hidden = g.nodes.length > 0;
@@ -539,10 +532,78 @@ export class GraphView {
     this.syncBubble();
   }
 
-  /** Prises de chaque nœud, relevées une fois (le rendu) : un glisser ne relit plus le DOM. */
-  private measure(): void {
-    this.geom.clear();
+  /**
+   * Mêmes boîtes, dans le même ordre : remplace celles dont le HTML a changé et rend leurs clés ; sinon
+   * (nœud ajouté, retiré, groupe replié…) rend `null`, et tout se reconstruit.
+   */
+  private patchBoxes(boxes: [string, string][]): Set<string> | null {
+    if (boxes.length !== this.boxHtml.size) return null;
+    const keys = [...this.boxHtml.keys()];
+    if (boxes.some(([k], i) => keys[i] !== k)) return null;
+    const changed = new Set<string>();
+    const tpl = document.createElement("template");
+    for (const [k, html] of boxes) {
+      if (this.boxHtml.get(k) === html) continue;
+      const old = k.startsWith("@") ? this.groupEls.get(k.slice(1)) : this.nodeEls.get(k);
+      if (!old) return null;
+      tpl.innerHTML = html;
+      const el = tpl.content.firstElementChild as HTMLElement;
+      const focused = document.activeElement === old;
+      old.replaceWith(el);
+      if (focused) el.focus({ preventScroll: true });
+      if (k.startsWith("@")) this.groupEls.set(k.slice(1), el);
+      else this.nodeEls.set(k, el);
+      this.boxHtml.set(k, html);
+      changed.add(k);
+    }
+    return changed;
+  }
+
+  /** HTML d'un nœud : sa recette au débit courant (en-tête, machine, lignes d'entrées et de sorties). */
+  private nodeBox(n: GraphNode, badge: string): string {
+    const g = this.g!;
+    const { data, text: T } = this.opts;
+    const world = this.opts.world();
+    const bal = this.bal!;
+    const rowIn = t("gv.row.in");
+    const rowOut = t("gv.row.out");
+    const p = recipePorts(data, n.recipeId, world);
+    const nb = bal.nodes.get(n.id)!;
+    const main = mainOutput(data, n.recipeId, world);
+    const product = T.item(main ?? n.recipeId);
+    const machineId = p.eff?.recipe.machine ?? "";
+    const machine = machineId ? T.machine(machineId) : "";
+    const count = Math.ceil(n.machines - 1e-9);
+    const facts = [
+      p.eff?.durationS ? `<span>${esc(T.cycle(p.eff.durationS))}</span>` : "",
+      nb.energyMFps ? `<span>${esc(T.energy(nb.energyMFps))}</span>` : "",
+      nb.pollutionPerHour ? `<span>${esc(T.pollution(nb.pollutionPerHour))}</span>` : "",
+    ].join("");
+    const ins = nb.ins
+      .map((pb) => {
+        const cls = pb.perMin - pb.flow <= EPS ? "" : pb.links === 0 ? " miss" : " part";
+        const tip = cls === " miss" ? T.missing : cls === " part" ? T.partial(T.rate(pb.flow), T.rate(pb.perMin)) : T.item(pb.item);
+        return `<div class="gn-row${cls}" data-dir="in" data-item="${esc(pb.item)}" title="${esc(`${tip} · ${rowIn}`)}"><i class="gn-port" data-dir="in" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`;
+      })
+      .join("");
+    const outs = nb.outs
+      .map((pb) => `<div class="gn-row" data-dir="out" data-item="${esc(pb.item)}" title="${esc(`${T.item(pb.item)} · ${rowOut}`)}"><i class="gn-port" data-dir="out" data-item="${esc(pb.item)}"></i><span class="q">${esc(T.rate(pb.perMin))}</span><span class="it">${esc(T.item(pb.item))}</span></div>`)
+      .join("");
+    const target = g.target?.node === n.id;
+    const lock = n.fixed ? `<span class="gn-lock" title="${esc(T.fixed)}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>` : "";
+    return (
+      `<div class="gn${target ? " target" : ""}${n.fixed ? " fixed" : ""}" data-id="${esc(n.id)}" data-target="${esc(T.target)}" style="transform:translate(${n.x}px,${n.y}px)" tabindex="0" role="button" aria-label="${esc(T.nodeAria(product, count, machine))}">` +
+        `<div class="gn-hd"><b>${esc(product)}</b>${badge}${lock}<span class="gn-n"><small>×</small>${count}</span></div>` +
+        `<div class="gn-m"><span>${esc(machine)}</span>${facts}</div>` +
+        `<div class="gn-io"><div class="gn-col i">${ins}</div><div class="gn-col o">${outs}</div></div></div>`
+    );
+  }
+
+  /** Prises de chaque nœud, relevées une fois (le rendu) : un glisser ne relit plus le DOM. `only` : ces boîtes-là. */
+  private measure(only?: Set<string>): void {
+    if (!only) this.geom.clear();
     for (const [id, el] of this.nodeEls) {
+      if (only && !only.has(id)) continue;
       const gm: NodeGeom = { w: el.offsetWidth, h: el.offsetHeight, ins: new Map(), outs: new Map() };
       for (const port of el.querySelectorAll<HTMLElement>(".gn-port")) {
         const dir = port.dataset.dir === "in" ? gm.ins : gm.outs;
@@ -552,6 +613,7 @@ export class GraphView {
       this.geom.set(id, gm);
     }
     for (const [gid, el] of this.groupEls) {
+      if (only && !only.has(`@${gid}`)) continue;
       const gm: NodeGeom = { w: el.offsetWidth, h: el.offsetHeight, ins: new Map(), outs: new Map() };
       for (const port of el.querySelectorAll<HTMLElement>(".gn-port")) {
         const dir = port.dataset.dir === "in" ? gm.ins : gm.outs;
@@ -626,7 +688,7 @@ export class GraphView {
       .join("");
     const target = !!g.target && g.nodes.find((x) => x.id === g.target!.node)?.group === gid;
     return (
-      `<div class="gn gg${target ? " target" : ""}${this.gsel === gid ? " sel" : ""}" data-group="${esc(gid)}" data-target="${esc(T.target)}" style="transform:translate(${p.x}px,${p.y}px)" tabindex="0" role="button" aria-label="${esc(t("gv.g.aria", { name, n }))}">` +
+      `<div class="gn gg${target ? " target" : ""}" data-group="${esc(gid)}" data-target="${esc(T.target)}" style="transform:translate(${p.x}px,${p.y}px)" tabindex="0" role="button" aria-label="${esc(t("gv.g.aria", { name, n }))}">` +
       `<div class="gn-hd"><b>${esc(name)}</b><button type="button" class="gg-open" data-gopen="${esc(gid)}" title="${esc(t("gv.g.open"))}" aria-label="${esc(t("gv.g.open"))}">${icon("more")}</button></div>` +
       `<div class="gn-m"><span>${esc(t("gv.g.count", { n }))}</span></div>` +
       `<div class="gn-io"><div class="gn-col i">${ins}</div><div class="gn-col o">${outs}</div></div></div>`
@@ -682,42 +744,73 @@ export class GraphView {
     this.exec({ type: "setGroup", id: gid, collapsed });
   }
 
-  private drawEdges(): void {
+  /**
+   * Liaisons, sous les nœuds. `changed` (rendu partiel) : les liaisons gardées ne se réécrivent que si leur
+   * débit ou leur manque change, et ne se replacent que si l'une de leurs boîtes a changé.
+   */
+  private drawEdges(changed: Set<string> | null = null): void {
     const g = this.g!;
-    this.svg.replaceChildren();
-    this.edgeEls.clear();
+    if (!changed) {
+      this.svg.replaceChildren();
+      this.edgeEls.clear();
+      this.edgeSig.clear();
+    }
+    const live = new Set<string>();
+    const boxKey = (id: NodeId) => {
+      const gid = this.owners.get(id);
+      return gid ? `@${gid}` : id;
+    };
     for (const e of g.edges) {
-      const g0 = document.createElementNS(SVG, "g");
-      g0.classList.add("ge");
-      g0.dataset.edge = e.id;
-      const title = document.createElementNS(SVG, "title");
-      const hit = document.createElementNS(SVG, "path");
-      hit.classList.add("ge-hit");
-      const line = document.createElementNS(SVG, "path");
-      line.classList.add("ge-line");
-      const lab = document.createElementNS(SVG, "g");
-      lab.classList.add("ge-lab");
-      const rect = document.createElementNS(SVG, "rect");
-      rect.setAttribute("height", "16");
-      const text = document.createElementNS(SVG, "text");
-      lab.append(rect, text);
-      g0.append(title, hit, line, lab);
+      live.add(e.id);
       const flow = this.bal!.edges.get(e.id) ?? 0;
       const into = this.bal!.nodes.get(e.to)?.ins.find((p) => p.item === e.item);
-      if (into && into.perMin - into.flow > EPS) g0.classList.add("short");
+      const short = !!into && into.perMin - into.flow > EPS;
       const label = this.opts.text.rate(flow);
-      text.textContent = label;
-      title.textContent = `${this.opts.text.item(e.item)} : ${label}`;
-      const w = label.length * 6.6 + 10;
-      rect.setAttribute("width", String(w));
-      text.setAttribute("x", "5");
-      text.setAttribute("y", "12");
-      this.svg.append(g0);
-      this.edgeEls.set(e.id, { g: g0, hit, line, lab, rect, text });
+      const sig = `${e.from}|${e.to}|${e.item}|${label}|${short ? 1 : 0}`;
+      let els = this.edgeEls.get(e.id);
+      if (!els) {
+        els = this.makeEdge(e.id);
+        this.svg.append(els.g);
+        this.edgeEls.set(e.id, els);
+      } else if (this.edgeSig.get(e.id) === sig && changed && !changed.has(boxKey(e.from)) && !changed.has(boxKey(e.to))) continue;
+      if (this.edgeSig.get(e.id) !== sig) {
+        this.edgeSig.set(e.id, sig);
+        els.g.classList.toggle("short", short);
+        els.text.textContent = label;
+        els.title.textContent = `${this.opts.text.item(e.item)} : ${label}`;
+        els.rect.setAttribute("width", String(label.length * 6.6 + 10));
+      }
       this.placeEdge(e);
+    }
+    for (const [id, els] of this.edgeEls) {
+      if (live.has(id)) continue;
+      els.g.remove();
+      this.edgeEls.delete(id);
+      this.edgeSig.delete(id);
     }
     this.tmp.removeAttribute("d");
     this.svg.append(this.tmp);
+  }
+
+  private makeEdge(id: string): EdgeEls {
+    const g0 = document.createElementNS(SVG, "g");
+    g0.classList.add("ge");
+    g0.dataset.edge = id;
+    const title = document.createElementNS(SVG, "title");
+    const hit = document.createElementNS(SVG, "path");
+    hit.classList.add("ge-hit");
+    const line = document.createElementNS(SVG, "path");
+    line.classList.add("ge-line");
+    const lab = document.createElementNS(SVG, "g");
+    lab.classList.add("ge-lab");
+    const rect = document.createElementNS(SVG, "rect");
+    rect.setAttribute("height", "16");
+    const text = document.createElementNS(SVG, "text");
+    text.setAttribute("x", "5");
+    text.setAttribute("y", "12");
+    lab.append(rect, text);
+    g0.append(title, hit, line, lab);
+    return { g: g0, hit, line, lab, rect, text, title };
   }
 
   private placeEdge(e: GraphEdge): void {
@@ -763,8 +856,9 @@ export class GraphView {
     for (const [nid, el] of this.nodeEls) el.classList.toggle("sel", this.sels.has(nid));
     for (const [gid, el] of this.groupEls) el.classList.toggle("sel", this.gsel === gid || [...this.sels].some((id) => this.owners.get(id) === gid));
     for (const [gid, el] of this.frameEls) el.classList.toggle("sel", this.gsel === gid);
+    const edges = new Map(this.g!.edges.map((x) => [x.id, x]));
     for (const [eid, els] of this.edgeEls) {
-      const e = this.g!.edges.find((x) => x.id === eid);
+      const e = edges.get(eid);
       els.g.classList.toggle("hl", !!e && (this.sels.has(e.from) || this.sels.has(e.to)));
       els.g.classList.toggle("on", eid === this.edgeSel);
     }

@@ -1728,6 +1728,8 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
   Test du parcours Gearbox modifié → recalculé → posé → .msch ; vrais clics à 1400 et 375 px ; 2 défauts corrigés ; tracé de liaison à 400 nœuds : relâcher 61-72 → 22-33 ms (fenêtre non affichée pendant la mesure). Suite : G5 sur feu vert.
 - **2026-11-23, G5** (797 tests, déployé) : groupes repliables (Grouper / Ctrl G, prises mandataires, annulables, gardés par Appliquer) ; bouton Fichier du canevas : import d'un graphe Industrialist Calculator ouvert tel quel, export de leur `…_save.json` (recettes sans équivalent signalées) ; réglages écran / diesel / Mineshaft dans la bulle ; case « Modifier la proposition » (6 étapes) ; anglais ; mention discrète (pied de page, Méthodes).
   Vrais clics : tutoriel FR (1400 et 375 px) et EN de bout en bout, groupes, export, import, bulle ; 7 défauts trouvés à la main et corrigés. Tracé de liaison à 400 nœuds, panneau affiché : 16,7 ms par image, relâcher 209-223 ms (à alléger en G6). Suite : G6 sur feu vert.
+- **2026-11-23, G6** (796 tests, déployé) : ancien Schéma retiré (`renderFlow`, 24 textes, CSS `.fn` / `.fe` / `.fl`, tests ajustés) ; rendu partiel de l'éditeur (seuls les nœuds et liaisons qui changent se réécrivent) : relâcher d'une liaison à 400 nœuds 156-216 → 39-50 ms de script, 212-285 → 70-89 ms jusqu'à l'image (panneau affiché).
+  Parcours chronométrés notés au § 7 de PLAN-GRAPHE.md (1400 px : 13,4 s / 40,8 s / 16,3 s / 8,5 s ; 375 px : 17,0 s / 12,8 s) ; 4 remarques d'ergonomie relevées pour plus tard. Fin des lots G.
 
 ## 7. Gestion des sessions
 

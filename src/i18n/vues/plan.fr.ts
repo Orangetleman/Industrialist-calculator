@@ -90,19 +90,7 @@ export const planFr = {
   "pv.sets": "Tu peux régler :",
 
   // ------------------------------------------------------------ schéma (SVG)
-  "pv.flow.aria": "Schéma des flux, des matières premières (à gauche) vers l'objectif (à droite)",
-  "pv.flow.loopTip": " (boucle : sous-produit qui remonte la chaîne)",
-  "pv.flow.existing": "déjà en place · {x}/min",
-  "pv.flow.loopMargin": "boucle : marge à prévoir",
   "pv.flow.missing": "non produit",
-  "pv.flow.existingTip": "{name} — ta production existante : {used} sur {available} par min",
-  "pv.flow.fixed": " · fixé",
-  "pv.flow.limit": "limite",
-  "pv.flow.warn.aria": "Valeur à vérifier : corriger ({name})",
-  "pv.flow.warn.title": "À vérifier : {list} — clique pour corriger",
-  "pv.flow.fixTip": { one: " — {n} fixée", other: " — {n} fixées" },
-  "pv.flow.isLimit": ", c'est l'étape qui limite",
-  "pv.flow.usedAt": { one: ", utilisée à {pct}", other: ", utilisées à {pct}" },
 
   // ------------------------------------------------------------ détails
   "pv.reused": "Sous-produits réutilisés dans la chaîne (rien à évacuer pour eux) : {list}.",

@@ -91,19 +91,7 @@ export const planEn: { [K in keyof typeof planFr]: Msg } = {
   "pv.sets": "You can adjust:",
 
   // ------------------------------------------------------------ schéma (SVG)
-  "pv.flow.aria": "Flow chart, from raw materials (left) to the goal (right)",
-  "pv.flow.loopTip": " (loop: by-product going back up the chain)",
-  "pv.flow.existing": "already in place · {x}/min",
-  "pv.flow.loopMargin": "loop: plan some margin",
   "pv.flow.missing": "not made",
-  "pv.flow.existingTip": "{name} — your existing production: {used} of {available} per min",
-  "pv.flow.fixed": " · fixed",
-  "pv.flow.limit": "limit",
-  "pv.flow.warn.aria": "Unverified value: fix ({name})",
-  "pv.flow.warn.title": "Unverified: {list} — click to fix",
-  "pv.flow.fixTip": { one: " — {n} fixed", other: " — {n} fixed" },
-  "pv.flow.isLimit": ", this is the limiting step",
-  "pv.flow.usedAt": { one: ", used at {pct}", other: ", used at {pct}" },
 
   // ------------------------------------------------------------ détails
   "pv.reused": "By-products reused in the chain (nothing to remove for them): {list}.",

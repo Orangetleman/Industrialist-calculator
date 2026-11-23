@@ -10,7 +10,8 @@ import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import { renderEdgeCalc, renderStepCalc, sourceTag } from "./calc-view.ts";
-import { renderFixBar, renderFlow, renderFlowHud, type ViewCtx } from "./plan-view.ts";
+import { renderFixBar, renderFlowHud, type ViewCtx } from "./plan-view.ts";
+import { planToGraph } from "../engine/graph/from-plan.ts";
 import { DEFAULT_SETTINGS } from "./state.ts";
 
 // Comme le site : données des wikis, énergie, puis les corrections du dépôt (overrides.json).
@@ -158,9 +159,11 @@ describe("machines fixées (S8)", () => {
     expect(bar).toContain("Limitée par Steel Plate : 1 Press MK2 fixée, utilisée à 100 %");
     expect(bar).toContain("Raw Iron : 5 Iron Drill fixées, utilisées à 83,3 % (4,17 suffiraient)");
     expect(renderFixBar(v)).toBe("");
-    const svg = renderFlow(ctx(fixed))!.svg;
-    expect(svg).toContain('class="fn raw fixed" data-key="raw-iron"');
-    expect(svg).toMatch(/class="fn [a-z]+ fixed limit" data-key="steel-plate"/);
+    // Le schéma est l'éditeur de graphe (G2) : les nombres fixés y sont des nœuds à cadenas.
+    const pg = planToGraph(fixed);
+    const node = (k: string) => pg.graph.nodes.find((n) => n.id === pg.nodeOfStep.get(k))!;
+    expect(node("raw-iron")).toMatchObject({ fixed: true, machines: 5 });
+    expect(node("steel-plate")).toMatchObject({ fixed: true, machines: 1 });
     const hud = renderFlowHud(ctx(fixed), "raw-iron", () => "depot");
     expect(hud).toContain('data-mset-input data-key="raw-iron" value="5"');
     expect(hud).toContain("plan : 7");

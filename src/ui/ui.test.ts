@@ -17,7 +17,7 @@ import { setLang } from "../i18n/i18n.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { buildRows, buildSignature, criterionHint, criterionText, renderAnswer, renderBuildList, renderDetails, renderFlow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionText, renderAnswer, renderBuildList, renderDetails, type ViewCtx } from "./plan-view.ts";
 import { renderVerify } from "./render.ts";
 import { currentRp, EMPTY_PLAYER, exportProgress, fitsPlot, parseOptional, parseProgressExport, plotOf, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
@@ -260,11 +260,7 @@ describe("vue d'un plan : réponse, liste de construction, schéma, détails", (
     expect(builtFor(setBuilt(store, "p39", []), "p39").size).toBe(0);
   });
 
-  it("schéma et détails", () => {
-    const f = renderFlow(v)!;
-    expect(f.svg.startsWith("<svg")).toBe(true);
-    expect((f.svg.match(/class="fn /g) ?? []).length).toBe(plan.steps.length);
-    expect(f.svg).toContain('class="fn final"');
+  it("détails", () => {
     const details = renderDetails(v);
     expect(details).toContain('data-force="crankshaft"');
     expect(details).toContain("Remarques sur le calcul");
@@ -274,7 +270,7 @@ describe("vue d'un plan : réponse, liste de construction, schéma, détails", (
     const d = makeData({ recipes: [{ id: "r<x>", machine: "m", t: 10, out: { "<b>evil</b>": 1 } }] });
     const p = solve(d, progress(), { item: "<b>evil</b>", ratePerMin: 6 });
     const w: ViewCtx = { data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {}, goal: "objet" };
-    const html = renderAnswer(w) + renderBuildList(w, buildRows(w), new Set()) + renderFlow(w)!.svg + renderDetails(w);
+    const html = renderAnswer(w) + renderBuildList(w, buildRows(w), new Set()) + renderDetails(w);
     expect(html).not.toContain("<b>evil</b>");
     expect(html).toContain("&lt;b&gt;evil&lt;/b&gt;");
   });

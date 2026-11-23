@@ -1532,7 +1532,8 @@ function graphText(): GraphViewText {
 function stepOfNode(id: string): string | undefined {
   const d = graphDoc;
   const key = d?.stepOf.get(id);
-  const node = d?.g.nodes.find((n) => n.id === id);
+  if (!key) return undefined;
+  const node = d!.g.nodes.find((n) => n.id === id);
   return key && node && d!.plan.steps.find((s) => s.key === key)?.recipeId === node.recipeId ? key : undefined;
 }
 
@@ -1559,9 +1560,10 @@ function renderFlowCanvas(): void {
     text: graphText(),
     reserveRight: FLOW_ZOOM_W,
     badge: (id) => {
-      const vc = viewCtx();
       const key = stepOfNode(id);
-      const st = key ? vc.plan.steps.find((s) => s.key === key) : undefined;
+      if (!key) return ""; // nœud sans étape du plan : rien à vérifier (et pas de contexte à construire, ×400 en charge)
+      const vc = viewCtx();
+      const st = vc.plan.steps.find((s) => s.key === key);
       return st ? warnButton(vc, stepWarnings(vc, st)) : "";
     },
     onSelect: (id) => selectFlow(id ? (stepOfNode(id) ?? null) : null),

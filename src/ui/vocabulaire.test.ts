@@ -14,7 +14,7 @@ import { buildGameData, spacedName, type RawFiles } from "../engine/data.ts";
 import { solve, type Plan } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import { renderStepCalc } from "./calc-view.ts";
-import { buildRows, renderAnswer, renderBuildList, renderDetails, renderFlow, renderFlowHud, type ViewCtx } from "./plan-view.ts";
+import { buildRows, renderAnswer, renderBuildList, renderDetails, renderFlowHud, type ViewCtx } from "./plan-view.ts";
 import { renderItemCard, renderMachineCard } from "./recipes-view.ts";
 import { allVerifyEntries, renderVerify } from "./render.ts";
 import { renderNodeBubble, renderNodeDetail } from "./research-view.ts";
@@ -52,7 +52,7 @@ function problems(text: string): string[] {
 
 const views = (plan: Plan): string[] => {
   const v: ViewCtx = { data, plan, settings: DEFAULT_SETTINGS, corrections: {}, goal: "objet" };
-  const out = [renderAnswer(v), renderBuildList(v, buildRows(v), new Set()), renderFlow(v)?.svg ?? "", renderDetails(v)];
+  const out = [renderAnswer(v), renderBuildList(v, buildRows(v), new Set()), renderDetails(v)];
   for (const s of plan.steps) {
     out.push(renderStepCalc(v, { data }, s.key));
     out.push(renderFlowHud(v, s.key, () => "depot"));
