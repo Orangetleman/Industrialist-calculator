@@ -1041,4 +1041,7 @@ Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md`
   laissée de côté ; notre aperçu disait 80/min et 30/min), excédents Crude Oil 0,889/s et Water 2,22/s (notre
   équilibre : 53,3/min et 133/min), Coal 0,37/s. Aucun autre manque : les 19 liaisons tombent sur les bonnes
   prises (confirme GRA-01 pour ces recettes). Reste ouvert : l'excédent de Coal (non comparé chez nous), les
-  champs de `globalSettings` autres que la pollution, et leurs groupes (ni lus ni écrits, format non relevé).
+  champs de `globalSettings` autres que la pollution. **Groupes (2026-11-24)** : format relevé dans leur dépôt
+  (commit 1c9ff48, `src/types/saves.ts`, `src/persistence/saveMigrations.ts`), lus et écrits ; un export avec un
+  groupe replié chargé dans leur site (groupe replié, 3 membres cachés, même prise mandataire) et leur sauvegarde
+  relue par notre import. Pas essayé chez eux : un groupe déplié (leur site recalcule son cadre).

@@ -23,13 +23,30 @@ export type PollywrathNode = {
   position: { x: number; y: number };
   settings: Record<string, never>;
   isTarget?: true;
+  /** Groupe du nœud (leur nœud de type « group ») ; caché tant que le groupe est replié. */
+  groupId?: string;
+  hidden?: true;
+};
+/**
+ * Leur groupe (src/types/saves.ts, SavedGroupNode, relevé dans leur dépôt au commit 1c9ff48) : un nœud à
+ * part ; ses membres portent `groupId`. Les prises mandataires sont les prises de membres reliées hors du
+ * groupe, « <nœud>-input-<rang> » / « <nœud>-output-<rang> », dans l'ordre des arêtes (leur collapseGroup).
+ */
+export type PollywrathGroupNode = {
+  id: string;
+  type: "group";
+  label: string;
+  collapsed: boolean;
+  inputProxyHandleIds: string[];
+  outputProxyHandleIds: string[];
+  position: { x: number; y: number };
 };
 export type PollywrathEdge = { id: string; source: string; sourceIndex: number; target: string; targetIndex: number };
 export type PollywrathSave = {
   id: string;
   name: string;
   timestamp: number;
-  data: { version: 2; nodes: PollywrathNode[]; edges: PollywrathEdge[]; globalSettings?: { global_pollution: number } };
+  data: { version: 2; nodes: (PollywrathNode | PollywrathGroupNode)[]; edges: PollywrathEdge[]; globalSettings?: { global_pollution: number } };
 };
 
 export type PollywrathExport = {
@@ -86,6 +103,20 @@ export function exportPollywrath(
       ...(g.target?.node === n.id ? { isTarget: true as const } : {}),
     });
   }
+  // Groupes (G5) : ceux qui gardent au moins un nœud exporté ; les membres d'un groupe replié sont cachés.
+  const groups = (g.groups ?? []).filter((x) => g.nodes.some((n) => n.group === x.id && kept.has(n.id)));
+  const groupOf = new Map<NodeId, (typeof groups)[number]>();
+  for (const n of g.nodes) {
+    const grp = groups.find((x) => x.id === n.group);
+    if (grp && kept.has(n.id)) groupOf.set(n.id, grp);
+  }
+  const theirGroup = (gid: string) => `g-${tag}-${gid}`;
+  for (const node of nodes) {
+    const grp = groupOf.get(node.id.slice(`n-${tag}-`.length));
+    if (!grp) continue;
+    node.groupId = theirGroup(grp.id);
+    if (grp.collapsed) node.hidden = true;
+  }
   const edges: PollywrathEdge[] = [];
   let droppedEdges = 0;
   for (const e of g.edges) {
@@ -99,11 +130,33 @@ export function exportPollywrath(
     }
     edges.push({ id: `e-${tag}-${edges.length}`, source: theirId(e.from), sourceIndex, target: theirId(e.to), targetIndex });
   }
+  const groupNodes: PollywrathGroupNode[] = [];
+  for (const grp of groups) {
+    const members = g.nodes.filter((n) => groupOf.get(n.id) === grp);
+    const ins: string[] = [];
+    const outs: string[] = [];
+    for (const e of edges) {
+      const src = members.some((n) => theirId(n.id) === e.source);
+      const dst = members.some((n) => theirId(n.id) === e.target);
+      const h = src && !dst ? `${e.source}-output-${e.sourceIndex}` : !src && dst ? `${e.target}-input-${e.targetIndex}` : null;
+      if (h) (src ? outs : ins).includes(h) || (src ? outs : ins).push(h);
+    }
+    groupNodes.push({
+      id: theirGroup(grp.id),
+      type: "group",
+      label: grp.name,
+      collapsed: !!grp.collapsed,
+      inputProxyHandleIds: ins,
+      outputProxyHandleIds: outs,
+      // Coin haut gauche de ses nœuds (là où notre boîte repliée se pose) ; déplié, leur site le recalcule.
+      position: { x: Math.round(Math.min(...members.map((n) => n.x))), y: Math.round(Math.min(...members.map((n) => n.y))) },
+    });
+  }
   const save: PollywrathSave = {
     id: `save-${tag}-0`,
     name: opts.name?.trim() || "Industrialist",
     timestamp: now,
-    data: { version: 2, nodes, edges, ...(typeof opts.pollutionPct === "number" ? { globalSettings: { global_pollution: opts.pollutionPct } } : {}) },
+    data: { version: 2, nodes: [...nodes, ...groupNodes], edges, ...(typeof opts.pollutionPct === "number" ? { globalSettings: { global_pollution: opts.pollutionPct } } : {}) },
   };
   return { save, missing, droppedEdges, targetLost: !!g.target && !kept.has(g.target.node) };
 }

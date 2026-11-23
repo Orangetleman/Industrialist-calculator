@@ -155,6 +155,47 @@ describe("Industrialist Calculator depuis l'éditeur", () => {
     expect(back.droppedEdges).toBe(0);
   });
 
+  it("groupes : exportés à leur format (nœud « group », groupId, membres cachés si replié) et relus", () => {
+    // Deux groupes : l'un replié, l'autre déplié ; le nœud cible reste hors groupe.
+    const ids = imp.graph.nodes.filter((n) => n.id !== imp.graph.target!.node).map((n) => n.id);
+    let g = applyCommand(imp.graph, { type: "group", id: "g1", name: "Acier", nodes: ids.slice(0, 3) }, data, world);
+    g = applyCommand(g, { type: "group", id: "g2", name: "Cuivre", nodes: ids.slice(3, 5) }, data, world);
+    g = applyCommand(g, { type: "setGroup", id: "g1", collapsed: true }, data, world);
+    const ex = exportPollywrath(g, data, map, { name: imp.name, now: 1_700_000_000_000 });
+    const groups = ex.save.data.nodes.filter((n) => n.type === "group");
+    expect(groups.map((x) => [x.label, x.collapsed])).toEqual([
+      ["Acier", true],
+      ["Cuivre", false],
+    ]);
+    // Leur validation (saveMigrations) : clés permises seulement, groupId vers un nœud « group », prises
+    // mandataires « <nœud>-<côté>-<rang> » sur un membre, au rang d'une prise de sa recette.
+    const byId = new Map(ex.save.data.nodes.map((n) => [n.id, n]));
+    for (const x of groups) {
+      expect(Object.keys(x).sort()).toEqual(["collapsed", "id", "inputProxyHandleIds", "label", "outputProxyHandleIds", "position", "type"]);
+      for (const [side, list] of [["input", x.inputProxyHandleIds], ["output", x.outputProxyHandleIds]] as const)
+        for (const h of list) {
+          const m = new RegExp(`^(.+)-${side}-([0-9]+)$`).exec(h)!;
+          const member = byId.get(m[1]!)!;
+          expect(member.type === "recipe" && member.groupId).toBe(x.id);
+          const r = data.recipes.get(map.recipes[(member as { recipeId: string }).recipeId]!)!;
+          expect(Number(m[2])).toBeLessThan(Object.keys(side === "input" ? r.inputs : r.outputs).length);
+        }
+    }
+    expect(groups.some((x) => x.inputProxyHandleIds.length + x.outputProxyHandleIds.length > 0)).toBe(true);
+    const recipes = ex.save.data.nodes.filter((n) => n.type === "recipe");
+    expect(recipes.filter((n) => n.groupId === groups[0]!.id).every((n) => n.hidden === true)).toBe(true);
+    expect(recipes.filter((n) => n.groupId === groups[1]!.id).every((n) => n.hidden === undefined)).toBe(true);
+    // Relu : les mêmes groupes, les mêmes membres.
+    const back = pollywrathToGraph(JSON.parse(JSON.stringify(ex.save)), data, map, { world })!;
+    expect(back.graph).toEqual(g);
+  });
+
+  it("un groupe dont aucun nœud n'est gardé est laissé de côté", () => {
+    const raw = JSON.parse(JSON.stringify(gearbox));
+    raw.data.nodes.push({ id: "grp", type: "group", label: "Vide", collapsed: false, inputProxyHandleIds: [], outputProxyHandleIds: [], position: { x: 0, y: 0 } });
+    expect(pollywrathToGraph(raw, data, map, { world })!.graph.groups).toBeUndefined();
+  });
+
   it("pas leur format : null", () => {
     expect(pollywrathToGraph({ foo: 1 }, data, map)).toBeNull();
   });

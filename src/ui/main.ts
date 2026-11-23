@@ -895,7 +895,6 @@ async function exportGraphPollywrath(): Promise<void> {
   if (ex.missing.length) notes.push(`<p>${esc(t("gv.f.exp.missing"))}</p><ul>${ex.missing.map((m) => `<li>${esc(recipeLabel(m.recipeId))}</li>`).join("")}</ul>`);
   if (ex.droppedEdges) notes.push(`<p class="hint">${esc(t("gv.f.exp.edges", { n: ex.droppedEdges }))}</p>`);
   if (ex.targetLost) notes.push(`<p class="hint">${esc(t("gv.f.exp.target"))}</p>`);
-  if (g.groups?.length) notes.push(`<p class="hint">${esc(t("gv.f.exp.groups"))}</p>`);
   const fileName = `${name.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Industrialist"}_save.json`;
   if (notes.length) {
     const ok = await ask(t("gv.f.exp.title"), notes.join("") + `<p class="hint">${esc(t("gv.f.exp.done", { file: fileName }))}</p>`, [

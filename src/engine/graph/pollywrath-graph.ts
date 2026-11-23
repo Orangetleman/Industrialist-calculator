@@ -7,7 +7,7 @@
 // même produit est écartée et comptée.
 
 import type { GameData } from "../data.ts";
-import { edgeId, type Graph, type GraphEdge, type GraphNode, type NodeId } from "./model.ts";
+import { edgeId, type Graph, type GraphEdge, type GraphGroup, type GraphNode, type NodeId } from "./model.ts";
 import { mainOutput, recipePorts, type GraphWorld } from "./ports.ts";
 import type { PollywrathMapFile } from "./pollywrath-export.ts";
 
@@ -22,7 +22,7 @@ export type PollywrathGraph = {
   targetLost: boolean;
 };
 
-type TheirNode = { id?: unknown; type?: unknown; recipeId?: unknown; machineCount?: unknown; position?: { x?: unknown; y?: unknown }; isTarget?: unknown };
+type TheirNode = { id?: unknown; type?: unknown; recipeId?: unknown; machineCount?: unknown; position?: { x?: unknown; y?: unknown }; isTarget?: unknown; groupId?: unknown; label?: unknown; collapsed?: unknown };
 type TheirEdge = { source?: unknown; sourceIndex?: unknown; target?: unknown; targetIndex?: unknown };
 
 const num = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
@@ -40,6 +40,7 @@ export function pollywrathToGraph(raw: unknown, data: GameData, map: PollywrathM
   let target: Graph["target"] = null;
   let targetLost = false;
   let rate: number | null = null;
+  const theirGroupOf = new Map<NodeId, string>(); // notre nœud → leur groupe
   for (const n of list as TheirNode[]) {
     if (!n || typeof n !== "object" || (n.type !== undefined && n.type !== "recipe") || typeof n.recipeId !== "string") continue;
     const mine = map.recipes[n.recipeId];
@@ -53,6 +54,7 @@ export function pollywrathToGraph(raw: unknown, data: GameData, map: PollywrathM
     const id = `n${nodes.length + 1}`;
     if (typeof n.id === "string") ours.set(n.id, id);
     const machines = num(n.machineCount) && n.machineCount >= 0 ? n.machineCount : 1;
+    if (typeof n.groupId === "string" && n.groupId) theirGroupOf.set(id, n.groupId);
     nodes.push({ id, recipeId: mine, machines, x: num(n.position?.x) ? Math.round(n.position!.x) : 0, y: num(n.position?.y) ? Math.round(n.position!.y) : 0 });
     if (n.isTarget === true && !target) {
       const item = mainOutput(data, mine, world);
@@ -81,6 +83,17 @@ export function pollywrathToGraph(raw: unknown, data: GameData, map: PollywrathM
     }
     edges.push({ id: edgeId(a!.id, b!.id, out!), from: a!.id, to: b!.id, item: out! });
   }
+  // Groupes : leurs nœuds de type « group » (nom, replié) ; un groupe sans membre gardé est laissé de côté.
+  // Notre boîte se pose au coin de ses nœuds : leur position du groupe n'est pas reprise.
+  const groups: GraphGroup[] = [];
+  for (const gn of list as TheirNode[]) {
+    if (!gn || typeof gn !== "object" || gn.type !== "group" || typeof gn.id !== "string") continue;
+    const members = nodes.filter((n) => theirGroupOf.get(n.id) === gn.id);
+    if (!members.length) continue;
+    const gid = `g${groups.length + 1}`;
+    groups.push({ id: gid, name: typeof gn.label === "string" && gn.label.trim() ? gn.label.trim() : gid, ...(gn.collapsed === true ? { collapsed: true } : {}) });
+    for (const m of members) m.group = gid;
+  }
   const name = typeof r.name === "string" && r.name.trim() ? r.name.trim() : (opts.fileName ?? "").replace(/(_save)?\.json$/i, "") || "Industrialist Calculator";
-  return { graph: { nodes, edges, target, rate }, name, unknown: [...unknown.values()], droppedEdges, targetLost };
+  return { graph: { nodes, edges, target, rate, ...(groups.length ? { groups } : {}) }, name, unknown: [...unknown.values()], droppedEdges, targetLost };
 }

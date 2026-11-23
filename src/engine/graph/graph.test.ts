@@ -344,10 +344,10 @@ describe("export Industrialist Calculator", () => {
   });
 
   it("arêtes : rang de la prise dans la recette, chaque bout retombe sur le bon produit", () => {
-    const inv = new Map(ex.save.data.nodes.map((n) => [n.id, data.recipes.get(map.recipes[n.recipeId]!)!]));
+    const inv = new Map(ex.save.data.nodes.flatMap((n) => (n.type === "recipe" ? [[n.id, data.recipes.get(map.recipes[n.recipeId]!)!] as const] : [])));
     expect(ex.save.data.edges.length + ex.droppedEdges).toBe(graph.edges.length);
     for (const e of ex.save.data.edges) expect(Object.keys(inv.get(e.source)!.outputs)[e.sourceIndex]).toBe(Object.keys(inv.get(e.target)!.inputs)[e.targetIndex]);
-    expect(ex.save.data.nodes.filter((n) => n.isTarget)).toHaveLength(1);
+    expect(ex.save.data.nodes.filter((n) => n.type === "recipe" && n.isTarget)).toHaveLength(1);
   });
 
   it("une recette sans équivalent chez eux n'est jamais remplacée", () => {
