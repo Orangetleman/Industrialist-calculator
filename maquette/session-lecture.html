@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette P3 bis : session de lecture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/src/styles.css">
+<style>
+/* Maquette P3 bis (PLAN-PARTAGE.md § 6 ter) : rien n'est relié au vrai site, toutes les valeurs sont fictives. */
+body { min-height: 100vh; }
+.sp { flex: 1; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; font-family: var(--f-mono); font-size: .8rem; }
+#app { display: grid; grid-template-columns: 290px 1fr; gap: 16px; max-width: 1200px; margin: 16px auto; padding: 0 16px; }
+@media (max-width: 720px) { #app { grid-template-columns: 1fr; } }
+/* L'indication claire : bandeau collant sous l'en-tête, cadre autour de toute la page, puces du profil teintées. */
+#band { position: sticky; top: 0; z-index: 20; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 9px 18px; background: var(--steel); color: var(--bg); font-size: .92rem; }
+#band b { font-weight: 700; }
+#band button { background: var(--bg); color: var(--ink); border-color: var(--bg); padding: 4px 10px; font-size: .85rem; }
+#band[hidden] { display: none; }
+body.lecture::after { content: ""; position: fixed; inset: 0; border: 4px solid var(--steel); pointer-events: none; z-index: 30; }
+body.lecture .chips .pill { background: var(--steel-soft); color: var(--steel); }
+.ex { background: var(--surface); border: 1px solid var(--line); padding: 12px 0 8px; align-self: start; }
+.ex .eyebrow { color: var(--accent); padding: 0 12px 6px; display: block; }
+.xn { display: flex; gap: 8px; align-items: center; padding: 6px 12px; cursor: pointer; border-left: 3px solid transparent; font-size: .9rem; }
+.xn:hover { background: var(--panel2); }
+.xn.on { border-left-color: var(--accent); font-weight: 600; }
+.xn.lec.on { border-left-color: var(--steel); background: var(--steel-soft); }
+.xn .tag { margin-left: auto; font-family: var(--f-mono); font-size: .68rem; color: var(--steel); background: var(--steel-soft); padding: 0 6px; border-radius: 999px; }
+.plan { background: var(--surface); border: 1px solid var(--line); padding: 16px; }
+.plan ul { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 4px; }
+.plan li { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 4px 0; max-width: 420px; }
+.plan li b { color: var(--accent); font-family: var(--f-mono); }
+.demo { margin-top: 14px; padding: 12px; border: 1px dashed var(--line); }
+.demo .actions, .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+dialog { max-width: min(600px, calc(100vw - 32px)); padding: 0; overflow: hidden; }
+dialog::before { content: ""; display: block; height: 4px; background: var(--brand-bar); }
+dialog .in { padding: 18px; }
+.ch { display: grid; gap: 8px; margin-top: 14px; }
+.ch button { text-align: left; padding: 12px 14px; background: var(--bg); display: block; }
+.ch button:hover, .ch button:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.ch b { display: block; font-weight: 600; }
+.ch small { color: var(--muted); font-size: .83rem; }
+.ch em { font-style: normal; color: var(--ok); font-family: var(--f-mono); font-size: .72rem; margin-left: 6px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .88rem; }
+td, th { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 500; }
+td input { accent-color: var(--accent); }
+.nt { display: flex; gap: 8px; font-size: .85rem; padding: 8px 10px; border-radius: 8px; margin-top: 8px; background: var(--steel-soft); }
+#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--ok); color: var(--ok); padding: 7px 16px; border-radius: 8px; z-index: 40; }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><span class="brand">Planificateur</span><span class="sp"></span><span class="chips" id="chips"></span></div></header>
+<div id="band" role="status" hidden>
+  <span><b>Session de lecture</b> · tu vois « Vilebrequin 60/s » avec le profil de son auteur. Ta partie n'est pas touchée.</span>
+  <span class="sp"></span>
+  <button id="bPrint">Imprimer ce profil sur ma partie…</button>
+  <button id="bBack">Revenir à ma partie</button>
+</div>
+<div id="app">
+  <aside class="ex"><span class="eyebrow">Mes designs</span><div id="tree"></div></aside>
+  <section>
+    <div class="plan"><h3 id="pName"></h3><ul id="pList"></ul><p class="hint" id="pHint"></p></div>
+    <div class="demo"><span class="eyebrow">Simulation · maquette seulement</span>
+      <div class="actions"><button id="dLink">Ouvrir un lien reçu</button><button id="dEdit">Débloquer une recherche (dans l'Arbre)</button><button id="dShare">Partager : ce que le lien contient</button></div></div>
+  </section>
+</div>
+
+<dialog id="recv"><div class="in">
+  <span class="eyebrow">Design reçu par lien</span><h3>Vilebrequin 60/s</h3>
+  <p class="hint" style="margin-top:6px">Profil de l'auteur : 149/149 recherches · difficulté normale · parcelle 200 × 160</p>
+  <div class="ch">
+    <button id="rRead"><b>Ouvrir en session de lecture <em>ta partie n'est pas touchée</em></b><small>Le site se comporte comme si le profil de l'auteur était le tien, tant que ce design est affiché. Le profil reste enfermé dans le design, rangé dans « Mes designs ».</small></button>
+    <button id="rPrint"><b>Imprimer le profil sur ma partie</b><small>Tu choisis ce qui est repris (recherches, parcelle…). Ta partie d'avant est gardée, tu peux la remettre.</small></button>
+  </div>
+  <p class="nt">Le design affiché maintenant reste dans « Mes designs ».</p>
+  <div class="row dialog-actions"><button data-x>Annuler</button></div>
+</div></dialog>
+
+<dialog id="prn"><div class="in">
+  <span class="eyebrow">Imprimer le profil</span><h3>Que reprendre sur ta partie ?</h3>
+  <table><thead><tr><th></th><th></th><th>Ma partie</th><th>Après</th></tr></thead><tbody id="rows"></tbody></table>
+  <p class="nt">Ta partie d'avant est gardée sous « Ma partie (avant Vilebrequin 60/s) » : un clic pour la remettre.</p>
+  <div class="row dialog-actions"><button data-x>Annuler</button><button class="primary" id="pGo">Imprimer</button></div>
+</div></dialog>
+
+<dialog id="shr"><div class="in">
+  <span class="eyebrow">Partager</span><h3>Le lien contient aussi ton profil</h3>
+  <p style="margin:10px 0"><span class="pill">Recherches débloquées</span> <span class="pill">Difficulté, pollution, mois, igloo</span> <span class="pill">Parcelle</span> <span class="pill">Argent et RP</span> <span class="pill">Ma recherche</span> <span class="pill">Corrections et relevés</span></p>
+  <p class="hint">Jamais partagés : langue, thème, images, journal des RP, remarques, pseudo.</p>
+  <div class="row dialog-actions"><button data-x>Fermer</button></div>
+</div></dialog>
+<div id="toast" hidden></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+// Deux profils fictifs : le mien, et celui enfermé dans le design reçu.
+const groups = [["Recherches débloquées", "res"], ["Difficulté, pollution, mois", "game"], ["Parcelle", "plot"], ["Argent et RP", "money"], ["Corrections et relevés", "fix"]];
+let mine = { res: 12, game: "facile · 0 %", plot: "90 × 60", money: "45 k$ · 30 RP", fix: "aucune" };
+const author = { res: 149, game: "normale · 8 %", plot: "200 × 160", money: "2 M$ · 900 RP", fix: "3" };
+let before = null;
+const designs = [{ id: 1, name: "Gear 60/min", list: [["Press", 4], ["Iron Drill", 15]] }];
+let active = 1;
+const cur = () => designs.find((d) => d.id === active);
+const prof = () => cur().profile ?? mine;
+const toast = (m) => { $("toast").textContent = m; $("toast").hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => ($("toast").hidden = true), 2600); };
+function render() {
+  const d = cur(), p = prof(), lec = !!d.profile;
+  document.body.classList.toggle("lecture", lec);
+  $("band").hidden = !lec;
+  document.title = (lec ? "👁 Lecture : " : "") + d.name;
+  $("chips").innerHTML = [`Recherches ${p.res}/149`, p.game, `Parcelle ${p.plot}`, p.money].map((x) => `<span class="pill">${x}</span>`).join("");
+  $("tree").innerHTML = designs.map((x) => `<div class="xn${x.id === active ? " on" : ""}${x.profile ? " lec" : ""}" data-id="${x.id}"><span>${x.name}</span>${x.profile ? '<span class="tag" title="Ce design porte le profil de son auteur">lecture</span>' : ""}</div>`).join("") +
+    (before ? `<div class="xn" data-restore="1"><span>Remettre ma partie d'avant</span></div>` : "");
+  $("pName").textContent = d.name;
+  $("pList").innerHTML = d.list.map(([n, k]) => `<li>${n}<b>×${k}</b></li>`).join("");
+  $("pHint").textContent = lec ? `Calculé avec le profil du design : exactement l'usine de son auteur.` : `Calculé avec ta partie.`;
+}
+$("tree").onclick = (e) => {
+  const r = e.target.closest(".xn"); if (!r) return;
+  if (r.dataset.restore) { mine = before; before = null; toast("Ta partie d'avant est remise"); } else active = +r.dataset.id;
+  render();
+};
+const incoming = () => ({ id: designs.length + 1, name: designs.some((d) => d.name === "Vilebrequin 60/s") ? `Vilebrequin 60/s (${designs.length})` : "Vilebrequin 60/s", list: [["Industrial Roller", 3], ["Blast Furnace", 3], ["Coal Drill", 8]] });
+$("dLink").onclick = () => $("recv").showModal();
+$("rRead").onclick = () => { $("recv").close(); const d = { ...incoming(), profile: { ...author } }; designs.push(d); active = d.id; render(); toast("Session de lecture ouverte"); };
+let fresh = false;
+function openPrint(isNew) {
+  fresh = isNew;
+  const src = isNew ? author : cur().profile;
+  $("rows").innerHTML = groups.map(([label, k]) => `<tr><td><input type="checkbox" checked data-k="${k}" aria-label="${label}"></td><td>${label}</td><td>${mine[k]}</td><td><b>${src[k]}</b></td></tr>`).join("");
+  $("prn").showModal();
+}
+$("rPrint").onclick = () => { $("recv").close(); openPrint(true); };
+$("bPrint").onclick = () => openPrint(false);
+$("pGo").onclick = () => {
+  const src = fresh ? author : cur().profile, ks = [...document.querySelectorAll("#rows input:checked")].map((i) => i.dataset.k);
+  before = { ...mine };
+  for (const k of ks) mine[k] = src[k];
+  if (fresh) { const d = incoming(); designs.push(d); active = d.id; } else delete cur().profile;
+  $("prn").close(); render(); toast("Profil imprimé sur ta partie");
+};
+$("bBack").onclick = () => { active = designs.find((d) => !d.profile).id; render(); toast("Retour à ta partie"); };
+$("dEdit").onclick = () => { const p = prof(); if (p.res < 149) p.res++; else p.res--; render(); toast(cur().profile ? "Changé dans le profil du design seulement" : "Changé dans ta partie"); };
+$("dShare").onclick = () => $("shr").showModal();
+for (const b of document.querySelectorAll("[data-x]")) b.onclick = () => b.closest("dialog").close();
+render();
+</script>
+</body>
+</html>

@@ -187,12 +187,28 @@ corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de
   corrections, parcelle, relevés). L'alerte le dit. Chez un joueur sans aucune recherche, le plan peut être vide.
 - Le plan enregistré à l'ouverture ne garde pas l'empreinte (elle a servi).
 
-### Questions ouvertes
-- **C.** Un joueur moins avancé que l'auteur recalcule un autre plan (vide, s'il n'a rien débloqué). [Proposition : un design
-  reçu se recalcule avec les recherches et la parcelle de l'auteur, mises dans le lien (bitmap des recherches, une
-  trentaine de caractères à mesurer) ; l'alerte ne viendrait plus que du site. À faire avant P4.]
-- **D.** La version du site vient de `package.json`, toujours « 0.1.0 » : « version plus ancienne » ne se déclenchera qu'une fois
-  ce numéro augmenté. [Proposition : P4 l'augmente à chaque déploiement, avec les `/v/<version>/`.]
+### Questions C et D tranchées (2026-11-24)
+- **C. Oui, avant P4** : le lien porte le profil de l'auteur, avec une session de lecture (§ 6 ter).
+- **D. Oui** : P4 augmente le numéro de version à chaque déploiement, avec les `/v/<version>/`.
+
+## 6 ter. Profil dans le lien et session de lecture (P3 bis, maquette `maquette/session-lecture.html` à valider)
+Décision de l'utilisateur : à l'ouverture, deux choix.
+1. **Imprimer le profil du lien sur sa partie.** Proposé : on coche ce qui est repris, la partie d'avant reste récupérable.
+2. **Session de lecture** : parallèle, enfermée dans le design et gérée dans le gestionnaire ; tant que ce design est
+   actif, le site se comporte comme si le profil du lien était le sien, avec une **indication claire** (proposé : bandeau
+   collant, cadre autour de la page, puces teintées, étiquette « lecture » dans le gestionnaire, titre de l'onglet).
+   Ce qu'on y change (recherches…) reste dans le design, jamais dans sa partie.
+
+Profil (proposé) : recherches (débloquées, objets faits, machines possédées), « Ma partie » (pollution, mois **résolu chez
+l'auteur**, igloo, difficulté, argent, RP, parcelle, ma recherche), corrections, relevés de ports, d'interfaces et diesel.
+Jamais : langue, thème, images, journal des RP, remarques, pseudo. Recherches en bitmap (149 → 19 octets, ≈ 26 caractères) ;
+le reste à mesurer sur de vrais profils. Un lien sans profil s'ouvre comme aujourd'hui.
+
+Idée « données en hexa » : regardée, pas retenue. Un caractère hexa porte 4 bits, un caractère base64url (déjà en place,
+après le binaire maison et deflate) 6 bits : les mêmes octets feraient 1,5 fois plus long en hexa.
+
+Lots : **P3 bis a** codec du profil + mesures ; **P3 bis b** profil actif du site (lecture/écriture aiguillées) et bandeau ;
+**P3 bis c** fenêtre à deux choix, impression, parcours réel. Le gestionnaire (P2 bis) vient avant b, puisque la session y est gérée.
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`
