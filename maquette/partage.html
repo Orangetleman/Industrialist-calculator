@@ -32,6 +32,8 @@ body { min-height: 100vh; }
 .xn .name { overflow: hidden; text-overflow: ellipsis; }
 .xn .tag { margin-left: auto; font-family: var(--f-mono); font-size: .68rem; color: var(--warn); background: var(--warn-soft); padding: 0 6px; border-radius: 999px; }
 .xn input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--accent); padding: 0 4px; border-radius: 4px; }
+.xerr { margin: 2px 12px 4px 40px; font-size: .78rem; color: var(--bad); }
+.ex-head.drop { outline: 1px dashed var(--accent); }
 .menu { position: fixed; z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px; min-width: 190px; box-shadow: 0 10px 30px rgb(0 0 0 / .45); }
 .menu div { padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: .9rem; }
 .menu div:hover { background: var(--steel-soft); }
@@ -64,7 +66,8 @@ body { min-height: 100vh; }
 .gauge .bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
 .gauge .bar i { display: block; height: 100%; background: var(--ok); transition: width .25s; }
 .gauge.over .bar i { background: var(--warn); }
-.gauge p { font-size: .8rem; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; }
+.gauge p { font-size: .8rem; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; gap: 12px; }
+.gauge p span:last-child { white-space: nowrap; }
 .gauge.over p b { color: var(--warn); }
 .incl { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
 .incl .eyebrow { margin-right: 4px; }
@@ -75,6 +78,9 @@ body { min-height: 100vh; }
 .forever .big { grid-row: span 2; width: 34px; height: 34px; color: var(--steel); }
 .forever b { font-weight: 600; }
 .forever p { font-size: .82rem; color: var(--muted); }
+.frz { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: .88rem; cursor: pointer; }
+.frz input { accent-color: var(--accent); }
+#shFrzHint { grid-column: 1 / -1; }
 .forever .actions { grid-column: 1 / -1; margin-top: 8px; }
 
 /* Lien reçu */
@@ -151,6 +157,8 @@ dialog.recv::before { content: ""; display: block; height: 4px; background: var(
       <svg class="ic big"><use href="#i-safe"/></svg>
       <b>Version indestructible</b>
       <p>Un lien se recalcule avec le site du jour : une mise à jour peut changer l'usine. Le fichier garde le design exact et la version du site qui l'a créé.</p>
+      <label class="frz"><input type="checkbox" id="shFrz" checked> Inclure l'usine figée <span class="hint" id="shSize"></span></label>
+      <p class="hint" id="shFrzHint"></p>
       <div class="actions"><button id="shDl"><svg class="ic"><use href="#i-dl"/></svg> Télécharger <span class="mono" id="shFile"></span></button></div>
     </div>
   </div>
@@ -187,6 +195,17 @@ let active = 2, sel = 2, renaming = null, sand = true;
 function find(id, n = root, p = null) { if (n.id === id) return [n, p]; for (const k of n.kids ?? []) { const r = find(id, k, n); if (r) return r; } return null; }
 const node = (id) => find(id)[0];
 const inside = (a, b) => !!find(b, node(a));
+const key = (s) => s.trim().toLocaleLowerCase("fr");
+/** Un nom déjà pris dans ce dossier (sans compter `except`) ? Majuscules et espaces autour ne comptent pas. */
+const taken = (dir, name, except) => dir.kids.some((k) => k !== except && key(k.name) === key(name));
+/** « Nom », sinon « Nom (2) », « Nom (3) »… : jamais deux fois le même nom dans un dossier. */
+function free(dir, name, except) {
+  if (!taken(dir, name, except)) return name;
+  const base = name.replace(/ \(\d+\)$/, "");
+  for (let i = 2; ; i++) if (!taken(dir, `${base} (${i})`, except)) return `${base} (${i})`;
+}
+/** Dossiers d'abord, puis ordre alphabétique ; la corbeille toujours en bas. */
+const order = (a, b) => (a.trash ? 1 : b.trash ? -1 : 0) || (a.type === b.type ? 0 : a.type === "dir" ? -1 : 1) || a.name.localeCompare(b.name, "fr", { numeric: true });
 
 function render() {
   const t = $("tree"); t.innerHTML = "";
@@ -198,19 +217,28 @@ function render() {
       r.innerHTML = `<span class="tw">${n.type === "dir" ? (n.open ? "▼" : "▶") : ""}</span>${ic(n.trash ? "bin" : n.type === "dir" ? "dir" : "doc")}`;
       if (renaming === n.id) {
         const inp = document.createElement("input"); inp.value = n.name; r.append(inp);
-        setTimeout(() => { inp.focus(); inp.select(); });
-        const done = (ok) => { if (renaming !== n.id) return; if (ok && inp.value.trim()) n.name = inp.value.trim(); renaming = null; render(); };
+        const err = document.createElement("div"); err.className = "xerr"; err.hidden = true;
+        queueMicrotask(() => { r.after(err); inp.focus(); inp.select(); });
+        const [, par] = find(n.id);
+        inp.oninput = () => { const bad = taken(par, inp.value, n); inp.setAttribute("aria-invalid", bad); err.hidden = !bad; err.textContent = `« ${inp.value.trim()} » existe déjà dans ${par.name}`; };
+        const done = (ok) => {
+          if (renaming !== n.id) return;
+          if (ok && inp.value.trim() && taken(par, inp.value, n)) return; // nom pris : on reste dans le champ
+          if (ok && inp.value.trim()) n.name = inp.value.trim();
+          renaming = null; render();
+        };
         inp.onkeydown = (e) => { if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); };
-        inp.onblur = () => done(true);
+        inp.onblur = () => done(!taken(par, inp.value, n));
       } else {
         r.insertAdjacentHTML("beforeend", `<span class="name"></span>`); r.querySelector(".name").textContent = n.name;
         if (n.unsaved) r.insertAdjacentHTML("beforeend", `<span class="tag" title="Modifié depuis le dernier enregistrement : gardé ici, jamais perdu">non enregistré</span>`);
       }
       t.append(r);
     }
-    if (n.type === "dir" && n.open) for (const k of n.kids) walk(k, depth + 1);
+    if (n.type === "dir" && n.open) for (const k of [...n.kids].sort(order)) walk(k, depth + 1);
   };
   walk(root, 0);
+  const inp = t.querySelector("input"); if (inp) { inp.focus(); inp.select(); } // tout de suite : la frappe qui suit F2 n'est pas perdue
   const a = node(active); $("cur").textContent = a.name;
   drawGraph(a.name);
 }
@@ -230,21 +258,26 @@ function toast(m) { const e = $("toast"); e.textContent = m; e.style.display = "
 // --- Explorateur : clic, double clic, F2, clic droit, glisser
 $("tree").addEventListener("click", (e) => {
   const r = e.target.closest(".xn"); if (!r || e.target.tagName === "INPUT") return;
-  const n = node(+r.dataset.id); sel = n.id;
-  if (n.type === "dir") n.open = !n.open; else active = n.id;
+  // Comme VS Code : un clic choisit (et ouvre/ferme un dossier), un double clic ouvre le design, F2 renomme.
+  // Le double clic est compté à la main : la liste se redessine entre les deux clics.
+  const n = node(+r.dataset.id), now = Date.now(), dbl = lastClick.id === n.id && now - lastClick.t < 400;
+  lastClick = { id: n.id, t: now }; sel = n.id;
+  if (n.type === "dir") n.open = !n.open;
+  else if (dbl && n.id !== active) { active = n.id; toast(`« ${n.name} » ouvert`); }
   render();
 });
-$("tree").addEventListener("dblclick", (e) => { const r = e.target.closest(".xn"); if (r && !node(+r.dataset.id).trash) { renaming = +r.dataset.id; render(); } });
+let lastClick = { id: -1, t: 0 };
 $("tree").addEventListener("contextmenu", (e) => {
   const r = e.target.closest(".xn"); if (!r) return; e.preventDefault();
   const n = node(+r.dataset.id); sel = n.id; render();
   const items = [];
   if (n.type === "des") items.push(["Ouvrir", () => { active = n.id; }], ["Partager…", () => { active = n.id; openShare(false); }]);
   if (n.unsaved) items.push(["Enregistrer", () => { n.unsaved = false; toast("Enregistré"); }]);
-  if (n.type === "des") items.push(["Dupliquer", () => { const [, p] = find(n.id); p.kids.push({ id: ++uid, type: "des", name: n.name + " (copie)" }); }]);
+  if (n.type === "des") items.push(["Dupliquer", () => { const [, p] = find(n.id); p.kids.push({ id: ++uid, type: "des", name: free(p, n.name + " (copie)") }); }]);
   if (n.type === "dir" && !n.trash) items.push(["Nouveau design ici", () => newItem("des", n)], ["Nouveau dossier ici", () => newItem("dir", n)]);
   if (!n.trash) items.push(null, ["Renommer (F2)", () => { renaming = n.id; }]);
-  if (!n.trash && n.id !== active) items.push(["Mettre à la corbeille", () => moveTo(n.id, 7)]);
+  if (!n.trash && n.id !== active && !find(n.id)[1]?.trash) items.push(["Mettre à la corbeille (Suppr)", () => moveTo(n.id, 7)]);
+  if (find(n.id)[1]?.trash) items.push(["Restaurer", () => { moveTo(n.id, n.from != null && find(n.from) ? n.from : 0); }]);
   if (n.trash) items.push(["Vider la corbeille…", () => { if (confirm("Supprimer définitivement le contenu de la corbeille ? C'est irréversible.")) n.kids = []; }]);
   const m = $("menu"); m.innerHTML = ""; m.hidden = false; m.style.left = e.clientX + "px"; m.style.top = e.clientY + "px";
   for (const it of items) {
@@ -259,6 +292,10 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "F2" && sel && !renaming && !node(sel).trash) { renaming = sel; render(); }
   if (e.key === "Escape") $("share").hidden = true;
+  if (e.target.tagName === "INPUT" || renaming) return;
+  const s = node(sel);
+  if (e.key === "Delete" && s && !s.trash && s.id !== active && !find(s.id)[1]?.trash) { moveTo(s.id, 7); render(); }
+  if (e.key === "Enter" && s?.type === "des") { active = s.id; render(); }
 });
 
 let drag = null;
@@ -269,17 +306,24 @@ $("tree").addEventListener("dragover", (e) => {
   e.preventDefault(); document.querySelectorAll(".drop").forEach((x) => x.classList.remove("drop")); r.classList.add("drop");
 });
 $("tree").addEventListener("drop", (e) => { e.preventDefault(); const r = e.target.closest(".xn"); if (r) moveTo(drag, +r.dataset.id); drag = null; render(); });
+const head = document.querySelector(".ex-head");
+head.title = "Déposer ici pour ranger à la racine";
+head.addEventListener("dragover", (e) => { if (drag != null) { e.preventDefault(); head.classList.add("drop"); } });
+head.addEventListener("dragleave", () => head.classList.remove("drop"));
+head.addEventListener("drop", (e) => { e.preventDefault(); head.classList.remove("drop"); moveTo(drag, 0); drag = null; render(); });
 $("tree").addEventListener("dragend", () => { drag = null; render(); });
 
 function moveTo(id, dirId) {
   if (id === dirId || inside(id, dirId)) return;
   const [n, p] = find(id), d = node(dirId); if (p === d) return;
-  p.kids.splice(p.kids.indexOf(n), 1); d.kids.push(n); d.open = !d.trash;
-  toast(d.trash ? `« ${n.name} » mis à la corbeille` : `« ${n.name} » rangé dans ${d.name}`);
+  const was = n.name, nn = free(d, n.name);
+  if (d.trash) n.from = p.id;
+  p.kids.splice(p.kids.indexOf(n), 1); n.name = nn; d.kids.push(n); if (!d.trash) d.open = true;
+  toast(d.trash ? `« ${was} » mis à la corbeille` : nn !== was ? `« ${was} » existait déjà dans ${d.name} : rangé sous « ${nn} »` : `« ${was} » rangé dans ${d.name}`);
 }
 function newItem(type, dir) {
-  const n = type === "dir" ? { id: ++uid, type, name: "Nouveau dossier", open: true, kids: [] } : { id: ++uid, type, name: "Nouveau design", unsaved: true };
-  dir.kids.splice(dir === root ? dir.kids.length - 1 : dir.kids.length, 0, n); dir.open = true; sel = n.id; renaming = n.id; if (type === "des") active = n.id;
+  const n = type === "dir" ? { id: ++uid, type, name: free(dir, "Nouveau dossier"), open: true, kids: [] } : { id: ++uid, type, name: free(dir, "Nouveau design"), unsaved: true };
+  dir.kids.push(n); dir.open = true; sel = n.id; renaming = n.id; if (type === "des") active = n.id;
 }
 const target = () => { const s = node(sel); return s?.type === "dir" && !s.trash ? s : root; };
 $("bNewD").onclick = () => { newItem("des", target()); render(); };
@@ -308,7 +352,13 @@ function setCopy(done) {
 $("bShare").onclick = () => ($("share").hidden ? openShare(false) : ($("share").hidden = true));
 $("shSand").onclick = () => { sand = !sand; $("shSand").setAttribute("aria-pressed", sand); openShare(long); };
 $("shCopy").onclick = () => { setCopy(true); toast("Lien copié"); };
-$("shDl").onclick = () => toast(`Maquette : téléchargerait « ${node(active).name}.indus »`);
+function frz() {
+  const on = $("shFrz").checked;
+  $("shSize").textContent = on ? "· fichier ≈ 38 Ko" : "· fichier ≈ 2 Ko";
+  $("shFrzHint").textContent = on ? "S'affiche à l'identique à vie, sans rien recalculer." : "Plus léger : l'usine sera recalculée par la version du site qui a créé le fichier.";
+}
+$("shFrz").onchange = frz; frz();
+$("shDl").onclick = () => toast(`Maquette : téléchargerait « ${node(active).name}.indus »${$("shFrz").checked ? " avec l'usine figée" : " sans l'usine figée"}`);
 $("shClose").onclick = () => ($("share").hidden = true);
 $("bSimLong").onclick = () => openShare(true);
 
@@ -318,8 +368,8 @@ $("rNo").onclick = () => $("recv").close();
 $("rYes").onclick = () => {
   let inbox = root.kids.find((k) => k.name === "Reçus");
   if (!inbox) { inbox = { id: ++uid, type: "dir", name: "Reçus", open: true, kids: [] }; root.kids.splice(root.kids.length - 1, 0, inbox); }
-  const n = { id: ++uid, type: "des", name: "Usine de plastique" }; inbox.kids.push(n); inbox.open = true;
-  active = sel = n.id; $("recv").close(); render(); toast("Design ouvert, rangé dans « Reçus »");
+  const n = { id: ++uid, type: "des", name: free(inbox, "Usine de plastique") }; inbox.kids.push(n); inbox.open = true;
+  active = sel = n.id; $("recv").close(); render(); toast(n.name === "Usine de plastique" ? "Design ouvert, rangé dans « Reçus »" : `Déjà un « Usine de plastique » dans Reçus : ouvert sous « ${n.name} »`);
 };
 render();
 </script>

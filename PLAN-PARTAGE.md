@@ -109,6 +109,20 @@ s'affiche à l'identique sans rien recalculer, à vie. Pour la recalculer avec l
 déployée reste servie sur le Pi sous `/v/<version>/` (c'est le site lui-même, pas un stockage de données) et le
 fichier propose « ouvrir avec la version d'origine ».
 
+### Question A tranchée (2026-11-24) : les deux
+- Le fichier `.indus` peut contenir l'usine figée ; **au téléchargement, une case** « Inclure l'usine figée »
+  (cochée par défaut) : décochée, le fichier est bien plus léger et l'usine sera recalculée par la version du site
+  qui a créé le fichier.
+- Chaque version déployée reste servie sur le Pi sous `/v/<version>/`.
+
+### Gestionnaire de designs : un vrai gestionnaire de fichiers
+- Jamais deux fois le même nom dans un dossier (majuscules et espaces autour ignorés). Renommer vers un nom pris :
+  message rouge sous le champ, on reste dans le champ. Créer, dupliquer, déplacer, importer, restaurer vers un nom
+  pris : suffixe automatique « (2) », « (3) »… et un message qui le dit.
+- Comme VS Code : un clic choisit, double clic ouvre, F2 renomme, Suppr met à la corbeille, Entrée ouvre ;
+  dossiers d'abord puis ordre alphabétique ; glisser vers un dossier ou vers le titre (racine) ; corbeille avec
+  « Restaurer » (retour au dossier d'origine) et « Vider » (confirmation, irréversible).
+
 ## 6. Lots (une session = un lot, validation entre lots)
 - **P0** — Maquette cliquable dans `maquette/` (bouton, fenêtre, aperçu) ; validation.
 - **P1** — Codec pur `src/engine/share/` (binaire v1, tables d'ids, varint, deflate, base64url) + tests aller-retour,
