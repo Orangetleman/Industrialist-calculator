@@ -34,17 +34,25 @@ enregistrés en localStorage (`saved-plans`, sans lien), fichier graphe JSON (`g
 3. **deflate-raw natif** (`CompressionStream`, déjà employé par `msch.ts`), puis **base64url**, placé dans le
    **fragment** : `https://industrialist.myprisme.fr/#d=1.<données>` — le fragment n'est jamais envoyé au serveur.
 
-### Tailles mesurées (script `scripts/etude/mesure-partage.cjs`, designs *synthétiques* aux vraies recettes de `data/recipes.json`)
+### Tailles mesurées au lot P1 (2026-11-24, codec réel `src/engine/share/`, vrais designs du site)
 
-| Design | JSON brut | JSON + deflate (lien) | Binaire maison + deflate (lien) |
-|---|---|---|---|
-| petit : 5 nœuds, 30 blocs, 10 câbles | 2 582 o | ~970 car. | **~230 car.** |
-| moyen : 25 nœuds, 250 blocs, 80 câbles | 18 516 o | ~4 000 car. | **~1 360 car.** |
-| gros : 80 nœuds, 900 blocs, 300 câbles | 65 197 o | ~12 000 car. | **~4 700 car.** |
+Mesure : `$env:MESURE = "1"; npx vitest run src/engine/share/mesure.test.ts` (designs de `tests/share-designs.ts` :
+plan du site tout débloqué → graphe retouché comme en G3–G5 + réglages, et son usine convertie en bac à sable
+comme l'export .msch actuel, 220 × 160). Longueurs de l'adresse complète `https://industrialist.myprisme.fr/#d=1.…`.
 
-Sans bac à sable (usine recalculée), le graphe seul tient en quelques centaines de caractères même pour le gros.
-Les positions aléatoires compressent moins bien qu'un vrai design aligné : ces chiffres sont un plafond.
-À refaire au lot P1 sur de vrais designs enregistrés.
+| Design | JSON brut | JSON + deflate | **Lien sans bac à sable** | **Lien avec bac à sable** | Fichier `.indus` avec usine figée |
+|---|---|---|---|---|---|
+| petit : Gearbox 120/min, 33 nœuds, 59 arêtes, 4 451 blocs, 634 câbles | 283 400 o | 44 856 car. | **954 car.** | **10 553 car.** | 14 981 o |
+| moyen : Crankshaft 600/min, 27 nœuds, 51 arêtes, 5 653 blocs, 484 câbles | 345 817 o | 54 863 car. | **866 car.** | **10 697 car.** | 15 233 o |
+| gros : Crankshaft 3 600/min, 29 nœuds, 49 arêtes, 22 749 blocs, 5 365 câbles | 1 540 239 o | 214 416 car. | **878 car.** | **35 650 car.** | 53 393 o |
+
+Ce que ça change par rapport à l'étude (chiffres synthétiques de 30 à 900 blocs) :
+- **Graphe + réglages : toujours sous 1 000 caractères**, même pour le gros → passe sur Discord.
+- **Une usine en bac à sable compte des milliers de blocs** (chaque case de tuyau est un bloc) : 10 000 à 36 000
+  caractères, donc jamais sur Discord. Le binaire maison divise quand même par 4 à 6 le JSON compressé.
+- Un petit montage fait à la main (une dizaine de blocs) ajoute moins de 100 caractères (lien figé « bac-à-sable »).
+- Le fichier `.indus` avec usine figée reste léger : 15 à 53 Ko.
+→ Voir la question B (§ 5 bis) : la case « bac à sable » cochée par défaut fait presque toujours dépasser 1 900 caractères.
 
 ### Limites pratiques
 - Navigateurs : Chrome/Firefox/Edge acceptent des URL de plusieurs centaines de milliers de caractères.
@@ -115,6 +123,12 @@ fichier propose « ouvrir avec la version d'origine ».
   qui a créé le fichier.
 - Chaque version déployée reste servie sur le Pi sous `/v/<version>/`.
 
+### Question B ouverte (lot P1, mesures du § 2) : bac à sable dans le lien
+Une usine convertie en bac à sable fait 10 000 à 36 000 caractères : avec la case « bac à sable » cochée par défaut,
+presque tout lien dépasserait 1 900 caractères et basculerait vers le fichier. Proposition : la case reste cochée
+par défaut, mais si le lien dépasse 1 900 caractères à cause du seul bac à sable, la fenêtre le dit (« sans le bac
+à sable : 900 caractères, passe sur Discord ») et propose les deux : lien sans bac à sable, ou fichier complet.
+
 ### Gestionnaire de designs : un vrai gestionnaire de fichiers
 - Jamais deux fois le même nom dans un dossier (majuscules et espaces autour ignorés). Renommer vers un nom pris :
   message rouge sous le champ, on reste dans le champ. Créer, dupliquer, déplacer, importer, restaurer vers un nom
@@ -140,7 +154,7 @@ corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de
 ## 6. Lots (une session = un lot, validation entre lots)
 - **P0** — Maquette cliquable dans `maquette/` (bouton, fenêtre, aperçu) ; validation.
 - **P1** — Codec pur `src/engine/share/` (binaire v1, tables d'ids, varint, deflate, base64url) + tests aller-retour,
-  fuzz, liens figés ; mesures sur vrais designs.
+  fuzz, liens figés ; mesures sur vrais designs. **Fait le 2026-11-24** (§ 2 : tailles réelles ; question B).
 - **P2** — Bouton Partager + ouverture du lien (confirmation, design importé enregistré, précédent gardé en « design actif »).
 - **P2 bis** — Explorateur de designs façon IDE (dossiers, renommer, glisser, corbeille), reprend « Plans enregistrés ».
 - **P3** — Empreinte du plan de pose et message « le site a changé ».
