@@ -52,7 +52,7 @@ Ce que ça change par rapport à l'étude (chiffres synthétiques de 30 à 900 b
   caractères, donc jamais sur Discord. Le binaire maison divise quand même par 4 à 6 le JSON compressé.
 - Un petit montage fait à la main (une dizaine de blocs) ajoute moins de 100 caractères (lien figé « bac-à-sable »).
 - Le fichier `.indus` avec usine figée reste léger : 15 à 53 Ko.
-→ Voir la question B (§ 5 bis) : la case « bac à sable » cochée par défaut fait presque toujours dépasser 1 900 caractères.
+→ Question B (§ 5 bis, tranchée) : case cochée par défaut, et si seul le bac à sable fait dépasser, on propose le lien sans lui ou le fichier.
 
 ### Limites pratiques
 - Navigateurs : Chrome/Firefox/Edge acceptent des URL de plusieurs centaines de milliers de caractères.
@@ -123,11 +123,12 @@ fichier propose « ouvrir avec la version d'origine ».
   qui a créé le fichier.
 - Chaque version déployée reste servie sur le Pi sous `/v/<version>/`.
 
-### Question B ouverte (lot P1, mesures du § 2) : bac à sable dans le lien
+### Question B tranchée (2026-11-24) : bac à sable dans le lien — la proposition est retenue (à faire en P2)
 Une usine convertie en bac à sable fait 10 000 à 36 000 caractères : avec la case « bac à sable » cochée par défaut,
 presque tout lien dépasserait 1 900 caractères et basculerait vers le fichier. Proposition : la case reste cochée
 par défaut, mais si le lien dépasse 1 900 caractères à cause du seul bac à sable, la fenêtre le dit (« sans le bac
 à sable : 900 caractères, passe sur Discord ») et propose les deux : lien sans bac à sable, ou fichier complet.
+Décision de l'utilisateur : « Oui, ta proposition ».
 
 ### Gestionnaire de designs : un vrai gestionnaire de fichiers
 - Jamais deux fois le même nom dans un dossier (majuscules et espaces autour ignorés). Renommer vers un nom pris :
