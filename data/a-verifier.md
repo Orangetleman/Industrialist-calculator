@@ -1044,4 +1044,6 @@ Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md`
   champs de `globalSettings` autres que la pollution. **Groupes (2026-11-24)** : format relevé dans leur dépôt
   (commit 1c9ff48, `src/types/saves.ts`, `src/persistence/saveMigrations.ts`), lus et écrits ; un export avec un
   groupe replié chargé dans leur site (groupe replié, 3 membres cachés, même prise mandataire) et leur sauvegarde
-  relue par notre import. Pas essayé chez eux : un groupe déplié (leur site recalcule son cadre).
+  relue par notre import. **Groupe déplié essayé chez eux le 2026-11-24** : export Gearbox (19 nœuds, « Group 1 »
+  déplié, 2 membres, 2 prises mandataires de chaque côté) accepté et chargé ; groupe resté déplié, membres visibles
+  à leur place, cadre recalculé par leur site (1862, −26 au lieu de 1880, 16) ; même bilan qu'au premier essai.
