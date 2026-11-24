@@ -7,6 +7,7 @@ import { balanceAfter, parseResearchSetup, type ResearchSetup, type RpTier } fro
 import { parseJournal, type RpJournal } from "../engine/rp-history.ts";
 import type { ResearchCategory } from "../engine/types.ts";
 import { isNodeUnlocked, nodeDepths, type Progress } from "../engine/unlock.ts";
+import { getItem, setItem } from "./profile-store.ts";
 import { esc, fmt, parseNum } from "./format.ts";
 import { withIcons } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
@@ -97,7 +98,7 @@ const numOrNull = (x: unknown): number | null => (typeof x === "number" && Numbe
 
 export function loadProgress(): ProgressState {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY_PROGRESS) ?? "null");
+    const raw = JSON.parse(getItem(KEY_PROGRESS) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PROGRESS };
     return { unlocked: strings(raw.unlocked), reqItemsDone: strings(raw.reqItemsDone), owned: strings(raw.owned) };
   } catch {
@@ -106,14 +107,14 @@ export function loadProgress(): ProgressState {
 }
 export function saveProgress(p: ProgressState): void {
   try {
-    localStorage.setItem(KEY_PROGRESS, JSON.stringify(p));
+    setItem(KEY_PROGRESS, JSON.stringify(p));
   } catch {
     // stockage indisponible : la progression vaut pour la session seulement
   }
 }
 export function loadPlayer(): PlayerInfo {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY_PLAYER) ?? "null");
+    const raw = JSON.parse(getItem(KEY_PLAYER) ?? "null");
     if (!raw || typeof raw !== "object") return { ...EMPTY_PLAYER };
     return { pollutionPct: numOrNull(raw.pollutionPct), month: monthOrNull(raw.month), igloo: raw.igloo === true, difficulty: isDifficulty(raw.difficulty) ? raw.difficulty : "normal", money: numOrNull(raw.money), rp: numOrNull(raw.rp), rpPerSec: numOrNull(raw.rpPerSec), rpAt: numOrNull(raw.rpAt), spendRp: raw.spendRp === true, gamePass: raw.gamePass === true, plotW: numOrNull(raw.plotW), plotH: numOrNull(raw.plotH), research: parseResearchSetup(raw.research) };
   } catch {
@@ -122,7 +123,7 @@ export function loadPlayer(): PlayerInfo {
 }
 export function savePlayer(p: PlayerInfo): void {
   try {
-    localStorage.setItem(KEY_PLAYER, JSON.stringify(p));
+    setItem(KEY_PLAYER, JSON.stringify(p));
   } catch {
     // idem
   }
@@ -132,14 +133,14 @@ export function savePlayer(p: PlayerInfo): void {
 const KEY_JOURNAL = "ind-calc:v1:rp-journal";
 export function loadJournal(): RpJournal | null {
   try {
-    return parseJournal(JSON.parse(localStorage.getItem(KEY_JOURNAL) ?? "null"));
+    return parseJournal(JSON.parse(getItem(KEY_JOURNAL) ?? "null"));
   } catch {
     return null;
   }
 }
 export function saveJournal(j: RpJournal): void {
   try {
-    localStorage.setItem(KEY_JOURNAL, JSON.stringify(j));
+    setItem(KEY_JOURNAL, JSON.stringify(j));
   } catch {
     // idem
   }

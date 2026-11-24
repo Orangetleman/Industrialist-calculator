@@ -1,6 +1,7 @@
 // État de l'interface et persistance locale (localStorage, toujours dans un try/catch).
 
 import { cleanDieselChoice, type DieselChoice } from "./diesel.ts";
+import { getItem, setItem } from "./profile-store.ts";
 import { cleanMineshaftChoice, type MineshaftChoice } from "../engine/mineshaft.ts";
 import { normalPriority, POSE_CRITERIA, type PoseCriterion } from "../engine/build/module.ts";
 import type { Criterion } from "../engine/choose.ts";
@@ -202,7 +203,7 @@ const KEY_NOTES = "ind-calc:v1:notes";
 
 function read<T>(key: string): T | null {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
@@ -210,7 +211,7 @@ function read<T>(key: string): T | null {
 }
 function write(key: string, value: unknown): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    setItem(key, JSON.stringify(value));
   } catch {
     // Stockage indisponible (navigation privée…) : l'appli fonctionne sans.
   }

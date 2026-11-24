@@ -48,9 +48,9 @@ export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
     const body =
       renaming === n.id
         ? `<input class="dsg-in" value="${esc(n.name)}" aria-label="${esc(t("dsg.rename"))}" maxlength="120" spellcheck="false">`
-        : `<span class="nm" title="${esc(name)}">${esc(name)}</span>${bin && T().bin.kids.length ? `<span class="dsg-n">${T().bin.kids.length}</span>` : ""}${dirty ? `<span class="dsg-dot" title="${esc(t("dsg.dirty.title"))}" aria-label="${esc(t("dsg.dirty"))}"></span>` : ""}<button type="button" class="dsg-more" tabindex="-1" data-more title="${esc(t("dsg.more"))}" aria-label="${esc(t("dsg.more"))}">⋯</button>`;
+        : `<span class="nm" title="${esc(name)}">${esc(name)}</span>${bin && T().bin.kids.length ? `<span class="dsg-n">${T().bin.kids.length}</span>` : ""}${!dir && n.lec ? `<span class="dsg-lec" title="${esc(t("dsg.lec.title"))}">${esc(t("dsg.lec"))}</span>` : ""}${dirty ? `<span class="dsg-dot" title="${esc(t("dsg.dirty.title"))}" aria-label="${esc(t("dsg.dirty"))}"></span>` : ""}<button type="button" class="dsg-more" tabindex="-1" data-more title="${esc(t("dsg.more"))}" aria-label="${esc(t("dsg.more"))}">⋯</button>`;
     return (
-      `<div class="dsg${on ? " on" : ""}${n.id === sel ? " sel" : ""}" role="treeitem" id="dsg-${n.id}" data-id="${n.id}" aria-level="${depth}"${dir ? ` aria-expanded="${!!n.open}"` : ""} aria-selected="${n.id === sel}"${bin || renaming === n.id ? "" : ` draggable="true"`} style="padding-left:${6 + (depth - 1) * 14}px">` +
+      `<div class="dsg${!dir && n.lec ? " lec" : ""}${on ? " on" : ""}${n.id === sel ? " sel" : ""}" role="treeitem" id="dsg-${n.id}" data-id="${n.id}" aria-level="${depth}"${dir ? ` aria-expanded="${!!n.open}"` : ""} aria-selected="${n.id === sel}"${bin || renaming === n.id ? "" : ` draggable="true"`} style="padding-left:${6 + (depth - 1) * 14}px">` +
       `<span class="tw">${dir ? icon(n.open ? "more" : "next") : ""}</span>${icon(bin ? "trash" : dir ? "folder" : "list")}${body}</div>` +
       (renaming === n.id ? `<p class="dsg-err" role="alert" hidden></p>` : "") +
       (dir && n.open ? sorted(n.kids).map((k) => row(k, depth + 1)).join("") : "")

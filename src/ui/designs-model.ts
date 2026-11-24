@@ -15,6 +15,8 @@ export type DesignNode = {
   /** Dernière modification (ms) et machines du plan, pour comparer deux designs. */
   at: number;
   mach?: number;
+  /** Le design porte le profil de son auteur : il s'ouvre en session de lecture. */
+  lec?: true;
   /** Corbeille : dossier d'origine. */
   from?: number;
 };
@@ -40,7 +42,7 @@ export function readTree(raw: unknown): Tree | null {
     top = Math.max(top, id);
     if (n.type === "dir" && Array.isArray(n.kids)) return { id, type: "dir", name: n.name, ...(n.open === true ? { open: true } : {}), kids: list(n.kids), ...from };
     if (n.type !== "des") return null;
-    return { id, type: "des", name: n.name, ...(n.auto === true ? { auto: true as const } : {}), ...(str(n.d) ? { d: n.d } : {}), ...(str(n.w) ? { w: n.w } : {}), at: typeof n.at === "number" ? n.at : 0, ...(typeof n.mach === "number" ? { mach: n.mach } : {}), ...from };
+    return { id, type: "des", name: n.name, ...(n.auto === true ? { auto: true as const } : {}), ...(str(n.d) ? { d: n.d } : {}), ...(str(n.w) ? { w: n.w } : {}), at: typeof n.at === "number" ? n.at : 0, ...(typeof n.mach === "number" ? { mach: n.mach } : {}), ...(n.lec === true ? { lec: true as const } : {}), ...from };
   };
   const list = (xs: unknown[]) => xs.map(read).filter((n): n is Node => !!n);
   const kids = (x: unknown) => list(Array.isArray((x as DirNode).kids) ? (x as DirNode).kids : []);
@@ -207,5 +209,5 @@ export async function move(t: Tree, id: number, dirId: number, ask: Ask): Promis
 export function duplicate(t: Tree, id: number, label: string, content: string | undefined): DesignNode | null {
   const f = find(t, id);
   if (!f?.parent || f.node.type !== "des" || inBin(t, id)) return null;
-  return addDesign(t, f.parent, label, { ...(content ? { d: content } : {}), ...(f.node.mach !== undefined ? { mach: f.node.mach } : {}) });
+  return addDesign(t, f.parent, label, { ...(content ? { d: content } : {}), ...(f.node.mach !== undefined ? { mach: f.node.mach } : {}), ...(f.node.lec ? { lec: true as const } : {}) });
 }

@@ -4,6 +4,7 @@
 
 import { t } from "../i18n/i18n.ts";
 import { comparePrints, decodeDesign, designFromMschCode, designLink, encodeDesign, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import type { Key } from "../i18n/i18n.ts";
 import { checkNotes, designFacts, linkAdvice, miniLayout, shareErrorKey, type CheckState } from "./share-design.ts";
 import { icon } from "./icons.ts";
 
@@ -196,23 +197,27 @@ export function initShare(deps: ShareDeps) {
     const facts = !legacy && d.name && d.name !== deps.nameOf(d) ? [deps.nameOf(d)] : []; // l'objectif, s'il n'est pas déjà le nom
     if (f.nodes !== null) facts.push(t("share.nodes", { n: f.nodes }));
     if (f.blocks !== null) facts.push(t("share.blocks", { n: f.blocks }));
+    if (d.profile) facts.push(t("share.profile"));
     $("shr-r-facts").innerHTML = pills(facts);
     $("shr-r-facts").hidden = !facts.length;
     // Anciens liens du bac à sable : rien à recalculer, le montage est tel quel.
     if (legacy) $("shr-r-warn").hidden = $("shr-r-check").hidden = true;
     else notes(d, null);
     $("shr-r-keep").hidden = false;
-    $("shr-r-keep-txt").textContent = t(legacy ? "share.r.keep.bac" : "share.r.keep", { prev: deps.currentName() });
+    $("shr-r-keep-txt").textContent = t(legacy ? "share.r.keep.bac" : d.profile ? "share.r.keep.lec" : "share.r.keep", { prev: deps.currentName() });
     $("shr-r-no").textContent = t("m.cancel");
     $("shr-r-yes").hidden = false;
     return show();
   }
 
+  /** Avec le profil de l'auteur, la partie du lecteur n'y est pour rien : seul le site a pu changer. */
+  const withProfileText = (d: Design, k: Key): Key => (d.profile && (k === "share.r.diff.plan" || k === "share.r.diff.pose") ? `${k}.lec` : k);
+
   /** Alerte et information de la fenêtre, selon la vérification de l'empreinte (P3). */
   function notes(d: Design, verdict: CheckState): void {
     const n = checkNotes(d, SITE_VERSION, verdict);
     $("shr-r-warn").hidden = !n.warn.length;
-    $("shr-r-warn-txt").innerHTML = [...n.warn.map((k) => esc(t(k))), ...(n.advice ? [`<b>${esc(t("share.r.advice"))}</b>`] : [])].join("<br>");
+    $("shr-r-warn-txt").innerHTML = [...n.warn.map((k) => esc(t(withProfileText(d, k)))), ...(n.advice ? [`<b>${esc(t("share.r.advice"))}</b>`] : [])].join("<br>");
     $("shr-r-check").hidden = !n.info;
     $("shr-r-check-txt").textContent = n.info ? t(n.info) : "";
     $("shr-r-check-ic").innerHTML = icon(verdict === "identique" ? "check" : "info");
@@ -286,7 +291,7 @@ export function initShare(deps: ShareDeps) {
       if (name !== null && late)
         void checked?.then((v) => {
           const n = checkNotes(d, SITE_VERSION, v);
-          if (n.advice) toast(`${t(n.warn.at(-1)!)} ${t("share.r.advice")}`, true, 14_000);
+          if (n.advice) toast(`${t(withProfileText(d, n.warn.at(-1)!))} ${t("share.r.advice")}`, true, 14_000);
         });
     } finally {
       busy = null;

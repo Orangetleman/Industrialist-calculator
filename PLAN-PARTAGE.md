@@ -224,8 +224,16 @@ Décision (2026-11-24) : oui, **mais prévenir des conséquences** de ne pas par
 relevés) : la fenêtre doit dire ce qui manquera et l'effet chez le lecteur (recettes ou ports supposés, plan et pose
 recalculés différents, alerte d'empreinte), avant de copier le lien allégé. À faire avec P3 bis c.
 
-Lots restants : **P3 bis b** profil actif du site (lecture et
-écriture aiguillées) et bandeau ; **P3 bis c** fenêtre à deux choix, impression, parcours réel ; puis P4.
+**P3 bis b fait le 2026-11-24** : `src/ui/profile-store.ts` aiguille les 7 clés du profil (recherches, « Ma partie », journal des RP,
+corrections, ports, interfaces, diesel). Pendant une lecture elles vont dans `ind-calc:v1:lecture` (relu au rechargement), puis
+dans le design (`w`/`d`) quand on le quitte ou l'enregistre ; les clés du joueur ne sont plus écrites, sauf l'heure de « Je joue ».
+Restent au joueur : réglages d'affichage, notes, images, corrections de blocs modulaires. Bandeau, cadre, puces, étiquette
+« lecture », titre de l'onglet ; « Revenir à ma partie » rouvre le design d'avant. L'essai d'empreinte se fait avec le profil du lien.
+En lecture, « Envoyer mes corrections / relevés » est masqué (ce sont ceux de l'auteur). Un lien qui porte un profil s'ouvre pour
+l'instant toujours en session de lecture ; partager depuis une session garde son profil. La pose suit aussi les corrections et
+les relevés diesel (`currentPorts().sig`) : deux profils ne partagent jamais une usine gardée.
+
+Lot restant : **P3 bis c** Partager avec son propre profil, fenêtre à deux choix, impression, parcours réel ; puis P4.
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`

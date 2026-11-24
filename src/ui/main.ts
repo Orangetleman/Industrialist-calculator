@@ -48,7 +48,7 @@ import { parseFactor, renderScreenInputs, settingChips, settingLines } from "./i
 import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
 import { balanceTimeline, emptySetup, nominalRate, TIERS, proposeAddStations, rateAt, researchModel, timeToReach, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
 import { fillResearchCalc, renderResearchControl, renderResearchForm, renderResearchOut, researchHow } from "./research-mine.ts";
-import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
+import { parseJournal as parseRpJournal, addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtMF, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
@@ -176,11 +176,12 @@ import { initPropositions } from "./propositions-view.ts";
 import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
 import { initShare } from "./share-view.ts";
-import { assembleDesign, hasSandbox, readShareHash } from "./share-design.ts";
+import { assembleDesign, assembleProfile, hasSandbox, readShareHash } from "./share-design.ts";
+import { enterLecture, leaveLecture, lecture, ownItem, PROFILE_KEYS, setLectureDesign, setOwnItem, withProfile } from "./profile-store.ts";
 import { initDesigns } from "./designs-view.ts";
-import { addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
+import { sorted, addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
 import { fnv } from "../engine/share/print.ts";
-import { decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import { type DesignProfile, decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
 import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
@@ -227,12 +228,17 @@ const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJso
 (files as RawFiles).farmPoles = CATALOG.poles.map((p) => ({ id: p.id, name: p.name, rangeCells: p.rangeCells, capacityMFps: p.capacityMFps, w: p.size.w, h: p.size.h, price: p.price }));
 const REPO_PORTS = portsJson as unknown as PortsFile;
 /** Relevés de bâtiments pour les plans de pose : ceux du dépôt, remplacés par les relevés locaux. */
-let ports = { sig: null as string | null, machines: REPO_PORTS.machines, local: {} as Record<string, PortsEntry> };
+let ports = { raw: null as string | null, fix: null as unknown, dsl: null as unknown, sig: "", machines: REPO_PORTS.machines, local: {} as Record<string, PortsEntry> };
 function currentPorts(): typeof ports {
-  const sig = rawLocalSurveys();
-  if (sig !== ports.sig) {
+  const raw = rawLocalSurveys();
+  if (raw !== ports.raw) {
     const local = loadLocalSurveys();
-    ports = { sig, machines: mergeSurveys(REPO_PORTS, local), local };
+    ports = { ...ports, raw, fix: null, machines: mergeSurveys(REPO_PORTS, local), local };
+  }
+  // La signature suit aussi les corrections et les relevés diesel : ils changent la pose, et d'un profil à l'autre.
+  if (ports.fix !== corrections || ports.dsl !== dieselReadings) {
+    const extra = countCorrections(corrections) || dieselReadings.length ? `+${fnv(JSON.stringify([corrections, dieselReadings]))}` : "";
+    ports = { ...ports, fix: corrections, dsl: dieselReadings, sig: raw + extra };
   }
   return ports;
 }
@@ -337,6 +343,23 @@ const tour = createTour(SITE_TOUR, {
   },
 });
 /** Journal des RP (S21) : temps de jeu, relevés, configurations, dépenses, sessions. */
+/** Démarrage en session de lecture alors que « Je joue » du joueur était resté actif : rappelé au retour à sa partie. */
+let ownAway = (() => {
+  const j = lecture() ? ownJournal() : null;
+  return !!j && needsRecall(j, Date.now());
+})();
+function ownJournal(): RpJournal | null {
+  try {
+    return parseRpJournal(JSON.parse(ownItem(PROFILE_KEYS.journal) ?? "null"));
+  } catch {
+    return null;
+  }
+}
+/** Pendant une lecture, l'horloge du joueur reste tenue (le site est ouvert) : rien d'autre de sa partie n'est écrit. */
+function touchOwn(): void {
+  const j = lecture() && !ownAway ? ownJournal() : null;
+  if (j?.clock.playing) setOwnItem(PROFILE_KEYS.journal, JSON.stringify(touch(j, Date.now())));
+}
 let journal: RpJournal = loadJournal() ?? startJournal(Date.now(), player);
 saveJournal(journal);
 let built = loadBuilt();
@@ -675,7 +698,7 @@ let lastHash = "";
 function setDocTitle(): void {
   const page = currentPage();
   const view = page === "plan" ? goalTitle(settings.goal) : t(page === "usine" && route.usineTab === "recherche" ? "page.recherche" : `page.${page}`);
-  document.title = `${view} — ${t("site.title")}`;
+  document.title = `${lecture() ? `${t("lec.title", { name: activeDesign()?.name ?? view })} — ` : ""}${view} — ${t("site.title")}`;
 }
 
 /** Partage (P2) : ancien lien du bac à sable en attente, et la vue où revenir après la fenêtre d'un lien. */
@@ -2167,12 +2190,13 @@ function savedName(s: Settings = settings): string {
 const designSettings = (d: Design): Settings => ({ ...DEFAULT_SETTINGS, ...d.settings }) as Settings;
 /** Le design affiché : réglages, graphe édité et bac à sable (relus, jamais modifiés). */
 function currentDesign(withSandbox: boolean): Design {
-  return assembleDesign({ site: SITE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox });
+  return assembleDesign({ site: SITE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox, profile: lectureProfile() });
 }
 /** Affiche un design : réglages, graphe et bac à sable (`sandboxOnly` : ancien lien du bac à sable). */
 function applyDesign(d: Design, sandboxOnly = false): void {
   if (d.sandbox) sandbox.setLayout(d.sandbox);
   if (sandboxOnly) return;
+  showProfile(d.profile ?? null);
   saveSettings(designSettings(d));
   Object.assign(settings, loadSettings());
   gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
@@ -2181,6 +2205,80 @@ function applyDesign(d: Design, sandboxOnly = false): void {
   saveGraphEdit(true);
   planDirty = true;
   syncForm();
+}
+// ---- session de lecture (P3 bis b) : le profil du design affiché est celui du site (profile-store.ts)
+/** Le profil en vigueur dans la session de lecture, à ranger dans le design (null : c'est la partie du joueur). */
+function lectureProfile(): DesignProfile | null {
+  if (!lecture()) return null;
+  return assembleProfile({ progress: simulated ?? prog, player, month: gameView().month, rp: rpNow(), corrections, surveys: loadLocalSurveys(), interfaces: loadLocalInterfaces(), diesel: dieselReadings });
+}
+/** Le design affiché juste avant celui qui s'ouvre (là où « Revenir à ma partie » ramène). */
+let leftDesign: number | null = null;
+/** Le design affiché porte un profil : la session s'ouvre (ou change) ; sinon on revient à la partie du joueur. */
+function showProfile(p: DesignProfile | null): void {
+  const was = lecture();
+  if (!p && !was) return;
+  if (p) {
+    if (!was && journal.clock.playing) setJournal(touch(journal, Date.now()));
+    enterLecture(p, { design: designs.active, back: was ? was.back : leftDesign, mine: was ? was.mine : { existing: settings.existing, useExisting: settings.useExisting } });
+  } else {
+    touchOwn();
+    leaveLecture();
+  }
+  reloadProfile();
+  if (!p && ownAway) {
+    ownAway = false;
+    void recallPlaying();
+  }
+}
+/** Compte les changements de profil : une réponse attendue d'avant ne s'applique plus. */
+let profileEpoch = 0;
+/** Relit tout ce qui vient du profil actif, et refait ce qui en dépend. */
+function readProfile(): void {
+  corrections = pruneIntegratedCorrections(loadCorrections(), repoOverrides).kept;
+  dieselReadings = loadDieselReadings();
+  (files as RawFiles).dieselReadings = dieselReadings;
+  player = loadPlayer();
+  journal = loadJournal() ?? startJournal(Date.now(), player);
+  rebuildData();
+  prog = sanitizeProgress(data, loadProgress());
+  simulated = null;
+  planDirty = true;
+}
+function reloadProfile(): void {
+  profileEpoch++;
+  // Parcours guidé sur une progression simulée : elle appartenait à l'autre profil.
+  tourGedit = null;
+  readProfile();
+  modulesFor = "";
+  $("recall").hidden = true;
+  syncPlayerForm();
+  buildings.reload();
+  renderLecture();
+}
+function renderLecture(): void {
+  const on = !!lecture();
+  document.body.classList.toggle("lecture", on);
+  $("lecture").hidden = !on;
+  if (on) setHtml($("lecture-txt"), t("lec.text.html", { name: esc(activeDesign()?.name ?? "") }));
+  setDocTitle();
+}
+/** « Revenir à ma partie » : le design d'avant la lecture, sinon le premier sans profil, sinon un design neuf. */
+async function backToMine(): Promise<void> {
+  const ok = (n: Tree["root"]["kids"][number] | undefined): n is DesignNode => n?.type === "des" && !n.lec;
+  const first = (d: DirNode): DesignNode | undefined => {
+    for (const k of sorted(d.kids)) {
+      const r = k.type === "dir" ? first(k) : ok(k) ? k : undefined;
+      if (r) return r;
+    }
+    return undefined;
+  };
+  const b = lecture()?.back ?? null;
+  const kept = b === null || inBin(designs, b) ? undefined : find(designs, b)?.node;
+  const to = ok(kept) ? kept : first(designs.root);
+  if (to) await openDesign(to.id);
+  else await createDesign(designs.root);
+  if (!lecture()) share.toast(t("lec.toast"));
 }
 /**
  * Ouvre un design reçu par lien : rangé dans « Reçus » (nom pris : la fenêtre de conflit) et affiché ; le design
@@ -2193,7 +2291,7 @@ async function openReceived(d: Design, _data: string, legacy: boolean): Promise<
   const { print: _print, ...got }: Design = legacy ? { ...cur, ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
   const name = d.name?.trim() || savedName(designSettings(got));
   // L'empreinte de l'auteur a servi à la fenêtre ; le design rangé s'en passe.
-  const n = makeDesign(designs, name, { d: await encodeDesign({ ...got, name }) });
+  const n = makeDesign(designs, name, { d: await encodeDesign({ ...got, name }), ...(got.profile ? { lec: true as const } : {}) });
   const inbox = folder(designs, t("dsg.inbox"));
   const r = await place(designs, n, null, inbox, designsView.asker("link", t("dsg.from.link")));
   if (!r.done) {
@@ -2203,7 +2301,7 @@ async function openReceived(d: Design, _data: string, legacy: boolean): Promise<
     return null;
   }
   inbox.open = true;
-  const left = designs.active;
+  const left = (leftDesign = designs.active);
   designs.active = n.id;
   dropBlank(left);
   applyDesign(got, legacy);
@@ -2219,6 +2317,7 @@ let designs: Tree = emptyTree();
 /** Une action à la fois (ouvrir, enregistrer…) : deux doubles clics rapides ne se croisent pas. */
 let designBusy = false;
 function storeDesigns(): boolean {
+  setLectureDesign(designs.active);
   try {
     localStorage.setItem(KEY_DESIGNS, JSON.stringify(designs));
     return true;
@@ -2231,16 +2330,23 @@ const activeDesign = (): DesignNode | null => {
   const n = designs.active === null ? null : find(designs, designs.active)?.node;
   return n?.type === "des" ? n : null;
 };
+/** Le profil de la session de lecture, hors ce qui ne se range pas dans le design (journal, heure du relevé, dépense des RP). */
+function profileSig(): unknown[] {
+  const { rpAt: _a, spendRp: _s, month: _m, ...rest } = player;
+  const p = simulated ?? prog;
+  return [[...p.unlocked].sort(), [...p.reqItemsDone].sort(), [...p.owned].sort(), rest, gameView().month, corrections, loadLocalSurveys(), loadLocalInterfaces(), dieselReadings];
+}
 /** Signature du design affiché (hors vue : onglet, affichage de l'usine) : dit s'il a changé depuis son ouverture. */
 function designSig(): string {
   const { resultTab: _r, usine: _u, entered, ...rest } = settings;
   const sb = sandbox.layout();
-  return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null]));
+  return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null, ...(lecture() ? [profileSig()] : [])]));
 }
 /** Le design affiché devient la référence : rien à enregistrer. */
 function rebase(): void {
   render(); // le rendu peut annuler un réglage périmé : la référence se prend après
   designs.base = designSig();
+  renderLecture();
 }
 const changedSinceOpen = () => designs.base !== null && designSig() !== designs.base;
 function designDirty(n: DesignNode): boolean {
@@ -2287,7 +2393,7 @@ async function withDesigns<R>(fn: () => Promise<R>): Promise<R | null> {
   }
 }
 /** Réglages d'un design vide : les défauts du site, en gardant l'affichage et « Ma production ». */
-const blankSettings = (): Settings => ({ ...structuredClone(DEFAULT_SETTINGS), goal: settings.goal, rateUnit: settings.rateUnit, energyUnit: settings.energyUnit, usine: settings.usine, resultTab: settings.resultTab, existing: settings.existing, useExisting: settings.useExisting });
+const blankSettings = (): Settings => ({ ...structuredClone(DEFAULT_SETTINGS), goal: settings.goal, rateUnit: settings.rateUnit, energyUnit: settings.energyUnit, usine: settings.usine, resultTab: settings.resultTab, ...(lecture()?.mine ?? { existing: settings.existing, useExisting: settings.useExisting }) });
 function showBlank(): void {
   applyDesign({ site: SITE_VERSION, settings: blankSettings() as unknown as Design["settings"] });
 }
@@ -2310,7 +2416,7 @@ const openDesign = (id: number) =>
         return share.toast(t("share.saved.bad"), true);
       }
     }
-    const left = designs.active;
+    const left = (leftDesign = designs.active);
     designs.active = id;
     dropBlank(left);
     if (d) applyDesign(d);
@@ -2379,6 +2485,21 @@ async function settleDesigns(): Promise<void> {
   showBlank();
   afterShow();
 }
+/** Au démarrage : la session de lecture gardée doit être celle du design affiché. */
+async function settleLecture(): Promise<void> {
+  const n = activeDesign();
+  if (lecture() && lecture()!.design === n?.id && n?.lec) return renderLecture();
+  const content = n?.lec ? contentOf(n) : undefined;
+  let p: DesignProfile | null = null;
+  try {
+    if (content) p = (await decodeDesign(content)).profile ?? null;
+  } catch {
+    p = null; // design abîmé : la partie du joueur
+  }
+  if (designs.active !== n?.id || (!p && !lecture())) return;
+  showProfile(p);
+  render();
+}
 /** Au démarrage : l'arbre enregistré, ou les anciens plans enregistrés rangés dedans (une fois ; l'ancienne liste reste). */
 async function bootDesigns(): Promise<void> {
   const read = () => {
@@ -2410,6 +2531,7 @@ async function bootDesigns(): Promise<void> {
     nameActive();
     storeDesigns();
   }
+  await settleLecture();
   designsView.refresh();
   // Un autre onglet a changé l'arbre : on repart du sien (le design affiché ici y reste, s'il existe encore).
   addEventListener("storage", (e) => {
@@ -2424,6 +2546,7 @@ async function bootDesigns(): Promise<void> {
   setInterval(() => {
     if (document.hidden || currentPage() !== "plan" || designBusy) return;
     nameActive();
+    if (lecture()) renderLecture(); // le design a pu être renommé
     designsView.render();
   }, 1500);
 }
@@ -2451,12 +2574,17 @@ function currentPrint(): { now: string | undefined; later: Promise<string | unde
  * Le résultat est gardé comme celui de la page : ouvrir ensuite le design ne le recalcule pas.
  */
 function probeDesign(d: Design): { print: Promise<string | undefined>; cancel: () => void } {
-  const keep = { settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache };
+  return withProfile(d.profile ?? null, () => probeNow(d));
+}
+function probeNow(d: Design): ReturnType<typeof probeDesign> {
+  // Avec un profil, l'essai se fait avec lui (c'est la session de lecture qui s'ouvrira) : le nôtre revient aussitôt.
+  const keep = { corrections, dieselReadings, player, journal, data, dataErrors, prog, simulated, settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache };
   let job: FactoryJob | null = null;
   let stopped = false;
   let todo: { plan: Plan; key: string; input: FactoryInput } | null = null;
   let empty: string | undefined;
   try {
+    if (d.profile) readProfile();
     settings = cleanSettings(designSettings(structuredClone(d)));
     gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
     pendingGraphPlan = null;
@@ -2470,7 +2598,13 @@ function probeDesign(d: Design): { print: Promise<string | undefined>; cancel: (
   } catch {
     todo = null; // design illisible pour ce moteur : « pas pu être comparée »
   } finally {
-    ({ settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache } = keep);
+    ({ corrections, dieselReadings, player, journal, data, dataErrors, prog, simulated, settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache } = keep);
+    (files as RawFiles).dieselReadings = dieselReadings;
+    if (d.profile) {
+      layouts.clear();
+      rcEntries = null;
+      modulesFor = "";
+    }
     saveSettings(settings); // le calcul a pu annuler un réglage périmé du design reçu et l'enregistrer
   }
   const run = async (): Promise<string | undefined> => {
@@ -2504,6 +2638,7 @@ function shareFacts(): string[] {
   if (plan && settings.entered.includes(settings.goal) && settings.goal !== "recherche") {
     out.push(t("share.steps", { n: plan.steps.length }), t("share.machines", { n: Math.round(plan.totals.machines) }));
   }
+  if (lecture()) out.push(t("share.profile"));
   if (gedit?.touched) out.push(t("share.nodes", { n: gedit.graph.nodes.length }));
   return out;
 }
@@ -3616,7 +3751,7 @@ function recipesCtx(): RecipesCtx {
     locked: (r) => (fresh || !r.research || !data.nodes.has(r.research) || isNodeUnlocked(data, p, r.research) ? null : nodeName(r.research)),
     edit: rcEdit,
     mine: corrections,
-    fixCount: countCorrections(corrections) + Object.keys(notes).length,
+    fixCount: !hasOwnFixes() ? 0 : countCorrections(corrections) + Object.keys(notes).length,
     highlight: route.page === "recettes" ? (route.card?.craft ?? null) : null,
   };
 }
@@ -5537,6 +5672,7 @@ const share = initShare({
     else location.hash = `#bac/${encodeURIComponent(code)}`;
   },
 });
+$("lecture-back").addEventListener("click", () => void backToMine());
 window.addEventListener("hashchange", showPage);
 void bootDesigns();
 showPage();
@@ -5583,7 +5719,7 @@ function correctionsPiece(): Piece {
   return { fichier: "overrides.json", resume: joinList(parts), contenu: { ...mergeCorrections(repoOverrides, corrections), _notes: { ...repoNotes, ...notes } } };
 }
 /** Il y a quelque chose à envoyer : des corrections ou des notes du joueur. */
-const hasOwnFixes = (): boolean => countCorrections(corrections) + Object.keys(notes).length > 0;
+const hasOwnFixes = (): boolean => !lecture() && countCorrections(corrections) + Object.keys(notes).length > 0;
 
 /** Bouton « 📤 Envoyer mes corrections » de Contribuer, et la note « Envoyées le… » (maquette S35, écran 1). */
 function renderFixSend(): void {
@@ -5685,6 +5821,7 @@ function bindHistory(): void {
   }).observe(box);
   const keepSeen = () => {
     if (journal.clock.playing) setJournal(touch(journal, Date.now()));
+    touchOwn();
   };
   window.addEventListener("pagehide", keepSeen);
   document.addEventListener("visibilitychange", keepSeen);
@@ -5698,6 +5835,7 @@ async function recallPlaying(): Promise<void> {
     return;
   }
   const before = journal;
+  const epoch = profileEpoch;
   const away = fmtDuration((now - before.clock.seen) / 1000);
   // Tant qu'il n'y a pas de réponse : « arrêté à la fermeture du site ».
   setJournal(stopAtLastSeen(journal, now));
@@ -5719,6 +5857,7 @@ async function recallPlaying(): Promise<void> {
       resolve(v);
     }),
   );
+  if (epoch !== profileEpoch) return;
   bar.hidden = true;
   if (choice !== "go" || journal.clock.playing) return;
   // La session continue : l'arrêt ajouté disparaît, l'horloge reprend comme avant la fermeture.

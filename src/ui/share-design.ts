@@ -22,11 +22,13 @@ export function assembleDesign(o: {
   graph: DesignGraph | null;
   sandbox: Layout | null;
   withSandbox: boolean;
+  profile?: DesignProfile | null;
 }): Design {
   const d: Design = { site: o.site, settings: structuredClone(o.settings) as DesignSettings };
   if (o.name) d.name = o.name;
   if (o.graph?.touched) d.graph = structuredClone(o.graph);
   if (o.withSandbox && o.sandbox && o.sandbox.blocks.length) d.sandbox = structuredClone(o.sandbox);
+  if (o.profile) d.profile = structuredClone(o.profile);
   return d;
 }
 
