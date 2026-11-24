@@ -9,8 +9,9 @@ import type { Graph } from "../graph/model.ts";
 import type { Layout } from "../sandbox/layout.ts";
 import { toCode, writeMsch } from "../schematic/msch.ts";
 import { deflate, Reader, Writer } from "./bytes.ts";
-import { decodeDesign, decodeDesignBytes, designBody, designLink, encodeDesign, encodeDesignBytes, same, SETTINGS_V1, ShareError, SITE_VERSION, type Design } from "./codec.ts";
+import { canonNodes, decodeDesign, decodeDesignBytes, designBody, designLink, encodeDesign, encodeDesignBytes, PLAYER_V1, same, SETTINGS_V1, ShareError, SITE_VERSION, type Design } from "./codec.ts";
 import { defaultSettingsV1, designFromMschCode, designFromMschFile } from "./msch.ts";
+import { NODES_V1 } from "./nodes-v1.ts";
 import { TABLE_V1 } from "./table-v1.ts";
 import { editedGraph, editOf, factoryLayout, planFor, pollywrathGraph, settingsWith } from "../../../tests/share-designs.ts";
 
@@ -203,6 +204,13 @@ function fuzzDesign(rand: () => number): Design {
   if (chance(0.5)) d.sandbox = layout();
   if (chance(0.2)) d.factory = layout();
   if (chance(0.3)) d.print = Array.from({ length: 16 }, () => int(16).toString(16)).join("");
+  if (chance(0.4)) {
+    const nodes = () => (chance(0.7) ? canonNodes(NODES_V1.filter(() => chance(0.5)).concat(chance(0.2) ? [str() + "?"] : [])) : Array.from({ length: int(12) }, str));
+    const player: Record<string, unknown> = Object.fromEntries(PLAYER_V1.map(([k, v]) => [k, chance(0.3) ? value(1) : v]));
+    if (chance(0.1)) delete player.month;
+    d.profile = { progress: { unlocked: nodes(), reqItemsDone: nodes(), owned: Array.from({ length: int(5) }, str) }, player };
+    for (const k of ["corrections", "surveys", "interfaces", "diesel"] as const) if (chance(0.2)) d.profile[k] = value(0) ?? {};
+  }
   return d;
 }
 

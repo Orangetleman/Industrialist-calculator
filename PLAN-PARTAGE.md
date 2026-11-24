@@ -191,7 +191,7 @@ corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de
 - **C. Oui, avant P4** : le lien porte le profil de l'auteur, avec une session de lecture (§ 6 ter).
 - **D. Oui** : P4 augmente le numéro de version à chaque déploiement, avec les `/v/<version>/`.
 
-## 6 ter. Profil dans le lien et session de lecture (P3 bis, maquette `maquette/session-lecture.html` à valider)
+## 6 ter. Profil dans le lien et session de lecture (P3 bis, maquette `maquette/session-lecture.html` validée le 2026-11-24)
 Décision de l'utilisateur : à l'ouverture, deux choix.
 1. **Imprimer le profil du lien sur sa partie.** Proposé : on coche ce qui est repris, la partie d'avant reste récupérable.
 2. **Session de lecture** : parallèle, enfermée dans le design et gérée dans le gestionnaire ; tant que ce design est
@@ -207,8 +207,17 @@ le reste à mesurer sur de vrais profils. Un lien sans profil s'ouvre comme aujo
 Idée « données en hexa » : regardée, pas retenue. Un caractère hexa porte 4 bits, un caractère base64url (déjà en place,
 après le binaire maison et deflate) 6 bits : les mêmes octets feraient 1,5 fois plus long en hexa.
 
-Lots : **P3 bis a** codec du profil + mesures ; **P3 bis b** profil actif du site (lecture/écriture aiguillées) et bandeau ;
-**P3 bis c** fenêtre à deux choix, impression, parcours réel. Le gestionnaire (P2 bis) vient avant b, puisque la session y est gérée.
+**P3 bis a fait le 2026-11-24** : champ `profile` du codec (drapeau 32, toujours v1), `src/engine/share/nodes-v1.ts` (recherches
+figées), `assembleProfile` de `share-design.ts`. Pas encore branché : tant que le site ne sait pas ouvrir une session de
+lecture, les liens n'emportent pas de profil. Mois et RP sont résolus chez l'auteur (RP du moment, sans heure de relevé).
+
+Coût mesuré (`$env:PROFIL = "1"; npx vitest run src/ui/share-profile --disable-console-intercept`), sur un lien de 918 caractères
+(données seules) : neuf **+38**, une recherche sur deux **+59**, tout débloqué **+43**, avec « Ma recherche » remplie à vide
+**+219**, avec un relevé de ports local **+534**. Les relevés faits à la main sont donc le seul poids : s'ils font dépasser
+1 900 caractères, proposer le lien sans eux ou le fichier, comme pour le bac à sable (question B).
+
+Lots restants : **P2 bis** gestionnaire de designs (la session y est gérée) ; **P3 bis b** profil actif du site (lecture et
+écriture aiguillées) et bandeau ; **P3 bis c** fenêtre à deux choix, impression, parcours réel ; puis P4.
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`

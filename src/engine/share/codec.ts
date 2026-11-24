@@ -2,7 +2,7 @@
 // sable + usine figée facultative) ↔ octets binaires v1 ↔ lien `#d=1.<base64url>`. Pur, sans DOM.
 //
 // Octets d'un design : [version = 1] puis le corps compressé en deflate-raw. Corps :
-//   drapeaux (varint) · version du site · [nom] · réglages · [graphe édité] · [bac à sable] · [usine figée] · [empreinte]
+//   drapeaux (varint) · version du site · [nom] · réglages · [graphe édité] · [bac à sable] · [usine figée] · [empreinte] · [profil]
 // Réglages : bitmap de présence sur la liste figée `SETTINGS_V1`, puis seulement les champs ≠ défaut v1.
 // Graphe : ids `nN` → N, liens vers les nœuds par rang, ids d'arête reconstruits (`edgeId`), coordonnées en
 // delta quand c'est exact. Bac à sable : rotation et présences dans un octet, `u` et coordonnées en delta.
@@ -15,6 +15,7 @@ import { edgeId, type Graph, type GraphEdge, type GraphGroup, type GraphNode } f
 import type { CrossPair, Layout, Placed, Route, Wire } from "../sandbox/layout.ts";
 import type { Dir } from "../sandbox/catalog.ts";
 import { deflate, fromBase64url, inflate, Reader, ShareError, toBase64url, Writer } from "./bytes.ts";
+import { NODES_V1 } from "./nodes-v1.ts";
 import { PRINT } from "./print.ts";
 import { TABLE_V1 } from "./table-v1.ts";
 import { version as PKG_VERSION } from "../../../package.json";
@@ -44,6 +45,21 @@ export type Design = {
   factory?: Layout;
   /** Empreinte du plan et de l'usine chez l'auteur (P3, `print.ts`) : 16 chiffres hexadécimaux, 8 octets dans le lien. */
   print?: string;
+  /** Profil de l'auteur (P3 bis), si le lien le porte. */
+  profile?: DesignProfile;
+};
+
+/**
+ * Le profil de l'auteur : de quoi recalculer chez lui ce qu'il voit. `player` : « Ma partie » (`PlayerInfo` de
+ * `ui/progress.ts`, vu en objet). Les autres champs (corrections, relevés) n'y sont que s'ils ne sont pas vides.
+ */
+export type DesignProfile = {
+  progress: { unlocked: string[]; reqItemsDone: string[]; owned: string[] };
+  player: Record<string, unknown>;
+  corrections?: unknown;
+  surveys?: unknown;
+  interfaces?: unknown;
+  diesel?: unknown;
 };
 
 // ---------------------------------------------------------------- réglages : défauts figés de la v1
@@ -166,8 +182,10 @@ function rValue(r: Reader, depth = 0): unknown {
 
 // ---------------------------------------------------------------- réglages
 
-function wSettings(w: Writer, s: DesignSettings): void {
-  const fields = SETTINGS_V1.map(([k, d]) => [k, Object.hasOwn(s, k) && !same(s[k], d)] as const);
+type Fields = readonly (readonly [string, unknown])[];
+
+function wSettings(w: Writer, s: DesignSettings, list: Fields = SETTINGS_V1): void {
+  const fields = list.map(([k, d]) => [k, Object.hasOwn(s, k) && !same(s[k], d)] as const);
   w.uv(fields.length);
   for (let i = 0; i < fields.length; i += 8) {
     let b = 0;
@@ -176,8 +194,8 @@ function wSettings(w: Writer, s: DesignSettings): void {
   }
   for (const [k, on] of fields) if (on) wValue(w, s[k]);
   // Champs absents (réglages d'un autre âge) et champs inconnus de la v1 : écrits à part, tels quels.
-  const missing = SETTINGS_V1.filter(([k]) => !Object.hasOwn(s, k)).map(([k]) => k as string);
-  const known = new Set(SETTINGS_V1.map(([k]) => k as string));
+  const missing = list.filter(([k]) => !Object.hasOwn(s, k)).map(([k]) => k as string);
+  const known = new Set(list.map(([k]) => k as string));
   const extra = Object.entries(s).filter(([k]) => !known.has(k));
   w.uv(missing.length);
   for (const k of missing) w.str(k);
@@ -188,16 +206,16 @@ function wSettings(w: Writer, s: DesignSettings): void {
   }
 }
 
-function rSettings(r: Reader): DesignSettings {
+function rSettings(r: Reader, list: Fields = SETTINGS_V1): DesignSettings {
   const n = r.uv();
-  if (n > SETTINGS_V1.length) throw new ShareError("abîmé", "réglages");
+  if (n > list.length) throw new ShareError("abîmé", "réglages");
   const bits: boolean[] = [];
   for (let i = 0; i < n; i += 8) {
     const b = r.u8();
     for (let j = 0; j < 8 && i + j < n; j++) bits.push(!!(b & (1 << j)));
   }
   const out: Record<string, unknown> = {};
-  SETTINGS_V1.forEach(([k, d], i) => (out[k] = bits[i] ? rValue(r) : structuredClone(d)));
+  list.forEach(([k, d], i) => (out[k] = bits[i] ? rValue(r) : structuredClone(d)));
   for (let m = r.count(); m > 0; m--) delete out[r.str()];
   for (let m = r.count(); m > 0; m--) {
     const k = r.str();
@@ -542,15 +560,97 @@ const bad = (what: string): never => {
   throw new ShareError("abîmé", what);
 };
 
+// ---------------------------------------------------------------- profil de l'auteur
+
+/** « Ma partie » et ses défauts, figés pour la v1 (copie de `EMPTY_PLAYER`). Un nouveau champ s'ajoute EN FIN. */
+export const PLAYER_V1: Fields = [
+  ["pollutionPct", null],
+  ["month", null],
+  ["igloo", false],
+  ["difficulty", "normal"],
+  ["money", null],
+  ["rp", null],
+  ["rpPerSec", null],
+  ["rpAt", null],
+  ["spendRp", false],
+  ["gamePass", false],
+  ["plotW", null],
+  ["plotH", null],
+  ["research", null],
+];
+const NODE_RANK = new Map(NODES_V1.map((id, i) => [id, i]));
+/** Recherches dans l'ordre de la table figée (puis les inconnues, triées), sans doublon : la forme la plus courte. */
+export function canonNodes(ids: readonly string[]): string[] {
+  const set = new Set(ids);
+  return [...NODES_V1.filter((id) => set.has(id)), ...[...set].filter((id) => !NODE_RANK.has(id)).sort()];
+}
+
+/** Liste de recherches : nombre de rangs + 1 puis un bit par rang, puis les inconnues ; 0 : liste en clair (ordre ou doublons à garder). */
+function wNodes(w: Writer, ids: string[]): void {
+  if (!same(ids, canonNodes(ids))) {
+    w.uv(0);
+    return wStrings(w, ids);
+  }
+  const ranks = ids.filter((id) => NODE_RANK.has(id)).map((id) => NODE_RANK.get(id)!);
+  const n = ranks.length ? ranks.at(-1)! + 1 : 0, bits = new Uint8Array(Math.ceil(n / 8));
+  for (const k of ranks) bits[k >> 3]! |= 1 << (k & 7);
+  w.uv(n + 1);
+  for (const b of bits) w.u8(b);
+  wStrings(w, ids.filter((id) => !NODE_RANK.has(id)));
+}
+
+function rNodes(r: Reader): string[] {
+  const n = r.uv() - 1;
+  if (n < 0) return rStrings(r);
+  if (n > NODES_V1.length) throw new ShareError("abîmé", "recherches");
+  const out: string[] = [];
+  for (let i = 0; i < n; i += 8) {
+    const b = r.u8();
+    for (let j = 0; j < 8 && i + j < n; j++) if (b & (1 << j)) out.push(NODES_V1[i + j]!);
+  }
+  return [...out, ...rStrings(r)];
+}
+
+function wStrings(w: Writer, xs: string[]): void {
+  w.uv(xs.length);
+  for (const x of xs) w.str(x);
+}
+function rStrings(r: Reader): string[] {
+  const out: string[] = [];
+  for (let n = r.count(); n > 0; n--) out.push(r.str());
+  return out;
+}
+
+const PROFILE_EXTRAS = ["corrections", "surveys", "interfaces", "diesel"] as const;
+
+function wProfile(w: Writer, p: DesignProfile): void {
+  const on = PROFILE_EXTRAS.map((k) => Object.hasOwn(p, k) && p[k] !== undefined);
+  w.uv(on.reduce((f, v, i) => f | (v ? 1 << i : 0), 0));
+  wNodes(w, p.progress.unlocked);
+  wNodes(w, p.progress.reqItemsDone);
+  wStrings(w, p.progress.owned);
+  wSettings(w, p.player, PLAYER_V1);
+  PROFILE_EXTRAS.forEach((k, i) => on[i] && wValue(w, p[k]));
+}
+
+function rProfile(r: Reader): DesignProfile {
+  const f = r.uv();
+  if (f >= 1 << PROFILE_EXTRAS.length) throw new ShareError("abîmé", "profil");
+  const progress = { unlocked: rNodes(r), reqItemsDone: rNodes(r), owned: rStrings(r) };
+  const p: DesignProfile = { progress, player: rSettings(r, PLAYER_V1) };
+  PROFILE_EXTRAS.forEach((k, i) => f & (1 << i) && (p[k] = rValue(r)));
+  return p;
+}
+
 // ---------------------------------------------------------------- design entier
 
-const D_NAME = 1, D_GRAPH = 2, D_SANDBOX = 4, D_FACTORY = 8, D_PRINT = 16;
+const D_NAME = 1, D_GRAPH = 2, D_SANDBOX = 4, D_FACTORY = 8, D_PRINT = 16, D_PROFILE = 32;
 
 /** Corps non compressé (utile aux mesures et aux tests). */
 export function designBody(d: Design): Uint8Array {
   const w = new Writer(TABLE_V1);
   const has = (k: keyof Design) => Object.hasOwn(d, k) && d[k] !== undefined;
-  w.uv((has("name") ? D_NAME : 0) | (has("graph") ? D_GRAPH : 0) | (has("sandbox") ? D_SANDBOX : 0) | (has("factory") ? D_FACTORY : 0) | (has("print") ? D_PRINT : 0));
+  w.uv((has("name") ? D_NAME : 0) | (has("graph") ? D_GRAPH : 0) | (has("sandbox") ? D_SANDBOX : 0) | (has("factory") ? D_FACTORY : 0) | (has("print") ? D_PRINT : 0) | (has("profile") ? D_PROFILE : 0));
   w.str(d.site);
   if (has("name")) w.str(d.name!);
   wSettings(w, d.settings);
@@ -561,13 +661,14 @@ export function designBody(d: Design): Uint8Array {
     if (!PRINT.test(d.print!)) throw new Error(`share: empreinte ${d.print}`);
     for (let i = 0; i < 16; i += 2) w.u8(parseInt(d.print!.slice(i, i + 2), 16));
   }
+  if (has("profile")) wProfile(w, d.profile!);
   return w.bytes();
 }
 
 function readBody(body: Uint8Array): Design {
   const r = new Reader(body, TABLE_V1);
   const f = r.uv();
-  if (f >= 32) throw new ShareError("abîmé", "design");
+  if (f >= 64) throw new ShareError("abîmé", "design");
   const d: Design = { site: r.str(), settings: {} };
   if (f & D_NAME) d.name = r.str();
   d.settings = rSettings(r);
@@ -579,10 +680,11 @@ function readBody(body: Uint8Array): Design {
     for (let i = 0; i < 8; i++) p += r.u8().toString(16).padStart(2, "0");
     d.print = p;
   }
+  if (f & D_PROFILE) d.profile = rProfile(r);
   if (!r.done) throw new ShareError("abîmé", "octets en trop");
   // Ordre des clés comme à l'écriture habituelle (sans effet sur l'égalité, plus lisible au débogage).
-  const { site, name, settings, graph, sandbox, factory, print } = d;
-  return { site, ...(name !== undefined ? { name } : {}), settings, ...(graph ? { graph } : {}), ...(sandbox ? { sandbox } : {}), ...(factory ? { factory } : {}), ...(print ? { print } : {}) };
+  const { site, name, settings, graph, sandbox, factory, print, profile } = d;
+  return { site, ...(name !== undefined ? { name } : {}), settings, ...(graph ? { graph } : {}), ...(sandbox ? { sandbox } : {}), ...(factory ? { factory } : {}), ...(print ? { print } : {}), ...(profile ? { profile } : {}) };
 }
 
 /** Octets du design (contenu du fichier `.indus`) : version, puis le corps en deflate-raw. */

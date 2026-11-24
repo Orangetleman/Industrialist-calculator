@@ -2,7 +2,9 @@
 // partager depuis l'état du site (relu, jamais modifié), lit l'adresse (#d=1.…, anciens #bac/<code>), donne
 // un nom libre dans les plans enregistrés, et dit si le lien passe sur Discord (question B, § 5 bis).
 
-import type { Design, DesignGraph, DesignSettings, PrintVerdict, ShareErrorCode } from "../engine/share/index.ts";
+import type { Design, DesignGraph, DesignProfile, DesignSettings, PrintVerdict, ShareErrorCode } from "../engine/share/index.ts";
+import { canonNodes } from "../engine/share/codec.ts";
+import type { PlayerInfo, ProgressState } from "./progress.ts";
 import type { Layout } from "../engine/sandbox/layout.ts";
 
 /** Au-delà, le lien ne tient plus dans un message Discord (2 000 caractères, avec un peu de marge pour le texte). */
@@ -26,6 +28,24 @@ export function assembleDesign(o: {
   if (o.graph?.touched) d.graph = structuredClone(o.graph);
   if (o.withSandbox && o.sandbox && o.sandbox.blocks.length) d.sandbox = structuredClone(o.sandbox);
   return d;
+}
+
+/**
+ * Profil de l'auteur à mettre dans le lien (P3 bis, § 6 ter), copié. `month` : le mois de sa partie, résolu (sinon
+ * « mois du jour » changerait chez le lecteur) ; `rp` : ses RP estimés à l'instant, sans l'heure du relevé (pas de
+ * journal dans le lien : ils ne bougent plus). Corrections et relevés : seulement s'il y en a.
+ */
+export function assembleProfile(o: { progress: ProgressState; player: PlayerInfo; month: number; rp: number | null; corrections: object; surveys: object; interfaces: object; diesel: readonly unknown[] }): DesignProfile {
+  const full = (x: object) => Object.values(x).some((v) => v && (typeof v !== "object" || Object.keys(v).length));
+  const p: DesignProfile = {
+    progress: { unlocked: canonNodes(o.progress.unlocked), reqItemsDone: canonNodes(o.progress.reqItemsDone), owned: [...new Set(o.progress.owned)].sort() },
+    player: { ...structuredClone(o.player), month: o.month, rp: o.rp, rpAt: null, spendRp: false },
+  };
+  if (full(o.corrections)) p.corrections = structuredClone(o.corrections);
+  if (full(o.surveys)) p.surveys = structuredClone(o.surveys);
+  if (full(o.interfaces)) p.interfaces = structuredClone(o.interfaces);
+  if (o.diesel.length) p.diesel = structuredClone(o.diesel);
+  return p;
 }
 
 /** Le bac à sable a-t-il quelque chose à partager ? */
