@@ -21,7 +21,7 @@ import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import imagesJson from "../../data/images.json";
 import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
-import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
+import { factoryInput, type FactoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import type { Step } from "../engine/solve.ts";
@@ -142,6 +142,7 @@ import {
   isOverridesFile,
   loadBuilt,
   loadCorrections,
+  cleanSettings,
   loadSettings,
   mergeCorrections,
   newItemId,
@@ -176,7 +177,7 @@ import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
 import { initShare } from "./share-view.ts";
 import { assembleDesign, freeName, hasSandbox, readShareHash } from "./share-design.ts";
-import { decodeDesign, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import { decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
 import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
@@ -2206,7 +2207,9 @@ async function openReceived(d: Design, data: string, legacy: boolean): Promise<s
   // Ancien lien du bac à sable : seul le montage change, les réglages et le graphe restent ceux affichés.
   const got: Design = legacy ? { ...cur, ...(d.name ? { name: d.name } : {}), ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
   const name = freeName(list.map((p) => p.name), got.name || savedName(designSettings(got)));
-  storeSaved([designEntry(got, legacy ? await encodeDesign(got) : data, name, false), ...list]);
+  // L'empreinte de l'auteur a servi à la fenêtre ; le plan enregistré s'en passe (il se compare à celui affiché, sans elle).
+  const { print, ...kept } = got;
+  storeSaved([designEntry(got, legacy || print ? await encodeDesign(kept) : data, name, false), ...list]);
   renderSaved();
   applyDesign(got, legacy);
   return name;
@@ -2230,6 +2233,76 @@ async function openSavedDesign(data: string): Promise<void> {
   applyDesign(d);
   if (location.hash.split("/")[0] !== GOAL_HASH[settings.goal]) location.hash = GOAL_HASH[settings.goal];
   update();
+}
+// ---- empreinte (P3) : le plan et l'usine de l'auteur, comparés à ceux recalculés à l'ouverture
+/** Y a-t-il un plan à empreinter (objectif saisi, usine à poser) ? */
+const printable = () => !isBlank(settings.goal) && settings.goal !== "recherche" && !!plan?.steps.some(isPosable);
+/** Empreinte du design affiché ; la pose dès que l'usine est calculée (lancée ici si elle ne l'est pas encore). */
+function currentPrint(): { now: string | undefined; later: Promise<string | undefined> | null } {
+  ensurePlan();
+  if (!printable()) return { now: undefined, later: null };
+  if (!currentFactory()) startFactory();
+  const p = plan!, st = currentFactory()!, now = designPrint(p, st.plan);
+  if (st.plan || st.error || st.cancelled) return { now, later: null };
+  const wait = async () => {
+    // Fini, arrêté, ou remplacé (réglages changés) : dans ces deux derniers cas, rien à compléter.
+    while (!st.plan && !st.error && !st.cancelled && factories.get(st.key) === st) await new Promise((r) => setTimeout(r, 200));
+    return st.plan && plan === p ? designPrint(p, st.plan) : undefined;
+  };
+  return { now, later: wait() };
+}
+/**
+ * Empreinte d'un design reçu, sans l'afficher : ses réglages et son graphe prennent la place des nôtres le temps de
+ * préparer le calcul (tout d'un trait, rien ne s'affiche entre-temps), puis l'usine se calcule en arrière-plan.
+ * Le résultat est gardé comme celui de la page : ouvrir ensuite le design ne le recalcule pas.
+ */
+function probeDesign(d: Design): { print: Promise<string | undefined>; cancel: () => void } {
+  const keep = { settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache };
+  let job: FactoryJob | null = null;
+  let stopped = false;
+  let todo: { plan: Plan; key: string; input: FactoryInput } | null = null;
+  let empty: string | undefined;
+  try {
+    settings = cleanSettings(designSettings(structuredClone(d)));
+    gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
+    pendingGraphPlan = null;
+    planDirty = true;
+    const v = viewCtx();
+    if (printable()) {
+      rows = buildRows(v);
+      signature = buildSignature(settings.goal, rows);
+      todo = { plan: plan!, key: factoryKey(), input: factoryInputNow() };
+    } else if (plan && !isBlank(settings.goal) && settings.goal !== "recherche") empty = designPrint(plan); // rien à poser ici (recherches manquantes…) : le plan diffère
+  } catch {
+    todo = null; // design illisible pour ce moteur : « pas pu être comparée »
+  } finally {
+    ({ settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache } = keep);
+    saveSettings(settings); // le calcul a pu annuler un réglage périmé du design reçu et l'enregistrer
+  }
+  const run = async (): Promise<string | undefined> => {
+    if (!todo) return empty;
+    const { plan: p, key, input } = todo;
+    const hit = await loadFactory(key);
+    if (hit) return designPrint(p, hit.plan);
+    if (stopped) return undefined;
+    return new Promise((resolve) => {
+      job = runFactory(input, {
+        progress: () => {},
+        done: (fp, ms) => {
+          void saveFactory(key, fp, ms);
+          resolve(designPrint(p, fp));
+        },
+        error: () => resolve(designPrint(p)),
+      });
+    });
+  };
+  return {
+    print: run(),
+    cancel: () => {
+      stopped = true;
+      job?.cancel();
+    },
+  };
 }
 /** Pastilles de la fenêtre « Partager » : étapes et machines du plan affiché, graphe retouché (le nom dit l'objectif). */
 function shareFacts(): string[] {
@@ -2599,30 +2672,7 @@ function startFactory(complete = false): void {
       factories.delete(k);
     }
   const key = factoryKey();
-  const pts = currentPorts();
-  const v = settings.usine;
-  // Sans parcelle renseignée, le placement n'a pas de limite (seulement la place la plus petite).
-  const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
-  const input = factoryInput(
-    plan!,
-    {
-      name: anyName,
-      isFluid: (id) => !!data.items.get(id)?.isFluid,
-      machine: (id) => data.machines.get(id) ?? null,
-      ports: pts.machines,
-      // Ensembles modulaires (S14) : leur place réservée a la taille de leur plan de pose.
-      reserve: (key) => {
-        const a = assemblyOf(key);
-        return a ? { w: a.width, h: a.height, label: a.label } : null;
-      },
-      sb: sandboxCatalog(),
-      outOrder,
-    },
-    CATALOG,
-    plot,
-    { priority: settings.posePriority, tier3Only: settings.tier3Only },
-    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow(), ...(complete ? {} : { budgetMs: FACTORY_BUDGET_MS }) },
-  );
+  const input = factoryInputNow(complete);
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
   factories.set(key, st);
   const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
@@ -2655,6 +2705,34 @@ function startFactory(complete = false): void {
       },
     });
   });
+}
+
+/** Entrée du calcul de l'usine pour le plan et les réglages en cours. */
+function factoryInputNow(complete = false): FactoryInput {
+  const pts = currentPorts();
+  const v = settings.usine;
+  // Sans parcelle renseignée, le placement n'a pas de limite (seulement la place la plus petite).
+  const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
+  return factoryInput(
+    plan!,
+    {
+      name: anyName,
+      isFluid: (id) => !!data.items.get(id)?.isFluid,
+      machine: (id) => data.machines.get(id) ?? null,
+      ports: pts.machines,
+      // Ensembles modulaires (S14) : leur place réservée a la taille de leur plan de pose.
+      reserve: (key) => {
+        const a = assemblyOf(key);
+        return a ? { w: a.width, h: a.height, label: a.label } : null;
+      },
+      sb: sandboxCatalog(),
+      outOrder,
+    },
+    CATALOG,
+    plot,
+    { priority: settings.posePriority, tier3Only: settings.tier3Only },
+    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow(), ...(complete ? {} : { budgetMs: FACTORY_BUDGET_MS }) },
+  );
 }
 
 function updateFactoryProgress(): void {
@@ -5269,6 +5347,8 @@ const sandbox = initSandbox($("page-bac"), {
 const share = initShare({
   build: currentDesign,
   sandboxEmpty: () => !hasSandbox(sandbox.layout()),
+  print: currentPrint,
+  probe: probeDesign,
   facts: shareFacts,
   nameOf: (d) => savedName(designSettings(d)),
   currentName: () => savedName(),

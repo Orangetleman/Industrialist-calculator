@@ -2,7 +2,7 @@
 // sable + usine figée facultative) ↔ octets binaires v1 ↔ lien `#d=1.<base64url>`. Pur, sans DOM.
 //
 // Octets d'un design : [version = 1] puis le corps compressé en deflate-raw. Corps :
-//   drapeaux (varint) · version du site · [nom] · réglages · [graphe édité] · [bac à sable] · [usine figée]
+//   drapeaux (varint) · version du site · [nom] · réglages · [graphe édité] · [bac à sable] · [usine figée] · [empreinte]
 // Réglages : bitmap de présence sur la liste figée `SETTINGS_V1`, puis seulement les champs ≠ défaut v1.
 // Graphe : ids `nN` → N, liens vers les nœuds par rang, ids d'arête reconstruits (`edgeId`), coordonnées en
 // delta quand c'est exact. Bac à sable : rotation et présences dans un octet, `u` et coordonnées en delta.
@@ -15,6 +15,7 @@ import { edgeId, type Graph, type GraphEdge, type GraphGroup, type GraphNode } f
 import type { CrossPair, Layout, Placed, Route, Wire } from "../sandbox/layout.ts";
 import type { Dir } from "../sandbox/catalog.ts";
 import { deflate, fromBase64url, inflate, Reader, ShareError, toBase64url, Writer } from "./bytes.ts";
+import { PRINT } from "./print.ts";
 import { TABLE_V1 } from "./table-v1.ts";
 import { version as PKG_VERSION } from "../../../package.json";
 
@@ -41,6 +42,8 @@ export type Design = {
   graph?: DesignGraph;
   sandbox?: Layout;
   factory?: Layout;
+  /** Empreinte du plan et de l'usine chez l'auteur (P3, `print.ts`) : 16 chiffres hexadécimaux, 8 octets dans le lien. */
+  print?: string;
 };
 
 // ---------------------------------------------------------------- réglages : défauts figés de la v1
@@ -541,36 +544,45 @@ const bad = (what: string): never => {
 
 // ---------------------------------------------------------------- design entier
 
-const D_NAME = 1, D_GRAPH = 2, D_SANDBOX = 4, D_FACTORY = 8;
+const D_NAME = 1, D_GRAPH = 2, D_SANDBOX = 4, D_FACTORY = 8, D_PRINT = 16;
 
 /** Corps non compressé (utile aux mesures et aux tests). */
 export function designBody(d: Design): Uint8Array {
   const w = new Writer(TABLE_V1);
   const has = (k: keyof Design) => Object.hasOwn(d, k) && d[k] !== undefined;
-  w.uv((has("name") ? D_NAME : 0) | (has("graph") ? D_GRAPH : 0) | (has("sandbox") ? D_SANDBOX : 0) | (has("factory") ? D_FACTORY : 0));
+  w.uv((has("name") ? D_NAME : 0) | (has("graph") ? D_GRAPH : 0) | (has("sandbox") ? D_SANDBOX : 0) | (has("factory") ? D_FACTORY : 0) | (has("print") ? D_PRINT : 0));
   w.str(d.site);
   if (has("name")) w.str(d.name!);
   wSettings(w, d.settings);
   if (has("graph")) wEdit(w, d.graph!);
   if (has("sandbox")) wLayout(w, d.sandbox!);
   if (has("factory")) wLayout(w, d.factory!);
+  if (has("print")) {
+    if (!PRINT.test(d.print!)) throw new Error(`share: empreinte ${d.print}`);
+    for (let i = 0; i < 16; i += 2) w.u8(parseInt(d.print!.slice(i, i + 2), 16));
+  }
   return w.bytes();
 }
 
 function readBody(body: Uint8Array): Design {
   const r = new Reader(body, TABLE_V1);
   const f = r.uv();
-  if (f >= 16) throw new ShareError("abîmé", "design");
+  if (f >= 32) throw new ShareError("abîmé", "design");
   const d: Design = { site: r.str(), settings: {} };
   if (f & D_NAME) d.name = r.str();
   d.settings = rSettings(r);
   if (f & D_GRAPH) d.graph = rEdit(r);
   if (f & D_SANDBOX) d.sandbox = rLayout(r);
   if (f & D_FACTORY) d.factory = rLayout(r);
+  if (f & D_PRINT) {
+    let p = "";
+    for (let i = 0; i < 8; i++) p += r.u8().toString(16).padStart(2, "0");
+    d.print = p;
+  }
   if (!r.done) throw new ShareError("abîmé", "octets en trop");
   // Ordre des clés comme à l'écriture habituelle (sans effet sur l'égalité, plus lisible au débogage).
-  const { site, name, settings, graph, sandbox, factory } = d;
-  return { site, ...(name !== undefined ? { name } : {}), settings, ...(graph ? { graph } : {}), ...(sandbox ? { sandbox } : {}), ...(factory ? { factory } : {}) };
+  const { site, name, settings, graph, sandbox, factory, print } = d;
+  return { site, ...(name !== undefined ? { name } : {}), settings, ...(graph ? { graph } : {}), ...(sandbox ? { sandbox } : {}), ...(factory ? { factory } : {}), ...(print ? { print } : {}) };
 }
 
 /** Octets du design (contenu du fichier `.indus`) : version, puis le corps en deflate-raw. */

@@ -2,7 +2,7 @@
 // partager depuis l'état du site (relu, jamais modifié), lit l'adresse (#d=1.…, anciens #bac/<code>), donne
 // un nom libre dans les plans enregistrés, et dit si le lien passe sur Discord (question B, § 5 bis).
 
-import type { Design, DesignGraph, DesignSettings, ShareErrorCode } from "../engine/share/index.ts";
+import type { Design, DesignGraph, DesignSettings, PrintVerdict, ShareErrorCode } from "../engine/share/index.ts";
 import type { Layout } from "../engine/sandbox/layout.ts";
 
 /** Au-delà, le lien ne tient plus dans un message Discord (2 000 caractères, avec un peu de marge pour le texte). */
@@ -70,6 +70,34 @@ export function linkAdvice(len: number, without: number | null): { fits: boolean
 
 /** Clé du catalogue pour une erreur de lien. */
 export const shareErrorKey = (code: ShareErrorCode | null): `share.err.${ShareErrorCode}` => `share.err.${code ?? "abîmé"}`;
+
+/** Version `a` plus ancienne que `b` (« 0.1.0 » < « 0.2.0 ») ; faux si l'une n'est pas une version. */
+export function olderSite(a: string, b: string): boolean {
+  const p = (s: string) => (/^\d+\.\d+\.\d+$/.test(s) ? s.split(".").map(Number) : null);
+  const x = p(a), y = p(b);
+  if (!x || !y) return false;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i]! < y[i]!;
+  return false;
+}
+
+export type CheckKey = "share.r.older" | "share.r.other" | "share.r.diff.plan" | "share.r.diff.pose" | "share.r.same" | "share.r.same.other" | "share.r.part" | "share.r.noprint" | "share.r.checking" | "share.r.unchecked";
+/** Verdict de la vérification ; null : en cours ; « impossible » : l'usine n'a pas pu être recalculée. */
+export type CheckState = PrintVerdict | "impossible" | null;
+/**
+ * Ce que dit la fenêtre « Design partagé » (P3) : les lignes d'alerte (`warn`) et l'information neutre (`info`).
+ * Alerte seulement si l'empreinte diffère vraiment, ou si la version du site diffère sans qu'on ait pu vérifier que
+ * rien ne change ; `advice` (le fichier indestructible) seulement si l'empreinte diffère vraiment.
+ */
+export function checkNotes(d: Pick<Design, "site" | "print">, site: string, verdict: CheckState): { warn: CheckKey[]; info: CheckKey | null; advice: boolean } {
+  const other = d.site !== site;
+  const version: CheckKey[] = other ? [olderSite(d.site, site) ? "share.r.older" : "share.r.other"] : [];
+  if (!d.print || verdict === "sans") return { warn: version, info: "share.r.noprint", advice: false };
+  if (verdict === null) return { warn: version, info: "share.r.checking", advice: false };
+  if (verdict === "impossible") return { warn: version, info: "share.r.unchecked", advice: false };
+  if (verdict === "identique") return { warn: [], info: other ? "share.r.same.other" : "share.r.same", advice: false };
+  if (verdict === "partiel") return { warn: version, info: "share.r.part", advice: false };
+  return { warn: [...version, verdict === "plan" ? "share.r.diff.plan" : "share.r.diff.pose"], info: null, advice: true };
+}
 
 /** Résumé d'un design reçu : nœuds du graphe, et blocs du bac à sable. */
 export function designFacts(d: Design): { nodes: number | null; blocks: number | null } {

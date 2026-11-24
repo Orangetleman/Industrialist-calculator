@@ -3,14 +3,21 @@
 // à sable). Ce module ne fait que l'affichage : l'état du site se lit et se change par `deps` (main.ts).
 
 import { t } from "../i18n/i18n.ts";
-import { decodeDesign, designFromMschCode, designLink, encodeDesign, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
-import { designFacts, linkAdvice, miniLayout, shareErrorKey } from "./share-design.ts";
+import { comparePrints, decodeDesign, designFromMschCode, designLink, encodeDesign, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import { checkNotes, designFacts, linkAdvice, miniLayout, shareErrorKey, type CheckState } from "./share-design.ts";
 import { icon } from "./icons.ts";
 
 export type ShareDeps = {
   /** Le design affiché, assemblé à l'instant (bac à sable seulement si `withSandbox`). */
   build: (withSandbox: boolean) => Design;
   sandboxEmpty: () => boolean;
+  /**
+   * Empreinte (P3) du design affiché : connue tout de suite (`now`, au moins le plan), puis avec la pose quand
+   * l'usine est calculée (`later`, null s'il n'y a rien à attendre).
+   */
+  print: () => { now: string | undefined; later: Promise<string | undefined> | null };
+  /** Empreinte d'un design reçu, recalculée ici sans l'afficher (P3) ; `cancel` arrête le calcul. */
+  probe: (d: Design) => { print: Promise<string | undefined>; cancel: () => void };
   /** Pastilles du résumé (étapes, machines, objectif) du design affiché. */
   facts: () => string[];
   /** Objectif en mots d'un design (« 60/min Crankshaft »), pour nommer un design qui n'a pas de nom. */
@@ -36,13 +43,13 @@ export function initShare(deps: ShareDeps) {
   let link = "";
   let run = 0;
 
-  function toast(msg: string, bad = false): void {
+  function toast(msg: string, bad = false, ms = 2600): void {
     const e = $("shr-toast");
     e.textContent = msg;
     e.classList.toggle("bad", bad);
     e.hidden = false;
     clearTimeout((toast as { t?: number }).t);
-    (toast as { t?: number }).t = window.setTimeout(() => (e.hidden = true), 2600);
+    (toast as { t?: number }).t = window.setTimeout(() => (e.hidden = true), ms);
   }
 
   function setCopy(done: boolean): void {
@@ -88,8 +95,9 @@ export function initShare(deps: ShareDeps) {
   }
 
   /** Construit le lien et le copie s'il passe sur Discord (comme la maquette). */
-  async function fill(autoCopy: boolean): Promise<void> {
+  async function fill(autoCopy: boolean, print = deps.print()): Promise<void> {
     const me = ++run;
+    const stamp = (d: Design): Design => (print.now ? { ...d, print: print.now } : d);
     const empty = deps.sandboxEmpty();
     const sand = $("shr-sand");
     sand.toggleAttribute("disabled", empty);
@@ -101,8 +109,8 @@ export function initShare(deps: ShareDeps) {
     $("shr-len").textContent = "";
     $("shr-b").hidden = true;
     setCopy(false);
-    const data = await encodeDesign(deps.build(withSand && !empty));
-    const withoutData = withSand && !empty ? await encodeDesign(deps.build(false)) : null;
+    const data = await encodeDesign(stamp(deps.build(withSand && !empty)));
+    const withoutData = withSand && !empty ? await encodeDesign(stamp(deps.build(false))) : null;
     if (me !== run) return;
     link = designLink(location.origin, data);
     const without = withoutData === null ? null : designLink(location.origin, withoutData).length;
@@ -115,6 +123,11 @@ export function initShare(deps: ShareDeps) {
     $("shr-b").hidden = !a.sandboxOnly;
     if (a.sandboxOnly) $("shr-b-txt").textContent = t("share.b", { n: nf(without!) });
     if (autoCopy && a.fits) await copy();
+    // L'usine finit de se calculer : le lien prend son empreinte complète (et remplace celui déjà copié).
+    void print.later?.then((p) => {
+      if (me !== run || box.hidden || !p || p === print.now) return;
+      void fill($("shr-copy").classList.contains("done"), { now: p, later: null });
+    });
   }
 
   function openShare(): void {
@@ -185,14 +198,24 @@ export function initShare(deps: ShareDeps) {
     if (f.blocks !== null) facts.push(t("share.blocks", { n: f.blocks }));
     $("shr-r-facts").innerHTML = pills(facts);
     $("shr-r-facts").hidden = !facts.length;
-    // Version du site : les anciens liens du bac à sable n'en ont pas (rien à recalculer, le montage est tel quel).
-    $("shr-r-warn").hidden = legacy || d.site === SITE_VERSION;
-    $("shr-r-warn-txt").textContent = t("share.r.older");
+    // Anciens liens du bac à sable : rien à recalculer, le montage est tel quel.
+    if (legacy) $("shr-r-warn").hidden = $("shr-r-check").hidden = true;
+    else notes(d, null);
     $("shr-r-keep").hidden = false;
     $("shr-r-keep-txt").textContent = t(legacy ? "share.r.keep.bac" : "share.r.keep", { prev: deps.currentName() });
     $("shr-r-no").textContent = t("m.cancel");
     $("shr-r-yes").hidden = false;
     return show();
+  }
+
+  /** Alerte et information de la fenêtre, selon la vérification de l'empreinte (P3). */
+  function notes(d: Design, verdict: CheckState): void {
+    const n = checkNotes(d, SITE_VERSION, verdict);
+    $("shr-r-warn").hidden = !n.warn.length;
+    $("shr-r-warn-txt").innerHTML = [...n.warn.map((k) => esc(t(k))), ...(n.advice ? [`<b>${esc(t("share.r.advice"))}</b>`] : [])].join("<br>");
+    $("shr-r-check").hidden = !n.info;
+    $("shr-r-check-txt").textContent = n.info ? t(n.info) : "";
+    $("shr-r-check-ic").innerHTML = icon(verdict === "identique" ? "check" : "info");
   }
 
   function fail(err: unknown): Promise<boolean> {
@@ -202,7 +225,7 @@ export function initShare(deps: ShareDeps) {
     $("shr-r-facts").hidden = true;
     $("shr-r-warn").hidden = false;
     $("shr-r-warn-txt").textContent = t(shareErrorKey(err instanceof ShareError ? err.code : null));
-    $("shr-r-keep").hidden = true;
+    $("shr-r-keep").hidden = $("shr-r-check").hidden = true;
     $("shr-r-no").textContent = t("share.r.close");
     $("shr-r-yes").hidden = true;
     return show();
@@ -240,10 +263,31 @@ export function initShare(deps: ShareDeps) {
         await fail(e);
         return deps.done(false, false);
       }
-      const ok = await ask(d, false);
+      // L'empreinte est recalculée pendant que la fenêtre est ouverte ; ouvrir n'attend pas.
+      const asked = ask(d, false);
+      const probe = d.print ? deps.probe(d) : null;
+      let waiting = true;
+      const checked = probe?.print
+        .then((p) => comparePrints(d.print, p), () => "sans" as const)
+        .then((v): CheckState => (v === "sans" ? "impossible" : v));
+      let known = false;
+      void checked?.then((v) => {
+        known = true;
+        if (waiting) notes(d, v);
+      });
+      const ok = await asked;
+      waiting = false;
+      const late = !known;
+      if (!ok) probe?.cancel();
       if (ok) toast(t("share.done", { name: await deps.open(d, data, false) }));
       else toast(t("share.cancelled"));
       deps.done(false, ok);
+      // Ouvert avant la fin de la vérification : une différence se dit quand même, dès qu'elle est connue.
+      if (ok && late)
+        void checked?.then((v) => {
+          const n = checkNotes(d, SITE_VERSION, v);
+          if (n.advice) toast(`${t(n.warn.at(-1)!)} ${t("share.r.advice")}`, true, 14_000);
+        });
     } finally {
       busy = null;
     }

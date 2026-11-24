@@ -217,7 +217,10 @@ function write(key: string, value: unknown): void {
 }
 
 export function loadSettings(): Settings {
-  const s = read<Partial<Settings>>(KEY_SETTINGS) ?? {};
+  return cleanSettings(read<Partial<Settings>>(KEY_SETTINGS) ?? {});
+}
+/** Réglages relus (stockage, design reçu par lien) : champs manquants, anciens ou invalides remis d'aplomb. */
+export function cleanSettings(s: Partial<Settings>): Settings {
   // « allUnlocked » : réglage provisoire de l'étape (c), ignoré désormais.
   // « criterion » : critère unique d'avant la refonte, repris comme priorité de l'objectif objet.
   const { allUnlocked: _ancien, criterion: old, ...rest } = s as Partial<Settings> & { allUnlocked?: unknown; criterion?: unknown };

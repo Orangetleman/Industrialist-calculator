@@ -202,6 +202,7 @@ function fuzzDesign(rand: () => number): Design {
   }
   if (chance(0.5)) d.sandbox = layout();
   if (chance(0.2)) d.factory = layout();
+  if (chance(0.3)) d.print = Array.from({ length: 16 }, () => int(16).toString(16)).join("");
   return d;
 }
 

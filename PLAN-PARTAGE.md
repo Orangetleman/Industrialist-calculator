@@ -164,8 +164,35 @@ corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de
   que le bac à sable (réglages et graphe gardés). La partie « fichier » de la fenêtre attend P4.
 - **P2 bis** — Explorateur de designs façon IDE (dossiers, renommer, glisser, corbeille), reprend « Plans enregistrés ».
 - **P3** — Empreinte du plan de pose et message « le site a changé ».
+  **Fait le 2026-11-24** : § 6 bis ; `src/engine/share/print.ts`, champ `print` du codec, `checkNotes` de `share-design.ts`.
 - **P4** — Fichier `.indus` versionné (version du site + usine figée), retrait de toute trace du .msch à l'écran, anciens codes toujours lus.
 - **P5** — Parcours réel chronométré à la souris (panneau visible), déploiement.
+
+## 6 bis. L'empreinte (P3)
+- **8 octets** (16 chiffres hexadécimaux), deux FNV-1a 32 bits, champ optionnel en fin de corps (drapeau 16, format
+  toujours v1 : les liens figés se lisent inchangés ; rien n'avait encore été déployé). Coût : moins de 16 caractères.
+  - 4 octets « plan » : étapes (clé, recette, machine, nombre) et liaisons (de, vers, objet) ;
+  - 4 octets « pose » : taille de l'usine, modules (position, taille, rotation, machines, pièces de tuyau, poteaux), tuyaux
+    entre modules, liaisons, évacuations, étapes collées, arrivée électrique, poteaux et prises, câbles et relais.
+- Listes triées, aucun texte affiché : ni la langue ni l'ordre interne ne comptent. Pas de pose (zéros) tant que l'usine
+  n'est pas calculée, ou si le calcul a été abrégé par ses 20 s (il dépend alors de l'ordinateur).
+- **Partager** : le lien est prêt tout de suite (empreinte du plan) ; l'usine finit en arrière-plan, le lien se complète et
+  se recopie tant que la fenêtre est ouverte.
+- **Ouvrir** : l'usine du design reçu se recalcule en arrière-plan sans être affichée (résultat gardé, donc pas refait après) ;
+  on peut ouvrir sans attendre, une différence se dit alors par un message.
+  - identique : « Vérifié » (même si la version du site diffère : pas d'alerte fausse) ;
+  - différente : alerte (machines, ou seulement la pose), phrase de la maquette si la version est plus ancienne, conseil du fichier ;
+  - même plan, pose pas comparable, ou pas d'empreinte : mention neutre ; version différente non vérifiée : phrase de la maquette.
+- L'usine comparée est celle que le joueur **verrait** : elle dépend aussi de sa partie (recherches, pollution, mois,
+  corrections, parcelle, relevés). L'alerte le dit. Chez un joueur sans aucune recherche, le plan peut être vide.
+- Le plan enregistré à l'ouverture ne garde pas l'empreinte (elle a servi).
+
+### Questions ouvertes
+- **C.** Un joueur moins avancé que l'auteur recalcule un autre plan (vide, s'il n'a rien débloqué). [Proposition : un design
+  reçu se recalcule avec les recherches et la parcelle de l'auteur, mises dans le lien (bitmap des recherches, une
+  trentaine de caractères à mesurer) ; l'alerte ne viendrait plus que du site. À faire avant P4.]
+- **D.** La version du site vient de `package.json`, toujours « 0.1.0 » : « version plus ancienne » ne se déclenchera qu'une fois
+  ce numéro augmenté. [Proposition : P4 l'augmente à chaque déploiement, avec les `/v/<version>/`.]
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`

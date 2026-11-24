@@ -17,7 +17,7 @@ import relevesJson from "../data/releves.json";
 import researchJson from "../data/research.json";
 import gearboxSave from "../src/ui/fixtures/pollywrath-gearbox-tutorial.json";
 import { buildCatalog } from "../src/engine/build/catalog.ts";
-import { designFactory, factoryInput } from "../src/engine/build/factory.ts";
+import { designFactory, factoryInput, type FactoryPlan } from "../src/engine/build/factory.ts";
 import { buildGameData, type RawFiles } from "../src/engine/data.ts";
 import type { LogisticsFile, PortsFile, PowerFile } from "../src/engine/extension-types.ts";
 import { applyCommand, planToGraph, pollywrathToGraph, type Graph, type PollywrathMapFile } from "../src/engine/graph/index.ts";
@@ -45,12 +45,23 @@ export function planFor(item: string, ratePerMin: number): Plan {
   return plans.get(k)!;
 }
 
+/** L'usine calculée (`fresh` : recalculée, même si elle l'a déjà été). */
+const computed = new Map<Plan, Map<string, FactoryPlan>>();
+export function factoryPlan(plan: Plan, fresh = false, namer = name, size = { w: 160, h: 110 }): FactoryPlan {
+  const k = `${size.w}x${size.h}`, known = computed.get(plan)?.get(k);
+  if (known && !fresh) return known;
+  const f = designFactory(factoryInput(plan, { name: namer, isFluid: fluid, machine: (id) => data.machines.get(id) ?? null, ports: ports.machines }, cat, size, { priority: ["forme", "place", "prix", "pieces"] }));
+  if (!computed.has(plan)) computed.set(plan, new Map());
+  if (!fresh) computed.get(plan)!.set(k, f);
+  return f;
+}
+
 /** L'usine du plan, convertie en bac à sable (ce que le joueur exporte aujourd'hui en .msch). */
 const factories = new Map<Plan, Map<string, Layout>>();
 export function factoryLayout(plan: Plan, size = { w: 160, h: 110 }): Layout {
   const k = `${size.w}x${size.h}`, known = factories.get(plan)?.get(k);
   if (known) return known;
-  const f = designFactory(factoryInput(plan, { name, isFluid: fluid, machine: (id) => data.machines.get(id) ?? null, ports: ports.machines }, cat, size, { priority: ["forme", "place", "prix", "pieces"] }));
+  const f = factoryPlan(plan, false, name, size);
   const l = layoutFromFactory(f, sb, cat, fluid).layout;
   if (!factories.has(plan)) factories.set(plan, new Map());
   factories.get(plan)!.set(k, l);
