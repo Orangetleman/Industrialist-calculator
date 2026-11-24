@@ -26,6 +26,9 @@ export type DesignsDeps = {
   settle: () => Promise<void>;
   confirm: (text: string, ok: string) => Promise<boolean>;
   toast: (msg: string, bad?: boolean) => void;
+  /** Nom du dernier design imprimé sur la partie (null : aucun), et retour à la partie d'avant. */
+  printed: () => string | null;
+  unprint: () => Promise<void>;
 };
 
 export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
@@ -63,7 +66,8 @@ export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
     if (sel !== null && !find(tr, sel)) sel = tr.active;
     const next =
       `<div class="dsg-bar"><button type="button" class="link small" data-new="des">${esc(t("dsg.new.design"))}</button><button type="button" class="link small" data-new="dir">${esc(t("dsg.new.dir"))}</button><button type="button" class="link small" id="dsg-save" data-new="save">${esc(t("dsg.save"))}</button></div>` +
-      `<div class="dsg-tree" role="tree" tabindex="0" aria-label="${esc(t("dsg.title"))}"${sel !== null ? ` aria-activedescendant="dsg-${sel}"` : ""}>${sorted(tr.root.kids).map((k) => row(k, 1)).join("")}${row(tr.bin, 1)}</div>`;
+      `<div class="dsg-tree" role="tree" tabindex="0" aria-label="${esc(t("dsg.title"))}"${sel !== null ? ` aria-activedescendant="dsg-${sel}"` : ""}>${sorted(tr.root.kids).map((k) => row(k, 1)).join("")}${row(tr.bin, 1)}</div>` +
+      (deps.printed() === null ? "" : `<button type="button" class="link dsg-undo" data-new="undo" title="${esc(deps.printed()!)}">${esc(t("prn.undo"))}</button>`);
     if (next === html && el.firstChild) return;
     const focus = !!document.activeElement?.closest(".dsg-tree") && el.contains(document.activeElement);
     html = next;
@@ -229,6 +233,7 @@ export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
     const b = target0.closest<HTMLElement>("[data-new]")?.dataset.new;
     if (b === "des") return void act.newDesign(target());
     if (b === "dir") return act.newDir(target());
+    if (b === "undo") return void deps.unprint().then(refresh);
     if (b === "save") return void (T().active !== null && deps.store(T().active!).then(refresh));
     const id = idOf(e);
     if (id === null) return;

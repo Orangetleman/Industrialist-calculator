@@ -21,9 +21,12 @@ const KEY_LECTURE = "ind-calc:v1:lecture";
 export type Lecture = { design: number | null; back: number | null; mine: { existing: Record<string, number>; useExisting: boolean } | null; keys: Record<string, string> };
 export type LectureInfo = Omit<Lecture, "keys">;
 
-/** Le profil d'un lien, au format de chaque clé. Le journal des RP n'y est jamais. */
+/** Le profil d'un lien, au format de chaque clé. Le journal des RP n'y est jamais. Sans recherches (contributions seules) : celles du joueur, copiées. */
 export function profileKeys(p: DesignProfile): Record<string, string> {
-  const out: Record<string, string> = { [PROFILE_KEYS.progress]: JSON.stringify(p.progress), [PROFILE_KEYS.player]: JSON.stringify(p.player) };
+  const out: Record<string, string> = {
+    [PROFILE_KEYS.progress]: p.progress ? JSON.stringify(p.progress) : (bare(PROFILE_KEYS.progress) ?? "{}"),
+    [PROFILE_KEYS.player]: p.player ? JSON.stringify(p.player) : (bare(PROFILE_KEYS.player) ?? "{}"),
+  };
   if (p.corrections !== undefined) out[PROFILE_KEYS.corrections] = JSON.stringify(p.corrections);
   if (p.surveys !== undefined) out[PROFILE_KEYS.surveys] = JSON.stringify({ machines: p.surveys });
   if (p.interfaces !== undefined) out[PROFILE_KEYS.interfaces] = JSON.stringify({ interfaces: p.interfaces });
@@ -105,6 +108,29 @@ export function withProfile<T>(p: DesignProfile | null, fn: () => T): T {
   } finally {
     cur = keep;
     trial = was;
+  }
+}
+/** Toutes les clés de la partie du joueur, et leur remplacement d'un bloc (tout ou rien ; faux : stockage plein). */
+export const ownKeys = (): Record<string, string | null> => Object.fromEntries([...ROUTED].map((k) => [k, bare(k)]));
+export function writeOwn(keys: Record<string, string | null>): boolean {
+  const put = (all: Record<string, string | null>) => {
+    for (const k of ROUTED) {
+      const v = all[k] ?? null;
+      if (v === null) localStorage.removeItem(k);
+      else localStorage.setItem(k, v);
+    }
+  };
+  const before = ownKeys();
+  try {
+    put(keys);
+    return true;
+  } catch {
+    try {
+      put(before);
+    } catch {
+      // plus rien à faire : le stockage refuse même l'état d'avant
+    }
+    return false;
   }
 }
 /** Une clé de la partie du joueur, même pendant une session de lecture (horloge « Je joue » seulement). */

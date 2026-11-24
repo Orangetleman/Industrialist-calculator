@@ -37,12 +37,16 @@ export function assembleDesign(o: {
  * « mois du jour » changerait chez le lecteur) ; `rp` : ses RP estimés à l'instant, sans l'heure du relevé (pas de
  * journal dans le lien : ils ne bougent plus). Corrections et relevés : seulement s'il y en a.
  */
-export function assembleProfile(o: { progress: ProgressState; player: PlayerInfo; month: number; rp: number | null; corrections: object; surveys: object; interfaces: object; diesel: readonly unknown[] }): DesignProfile {
+export function assembleProfile(o: { progress: ProgressState; player: PlayerInfo; month: number; rp: number | null; corrections: object; surveys: object; interfaces: object; diesel: readonly unknown[] }, with_: { base: boolean; contrib: boolean } = { base: true, contrib: true }): DesignProfile {
   const full = (x: object) => Object.values(x).some((v) => v && (typeof v !== "object" || Object.keys(v).length));
-  const p: DesignProfile = {
+  const p: DesignProfile = with_.base ? {
     progress: { unlocked: canonNodes(o.progress.unlocked), reqItemsDone: canonNodes(o.progress.reqItemsDone), owned: [...new Set(o.progress.owned)].sort() },
     player: { ...structuredClone(o.player), month: o.month, rp: o.rp, rpAt: null, spendRp: false },
-  };
+  } : {};
+  if (!with_.contrib) {
+    if ([o.corrections, o.surveys, o.interfaces].some(full) || o.diesel.length) p.partial = true;
+    return p;
+  }
   if (full(o.corrections)) p.corrections = structuredClone(o.corrections);
   if (full(o.surveys)) p.surveys = structuredClone(o.surveys);
   if (full(o.interfaces)) p.interfaces = structuredClone(o.interfaces);
@@ -77,6 +81,12 @@ export function readShareHash(hash: string): ShareHash {
 export function linkAdvice(len: number, without: number | null): { fits: boolean; sandboxOnly: boolean } {
   const fits = len <= DISCORD_MAX;
   return { fits, sandboxOnly: !fits && without !== null && without <= DISCORD_MAX };
+}
+
+/** Le lien est trop long : ce qu'on peut laisser dehors, dans l'ordre, pour qu'il passe (null : rien ne suffit). */
+export type Drop = { sandbox: boolean; contrib: boolean };
+export function dropAdvice(len: number, options: readonly { drop: Drop; len: number }[]): { drop: Drop; len: number } | null {
+  return len <= DISCORD_MAX ? null : (options.find((o) => o.len <= DISCORD_MAX) ?? null);
 }
 
 /** Clé du catalogue pour une erreur de lien. */

@@ -61,7 +61,7 @@
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
   <div class="recall-bar" id="recall" role="status" hidden></div>
   <!-- P3 bis b : session de lecture (maquette session-lecture.html). -->
-  <div class="lec-bar" id="lecture" role="status" hidden><span id="lecture-txt"></span><button type="button" class="small" id="lecture-back" data-i18n="lec.back">Revenir à ma partie</button></div>
+  <div class="lec-bar" id="lecture" role="status" hidden><span id="lecture-txt"></span><button type="button" class="small" id="lecture-print" data-i18n="lec.print">Imprimer ce profil sur ma partie…</button><button type="button" class="small" id="lecture-back" data-i18n="lec.back">Revenir à ma partie</button></div>
 </header>
 
 <main id="main" tabindex="-1">
@@ -648,11 +648,14 @@
     <div class="shr-facts" id="shr-facts"></div>
     <div class="shr-link"><code id="shr-link"></code><button type="button" id="shr-copy"></button></div>
     <div class="shr-gauge" id="shr-gauge"><div class="bar"><i id="shr-bar"></i></div><p><span id="shr-len"></span><span data-i18n="share.discord">Discord : 2 000</span></p></div>
-    <div class="shr-note i" id="shr-b" hidden><span data-ic="info"></span><span><span id="shr-b-txt"></span> <button type="button" class="link" id="shr-b-go" data-i18n="share.b.go">Copier le lien sans le bac à sable</button></span></div>
+    <div class="shr-note i" id="shr-b" hidden><span data-ic="info"></span><span><span id="shr-b-txt"></span> <button type="button" class="link" id="shr-b-go" data-i18n="share.b.go">Copier ce lien allégé</button></span></div>
+    <div class="shr-note w" id="shr-miss" role="status" hidden><span data-ic="warn"></span><span data-i18n="share.miss">Tes contributions ne seront pas dans le lien.</span></div>
     <div class="shr-incl"><span class="eyebrow" data-i18n="share.has">Contient</span>
       <button type="button" class="shr-chip" aria-pressed="true" disabled data-i18n="share.has.graph">Graphe</button>
       <button type="button" class="shr-chip" aria-pressed="true" disabled data-i18n="share.has.settings">Réglages</button>
       <button type="button" class="shr-chip" aria-pressed="true" id="shr-sand" data-i18n="share.has.sandbox">Bac à sable</button>
+      <button type="button" class="shr-chip" aria-pressed="true" id="shr-prof" data-i18n="share.has.profile">Mon profil</button>
+      <button type="button" class="shr-chip" aria-pressed="true" id="shr-contrib" data-i18n="share.has.contrib">Mes contributions</button>
     </div>
   </div>
 </div>
@@ -665,6 +668,10 @@
     <div class="shr-note w" id="shr-r-warn" hidden><span data-ic="warn"></span><span id="shr-r-warn-txt"></span></div>
     <div class="shr-note i" id="shr-r-check" role="status" hidden><span id="shr-r-check-ic"></span><span id="shr-r-check-txt"></span></div>
     <div class="shr-note i" id="shr-r-keep" hidden><span data-ic="info"></span><span id="shr-r-keep-txt"></span></div>
+    <div class="shr-ch" id="shr-r-ch" hidden>
+      <button type="button" id="shr-r-read"><b data-i18n="share.r.read">Ouvrir en session de lecture</b><small data-i18n="share.r.read.sub">Ta partie n'est pas touchée.</small></button>
+      <button type="button" id="shr-r-print"><b data-i18n="share.r.print">Imprimer le profil sur ma partie</b><small data-i18n="share.r.print.sub">Tu choisis ce qui est repris.</small></button>
+    </div>
     <div class="row dialog-actions"><button type="button" id="shr-r-no" data-i18n="m.cancel">Annuler</button><button type="button" id="shr-r-yes" class="primary" data-i18n="share.r.open">Ouvrir le design</button></div>
   </div>
 </dialog>

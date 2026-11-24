@@ -175,9 +175,10 @@ import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
 import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
-import { initShare } from "./share-view.ts";
+import { initShare, type OpenChoice, type ShareWith } from "./share-view.ts";
 import { assembleDesign, assembleProfile, hasSandbox, readShareHash } from "./share-design.ts";
-import { enterLecture, leaveLecture, lecture, ownItem, PROFILE_KEYS, setLectureDesign, setOwnItem, withProfile } from "./profile-store.ts";
+import { groupsOf, hasContrib, noPrints, printOnto, readPrints, reprint, settled, unprint, type OwnKeys, type PrintGroup, type Prints } from "./print-profile.ts";
+import { enterLecture, leaveLecture, lecture, ownItem, ownKeys, writeOwn, PROFILE_KEYS, setLectureDesign, setOwnItem, withProfile } from "./profile-store.ts";
 import { initDesigns } from "./designs-view.ts";
 import { sorted, addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
 import { fnv } from "../engine/share/print.ts";
@@ -2209,8 +2210,167 @@ function applyDesign(d: Design, sandboxOnly = false): void {
 // ---- session de lecture (P3 bis b) : le profil du design affiché est celui du site (profile-store.ts)
 /** Le profil en vigueur dans la session de lecture, à ranger dans le design (null : c'est la partie du joueur). */
 function lectureProfile(): DesignProfile | null {
-  if (!lecture()) return null;
-  return assembleProfile({ progress: simulated ?? prog, player, month: gameView().month, rp: rpNow(), corrections, surveys: loadLocalSurveys(), interfaces: loadLocalInterfaces(), diesel: dieselReadings });
+  return lecture() ? profileNow() : null;
+}
+/** Le profil en vigueur, celui du joueur ou de la session de lecture, pour un design ou un lien. */
+function profileNow(w = { base: true, contrib: true }): DesignProfile {
+  return assembleProfile({ progress: simulated ?? prog, player, month: gameView().month, rp: rpNow(), corrections, surveys: loadLocalSurveys(), interfaces: loadLocalInterfaces(), diesel: dieselReadings }, w);
+}
+const hasContribNow = () => hasContrib(profileNow({ base: false, contrib: true }));
+/** Le design du lien, avec ce qui est coché dans « Partager ». */
+function sharedDesign(w: ShareWith): Design {
+  const { profile: _p, ...d } = currentDesign(w.sandbox);
+  const p = w.profile || w.contrib ? profileNow({ base: w.profile, contrib: w.contrib }) : null;
+  return p && (p.player || hasContrib(p)) ? { ...d, profile: p } : d;
+}
+
+// ---- imprimer le profil (P3 bis c, print-profile.ts)
+const KEY_PRINTS = "ind-calc:v1:prints";
+let prints: Prints = loadPrints();
+function loadPrints(): Prints {
+  try {
+    return readPrints(JSON.parse(localStorage.getItem(KEY_PRINTS) ?? "null"));
+  } catch {
+    return noPrints();
+  }
+}
+/** Remplace la partie du joueur et la pile des impressions, ou rien (stockage plein). */
+function writeGame(keys: OwnKeys, next: Prints): boolean {
+  const before = ownItem(KEY_PRINTS);
+  try {
+    localStorage.setItem(KEY_PRINTS, JSON.stringify(next));
+  } catch {
+    share.toast(t("dsg.full"), true, 8000);
+    return false;
+  }
+  if (!writeOwn(keys)) {
+    setOwnItem(KEY_PRINTS, before ?? "null");
+    share.toast(t("dsg.full"), true, 8000);
+    return false;
+  }
+  prints = next;
+  return true;
+}
+function gameChanged(): void {
+  if (!lecture()) {
+    ownAway = false;
+    reloadProfile();
+    render();
+  }
+  designsView.refresh();
+}
+const countNow = (c: unknown) => countCorrections((c ?? {}) as OverridesFile);
+/** La fenêtre « Que reprendre sur ta partie ? » ; null : annulé. */
+async function choosePrint(p: DesignProfile, name: string): Promise<PrintGroup[] | null> {
+  const own = withOwnProfile();
+  const num = (v: unknown) => (typeof v === "number" ? fmt(v, 2) : "—");
+  const cell = (g: PrintGroup, x: DesignProfile): string => {
+    const pl = (x.player ?? {}) as unknown as PlayerInfo;
+    if (g === "research") return `${x.progress?.unlocked.length ?? 0}`;
+    if (g === "game") return [t(`dif.${pl.difficulty}` as never), `${num(pl.pollutionPct ?? DEFAULT_POLLUTION)} %`, pl.month ? t("prn.month", { n: pl.month }) : t("prn.month.auto"), ...(pl.igloo ? [t("prn.igloo")] : []), ...(pl.gamePass ? [t("prn.pass")] : [])].join(" · ");
+    if (g === "plot") return pl.plotW && pl.plotH ? `${num(pl.plotW)} × ${num(pl.plotH)}` : "—";
+    if (g === "money") return `${num(pl.money)} $ · ${num(pl.rp)} RP`;
+    if (g === "setup") return t(pl.research ? "prn.filled" : "prn.empty");
+    return t("prn.contrib.n", { n: countNow(x.corrections) + [x.surveys, x.interfaces, x.diesel].reduce<number>((s, v) => s + Object.keys((v ?? {}) as object).length, 0) });
+  };
+  const groups = groupsOf(p);
+  const rows = groups.map((g) => `<tr><td><input type="checkbox" id="prn-${g}" checked aria-label="${esc(t(`prn.g.${g}`))}"></td><td><label for="prn-${g}">${esc(t(`prn.g.${g}`))}</label></td><td>${esc(cell(g, own))}</td><td><b>${g === "contrib" ? "+ " : ""}${esc(cell(g, p))}</b></td></tr>`).join("");
+  const body = `<table class="prn-t"><thead><tr><th></th><th></th><th>${esc(t("prn.mine"))}</th><th>${esc(t("prn.after"))}</th></tr></thead><tbody>${rows}</tbody></table>${groups.includes("contrib") ? `<p class="hint">${esc(t("prn.contrib.hint"))}</p>` : ""}<p class="hint">${esc(t("prn.kept", { name }))}</p>`;
+  if ((await ask(t("prn.title"), body, [{ value: "ok", label: t("prn.go"), primary: true }, { value: "", label: t("m.cancel") }])) !== "ok") return null;
+  const on = groups.filter((g) => input(`prn-${g}`).checked);
+  return on.length ? on : null;
+}
+/** Le profil du joueur, même pendant une session de lecture, pour la colonne « Ma partie ». */
+function withOwnProfile(): DesignProfile {
+  const k = ownKeys();
+  const o = (key: string): Record<string, unknown> => {
+    try {
+      return (JSON.parse(k[key] ?? "null") ?? {}) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  };
+  return {
+    progress: { unlocked: (o(PROFILE_KEYS.progress).unlocked as string[] | undefined) ?? [], reqItemsDone: [], owned: [] },
+    player: { difficulty: "normal", ...o(PROFILE_KEYS.player) },
+    corrections: o(PROFILE_KEYS.corrections),
+    surveys: o(PROFILE_KEYS.surveys).machines,
+    interfaces: o(PROFILE_KEYS.interfaces).interfaces,
+    diesel: o(PROFILE_KEYS.diesel).diesel,
+  };
+}
+/** Imprime le profil de la session de lecture affichée : le design devient un design ordinaire. */
+async function printActive(groups: PrintGroup[]): Promise<void> {
+  const n = activeDesign(), p = lectureProfile();
+  if (!n || !p) return;
+  const dirty = designDirty(n);
+  const clean = async (s: string) => {
+    const { profile: _p, ...d } = await decodeDesign(s);
+    return encodeDesign(d);
+  };
+  let data = n.d;
+  try {
+    if (data) data = await clean(data);
+  } catch {
+    data = undefined;
+  }
+  if (designs.active !== n.id || !lecture()) return;
+  const own = ownKeys();
+  touchOwn();
+  if (!writeGame(printOnto(ownKeys(), p, groups, Date.now()), { ...prints, on: [...prints.on, { design: n.id, name: n.name, keys: own }] })) return;
+  const work = dirty ? await encodeDesign({ ...currentDesign(true), profile: undefined } as Design) : undefined;
+  if (data) n.d = data;
+  else delete n.d;
+  delete n.w;
+  delete n.lec;
+  ownAway = false;
+  showProfile(null);
+  rebase();
+  if (work !== undefined) designs.base = ""; // ce qui n'était pas enregistré le reste
+  storeDesigns();
+  designsView.refresh();
+  share.toast(t("prn.done", { name: n.name }), false, 5000);
+}
+const printLecture = () =>
+  withDesigns(async () => {
+    const p = lectureProfile(), n = activeDesign();
+    const groups = p && n ? await choosePrint(p, n.name) : null;
+    if (groups) await printActive(groups);
+  });
+/** Après un changement de l'arbre : un design imprimé jeté rend la partie d'avant, restauré remet la sienne. Le joueur est prévenu. */
+async function settlePrints(): Promise<void> {
+  const live = (id: number) => !!find(designs, id) && !inBin(designs, id);
+  for (const e of [...prints.on].reverse()) {
+    if (live(e.design)) continue;
+    const u = unprint(prints, e.design, ownKeys());
+    if (!u.apply) {
+      writeGame(ownKeys(), u.prints);
+      continue;
+    }
+    if (!writeGame(settled(u.apply, Date.now()), u.prints)) return;
+    gameChanged();
+    const a = await ask(t("prn.back.title"), `<p>${esc(t("prn.back.text", { name: e.name }))}</p>`, [{ value: "ok", label: t("prn.back.ok"), primary: true }, { value: "keep", label: t("prn.back.keep") }]);
+    if (a === "keep") {
+      const was = prints.off.find((x) => x.design === e.design);
+      if (was && writeGame(was.keys, { ...prints, off: prints.off.filter((x) => x !== was) })) gameChanged();
+    }
+  }
+  for (const e of [...prints.off]) {
+    if (live(e.design)) {
+      const u = reprint(prints, e.design, ownKeys());
+      if (!u.apply || !writeGame(settled(u.apply, Date.now()), u.prints)) return;
+      gameChanged();
+      await ask(t("prn.again.title"), `<p>${esc(t("prn.again.text", { name: e.name }))}</p>`, [{ value: "ok", label: t("prn.back.ok"), primary: true }]);
+    } else if (!find(designs, e.design)) writeGame(ownKeys(), { ...prints, off: prints.off.filter((x) => x !== e) });
+  }
+}
+/** « Remettre ma partie d'avant » : défait la dernière impression, le design reste. */
+async function undoPrint(): Promise<void> {
+  const e = prints.on.at(-1);
+  if (!e || (await ask(t("prn.undo.title"), `<p>${esc(t("prn.undo.text", { name: e.name }))}</p>`, [{ value: "ok", label: t("prn.undo.ok"), primary: true }, { value: "", label: t("m.cancel") }])) !== "ok") return;
+  if (!writeGame(settled(e.keys, Date.now()), { ...prints, on: prints.on.slice(0, -1) })) return;
+  gameChanged();
+  share.toast(t("lec.toast"));
 }
 /** Le design affiché juste avant celui qui s'ouvre (là où « Revenir à ma partie » ramène). */
 let leftDesign: number | null = null;
@@ -2284,8 +2444,9 @@ async function backToMine(): Promise<void> {
  * Ouvre un design reçu par lien : rangé dans « Reçus » (nom pris : la fenêtre de conflit) et affiché ; le design
  * affiché reste dans « Mes designs » avec son travail en cours. Rend son nom, ou null s'il n'a pas été ouvert.
  */
-async function openReceived(d: Design, _data: string, legacy: boolean): Promise<string | null> {
-  if (!(await keepActive())) return null;
+async function openReceived(d: Design, choice: OpenChoice, legacy: boolean): Promise<string | null> {
+  const groups = choice === "print" && d.profile ? await choosePrint(d.profile, d.name?.trim() || savedName(designSettings(d))) : null;
+  if ((choice === "print" && !groups) || !(await keepActive())) return null;
   // Ancien lien du bac à sable : seul le montage change, les réglages et le graphe restent ceux affichés.
   const cur = currentDesign(true);
   const { print: _print, ...got }: Design = legacy ? { ...cur, ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
@@ -2308,6 +2469,8 @@ async function openReceived(d: Design, _data: string, legacy: boolean): Promise<
   rebase();
   if (!storeDesigns()) return n.name;
   designsView.select(n.id);
+  await settlePrints(); // « remplacer » a pu envoyer un design imprimé à la corbeille
+  if (groups) await printActive(groups);
   return n.name;
 }
 
@@ -2479,6 +2642,10 @@ const copyDesign = (id: number) =>
   });
 /** Le design affiché n'est plus dans l'arbre (corbeille, suppression) : un design vide s'ouvre aussitôt. */
 async function settleDesigns(): Promise<void> {
+  await settleActive();
+  await settlePrints();
+}
+async function settleActive(): Promise<void> {
   if (designs.active !== null && find(designs, designs.active) && !inBin(designs, designs.active)) return;
   const n = addDesign(designs, designs.root, t("dsg.newdesign"), { auto: true });
   designs.active = n.id;
@@ -2533,8 +2700,14 @@ async function bootDesigns(): Promise<void> {
   }
   await settleLecture();
   designsView.refresh();
+  await settlePrints();
   // Un autre onglet a changé l'arbre : on repart du sien (le design affiché ici y reste, s'il existe encore).
   addEventListener("storage", (e) => {
+    if (e.key === KEY_PRINTS) {
+      // Un autre onglet a imprimé ou remis la partie : celle-ci est relue.
+      prints = loadPrints();
+      return gameChanged();
+    }
     if (e.key !== KEY_DESIGNS) return;
     const other = read();
     if (!other) return;
@@ -2638,7 +2811,6 @@ function shareFacts(): string[] {
   if (plan && settings.entered.includes(settings.goal) && settings.goal !== "recherche") {
     out.push(t("share.steps", { n: plan.steps.length }), t("share.machines", { n: Math.round(plan.totals.machines) }));
   }
-  if (lecture()) out.push(t("share.profile"));
   if (gedit?.touched) out.push(t("share.nodes", { n: gedit.graph.nodes.length }));
   return out;
 }
@@ -5647,9 +5819,12 @@ const designsView = initDesigns($("plan-saved"), {
   settle: settleDesigns,
   confirm: async (text, ok) => (await ask(t("dsg.sure"), `<p>${esc(text)}</p>`, [{ value: "ok", label: ok, primary: true }, { value: "", label: t("m.cancel") }])) === "ok",
   toast: (m, bad) => share.toast(m, bad),
+  printed: () => prints.on.at(-1)?.name ?? null,
+  unprint: undoPrint,
 });
 const share = initShare({
-  build: currentDesign,
+  build: sharedDesign,
+  contribs: hasContribNow,
   sandboxEmpty: () => !hasSandbox(sandbox.layout()),
   print: currentPrint,
   probe: probeDesign,
@@ -5672,6 +5847,7 @@ const share = initShare({
     else location.hash = `#bac/${encodeURIComponent(code)}`;
   },
 });
+$("lecture-print").addEventListener("click", () => void printLecture());
 $("lecture-back").addEventListener("click", () => void backToMine());
 window.addEventListener("hashchange", showPage);
 void bootDesigns();

@@ -5,12 +5,20 @@
 import { t } from "../i18n/i18n.ts";
 import { comparePrints, decodeDesign, designFromMschCode, designLink, encodeDesign, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import type { Key } from "../i18n/i18n.ts";
-import { checkNotes, designFacts, linkAdvice, miniLayout, shareErrorKey, type CheckState } from "./share-design.ts";
+import { hasContrib } from "./print-profile.ts";
+import { checkNotes, designFacts, dropAdvice, linkAdvice, miniLayout, shareErrorKey, type CheckState } from "./share-design.ts";
 import { icon } from "./icons.ts";
 
+/** Les cases de « Partager ». */
+export type ShareWith = { sandbox: boolean; profile: boolean; contrib: boolean };
+/** Ce que le joueur choisit devant un design reçu ("" : rien). */
+export type OpenChoice = "" | "read" | "print";
+
 export type ShareDeps = {
-  /** Le design affiché, assemblé à l'instant (bac à sable seulement si `withSandbox`). */
-  build: (withSandbox: boolean) => Design;
+  /** Le design affiché, assemblé à l'instant, avec ce qui est coché. */
+  build: (w: ShareWith) => Design;
+  /** Le joueur a des corrections ou des relevés à partager. */
+  contribs: () => boolean;
   sandboxEmpty: () => boolean;
   /**
    * Empreinte (P3) du design affiché : connue tout de suite (`now`, au moins le plan), puis avec la pose quand
@@ -26,7 +34,7 @@ export type ShareDeps = {
   /** Nom du design affiché. */
   currentName: () => string;
   /** Ouvre le design reçu (l'enregistre, garde le précédent) ; `data` : le lien déjà encodé. Rend son nom, ou null s'il a été ignoré. */
-  open: (d: Design, data: string, legacy: boolean) => Promise<string | null>;
+  open: (d: Design, choice: OpenChoice, legacy: boolean) => Promise<string | null>;
   /** Le choix est fait (ou la fenêtre fermée) : l'adresse perd son #d=…. */
   done: (legacy: boolean, opened: boolean) => void;
   /** Ancien lien que le partage ne lit pas (code d'avant le .msch) : le bac à sable s'en charge comme avant. */
@@ -40,7 +48,9 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 
 export function initShare(deps: ShareDeps) {
   const box = $("share"), btn = $("share-open");
-  let withSand = true;
+  let withSand = true, withProf = true, withContrib = true;
+  /** Version allégée proposée quand le lien est trop long. */
+  let lighter: { sandbox: boolean; contrib: boolean } | null = null;
   let link = "";
   let run = 0;
 
@@ -110,19 +120,32 @@ export function initShare(deps: ShareDeps) {
     $("shr-len").textContent = "";
     $("shr-b").hidden = true;
     setCopy(false);
-    const data = await encodeDesign(stamp(deps.build(withSand && !empty)));
-    const withoutData = withSand && !empty ? await encodeDesign(stamp(deps.build(false))) : null;
+    const own = deps.contribs();
+    $("shr-prof").setAttribute("aria-pressed", String(withProf));
+    $("shr-prof").title = t("share.has.profile.title");
+    const ct = $("shr-contrib");
+    ct.toggleAttribute("disabled", !own);
+    ct.setAttribute("aria-pressed", String(withContrib && own));
+    ct.title = t(own ? "share.has.contrib.title" : "share.has.contrib.empty");
+    $("shr-miss").hidden = !own || withContrib;
+    const now = { sandbox: withSand && !empty, profile: withProf, contrib: withContrib && own };
+    const make = async (w: ShareWith) => designLink(location.origin, await encodeDesign(stamp(deps.build(w))));
+    const built = await make(now);
+    const options: { drop: { sandbox: boolean; contrib: boolean }; len: number }[] = [];
+    if (!linkAdvice(built.length, null).fits)
+      for (const drop of [{ sandbox: true, contrib: false }, { sandbox: false, contrib: true }, { sandbox: true, contrib: true }])
+        if ((!drop.sandbox || now.sandbox) && (!drop.contrib || now.contrib)) options.push({ drop, len: (await make({ sandbox: now.sandbox && !drop.sandbox, profile: now.profile, contrib: now.contrib && !drop.contrib })).length });
     if (me !== run) return;
-    link = designLink(location.origin, data);
-    const without = withoutData === null ? null : designLink(location.origin, withoutData).length;
-    const n = link.length, a = linkAdvice(n, without);
+    link = built;
+    const n = link.length, a = linkAdvice(n, null), light = dropAdvice(n, options);
+    lighter = light?.drop ?? null;
     $("shr-link").textContent = link;
     $("shr-link").title = link;
     $("shr-bar").style.width = `${Math.min(100, (n / 2000) * 100)}%`;
     $("shr-gauge").classList.toggle("over", !a.fits);
     $("shr-len").innerHTML = t(a.fits ? "share.len.ok.html" : "share.len.over.html", { n: nf(n) });
-    $("shr-b").hidden = !a.sandboxOnly;
-    if (a.sandboxOnly) $("shr-b-txt").textContent = t("share.b", { n: nf(without!) });
+    $("shr-b").hidden = !light;
+    if (light) $("shr-b-txt").textContent = [t(light.drop.contrib ? (light.drop.sandbox ? "share.b.both" : "share.b.contrib") : "share.b", { n: nf(light.len) }), light.drop.contrib ? t("share.miss") : ""].filter(Boolean).join(" ");
     if (autoCopy && a.fits) await copy();
     // L'usine finit de se calculer : le lien prend son empreinte complète (et remplace celui déjà copié).
     void print.later?.then((p) => {
@@ -135,6 +158,7 @@ export function initShare(deps: ShareDeps) {
     box.hidden = false;
     btn.setAttribute("aria-expanded", "true");
     place();
+    withProf = withContrib = true;
     void fill(true);
   }
   function closeShare(): void {
@@ -152,8 +176,17 @@ export function initShare(deps: ShareDeps) {
     withSand = !withSand;
     void fill(false);
   });
+  $("shr-prof").addEventListener("click", () => {
+    withProf = !withProf;
+    void fill(false);
+  });
+  $("shr-contrib").addEventListener("click", () => {
+    withContrib = !withContrib;
+    void fill(false);
+  });
   $("shr-b-go").addEventListener("click", async () => {
-    withSand = false;
+    if (lighter?.sandbox) withSand = false;
+    if (lighter?.contrib) withContrib = false;
     await fill(false);
     if (await copy()) toast(t("share.copied"));
   });
@@ -188,8 +221,8 @@ export function initShare(deps: ShareDeps) {
     svg.innerHTML = edges.join("") + pts.map((p) => `<rect x="${p.x}" y="${p.y}" width="${nw}" height="${nh}" rx="3"/>`).join("");
   }
 
-  /** Fenêtre « Design partagé » ; rend true si le joueur choisit d'ouvrir. */
-  function ask(d: Design, legacy: boolean): Promise<boolean> {
+  /** Fenêtre « Design partagé » ; rend le choix du joueur. */
+  function ask(d: Design, legacy: boolean): Promise<OpenChoice> {
     const f = designFacts(d);
     $("shr-r-eye").textContent = t("share.r.eye");
     $("shr-r-name").textContent = d.name || deps.nameOf(d);
@@ -197,21 +230,25 @@ export function initShare(deps: ShareDeps) {
     const facts = !legacy && d.name && d.name !== deps.nameOf(d) ? [deps.nameOf(d)] : []; // l'objectif, s'il n'est pas déjà le nom
     if (f.nodes !== null) facts.push(t("share.nodes", { n: f.nodes }));
     if (f.blocks !== null) facts.push(t("share.blocks", { n: f.blocks }));
-    if (d.profile) facts.push(t("share.profile"));
+    const lec = !legacy && !!d.profile;
+    if (lec && d.profile!.player) facts.push(t("share.profile"));
+    if (lec && hasContrib(d.profile!)) facts.push(t("share.contrib"));
+    if (lec && d.profile!.partial) facts.push(t("share.contrib.no"));
     $("shr-r-facts").innerHTML = pills(facts);
     $("shr-r-facts").hidden = !facts.length;
     // Anciens liens du bac à sable : rien à recalculer, le montage est tel quel.
     if (legacy) $("shr-r-warn").hidden = $("shr-r-check").hidden = true;
     else notes(d, null);
     $("shr-r-keep").hidden = false;
-    $("shr-r-keep-txt").textContent = t(legacy ? "share.r.keep.bac" : d.profile ? "share.r.keep.lec" : "share.r.keep", { prev: deps.currentName() });
+    $("shr-r-keep-txt").textContent = t(legacy ? "share.r.keep.bac" : lec ? "share.r.keep.lec" : "share.r.keep", { prev: deps.currentName() });
     $("shr-r-no").textContent = t("m.cancel");
-    $("shr-r-yes").hidden = false;
+    $("shr-r-yes").hidden = lec;
+    $("shr-r-ch").hidden = !lec;
     return show();
   }
 
   /** Avec le profil de l'auteur, la partie du lecteur n'y est pour rien : seul le site a pu changer. */
-  const withProfileText = (d: Design, k: Key): Key => (d.profile && (k === "share.r.diff.plan" || k === "share.r.diff.pose") ? `${k}.lec` : k);
+  const withProfileText = (d: Design, k: Key): Key => (d.profile?.partial && (k === "share.r.diff.plan" || k === "share.r.diff.pose") ? "share.r.diff.part" : d.profile?.player && (k === "share.r.diff.plan" || k === "share.r.diff.pose") ? `${k}.lec` : k);
 
   /** Alerte et information de la fenêtre, selon la vérification de l'empreinte (P3). */
   function notes(d: Design, verdict: CheckState): void {
@@ -223,7 +260,7 @@ export function initShare(deps: ShareDeps) {
     $("shr-r-check-ic").innerHTML = icon(verdict === "identique" ? "check" : "info");
   }
 
-  function fail(err: unknown): Promise<boolean> {
+  function fail(err: unknown): Promise<OpenChoice> {
     $("shr-r-eye").textContent = t("share.r.eye.err");
     $("shr-r-name").textContent = t("share.r.bad");
     ($("shr-r-mini") as unknown as SVGElement).toggleAttribute("hidden", true);
@@ -232,26 +269,27 @@ export function initShare(deps: ShareDeps) {
     $("shr-r-warn-txt").textContent = t(shareErrorKey(err instanceof ShareError ? err.code : null));
     $("shr-r-keep").hidden = $("shr-r-check").hidden = true;
     $("shr-r-no").textContent = t("share.r.close");
-    $("shr-r-yes").hidden = true;
+    $("shr-r-yes").hidden = $("shr-r-ch").hidden = true;
     return show();
   }
 
-  function show(): Promise<boolean> {
+  function show(): Promise<OpenChoice> {
     return new Promise((resolve) => {
-      const end = (ok: boolean) => {
-        $("shr-r-yes").onclick = $("shr-r-no").onclick = null;
+      const end = (ok: OpenChoice) => {
+        for (const id of ["yes", "no", "read", "print"]) $(`shr-r-${id}`).onclick = null;
         dlg.oncancel = null;
         if (dlg.open) dlg.close();
         resolve(ok);
       };
-      $("shr-r-yes").onclick = () => end(true);
-      $("shr-r-no").onclick = () => end(false);
+      $("shr-r-yes").onclick = $("shr-r-read").onclick = () => end("read");
+      $("shr-r-print").onclick = () => end("print");
+      $("shr-r-no").onclick = () => end("");
       dlg.oncancel = (e) => {
         e.preventDefault();
-        end(false);
+        end("");
       };
       if (!dlg.open) dlg.showModal();
-      ($("shr-r-yes").hidden ? $("shr-r-no") : $("shr-r-yes")).focus();
+      ($("shr-r-yes").hidden ? ($("shr-r-ch").hidden ? $("shr-r-no") : $("shr-r-read")) : $("shr-r-yes")).focus();
     });
   }
 
@@ -284,8 +322,8 @@ export function initShare(deps: ShareDeps) {
       waiting = false;
       const late = !known;
       if (!ok) probe?.cancel();
-      const name = ok ? await deps.open(d, data, false) : null;
-      toast(name === null ? t("share.cancelled") : t("share.done", { name }));
+      const name = ok ? await deps.open(d, ok, false) : null;
+      toast(name === null ? t("share.cancelled") : t(ok === "print" ? "share.done.print" : "share.done", { name }));
       deps.done(false, name !== null);
       // Ouvert avant la fin de la vérification : une différence se dit quand même, dès qu'elle est connue.
       if (name !== null && late)
@@ -310,7 +348,7 @@ export function initShare(deps: ShareDeps) {
         return deps.legacyFallback(code);
       }
       const ok = await ask(d, true);
-      const name = ok ? await deps.open(d, "", true) : null;
+      const name = ok ? await deps.open(d, ok, true) : null;
       toast(name === null ? t("share.cancelled") : t("share.done", { name }));
       deps.done(true, name !== null);
     } finally {

@@ -54,8 +54,11 @@ export type Design = {
  * `ui/progress.ts`, vu en objet). Les autres champs (corrections, relevés) n'y sont que s'ils ne sont pas vides.
  */
 export type DesignProfile = {
-  progress: { unlocked: string[]; reqItemsDone: string[]; owned: string[] };
-  player: Record<string, unknown>;
+  /** Recherches et « Ma partie », ensemble ; absents : le lien ne porte que les contributions. */
+  progress?: { unlocked: string[]; reqItemsDone: string[]; owned: string[] };
+  player?: Record<string, unknown>;
+  /** L'auteur a des contributions qu'il n'a pas mises dans le lien. */
+  partial?: true;
   corrections?: unknown;
   surveys?: unknown;
   interfaces?: unknown;
@@ -622,22 +625,29 @@ function rStrings(r: Reader): string[] {
 }
 
 const PROFILE_EXTRAS = ["corrections", "surveys", "interfaces", "diesel"] as const;
+const P_NOBASE = 16, P_PARTIAL = 32;
 
 function wProfile(w: Writer, p: DesignProfile): void {
   const on = PROFILE_EXTRAS.map((k) => Object.hasOwn(p, k) && p[k] !== undefined);
-  w.uv(on.reduce((f, v, i) => f | (v ? 1 << i : 0), 0));
-  wNodes(w, p.progress.unlocked);
-  wNodes(w, p.progress.reqItemsDone);
-  wStrings(w, p.progress.owned);
-  wSettings(w, p.player, PLAYER_V1);
+  w.uv(on.reduce((f, v, i) => f | (v ? 1 << i : 0), 0) | (p.progress && p.player ? 0 : P_NOBASE) | (p.partial ? P_PARTIAL : 0));
+  if (p.progress && p.player) {
+    wNodes(w, p.progress.unlocked);
+    wNodes(w, p.progress.reqItemsDone);
+    wStrings(w, p.progress.owned);
+    wSettings(w, p.player, PLAYER_V1);
+  }
   PROFILE_EXTRAS.forEach((k, i) => on[i] && wValue(w, p[k]));
 }
 
 function rProfile(r: Reader): DesignProfile {
   const f = r.uv();
-  if (f >= 1 << PROFILE_EXTRAS.length) throw new ShareError("abîmé", "profil");
-  const progress = { unlocked: rNodes(r), reqItemsDone: rNodes(r), owned: rStrings(r) };
-  const p: DesignProfile = { progress, player: rSettings(r, PLAYER_V1) };
+  if (f >= P_PARTIAL * 2) throw new ShareError("abîmé", "profil");
+  const p: DesignProfile = {};
+  if (!(f & P_NOBASE)) {
+    p.progress = { unlocked: rNodes(r), reqItemsDone: rNodes(r), owned: rStrings(r) };
+    p.player = rSettings(r, PLAYER_V1);
+  }
+  if (f & P_PARTIAL) p.partial = true;
   PROFILE_EXTRAS.forEach((k, i) => f & (1 << i) && (p[k] = rValue(r)));
   return p;
 }

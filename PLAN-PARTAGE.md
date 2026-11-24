@@ -233,7 +233,17 @@ En lecture, « Envoyer mes corrections / relevés » est masqué (ce sont ceux d
 l'instant toujours en session de lecture ; partager depuis une session garde son profil. La pose suit aussi les corrections et
 les relevés diesel (`currentPorts().sig`) : deux profils ne partagent jamais une usine gardée.
 
-Lot restant : **P3 bis c** Partager avec son propre profil, fenêtre à deux choix, impression, parcours réel ; puis P4.
+**P3 bis c fait le 2026-11-24** (décisions de l'utilisateur : deux cases séparées, « Mon profil » et « Mes contributions », cochées d'office ;
+le design imprimé perd « lecture » ; le supprimer rend la partie d'avant, en prévenant).
+- Codec : recherches et « Ma partie » facultatives (P_NOBASE), et « contributions non jointes » (P_PARTIAL) pour une alerte juste.
+- Partager : décocher les contributions affiche les conséquences ; lien trop long : la première version allégée qui passe, conséquences
+  dites avant la copie. Contributions sans profil : en lecture, elles s'appliquent sur une copie de la partie du lecteur.
+- Ouvrir : lecture ou impression (`print-profile.ts`) : on coche ce qui est repris ; les contributions s'ajoutent, le reste remplace.
+- `ind-calc:v1:prints` : pile des impressions, chacune avec la partie d'avant. Design jeté : partie d'avant remise, fenêtre qui prévient
+  (« Garder la partie imprimée » possible) ; restauré : l'impression revient avec ce qui avait changé. « Remettre ma partie d'avant »
+  sous « Mes designs ». Une impression plus ancienne supprimée ne change pas la partie en cours.
+
+Lot suivant : P4.
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`
