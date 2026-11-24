@@ -2,7 +2,7 @@
 // sable + usine figée facultative) ↔ octets binaires v1 ↔ lien `#d=1.<base64url>`. Pur, sans DOM.
 //
 // Octets d'un design : [version = 1] puis le corps compressé en deflate-raw. Corps :
-//   drapeaux (varint) · version du site · [nom] · réglages · [graphe édité] · [bac à sable] · [usine figée] · [empreinte] · [profil]
+//   drapeaux (varint) · version du site · [nom] · réglages · [graphe édité] · [bac à sable] · [usine figée] · [empreinte] · [profil] · [moteur]
 // Réglages : bitmap de présence sur la liste figée `SETTINGS_V1`, puis seulement les champs ≠ défaut v1.
 // Graphe : ids `nN` → N, liens vers les nœuds par rang, ids d'arête reconstruits (`edgeId`), coordonnées en
 // delta quand c'est exact. Bac à sable : rotation et présences dans un octet, `u` et coordonnées en delta.
@@ -24,6 +24,10 @@ export { ShareError, type ShareErrorCode } from "./bytes.ts";
 
 /** Version du site (package.json) qui écrit le design. */
 export const SITE_VERSION: string = PKG_VERSION;
+/** Version du moteur de génération (code du calcul et données du jeu, vite.config.ts), à part de celle du site : 8 chiffres hexadécimaux. */
+declare const __FACTORY_VERSION__: string;
+export const ENGINE_VERSION: string = typeof __FACTORY_VERSION__ === "string" ? __FACTORY_VERSION__.slice(0, 8) : "00000000";
+const ENGINE = /^[0-9a-f]{8}$/;
 export const SHARE_VERSION = 1;
 
 /**
@@ -38,6 +42,8 @@ export type DesignGraph = { sig: string; graph: Graph; solved: Graph | null; tou
 
 export type Design = {
   site: string;
+  /** Version du moteur qui a calculé le design (`ENGINE_VERSION`). */
+  engine?: string;
   name?: string;
   settings: DesignSettings;
   graph?: DesignGraph;
@@ -654,13 +660,13 @@ function rProfile(r: Reader): DesignProfile {
 
 // ---------------------------------------------------------------- design entier
 
-const D_NAME = 1, D_GRAPH = 2, D_SANDBOX = 4, D_FACTORY = 8, D_PRINT = 16, D_PROFILE = 32;
+const D_NAME = 1, D_GRAPH = 2, D_SANDBOX = 4, D_FACTORY = 8, D_PRINT = 16, D_PROFILE = 32, D_ENGINE = 64;
 
 /** Corps non compressé (utile aux mesures et aux tests). */
 export function designBody(d: Design): Uint8Array {
   const w = new Writer(TABLE_V1);
   const has = (k: keyof Design) => Object.hasOwn(d, k) && d[k] !== undefined;
-  w.uv((has("name") ? D_NAME : 0) | (has("graph") ? D_GRAPH : 0) | (has("sandbox") ? D_SANDBOX : 0) | (has("factory") ? D_FACTORY : 0) | (has("print") ? D_PRINT : 0) | (has("profile") ? D_PROFILE : 0));
+  w.uv((has("name") ? D_NAME : 0) | (has("graph") ? D_GRAPH : 0) | (has("sandbox") ? D_SANDBOX : 0) | (has("factory") ? D_FACTORY : 0) | (has("print") ? D_PRINT : 0) | (has("profile") ? D_PROFILE : 0) | (has("engine") ? D_ENGINE : 0));
   w.str(d.site);
   if (has("name")) w.str(d.name!);
   wSettings(w, d.settings);
@@ -672,13 +678,17 @@ export function designBody(d: Design): Uint8Array {
     for (let i = 0; i < 16; i += 2) w.u8(parseInt(d.print!.slice(i, i + 2), 16));
   }
   if (has("profile")) wProfile(w, d.profile!);
+  if (has("engine")) {
+    if (!ENGINE.test(d.engine!)) throw new Error(`share: moteur ${d.engine}`);
+    for (let i = 0; i < 8; i += 2) w.u8(parseInt(d.engine!.slice(i, i + 2), 16));
+  }
   return w.bytes();
 }
 
 function readBody(body: Uint8Array): Design {
   const r = new Reader(body, TABLE_V1);
   const f = r.uv();
-  if (f >= 64) throw new ShareError("abîmé", "design");
+  if (f >= 128) throw new ShareError("abîmé", "design");
   const d: Design = { site: r.str(), settings: {} };
   if (f & D_NAME) d.name = r.str();
   d.settings = rSettings(r);
@@ -691,10 +701,15 @@ function readBody(body: Uint8Array): Design {
     d.print = p;
   }
   if (f & D_PROFILE) d.profile = rProfile(r);
+  if (f & D_ENGINE) {
+    let e = "";
+    for (let i = 0; i < 4; i++) e += r.u8().toString(16).padStart(2, "0");
+    d.engine = e;
+  }
   if (!r.done) throw new ShareError("abîmé", "octets en trop");
   // Ordre des clés comme à l'écriture habituelle (sans effet sur l'égalité, plus lisible au débogage).
-  const { site, name, settings, graph, sandbox, factory, print, profile } = d;
-  return { site, ...(name !== undefined ? { name } : {}), settings, ...(graph ? { graph } : {}), ...(sandbox ? { sandbox } : {}), ...(factory ? { factory } : {}), ...(print ? { print } : {}), ...(profile ? { profile } : {}) };
+  const { site, engine, name, settings, graph, sandbox, factory, print, profile } = d;
+  return { site, ...(engine ? { engine } : {}), ...(name !== undefined ? { name } : {}), settings, ...(graph ? { graph } : {}), ...(sandbox ? { sandbox } : {}), ...(factory ? { factory } : {}), ...(print ? { print } : {}), ...(profile ? { profile } : {}) };
 }
 
 /** Octets du design (contenu du fichier `.indus`) : version, puis le corps en deflate-raw. */

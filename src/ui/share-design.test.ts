@@ -3,7 +3,7 @@ import { decodeDesign, designLink, encodeDesign, same } from "../engine/share/in
 import type { Layout } from "../engine/sandbox/layout.ts";
 import type { DesignGraph } from "../engine/share/index.ts";
 import { DEFAULT_SETTINGS } from "./state.ts";
-import { assembleDesign, checkNotes, designFacts, DISCORD_MAX, hasSandbox, linkAdvice, miniLayout, olderSite, readShareHash, shareErrorKey } from "./share-design.ts";
+import { assembleDesign, checkNotes, designFacts, DISCORD_MAX, hasSandbox, linkAdvice, miniLayout, olderSite, otherEngine, readShareHash, shareErrorKey } from "./share-design.ts";
 
 const graph = (touched = true): DesignGraph => ({
   sig: "objet|crankshaft",
@@ -62,23 +62,29 @@ describe("vérification de l'empreinte à l'ouverture (P3)", () => {
   const print = "0123456789abcdef";
   it("même version : alerte seulement si l'empreinte diffère, avec le conseil du fichier", () => {
     const d = { site: "0.2.0", print };
-    expect(checkNotes(d, "0.2.0", null)).toEqual({ warn: [], info: "share.r.checking", advice: false });
-    expect(checkNotes(d, "0.2.0", "identique")).toEqual({ warn: [], info: "share.r.same", advice: false });
-    expect(checkNotes(d, "0.2.0", "partiel")).toEqual({ warn: [], info: "share.r.part", advice: false });
-    expect(checkNotes(d, "0.2.0", "impossible")).toEqual({ warn: [], info: "share.r.unchecked", advice: false });
-    expect(checkNotes(d, "0.2.0", "plan")).toEqual({ warn: ["share.r.diff.plan"], info: null, advice: true });
-    expect(checkNotes(d, "0.2.0", "pose")).toEqual({ warn: ["share.r.diff.pose"], info: null, advice: true });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", null)).toEqual({ warn: [], info: "share.r.checking", advice: false });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "identique")).toEqual({ warn: [], info: "share.r.same", advice: false });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "partiel")).toEqual({ warn: [], info: "share.r.part", advice: false });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "impossible")).toEqual({ warn: [], info: "share.r.unchecked", advice: false });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "plan")).toEqual({ warn: ["share.r.diff.plan"], info: null, advice: true });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "pose")).toEqual({ warn: ["share.r.diff.pose"], info: null, advice: true });
   });
-  it("autre version : l'avertissement de la maquette, levé si l'usine est vérifiée identique", () => {
-    const d = { site: "0.1.0", print };
-    expect(checkNotes(d, "0.2.0", null)).toEqual({ warn: ["share.r.older"], info: "share.r.checking", advice: false });
-    expect(checkNotes(d, "0.2.0", "pose")).toEqual({ warn: ["share.r.older", "share.r.diff.pose"], info: null, advice: true });
-    expect(checkNotes(d, "0.2.0", "identique")).toEqual({ warn: [], info: "share.r.same.other", advice: false });
-    expect(checkNotes({ ...d, site: "0.3.0" }, "0.2.0", null).warn).toEqual(["share.r.other"]);
+  it("le site a changé mais pas le moteur : rien à dire, pas de version d'origine", () => {
+    const d = { site: "0.1.0", engine: "aaaaaaaa", print };
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", null).warn).toEqual([]);
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "identique").info).toBe("share.r.same");
+    expect([otherEngine(d, "aaaaaaaa"), otherEngine(d, "cccccccc"), otherEngine({}, "cccccccc")]).toEqual([false, true, false]);
+  });
+  it("autre moteur : l'avertissement de la maquette, levé si l'usine est vérifiée identique", () => {
+    const d = { site: "0.1.0", engine: "bbbbbbbb", print };
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", null)).toEqual({ warn: ["share.r.older"], info: "share.r.checking", advice: false });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "pose")).toEqual({ warn: ["share.r.older", "share.r.diff.pose"], info: null, advice: true });
+    expect(checkNotes(d, "0.2.0", "aaaaaaaa", "identique")).toEqual({ warn: [], info: "share.r.same.other", advice: false });
+    expect(checkNotes({ ...d, site: "0.3.0" }, "0.2.0", "aaaaaaaa", null).warn).toEqual(["share.r.other"]);
   });
   it("sans empreinte (ancien lien) : mention neutre, alerte seulement si la version diffère", () => {
-    expect(checkNotes({ site: "0.2.0" }, "0.2.0", null)).toEqual({ warn: [], info: "share.r.noprint", advice: false });
-    expect(checkNotes({ site: "0.1.0" }, "0.2.0", null)).toEqual({ warn: ["share.r.older"], info: "share.r.noprint", advice: false });
+    expect(checkNotes({ site: "0.2.0" }, "0.2.0", "aaaaaaaa", null)).toEqual({ warn: [], info: "share.r.noprint", advice: false });
+    expect(checkNotes({ site: "0.1.0", engine: "bbbbbbbb" }, "0.2.0", "aaaaaaaa", null)).toEqual({ warn: ["share.r.older"], info: "share.r.noprint", advice: false });
   });
   it("ordre des versions", () => {
     expect(olderSite("0.9.0", "0.10.0")).toBe(true);

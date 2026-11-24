@@ -251,6 +251,9 @@ le design imprimé perd « lecture » ; le supprimer rend la partie d'avant, en 
 - Version : `npm run deploy` augmente le numéro (à garder dans git) et garde le site sous `/v/<version>/` (`scripts/build-archive.ts`,
   `publier.sh`, sans toucher nginx). Stockage à part (`v:<version>:`), bandeau, vignettes du site en ligne. À l'ouverture d'un design d'une
   autre version encore servie : « Ouvrir avec la version d'origine ». La 0.1.0 en ligne avant ce lot n'a pas de copie.
+- **Version du site ≠ version du moteur** (précision de l'utilisateur, 2026-11-24) : le design porte aussi `engine`, 4 octets, l'empreinte du
+  code du calcul et des données du jeu (`ENGINE_VERSION`, vite.config.ts ; le format du partage n'y entre pas). La version d'origine n'est
+  proposée, et un avertissement affiché, que si le **moteur** diffère ; un site changé avec le même moteur ne dit rien.
 - Plus aucun .msch à l'écran ; le bac à sable exporte code, lien et fichier au format du partage ; anciens codes et fichiers lus.
 
 Lot suivant : P5 (parcours réel chronométré, déploiement).

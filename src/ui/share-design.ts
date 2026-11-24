@@ -17,6 +17,7 @@ export const DISCORD_MAX = 1900;
  */
 export function assembleDesign(o: {
   site: string;
+  engine?: string;
   name?: string;
   settings: object;
   graph: DesignGraph | null;
@@ -24,7 +25,7 @@ export function assembleDesign(o: {
   withSandbox: boolean;
   profile?: DesignProfile | null;
 }): Design {
-  const d: Design = { site: o.site, settings: structuredClone(o.settings) as DesignSettings };
+  const d: Design = { site: o.site, ...(o.engine ? { engine: o.engine } : {}), settings: structuredClone(o.settings) as DesignSettings };
   if (o.name) d.name = o.name;
   if (o.graph?.touched) d.graph = structuredClone(o.graph);
   if (o.withSandbox && o.sandbox && o.sandbox.blocks.length) d.sandbox = structuredClone(o.sandbox);
@@ -101,16 +102,20 @@ export function olderSite(a: string, b: string): boolean {
   return false;
 }
 
+/** Le design vient d'un autre moteur de génération (moteur inconnu : on ne le dit pas). */
+export const otherEngine = (d: Pick<Design, "engine">, engine: string): boolean => d.engine !== undefined && d.engine !== engine;
+
 export type CheckKey = "share.r.older" | "share.r.other" | "share.r.diff.plan" | "share.r.diff.pose" | "share.r.same" | "share.r.same.other" | "share.r.part" | "share.r.noprint" | "share.r.checking" | "share.r.unchecked";
 /** Verdict de la vérification ; null : en cours ; « impossible » : l'usine n'a pas pu être recalculée. */
 export type CheckState = PrintVerdict | "impossible" | null;
 /**
  * Ce que dit la fenêtre « Design partagé » (P3) : les lignes d'alerte (`warn`) et l'information neutre (`info`).
- * Alerte seulement si l'empreinte diffère vraiment, ou si la version du site diffère sans qu'on ait pu vérifier que
+ * Alerte seulement si l'empreinte diffère vraiment, ou si le moteur de génération diffère sans qu'on ait pu vérifier que
  * rien ne change ; `advice` (le fichier indestructible) seulement si l'empreinte diffère vraiment.
  */
-export function checkNotes(d: Pick<Design, "site" | "print">, site: string, verdict: CheckState): { warn: CheckKey[]; info: CheckKey | null; advice: boolean } {
-  const other = d.site !== site;
+export function checkNotes(d: Pick<Design, "site" | "engine" | "print">, site: string, engine: string, verdict: CheckState): { warn: CheckKey[]; info: CheckKey | null; advice: boolean } {
+  // Le site change sans cesse ; seul le moteur de génération peut changer l'usine.
+  const other = otherEngine(d, engine);
   const version: CheckKey[] = other ? [olderSite(d.site, site) ? "share.r.older" : "share.r.other"] : [];
   if (!d.print || verdict === "sans") return { warn: version, info: "share.r.noprint", advice: false };
   if (verdict === null) return { warn: version, info: "share.r.checking", advice: false };

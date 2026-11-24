@@ -3,10 +3,10 @@
 // à sable). Ce module ne fait que l'affichage : l'état du site se lit et se change par `deps` (main.ts).
 
 import { t } from "../i18n/i18n.ts";
-import { comparePrints, decodeDesign, designFromFile, designFromMschCode, designLink, encodeDesign, encodeDesignBytes, isIndus, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import { comparePrints, ENGINE_VERSION, decodeDesign, designFromFile, designFromMschCode, designLink, encodeDesign, encodeDesignBytes, isIndus, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import type { Key } from "../i18n/i18n.ts";
 import { hasContrib } from "./print-profile.ts";
-import { checkNotes, designFacts, dropAdvice, linkAdvice, miniLayout, shareErrorKey, type CheckState } from "./share-design.ts";
+import { checkNotes, designFacts, dropAdvice, linkAdvice, miniLayout, otherEngine, shareErrorKey, type CheckState } from "./share-design.ts";
 import type { Layout } from "../engine/sandbox/layout.ts";
 import { icon } from "./icons.ts";
 
@@ -261,11 +261,11 @@ export function initShare(deps: ShareDeps) {
     svg.innerHTML = edges.join("") + pts.map((p) => `<rect x="${p.x}" y="${p.y}" width="${nw}" height="${nh}" rx="3"/>`).join("");
   }
 
-  /** La version du site qui a créé le design, si elle est encore servie sous /v/. */
+  /** La version d'origine du site, seulement si le moteur de génération a changé, et si elle est encore servie sous /v/. */
   async function original(d: Design): Promise<void> {
     const p = $("shr-r-orig"), a = p.querySelector("a")!;
     p.hidden = true;
-    if (!/^\d+\.\d+\.\d+$/.test(d.site) || d.site === SITE_VERSION || location.pathname.startsWith("/v/")) return;
+    if (!/^\d+\.\d+\.\d+$/.test(d.site) || d.site === SITE_VERSION || !otherEngine(d, ENGINE_VERSION) || location.pathname.startsWith("/v/")) return;
     try {
       const r = await fetch(`/v/${d.site}/version.json`);
       if (!r.ok || ((await r.json()) as { version?: unknown }).version !== d.site) return;
@@ -311,7 +311,7 @@ export function initShare(deps: ShareDeps) {
 
   /** Alerte et information de la fenêtre, selon la vérification de l'empreinte (P3). */
   function notes(d: Design, verdict: CheckState): void {
-    const n = checkNotes(d, SITE_VERSION, verdict);
+    const n = checkNotes(d, SITE_VERSION, ENGINE_VERSION, verdict);
     $("shr-r-warn").hidden = !n.warn.length;
     $("shr-r-warn-txt").innerHTML = [...n.warn.map((k) => esc(t(withProfileText(d, k)))), ...(n.advice ? [`<b>${esc(t("share.r.advice"))}</b>`] : [])].join("<br>");
     $("shr-r-check").hidden = !n.info;
@@ -419,7 +419,7 @@ export function initShare(deps: ShareDeps) {
       // Ouvert avant la fin de la vérification : une différence se dit quand même, dès qu'elle est connue.
       if (name !== null && late)
         void checked?.then((v) => {
-          const n = checkNotes(d, SITE_VERSION, v);
+          const n = checkNotes(d, SITE_VERSION, ENGINE_VERSION, v);
           if (n.advice) toast(`${t(withProfileText(d, n.warn.at(-1)!))} ${t("share.r.advice")}`, true, 14_000);
         });
     } finally {

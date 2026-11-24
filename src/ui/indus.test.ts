@@ -1,7 +1,7 @@
 // P4 : fichier .indus (usine figée, schémas du bac à sable) et plus aucune trace de l'ancien format à l'écran.
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { decodeDesignBytes, designFromFile, designFromSchematic, encodeDesignBytes, isIndus, schematicOf, SITE_VERSION } from "../engine/share/index.ts";
+import { decodeDesignBytes, designFromFile, designFromSchematic, encodeDesignBytes, ENGINE_VERSION, isIndus, schematicOf, SITE_VERSION } from "../engine/share/index.ts";
 import { writeMsch } from "../engine/schematic/msch.ts";
 import { factoryLayout, planFor, sbCatalog } from "../../tests/share-designs.ts";
 import { frozenSvg } from "./frozen-view.ts";
@@ -12,7 +12,8 @@ const ctx = { cat: sbCatalog, img: () => null, itemName: (id: string) => id };
 
 describe("fichier .indus", () => {
   it("l'usine figée revient à l'identique", async () => {
-    const d = { site: SITE_VERSION, name: "Gear", settings: settingsWith({ item: "gear" }), factory: L };
+    expect(ENGINE_VERSION).toMatch(/^[0-9a-f]{8}$/);
+    const d = { site: SITE_VERSION, engine: ENGINE_VERSION, name: "Gear", settings: settingsWith({ item: "gear" }), factory: L };
     const bytes = await encodeDesignBytes(d);
     expect(isIndus(bytes)).toBe(true);
     expect(await decodeDesignBytes(bytes)).toStrictEqual(d);

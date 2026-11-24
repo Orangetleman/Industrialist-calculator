@@ -184,7 +184,7 @@ import { enterLecture, leaveLecture, lecture, ownItem, ownKeys, writeOwn, PROFIL
 import { initDesigns } from "./designs-view.ts";
 import { sorted, addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
 import { fnv } from "../engine/share/print.ts";
-import { type DesignProfile, decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import { ENGINE_VERSION, type DesignProfile, decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
 import type { Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
@@ -2189,14 +2189,14 @@ const designSettings = (d: Design): Settings => {
 };
 /** Le design affiché : réglages, graphe édité et bac à sable (relus, jamais modifiés). */
 function currentDesign(withSandbox: boolean): Design {
-  const d = assembleDesign({ site: SITE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox, profile: lectureProfile() });
-  return frozenOn() ? { ...d, site: frozen!.site, factory: frozen!.layout } : d;
+  const d = assembleDesign({ site: SITE_VERSION, engine: ENGINE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox, profile: lectureProfile() });
+  return frozenOn() ? { ...d, site: frozen!.site, ...(frozen!.engine ? { engine: frozen!.engine } : {}), factory: frozen!.layout } : d;
 }
 
 // ---- usine figée d'un fichier .indus (P4) : montrée telle quelle tant que le design n'est pas modifié
 const KEY_FROZEN = "ind-calc:v1:frozen";
 /** `sig` : le design auquel elle va (null : pas encore affiché) ; `show` : montrée à la place de l'usine recalculée. */
-let frozen: { design: number | null; layout: Layout; site: string; sig: string | null; show: boolean } | null = null;
+let frozen: { design: number | null; layout: Layout; site: string; engine?: string; sig: string | null; show: boolean } | null = null;
 const frozenSig = () => {
   const { resultTab: _r, usine: _u, entered: _e, existing: _x, useExisting: _y, ...rest } = settings;
   return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), gedit?.touched ? [gedit.graph, gedit.solved] : null]));
@@ -2213,11 +2213,11 @@ async function storeFrozen(): Promise<void> {
 }
 async function loadFrozen(): Promise<void> {
   try {
-    const x = JSON.parse(localStorage.getItem(KEY_FROZEN) ?? "null") as { design: number; site: string; sig: string; show: boolean; data: string } | null;
+    const x = JSON.parse(localStorage.getItem(KEY_FROZEN) ?? "null") as { design: number; site: string; engine?: string; sig: string; show: boolean; data: string } | null;
     if (!x || x.design !== designs.active) return;
     const layout = (await decodeDesign(x.data)).factory;
     if (!layout || frozen || x.design !== designs.active) return;
-    frozen = { design: x.design, layout, site: x.site, sig: x.sig, show: x.show !== false };
+    frozen = { design: x.design, layout, site: x.site, ...(x.engine ? { engine: x.engine } : {}), sig: x.sig, show: x.show !== false };
     render();
   } catch {
     frozen = null;
@@ -2263,7 +2263,7 @@ function applyDesign(d: Design, sandboxOnly = false): void {
   if (d.sandbox) sandbox.setLayout(d.sandbox);
   if (sandboxOnly) return;
   showProfile(d.profile ?? null);
-  frozen = d.factory ? { design: null, layout: d.factory, site: d.site, sig: null, show: true } : null;
+  frozen = d.factory ? { design: null, layout: d.factory, site: d.site, ...(d.engine ? { engine: d.engine } : {}), sig: null, show: true } : null;
   saveSettings(designSettings(d));
   Object.assign(settings, loadSettings());
   gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
@@ -2286,7 +2286,7 @@ const hasContribNow = () => hasContrib(profileNow({ base: false, contrib: true }
 /** Le design du lien, avec ce qui est coché dans « Partager ». */
 function sharedDesign(w: ShareWith): Design {
   const { profile: _p, factory: _f, ...cur } = currentDesign(w.sandbox);
-  const d = { ...cur, site: SITE_VERSION };
+  const d = { ...cur, site: SITE_VERSION, engine: ENGINE_VERSION };
   const p = w.profile || w.contrib ? profileNow({ base: w.profile, contrib: w.contrib }) : null;
   return p && (p.player || hasContrib(p)) ? { ...d, profile: p } : d;
 }
