@@ -23,7 +23,10 @@ export function frozenSvg(L: Layout, c: Pick<DrawCtx, "cat" | "img" | "itemName"
   if (!blocks.length) x0 = y0 = x1 = y1 = 0;
   const W = (x1 - x0 + 2) * PX, H = (y1 - y0 + 2) * PX;
   const byU = new Map(blocks.map((b) => [b.u, b]));
-  const body = ctx.compact ? compactBatch(ctx, blocks, () => undefined) : blocks.map((b) => blockMarkup(ctx, b)).join("");
+  // Grande usine : tuyaux en quelques tracés, mais les machines gardent image et nom (sinon des rectangles gris).
+  const pipes = ctx.compact ? blocks.filter((b) => cat.blocks.get(b.id)!.pipe) : [];
+  const rest = ctx.compact ? blocks.filter((b) => !cat.blocks.get(b.id)!.pipe) : blocks;
+  const body = (pipes.length ? compactBatch(ctx, pipes, () => undefined) : "") + rest.map((b) => blockMarkup({ ...ctx, compact: rest.length > MANY }, b)).join("");
   const wires = L.wires
     .map((w) => {
       const A = byU.get(w.a), B = byU.get(w.b);

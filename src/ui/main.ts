@@ -176,7 +176,7 @@ import { initPropositions } from "./propositions-view.ts";
 import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
 import { initShare, type OpenChoice, type ShareWith } from "./share-view.ts";
-import { assembleDesign, assembleProfile, hasSandbox, readShareHash } from "./share-design.ts";
+import { assembleDesign, assembleProfile, hasSandbox, readShareHash, stableJson } from "./share-design.ts";
 import { groupsOf, hasContrib, noPrints, printOnto, readPrints, reprint, settled, unprint, type OwnKeys, type PrintGroup, type Prints } from "./print-profile.ts";
 import type { Layout } from "../engine/sandbox/layout.ts";
 import { frozenSvg } from "./frozen-view.ts";
@@ -2199,7 +2199,7 @@ const KEY_FROZEN = "ind-calc:v1:frozen";
 let frozen: { design: number | null; layout: Layout; site: string; engine?: string; sig: string | null; show: boolean } | null = null;
 const frozenSig = () => {
   const { resultTab: _r, usine: _u, entered: _e, existing: _x, useExisting: _y, ...rest } = settings;
-  return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), gedit?.touched ? [gedit.graph, gedit.solved] : null]));
+  return fnv(stableJson([rest, gedit?.touched ? [gedit.graph, gedit.solved] : null]));
 };
 const frozenOn = () => !!frozen && frozen.sig !== null && frozen.sig === frozenSig();
 async function storeFrozen(): Promise<void> {
@@ -2570,7 +2570,7 @@ function profileSig(): unknown[] {
 function designSig(): string {
   const { resultTab: _r, usine: _u, entered, ...rest } = settings;
   const sb = sandbox.layout();
-  return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null, ...(lecture() ? [profileSig()] : [])]));
+  return fnv(stableJson([rest, [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null, ...(lecture() ? [profileSig()] : [])]));
 }
 /** Le design affiché devient la référence : rien à enregistrer. */
 function rebase(): void {
@@ -5943,6 +5943,7 @@ if (location.pathname.startsWith("/v/")) {
 $("lecture-print").addEventListener("click", () => void printLecture());
 $("lecture-back").addEventListener("click", () => void backToMine());
 window.addEventListener("hashchange", showPage);
+const cameByLink = !!readShareHash(location.hash); // avant showPage, qui ouvre le lien
 void bootDesigns();
 showPage();
 // Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
@@ -5954,8 +5955,9 @@ $("help").addEventListener("click", () => checklist.show());
   } catch {
     // stockage indisponible : pas de visite automatique
   }
-  if (!seen && isFresh()) tour.start("first");
-  else if (seen) checklist.render(); // la liste reste là d'une visite à l'autre, tant qu'elle n'est pas masquée
+  if (!seen && isFresh()) {
+    if (!cameByLink) tour.start("first"); // arrivé par un lien : on montre le design reçu, la visite attendra
+  } else if (seen) checklist.render(); // la liste reste là d'une visite à l'autre, tant qu'elle n'est pas masquée
 }
 window.setInterval(tickRp, 5000);
 bindHistory();

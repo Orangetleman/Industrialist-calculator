@@ -256,7 +256,16 @@ le design imprimé perd « lecture » ; le supprimer rend la partie d'avant, en 
   proposée, et un avertissement affiché, que si le **moteur** diffère ; un site changé avec le même moteur ne dit rien.
 - Plus aucun .msch à l'écran ; le bac à sable exporte code, lien et fichier au format du partage ; anciens codes et fichiers lus.
 
-Lot suivant : P5 (parcours réel chronométré, déploiement).
+**P5, parcours réel fait le 2026-11-24** (panneau visible, vrais clics ; déploiement pas encore fait).
+- Vu : partage, fichier, lecture, `/v/0.1.0/` en build de production (stockage à part, vignettes du site), exports du bac à sable, anglais, téléphone.
+  Dans une partie vierge, le lien d'une partie à 146 recherches dit « Vérifié ». Fichier de 311 blocs : 1 286 octets, réencodé à l'octet près.
+- Grande usine figée : 7 775 blocs (répétition d'une usine réelle, donc très compressible) : 8,3 Ko, rendu 121 ms avant la correction des images.
+- Corrigé : l'usine figée passait pour « modifiée » après un rechargement (ordre des clés JSON, `stableJson`) ; machines sans image au-delà de
+  6 000 blocs ; « Partager » sous l'écran en fenêtre étroite ; tutoriel par-dessus un lien reçu par un nouveau venu.
+- `publier.sh` : copies sous `/v/`, numéro déjà pris et numéro faux refusés, essayés en local. La bascule par lien symbolique, nginx, l'envoi SSH et
+  `deployer.ps1` ne sont pas essayés (pas de Linux ici). Chronométré (serveur local, usine déjà calculée) : clic → lien copié 84 ms ; adresse → fenêtre 286 ms, « Vérifié » 372 ms. Non revu : impression du profil, « version d'origine ».
+
+Reste : déploiement.
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`

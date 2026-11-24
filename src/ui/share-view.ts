@@ -106,7 +106,8 @@ export function initShare(deps: ShareDeps) {
   function place(): void {
     const r = btn.getBoundingClientRect();
     const w = box.offsetWidth || 470;
-    box.style.top = `${Math.round(r.bottom + 8)}px`;
+    // Fenêtre basse ou étroite (téléphone) : jamais sous le bord de l'écran.
+    box.style.top = `${Math.round(Math.max(12, Math.min(r.bottom + 8, innerHeight - box.offsetHeight - 12)))}px`;
     box.style.left = `${Math.round(Math.max(12, Math.min(r.right - w, innerWidth - w - 12)))}px`;
   }
 
@@ -151,6 +152,7 @@ export function initShare(deps: ShareDeps) {
     $("shr-len").innerHTML = t(a.fits ? "share.len.ok.html" : "share.len.over.html", { n: nf(n) });
     $("shr-b").hidden = !light;
     if (light) $("shr-b-txt").textContent = [t(light.drop.contrib ? (light.drop.sandbox ? "share.b.both" : "share.b.contrib") : "share.b", { n: nf(light.len) }), light.drop.contrib ? t("share.miss") : ""].filter(Boolean).join(" ");
+    place();
     void fileSize(me, now, print.now);
     if (autoCopy && a.fits) await copy();
     // L'usine finit de se calculer : le lien prend son empreinte complète (et remplace celui déjà copié).

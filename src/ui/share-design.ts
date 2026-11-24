@@ -139,3 +139,7 @@ export function miniLayout(d: Design, w: number, h: number, pad = 12): { x: numb
   const sx = x1 > x0 ? (w - 2 * pad) / (x1 - x0) : 0, sy = y1 > y0 ? (h - 2 * pad) / (y1 - y0) : 0;
   return ns.map((n) => ({ x: sx ? pad + (n.x - x0) * sx : w / 2, y: sy ? pad + (n.y - y0) * sy : h / 2 }));
 }
+
+/** JSON à clés triées : un design relu du stockage ou d'un fichier (clés dans un autre ordre) garde la même signature. */
+export const stableJson = (x: unknown): string =>
+  JSON.stringify(x, (_k, v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v));

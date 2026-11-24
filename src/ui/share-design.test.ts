@@ -134,3 +134,9 @@ describe("fenêtre « Design partagé »", () => {
     expect(shareErrorKey(null)).toBe("share.err.abîmé");
   });
 });
+
+it("stableJson : l'ordre des clés ne compte pas, celui des listes si", async () => {
+  const { stableJson } = await import("./share-design.ts");
+  expect(stableJson({ a: 1, n: [{ id: "n2", group: "g1", x: 1 }], u: undefined })).toBe(stableJson({ n: [{ id: "n2", x: 1, group: "g1" }], a: 1 }));
+  expect(stableJson([1, 2])).not.toBe(stableJson([2, 1]));
+});
