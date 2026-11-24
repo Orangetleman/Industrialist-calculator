@@ -123,6 +123,20 @@ fichier propose « ouvrir avec la version d'origine ».
   dossiers d'abord puis ordre alphabétique ; glisser vers un dossier ou vers le titre (racine) ; corbeille avec
   « Restaurer » (retour au dossier d'origine) et « Vider » (confirmation, irréversible).
 
+### Conflits de noms : les options de l'Explorateur de Windows (2026-11-24)
+Déplacer, restaurer, ouvrir un lien vers un dossier où le nom existe déjà ouvre la fenêtre « Conflit de noms » :
+- design : **Remplacer le design dans la destination** (l'ancien part à la corbeille, rien n'est détruit),
+  **Ignorer ce design**, **Comparer les informations des deux designs** (date, machines, taille, « plus récent »,
+  « plus volumineux » ; cocher l'un, l'autre ou les deux → les deux gardés, l'arrivant numéroté « (2) ») ;
+- dossier : **Fusionner les dossiers** (chaque doublon repose la question), **Ignorer ce dossier**, **Conserver les deux** ;
+- « Effectuer cette action pour les N conflits suivants » quand il y en a plusieurs ; Annuler arrête tout ;
+  les éléments ignorés restent à leur place. La corbeille, elle, garde tout sans question.
+- Le renommage garde son message rouge sous le champ (pas de fenêtre).
+
+### Design affiché supprimé
+Un design dans la corbeille ne s'ouvre pas (« Restaurez-le pour l'ouvrir »). Si le design affiché part à la
+corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de page cassée, Partager marche toujours.
+
 ## 6. Lots (une session = un lot, validation entre lots)
 - **P0** — Maquette cliquable dans `maquette/` (bouton, fenêtre, aperçu) ; validation.
 - **P1** — Codec pur `src/engine/share/` (binaire v1, tables d'ids, varint, deflate, base64url) + tests aller-retour,
