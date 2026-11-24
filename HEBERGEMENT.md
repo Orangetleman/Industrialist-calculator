@@ -146,6 +146,33 @@ tout en JSON (« Exporter tout »).
 **Mises à jour de sécurité** : nginx est un paquet Debian, mis à jour par `unattended-upgrades`
 comme le reste du système.
 
+## Mettre à jour cloudflared
+
+`cloudflared` est installé par apt (dépôt `pkg.cloudflare.com`, arm64) dans `/usr/bin/cloudflared` ;
+`/usr/local/bin/cloudflared` n'est qu'un lien vers lui. Les deux unités (`cloudflared-industrialist` et
+`cloudflared-myprism`) utilisent ce même binaire avec `--no-autoupdate` : rien ne se met à jour tout seul.
+Dernière mise à jour : 2026.10.0 → 2026.10.7 (31/10/2026, alerte de sécurité Cloudflare, minimum 2026.10.2).
+
+```bash
+ssh myprism@myprism.local
+cloudflared --version
+sudo cp -p /usr/bin/cloudflared /usr/bin/cloudflared.avant
+sudo apt update && sudo apt install --only-upgrade cloudflared
+cloudflared --version
+```
+
+La mise à jour remplace le binaire sans redémarrer les services : l'ancien processus tourne jusqu'au redémarrage.
+Ordre des redémarrages :
+
+1. `sudo systemctl restart cloudflared-industrialist` (le site est coupé quelques secondes), puis
+   `systemctl is-active cloudflared-industrialist` et `curl -sI https://industrialist.myprisme.fr` (200).
+2. MyPrism est un autre projet : `cloudflared-myprism` ne se redémarre qu'avec l'accord de son propriétaire.
+   Avant/après, comparer `ssh myprism@myprism.local 'bash -s' < scripts/pi/controle-myprism.sh` ; seuls le PID
+   et l'heure de démarrage de `cloudflared-myprism` doivent changer.
+3. Contrôler dans le tableau de bord Cloudflare (Networking > Tunnels) que les tunnels sont « Healthy ».
+
+Pour revenir en arrière : `sudo cp -p /usr/bin/cloudflared.avant /usr/bin/cloudflared`, puis redémarrer.
+
 ## Réinstaller (Pi neuf ou carte refaite)
 
 1. Sur le PC, le tunnel existe déjà : son identifiant est dans `cloudflared tunnel list` (nom
