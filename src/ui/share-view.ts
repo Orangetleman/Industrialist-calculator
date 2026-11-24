@@ -24,8 +24,8 @@ export type ShareDeps = {
   nameOf: (d: Design) => string;
   /** Nom du design affiché. */
   currentName: () => string;
-  /** Ouvre le design reçu (l'enregistre, garde le précédent) ; `data` : le lien déjà encodé. Rend son nom. */
-  open: (d: Design, data: string, legacy: boolean) => Promise<string>;
+  /** Ouvre le design reçu (l'enregistre, garde le précédent) ; `data` : le lien déjà encodé. Rend son nom, ou null s'il a été ignoré. */
+  open: (d: Design, data: string, legacy: boolean) => Promise<string | null>;
   /** Le choix est fait (ou la fenêtre fermée) : l'adresse perd son #d=…. */
   done: (legacy: boolean, opened: boolean) => void;
   /** Ancien lien que le partage ne lit pas (code d'avant le .msch) : le bac à sable s'en charge comme avant. */
@@ -279,11 +279,11 @@ export function initShare(deps: ShareDeps) {
       waiting = false;
       const late = !known;
       if (!ok) probe?.cancel();
-      if (ok) toast(t("share.done", { name: await deps.open(d, data, false) }));
-      else toast(t("share.cancelled"));
-      deps.done(false, ok);
+      const name = ok ? await deps.open(d, data, false) : null;
+      toast(name === null ? t("share.cancelled") : t("share.done", { name }));
+      deps.done(false, name !== null);
       // Ouvert avant la fin de la vérification : une différence se dit quand même, dès qu'elle est connue.
-      if (ok && late)
+      if (name !== null && late)
         void checked?.then((v) => {
           const n = checkNotes(d, SITE_VERSION, v);
           if (n.advice) toast(`${t(n.warn.at(-1)!)} ${t("share.r.advice")}`, true, 14_000);
@@ -305,9 +305,9 @@ export function initShare(deps: ShareDeps) {
         return deps.legacyFallback(code);
       }
       const ok = await ask(d, true);
-      if (ok) toast(t("share.done", { name: await deps.open(d, "", true) }));
-      else toast(t("share.cancelled"));
-      deps.done(true, ok);
+      const name = ok ? await deps.open(d, "", true) : null;
+      toast(name === null ? t("share.cancelled") : t("share.done", { name }));
+      deps.done(true, name !== null);
     } finally {
       busy = null;
     }

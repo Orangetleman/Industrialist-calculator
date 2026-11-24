@@ -3,7 +3,7 @@ import { decodeDesign, designLink, encodeDesign, same } from "../engine/share/in
 import type { Layout } from "../engine/sandbox/layout.ts";
 import type { DesignGraph } from "../engine/share/index.ts";
 import { DEFAULT_SETTINGS } from "./state.ts";
-import { assembleDesign, checkNotes, designFacts, DISCORD_MAX, freeName, hasSandbox, linkAdvice, miniLayout, olderSite, readShareHash, shareErrorKey } from "./share-design.ts";
+import { assembleDesign, checkNotes, designFacts, DISCORD_MAX, hasSandbox, linkAdvice, miniLayout, olderSite, readShareHash, shareErrorKey } from "./share-design.ts";
 
 const graph = (touched = true): DesignGraph => ({
   sig: "objet|crankshaft",
@@ -99,16 +99,6 @@ describe("lecture de l'adresse", () => {
     expect(readShareHash("#bac/")).toBeNull();
     expect(readShareHash("#objet/pose")).toBeNull();
     expect(readShareHash("")).toBeNull();
-  });
-});
-
-describe("noms libres dans les plans enregistrés", () => {
-  it("ajoute (2), (3)… sans tenir compte des majuscules ni des espaces autour", () => {
-    expect(freeName([], "Vilebrequin")).toBe("Vilebrequin");
-    expect(freeName(["vilebrequin "], "Vilebrequin")).toBe("Vilebrequin (2)");
-    expect(freeName(["Vilebrequin", "Vilebrequin (2)"], "Vilebrequin")).toBe("Vilebrequin (3)");
-    expect(freeName(["Vilebrequin", "Vilebrequin (2)"], "Vilebrequin (2)")).toBe("Vilebrequin (3)");
-    expect(freeName(["A"], "  B  ")).toBe("B");
   });
 });
 

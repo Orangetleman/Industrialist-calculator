@@ -56,7 +56,7 @@ export const visiteEn: { [K in keyof typeof visiteFr]: Msg } = {
   "tour.mod5.html": `Nothing recalculates by itself. <b>Recalculate</b> sends your graph to the solver (your recipes, your fixed counts, your target) and shows <b>before / after</b>; <b>Apply</b> adopts it, Cancel leaves it alone.`,
   "tour.mod5.act": "Click “Recalculate”, then “Apply”",
   "tour.mod6.title": "The site follows your graph",
-  "tour.mod6.html": `This banner says where the plan comes from. After “Apply”, the dashboard, the Factory and the layouts follow <b>your graph</b>, kept on reload and in saved plans. <b>Back to the proposal</b> replaces it with the original calculation.`,
+  "tour.mod6.html": `This banner says where the plan comes from. After “Apply”, the dashboard, the Factory and the layouts follow <b>your graph</b>, kept on reload and in My designs. <b>Back to the proposal</b> replaces it with the original calculation.`,
   "tour.regler1.title": "Plan settings",
   "tour.regler1.html": `The <b>Settings</b> button (key <b>R</b>) opens the drawer where everything is tuned: priorities, machines, options, layout.`,
   "tour.regler1.act": "Click “Settings” (or press R)",

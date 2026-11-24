@@ -163,6 +163,11 @@ corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de
   Un design sans bac à sable laisse le montage du bac à sable en place. Un ancien lien `#bac/<code>` ne change
   que le bac à sable (réglages et graphe gardés). La partie « fichier » de la fenêtre attend P4.
 - **P2 bis** — Explorateur de designs façon IDE (dossiers, renommer, glisser, corbeille), reprend « Plans enregistrés ».
+  **Fait le 2026-11-24** : `src/ui/designs-model.ts` (arbre pur, testé) et `designs-view.ts`, stockage `ind-calc:v1:designs`.
+  « Mes designs » a sa zone fixe en bas du volet gauche. Pastille = non enregistré : quitter un design garde son travail en
+  cours dans le design (« Revenir à l'enregistrement » l'abandonne). Un design neuf suit le nom de son objectif jusqu'à ce
+  qu'il soit enregistré ou renommé. Un lien reçu va dans « Reçus ». Les anciens plans enregistrés sont repris une fois, leur
+  ancienne liste reste intacte dans le navigateur. Stockage plein : on le dit et rien n'est perdu ni quitté.
 - **P3** — Empreinte du plan de pose et message « le site a changé ».
   **Fait le 2026-11-24** : § 6 bis ; `src/engine/share/print.ts`, champ `print` du codec, `checkNotes` de `share-design.ts`.
 - **P4** — Fichier `.indus` versionné (version du site + usine figée), retrait de toute trace du .msch à l'écran, anciens codes toujours lus.
@@ -215,8 +220,11 @@ Coût mesuré (`$env:PROFIL = "1"; npx vitest run src/ui/share-profile --disable
 (données seules) : neuf **+38**, une recherche sur deux **+59**, tout débloqué **+43**, avec « Ma recherche » remplie à vide
 **+219**, avec un relevé de ports local **+534**. Les relevés faits à la main sont donc le seul poids : s'ils font dépasser
 1 900 caractères, proposer le lien sans eux ou le fichier, comme pour le bac à sable (question B).
+Décision (2026-11-24) : oui, **mais prévenir des conséquences** de ne pas partager les contributions liées au design (corrections,
+relevés) : la fenêtre doit dire ce qui manquera et l'effet chez le lecteur (recettes ou ports supposés, plan et pose
+recalculés différents, alerte d'empreinte), avant de copier le lien allégé. À faire avec P3 bis c.
 
-Lots restants : **P2 bis** gestionnaire de designs (la session y est gérée) ; **P3 bis b** profil actif du site (lecture et
+Lots restants : **P3 bis b** profil actif du site (lecture et
 écriture aiguillées) et bandeau ; **P3 bis c** fenêtre à deux choix, impression, parcours réel ; puis P4.
 
 ## 7. Ne pas toucher

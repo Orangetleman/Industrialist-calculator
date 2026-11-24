@@ -56,7 +56,7 @@ export const visiteFr = {
   "tour.mod5.html": `Rien ne se recalcule tout seul. <b>Recalculer</b> envoie ton graphe au calcul (tes recettes, tes nombres fixés, ta cible) et montre <b>avant / après</b> ; <b>Appliquer</b> l'adopte, Annuler n'y touche pas.`,
   "tour.mod5.act": "Clique « Recalculer », puis « Appliquer »",
   "tour.mod6.title": "Le site suit ton graphe",
-  "tour.mod6.html": `Ce bandeau dit d'où vient le plan. Après « Appliquer », le tableau de bord, l'Usine et les plans de pose suivent <b>ton graphe</b>, gardé au rechargement et dans les plans enregistrés. <b>Revenir à la proposition</b> le remplace par le calcul d'origine.`,
+  "tour.mod6.html": `Ce bandeau dit d'où vient le plan. Après « Appliquer », le tableau de bord, l'Usine et les plans de pose suivent <b>ton graphe</b>, gardé au rechargement et dans Mes designs. <b>Revenir à la proposition</b> le remplace par le calcul d'origine.`,
   "tour.regler1.title": "Les réglages du plan",
   "tour.regler1.html": `Le bouton <b>Réglages</b> (touche <b>R</b>) ouvre le tiroir où tout se règle : les priorités, les machines, les options, le plan de pose.`,
   "tour.regler1.act": "Clique « Réglages » (ou appuie sur R)",

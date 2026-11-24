@@ -1,6 +1,6 @@
 // Partage d'un design par lien (PLAN-PARTAGE.md, lot P2) : la partie pure, sans DOM. Assemble le design à
-// partager depuis l'état du site (relu, jamais modifié), lit l'adresse (#d=1.…, anciens #bac/<code>), donne
-// un nom libre dans les plans enregistrés, et dit si le lien passe sur Discord (question B, § 5 bis).
+// partager depuis l'état du site (relu, jamais modifié), lit l'adresse (#d=1.…, anciens #bac/<code>)
+// et dit si le lien passe sur Discord (question B, § 5 bis).
 
 import type { Design, DesignGraph, DesignProfile, DesignSettings, PrintVerdict, ShareErrorCode } from "../engine/share/index.ts";
 import { canonNodes } from "../engine/share/codec.ts";
@@ -66,17 +66,6 @@ export function readShareHash(hash: string): ShareHash {
     // code mal échappé : lu tel quel (il sera refusé s'il est abîmé)
   }
   return code.trim() ? { kind: "ancien", code } : null;
-}
-
-const nameKey = (s: string) => s.trim().toLocaleLowerCase("fr");
-
-/** « Nom », sinon « Nom (2) », « Nom (3) »… : jamais deux fois le même nom (majuscules et espaces autour ignorés). */
-export function freeName(taken: readonly string[], name: string): string {
-  const keys = new Set(taken.map(nameKey));
-  const n = name.trim();
-  if (!keys.has(nameKey(n))) return n;
-  const base = n.replace(/ \(\d+\)$/, "");
-  for (let i = 2; ; i++) if (!keys.has(nameKey(`${base} (${i})`))) return `${base} (${i})`;
 }
 
 /**

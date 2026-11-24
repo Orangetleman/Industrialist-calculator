@@ -1609,6 +1609,10 @@ table.rh-log td.num { white-space: nowrap; }
   .cmd-rail { overflow: hidden !important; padding: 0 !important; display: flex; flex-direction: column; }
   .cmd-rail > .cmd-h { position: static; margin: 0; flex: none; padding: 9px 10px; border-bottom: 1px solid var(--line); }
   .cmd-rb { flex: 1; min-height: 0; overflow: auto; padding: 8px 10px; }
+  /* P2 bis : les étapes défilent au-dessus, « Mes designs » reste à l'écran avec son propre défilement. */
+  .cmd-left .cmd-rb { display: flex; flex-direction: column; overflow: hidden; }
+  .cmd-rb-top { flex: 1 1 0; min-height: 120px; overflow: auto; }
+  .cmd-left .dsgs { flex: 0 1 auto; min-height: 110px; max-height: 45%; overflow: auto; }
   .cmd-panes { position: relative; flex: 1; min-height: 0; overflow: hidden; }
   .cmd-pane { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--surface); transition: transform .2s ease, opacity .2s ease; }
   .cmd-pane.sub { transform: translateX(100%); visibility: hidden; }
@@ -2098,4 +2102,37 @@ dialog.shr-recv { max-width: min(520px, calc(100vw - 32px)); width: 520px; paddi
 .shr-recv .shr-facts { margin: 0; }
 .shr-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--ok); color: var(--ok); padding: 7px 16px; border-radius: 8px; z-index: 1270; font-size: .9rem; }
 .shr-toast.bad { border-color: var(--bad); color: var(--bad); }
-.cmd-step .saved-tag { display: table; margin-top: 2px; font-family: var(--f-mono); font-size: .66rem; color: var(--warn); background: var(--warn-soft); padding: 0 6px; border-radius: 999px; white-space: normal; max-width: 100%; }
+/* P2 bis : « Mes designs », à plat dans le volet gauche */
+.dsgs.drop, .dsg.drop { outline: 1px dashed var(--accent); outline-offset: -1px; }
+.dsg-bar { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 0 6px 4px; }
+.dsg-tree:focus-visible { outline: 1px solid var(--steel); outline-offset: 1px; }
+.dsg { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 4px 2px 6px; border-left: 3px solid transparent; cursor: pointer; font-size: .82rem; user-select: none; }
+.dsg:hover { background: var(--bg); }
+.dsg.sel { background: var(--steel-soft); }
+.dsg.on { border-left-color: var(--accent); font-weight: 600; }
+.dsg .ic { flex: none; width: 15px; height: 15px; color: var(--muted); }
+.dsg.on > .ic { color: var(--accent); }
+.dsg .tw { flex: none; width: 12px; display: inline-grid; place-items: center; }
+.dsg .tw .ic { width: 12px; height: 12px; }
+.dsg .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsg .dsg-n { font: 500 .72rem var(--f-mono); color: var(--muted); }
+.dsg .dsg-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.dsg .dsg-more { flex: none; min-height: 22px; width: 24px; padding: 0; border: 0; background: none; color: var(--muted); opacity: 0; }
+.dsg:hover .dsg-more, .dsg.sel .dsg-more, .dsg-more:focus-visible { opacity: 1; }
+.dsg .dsg-in { flex: 1; min-width: 0; min-height: 24px; padding: 0 4px; font: inherit; border: 1px solid var(--accent); background: var(--bg); color: var(--ink); }
+.dsg .dsg-in[aria-invalid="true"] { border-color: var(--bad); }
+.dsg-err { margin: 2px 6px 4px 24px; font-size: .76rem; color: var(--bad); }
+.pop-menu.dsg-menu { z-index: 1260; }
+.dsg-opts { display: grid; gap: 6px; margin-top: 12px; }
+.dsg-opts > button { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 10px 12px; background: var(--bg); }
+.dsg-opts > button:hover, .dsg-opts > button:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.dsg-opts > button .ic { flex: none; margin-top: 2px; color: var(--accent); }
+.dsg-opts b, .dsg-opts small { display: block; }
+.dsg-opts small { color: var(--muted); }
+.dsg-all { display: flex; gap: 8px; align-items: center; font-size: .85rem; margin-top: 8px; }
+.dsg-cmps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dsg-cmp { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: .82rem; }
+.dsg-cmp:has(input:checked) { border-color: var(--steel); background: var(--steel-soft); }
+.dsg-cmp > span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.dsg-cmp em { font-style: normal; font-family: var(--f-mono); font-size: .72rem; color: var(--steel); }
+@media (max-width: 520px) { .dsg-cmps { grid-template-columns: 1fr; } }

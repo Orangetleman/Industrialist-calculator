@@ -12,7 +12,7 @@ const NO_POSE = "00000000";
 export const PRINT = /^[0-9a-f]{16}$/;
 
 /** FNV-1a 32 bits sur les unités UTF-16 (deux octets chacune), jamais 0 (réservé à « pas connu »). */
-function fnv(s: string): string {
+export function fnv(s: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);

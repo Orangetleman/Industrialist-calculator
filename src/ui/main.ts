@@ -176,7 +176,10 @@ import { initPropositions } from "./propositions-view.ts";
 import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
 import { initShare } from "./share-view.ts";
-import { assembleDesign, freeName, hasSandbox, readShareHash } from "./share-design.ts";
+import { assembleDesign, hasSandbox, readShareHash } from "./share-design.ts";
+import { initDesigns } from "./designs-view.ts";
+import { addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
+import { fnv } from "../engine/share/print.ts";
 import { decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
 import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
@@ -1413,6 +1416,9 @@ function renderPlanPage(): void {
   if (!noResult) syncGraphDoc(v.plan);
   renderGraphBar();
   if (noResult) {
+    // Rien à poser : les étapes du plan précédent (design quitté) ne restent pas dans le rail.
+    railSteps = [];
+    renderStepRail();
     for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = true;
     return;
   }
@@ -2133,8 +2139,8 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
   return { mods, asms };
 }
 
-// ---------------------------------------------------------------- plans enregistrés (S64, maquette S58)
-/** Un objectif gardé dans ce navigateur : de quoi le rouvrir d'un clic depuis le rail. */
+// ---------------------------------------------------------------- mes designs (P2 bis, designs-model.ts)
+/** Ancien plan enregistré (S64, avant P2 bis) : lu une fois, pour le ranger dans « Mes designs ». */
 type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number; graph?: StoredGraphEdit; d?: string; active?: true };
 /** P2 : `d` le design entier (réglages, graphe, bac à sable) au format du lien ; `active` le design affiché avant d'ouvrir un lien. */
 const SAVED_MAX = 50;
@@ -2147,15 +2153,6 @@ function loadSaved(): SavedPlan[] {
     return [];
   }
 }
-function storeSaved(list: SavedPlan[]): void {
-  try {
-    localStorage.setItem(KEY_SAVED, JSON.stringify(list.slice(0, SAVED_MAX)));
-  } catch {
-    // stockage indisponible : la liste reste pour cette visite
-  }
-  savedPlans = list;
-}
-let savedPlans = loadSaved();
 const GOAL_HASH: Record<Goal, string> = { objet: "#objet", "énergie": "#energie", recherche: "#rp", argent: "#argent" };
 function savedName(s: Settings = settings): string {
   const g = s.goal;
@@ -2164,23 +2161,13 @@ function savedName(s: Settings = settings): string {
   if (g === "argent") return `${fmt(s.money, 0)}/min`;
   return t("plan.goal.recherche");
 }
-function renderSaved(): void {
-  $("plan-saved").innerHTML =
-    savedPlans.map((p, i) => `<div class="cmd-row"><button type="button" class="cmd-step" data-saved="${i}"><span class="n">${icon("check")}</span><span class="nm">${esc(p.name)}${p.active ? `<span class="saved-tag" title="${esc(t("share.active.title"))}">${esc(t("share.active"))}</span>` : ""}</span></button><button type="button" class="icon-btn" data-saved-x="${i}" aria-label="${esc(t("plan.saved.del", { name: p.name }))}" title="${esc(t("plan.saved.del", { name: p.name }))}">${icon("close")}</button></div>`).join("") +
-    `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
-}
-
 // ---------------------------------------------------------------- partage par lien (P2, PLAN-PARTAGE.md)
 
 /** Réglages complets d'un design reçu (un champ venu d'une autre version prend la valeur par défaut). */
 const designSettings = (d: Design): Settings => ({ ...DEFAULT_SETTINGS, ...d.settings }) as Settings;
 /** Le design affiché : réglages, graphe édité et bac à sable (relus, jamais modifiés). */
 function currentDesign(withSandbox: boolean): Design {
-  return assembleDesign({ site: SITE_VERSION, name: savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox });
-}
-function designEntry(d: Design, data: string, name: string, active: boolean): SavedPlan {
-  const s = designSettings(d);
-  return { name, goal: s.goal, item: s.item, mode: s.mode, rate: s.rate, machines: s.machines, energyMFps: s.energyMFps, money: s.money, d: data, ...(active ? { active: true as const } : {}) };
+  return assembleDesign({ site: SITE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox });
 }
 /** Affiche un design : réglages, graphe et bac à sable (`sandboxOnly` : ancien lien du bac à sable). */
 function applyDesign(d: Design, sandboxOnly = false): void {
@@ -2196,44 +2183,251 @@ function applyDesign(d: Design, sandboxOnly = false): void {
   syncForm();
 }
 /**
- * Ouvre un design reçu par lien : le design affiché est d'abord gardé dans les plans enregistrés (mention
- * « design actif, non enregistré », sauf s'il y est déjà à l'identique), puis le reçu y est ajouté (nom libre,
- * « (2) » si pris) et affiché. Rend le nom sous lequel il est enregistré.
+ * Ouvre un design reçu par lien : rangé dans « Reçus » (nom pris : la fenêtre de conflit) et affiché ; le design
+ * affiché reste dans « Mes designs » avec son travail en cours. Rend son nom, ou null s'il n'a pas été ouvert.
  */
-async function openReceived(d: Design, data: string, legacy: boolean): Promise<string> {
-  const cur = currentDesign(true), curData = await encodeDesign(cur);
-  let list = savedPlans;
-  if (!list.some((p) => p.d === curData)) list = [designEntry(cur, curData, freeName(list.map((p) => p.name), savedName()), true), ...list];
+async function openReceived(d: Design, _data: string, legacy: boolean): Promise<string | null> {
+  if (!(await keepActive())) return null;
   // Ancien lien du bac à sable : seul le montage change, les réglages et le graphe restent ceux affichés.
-  const got: Design = legacy ? { ...cur, ...(d.name ? { name: d.name } : {}), ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
-  const name = freeName(list.map((p) => p.name), got.name || savedName(designSettings(got)));
-  // L'empreinte de l'auteur a servi à la fenêtre ; le plan enregistré s'en passe (il se compare à celui affiché, sans elle).
-  const { print, ...kept } = got;
-  storeSaved([designEntry(got, legacy || print ? await encodeDesign(kept) : data, name, false), ...list]);
-  renderSaved();
+  const cur = currentDesign(true);
+  const { print: _print, ...got }: Design = legacy ? { ...cur, ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
+  const name = d.name?.trim() || savedName(designSettings(got));
+  // L'empreinte de l'auteur a servi à la fenêtre ; le design rangé s'en passe.
+  const n = makeDesign(designs, name, { d: await encodeDesign({ ...got, name }) });
+  const inbox = folder(designs, t("dsg.inbox"));
+  const r = await place(designs, n, null, inbox, designsView.asker("link", t("dsg.from.link")));
+  if (!r.done) {
+    if (!inbox.kids.length) designs.root.kids = designs.root.kids.filter((k) => k !== inbox);
+    storeDesigns();
+    designsView.refresh();
+    return null;
+  }
+  inbox.open = true;
+  const left = designs.active;
+  designs.active = n.id;
+  dropBlank(left);
   applyDesign(got, legacy);
-  return name;
+  rebase();
+  if (!storeDesigns()) return n.name;
+  designsView.select(n.id);
+  return n.name;
 }
-/** Plan enregistré avec son design entier (P2). */
-async function openSavedDesign(data: string): Promise<void> {
-  let d: Design;
+
+// ---- l'arbre « Mes designs » : stockage, design affiché, travail en cours (P2 bis)
+const KEY_DESIGNS = "ind-calc:v1:designs";
+let designs: Tree = emptyTree();
+/** Une action à la fois (ouvrir, enregistrer…) : deux doubles clics rapides ne se croisent pas. */
+let designBusy = false;
+function storeDesigns(): boolean {
   try {
-    d = await decodeDesign(data);
+    localStorage.setItem(KEY_DESIGNS, JSON.stringify(designs));
+    return true;
   } catch {
-    return share.toast(t("share.saved.bad"), true);
+    share.toast(t("dsg.full"), true, 8000);
+    return false;
   }
-  const ge = d.graph ? JSON.stringify(storeGraphEdit(d.graph as GraphEdit)) : null;
-  if (ge && gedit?.touched && JSON.stringify(storeGraphEdit(gedit)) !== ge) {
-    const ok = await ask(t("gbar.load.title"), t("gbar.load.html"), [
-      { value: "ok", label: t("gbar.drop.ok"), primary: true },
-      { value: "", label: t("m.cancel") },
-    ]);
-    if (ok !== "ok") return;
-  }
-  applyDesign(d);
-  if (location.hash.split("/")[0] !== GOAL_HASH[settings.goal]) location.hash = GOAL_HASH[settings.goal];
-  update();
 }
+const activeDesign = (): DesignNode | null => {
+  const n = designs.active === null ? null : find(designs, designs.active)?.node;
+  return n?.type === "des" ? n : null;
+};
+/** Signature du design affiché (hors vue : onglet, affichage de l'usine) : dit s'il a changé depuis son ouverture. */
+function designSig(): string {
+  const { resultTab: _r, usine: _u, entered, ...rest } = settings;
+  const sb = sandbox.layout();
+  return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null]));
+}
+/** Le design affiché devient la référence : rien à enregistrer. */
+function rebase(): void {
+  render(); // le rendu peut annuler un réglage périmé : la référence se prend après
+  designs.base = designSig();
+}
+const changedSinceOpen = () => designs.base !== null && designSig() !== designs.base;
+function designDirty(n: DesignNode): boolean {
+  if (n.w !== undefined) return true;
+  if (n.id !== designs.active) return false;
+  return changedSinceOpen() || (!n.d && !isBlank(settings.goal));
+}
+const machinesNow = () => (plan && !isBlank(settings.goal) && settings.goal !== "recherche" ? { mach: Math.round(plan.totals.machines) } : {});
+/** Avant de quitter le design affiché : son travail non enregistré y est gardé. Faux si le stockage le refuse. */
+async function keepActive(): Promise<boolean> {
+  nameActive();
+  const n = activeDesign();
+  if (!n || !designDirty(n)) return true;
+  if (n.w !== undefined && !changedSinceOpen()) return true; // déjà gardé tel quel
+  const before = { w: n.w, at: n.at };
+  Object.assign(n, { w: await encodeDesign(currentDesign(true)), at: Date.now(), ...machinesNow() });
+  if (storeDesigns()) return true;
+  if (before.w === undefined) delete n.w;
+  else n.w = before.w;
+  n.at = before.at;
+  return false;
+}
+/** Un design neuf quitté sans rien y avoir mis ne reste pas dans la liste. */
+function dropBlank(id: number | null): void {
+  const f = id === null || id === designs.active ? null : find(designs, id);
+  if (f?.parent && f.node.type === "des" && f.node.auto && f.node.d === undefined && f.node.w === undefined && !inBin(designs, f.node.id)) f.parent.kids = f.parent.kids.filter((k) => k !== f.node);
+}
+/** Un design jamais enregistré ni renommé porte le nom de son objectif. */
+function nameActive(): void {
+  const n = activeDesign(), p = n?.auto ? find(designs, n.id)?.parent : null;
+  if (!n || !p) return;
+  const name = free(p, isBlank(settings.goal) ? t("dsg.newdesign") : savedName(), n);
+  if (name === n.name) return;
+  n.name = name;
+  storeDesigns();
+}
+async function withDesigns<R>(fn: () => Promise<R>): Promise<R | null> {
+  if (designBusy) return null;
+  designBusy = true;
+  try {
+    return await fn();
+  } finally {
+    designBusy = false;
+  }
+}
+/** Réglages d'un design vide : les défauts du site, en gardant l'affichage et « Ma production ». */
+const blankSettings = (): Settings => ({ ...structuredClone(DEFAULT_SETTINGS), goal: settings.goal, rateUnit: settings.rateUnit, energyUnit: settings.energyUnit, usine: settings.usine, resultTab: settings.resultTab, existing: settings.existing, useExisting: settings.useExisting });
+function showBlank(): void {
+  applyDesign({ site: SITE_VERSION, settings: blankSettings() as unknown as Design["settings"] });
+}
+function afterShow(): void {
+  if (currentPage() === "plan" && location.hash.split("/")[0] !== GOAL_HASH[settings.goal]) location.hash = GOAL_HASH[settings.goal];
+  rebase();
+  storeDesigns();
+  designsView.refresh();
+}
+const openDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des" || !(await keepActive())) return;
+    const data = contentOf(n);
+    let d: Design | null = null;
+    if (data) {
+      try {
+        d = await decodeDesign(data);
+      } catch {
+        return share.toast(t("share.saved.bad"), true);
+      }
+    }
+    const left = designs.active;
+    designs.active = id;
+    dropBlank(left);
+    if (d) applyDesign(d);
+    else showBlank();
+    afterShow();
+    share.toast(t("dsg.opened", { name: n.name }));
+  });
+const createDesign = (dir: DirNode) =>
+  withDesigns(async () => {
+    if (!(await keepActive())) return null;
+    const n = addDesign(designs, dir, t("dsg.newdesign"), { auto: true });
+    designs.active = n.id;
+    showBlank();
+    afterShow();
+    return n.id;
+  });
+const saveDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des") return;
+    nameActive();
+    const before = { d: n.d, w: n.w };
+    if (n.id === designs.active) {
+      n.d = await encodeDesign(currentDesign(true));
+      Object.assign(n, { at: Date.now(), ...machinesNow() });
+      designs.base = designSig();
+    } else if (n.w) n.d = n.w;
+    delete n.w;
+    delete n.auto;
+    if (storeDesigns()) share.toast(t("dsg.saved", { name: n.name }));
+    else {
+      if (before.d !== undefined) n.d = before.d;
+      else delete n.d;
+      if (before.w !== undefined) n.w = before.w;
+      if (n.id === designs.active) designs.base = "";
+    }
+  });
+/** Revient au dernier enregistrement (le travail en cours est abandonné, après confirmation). */
+const revertDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des" || !n.d) return;
+    if ((await ask(t("dsg.revert.title"), `<p>${esc(t("dsg.revert.ask", { name: n.name }))}</p>`, [{ value: "ok", label: t("dsg.revert.ok"), primary: true }, { value: "", label: t("m.cancel") }])) !== "ok") return;
+    const d = await decodeDesign(n.d);
+    delete n.w;
+    if (id === designs.active) {
+      applyDesign(d);
+      afterShow();
+    } else storeDesigns();
+  });
+const copyDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des") return;
+    const data = id === designs.active ? await encodeDesign(currentDesign(true)) : contentOf(n);
+    const c = duplicate(designs, id, t("dsg.copyname", { name: n.name }), data);
+    if (!c) return;
+    if (!storeDesigns()) return void find(designs, c.id)?.parent?.kids.pop();
+    designsView.select(c.id);
+  });
+/** Le design affiché n'est plus dans l'arbre (corbeille, suppression) : un design vide s'ouvre aussitôt. */
+async function settleDesigns(): Promise<void> {
+  if (designs.active !== null && find(designs, designs.active) && !inBin(designs, designs.active)) return;
+  const n = addDesign(designs, designs.root, t("dsg.newdesign"), { auto: true });
+  designs.active = n.id;
+  showBlank();
+  afterShow();
+}
+/** Au démarrage : l'arbre enregistré, ou les anciens plans enregistrés rangés dedans (une fois ; l'ancienne liste reste). */
+async function bootDesigns(): Promise<void> {
+  const read = () => {
+    try {
+      return readTree(JSON.parse(localStorage.getItem(KEY_DESIGNS) ?? "null"));
+    } catch {
+      return null;
+    }
+  };
+  const got = read();
+  if (got) designs = got;
+  else {
+    const t0 = emptyTree();
+    for (const p of loadSaved().reverse()) {
+      let data = p.d;
+      if (!data) {
+        const graph = p.graph ? loadGraphEdit(p.graph) : null;
+        const s = { ...settings, goal: p.goal, item: p.item, mode: p.mode, rate: p.rate, machines: p.machines, energyMFps: p.energyMFps, money: p.money, entered: [...new Set([...settings.entered, p.goal])] };
+        data = await encodeDesign(assembleDesign({ site: SITE_VERSION, name: p.name, settings: s, graph, sandbox: null, withSandbox: false }));
+      }
+      addDesign(t0, t0.root, p.name, p.active ? { w: data } : { d: data });
+    }
+    designs = t0;
+  }
+  if (!activeDesign()) {
+    const n = addDesign(designs, designs.root, t("dsg.newdesign"), { auto: true });
+    designs.active = n.id;
+    designs.base = null;
+    nameActive();
+    storeDesigns();
+  }
+  designsView.refresh();
+  // Un autre onglet a changé l'arbre : on repart du sien (le design affiché ici y reste, s'il existe encore).
+  addEventListener("storage", (e) => {
+    if (e.key !== KEY_DESIGNS) return;
+    const other = read();
+    if (!other) return;
+    const mine = designs.active, base = designs.base;
+    designs = other;
+    if (mine !== null && find(other, mine) && !inBin(other, mine)) [designs.active, designs.base] = [mine, base];
+    designsView.refresh();
+  });
+  setInterval(() => {
+    if (document.hidden || currentPage() !== "plan" || designBusy) return;
+    nameActive();
+    designsView.render();
+  }, 1500);
+}
+
 // ---- empreinte (P3) : le plan et l'usine de l'auteur, comparés à ceux recalculés à l'ouverture
 /** Y a-t-il un plan à empreinter (objectif saisi, usine à poser) ? */
 const printable = () => !isBlank(settings.goal) && settings.goal !== "recherche" && !!plan?.steps.some(isPosable);
@@ -4342,49 +4536,6 @@ function bindPlan(): void {
     else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
   });
   bindRails();
-  // Plans enregistrés (S64).
-  renderSaved();
-  $("plan-saved").addEventListener("click", (e) => {
-    const el = e.target as Element;
-    if (el.closest("#plan-save")) {
-      // G4 : un graphe modifié pour cet objectif s'enregistre avec le plan (les anciens plans n'en ont pas).
-      const withGraph = !!gedit?.touched && gedit.sig === goalSig();
-      const p: SavedPlan = { name: withGraph ? `${savedName()} · ${t("plan.saved.graph")}` : savedName(), goal: settings.goal, item: settings.item, mode: settings.mode, rate: settings.rate, machines: settings.machines, energyMFps: settings.energyMFps, money: settings.money, ...(withGraph ? { graph: storeGraphEdit(gedit!) } : {}) };
-      storeSaved([p, ...savedPlans.filter((x) => x.name !== p.name || x.goal !== p.goal)]);
-      return renderSaved();
-    }
-    const x = el.closest<HTMLElement>("[data-saved-x]");
-    if (x) {
-      storeSaved(savedPlans.filter((_, i) => i !== Number(x.dataset.savedX)));
-      return renderSaved();
-    }
-    const b = el.closest<HTMLElement>("[data-saved]");
-    const p = b ? savedPlans[Number(b.dataset.saved)] : undefined;
-    if (!p) return;
-    void openSaved(p);
-  });
-  async function openSaved(p: SavedPlan): Promise<void> {
-    if (p.d) return openSavedDesign(p.d);
-    const ge = p.graph ? loadGraphEdit(p.graph) : null;
-    if (ge && gedit?.touched && JSON.stringify(storeGraphEdit(gedit)) !== JSON.stringify(storeGraphEdit(ge))) {
-      const ok = await ask(t("gbar.load.title"), t("gbar.load.html"), [
-        { value: "ok", label: t("gbar.drop.ok"), primary: true },
-        { value: "", label: t("m.cancel") },
-      ]);
-      if (ok !== "ok") return;
-    }
-    if (ge) {
-      gedit = ge;
-      graphDoc = null;
-      saveGraphEdit(true);
-    }
-    Object.assign(settings, { item: data.items.has(p.item) ? p.item : settings.item, mode: p.mode, rate: p.rate, machines: p.machines, energyMFps: p.energyMFps, money: p.money });
-    enter(p.goal);
-    settings.goal = p.goal;
-    syncForm();
-    if (location.hash.split("/")[0] !== GOAL_HASH[p.goal]) location.hash = GOAL_HASH[p.goal];
-    update();
-  }
   // Bandeau du graphe édité (G4).
   $("graph-bar").addEventListener("click", (e) => {
     const a = (e.target as Element).closest<HTMLElement>("[data-gbar]")?.dataset.gbar;
@@ -5344,6 +5495,24 @@ const sandbox = initSandbox($("page-bac"), {
   inEditor: (id) => data.machines.has(id),
   propose: (fills, from) => remarks.open({ piece: { fichier: "bac-recettes.json", resume: t("bac.rec.proposeN", { n: Object.keys(fills).length }), contenu: fills }, kind: "fix" }, from),
 });
+const designsView = initDesigns($("plan-saved"), {
+  tree: () => designs,
+  save: storeDesigns,
+  dirty: designDirty,
+  open: async (id) => void (await openDesign(id)),
+  create: createDesign,
+  store: async (id) => void (await saveDesign(id)),
+  revert: async (id) => void (await revertDesign(id)),
+  copy: async (id) => void (await copyDesign(id)),
+  share: async (id) => {
+    if (id !== designs.active) await openDesign(id);
+    if (id === designs.active) share.openShare();
+  },
+  keep: keepActive,
+  settle: settleDesigns,
+  confirm: async (text, ok) => (await ask(t("dsg.sure"), `<p>${esc(text)}</p>`, [{ value: "ok", label: ok, primary: true }, { value: "", label: t("m.cancel") }])) === "ok",
+  toast: (m, bad) => share.toast(m, bad),
+});
 const share = initShare({
   build: currentDesign,
   sandboxEmpty: () => !hasSandbox(sandbox.layout()),
@@ -5351,7 +5520,7 @@ const share = initShare({
   probe: probeDesign,
   facts: shareFacts,
   nameOf: (d) => savedName(designSettings(d)),
-  currentName: () => savedName(),
+  currentName: () => activeDesign()?.name ?? savedName(),
   open: openReceived,
   done: (legacy, opened) => {
     // Le choix est fait : l'adresse perd son #d=… (ou #bac/<code>), « Retour » ne la repropose pas.
@@ -5369,6 +5538,7 @@ const share = initShare({
   },
 });
 window.addEventListener("hashchange", showPage);
+void bootDesigns();
 showPage();
 // Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
 $("help").addEventListener("click", () => checklist.show());
