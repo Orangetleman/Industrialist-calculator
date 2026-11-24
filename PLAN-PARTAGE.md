@@ -265,7 +265,7 @@ le design imprimé perd « lecture » ; le supprimer rend la partie d'avant, en 
 - `publier.sh` : copies sous `/v/`, numéro déjà pris et numéro faux refusés, essayés en local. La bascule par lien symbolique, nginx, l'envoi SSH et
   `deployer.ps1` ne sont pas essayés (pas de Linux ici). Chronométré (serveur local, usine déjà calculée) : clic → lien copié 84 ms ; adresse → fenêtre 286 ms, « Vérifié » 372 ms. Non revu : impression du profil, « version d'origine ».
 
-Reste : déploiement.
+**Déployé le 2026-11-24** : 0.1.1 en ligne et sous `/v/0.1.1/`. Avant : impression du profil, retour et « version d'origine » essayés à la souris, téléphone compris.
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`
