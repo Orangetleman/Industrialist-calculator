@@ -45,7 +45,21 @@ case "${1:-}" in
     [[ -f $source_dir/index.html ]] || { echo "Pas d'index.html dans $source_dir : build incomplet ?" >&2; exit 1; }
     version=$(date +%Y%m%d-%H%M%S)
     cible="$RACINE/versions/$version"
+    # P4 : chaque version reste servie à vie sous /v/<numéro>/ (hors du ménage plus bas). Jamais remplacée.
+    if [[ -d $source_dir/v ]]; then
+      install -d -m 755 "$RACINE/v"
+      for d in "$source_dir"/v/*/; do
+        n=$(basename "$d")
+        [[ $n =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Numéro de version inattendu : $n" >&2; exit 1; }
+        [[ ! -e $RACINE/v/$n ]] || { echo "La version $n est déjà gardée : augmenter le numéro." >&2; exit 1; }
+        cp -r "$d" "$RACINE/v/$n"
+        chown -R root:root "$RACINE/v/$n"
+        find "$RACINE/v/$n" -type d -exec chmod 755 {} + -o -type f -exec chmod 644 {} +
+      done
+    fi
     cp -r "$source_dir" "$cible"
+    rm -rf "$cible/v"
+    [[ -d $RACINE/v ]] && ln -sfn "$RACINE/v" "$cible/v"
     chown -R root:root "$cible"
     find "$cible" -type d -exec chmod 755 {} + -o -type f -exec chmod 644 {} +
     basculer "$version"

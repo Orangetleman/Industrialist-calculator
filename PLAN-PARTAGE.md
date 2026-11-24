@@ -243,7 +243,17 @@ le design imprimé perd « lecture » ; le supprimer rend la partie d'avant, en 
   (« Garder la partie imprimée » possible) ; restauré : l'impression revient avec ce qui avait changé. « Remettre ma partie d'avant »
   sous « Mes designs ». Une impression plus ancienne supprimée ne change pas la partie en cours.
 
-Lot suivant : P4.
+**P4 fait le 2026-11-24** (pas déployé).
+- `.indus` : `encodeDesignBytes` (design, profil, contributions, bac à sable, empreinte, usine figée cochée d'office). Téléchargé depuis
+  Partager, ouvert par « Ouvrir un fichier » dans « Mes designs ».
+- Usine figée (`frozen-view.ts`, `ind-calc:v1:frozen`) : montrée telle quelle dans l'onglet Usine, au dessin du bac à sable ; bouton pour
+  voir l'usine recalculée ; design modifié : on le dit et l'usine recalculée s'affiche.
+- Version : `npm run deploy` augmente le numéro (à garder dans git) et garde le site sous `/v/<version>/` (`scripts/build-archive.ts`,
+  `publier.sh`, sans toucher nginx). Stockage à part (`v:<version>:`), bandeau, vignettes du site en ligne. À l'ouverture d'un design d'une
+  autre version encore servie : « Ouvrir avec la version d'origine ». La 0.1.0 en ligne avant ce lot n'a pas de copie.
+- Plus aucun .msch à l'écran ; le bac à sable exporte code, lien et fichier au format du partage ; anciens codes et fichiers lus.
+
+Lot suivant : P5 (parcours réel chronométré, déploiement).
 
 ## 7. Ne pas toucher
 L'import / export lié à Industrialist Calculator (`graph/pollywrath-export.ts`, `pollywrath-graph.ts`, `groups.ts`

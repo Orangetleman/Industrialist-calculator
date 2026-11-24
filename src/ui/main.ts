@@ -178,13 +178,15 @@ import { initSandbox } from "./sandbox-view.ts";
 import { initShare, type OpenChoice, type ShareWith } from "./share-view.ts";
 import { assembleDesign, assembleProfile, hasSandbox, readShareHash } from "./share-design.ts";
 import { groupsOf, hasContrib, noPrints, printOnto, readPrints, reprint, settled, unprint, type OwnKeys, type PrintGroup, type Prints } from "./print-profile.ts";
+import type { Layout } from "../engine/sandbox/layout.ts";
+import { frozenSvg } from "./frozen-view.ts";
 import { enterLecture, leaveLecture, lecture, ownItem, ownKeys, writeOwn, PROFILE_KEYS, setLectureDesign, setOwnItem, withProfile } from "./profile-store.ts";
 import { initDesigns } from "./designs-view.ts";
 import { sorted, addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
 import { fnv } from "../engine/share/print.ts";
 import { type DesignProfile, decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
-import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
+import type { Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
 import { buildSandboxCatalog, type SbCatalog } from "../engine/sandbox/index.ts";
 import { fact } from "../engine/modular.ts";
@@ -2073,10 +2075,10 @@ function portsLabel(machine: string): string {
 // ---------------------------------------------------------------- schéma du plan affiché (S55)
 /** Produits d'une recette dans l'ordre : les ports de sortie sont pris dans cet ordre, comme dans le bac à sable. */
 const outOrder = (recipe: string): string[] | undefined => { const r = data.recipes.get(recipe); return r ? Object.keys(r.outputs) : undefined; };
-/** Le plan affiché (module ou usine), converti à la demande en schéma .msch, le même format que le bac à sable. */
+/** Le plan affiché (module ou usine), converti à la demande pour le bac à sable. */
 let poseSchem: { name: string; conv: () => Converted } | null = null;
 const schemButtons = () =>
-  `<button type="button" class="link" data-msch="file">${t("m.schem.file")}</button> · <button type="button" class="link" data-msch="bac">${t("m.schem.bac")}</button>`;
+  `<button type="button" class="link" data-msch="bac">${t("m.schem.bac")}</button>`;
 /** Écran d'attente par-dessus la page pendant un long calcul (conversion d'une grosse usine en schéma). */
 async function busy<T>(text: string, fn: () => Promise<T> | T): Promise<T> {
   const el = document.createElement("div");
@@ -2092,34 +2094,27 @@ async function busy<T>(text: string, fn: () => Promise<T> | T): Promise<T> {
     el.remove();
   }
 }
-async function onSchem(kind: string): Promise<void> {
+async function onSchem(): Promise<void> {
   if (!poseSchem) return;
   const ps = poseSchem;
-  await busy(t("m.schem.busy"), () => schemGo(kind, ps));
+  await busy(t("m.schem.busy"), () => schemGo(ps));
 }
-async function schemGo(kind: string, ps: NonNullable<typeof poseSchem>): Promise<void> {
+async function schemGo(ps: NonNullable<typeof poseSchem>): Promise<void> {
   const c = ps.conv(), name = ps.name;
   const s: Schematic = { name, description: "", labels: [], width: c.width, height: c.height, layout: c.layout };
-  if (kind === "bac") {
-    go({ page: "bac" });
-    sandbox.open(s);
-    return;
-  }
-  const u = URL.createObjectURL(new Blob([(await writeMsch(s)) as BlobPart], { type: "application/octet-stream" })), a = document.createElement("a");
-  a.href = u;
-  a.download = `${name.replace(/[\\/:*?"<>|]/g, "_")}.msch`;
-  a.click();
-  URL.revokeObjectURL(u);
+  go({ page: "bac" });
+  sandbox.open(s);
 }
 /** Partager ou modifier depuis le tableau de bord (S60) : la vue Usine se calcule d'abord si besoin. */
 async function shareGo(kind: string): Promise<void> {
+  if (kind === "file") return share.openShare();
   if (!poseSchem) {
     if (settings.resultTab !== "pose") $("rtab-pose").click();
     await busy(t("m.schem.wait"), async () => {
       for (let i = 0; i < 600 && !poseSchem; i++) await new Promise((r) => setTimeout(r, 100));
     });
   }
-  await onSchem(kind);
+  await onSchem();
 }
 document.querySelector(".cmd-right")!.addEventListener("click", (e) => {
   const b = (e.target as Element).closest<HTMLElement>("[data-share]");
@@ -2127,7 +2122,7 @@ document.querySelector(".cmd-right")!.addEventListener("click", (e) => {
 });
 $("pose-links").addEventListener("click", (e) => {
   const b = (e.target as Element).closest<HTMLElement>("[data-msch]");
-  if (b) void onSchem(b.dataset.msch!);
+  if (b) void onSchem();
 });
 
 /** La liste « Vue » des modules, et le rail des étapes à gauche qui la reprend (S60). */
@@ -2188,16 +2183,87 @@ function savedName(s: Settings = settings): string {
 // ---------------------------------------------------------------- partage par lien (P2, PLAN-PARTAGE.md)
 
 /** Réglages complets d'un design reçu (un champ venu d'une autre version prend la valeur par défaut). */
-const designSettings = (d: Design): Settings => ({ ...DEFAULT_SETTINGS, ...d.settings }) as Settings;
+const designSettings = (d: Design): Settings => {
+  const { schema: _s, ...rest } = d.settings; // description et étiquettes d'un schéma du bac à sable
+  return { ...DEFAULT_SETTINGS, ...rest } as Settings;
+};
 /** Le design affiché : réglages, graphe édité et bac à sable (relus, jamais modifiés). */
 function currentDesign(withSandbox: boolean): Design {
-  return assembleDesign({ site: SITE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox, profile: lectureProfile() });
+  const d = assembleDesign({ site: SITE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox, profile: lectureProfile() });
+  return frozenOn() ? { ...d, site: frozen!.site, factory: frozen!.layout } : d;
+}
+
+// ---- usine figée d'un fichier .indus (P4) : montrée telle quelle tant que le design n'est pas modifié
+const KEY_FROZEN = "ind-calc:v1:frozen";
+/** `sig` : le design auquel elle va (null : pas encore affiché) ; `show` : montrée à la place de l'usine recalculée. */
+let frozen: { design: number | null; layout: Layout; site: string; sig: string | null; show: boolean } | null = null;
+const frozenSig = () => {
+  const { resultTab: _r, usine: _u, entered: _e, existing: _x, useExisting: _y, ...rest } = settings;
+  return fnv(JSON.stringify([Object.entries(rest).sort(([a], [b]) => (a < b ? -1 : 1)), gedit?.touched ? [gedit.graph, gedit.solved] : null]));
+};
+const frozenOn = () => !!frozen && frozen.sig !== null && frozen.sig === frozenSig();
+async function storeFrozen(): Promise<void> {
+  try {
+    if (!frozen) return localStorage.removeItem(KEY_FROZEN);
+    const { layout, ...rest } = frozen;
+    localStorage.setItem(KEY_FROZEN, JSON.stringify({ ...rest, data: await encodeDesign({ site: rest.site, settings: {}, factory: layout }) }));
+  } catch {
+    // stockage plein : elle reste dans le design enregistré
+  }
+}
+async function loadFrozen(): Promise<void> {
+  try {
+    const x = JSON.parse(localStorage.getItem(KEY_FROZEN) ?? "null") as { design: number; site: string; sig: string; show: boolean; data: string } | null;
+    if (!x || x.design !== designs.active) return;
+    const layout = (await decodeDesign(x.data)).factory;
+    if (!layout || frozen || x.design !== designs.active) return;
+    frozen = { design: x.design, layout, site: x.site, sig: x.sig, show: x.show !== false };
+    render();
+  } catch {
+    frozen = null;
+  }
+}
+/** Le bandeau de l'usine figée, et son dessin s'il est demandé ; vrai : rien d'autre à montrer. */
+function renderFrozen(): boolean {
+  const bar = $("pose-frozen"), on = frozenOn(), usine = !poseStep || poseStep === USINE || !plan?.steps.some(isPosable);
+  bar.hidden = !frozen || !usine;
+  if (!frozen || !usine) return false;
+  const key = on ? (frozen.show ? "frz.on" : "frz.off") : "frz.stale";
+  bar.innerHTML = `<span>${esc(t(key, { v: frozen.site || "?" }))}</span>${on ? ` <button type="button" class="small" data-frozen>${esc(t(frozen.show ? "frz.recalc" : "frz.show"))}</button>` : ""}`;
+  if (!on || !frozen.show) return false;
+  const f = frozenSvg(frozen.layout, { cat: sandboxCatalog(), img: (kind, id) => pictureOf(kind, id)?.src ?? null, itemName });
+  if (f.unknown) bar.firstElementChild!.textContent += ` ${t("frz.unknown", { n: f.unknown })}`;
+  $("pose-busy").hidden = $("pose-cut").hidden = $("cat-cut").hidden = true;
+  $("pose-head").innerHTML = $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = $("pose-mods").innerHTML = $("pose-bar").innerHTML = $("pose-more-usine").innerHTML = "";
+  showFocus(null);
+  const layout = frozen.layout;
+  poseSchem = { name: t("m.schem.factory"), conv: () => ({ width: 0, height: 0, layout: structuredClone(layout) }) as Converted };
+  $("rpanel-pose").classList.remove("computing");
+  showPoseSvg(f, `frozen|${frozen.sig}`, true);
+  return true;
+}
+/** L'usine à mettre dans un fichier : celle qui est figée, sinon celle du site, calculée au besoin. */
+function factoryForFile(): { now: Layout | null; later: Promise<Layout | null> | null } {
+  if (frozenOn()) return { now: frozen!.layout, later: null };
+  ensurePlan();
+  if (!printable()) return { now: null, later: null };
+  if (!currentFactory()) startFactory();
+  const st = currentFactory()!, p = plan;
+  const conv = (fp: FactoryPlan) => layoutFromFactory(fp, sandboxCatalog(), CATALOG, (id) => !!data.items.get(id)?.isFluid, settings.tier3Only).layout;
+  if (st.plan) return { now: conv(st.plan), later: null };
+  if (st.error || st.cancelled) return { now: null, later: null };
+  const wait = async () => {
+    while (!st.plan && !st.error && !st.cancelled && factories.get(st.key) === st) await new Promise((r) => setTimeout(r, 200));
+    return st.plan && plan === p ? conv(st.plan) : null;
+  };
+  return { now: null, later: wait() };
 }
 /** Affiche un design : réglages, graphe et bac à sable (`sandboxOnly` : ancien lien du bac à sable). */
 function applyDesign(d: Design, sandboxOnly = false): void {
   if (d.sandbox) sandbox.setLayout(d.sandbox);
   if (sandboxOnly) return;
   showProfile(d.profile ?? null);
+  frozen = d.factory ? { design: null, layout: d.factory, site: d.site, sig: null, show: true } : null;
   saveSettings(designSettings(d));
   Object.assign(settings, loadSettings());
   gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
@@ -2219,7 +2285,8 @@ function profileNow(w = { base: true, contrib: true }): DesignProfile {
 const hasContribNow = () => hasContrib(profileNow({ base: false, contrib: true }));
 /** Le design du lien, avec ce qui est coché dans « Partager ». */
 function sharedDesign(w: ShareWith): Design {
-  const { profile: _p, ...d } = currentDesign(w.sandbox);
+  const { profile: _p, factory: _f, ...cur } = currentDesign(w.sandbox);
+  const d = { ...cur, site: SITE_VERSION };
   const p = w.profile || w.contrib ? profileNow({ base: w.profile, contrib: w.contrib }) : null;
   return p && (p.player || hasContrib(p)) ? { ...d, profile: p } : d;
 }
@@ -2508,6 +2575,12 @@ function designSig(): string {
 /** Le design affiché devient la référence : rien à enregistrer. */
 function rebase(): void {
   render(); // le rendu peut annuler un réglage périmé : la référence se prend après
+  if (!frozen) void storeFrozen();
+  else if (frozen.sig === null) {
+    Object.assign(frozen, { sig: frozenSig(), design: designs.active });
+    void storeFrozen();
+    if (settings.resultTab === "pose") render();
+  }
   designs.base = designSig();
   renderLecture();
 }
@@ -2699,6 +2772,7 @@ async function bootDesigns(): Promise<void> {
     storeDesigns();
   }
   await settleLecture();
+  await loadFrozen();
   designsView.refresh();
   await settlePrints();
   // Un autre onglet a changé l'arbre : on repart du sien (le design affiché ici y reste, s'il existe encore).
@@ -2965,8 +3039,9 @@ function renderStepRail(): void {
 
 function renderPose(): void {
   // La boîte de calcul et le bandeau du plan abrégé ne concernent que « Toute l'usine » ; renderFactory les remet.
-  $("pose-busy").hidden = $("pose-cut").hidden = true;
+  $("pose-busy").hidden = $("pose-cut").hidden = $("pose-frozen").hidden = true;
   const { mods, asms } = fillPoseSteps();
+  if (renderFrozen()) return;
   if (!mods.length && !asms.length) {
     $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
     $("pose-frame").hidden = true;
@@ -3910,7 +3985,7 @@ function pictureOf(kind: EntryKind, id: string): Picture | null {
   const wiki = WIKI_IMAGES.get(key);
   if (myImages[key]) return { src: myImages[key]!, own: true, fallback: !!wiki };
   if (!wiki) return null;
-  return { src: `${import.meta.env.BASE_URL}${wiki.file}`, own: false, credit: { label: t("m.rc.wikiCredit", { license: wiki.license }), url: wiki.url } };
+  return { src: `/${wiki.file}`, own: false, credit: { label: t("m.rc.wikiCredit", { license: wiki.license }), url: wiki.url } };
 }
 
 function recipesCtx(): RecipesCtx {
@@ -5821,9 +5896,17 @@ const designsView = initDesigns($("plan-saved"), {
   toast: (m, bad) => share.toast(m, bad),
   printed: () => prints.on.at(-1)?.name ?? null,
   unprint: undoPrint,
+  openFile: () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; // pas de filtre : un ancien fichier du bac à sable s'ouvre aussi
+    inp.onchange = () => inp.files?.[0] && void share.receiveFile(inp.files[0]);
+    inp.click();
+  },
 });
 const share = initShare({
   build: sharedDesign,
+  factory: factoryForFile,
+  busy,
   contribs: hasContribNow,
   sandboxEmpty: () => !hasSandbox(sandbox.layout()),
   print: currentPrint,
@@ -5836,7 +5919,7 @@ const share = initShare({
     // Le choix est fait : l'adresse perd son #d=… (ou #bac/<code>), « Retour » ne la repropose pas.
     stack = stack.filter((h) => !readShareHash(h));
     saveStack();
-    const to = legacy ? "#bac" : opened || !shareReturn ? GOAL_HASH[settings.goal] : shareReturn;
+    const to = legacy || (opened && isBlank(settings.goal) && hasSandbox(sandbox.layout())) ? "#bac" : opened || !shareReturn ? GOAL_HASH[settings.goal] : shareReturn;
     shareReturn = null;
     history.replaceState(null, "", to);
     showPage();
@@ -5847,6 +5930,16 @@ const share = initShare({
     else location.hash = `#bac/${encodeURIComponent(code)}`;
   },
 });
+$("pose-frozen").addEventListener("click", (e) => {
+  if (!frozen || !(e.target as Element).closest("[data-frozen]")) return;
+  frozen.show = !frozen.show;
+  void storeFrozen();
+  renderPose();
+});
+if (location.pathname.startsWith("/v/")) {
+  $("vbar").hidden = false;
+  $("vbar-txt").textContent = t("ver.old", { v: SITE_VERSION });
+}
 $("lecture-print").addEventListener("click", () => void printLecture());
 $("lecture-back").addEventListener("click", () => void backToMine());
 window.addEventListener("hashchange", showPage);

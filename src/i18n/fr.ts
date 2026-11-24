@@ -133,7 +133,7 @@ export const fr = {
   "plan.steps.posed": "{name} : posée en jeu",
   "plan.share": "Modifier ou partager",
   "plan.share.bac": "Modifier dans le bac à sable",
-  "plan.share.file": "Exporter en .msch",
+  "plan.share.file": "Fichier",
   "plan.share.hint": "Le plan affiché dans l'onglet Usine (toute l'usine ou le module ouvert). Le bac à sable donne aussi un lien à partager.",
   "plan.pick.title": "Choisir l'objet (Ctrl+K)",
   "plan.pick.none": "Choisir un objet",

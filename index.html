@@ -10,6 +10,8 @@
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#160f25">
   <!-- S59 : sombre par défaut, clair en option ; posé avant le style pour éviter un éclair. -->
+  <!-- P4 : une version d'origine (/v/<version>/) partage l'adresse du site en ligne : son stockage est rangé à part. -->
+  <script>(function () { var m = /^\/v\/([^/]+)\//.exec(location.pathname); if (!m) return; ["getItem", "setItem", "removeItem"].forEach(function (f) { var o = Storage.prototype[f]; Storage.prototype[f] = function (k, v) { k = "v:" + m[1] + ":" + k; return f === "setItem" ? o.call(this, k, v) : o.call(this, k); }; }); })();</script>
   <script>try { if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}</script>
   <!-- Aperçu des liens partagés (Discord, réseaux…) : en anglais, la langue de la communauté du jeu (S33, décision S16 Public).
        L'image vient de scripts/og-image.html. -->
@@ -60,6 +62,7 @@
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
   <div class="recall-bar" id="recall" role="status" hidden></div>
+  <div class="lec-bar" id="vbar" role="status" hidden><span id="vbar-txt"></span><a class="button small" href="/" data-i18n="ver.last">Aller à la dernière version</a></div>
   <!-- P3 bis b : session de lecture (maquette session-lecture.html). -->
   <div class="lec-bar" id="lecture" role="status" hidden><span id="lecture-txt"></span><button type="button" class="small" id="lecture-print" data-i18n="lec.print">Imprimer ce profil sur ma partie…</button><button type="button" class="small" id="lecture-back" data-i18n="lec.back">Revenir à ma partie</button></div>
 </header>
@@ -253,6 +256,7 @@
           </div>
           <div class="u-busy" id="pose-busy" hidden></div>
           <div class="u-cut warn-text" id="pose-cut" role="status" hidden></div>
+          <div class="u-cut" id="pose-frozen" role="status" hidden></div>
           <div class="u-pick" id="pose-pick" hidden></div>
           <div class="u-tip" id="pose-tip" hidden></div>
         </div>
@@ -305,7 +309,7 @@
               <h2 class="cmd-h" id="plan-share-h"><span data-i18n="plan.share">Modifier ou partager</span> <span class="cmd-help" tabindex="0" role="note" data-i18n-attr="title=plan.share.hint;aria-label=plan.share.hint">?</span></h2>
               <div class="cmd-share-b">
                 <button type="button" class="primary" data-share="bac"><span data-ic="edit"></span> <span data-i18n="plan.share.bac.s">Bac à sable</span></button>
-                <button type="button" data-share="file"><span data-ic="download"></span> <span>.msch</span></button>
+                <button type="button" data-share="file"><span data-ic="download"></span> <span data-i18n="plan.share.file">Fichier</span></button>
               </div>
             </section>
           </div>
@@ -343,7 +347,7 @@
           <div id="flow-calc" hidden></div>
         </section>
       </div>
-      <div class="cmd-strip"><button type="button" data-fold="r" data-i18n-attr="title=plan.dash"><span data-ic="chart"></span><span data-i18n="plan.strip.plan">Plan</span></button><button type="button" data-share="bac" data-i18n-attr="title=plan.share.bac"><span data-ic="edit"></span><span data-i18n="plan.strip.bac">Bac</span></button><button type="button" data-share="file" title=".msch"><span data-ic="download"></span><span>.msch</span></button></div>
+      <div class="cmd-strip"><button type="button" data-fold="r" data-i18n-attr="title=plan.dash"><span data-ic="chart"></span><span data-i18n="plan.strip.plan">Plan</span></button><button type="button" data-share="bac" data-i18n-attr="title=plan.share.bac"><span data-ic="edit"></span><span data-i18n="plan.strip.bac">Bac</span></button><button type="button" data-share="file" data-i18n-attr="title=plan.share.file"><span data-ic="download"></span><span data-i18n="plan.share.file">Fichier</span></button></div>
     </aside>
     </div>
   </section>
@@ -657,6 +661,13 @@
       <button type="button" class="shr-chip" aria-pressed="true" id="shr-prof" data-i18n="share.has.profile">Mon profil</button>
       <button type="button" class="shr-chip" aria-pressed="true" id="shr-contrib" data-i18n="share.has.contrib">Mes contributions</button>
     </div>
+    <div class="shr-file">
+      <b data-i18n="share.f.title">Version indestructible</b>
+      <p data-i18n="share.f.text">Un lien se recalcule avec le site du jour. Le fichier garde le design exact.</p>
+      <label><input type="checkbox" id="shr-frz" checked> <span data-i18n="share.f.frozen">Inclure l'usine figée</span> <span class="hint" id="shr-fsize"></span></label>
+      <p class="hint" id="shr-fhint"></p>
+      <button type="button" id="shr-dl"></button>
+    </div>
   </div>
 </div>
 <dialog class="shr-recv" id="shr-recv" aria-labelledby="shr-r-name">
@@ -672,6 +683,7 @@
       <button type="button" id="shr-r-read"><b data-i18n="share.r.read">Ouvrir en session de lecture</b><small data-i18n="share.r.read.sub">Ta partie n'est pas touchée.</small></button>
       <button type="button" id="shr-r-print"><b data-i18n="share.r.print">Imprimer le profil sur ma partie</b><small data-i18n="share.r.print.sub">Tu choisis ce qui est repris.</small></button>
     </div>
+    <p class="hint" id="shr-r-orig" hidden><a target="_blank" rel="noopener"></a></p>
     <div class="row dialog-actions"><button type="button" id="shr-r-no" data-i18n="m.cancel">Annuler</button><button type="button" id="shr-r-yes" class="primary" data-i18n="share.r.open">Ouvrir le design</button></div>
   </div>
 </dialog>

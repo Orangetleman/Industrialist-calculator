@@ -42,7 +42,8 @@ export function runFactory(input: FactoryInput, on: { progress: (done: number, l
 
 declare const __FACTORY_VERSION__: string;
 const VERSION = typeof __FACTORY_VERSION__ === "string" ? __FACTORY_VERSION__ : "dev";
-const DB_NAME = "ind-calc-usine";
+// Une ancienne version du site (/v/<version>/) garde ses calculs à part.
+const DB_NAME = `ind-calc-usine${typeof location === "undefined" ? "" : (/^\/v\/[^/]+/.exec(location.pathname)?.[0] ?? "")}`;
 const STORE = "plans";
 const KEEP = 12;
 type Saved = { key: string; plan: FactoryPlan; ms: number; at: number };

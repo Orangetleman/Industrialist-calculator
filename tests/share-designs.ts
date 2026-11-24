@@ -34,7 +34,8 @@ const world = { pollutionPct: 0 };
 const fluid = (id: string) => !!data.items.get(id)?.isFluid;
 const ports = portsJson as unknown as PortsFile;
 const cat = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, (relevesJson as { poleRangeTiles: Record<string, number> }).poleRangeTiles);
-const sb = buildSandboxCatalog(data, { ports, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson });
+export const sbCatalog = buildSandboxCatalog(data, { ports, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson });
+const sb = sbCatalog;
 const name = (id: string) => data.items.get(id)?.name ?? data.machines.get(id)?.name ?? id;
 
 const plans = new Map<string, Plan>();

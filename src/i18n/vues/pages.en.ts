@@ -195,7 +195,6 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   "m.pose.recalc": "(recalculated and turned toward its neighbors{bg})",
   "m.pose.bg": ", calculating in the background",
   "m.pose.toFlow": "See this step in the chart",
-  "m.schem.file": "Export as a .msch file",
   "m.schem.bac": "Edit in the sandbox",
   "m.schem.factory": "Factory",
   "m.schem.busy": "Converting the plan into a schematic…",

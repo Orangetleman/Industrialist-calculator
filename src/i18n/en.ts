@@ -127,7 +127,7 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "plan.steps.posed": "{name}: built in game",
   "plan.share": "Edit or share",
   "plan.share.bac": "Edit in the sandbox",
-  "plan.share.file": "Export as .msch",
+  "plan.share.file": "File",
   "plan.share.hint": "The plan shown in the Factory tab (whole factory or the open module). The sandbox also gives a link to share.",
   "plan.pick.title": "Choose the item (Ctrl+K)",
   "plan.pick.none": "Choose an item",

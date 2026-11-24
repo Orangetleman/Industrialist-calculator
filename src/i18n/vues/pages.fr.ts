@@ -194,7 +194,6 @@ export const pagesFr = {
   "m.pose.recalc": "(recalculée et tournée vers ses voisins{bg})",
   "m.pose.bg": ", calcul en arrière-plan",
   "m.pose.toFlow": "Voir cette étape au schéma",
-  "m.schem.file": "Exporter en fichier .msch",
   "m.schem.bac": "Éditer dans le bac à sable",
   "m.schem.factory": "Usine",
   "m.schem.busy": "Conversion du plan en schéma…",

@@ -29,6 +29,8 @@ export type DesignsDeps = {
   /** Nom du dernier design imprimé sur la partie (null : aucun), et retour à la partie d'avant. */
   printed: () => string | null;
   unprint: () => Promise<void>;
+  /** Choisir un fichier .indus à ouvrir. */
+  openFile: () => void;
 };
 
 export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
@@ -65,7 +67,7 @@ export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
     const tr = T();
     if (sel !== null && !find(tr, sel)) sel = tr.active;
     const next =
-      `<div class="dsg-bar"><button type="button" class="link small" data-new="des">${esc(t("dsg.new.design"))}</button><button type="button" class="link small" data-new="dir">${esc(t("dsg.new.dir"))}</button><button type="button" class="link small" id="dsg-save" data-new="save">${esc(t("dsg.save"))}</button></div>` +
+      `<div class="dsg-bar"><button type="button" class="link small" data-new="des">${esc(t("dsg.new.design"))}</button><button type="button" class="link small" data-new="dir">${esc(t("dsg.new.dir"))}</button><button type="button" class="link small" id="dsg-save" data-new="save">${esc(t("dsg.save"))}</button><button type="button" class="link small" data-new="file" title="${esc(t("dsg.file.title"))}">${esc(t("dsg.file"))}</button></div>` +
       `<div class="dsg-tree" role="tree" tabindex="0" aria-label="${esc(t("dsg.title"))}"${sel !== null ? ` aria-activedescendant="dsg-${sel}"` : ""}>${sorted(tr.root.kids).map((k) => row(k, 1)).join("")}${row(tr.bin, 1)}</div>` +
       (deps.printed() === null ? "" : `<button type="button" class="link dsg-undo" data-new="undo" title="${esc(deps.printed()!)}">${esc(t("prn.undo"))}</button>`);
     if (next === html && el.firstChild) return;
@@ -233,6 +235,7 @@ export function initDesigns(el: HTMLElement, deps: DesignsDeps) {
     const b = target0.closest<HTMLElement>("[data-new]")?.dataset.new;
     if (b === "des") return void act.newDesign(target());
     if (b === "dir") return act.newDir(target());
+    if (b === "file") return deps.openFile();
     if (b === "undo") return void deps.unprint().then(refresh);
     if (b === "save") return void (T().active !== null && deps.store(T().active!).then(refresh));
     const id = idOf(e);

@@ -3,10 +3,11 @@
 // à sable). Ce module ne fait que l'affichage : l'état du site se lit et se change par `deps` (main.ts).
 
 import { t } from "../i18n/i18n.ts";
-import { comparePrints, decodeDesign, designFromMschCode, designLink, encodeDesign, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
+import { comparePrints, decodeDesign, designFromFile, designFromMschCode, designLink, encodeDesign, encodeDesignBytes, isIndus, ShareError, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import type { Key } from "../i18n/i18n.ts";
 import { hasContrib } from "./print-profile.ts";
 import { checkNotes, designFacts, dropAdvice, linkAdvice, miniLayout, shareErrorKey, type CheckState } from "./share-design.ts";
+import type { Layout } from "../engine/sandbox/layout.ts";
 import { icon } from "./icons.ts";
 
 /** Les cases de « Partager ». */
@@ -15,6 +16,10 @@ export type ShareWith = { sandbox: boolean; profile: boolean; contrib: boolean }
 export type OpenChoice = "" | "read" | "print";
 
 export type ShareDeps = {
+  /** Usine figée pour le fichier (P4) : connue, en calcul, ou aucune à figer (`now` et `later` null). */
+  factory: () => { now: Layout | null; later: Promise<Layout | null> | null };
+  /** Un long travail : écran d'attente par-dessus la page. */
+  busy: <T>(text: string, fn: () => Promise<T> | T) => Promise<T>;
   /** Le design affiché, assemblé à l'instant, avec ce qui est coché. */
   build: (w: ShareWith) => Design;
   /** Le joueur a des corrections ou des relevés à partager. */
@@ -146,6 +151,7 @@ export function initShare(deps: ShareDeps) {
     $("shr-len").innerHTML = t(a.fits ? "share.len.ok.html" : "share.len.over.html", { n: nf(n) });
     $("shr-b").hidden = !light;
     if (light) $("shr-b-txt").textContent = [t(light.drop.contrib ? (light.drop.sandbox ? "share.b.both" : "share.b.contrib") : "share.b", { n: nf(light.len) }), light.drop.contrib ? t("share.miss") : ""].filter(Boolean).join(" ");
+    void fileSize(me, now, print.now);
     if (autoCopy && a.fits) await copy();
     // L'usine finit de se calculer : le lien prend son empreinte complète (et remplace celui déjà copié).
     void print.later?.then((p) => {
@@ -153,6 +159,40 @@ export function initShare(deps: ShareDeps) {
       void fill($("shr-copy").classList.contains("done"), { now: p, later: null });
     });
   }
+
+  // ------------------------------------------------------------ fichier .indus (P4)
+  const fileName = () => `${deps.currentName().replace(/[\\/:*?"<>|]/g, "_").trim() || "design"}.indus`;
+  const boxes = (): ShareWith => ({ sandbox: withSand && !deps.sandboxEmpty(), profile: withProf, contrib: withContrib && deps.contribs() });
+  const frz = $<HTMLInputElement>("shr-frz");
+  const fileBytes = (w: ShareWith, print: string | undefined, factory: Layout | null) => encodeDesignBytes({ ...deps.build(w), ...(print ? { print } : {}), ...(factory ? { factory } : {}) });
+  async function fileSize(me: number, w: ShareWith, print: string | undefined): Promise<void> {
+    const f = deps.factory(), none = !f.now && !f.later;
+    frz.disabled = none;
+    const on = frz.checked && !none;
+    $("shr-fhint").textContent = t(none ? "share.f.none" : on ? "share.f.hint.on" : "share.f.hint.off");
+    $("shr-dl").innerHTML = `${icon("download")} ${esc(t("share.f.dl", { name: fileName() }))}`;
+    $("shr-fsize").textContent = "";
+    if (on && !f.now) return; // l'usine se calcule encore : la taille viendra avec elle
+    const n = (await fileBytes(w, print, on ? f.now : null)).length;
+    if (me === run) $("shr-fsize").textContent = t("share.f.size", { n: nf(Math.max(1, Math.round(n / 1024))) });
+  }
+  async function download(): Promise<void> {
+    const f = deps.factory(), w = boxes(), p = deps.print(), name = fileName();
+    const want = frz.checked && !frz.disabled;
+    const bytes = await deps.busy(t("share.f.busy"), async () => {
+      const factory = want ? (f.now ?? (await f.later)) : null;
+      return want && !factory ? null : fileBytes(w, (p.later && want ? await p.later : undefined) ?? p.now, factory);
+    });
+    if (!bytes) return toast(t("share.f.fail"), true, 6000);
+    const u = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/octet-stream" })), a = document.createElement("a");
+    a.href = u;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 1000);
+    toast(t("share.f.done", { name }));
+  }
+  frz.addEventListener("change", () => void fileSize(run, boxes(), deps.print().now));
+  $("shr-dl").addEventListener("click", () => void download());
 
   function openShare(): void {
     box.hidden = false;
@@ -221,10 +261,28 @@ export function initShare(deps: ShareDeps) {
     svg.innerHTML = edges.join("") + pts.map((p) => `<rect x="${p.x}" y="${p.y}" width="${nw}" height="${nh}" rx="3"/>`).join("");
   }
 
+  /** La version du site qui a créé le design, si elle est encore servie sous /v/. */
+  async function original(d: Design): Promise<void> {
+    const p = $("shr-r-orig"), a = p.querySelector("a")!;
+    p.hidden = true;
+    if (!/^\d+\.\d+\.\d+$/.test(d.site) || d.site === SITE_VERSION || location.pathname.startsWith("/v/")) return;
+    try {
+      const r = await fetch(`/v/${d.site}/version.json`);
+      if (!r.ok || ((await r.json()) as { version?: unknown }).version !== d.site) return;
+    } catch {
+      return; // cette version n'est pas gardée en ligne
+    }
+    const { factory: _f, ...rest } = d;
+    a.href = `/v/${d.site}/#d=${await encodeDesign(rest)}`;
+    a.textContent = t("share.r.orig", { v: d.site });
+    p.hidden = false;
+  }
+  let file = false;
   /** Fenêtre « Design partagé » ; rend le choix du joueur. */
   function ask(d: Design, legacy: boolean): Promise<OpenChoice> {
     const f = designFacts(d);
-    $("shr-r-eye").textContent = t("share.r.eye");
+    $("shr-r-eye").textContent = t(file ? "share.r.eye.file" : "share.r.eye");
+    void original(d);
     $("shr-r-name").textContent = d.name || deps.nameOf(d);
     mini(d);
     const facts = !legacy && d.name && d.name !== deps.nameOf(d) ? [deps.nameOf(d)] : []; // l'objectif, s'il n'est pas déjà le nom
@@ -233,6 +291,7 @@ export function initShare(deps: ShareDeps) {
     const lec = !legacy && !!d.profile;
     if (lec && d.profile!.player) facts.push(t("share.profile"));
     if (lec && hasContrib(d.profile!)) facts.push(t("share.contrib"));
+    if (d.factory) facts.push(t("share.r.frozen"));
     if (lec && d.profile!.partial) facts.push(t("share.contrib.no"));
     $("shr-r-facts").innerHTML = pills(facts);
     $("shr-r-facts").hidden = !facts.length;
@@ -261,7 +320,8 @@ export function initShare(deps: ShareDeps) {
   }
 
   function fail(err: unknown): Promise<OpenChoice> {
-    $("shr-r-eye").textContent = t("share.r.eye.err");
+    $("shr-r-orig").hidden = true;
+    $("shr-r-eye").textContent = t(file ? "share.r.eye.file" : "share.r.eye.err");
     $("shr-r-name").textContent = t("share.r.bad");
     ($("shr-r-mini") as unknown as SVGElement).toggleAttribute("hidden", true);
     $("shr-r-facts").hidden = true;
@@ -294,17 +354,48 @@ export function initShare(deps: ShareDeps) {
   }
 
   /** Une adresse #d=… (au chargement ou sur hashchange). Une seule fenêtre à la fois. */
-  async function receive(data: string): Promise<void> {
-    if (busy === data) return;
+  const receive = (data: string) => receiveWith(data, () => decodeDesign(data));
+  /** Un fichier choisi par le joueur : `.indus`, ou un ancien fichier du bac à sable. */
+  async function receiveFile(f: File): Promise<void> {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    const named = f.name.replace(/\.[^.]+$/, "");
+    const open = async (): Promise<Design> => {
+      const d = await designFromFile(bytes);
+      return d.name ? d : { ...d, name: named };
+    };
+    if (isIndus(bytes) || bytes[0] !== 0x6d) return receiveWith(`fichier:${f.name}`, open, true);
+    if (busy) return;
+    busy = f.name;
+    file = true;
+    try {
+      let d: Design;
+      try {
+        d = await open();
+      } catch (e) {
+        return void (await fail(e));
+      }
+      const ok = await ask(d, true);
+      const name = ok ? await deps.open(d, ok, true) : null;
+      toast(name === null ? t("share.cancelled") : t("share.done", { name }));
+      if (name !== null) deps.done(true, true);
+    } finally {
+      busy = null;
+      file = false;
+    }
+  }
+  async function receiveWith(data: string, read: () => Promise<Design>, fromFile = false): Promise<void> {
+    if (busy !== null) return;
     busy = data;
+    file = fromFile;
+    const done = (opened: boolean) => (fromFile && !opened ? undefined : deps.done(false, opened));
     try {
       closeShare();
       let d: Design;
       try {
-        d = await decodeDesign(data);
+        d = await read();
       } catch (e) {
         await fail(e);
-        return deps.done(false, false);
+        return done(false);
       }
       // L'empreinte est recalculée pendant que la fenêtre est ouverte ; ouvrir n'attend pas.
       const asked = ask(d, false);
@@ -324,7 +415,7 @@ export function initShare(deps: ShareDeps) {
       if (!ok) probe?.cancel();
       const name = ok ? await deps.open(d, ok, false) : null;
       toast(name === null ? t("share.cancelled") : t(ok === "print" ? "share.done.print" : "share.done", { name }));
-      deps.done(false, name !== null);
+      done(name !== null);
       // Ouvert avant la fin de la vérification : une différence se dit quand même, dès qu'elle est connue.
       if (name !== null && late)
         void checked?.then((v) => {
@@ -333,6 +424,7 @@ export function initShare(deps: ShareDeps) {
         });
     } finally {
       busy = null;
+      file = false;
     }
   }
 
@@ -356,5 +448,5 @@ export function initShare(deps: ShareDeps) {
     }
   }
 
-  return { openShare, closeShare, receive, receiveLegacy, toast };
+  return { openShare, closeShare, receive, receiveLegacy, receiveFile, toast };
 }

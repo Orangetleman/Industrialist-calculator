@@ -2157,3 +2157,12 @@ body.lecture .me-chip { background: var(--steel-soft); color: var(--steel); }
 .prn-t th { color: var(--muted); font-weight: 500; }
 .prn-t input { accent-color: var(--accent); }
 .dsg-undo { display: block; padding: 4px 6px; text-align: left; font-size: .8rem; }
+.shr-file { margin-top: 14px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); display: grid; gap: 6px; font-size: .86rem; }
+.shr-file p { color: var(--muted); font-size: .82rem; }
+.shr-file label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.shr-file input { accent-color: var(--accent); }
+.shr-file button { justify-self: start; display: inline-flex; gap: 6px; align-items: center; max-width: 100%; overflow-wrap: anywhere; }
+.shr-file button .ic { width: 16px; height: 16px; flex: none; }
+.shr { max-height: calc(100vh - 80px); overflow: auto; }
+.u-frozen { background: #120c20; }
+#pose-frozen { background: var(--steel-soft); color: var(--ink); }
