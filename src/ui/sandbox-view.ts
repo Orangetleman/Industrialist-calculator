@@ -1643,6 +1643,24 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       if (!ui.mounted) { ui.mounted = true; skeleton(); }
       loadSchematic(s); // recadre dès que la page a sa taille
     },
+    /** Le montage tel quel (partage d'un design, P2) : une copie, le bac à sable n'est jamais touché. */
+    layout(): Layout {
+      return structuredClone({ blocks: S.blocks, wires: S.wires, routes: S.routes, fills: S.fills });
+    },
+    /** Remplace le montage à l'identique (design partagé ouvert) : ni renumérotation ni recadrage du schéma. */
+    setLayout(L: Layout): void {
+      const next: State = structuredClone({ blocks: L.blocks, wires: L.wires, routes: L.routes ?? [], fills: L.fills ?? {} });
+      if (!ui.mounted) {
+        S = next;
+        store(KEY_STATE, S);
+        return;
+      }
+      snap();
+      S = next;
+      ui.pinned = null;
+      changed();
+      fit();
+    },
     /** Langue changée ou données corrigées : tout est redessiné, le montage et la vue gardés. */
     refresh(): void {
       if (!ui.mounted) return;

@@ -133,6 +133,8 @@
 
     </form>
     <button type="button" class="cmd-set-btn" id="plan-set-open" aria-controls="plan-drawer" aria-expanded="false"><span data-ic="settings"></span><span data-i18n="plan.set">Réglages</span> <kbd>R</kbd></button>
+    <!-- P2 partage (maquette partage.html) : le design entier (réglages, graphe, bac à sable) dans un lien. -->
+    <button type="button" class="primary shr-btn" id="share-open" aria-haspopup="dialog" aria-expanded="false" aria-controls="share"><span data-ic="share"></span><span data-i18n="share.btn">Partager</span></button>
     </div>
     <!-- S60 suite : les réglages du plan dans un tiroir (maquette S58), tous visibles d'un coup ; R l'ouvre, Échap le ferme. -->
     <aside class="cmd-drawer" id="plan-drawer" aria-labelledby="plan-drawer-h" hidden>
@@ -632,6 +634,36 @@
 <!-- S35 : fenêtre « Remarque », remplie par src/ui/remarques-view.ts. -->
 <dialog id="remark" class="rm-dialog" aria-labelledby="rm-title"></dialog>
 
+<!-- P2 partage : fenêtre « Partager » (sous le bouton) et fenêtre « Design partagé » à l'ouverture d'un lien. -->
+<div class="shr" id="share" hidden role="dialog" aria-labelledby="shr-name">
+  <div class="shr-in">
+    <div class="shr-top">
+      <div><span class="eyebrow" data-i18n="share.btn">Partager</span><h3 id="shr-name"></h3></div>
+      <button type="button" class="icon-btn shr-x" id="shr-close" data-ic="close" aria-label="Fermer" data-i18n-attr="aria-label=common.close"></button>
+    </div>
+    <div class="shr-facts" id="shr-facts"></div>
+    <div class="shr-link"><code id="shr-link"></code><button type="button" id="shr-copy"></button></div>
+    <div class="shr-gauge" id="shr-gauge"><div class="bar"><i id="shr-bar"></i></div><p><span id="shr-len"></span><span data-i18n="share.discord">Discord : 2 000</span></p></div>
+    <div class="shr-note i" id="shr-b" hidden><span data-ic="info"></span><span><span id="shr-b-txt"></span> <button type="button" class="link" id="shr-b-go" data-i18n="share.b.go">Copier le lien sans le bac à sable</button></span></div>
+    <div class="shr-incl"><span class="eyebrow" data-i18n="share.has">Contient</span>
+      <button type="button" class="shr-chip" aria-pressed="true" disabled data-i18n="share.has.graph">Graphe</button>
+      <button type="button" class="shr-chip" aria-pressed="true" disabled data-i18n="share.has.settings">Réglages</button>
+      <button type="button" class="shr-chip" aria-pressed="true" id="shr-sand" data-i18n="share.has.sandbox">Bac à sable</button>
+    </div>
+  </div>
+</div>
+<dialog class="shr-recv" id="shr-recv" aria-labelledby="shr-r-name">
+  <div class="in">
+    <span class="eyebrow" id="shr-r-eye"></span>
+    <h3 id="shr-r-name"></h3>
+    <svg class="shr-mini" id="shr-r-mini" aria-hidden="true"></svg>
+    <div class="shr-facts" id="shr-r-facts"></div>
+    <div class="shr-note w" id="shr-r-warn" hidden><span data-ic="warn"></span><span id="shr-r-warn-txt"></span></div>
+    <div class="shr-note i" id="shr-r-keep" hidden><span data-ic="info"></span><span id="shr-r-keep-txt"></span></div>
+    <div class="row dialog-actions"><button type="button" id="shr-r-no" data-i18n="m.cancel">Annuler</button><button type="button" id="shr-r-yes" class="primary" data-i18n="share.r.open">Ouvrir le design</button></div>
+  </div>
+</dialog>
+<div class="shr-toast" id="shr-toast" role="status" hidden></div>
 <dialog id="ask" aria-labelledby="ask-title">
   <form method="dialog">
     <h3 id="ask-title" data-i18n="dialog.confirm">Confirmer</h3>

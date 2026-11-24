@@ -174,6 +174,9 @@ import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
 import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
+import { initShare } from "./share-view.ts";
+import { assembleDesign, freeName, hasSandbox, readShareHash } from "./share-design.ts";
+import { decodeDesign, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
 import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
@@ -640,6 +643,11 @@ function readRoute(): void {
     history.replaceState(null, "", `#${OLD_ROUTES[h] || GOAL_ROUTE[settings.goal]}`);
   }
   route = parseRoute(location.hash);
+  // Ancien lien du bac à sable (#bac/<code>) : ouvert comme un design partagé (P2), plus chargé d'office.
+  if (route.page === "bac" && route.code) {
+    legacyCode = route.code;
+    delete route.code;
+  }
   if (route.goal && route.goal !== settings.goal) {
     settings.goal = route.goal;
     planDirty = true;
@@ -666,8 +674,13 @@ function setDocTitle(): void {
   document.title = `${view} — ${t("site.title")}`;
 }
 
+/** Partage (P2) : ancien lien du bac à sable en attente, et la vue où revenir après la fenêtre d'un lien. */
+let legacyCode: string | null = null;
+let shareReturn: string | null = null;
+
 function showPage(): void {
   if (lastHash) scrollOf.set(lastHash, window.scrollY);
+  if (readShareHash(location.hash) && lastHash && !readShareHash(lastHash)) shareReturn = lastHash;
   readRoute();
   const before = stack.length;
   stack = nextStack(stack, location.hash);
@@ -708,6 +721,14 @@ function showPage(): void {
     el?.closest(".vrow")?.classList.add("vfocus");
     el?.scrollIntoView({ block: "center" });
     el?.focus({ preventScroll: true });
+  }
+  // Partage (P2) : un lien #d=… ouvre la fenêtre « Design partagé » par-dessus la page.
+  const sh = readShareHash(location.hash);
+  if (sh?.kind === "design") void share.receive(sh.data);
+  else if (legacyCode) {
+    const c = legacyCode;
+    legacyCode = null;
+    void share.receiveLegacy(c);
   }
 }
 
@@ -2113,19 +2134,21 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
 
 // ---------------------------------------------------------------- plans enregistrés (S64, maquette S58)
 /** Un objectif gardé dans ce navigateur : de quoi le rouvrir d'un clic depuis le rail. */
-type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number; graph?: StoredGraphEdit };
+type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number; graph?: StoredGraphEdit; d?: string; active?: true };
+/** P2 : `d` le design entier (réglages, graphe, bac à sable) au format du lien ; `active` le design affiché avant d'ouvrir un lien. */
+const SAVED_MAX = 50;
 const KEY_SAVED = "ind-calc:v1:saved-plans";
 function loadSaved(): SavedPlan[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_SAVED) ?? "[]");
-    return Array.isArray(raw) ? raw.filter((p) => p && typeof p.name === "string" && typeof p.goal === "string").slice(0, 20) : [];
+    return Array.isArray(raw) ? raw.filter((p) => p && typeof p.name === "string" && typeof p.goal === "string").slice(0, SAVED_MAX) : [];
   } catch {
     return [];
   }
 }
 function storeSaved(list: SavedPlan[]): void {
   try {
-    localStorage.setItem(KEY_SAVED, JSON.stringify(list.slice(0, 20)));
+    localStorage.setItem(KEY_SAVED, JSON.stringify(list.slice(0, SAVED_MAX)));
   } catch {
     // stockage indisponible : la liste reste pour cette visite
   }
@@ -2133,17 +2156,89 @@ function storeSaved(list: SavedPlan[]): void {
 }
 let savedPlans = loadSaved();
 const GOAL_HASH: Record<Goal, string> = { objet: "#objet", "énergie": "#energie", recherche: "#rp", argent: "#argent" };
-function savedName(): string {
-  const g = settings.goal;
-  if (g === "objet") return settings.mode === "rate" ? `${fmt(displayRate(settings.rate, settings.rateUnit), 2)}/${settings.rateUnit === "s" ? "s" : "min"} ${itemName(settings.item)}` : `${settings.machines} × ${itemName(settings.item)}`;
-  if (g === "énergie") return `${fmt(settings.energyMFps, 2)} MF/s`;
-  if (g === "argent") return `${fmt(settings.money, 0)}/min`;
+function savedName(s: Settings = settings): string {
+  const g = s.goal;
+  if (g === "objet") return s.mode === "rate" ? `${fmt(displayRate(s.rate, s.rateUnit), 2)}/${s.rateUnit === "s" ? "s" : "min"} ${itemName(s.item)}` : `${s.machines} × ${itemName(s.item)}`;
+  if (g === "énergie") return `${fmt(s.energyMFps, 2)} MF/s`;
+  if (g === "argent") return `${fmt(s.money, 0)}/min`;
   return t("plan.goal.recherche");
 }
 function renderSaved(): void {
   $("plan-saved").innerHTML =
-    savedPlans.map((p, i) => `<div class="cmd-row"><button type="button" class="cmd-step" data-saved="${i}"><span class="n">${icon("check")}</span><span class="nm">${esc(p.name)}</span></button><button type="button" class="icon-btn" data-saved-x="${i}" aria-label="${esc(t("plan.saved.del", { name: p.name }))}" title="${esc(t("plan.saved.del", { name: p.name }))}">${icon("close")}</button></div>`).join("") +
+    savedPlans.map((p, i) => `<div class="cmd-row"><button type="button" class="cmd-step" data-saved="${i}"><span class="n">${icon("check")}</span><span class="nm">${esc(p.name)}${p.active ? `<span class="saved-tag" title="${esc(t("share.active.title"))}">${esc(t("share.active"))}</span>` : ""}</span></button><button type="button" class="icon-btn" data-saved-x="${i}" aria-label="${esc(t("plan.saved.del", { name: p.name }))}" title="${esc(t("plan.saved.del", { name: p.name }))}">${icon("close")}</button></div>`).join("") +
     `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
+}
+
+// ---------------------------------------------------------------- partage par lien (P2, PLAN-PARTAGE.md)
+
+/** Réglages complets d'un design reçu (un champ venu d'une autre version prend la valeur par défaut). */
+const designSettings = (d: Design): Settings => ({ ...DEFAULT_SETTINGS, ...d.settings }) as Settings;
+/** Le design affiché : réglages, graphe édité et bac à sable (relus, jamais modifiés). */
+function currentDesign(withSandbox: boolean): Design {
+  return assembleDesign({ site: SITE_VERSION, name: savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox });
+}
+function designEntry(d: Design, data: string, name: string, active: boolean): SavedPlan {
+  const s = designSettings(d);
+  return { name, goal: s.goal, item: s.item, mode: s.mode, rate: s.rate, machines: s.machines, energyMFps: s.energyMFps, money: s.money, d: data, ...(active ? { active: true as const } : {}) };
+}
+/** Affiche un design : réglages, graphe et bac à sable (`sandboxOnly` : ancien lien du bac à sable). */
+function applyDesign(d: Design, sandboxOnly = false): void {
+  if (d.sandbox) sandbox.setLayout(d.sandbox);
+  if (sandboxOnly) return;
+  saveSettings(designSettings(d));
+  Object.assign(settings, loadSettings());
+  gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
+  graphDoc = null;
+  pendingGraphPlan = null;
+  saveGraphEdit(true);
+  planDirty = true;
+  syncForm();
+}
+/**
+ * Ouvre un design reçu par lien : le design affiché est d'abord gardé dans les plans enregistrés (mention
+ * « design actif, non enregistré », sauf s'il y est déjà à l'identique), puis le reçu y est ajouté (nom libre,
+ * « (2) » si pris) et affiché. Rend le nom sous lequel il est enregistré.
+ */
+async function openReceived(d: Design, data: string, legacy: boolean): Promise<string> {
+  const cur = currentDesign(true), curData = await encodeDesign(cur);
+  let list = savedPlans;
+  if (!list.some((p) => p.d === curData)) list = [designEntry(cur, curData, freeName(list.map((p) => p.name), savedName()), true), ...list];
+  // Ancien lien du bac à sable : seul le montage change, les réglages et le graphe restent ceux affichés.
+  const got: Design = legacy ? { ...cur, ...(d.name ? { name: d.name } : {}), ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
+  const name = freeName(list.map((p) => p.name), got.name || savedName(designSettings(got)));
+  storeSaved([designEntry(got, legacy ? await encodeDesign(got) : data, name, false), ...list]);
+  renderSaved();
+  applyDesign(got, legacy);
+  return name;
+}
+/** Plan enregistré avec son design entier (P2). */
+async function openSavedDesign(data: string): Promise<void> {
+  let d: Design;
+  try {
+    d = await decodeDesign(data);
+  } catch {
+    return share.toast(t("share.saved.bad"), true);
+  }
+  const ge = d.graph ? JSON.stringify(storeGraphEdit(d.graph as GraphEdit)) : null;
+  if (ge && gedit?.touched && JSON.stringify(storeGraphEdit(gedit)) !== ge) {
+    const ok = await ask(t("gbar.load.title"), t("gbar.load.html"), [
+      { value: "ok", label: t("gbar.drop.ok"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (ok !== "ok") return;
+  }
+  applyDesign(d);
+  if (location.hash.split("/")[0] !== GOAL_HASH[settings.goal]) location.hash = GOAL_HASH[settings.goal];
+  update();
+}
+/** Pastilles de la fenêtre « Partager » : étapes et machines du plan affiché, graphe retouché (le nom dit l'objectif). */
+function shareFacts(): string[] {
+  const out: string[] = [];
+  if (plan && settings.entered.includes(settings.goal) && settings.goal !== "recherche") {
+    out.push(t("share.steps", { n: plan.steps.length }), t("share.machines", { n: Math.round(plan.totals.machines) }));
+  }
+  if (gedit?.touched) out.push(t("share.nodes", { n: gedit.graph.nodes.length }));
+  return out;
 }
 
 /** Fenêtre « Entrées / sorties » (maquette volets.html) : ce qui entre et ce qui sort, repris de la réponse. */
@@ -4191,6 +4286,7 @@ function bindPlan(): void {
     void openSaved(p);
   });
   async function openSaved(p: SavedPlan): Promise<void> {
+    if (p.d) return openSavedDesign(p.d);
     const ge = p.graph ? loadGraphEdit(p.graph) : null;
     if (ge && gedit?.touched && JSON.stringify(storeGraphEdit(gedit)) !== JSON.stringify(storeGraphEdit(ge))) {
       const ok = await ask(t("gbar.load.title"), t("gbar.load.html"), [
@@ -5169,6 +5265,28 @@ const sandbox = initSandbox($("page-bac"), {
   mods: SB_MODS,
   inEditor: (id) => data.machines.has(id),
   propose: (fills, from) => remarks.open({ piece: { fichier: "bac-recettes.json", resume: t("bac.rec.proposeN", { n: Object.keys(fills).length }), contenu: fills }, kind: "fix" }, from),
+});
+const share = initShare({
+  build: currentDesign,
+  sandboxEmpty: () => !hasSandbox(sandbox.layout()),
+  facts: shareFacts,
+  nameOf: (d) => savedName(designSettings(d)),
+  currentName: () => savedName(),
+  open: openReceived,
+  done: (legacy, opened) => {
+    // Le choix est fait : l'adresse perd son #d=… (ou #bac/<code>), « Retour » ne la repropose pas.
+    stack = stack.filter((h) => !readShareHash(h));
+    saveStack();
+    const to = legacy ? "#bac" : opened || !shareReturn ? GOAL_HASH[settings.goal] : shareReturn;
+    shareReturn = null;
+    history.replaceState(null, "", to);
+    showPage();
+  },
+  legacyFallback: (code) => {
+    // Code d'avant le format actuel (JSON en base64) : le bac à sable le lit comme avant.
+    if (currentPage() === "bac") sandbox.show(code);
+    else location.hash = `#bac/${encodeURIComponent(code)}`;
+  },
 });
 window.addEventListener("hashchange", showPage);
 showPage();

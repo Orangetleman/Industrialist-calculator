@@ -157,6 +157,11 @@ corbeille ou est supprimé, un nouveau design vide s'ouvre aussitôt : jamais de
 - **P1** — Codec pur `src/engine/share/` (binaire v1, tables d'ids, varint, deflate, base64url) + tests aller-retour,
   fuzz, liens figés ; mesures sur vrais designs. **Fait le 2026-11-24** (§ 2 : tailles réelles ; question B).
 - **P2** — Bouton Partager + ouverture du lien (confirmation, design importé enregistré, précédent gardé en « design actif »).
+  **Fait le 2026-11-24** : `src/ui/share-design.ts` (pur, testé) et `src/ui/share-view.ts`. Les plans enregistrés
+  portent le design entier au format du lien (`d`, 50 au plus) ; le reçu est enregistré (nom libre, « (2) ») et
+  affiché ; le précédent est gardé avec « design actif, non enregistré » s'il n'y est pas déjà à l'identique.
+  Un design sans bac à sable laisse le montage du bac à sable en place. Un ancien lien `#bac/<code>` ne change
+  que le bac à sable (réglages et graphe gardés). La partie « fichier » de la fenêtre attend P4.
 - **P2 bis** — Explorateur de designs façon IDE (dossiers, renommer, glisser, corbeille), reprend « Plans enregistrés ».
 - **P3** — Empreinte du plan de pose et message « le site a changé ».
 - **P4** — Fichier `.indus` versionné (version du site + usine figée), retrait de toute trace du .msch à l'écran, anciens codes toujours lus.

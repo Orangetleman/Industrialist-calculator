@@ -2056,3 +2056,46 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
   .gv-rc .side.o { align-items: flex-start; }
 }
 
+
+/* ---------------------------------------------------------------- P2 partage par lien (maquette partage.html) */
+.shr-btn { display: inline-flex; align-items: center; gap: 6px; }
+.shr-btn .ic { width: 16px; height: 16px; }
+.shr { position: fixed; z-index: 1260; /* au-dessus de la liste « Premiers pas » (1250) */ width: min(470px, calc(100vw - 24px)); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 18px 50px rgb(0 0 0 / .55); overflow: hidden; }
+.shr::before, .shr-recv::before { content: ""; display: block; height: 4px; background: var(--brand-bar); }
+.shr-in { padding: 16px 18px 18px; }
+.shr-top { display: flex; align-items: flex-start; gap: 10px; }
+.shr-top h3 { font-size: 1.15rem; margin-top: 2px; overflow-wrap: anywhere; }
+.shr-top .shr-x { margin-left: auto; }
+.shr-facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.shr-link { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.shr-link code { flex: 1; min-width: 0; padding: 9px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: .8rem; }
+.shr-link button { border: 0; border-left: 1px solid var(--line); border-radius: 0; display: inline-flex; gap: 6px; align-items: center; min-width: 118px; justify-content: center; }
+.shr-link button .ic { width: 16px; height: 16px; }
+.shr-link button.done { background: var(--ok-soft); color: var(--ok); }
+.shr-gauge { margin-top: 8px; }
+.shr-gauge .bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.shr-gauge .bar i { display: block; height: 100%; background: var(--ok); transition: width .25s; }
+.shr-gauge.over .bar i { background: var(--warn); }
+.shr-gauge p { font-size: .8rem; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; gap: 12px; }
+.shr-gauge p span:last-child { white-space: nowrap; }
+.shr-gauge.over p b { color: var(--warn); }
+.shr-incl { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+.shr-incl .eyebrow { margin-right: 4px; }
+.shr-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: .82rem; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+.shr-chip[aria-pressed="true"] { border-color: var(--steel); background: var(--steel-soft); color: var(--steel); }
+.shr-chip[disabled] { cursor: default; opacity: 1; }
+.shr-note { display: flex; gap: 8px; font-size: .85rem; padding: 8px 10px; border-radius: 8px; margin-top: 8px; align-items: flex-start; }
+.shr-note .ic { flex: none; width: 1.05rem; height: 1.05rem; margin-top: 1px; }
+.shr-note.w { background: var(--warn-soft); color: var(--warn); }
+.shr-note.i { background: var(--steel-soft); color: var(--ink); }
+.shr-note button.link { font-size: inherit; }
+dialog.shr-recv { max-width: min(520px, calc(100vw - 32px)); width: 520px; padding: 0; overflow: hidden; }
+.shr-recv .in { padding: 18px; }
+.shr-recv h3 { overflow-wrap: anywhere; }
+.shr-mini { display: block; width: 100%; height: 120px; margin: 12px 0; background: var(--gv-bg); border: 1px solid var(--line); border-radius: 8px; }
+.shr-mini rect { fill: var(--gv-node); stroke: var(--gv-node-line); }
+.shr-mini path { fill: none; stroke: var(--gv-edge); stroke-width: 1.5; }
+.shr-recv .shr-facts { margin: 0; }
+.shr-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--ok); color: var(--ok); padding: 7px 16px; border-radius: 8px; z-index: 1270; font-size: .9rem; }
+.shr-toast.bad { border-color: var(--bad); color: var(--bad); }
+.cmd-step .saved-tag { display: table; margin-top: 2px; font-family: var(--f-mono); font-size: .66rem; color: var(--warn); background: var(--warn-soft); padding: 0 6px; border-radius: 999px; white-space: normal; max-width: 100%; }
