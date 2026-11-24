@@ -127,7 +127,19 @@ function contacts(f: FactoryPlan, name: Name, color: Map<string, string>): strin
 }
 
 /** Dessin de l'usine (SVG), à placer dans un cadre navigable. La parcelle du joueur est tracée si connue. */
-export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf: TierOf, flows: FactoryArrow[] = []): { svg: string; width: number; height: number } {
+/** R15 : dessin de l'intérieur d'un ensemble modulaire (ferme, moteur), posé à sa place dans l'usine. */
+export type InnerSvg = (key: string) => { svg: string; width: number; height: number } | null;
+/** R15 : vrai si l'intérieur de cet ensemble est dessiné (ce n'est alors plus une place seulement réservée). */
+let drawnInside: (key: string) => boolean = () => false;
+export function setDrawnInside(fn: (key: string) => boolean): void {
+  drawnInside = fn;
+}
+/** Un SVG complet replacé dans un cadre (x, y, w, h) du dessin de l'usine, proportions gardées. */
+export function nestSvg(svg: string, x: number, y: number, w: number, h: number): string {
+  return svg.replace(/^<svg(?=\s|>)([^>]*)>/, (_, attrs: string) => `<svg${attrs.replace(/\s(?:xmlns|role|aria-label)="[^"]*"/g, "")} x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet">`);
+}
+
+export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf: TierOf, flows: FactoryArrow[] = [], inner?: InnerSvg): { svg: string; width: number; height: number } {
   const color = factoryColors(f);
   // S25 : le dessin est cadré sur l'usine ; la parcelle n'est qu'un repère (ses bords au-delà sont coupés).
   const VW = f.W + 2;
@@ -154,6 +166,9 @@ export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf:
           for (const d of links) s += `<line x1="${cx}" y1="${cy}" x2="${cx + (STEP[d].x * C) / 2}" y2="${cy + (STEP[d].y * C) / 2}" stroke="${color.get(item(net)) ?? "#9aa7b4"}" stroke-width="${wide(net) ? 4 : 2.2}"/>`;
       }
       s += `</g>`;
+    } else {
+      const v = inner?.(b.key);
+      if (v) s += `<g class="u-detail u-inner">${nestSvg(v.svg, b.x * C + 2, b.y * C + 2, b.w * C - 4, b.h * C - 4)}</g>`;
     }
     const fs = Math.max(5, Math.min(20, ((b.w * C) / Math.max(b.sub.length, b.label.length * 0.62)) * 1.25, (b.h * C) / 4.2));
     const cx = (b.x + b.w / 2) * C;
@@ -260,8 +275,9 @@ export function incompleteMachines(f: FactoryPlan): { box: Box; reasons: string[
   const out: { box: Box; reasons: string[]; survey: boolean }[] = [];
   for (const b of f.boxes) {
     const reasons: string[] = [];
-    if (!b.mod) reasons.push(t("uf.why.reserved", { w: String(b.w), h: String(b.h) }));
-    else {
+    if (!b.mod) {
+      if (!drawnInside(b.key)) reasons.push(t("uf.why.reserved", { w: String(b.w), h: String(b.h) }));
+    } else {
       if (!b.mod.portsKnown) reasons.push(t("uf.why.ports"));
       if (b.mod.costUnknown) reasons.push(t("uf.why.price", { n: b.mod.costUnknown }));
       for (const p of b.mod.problems) reasons.push(txt(p.message));

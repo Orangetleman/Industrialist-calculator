@@ -76,6 +76,8 @@ export type ModelOptions = {
   scrubbers?: boolean;
   /** Recettes imposées par item (critère « moins d'étapes » : choix de l'heuristique). */
   restrictTo?: (item: string) => string[] | null;
+  /** Recettes écartées du modèle (recettes imposées : celles qui produiraient un objet réservé à d'autres). */
+  excludeRecipe?: (id: string) => boolean;
   depots?: DepotSpec[];
 };
 
@@ -127,7 +129,7 @@ export function buildFlowModel(data: GameData, player: Progress, chooser: Choose
     queue.push(item);
   };
   const addRecipe = (eff: EffRecipe) => {
-    if (procs.has(eff.recipe.id)) return;
+    if (procs.has(eff.recipe.id) || opts.excludeRecipe?.(eff.recipe.id)) return;
     const p = recipeProc(eff, data.machines);
     procs.set(p.id, p);
     for (const [k, v] of Object.entries(p.perMin)) if (v < 0 && k !== ENERGY) visit(k);

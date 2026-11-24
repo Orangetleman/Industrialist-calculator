@@ -66,6 +66,7 @@ import {
 import { PanZoom } from "./canvas.ts";
 import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
 import { ic } from "./bac-icons.ts";
+import { lecture } from "./profile-store.ts";
 import { closePop, openPopMenu, popAnchorEl, popEl } from "./popmenu.ts";
 import { CATS } from "./sandbox-model.ts";
 import { esc, fmt, fmtMF, fmtPct, parseNum, quote, semi } from "./format.ts";
@@ -120,7 +121,7 @@ export function initBuildings(
   diesel: { get(): DieselReading[]; set(list: DieselReading[]): void } = { get: () => [], set: () => {} },
   /** S35 : « 📤 Envoyer mes relevés » ouvre la fenêtre « Remarque » avec ce fichier joint. */
   onSend?: (piece: Piece) => void,
-): { show(id: string): void; refresh(): void } {
+): { show(id: string): void; refresh(): void; reload(): void } {
   const pruned = pruneIntegrated(loadLocalSurveys(), repo);
   let local: Record<string, PortsEntry> = pruned.kept;
   if (pruned.dropped.length) save();
@@ -1580,7 +1581,8 @@ export function initBuildings(
   function renderSend(): void {
     const btn = root.querySelector<HTMLButtonElement>("#bld-send");
     if (!btn) return;
-    const has = Object.keys(local).length + Object.keys(localIfaces).length + Object.keys(localMod).length + diesel.get().length > 0;
+    // Session de lecture : ces relevés sont ceux de l'auteur, pas à envoyer comme les nôtres.
+    const has = !lecture() && Object.keys(local).length + Object.keys(localIfaces).length + Object.keys(localMod).length + diesel.get().length > 0;
     btn.hidden = !has;
     const note = has ? sentNote(loadSent()["releves-batiments.json"], surveysPiece().contenu) : "";
     const io = $("#bld-io");
@@ -1614,6 +1616,20 @@ export function initBuildings(
     refresh(): void {
       renderList();
       renderEditor();
+    },
+    /** Le profil actif a changé (session de lecture) : relevés et interfaces relus, saisie en cours abandonnée. */
+    reload(): void {
+      local = pruneIntegrated(loadLocalSurveys(), repo).kept;
+      localIfaces = Object.fromEntries(Object.entries(loadLocalInterfaces()).filter(([id, i]) => JSON.stringify(i) !== JSON.stringify(repoIfaces[id])));
+      if (selectedId) {
+        const was = onSelect;
+        onSelect = () => {}; // l'adresse ne bouge pas
+        select(selectedId);
+        onSelect = was;
+      } else {
+        renderList();
+        renderEditor();
+      }
     },
     show(id: string): void {
       if (id === selectedId || !data.machines.has(id)) return;

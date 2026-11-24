@@ -125,3 +125,29 @@ jeu avant usage.
    deviendra alors inutile.
 3. Chercher sur le wiki l'origine des formules du § 4, d'abord la température de la vapeur (5
    machines) et la pollution globale.
+
+## 6. Mineshaft Drill (remarque joueur n°16, 2026-11-16)
+
+Leur fichier `src/data/special_recipes/mineshaft_drill.ts` (branche `main`, lu le 2026-11-16) comparé à la
+page **Mineshaft Drill** de Miraheze (révision 44241) et à ses tableaux
+`Template:Mineshaft-Drill-Table/300` à `/8200` (révisions 24785 à 34627). Ce que nous avons repris d'eux est
+marqué « source : Industrialist Calculator » dans `data/mineshaft.json` et renvoyé à `data/a-verifier.md`
+(MSD-01 à MSD-07).
+
+| Point | Eux | Wiki | Retenu |
+| --- | --- | --- | --- |
+| Multiplicateurs des têtes (Copper d/150, Iron 0,04·d^0,25, Steel 0,02·d^0,25, Tungsten 0,005·d^0,25) | identiques | section Durability | wiki |
+| Multiplicateurs des acides (None, Water, Acetic, Sulfuric, Hydrochloric) et débits (10 / 3 / 1 / 1,5 L/s) | identiques | idem | wiki |
+| Perte de durabilité | 0,5 × tête × acide × huile | 0,5 × tête × acide × **Resource Modifier** × Speed Modifier | Resource Modifier = 1, à vérifier (MSD-01) |
+| Durée de vie d'une tête | ⌈100 ÷ perte⌉ | non dite | 100 ÷ perte, sans arrondi (MSD-06) |
+| Trajet | aller-retour 2 × d ÷ 50 m/s (÷ 100 avec huile) à chaque tête | vitesse 50 / 100 m/s ; aller-retour non dit | eux (MSD-02) |
+| Changement de tête | 12 s | non dit | eux (MSD-03) |
+| Énergie | 2 MMF/s extraction, 0,5 trajet, 0,1 changement | 3,1 MMF/s en forage (0,1 passif + 3), passif au changement | wiki ; trajet 3,1 faute de source (MSD-04) |
+| Acide | seulement pendant l'extraction | non dit | eux (MSD-05) |
+| Machine Oil | +10 % rendement et usure, trajet ×2, 2 L/s hors changement | identique | wiki |
+| Profondeurs | 100 m (copie de 300 m) puis 300 à 9 000 m | 300 à 9 000 m | wiki (pas de 100 m) |
+| Rendements | voir MSD-07 : 2 000 m Raw Lead 9,27 ; 4 000 m Table Salt 58,54 ; 7 000 m Rock 11,65 ; 7 800 m Medium Earth Fragment 7,67 ; 8 200-9 000 m deux décimales | 9,3 ; 58,84 ; pas de Rock ; 6,67 ; une décimale | wiki |
+| Réglage par défaut | 6 000 m (ou la meilleure profondeur pour l'objet demandé), Steel, Hydrochloric, sans huile | « Hydrochloric recommandé » | profondeur auto (la meilleure par objet), Steel, Hydrochloric, sans huile |
+
+Non repris : la dynamite (premier puits seulement, MSD-06). Leur graphe `!ratios` (import d'un plan
+calculé chez eux) reste un lot à part.

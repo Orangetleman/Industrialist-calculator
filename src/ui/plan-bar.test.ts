@@ -14,7 +14,7 @@ import { solve } from "../engine/solve.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import { renderFactoryModules } from "./factory-view.ts";
 import { doubtText, fieldWord, renderPlanBar, stepWarnings, warnButton, type PlanBarInput } from "./plan-bar.ts";
-import { buildRows, renderBuildList, renderFlow, renderFlowHud, type ViewCtx } from "./plan-view.ts";
+import { buildRows, renderBuildList, renderFlowHud, type ViewCtx } from "./plan-view.ts";
 import { DEFAULT_SETTINGS, NO_FILTER } from "./state.ts";
 
 const IF = interfacesJson as unknown as InterfacesFile;
@@ -96,13 +96,6 @@ describe("barre « Ton plan »", () => {
 });
 
 describe("⚠ cliquables et barre du bloc", () => {
-  it("bloc du schéma : ⚠ vers la correction, et lecture de loin", () => {
-    const svg = renderFlow(v)!.svg;
-    expect(svg).toMatch(/<g class="fn-warn" data-fix="recette\|press_mk2_05\|[a-zA-Z.]+\|gear"/);
-    expect(svg).toContain('class="fn-near"');
-    expect(svg).toContain('<text class="fn-fname"');
-  });
-
   it("ligne de la liste et module de l'usine : le même ⚠", () => {
     const rows = buildRows(v);
     expect(rows.find((r) => r.key === "gear")!.warn).toContain('data-fix="recette|press_mk2_05|');

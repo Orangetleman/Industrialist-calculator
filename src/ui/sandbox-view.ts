@@ -11,7 +11,8 @@ import {
 } from "../engine/sandbox/index.ts";
 import type { SandboxAnswer, SandboxAsk } from "./sandbox.worker.ts";
 import { clipLayout, clipOf, clipToSchematic, copyZone, flipClip as flipClipItems, mergeFills, relink, rotateClip, type Clip } from "../engine/schematic/clip.ts";
-import { fromCode, readMsch, toCode, writeMsch, type Schematic } from "../engine/schematic/msch.ts";
+import { fromCode, type Schematic } from "../engine/schematic/msch.ts";
+import { decodeDesign, designFromFile, designFromSchematic, designLink, encodeDesign, encodeDesignBytes, schematicOf } from "../engine/share/index.ts";
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
 import { ic } from "./bac-icons.ts";
@@ -786,15 +787,17 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
 
   // ------------------------------------------------------------ schémas (F, Z / X, T)
-  // Fenêtre copiée de SchematicsDialog (Mindustry, maquette S53) ; code, fichier et lien au format .msch (S54, S55).
+  // Fenêtre copiée de SchematicsDialog (Mindustry, maquette S53) ; code, fichier .indus et lien au format du partage (P4).
   type Saved = { name: string; desc?: string; tags?: string[]; clip: Clip };
   const loadSch = (): Saved[] => { try { return JSON.parse(localStorage.getItem(KEY_SCHEM) || "[]") as Saved[]; } catch { return []; } };
   const schUi = { q: "", tags: [] as string[] };
   const clipToSch = (s: Omit<Saved, "clip">, c: Clip): Schematic => clipToSchematic(c, s);
-  /** Lit un code .msch, ou un ancien code (JSON en base64). */
+  const toCode = (s: Schematic) => encodeDesign(designFromSchematic(s));
+  /** Lit un code ou un lien de partage, ou un ancien code du bac à sable. */
   async function readCode(code: string): Promise<{ meta: Omit<Saved, "clip">; clip: Clip | null }> {
     try {
-      const s = await fromCode(code);
+      const s = await decodeDesign(code).then(schematicOf, () => fromCode(code));
+      if (!s) throw new Error("vide");
       return { meta: { name: s.name, desc: s.description, tags: s.labels }, clip: clipOf(cat, s.layout) };
     } catch {
       const c = decOld<{ items: Clip["items"] }>(code);
@@ -832,7 +835,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       <h3>${esc(t("bac.sch.cost"))}</h3><div class="kv"><div>${esc(fmtMoney(price))}</div><div>${esc(t("bac.sch.size", { w: c.W, h: c.H }))}</div></div>
       <h3>${esc(t("bac.sch.blocks"))}</h3><div class="kv">${[...n].map(([id, k]) => `<div>${k} × ${esc(cat.blocks.get(id)?.name ?? id)}</div>`).join("")}</div>`, schematics);
   }
-  const linkOf = (code: string) => `${location.origin}${location.pathname}#bac/${encodeURIComponent(code)}`;
+  const linkOf = (code: string) => designLink(location.origin, code);
   async function schExport(i: number): Promise<void> {
     const s = loadSch()[i]!, n = linkOf(await toCode(clipToSch(s, s.clip))).length, ok = n <= 2000;
     openDlg(`<div class="ttl">${ic("share")} ${esc(t("bac.sch.exportOf", { name: s.name }))}</div>
@@ -843,7 +846,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     openDlg(`<div class="ttl">${ic("download")} ${esc(t("bac.sch.import"))}</div>
       <div class="sch-menu"><button type="button" data-sch="paste">${ic("copy")} ${esc(t("bac.sch.fromClip"))}</button><button type="button" data-sch="openf">${ic("download")} ${esc(t("bac.sch.fromFile"))}</button></div>
       <h3>${esc(t("bac.sch.code"))}</h3><textarea id="bac-sch-in" aria-label="${esc(t("bac.sch.code"))}"></textarea><div class="row"><button type="button" data-sch="imp">${esc(t("bac.sch.importBtn"))}</button></div>
-      <p class="muted">${esc(t("bac.sch.noWorkshop"))}</p>`, schematics);
+`, schematics);
   }
   function schEdit(i: number): void {
     const s = loadSch()[i]!;
@@ -855,7 +858,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   }
   const download = (bytes: Uint8Array, name: string) => {
     const u = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/octet-stream" })), a = document.createElement("a");
-    a.href = u; a.download = `${name.replace(/[\\/:*?"<>|]/g, "_") || "schema"}.msch`; a.click(); URL.revokeObjectURL(u);
+    a.href = u; a.download = `${name.replace(/[\\/:*?"<>|]/g, "_") || "schema"}.indus`; a.click(); URL.revokeObjectURL(u);
   };
   /** Tout le montage en schéma (câbles et liaisons compris) : code, fichier et lien. */
   async function schWhole(): Promise<void> {
@@ -886,10 +889,10 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     else if (a === "impmenu") schImport();
     else if (a === "whole") await schWhole();
     else if (a === "copy" && s) await copyText(await toCode(clipToSch(s, s.clip)));
-    else if (a === "file" && s) download(await writeMsch(clipToSch(s, s.clip)), s.name);
+    else if (a === "file" && s) download(await encodeDesignBytes(designFromSchematic(clipToSch(s, s.clip))), s.name);
     else if (a === "link" && s) { const u = linkOf(await toCode(clipToSch(s, s.clip))); if (u.length <= 2000) await copyText(u); }
     else if (a === "wcopy" && wholeCache) await copyText(wholeCache.code);
-    else if (a === "wfile" && wholeCache) download(await writeMsch(wholeCache.sch), wholeCache.sch.name);
+    else if (a === "wfile" && wholeCache) download(await encodeDesignBytes(designFromSchematic(wholeCache.sch)), wholeCache.sch.name);
     else if (a === "wsave" && wholeCache) { addSch({ name: wholeCache.sch.name }, wholeCache.clip); schematics(); }
     else if (a === "paste" || a === "imp") {
       let code = val("bac-sch-in");
@@ -897,11 +900,11 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       try { const r = await readCode(code); if (!addSch(r.meta, r.clip)) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
     } else if (a === "openf") {
       const inp = document.createElement("input");
-      inp.type = "file"; inp.accept = ".msch";
+      inp.type = "file"; // pas de filtre : les anciens fichiers se lisent aussi
       inp.onchange = async () => {
         const f = inp.files?.[0];
         if (!f) return;
-        try { const s2 = await readMsch(new Uint8Array(await f.arrayBuffer())); if (!addSch({ name: s2.name || f.name.replace(/\.msch$/i, ""), desc: s2.description, tags: s2.labels }, clipOf(cat, s2.layout))) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
+        try { const s2 = schematicOf(await designFromFile(new Uint8Array(await f.arrayBuffer()))); if (!s2 || !addSch({ name: s2.name || f.name.replace(/\.[^.]+$/, ""), desc: s2.description, tags: s2.labels }, clipOf(cat, s2.layout))) throw new Error("vide"); schematics(); say(t("bac.sch.imported")); } catch { say(t("bac.sch.bad")); }
       };
       inp.click();
     } else if (a === "addtag" && s) {
@@ -1642,6 +1645,24 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       placeRoot();
       if (!ui.mounted) { ui.mounted = true; skeleton(); }
       loadSchematic(s); // recadre dès que la page a sa taille
+    },
+    /** Le montage tel quel (partage d'un design, P2) : une copie, le bac à sable n'est jamais touché. */
+    layout(): Layout {
+      return structuredClone({ blocks: S.blocks, wires: S.wires, routes: S.routes, fills: S.fills });
+    },
+    /** Remplace le montage à l'identique (design partagé ouvert) : ni renumérotation ni recadrage du schéma. */
+    setLayout(L: Layout): void {
+      const next: State = structuredClone({ blocks: L.blocks, wires: L.wires, routes: L.routes ?? [], fills: L.fills ?? {} });
+      if (!ui.mounted) {
+        S = next;
+        store(KEY_STATE, S);
+        return;
+      }
+      snap();
+      S = next;
+      ui.pinned = null;
+      changed();
+      fit();
     },
     /** Langue changée ou données corrigées : tout est redessiné, le montage et la vue gardés. */
     refresh(): void {

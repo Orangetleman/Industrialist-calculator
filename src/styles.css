@@ -1,5 +1,5 @@
 /* S59 : charte « Plasma Chantier » (maquette/charte.html, validée le 2026-11-01) : violet profond, accent orange
-   sécurité, bandeau hachuré, police Audiowide partout (celle des lettres de Mindustry). Sombre par défaut ; le clair est une option (bouton de l'en-tête).
+   sécurité, bandeau hachuré, police Audiowide pour les titres, onglets et logo (remarque n° 14 : IBM Plex Sans pour le texte, Plex Mono pour les chiffres). Sombre par défaut ; le clair est une option (bouton de l'en-tête).
    Entrée = cyan (--in), sortie = mauve (--out), doublées d'une icône : le rouge reste aux erreurs. */
 :root {
   --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
@@ -13,9 +13,13 @@
   --cv-bg: #120c20; --cv-bg2: #181029; --cv-panel: #221836; --cv-raised: #2d2147; --cv-line2: #3a2b5c; --cv-line: #4f3d7a;
   --cv-ink: #f0ecfa; --cv-muted: #b3a7d1; --cv-acc: #ff6a1a; --cv-acc-ink: #ff9a5e; --cv-acc-hi: #ffb489; --cv-acc-soft: #33190c;
   --cv-steel: #c4a1ff; --cv-hud: #1d1430f0;
+  /* Éditeur de graphe (G2) : charbon profond semé de croix (décision n° 3), nœuds et prises ; sombre dans les deux thèmes. */
+  --gv-bg: #08070a; --gv-node: #130f1c; --gv-node-line: #3b2e5a; --gv-node-head: #1a1426; --gv-edge: #7d6fa8;
+  --gv-in: #38bdf8; --gv-in-ink: #8fd8fb; --gv-in-soft: #0f2235; --gv-out: #e879f9; --gv-out-ink: #f0abfc; --gv-out-soft: #2d1436;
+  --gv-bad: #ff7a9a; --gv-bad-soft: #36121e; --gv-warn: #ffd23f;
   --f-display: "Audiowide", "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
-  --f-body: "Audiowide", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "Audiowide", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -118,6 +122,7 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 .focus-posed label.done { color: var(--ok); }
 /* Visite d'orientation (S24) : voile, projecteur, bulle fixe en bas ; bouton « ? » de l'en-tête. */
 .help-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 700; cursor: pointer; flex: none; padding: 0; }
+.help-btn.wide { width: auto; border-radius: 999px; padding: 0 10px; white-space: nowrap; }
 .help-btn:hover { color: var(--accent); border-color: var(--accent); }
 /* S30 : bouton FR / EN (maquette S16, écran 1). */
 .lang-sw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
@@ -203,6 +208,7 @@ html.touring { overflow: hidden; } /* sur html seulement : sur body, l'en-tête 
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-spot.pulse { animation: none; } }
 .tour-bubble { position: fixed; z-index: 1302; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); display: none; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); transition: top .3s, left .3s; }
 .tour-bubble.near { transform: none; bottom: auto; width: min(400px, calc(100vw - 24px)); }
+.tour-bubble.up { bottom: auto; }
 .tour-pin { position: absolute; top: 8px; right: 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font-size: .72rem; padding: 1px 8px; cursor: pointer; }
 .tour-pin:hover { color: var(--accent); border-color: var(--accent); }
 .tour-wait { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--ink); }
@@ -236,6 +242,9 @@ main:focus { outline: none; }
 .page { display: flex; flex-direction: column; gap: 16px; }
 footer.src { max-width: 1120px; margin: 0 auto; padding: 14px 16px 40px; border-top: 1px solid var(--line); font-size: .8rem; color: var(--muted); display: grid; gap: 4px; }
 footer.src p { margin: 0; }
+.foot-credit { font-size: .8rem; color: var(--muted); }
+.foot-credit a { color: var(--muted); }
+.me-credit { margin-top: 2rem; font-size: .85rem; }
 footer.src a { color: var(--muted); }
 
 /* ---------------------------------------------------------------- accueil */
@@ -301,7 +310,7 @@ ul.notices li.tip::before { background: var(--ok); }
 
 /* Onglets de résultat */
 .rtabs { display: flex; gap: 4px; margin-top: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
-.rtabs button { border: 0; border-radius: 0; background: none; padding: 9px 14px; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
+.rtabs button { font-family: var(--f-display); border: 0; border-radius: 0; background: none; padding: 9px 14px; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
 .rtabs button:hover { color: var(--ink); }
 .rtabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
 .rpanel { background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; padding: 14px 16px; margin-top: -16px; display: flex; flex-direction: column; gap: 10px; }
@@ -346,36 +355,6 @@ body.panning { -webkit-user-select: none; user-select: none; }
 .flow-empty { color: var(--cv-muted); padding: 16px; margin: 0; }
 .flow-frame.empty { height: auto !important; cursor: default; }
 .flow-frame.empty .flow-help, .flow-frame.empty .rs-zoom { display: none; }
-.fn rect { fill: var(--cv-panel); stroke: var(--cv-line); stroke-width: 1.2; }
-.fn.final rect { stroke: var(--cv-acc); stroke-width: 2.2; }
-.fn.raw rect { fill: var(--cv-bg2); }
-.fn.unresolved rect { fill: var(--cv-bg); stroke: var(--cv-acc); stroke-dasharray: 5 4; }
-.fn.existing rect { fill: #1d2a22; stroke: #6cc792; }
-.fn-name { fill: var(--cv-ink); font: 600 13px var(--f-body); }
-.fn-sub { fill: var(--cv-muted); font: 400 11.5px var(--f-mono); }
-.fn-rate { fill: var(--cv-acc-ink); font: 600 12px var(--f-mono); }
-/* Machines fixées (S8) : cadre en tirets ; celle qui limite en orange. */
-.fn.fixed rect { stroke: var(--cv-steel); stroke-width: 2.2; stroke-dasharray: 6 3; }
-.fn.limit rect { stroke: var(--cv-acc); stroke-width: 2.6; stroke-dasharray: none; }
-.fn-tag { fill: var(--cv-steel); font: 600 10.5px var(--f-mono); }
-.fn-tag.limit { fill: var(--cv-acc-ink); }
-.fn { cursor: pointer; }
-.fn:hover rect { stroke: var(--cv-steel); }
-.fn.sel rect { stroke: #2ec4c9; stroke-width: 2.6; }
-.has-sel .fn:not(.sel):not(.hl) { opacity: .35; }
-/* Valeur à vérifier (S28) : ⚠ cliquable sur le bloc, vers la correction. */
-.fn .fn-warn rect { fill: #3b2c1f; stroke: #e3b25a; stroke-width: 1.2; stroke-dasharray: none; }
-.fn .fn-warn .ic { color: #e3b25a; pointer-events: none; }
-.fn .fn-warn:hover rect { fill: #5a3f1c; }
-/* Vue de loin (S28) : le nom et les machines en gros ; les étiquettes des flèches au survol seulement. */
-.fn-fname { fill: var(--cv-ink); font: 600 27px var(--f-body); }
-.fn-fsub { fill: var(--cv-muted); font: 500 19px var(--f-mono); }
-.fn.final .fn-fsub { fill: var(--cv-acc-ink); }
-.flow-frame:not(.far) .fn-far, .flow-frame.far .fn-near { display: none; }
-.flow-frame.far .fl:not(.hl):not(.hover) { display: none; }
-.flow-frame.far .fn .fn-warn .ic { stroke-width: 2.6; }
-.has-sel .fe:not(.hl), .has-sel .fl:not(.hl) { opacity: .12; }
-.has-sel .fe.hl { stroke-width: 2.4; }
 .flow-hud { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--cv-hud); border: 1px solid var(--cv-line); color: var(--cv-ink); }
 .flow-hud-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 14px; }
 .flow-hud-notes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -478,16 +457,6 @@ a.src-tag:hover, button.src-tag:hover { text-decoration: underline; }
 .step-links h4 { margin: 4px 0; font-size: .92rem; }
 .links-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: .9rem; }
 .pose-actions { margin: 6px 0; }
-.fe { fill: none; stroke: var(--cv-acc); stroke-width: 1.6; opacity: .7; }
-.fe.loop { stroke-dasharray: 5 4; opacity: .55; }
-.fe-hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; pointer-events: stroke; }
-.fe.hover { stroke-width: 3.4; opacity: 1; stroke: var(--cv-acc-hi); }
-.fl { cursor: pointer; }
-.fl.hover rect, .fl.hl rect { stroke: var(--cv-acc-hi); stroke-width: 1.6; }
-.fa { fill: var(--cv-acc); }
-.fl rect { fill: var(--cv-acc-soft); stroke: #b84a14; stroke-width: .8; }
-.fl text { fill: var(--cv-acc-ink); font: 500 10.5px var(--f-mono); }
-.fl text.fl-name { fill: var(--cv-ink); font: 500 10.5px var(--f-body); }
 
 /* Plans de pose (vue de dessus d'un module) */
 .pose-pick { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); max-width: 100%; }
@@ -776,6 +745,8 @@ details.fold > summary { cursor: pointer; }
 .rs-bub-st .num { color: #2ec4c9; font-family: var(--f-mono); }
 .rs-bubble .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .rs-bubble .actions button { padding: 4px 10px; font-size: .82rem; }
+.tree-all { display: inline-flex; gap: 6px; margin-left: auto; }
+.tree-all button { padding: 4px 10px; font-size: .82rem; }
 .tree-unlockmode { display: inline-flex; align-items: center; gap: 6px; }
 .tree-unlockmode .seg button { padding: 4px 10px; font-size: .82rem; }
 /* Canevas + fiche à droite (comme le panneau « Description » du jeu). */
@@ -1638,6 +1609,10 @@ table.rh-log td.num { white-space: nowrap; }
   .cmd-rail { overflow: hidden !important; padding: 0 !important; display: flex; flex-direction: column; }
   .cmd-rail > .cmd-h { position: static; margin: 0; flex: none; padding: 9px 10px; border-bottom: 1px solid var(--line); }
   .cmd-rb { flex: 1; min-height: 0; overflow: auto; padding: 8px 10px; }
+  /* P2 bis : les étapes défilent au-dessus, « Mes designs » reste à l'écran avec son propre défilement. */
+  .cmd-left .cmd-rb { display: flex; flex-direction: column; overflow: hidden; }
+  .cmd-rb-top { flex: 1 1 0; min-height: 120px; overflow: auto; }
+  .cmd-left .dsgs { flex: 0 1 auto; min-height: 110px; max-height: 45%; overflow: auto; }
   .cmd-panes { position: relative; flex: 1; min-height: 0; overflow: hidden; }
   .cmd-pane { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--surface); transition: transform .2s ease, opacity .2s ease; }
   .cmd-pane.sub { transform: translateX(100%); visibility: hidden; }
@@ -1658,20 +1633,20 @@ table.rh-log td.num { white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .cmd-pane, .cmd-prog i { transition: none; } }
 
 /* ---------------------------------------------------------------- S67 : bulle d'un module dans l'Usine */
-[data-focus-big] { display: none; }
 @media (min-width: 900px) {
   #pose-split.focus { display: block; position: relative; }
   #pose-split.focus .pose-frame { height: calc(100cqh - 38px) !important; }
-  #pose-focus { position: absolute; left: 0; top: 0; z-index: 5; width: 310px; max-height: calc(100cqh - 60px); overflow: auto; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px #0008; transform-origin: 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+  #pose-focus { position: absolute; left: 0; top: 0; z-index: 5; width: 360px; max-height: calc(100cqh - 60px); overflow: auto; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px #0008; transform-origin: 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
   #pose-focus[hidden] { display: none; }
-  #pose-focus.big { width: min(580px, 70%); }
-  #pose-focus [data-focus-big] { display: inline-grid; }
-  #pose-focus [data-focus-full], #pose-focus .focus-bar button.link { display: none; }
-  #pose-focus:not(.big) :is(.focus-frame, #focus-bar-opts, #focus-legend, #focus-details) { display: none; }
+  #pose-focus .focus-bar button.link { display: none; }
+  /* R15 : le dessin est dans la bulle dès le clic ; la légende et le détail en plein écran seulement. */
+  #pose-focus:not(.full) :is(#focus-legend, #focus-details) { display: none; }
+  #pose-focus.full { position: fixed; inset: 0; width: auto; max-height: none; transform: none !important; z-index: 50; }
+  #pose-focus.full .focus-frame { flex: 1; height: auto !important; min-height: 240px; }
   #pose-focus .focus-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 1; }
   #pose-focus .focus-title { flex: 1; font-size: .84rem; }
   #pose-focus .focus-info { padding: 8px 10px; font-size: .82rem; }
-  #pose-focus .focus-frame { height: 280px !important; border-radius: 0; margin: 0 10px; }
+  #pose-focus .focus-frame { height: 220px !important; border-radius: 0; margin: 0 10px; }
   #pose-focus #focus-bar-opts { padding: 6px 10px 0; }
   #pose-focus #focus-bar-opts .hint { display: none; }
 }
@@ -1699,7 +1674,7 @@ table.rh-log td.num { white-space: nowrap; }
 .cmd-li .ic-warn { color: var(--warn); }
 /* Bulle petite : l'essentiel seulement (posé, la ligne du module, les actions) ; ⤢ montre le reste. */
 @media (min-width: 900px) {
-  #pose-focus:not(.big) #focus-head > :not(.focus-posed):not(.pose-actions):not(:nth-child(2)) { display: none; }
+  #pose-focus:not(.full) #focus-head > :not(.focus-posed):not(.pose-actions):not(:nth-child(2)) { display: none; }
 }
 
 /* ---------------------------------------------------------------- Plus près de la maquette volets.html */
@@ -1725,6 +1700,9 @@ table.rh-log td.num { white-space: nowrap; }
   #page-plan .rtabs button[aria-selected="true"] { box-shadow: inset 0 -2px var(--accent); }
   #page-plan .cmd-help { position: absolute; right: -26px; top: 50%; transform: translateY(-50%); margin: 0; }
   #rpanel-liste:not([hidden]), #rpanel-details:not([hidden]) { padding-top: 52px !important; }
+  /* Bandeau du graphe édité (G4) : sous les onglets, posé sur le plan comme eux. */
+  #page-plan .gbar { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); z-index: 6; width: max-content; max-width: calc(100% - 130px); margin: 0; background: var(--surface); }
+  .cmd-stage:has(> .gbar:not([hidden])) :is(#rpanel-liste, #rpanel-details):not([hidden]) { padding-top: 120px !important; }
   /* Outils : une seule colonne à droite, le zoom puis les affichages. */
   #page-plan .rs-zoom { top: 50%; right: 10px; transform: translateY(-100%); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; gap: 0; }
   #page-plan .rs-zoom button { border: 0; border-radius: 0; }
@@ -1745,7 +1723,7 @@ table.rh-log td.num { white-space: nowrap; }
 .cmd-alerts .cmd-li { font-size: .78rem; }
 .cmd-alerts span.cmd-li { cursor: default; }
 @media (min-width: 900px) {
-  #pose-focus:not(.big) #focus-head > .cmd-alerts { display: flex !important; }
+  #pose-focus:not(.full) #focus-head > .cmd-alerts { display: flex !important; }
 }
 /* Levier aligné sur la ligne « Toute l'usine », pleine largeur. */
 .cmd-row:first-child > .cmd-box { display: none; }
@@ -1812,6 +1790,8 @@ table.rh-log td.num { white-space: nowrap; }
 .pop-menu { position: fixed; z-index: 40; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 6px 22px rgb(0 0 0 / .45); overflow-y: auto; max-width: min(420px, calc(100vw - 16px)); padding: 3px; display: flex; flex-direction: column; gap: 2px; }
 .pop-menu button { display: flex; align-items: center; gap: 8px; text-align: left; border-color: transparent; background: transparent; min-height: 32px; padding: 4px 8px; }
 .pop-menu button:hover, .pop-menu button:focus-visible { background: var(--panel2); border-color: var(--line); }
+.pop-menu.gv-file-pop { z-index: 1260; min-width: min(320px, calc(100vw - 16px)); }
+.gv-file-pop button { flex-direction: column; align-items: flex-start; gap: 0; }
 .pop-menu button.on { border-color: var(--accent); background: var(--accent-soft); }
 .bld-catbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
 
@@ -1834,3 +1814,355 @@ table.rh-log td.num { white-space: nowrap; }
 .rs-blk { font-size: .85rem; margin: 6px 0; }
 .rs-blk summary { display: inline-block; background: #e5484d; color: #fff; font-weight: 700; padding: 1px 8px; cursor: pointer; }
 .rs-blk p { margin: 4px 0 0; padding: 4px 8px; border-left: 3px solid #e5484d; }
+
+/* Remarque n° 14 : les onglets du site gardent Audiowide (option B). */
+[data-nav] { font-family: var(--f-display); }
+/* Remarque n° 14 : étape guidée par l'action (ligne « → … ») et liste « Premiers pas » (checklist.ts). */
+.tour-act { margin-top: 8px; font-size: .86rem; color: var(--ok, #5fd38a); font-weight: 600; }
+.tour-act::before { content: "→ "; }
+.tour-act.done { color: var(--muted); font-weight: 400; }
+.tour-act.done::before { content: "✓ "; }
+.tour-note { margin-top: 8px; font-size: .8rem; color: var(--warn); border-left: 3px solid var(--warn); padding-left: 8px; }
+.steps-box { position: fixed; right: 14px; bottom: 14px; z-index: 1250; width: min(300px, calc(100vw - 28px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+.steps-head { display: flex; align-items: baseline; justify-content: space-between; }
+.steps-head h2 { font: 400 .95rem var(--f-display); color: var(--accent); }
+.steps-n { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); }
+.steps-bar { height: 5px; border-radius: 3px; background: var(--line); margin: 6px 0 8px; overflow: hidden; }
+.steps-bar i { display: block; height: 100%; background: var(--accent); transition: width .4s; }
+.steps-box ul { list-style: none; margin: 0; padding: 0; }
+.steps-box li button { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; color: var(--ink); padding: 4px 0; cursor: pointer; font-size: .9rem; }
+.steps-box li button::before { content: "○"; color: var(--muted); flex: none; }
+.steps-box li button:hover { color: var(--accent); }
+.steps-box li.done button { color: var(--muted); text-decoration: line-through; }
+.steps-box li.done button::before { content: "✓"; color: var(--accent); }
+.steps-box li small { color: var(--muted); font-size: .76rem; text-decoration: none; }
+.steps-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: .8rem; color: var(--muted); }
+@media (max-width: 640px) { .steps-box { right: 8px; left: 8px; bottom: 8px; width: auto; } }
+
+/* ------------------------------------------------------------ Méthodes de calcul (remarque n° 16) */
+/* Volets à plat : filets et fonds légers, aucun coin arrondi. */
+.me-link { margin: 4px 0 0; font-size: .82rem; }
+.me-page { max-width: 980px; }
+.me-body { display: flex; flex-direction: column; gap: 28px; }
+.me-body p, .me-body li { max-width: 74ch; line-height: 1.5; }
+.me-toc ol { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 8px 0; list-style: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); counter-reset: me; }
+.me-toc li { counter-increment: me; font-size: .9rem; }
+.me-toc li::before { content: counter(me) ". "; color: var(--muted); }
+.me-sec { scroll-margin-top: 80px; }
+.me-sec h2 { margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.me-pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: st; border-left: 3px solid var(--accent); }
+.me-pipe li { counter-increment: st; padding: 6px 12px 8px; border-right: 1px solid var(--line); background: var(--accent-soft); }
+.me-pipe h3 { margin: 0 0 4px; font-size: .95rem; }
+.me-pipe h3::before { content: counter(st); display: inline-block; min-width: 1.4em; margin-right: 6px; text-align: center; color: var(--bg); background: var(--accent); font-family: var(--f-mono); }
+.me-pipe p { margin: 0; font-size: .86rem; }
+.me-levels { padding-left: 1.4em; }
+.me-levels li { margin: 4px 0; }
+.me-warn { border-left: 3px solid var(--warn); padding: 4px 10px; background: var(--warn-soft); }
+.me-scroll { overflow-x: auto; }
+table.me-tbl { border-collapse: collapse; font-size: .88rem; width: 100%; }
+table.me-tbl th, table.me-tbl td { text-align: left; vertical-align: top; padding: 6px 10px 6px 0; border-top: 1px solid var(--line); }
+table.me-tbl thead th { color: var(--muted); font-weight: 600; border-top: 0; }
+table.me-tbl tbody th { white-space: nowrap; }
+table.me-ex td.num { font-family: var(--f-mono); white-space: nowrap; position: relative; }
+table.me-ex td.num > span { position: relative; }
+table.me-ex .me-bar { position: absolute; left: 0; top: 4px; bottom: 4px; background: var(--accent-soft); }
+table.me-ex td.me-best > span { font-weight: 700; color: var(--accent); }
+table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-top: 2px solid var(--line); }
+@media (max-width: 640px) { .me-pipe { border-left: 0; border-top: 3px solid var(--accent); } }
+
+/* ------------------------------------------------------------ Éditeur de graphe (PLAN-GRAPHE.md, G2) */
+/* Volet à plat : pas d'arrondi ; fond charbon profond semé de croix qui suivent le déplacement et le zoom. */
+.flow-frame.gv { border-radius: 0; background-color: var(--gv-bg); cursor: default;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10.5v7M10.5 14h7' stroke='%232b2440' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-size: var(--gv-cs, 28px) var(--gv-cs, 28px); background-position: var(--gv-cx, 0) var(--gv-cy, 0); }
+.flow-frame.gv.dragging { cursor: grabbing; }
+.flow-frame.gv .flow-help { display: none; }
+.gv #flow-canvas { position: absolute; inset: 0; width: auto; height: auto; }
+.gv-world { position: absolute; left: 0; top: 0; width: 1px; height: 1px; transform-origin: 0 0; }
+.gv-edges { position: absolute; left: 0; top: 0; width: 1px !important; height: 1px !important; overflow: visible; display: block; }
+.gv-nodes { position: absolute; left: 0; top: 0; }
+/* Groupes (G5) : cadre en tirets autour des nœuds (seul son en-tête se saisit), ou boîte repliée « empilée ». */
+.gv-frames { position: absolute; left: 0; top: 0; }
+.gf { position: absolute; left: 0; top: 0; border: 1px dashed var(--gv-edge); background: #ffffff06; pointer-events: none; }
+.gf.sel { border-color: var(--cv-acc); border-style: solid; }
+.gf-hd { pointer-events: auto; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 2px 0 10px; background: var(--gv-node-head); border-bottom: 1px dashed var(--gv-edge); color: var(--cv-ink); cursor: grab; }
+.gf.sel .gf-hd { border-bottom-color: var(--cv-acc); }
+.gf-hd b { font: 400 12px var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gf-hd small { flex: 1; color: var(--cv-muted); font: 10px var(--f-mono); white-space: nowrap; }
+.gf-hd button, .gg-open { border: 0; border-radius: 0; background: none; color: var(--cv-muted); padding: 3px; min-height: 0; cursor: pointer; display: inline-grid; place-items: center; }
+.gf-hd button:hover, .gg-open:hover { color: var(--cv-acc); }
+.gf-hd button .ic, .gg-open .ic { width: 15px; height: 15px; }
+.gn.gg { box-shadow: 5px 5px 0 -1px var(--gv-node), 5px 5px 0 0 var(--gv-node-line); }
+.gn.gg.sel { box-shadow: 0 0 0 1px var(--cv-acc), 5px 5px 0 0 var(--cv-acc); }
+.gn.gg .gn-hd { align-items: center; }
+.gv.far .gg-open { display: none; }
+.ge path { fill: none; }
+.ge-line { stroke: var(--gv-edge); stroke-width: 2; pointer-events: none; }
+.ge-hit { stroke: transparent; stroke-width: 14; cursor: pointer; pointer-events: stroke; }
+.ge:hover .ge-line, .ge.hl .ge-line, .ge.on .ge-line { stroke: var(--cv-acc); }
+.ge.short .ge-line { stroke: var(--gv-bad); stroke-dasharray: 6 5; }
+.ge-lab { pointer-events: none; }
+.ge-lab rect { fill: var(--gv-bg); }
+.ge-lab text { font: 11px var(--f-mono); fill: var(--cv-muted); }
+.ge.short .ge-lab text { fill: var(--gv-bad); }
+.ge.hl .ge-lab text, .ge.on .ge-lab text { fill: var(--cv-acc-ink); }
+.gn { position: absolute; left: 0; top: 0; contain: layout style; width: 256px; background: var(--gv-node); border: 1px solid var(--gv-node-line); color: var(--cv-ink); font: 12px/1.45 var(--f-body); font-variant-numeric: tabular-nums; cursor: grab; }
+.gn:hover { border-color: var(--cv-steel); }
+.gn:focus-visible { outline: 2px solid var(--cv-acc); outline-offset: 2px; }
+.gn.dragging { cursor: grabbing; z-index: 3; box-shadow: 0 8px 24px #000a; }
+.gn.sel { border-color: var(--cv-acc); box-shadow: 0 0 0 1px var(--cv-acc); z-index: 2; }
+.gn.target { border-color: var(--cv-acc); }
+.gn.target::before { content: attr(data-target); position: absolute; top: -9px; right: 8px; background: var(--cv-acc); color: var(--on-accent); font: 600 9px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; padding: 3px 6px; }
+.gn-hd { display: flex; align-items: baseline; gap: 8px; padding: 7px 10px 2px; background: var(--gv-node-head); }
+.gn-hd b { font: 400 13px var(--f-display); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gn-n { font: 500 20px/1 var(--f-mono); color: var(--cv-acc); }
+.gn-n small { font-size: 11px; color: var(--cv-muted); margin-right: 2px; }
+.gn-lock { color: var(--gv-warn); align-self: center; } .gn-lock .ic { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+.gn-hd .warn-btn { align-self: center; padding: 0 3px; min-height: 0; }
+.gn-m { padding: 2px 10px 6px; background: var(--gv-node-head); border-bottom: 1px solid var(--gv-node-line); color: var(--cv-muted); font-size: 11px; display: flex; gap: 8px; white-space: nowrap; overflow: hidden; }
+.gn-m span { flex: none; } .gn-m span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gn-m span + span::before { content: "·"; margin-right: 8px; color: var(--gv-node-line); }
+.gn-io { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 8px 0; }
+.gn-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.gn-row { position: relative; display: flex; align-items: center; gap: 6px; padding: 3px 8px; margin: 0 0 0 8px; min-height: 26px; border: 1px solid var(--gv-in); background: var(--gv-in-soft); color: var(--gv-in-ink); }
+.gn-row .q { font: 11px var(--f-mono); white-space: nowrap; }
+.gn-row .it { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gn-col.o .gn-row { margin: 0 8px 0 0; border-color: var(--gv-out); background: var(--gv-out-soft); color: var(--gv-out-ink); flex-direction: row-reverse; text-align: right; }
+.gn-row.miss { border-color: var(--gv-bad); color: var(--gv-bad); background: var(--gv-bad-soft); }
+.gn-row.part { border-style: dashed; border-color: var(--gv-warn); }
+/* Prises : carrés sur le bord, centrés sur la ligne ; les liaisons partent et arrivent en leur centre. */
+.gn-port { position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px; background: var(--gv-in); border: 1px solid var(--gv-bg); }
+.gn-col.i .gn-port { left: -15px; } .gn-col.o .gn-port { right: -15px; background: var(--gv-out); }
+/* Vue allégée (sous 28 %) : machine, nombre et produit ; pas d'étiquettes sur les liaisons. */
+.gv.far .gn-io, .gv.far .ge-lab { display: none; }
+.gv.far .gn-m { border-bottom: 0; }
+.gv.far .gn-hd b, .gv.far .gn-n { font-size: 22px; }
+.gv.far .gn-m { font-size: 18px; } .gv.far .gn-m span + span { display: none; }
+
+/* ------------------------------------------------------------ Éditeur de graphe : édition (PLAN-GRAPHE.md, G3) */
+/* Lignes d'entrée et de sortie : un clic ouvre le sélecteur filtré. */
+.gn-row { cursor: pointer; }
+.gn-row:hover { filter: brightness(1.25); }
+/* Prises : zone sensible élargie de 8 px autour du carré (exigence du § 6), tirées pour relier. */
+.gn-port { cursor: crosshair; z-index: 2; transition: transform .1s; }
+.gn-port::after { content: ""; position: absolute; inset: -8px; }
+.gn-port:hover, .gn-port.arm { transform: scale(1.5); box-shadow: 0 0 0 2px var(--cv-acc); }
+.gn-port.ok { transform: scale(1.5); box-shadow: 0 0 0 3px var(--ok); }
+.gn-port.bad { transform: scale(1.5); box-shadow: 0 0 0 3px var(--gv-bad); }
+/* Liaison refusée (autre produit) : la prise secoue en rouge. */
+.gn-port.no { background: var(--gv-bad); box-shadow: 0 0 0 3px var(--gv-bad); animation: gv-shake .35s; }
+@keyframes gv-shake { 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .gn-port.no { animation: none; } .gn-port { transition: none; } }
+.ge-tmp { fill: none; stroke: var(--cv-acc); stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
+/* Le cadre a la capture du pointeur pendant le tracé : son curseur suffit. Pas de règle sur les nœuds (400 nœuds : 30 à 40 ms de style à chaque début et fin de tracé). */
+.gv.linking { cursor: crosshair; }
+
+/* Barre d'outils en bas du canevas, rappel du mode au-dessus, canevas vide : volets à plat. */
+.gv-tray { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 5; display: flex; max-width: calc(100% - 20px); overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 0; }
+.gv-tray button { flex: none; border: 0; border-radius: 0; background: none; min-width: 62px; padding: 6px 8px 5px; display: grid; justify-items: center; gap: 3px; color: var(--muted); font: 9px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+.gv-tray button .ic { width: 17px; height: 17px; }
+.gv-tray button:hover:not(:disabled) { color: var(--ink); background: var(--panel2); }
+.gv-tray button[aria-pressed="true"] { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.gv-tray button:disabled { opacity: .4; cursor: default; }
+.gv-tray button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.gv-tray hr { border: 0; border-left: 1px solid var(--line); margin: 0; }
+.gv-tray button.gv-recalc { color: var(--accent); position: relative; }
+.gv-tray button.gv-recalc[hidden] { display: none; }
+/* Le plan du site ne suit plus le graphe : une pastille sur « Recalculer » (rien ne se relance seul). */
+.gv-tray button.gv-recalc.due { background: var(--accent-soft); }
+.gv-tray button.gv-recalc.due::after { content: ""; position: absolute; top: 5px; right: 14px; width: 7px; height: 7px; background: var(--accent); }
+/* Bandeau du graphe édité (G4), au-dessus du résultat : plan tiré du graphe, à recalculer, objectif changé. */
+.gbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 10px; margin: 0 0 6px; background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--steel); font-size: 13px; }
+.gbar.due, .gbar.goal { border-left-color: var(--accent); }
+.gbar[hidden] { display: none; }
+.gbar p { margin: 0; flex: 1 1 260px; }
+.gbar .gbar-b { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Aperçu du recalcul : avant / après par nœud. */
+.rc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rc-table th, .rc-table td { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.rc-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rc-table tr.up td.num:last-child { color: var(--accent); }
+.rc-table tr.gone td { color: var(--muted); }
+.rc-table tr.new td:first-child { color: var(--ok); }
+.rc-wrap { max-height: 46vh; overflow: auto; margin: 8px 0; }
+.rc-gaps { margin: 6px 0; }
+.gv-hint { position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 5; max-width: calc(100% - 20px); padding: 4px 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font: 11px var(--f-mono); text-align: center; pointer-events: none; }
+.gv-void { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 1; max-width: 80%; color: var(--cv-muted); font-size: .9rem; text-align: center; pointer-events: none; }
+.flow-frame.empty :is(.gv-tray, .gv-hint, .gv-bub, .gv-void) { display: none; }
+.gv-tray[hidden], .gv-hint[hidden], .gv-bub[hidden], .gv-void[hidden] { display: none; }
+
+/* Bulle du nœud (S67) : accrochée sous lui, dans le cadre (à l'échelle de l'écran, pas du zoom). */
+.gv-bub { position: absolute; left: 0; top: 0; z-index: 6; width: 264px; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 0; box-shadow: 0 10px 30px #000a; font-size: 12px; cursor: default; }
+/* Ctrl tenu ou outil Sélection : la bulle laisse passer les clics vers les nœuds qu'elle couvre (effacée
+   après un instant, pour ne pas clignoter sur Ctrl Z). */
+.gv-multi .gv-bub { pointer-events: none; opacity: .15; transition: opacity .12s .15s; }
+.gv-bub header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.gv-bub header b { flex: 1; min-width: 0; font: 400 12px var(--f-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gv-bub header button { border: 0; background: none; padding: 2px; color: var(--muted); min-height: 0; }
+.gv-bub header button .ic { width: 15px; height: 15px; }
+.gv-brow { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 5px 8px; }
+.gv-brow > span:first-child { color: var(--muted); flex: none; }
+.gv-cnt { display: inline-flex; align-items: stretch; }
+.gv-cnt button { width: 28px; padding: 2px 0; border-radius: 0; min-height: 0; font: 600 14px var(--f-mono); }
+.gv-cnt input { width: 64px; text-align: center; border-radius: 0; border-left: 0; border-right: 0; font: 13px var(--f-mono); padding: 3px 4px; }
+.gv-bub select { max-width: 160px; min-width: 0; border-radius: 0; font-size: 11px; }
+.gv-sw { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; color: var(--muted); min-height: 0; cursor: pointer; }
+.gv-sw i { width: 28px; height: 16px; border: 1px solid var(--line); border-radius: 8px; position: relative; flex: none; }
+.gv-sw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.gv-sw[aria-checked="true"] i { border-color: var(--accent); }
+.gv-sw[aria-checked="true"] i::after { left: 14px; background: var(--accent); }
+.gv-sw small { font-size: 10px; }
+.gv-acts { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 8px 8px; }
+.gv-acts button { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 7px; border-radius: 0; min-height: 0; }
+.gv-acts button .ic { width: 13px; height: 13px; }
+.gv-acts button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.gv-bnote { margin: 0; padding: 2px 8px 4px; color: var(--muted); font-size: 11px; }
+.gv-gname { flex: 1; min-width: 0; max-width: 170px; border-radius: 0; font-size: 12px; padding: 3px 5px; }
+/* Réglages spéciaux de la machine (G5), ceux de la fiche S62, à la ligne dans la bulle étroite. */
+.gv-bx { padding: 4px 8px 6px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 11px; line-height: 1.8; }
+.gv-bx[hidden] { display: none; }
+.gv-bx-h { flex-basis: 100%; margin: 0; color: var(--muted); }
+.gv-bx .mset { display: inline; }
+.gv-bx select { max-width: 100%; font-size: 11px; }
+.gv-bx input[type="text"] { width: 4.5em; border-radius: 0; font: 11px var(--f-mono); padding: 1px 3px; }
+.gv-bx .flow-hud-btn { font-size: 11px; padding: 1px 6px; min-height: 0; border-radius: 0; }
+
+/* Sélecteur de recettes : la palette S61, chaque recette dessinée « entrées → machine → sorties ». */
+.gv-pick-box { border-radius: 0; }
+.gv-pick-box header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); font-family: var(--f-display); }
+.gv-pick-box header b { flex: 1; font-weight: 400; }
+.gv-pick-x { border: 0; background: none; color: var(--muted); padding: 2px; }
+.gv-pick-box .pal-tabs button { border-radius: 0; }
+.gv-pick-list { flex: 1; min-height: 0; overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.gv-rc { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 0; background: var(--bg); color: var(--ink); text-align: left; cursor: pointer; }
+.gv-rc:hover, .gv-rc.f { border-color: var(--accent); background: var(--accent-soft); }
+.gv-rc .mid { text-align: center; color: var(--muted); font-size: 11px; }
+.gv-rc .mid b { display: block; color: var(--ink); font: 400 12px var(--f-display); }
+.gv-rc .side { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; min-width: 0; }
+.gv-rc .side.o { align-items: flex-end; }
+.gv-rc .side small { color: var(--muted); font-size: 11px; }
+.gv-tag { display: inline-block; max-width: 100%; padding: 1px 6px; border: 1px solid var(--gv-in); background: var(--gv-in-soft); color: var(--gv-in-ink); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side.o .gv-tag { border-color: var(--gv-out); background: var(--gv-out-soft); color: var(--gv-out-ink); }
+.gv-tag.hit { box-shadow: 0 0 0 1px var(--accent); }
+.gv-tag .num { margin-right: 4px; font-family: var(--f-mono); }
+
+/* Téléphone : barre resserrée (sept outils sans défilement à 375 px), sélecteur sur une colonne. */
+@media (max-width: 640px) {
+  .gv-tray button { min-width: 44px; padding: 6px 3px 5px; font-size: 7.5px; letter-spacing: 0; }
+  /* Annuler / rétablir : la flèche suffit (libellé dans le titre et pour les lecteurs d'écran). */
+  .gv-tray [data-act="undo"], .gv-tray [data-act="redo"] { min-width: 34px; align-content: center; }
+  .gv-tray [data-act="undo"] span, .gv-tray [data-act="redo"] span { display: none; }
+  /* Rappel du mode en haut de la partie visible (top réglé par le canevas, sous l'en-tête collant) :
+     en bas, il cachait la ligne d'un nœud qu'il fallait toucher. */
+  .gv-hint { top: 6px; bottom: auto; left: 8px; right: 52px; transform: none; max-width: none; font-size: 10px; }
+  .gv-rc { grid-template-columns: 1fr; gap: 4px; }
+  .gv-rc .mid { text-align: left; }
+  .gv-rc .side.o { align-items: flex-start; }
+}
+
+
+/* ---------------------------------------------------------------- P2 partage par lien (maquette partage.html) */
+.shr-btn { display: inline-flex; align-items: center; gap: 6px; }
+.shr-btn .ic { width: 16px; height: 16px; }
+.shr { position: fixed; z-index: 1260; /* au-dessus de la liste « Premiers pas » (1250) */ width: min(470px, calc(100vw - 24px)); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 18px 50px rgb(0 0 0 / .55); overflow: hidden; }
+.shr::before, .shr-recv::before { content: ""; display: block; height: 4px; background: var(--brand-bar); }
+.shr-in { padding: 16px 18px 18px; }
+.shr-top { display: flex; align-items: flex-start; gap: 10px; }
+.shr-top h3 { font-size: 1.15rem; margin-top: 2px; overflow-wrap: anywhere; }
+.shr-top .shr-x { margin-left: auto; }
+.shr-facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.shr-link { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.shr-link code { flex: 1; min-width: 0; padding: 9px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: .8rem; }
+.shr-link button { border: 0; border-left: 1px solid var(--line); border-radius: 0; display: inline-flex; gap: 6px; align-items: center; min-width: 118px; justify-content: center; }
+.shr-link button .ic { width: 16px; height: 16px; }
+.shr-link button.done { background: var(--ok-soft); color: var(--ok); }
+.shr-gauge { margin-top: 8px; }
+.shr-gauge .bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.shr-gauge .bar i { display: block; height: 100%; background: var(--ok); transition: width .25s; }
+.shr-gauge.over .bar i { background: var(--warn); }
+.shr-gauge p { font-size: .8rem; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; gap: 12px; }
+.shr-gauge p span:last-child { white-space: nowrap; }
+.shr-gauge.over p b { color: var(--warn); }
+.shr-incl { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+.shr-incl .eyebrow { margin-right: 4px; }
+.shr-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: .82rem; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+.shr-chip[aria-pressed="true"] { border-color: var(--steel); background: var(--steel-soft); color: var(--steel); }
+.shr-chip[disabled] { cursor: default; opacity: 1; }
+.shr-note { display: flex; gap: 8px; font-size: .85rem; padding: 8px 10px; border-radius: 8px; margin-top: 8px; align-items: flex-start; }
+.shr-note .ic { flex: none; width: 1.05rem; height: 1.05rem; margin-top: 1px; }
+.shr-note.w { background: var(--warn-soft); color: var(--warn); }
+.shr-note.i { background: var(--steel-soft); color: var(--ink); }
+.shr-note button.link { font-size: inherit; }
+dialog.shr-recv { max-width: min(520px, calc(100vw - 32px)); width: 520px; padding: 0; overflow: hidden; }
+.shr-recv .in { padding: 18px; }
+.shr-recv h3 { overflow-wrap: anywhere; }
+.shr-mini { display: block; width: 100%; height: 120px; margin: 12px 0; background: var(--gv-bg); border: 1px solid var(--line); border-radius: 8px; }
+.shr-mini rect { fill: var(--gv-node); stroke: var(--gv-node-line); }
+.shr-mini path { fill: none; stroke: var(--gv-edge); stroke-width: 1.5; }
+.shr-recv .shr-facts { margin: 0; }
+.shr-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--ok); color: var(--ok); padding: 7px 16px; border-radius: 8px; z-index: 1270; font-size: .9rem; }
+.shr-toast.bad { border-color: var(--bad); color: var(--bad); }
+/* P2 bis : « Mes designs », à plat dans le volet gauche */
+.dsgs.drop, .dsg.drop { outline: 1px dashed var(--accent); outline-offset: -1px; }
+.dsg-bar { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 0 6px 4px; }
+.dsg-tree:focus-visible { outline: 1px solid var(--steel); outline-offset: 1px; }
+.dsg { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 4px 2px 6px; border-left: 3px solid transparent; cursor: pointer; font-size: .82rem; user-select: none; }
+.dsg:hover { background: var(--bg); }
+.dsg.sel { background: var(--steel-soft); }
+.dsg.on { border-left-color: var(--accent); font-weight: 600; }
+.dsg .ic { flex: none; width: 15px; height: 15px; color: var(--muted); }
+.dsg.on > .ic { color: var(--accent); }
+.dsg .tw { flex: none; width: 12px; display: inline-grid; place-items: center; }
+.dsg .tw .ic { width: 12px; height: 12px; }
+.dsg .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsg .dsg-n { font: 500 .72rem var(--f-mono); color: var(--muted); }
+.dsg .dsg-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.dsg .dsg-more { flex: none; min-height: 22px; width: 24px; padding: 0; border: 0; background: none; color: var(--muted); opacity: 0; }
+.dsg:hover .dsg-more, .dsg.sel .dsg-more, .dsg-more:focus-visible { opacity: 1; }
+.dsg .dsg-in { flex: 1; min-width: 0; min-height: 24px; padding: 0 4px; font: inherit; border: 1px solid var(--accent); background: var(--bg); color: var(--ink); }
+.dsg .dsg-in[aria-invalid="true"] { border-color: var(--bad); }
+.dsg-err { margin: 2px 6px 4px 24px; font-size: .76rem; color: var(--bad); }
+.pop-menu.dsg-menu { z-index: 1260; }
+.dsg-opts { display: grid; gap: 6px; margin-top: 12px; }
+.dsg-opts > button { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 10px 12px; background: var(--bg); }
+.dsg-opts > button:hover, .dsg-opts > button:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.dsg-opts > button .ic { flex: none; margin-top: 2px; color: var(--accent); }
+.dsg-opts b, .dsg-opts small { display: block; }
+.dsg-opts small { color: var(--muted); }
+.dsg-all { display: flex; gap: 8px; align-items: center; font-size: .85rem; margin-top: 8px; }
+.dsg-cmps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dsg-cmp { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: .82rem; }
+.dsg-cmp:has(input:checked) { border-color: var(--steel); background: var(--steel-soft); }
+.dsg-cmp > span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.dsg-cmp em { font-style: normal; font-family: var(--f-mono); font-size: .72rem; color: var(--steel); }
+@media (max-width: 520px) { .dsg-cmps { grid-template-columns: 1fr; } }
+
+/* ---- Session de lecture (P3 bis b) : bandeau sous l'en-tête, cadre autour de la page, puces du profil teintées. */
+.lec-bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 8px 16px; background: var(--steel); color: var(--bg); font-size: .88rem; }
+.lec-bar[hidden] { display: none; }
+.lec-bar > span { flex: 1 1 260px; }
+.lec-bar button { background: var(--bg); color: var(--ink); border-color: var(--bg); }
+body.lecture::after { content: ""; position: fixed; inset: 0; border: 4px solid var(--steel); pointer-events: none; z-index: 60; }
+body.lecture .me-chip { background: var(--steel-soft); color: var(--steel); }
+.dsg-lec { flex: none; font: 500 .68rem var(--f-mono); color: var(--steel); background: var(--steel-soft); padding: 0 6px; border-radius: 999px; }
+.dsg.lec.on { background: var(--steel-soft); border-left-color: var(--steel); }
+.shr-ch { display: grid; gap: 8px; margin-top: 12px; }
+.shr-ch[hidden] { display: none; }
+.shr-ch button { text-align: left; padding: 10px 14px; background: var(--bg); display: block; }
+.shr-ch button:hover, .shr-ch button:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.shr-ch b { display: block; font-weight: 600; }
+.shr-ch small { color: var(--muted); font-size: .83rem; white-space: normal; }
+.prn-t { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: .88rem; }
+.prn-t td, .prn-t th { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+.prn-t th { color: var(--muted); font-weight: 500; }
+.prn-t input { accent-color: var(--accent); }
+.dsg-undo { display: block; padding: 4px 6px; text-align: left; font-size: .8rem; }
+.shr-file { margin-top: 14px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); display: grid; gap: 6px; font-size: .86rem; }
+.shr-file p { color: var(--muted); font-size: .82rem; }
+.shr-file label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.shr-file input { accent-color: var(--accent); }
+.shr-file button { justify-self: start; display: inline-flex; gap: 6px; align-items: center; max-width: 100%; overflow-wrap: anywhere; }
+.shr-file button .ic { width: 16px; height: 16px; flex: none; }
+.shr { max-height: calc(100vh - 80px); overflow: auto; }
+.u-frozen { background: #120c20; }
+#pose-frozen { background: var(--steel-soft); color: var(--ink); }

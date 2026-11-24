@@ -26,6 +26,10 @@ dans la configuration du PC. Pour lancer le script directement, il faut soit
 `powershell -ExecutionPolicy Bypass -File .\scripts\pi\deployer.ps1`, soit avoir autorisé les
 scripts locaux (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
 
+Chaque mise en ligne augmente le numéro de version (`package.json`, à garder dans git ensuite) et garde une copie du
+site dans `/srv/industrialist/v/<version>/`, servie à vie sous `/v/<version>/` (environ 2,5 Mo chacune, sans les vignettes).
+C'est ce qui permet de rouvrir un design avec le site qui l'a créé. nginx n'est ni modifié ni rechargé.
+
 Le script lance les tests et le build, envoie `dist/`, puis bascule le site d'un coup sur la
 nouvelle version. Aucun service n'est redémarré, et MyPrism n'est pas concerné. Les 5 dernières
 versions sont gardées sur le Pi.

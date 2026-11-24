@@ -1,0 +1,676 @@
+{
+ "meta": {
+  "description": "Mineshaft Drill : rendement par profondeur, usure des têtes de forage selon la tête et l'acide, cycle d'une tête. Écrit à la main (remarque joueur n°16, 2026-11-16), pas généré. Source principale : page Mineshaft Drill de Miraheze et ses tableaux. Ce qui vient d'Industrialist Calculator (Pollywrath, MIT) est marqué « source : Industrialist Calculator » et renvoyé à data/a-verifier.md (MSD-xx).",
+  "writtenAt": "2026-11-16",
+  "machine": "mineshaft-drill",
+  "openQuestions": [
+   "MSD-01",
+   "MSD-02",
+   "MSD-03",
+   "MSD-04",
+   "MSD-05",
+   "MSD-06",
+   "MSD-07"
+  ],
+  "units": {
+   "perSec": "objets ou litres par seconde pendant l'extraction (tableau « Production Rates » du wiki)",
+   "lossPctPerSec": "perte de durabilité de la tête, en % par seconde ; une tête neuve a 100 %",
+   "MF": "MamyFlux ; MMF = 1 000 000 MF"
+  }
+ },
+ "sources": {
+  "page": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16"
+  },
+  "tables": [
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/300",
+    "page": "Template:Mineshaft-Drill-Table/300",
+    "revisionId": 24785,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/2200",
+    "page": "Template:Mineshaft-Drill-Table/2200",
+    "revisionId": 24786,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/3200",
+    "page": "Template:Mineshaft-Drill-Table/3200",
+    "revisionId": 24787,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/4200",
+    "page": "Template:Mineshaft-Drill-Table/4200",
+    "revisionId": 24788,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/5200",
+    "page": "Template:Mineshaft-Drill-Table/5200",
+    "revisionId": 24789,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/6200",
+    "page": "Template:Mineshaft-Drill-Table/6200",
+    "revisionId": 34627,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/7200",
+    "page": "Template:Mineshaft-Drill-Table/7200",
+    "revisionId": 24791,
+    "fetchedAt": "2026-11-16"
+   },
+   {
+    "wiki": "miraheze",
+    "url": "https://industrialist.miraheze.org/wiki/Template:Mineshaft-Drill-Table/8200",
+    "page": "Template:Mineshaft-Drill-Table/8200",
+    "revisionId": 29869,
+    "fetchedAt": "2026-11-16"
+   }
+  ]
+ },
+ "durability": {
+  "formula": "perte (%/s) = 0,5 × multiplicateur de la tête × multiplicateur de l'acide × Resource Modifier × Speed Modifier ; d = profondeur (m)",
+  "base": 0.5,
+  "heads": [
+   {
+    "id": "copper",
+    "item": "copper-drill-head",
+    "kind": "linear",
+    "a": 0.006666666666666667,
+    "text": "d / 150"
+   },
+   {
+    "id": "iron",
+    "item": "iron-drill-head",
+    "kind": "pow",
+    "a": 0.04,
+    "p": 0.25,
+    "text": "0,04 · d^0,25"
+   },
+   {
+    "id": "steel",
+    "item": "steel-drill-head",
+    "kind": "pow",
+    "a": 0.02,
+    "p": 0.25,
+    "text": "0,02 · d^0,25"
+   },
+   {
+    "id": "tungsten",
+    "item": "tungsten-carbide-drill-head",
+    "kind": "pow",
+    "a": 0.005,
+    "p": 0.25,
+    "text": "0,005 · d^0,25"
+   }
+  ],
+  "acids": [
+   {
+    "id": "none",
+    "item": null,
+    "litersPerSec": 0,
+    "kind": "square",
+    "a": 0.000001111111111111111,
+    "text": "d² / 900 000"
+   },
+   {
+    "id": "water",
+    "item": "water",
+    "litersPerSec": 10,
+    "kind": "square",
+    "a": 5.333333333333333e-7,
+    "text": "d² / 1 875 000"
+   },
+   {
+    "id": "acetic",
+    "item": "acetic-acid",
+    "litersPerSec": 3,
+    "kind": "pow",
+    "a": 0.0022222222222222222,
+    "p": 0.8,
+    "text": "d^0,8 / 450"
+   },
+   {
+    "id": "sulfuric",
+    "item": "sulfuric-acid",
+    "litersPerSec": 1,
+    "kind": "pow",
+    "a": 0.09,
+    "p": 0.25,
+    "text": "0,09 · d^0,25"
+   },
+   {
+    "id": "hydrochloric",
+    "item": "hydrochloric-acid",
+    "litersPerSec": 1.5,
+    "kind": "hcl",
+    "text": "d < 6000 : 1,3·10⁻⁵ · d^(1,5 − 0,00005·d) + 4,3875·10^−13,3 · d³ ; d ≥ 6000 : 0,09 · d^0,25"
+   }
+  ],
+  "resourceModifier": {
+   "value": 1,
+   "status": "inconnu",
+   "question": "MSD-01",
+   "note": "Le wiki nomme un « Resource Modifier » sans en donner la valeur. Industrialist Calculator ne l'applique pas (vaut 1) : même choix ici, à vérifier."
+  },
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16",
+   "note": "section Durability"
+  }
+ },
+ "oil": {
+  "item": "machine-oil",
+  "litersPerSec": 2,
+  "yieldMultiplier": 1.1,
+  "lossMultiplier": 1.1,
+  "travelSpeedMultiplier": 2,
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16",
+   "note": "Machine Oil : +10 % de ressources, +10 % d'usure, vitesse doublée, 2 L/s pendant le forage, l'extraction et le trajet"
+  }
+ },
+ "travel": {
+  "metersPerSec": 50,
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16",
+   "note": "la tête descend le puits ouvert à 50 m/s (100 m/s avec Machine Oil)"
+  },
+  "roundTrip": true,
+  "roundTripSource": {
+   "wiki": "saisie",
+   "url": "https://github.com/Pollywrath/Industrialist-Production-Calculator/blob/main/src/data/special_recipes/mineshaft_drill.ts",
+   "page": "source : Industrialist Calculator (special_recipes/mineshaft_drill.ts)",
+   "fetchedAt": "2026-11-16",
+   "note": "aller-retour du puits à chaque changement de tête (2 × profondeur / vitesse)"
+  },
+  "question": "MSD-02"
+ },
+ "replacement": {
+  "seconds": 12,
+  "source": {
+   "wiki": "saisie",
+   "url": "https://github.com/Pollywrath/Industrialist-Production-Calculator/blob/main/src/data/special_recipes/mineshaft_drill.ts",
+   "page": "source : Industrialist Calculator (special_recipes/mineshaft_drill.ts)",
+   "fetchedAt": "2026-11-16",
+   "note": "12 s pour poser une nouvelle tête"
+  },
+  "question": "MSD-03"
+ },
+ "power": {
+  "passiveMFps": 100000,
+  "drillingMFps": 3100000,
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16",
+   "note": "0,1 MMF/s en permanence + 3 MMF/s pendant le forage = 3,1 MMF/s ; seule la consommation passive pendant le changement de tête"
+  },
+  "travelMFps": 3100000,
+  "travelStatus": "approximatif",
+  "travelNote": "Le wiki ne dit pas la consommation pendant le trajet : on compte 3,1 MMF/s (borne haute).",
+  "alternatives": {
+   "drillingMFps": 2000000,
+   "travelMFps": 500000,
+   "replacementMFps": 100000,
+   "source": {
+    "wiki": "saisie",
+    "url": "https://github.com/Pollywrath/Industrialist-Production-Calculator/blob/main/src/data/special_recipes/mineshaft_drill.ts",
+    "page": "source : Industrialist Calculator (special_recipes/mineshaft_drill.ts)",
+    "fetchedAt": "2026-11-16",
+    "note": "2 MMF/s en extraction, 0,5 MMF/s en trajet, 0,1 MMF/s au changement de tête"
+   }
+  },
+  "question": "MSD-04",
+  "hv": "Courant HV obligatoire (HV Transformer ou Modular Turbine) : le calcul le compte comme de l'énergie ordinaire."
+ },
+ "acidUse": {
+  "duringExtractionOnly": true,
+  "source": {
+   "wiki": "saisie",
+   "url": "https://github.com/Pollywrath/Industrialist-Production-Calculator/blob/main/src/data/special_recipes/mineshaft_drill.ts",
+   "page": "source : Industrialist Calculator (special_recipes/mineshaft_drill.ts)",
+   "fetchedAt": "2026-11-16",
+   "note": "l'acide n'est compté que pendant l'extraction (débit × part du cycle passée à forer)"
+  },
+  "question": "MSD-05"
+ },
+ "dynamite": {
+  "note": "Ne sert qu'à creuser le premier puits plus vite (24 m toutes les 5 s) : sans effet sur le rendement ni l'usure. Non compté : le calcul est en régime établi, puits déjà creusé.",
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16"
+  },
+  "question": "MSD-06"
+ },
+ "voidsOutputs": {
+  "value": true,
+  "note": "Le Mineshaft Drill détruit ce qui bouche ses sorties : les sous-produits non utilisés n'arrêtent pas la machine.",
+  "source": {
+   "wiki": "miraheze",
+   "url": "https://industrialist.miraheze.org/wiki/Mineshaft_Drill",
+   "page": "Mineshaft Drill",
+   "revisionId": 44241,
+   "fetchedAt": "2026-11-16"
+  }
+ },
+ "depths": [
+  {
+   "depth": 300,
+   "table": "Template:Mineshaft-Drill-Table/300",
+   "perSec": {
+    "sand": 3,
+    "gravel": 3,
+    "soil": 3,
+    "rich-soil": 1
+   }
+  },
+  {
+   "depth": 900,
+   "table": "Template:Mineshaft-Drill-Table/300",
+   "perSec": {
+    "coal": 6,
+    "gravel": 9,
+    "raw-iron": 5,
+    "raw-copper": 5
+   }
+  },
+  {
+   "depth": 1200,
+   "table": "Template:Mineshaft-Drill-Table/300",
+   "perSec": {
+    "coal": 20,
+    "gravel": 6,
+    "raw-iron": 10,
+    "shallow-earth-fragment": 3
+   }
+  },
+  {
+   "depth": 1500,
+   "table": "Template:Mineshaft-Drill-Table/300",
+   "perSec": {
+    "raw-lead": 1,
+    "gravel": 8,
+    "raw-iron": 8,
+    "shallow-earth-fragment": 5
+   }
+  },
+  {
+   "depth": 1800,
+   "table": "Template:Mineshaft-Drill-Table/300",
+   "perSec": {
+    "raw-lead": 5,
+    "rock": 8,
+    "medium-earth-fragment": 2,
+    "shallow-earth-fragment": 1
+   }
+  },
+  {
+   "depth": 2000,
+   "table": "Template:Mineshaft-Drill-Table/300",
+   "perSec": {
+    "raw-lead": 9.3,
+    "medium-earth-fragment": 3.35,
+    "rock": 9.36
+   }
+  },
+  {
+   "depth": 2200,
+   "table": "Template:Mineshaft-Drill-Table/2200",
+   "perSec": {
+    "raw-iron": 9.57,
+    "shallow-earth-fragment": 2.31,
+    "raw-lead": 5.14,
+    "medium-earth-fragment": 3.13
+   }
+  },
+  {
+   "depth": 2400,
+   "table": "Template:Mineshaft-Drill-Table/2200",
+   "perSec": {
+    "medium-earth-fragment": 4.46,
+    "rock": 9.79
+   }
+  },
+  {
+   "depth": 2600,
+   "table": "Template:Mineshaft-Drill-Table/2200",
+   "perSec": {
+    "medium-earth-fragment": 8.44,
+    "rock": 10.22
+   }
+  },
+  {
+   "depth": 2800,
+   "table": "Template:Mineshaft-Drill-Table/2200",
+   "perSec": {
+    "gravel": 1.78,
+    "raw-iron": 10.35,
+    "shallow-earth-fragment": 2.51,
+    "raw-lead": 2.9
+   }
+  },
+  {
+   "depth": 3000,
+   "table": "Template:Mineshaft-Drill-Table/2200",
+   "perSec": {
+    "shallow-earth-fragment": 1.54,
+    "raw-lead": 1.92,
+    "rock": 6.04
+   }
+  },
+  {
+   "depth": 3200,
+   "table": "Template:Mineshaft-Drill-Table/3200",
+   "perSec": {
+    "rock": 5.14,
+    "medium-earth-fragment": 4.62,
+    "raw-lead": 3.1,
+    "raw-iron": 6.51
+   }
+  },
+  {
+   "depth": 3400,
+   "table": "Template:Mineshaft-Drill-Table/3200",
+   "perSec": {
+    "raw-iron": 8.26,
+    "raw-lead": 8.58,
+    "rock": 7.76
+   }
+  },
+  {
+   "depth": 3600,
+   "table": "Template:Mineshaft-Drill-Table/3200",
+   "perSec": {
+    "medium-earth-fragment": 6.34,
+    "raw-lead": 6.41,
+    "rock": 6.15
+   }
+  },
+  {
+   "depth": 3800,
+   "table": "Template:Mineshaft-Drill-Table/3200",
+   "perSec": {
+    "medium-earth-fragment": 6.39,
+    "rock": 9.58,
+    "raw-lead": 3.45,
+    "coal": 30.39
+   }
+  },
+  {
+   "depth": 4000,
+   "table": "Template:Mineshaft-Drill-Table/3200",
+   "perSec": {
+    "table-salt": 58.84,
+    "medium-earth-fragment": 3.67,
+    "rock": 5.93,
+    "raw-lead": 9.58
+   }
+  },
+  {
+   "depth": 4200,
+   "table": "Template:Mineshaft-Drill-Table/4200",
+   "perSec": {
+    "medium-earth-fragment": 6.31,
+    "rock": 5.01,
+    "raw-lead": 4.81,
+    "coal": 39.32
+   }
+  },
+  {
+   "depth": 4400,
+   "table": "Template:Mineshaft-Drill-Table/4200",
+   "perSec": {
+    "rock": 14.79,
+    "coal": 40.21
+   }
+  },
+  {
+   "depth": 4600,
+   "table": "Template:Mineshaft-Drill-Table/4200",
+   "perSec": {
+    "raw-zinc": 7.61,
+    "bauxite-residue": 1.59,
+    "rock": 7.83
+   }
+  },
+  {
+   "depth": 4800,
+   "table": "Template:Mineshaft-Drill-Table/4200",
+   "perSec": {
+    "medium-earth-fragment": 7.77,
+    "raw-zinc": 9.79,
+    "bauxite-residue": 1.2,
+    "rock": 2.63
+   }
+  },
+  {
+   "depth": 5000,
+   "table": "Template:Mineshaft-Drill-Table/4200",
+   "perSec": {
+    "medium-earth-fragment": 10.88,
+    "raw-zinc": 4.8,
+    "bauxite-residue": 1.22,
+    "rock": 5.18
+   }
+  },
+  {
+   "depth": 5200,
+   "table": "Template:Mineshaft-Drill-Table/5200",
+   "perSec": {
+    "raw-iron": 21.61,
+    "rock": 7.61,
+    "deep-earth-fragment": 1.4,
+    "raw-lead": 4.79
+   }
+  },
+  {
+   "depth": 5400,
+   "table": "Template:Mineshaft-Drill-Table/5200",
+   "perSec": {
+    "medium-earth-fragment": 9.5,
+    "bauxite-residue": 1,
+    "rock": 8.5
+   }
+  },
+  {
+   "depth": 5600,
+   "table": "Template:Mineshaft-Drill-Table/5200",
+   "perSec": {
+    "rock": 5.4,
+    "raw-lead": 3.82,
+    "raw-copper": 18.32,
+    "bauxite-residue": 0.92
+   }
+  },
+  {
+   "depth": 5800,
+   "table": "Template:Mineshaft-Drill-Table/5200",
+   "perSec": {
+    "medium-earth-fragment": 10.86,
+    "raw-lead": 15.83
+   }
+  },
+  {
+   "depth": 6000,
+   "table": "Template:Mineshaft-Drill-Table/5200",
+   "perSec": {
+    "coal": 54,
+    "raw-lead": 12.06,
+    "rock": 5.18
+   }
+  },
+  {
+   "depth": 6200,
+   "table": "Template:Mineshaft-Drill-Table/6200",
+   "perSec": {
+    "raw-copper": 50.73,
+    "deep-earth-fragment": 4.42,
+    "bauxite-residue": 0.96,
+    "rock": 6.55
+   }
+  },
+  {
+   "depth": 6400,
+   "table": "Template:Mineshaft-Drill-Table/6200",
+   "perSec": {
+    "bauxite-residue": 2.3,
+    "deep-earth-fragment": 7.71,
+    "rock": 7.69
+   }
+  },
+  {
+   "depth": 6600,
+   "table": "Template:Mineshaft-Drill-Table/6200",
+   "perSec": {
+    "rock": 8.81,
+    "deep-earth-fragment": 9.03,
+    "bauxite-residue": 1.9
+   }
+  },
+  {
+   "depth": 6800,
+   "table": "Template:Mineshaft-Drill-Table/6200",
+   "perSec": {
+    "raw-copper": 80.75,
+    "bauxite-residue": 1.6,
+    "deep-earth-fragment": 5.87,
+    "rock": 10.35
+   }
+  },
+  {
+   "depth": 7000,
+   "table": "Template:Mineshaft-Drill-Table/6200",
+   "perSec": {
+    "raw-lead": 4.3,
+    "deep-earth-fragment": 10.9,
+    "bauxite-residue": 1.33
+   }
+  },
+  {
+   "depth": 7200,
+   "table": "Template:Mineshaft-Drill-Table/7200",
+   "perSec": {
+    "raw-lead": 5.54,
+    "bauxite-residue": 1.06,
+    "deep-earth-fragment": 8.57,
+    "rock": 10.79
+   }
+  },
+  {
+   "depth": 7400,
+   "table": "Template:Mineshaft-Drill-Table/7200",
+   "perSec": {
+    "raw-copper": 42.95,
+    "bauxite-residue": 1.05,
+    "deep-earth-fragment": 8.7,
+    "rock": 11.38
+   }
+  },
+  {
+   "depth": 7600,
+   "table": "Template:Mineshaft-Drill-Table/7200",
+   "perSec": {
+    "deep-earth-fragment": 4.9,
+    "bauxite-residue": 0.99,
+    "rock": 9.79
+   }
+  },
+  {
+   "depth": 7800,
+   "table": "Template:Mineshaft-Drill-Table/7200",
+   "perSec": {
+    "medium-earth-fragment": 6.67,
+    "bauxite-residue": 2.23,
+    "deep-earth-fragment": 8.43
+   }
+  },
+  {
+   "depth": 8000,
+   "table": "Template:Mineshaft-Drill-Table/7200",
+   "perSec": {
+    "bauxite-residue": 2.11,
+    "rock": 10.65,
+    "deep-earth-fragment": 11.65
+   }
+  },
+  {
+   "depth": 8200,
+   "table": "Template:Mineshaft-Drill-Table/8200",
+   "perSec": {
+    "raw-zirconium": 0.6,
+    "rock": 10.7,
+    "deep-earth-fragment": 3.5
+   }
+  },
+  {
+   "depth": 8400,
+   "table": "Template:Mineshaft-Drill-Table/8200",
+   "perSec": {
+    "raw-zirconium": 1.7,
+    "raw-uranium": 0.2,
+    "deep-earth-fragment": 1.5
+   }
+  },
+  {
+   "depth": 8600,
+   "table": "Template:Mineshaft-Drill-Table/8200",
+   "perSec": {
+    "raw-zirconium": 0.5,
+    "raw-uranium": 2.2,
+    "raw-iron": 10.5
+   }
+  },
+  {
+   "depth": 8800,
+   "table": "Template:Mineshaft-Drill-Table/8200",
+   "perSec": {
+    "deep-earth-fragment": 4.2,
+    "raw-uranium": 2.2,
+    "raw-iron": 13.5
+   }
+  },
+  {
+   "depth": 9000,
+   "table": "Template:Mineshaft-Drill-Table/8200",
+   "perSec": {
+    "raw-lead": 8.6,
+    "raw-zirconium": 0.7,
+    "raw-iron": 3.5
+   }
+  }
+ ]
+}

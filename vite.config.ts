@@ -7,14 +7,17 @@ import { defineConfig } from "vitest/config";
 /**
  * Empreinte du calcul de « Toute l'usine » (S27 bis) : le code du moteur et les données. Un résultat gardé dans le
  * navigateur n'est réutilisé que si cette empreinte n'a pas changé (une mise à jour du site qui touche le calcul ou
- * les données le fait refaire).
+ * les données le fait refaire). C'est aussi la version du moteur écrite dans les designs partagés (P4) : le format du
+ * partage (engine/share) n'y entre pas.
  */
 function factoryVersion(): string {
   const files = (dir: string, ext: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name), ext) : e.name.endsWith(ext) && !e.name.endsWith(".test.ts") ? [join(dir, e.name)] : []));
   const h = createHash("sha256");
   // Les traductions des notes (data/i18n, S32) ne changent pas le calcul : un résultat gardé reste valable.
-  for (const f of [...files("src/engine", ".ts"), ...files("data", ".json").filter((p) => !/[\\/]i18n[\\/]/.test(p))].sort()) h.update(f).update(readFileSync(f));
+  const all = [...files("src/engine", ".ts"), ...files("data", ".json")].map((p) => p.replace(/\\/g, "/")).filter((p) => !p.startsWith("src/engine/share/") && !p.startsWith("data/i18n/"));
+  // Fins de ligne normalisées : la même version du code donne la même empreinte d'une copie à l'autre.
+  for (const f of all.sort()) h.update(f).update(readFileSync(f, "utf8").replace(/\r\n/g, "\n"));
   return h.digest("hex").slice(0, 16);
 }
 

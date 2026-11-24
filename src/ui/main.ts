@@ -5,7 +5,7 @@
 import "../styles.css";
 import { setFarmLogsMult } from "./modcalc-view.ts";
 import { difficultyNote, difficultyOptions, monthOptions, renderGameEffects, type GameField, type GameView } from "./game-settings-view.ts";
-import { BLOCKED_RESEARCH, isDifficulty, withDifficulty } from "../engine/difficulty.ts";
+import { BLOCKED_RESEARCH, isDifficulty, unlockableNodes, withDifficulty } from "../engine/difficulty.ts";
 import type { Blocked } from "./research-view.ts";
 import { DEFAULT_POLLUTION, logsMultiplier, TREE_SCRUBBER } from "../engine/game-settings.ts";
 import itemsJson from "../../data/items.json";
@@ -21,34 +21,37 @@ import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import imagesJson from "../../data/images.json";
 import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
-import { factoryInput, type FactoryPlan } from "../engine/build/factory.ts";
+import { factoryInput, type FactoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import type { Step } from "../engine/solve.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
 import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
-import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, saveDieselReadings, type DieselChoice } from "./diesel.ts";
+import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, renderDieselHud, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
-import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, turnText } from "./factory-view.ts";
+import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, setDrawnInside, turnText } from "./factory-view.ts";
 import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
-import { solve, type Plan, type PlayerState } from "../engine/solve.ts";
+import { solve, type Plan, type PlayerState, type SolveRequest } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import type { EnergyFile, InterfacesFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
 import { applyMachineSettings, type Interfaces, type MachineSettings, mergeInterfaces } from "../engine/interfaces.ts";
 import interfacesJson from "../../data/interfaces.json";
 import modularJson from "../../data/modular.json";
+import mineshaftJson from "../../data/mineshaft.json";
+import { DEFAULT_MINESHAFT, sameMineshaft, withMineshaft, type MineshaftChoice, type MineshaftFile } from "../engine/mineshaft.ts";
+import { mineshaftPatch, renderMineshaftHud, type MineshaftView } from "./mineshaft-view.ts";
 import type { ModularFile } from "../engine/modular.ts";
-import { parseFactor, settingChips, settingLines } from "./iface-view.ts";
+import { parseFactor, renderScreenInputs, settingChips, settingLines } from "./iface-view.ts";
 import { designResearch, groupSum, rpParams, type RpResult, type StationKind, type TierSum } from "../engine/research-points.ts";
 import { balanceTimeline, emptySetup, nominalRate, TIERS, proposeAddStations, rateAt, researchModel, timeToReach, withAddedStations, type ResearchSetup, type RpModel, type RpTier } from "../engine/research-balance.ts";
 import { fillResearchCalc, renderResearchControl, renderResearchForm, renderResearchOut, researchHow } from "./research-mine.ts";
-import { addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
+import { parseJournal as parseRpJournal, addEvent, gameNow, needsRecall, removeEvent, rpAtGame, rpHistory, setPlaying, startJournal, stopAtLastSeen, touch, type RpHistory, type RpJournal } from "../engine/rp-history.ts";
 import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } from "./rp-chart.ts";
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
-import { colon, esc, fmt, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
+import { colon, esc, fmt, fmtMF, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { icon, iconAt, withIcons } from "./icons.ts";
 import { createItemPalette, itemTile, type PalItem } from "./item-palette.ts";
 import { applyStatic } from "../i18n/dom.ts";
@@ -75,6 +78,9 @@ import {
   type TreeView,
 } from "./progress.ts";
 import { PanZoom } from "./canvas.ts";
+import { GraphView, type GraphViewOptions, type GraphViewText } from "./graph-view.ts";
+import { applyComparison, balanceGraph, compareWithPlan, exportPollywrath, planToGraph, pollywrathToGraph, solveFromGraph, type Graph, type PollywrathMapFile } from "../engine/graph/index.ts";
+import { graphMatchesPlan, keepLinks, linksSig, restoreLinks, loadGraphEdit, storeGraphEdit, type GraphEdit, type StoredGraphEdit } from "./graph-edit.ts";
 import { initBuildings } from "./buildings.ts";
 import { bindPrioChips, bindPrioList, focusItem, renderPrioChips, renderPrioItems } from "./prio-list.ts";
 import { GOAL_ROUTE, goalName, goalTitle, nextStack, PAGES, parseRoute, routeHash, routeTitle, USINE_STEP, type Page, type Route } from "./route.ts";
@@ -82,7 +88,8 @@ import { mergeSurveys, surveyState } from "./buildings-model.ts";
 import { loadLocalInterfaces, loadLocalSurveys, rawLocalInterfaces, rawLocalSurveys } from "./surveys.ts";
 import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layout.ts";
 import { renderNodeBubble, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
-import { createTour, SITE_TOUR } from "./tour.ts";
+import { createTour, SITE_TOUR, type CheckItem } from "./tour.ts";
+import { createChecklist, reachedItem } from "./checklist.ts";
 import {
   defaultDir,
   draftFrom,
@@ -117,11 +124,13 @@ import {
   verifyHref,
 } from "./recipes-view.ts";
 import { fieldWord, fixAttr, renderPlanBar, stepWarnings, warnButton, warnChips, type PlanBarInput } from "./plan-bar.ts";
+import pwMap from "../../data/pollywrath-map.json";
+import { parsePollywrathSave, type ImportedGraph, type PollywrathMap } from "./pollywrath-import.ts";
 import { exportImages, loadImages, loadPrefs, parseImagesExport, saveImages, savePrefs, type MyImages } from "./recipes-store.ts";
 import type { ResearchView } from "./research-plan.ts";
 import { allVerifyEntries, itemN, machineN, renderCorrections, renderVerify } from "./render.ts";
 import { allowMachine, banMachine, filterableMachines, filterSummary, findMachine, renderFilterBody, withMode } from "./mfilter-view.ts";
-import { buildRows, buildSignature, criterionHint, criterionWhy, criterionText, planLabel, renderAnswer, renderBuildList, renderDetails, renderFlow, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionWhy, criterionText, planLabel, renderAnswer, renderBuildList, renderDetails, renderEdgeHud, renderFixBar, renderFlowHud, renderStepLinks, isPosable, assemblyKind, type BuildRow, type ViewCtx } from "./plan-view.ts";
 import { renderEdgeCalc, renderStepCalc } from "./calc-view.ts";
 import {
   builtFor,
@@ -133,6 +142,7 @@ import {
   isOverridesFile,
   loadBuilt,
   loadCorrections,
+  cleanSettings,
   loadSettings,
   mergeCorrections,
   newItemId,
@@ -163,9 +173,20 @@ import {
 import { txt, txtHtml } from "./engine-text.ts";
 import { initRemarks, sentNote } from "./remarques-view.ts";
 import { initPropositions } from "./propositions-view.ts";
+import { initMethods } from "./methods-view.ts";
 import { initSandbox } from "./sandbox-view.ts";
+import { initShare, type OpenChoice, type ShareWith } from "./share-view.ts";
+import { assembleDesign, assembleProfile, hasSandbox, readShareHash, stableJson } from "./share-design.ts";
+import { groupsOf, hasContrib, noPrints, printOnto, readPrints, reprint, settled, unprint, type OwnKeys, type PrintGroup, type Prints } from "./print-profile.ts";
+import type { Layout } from "../engine/sandbox/layout.ts";
+import { frozenSvg } from "./frozen-view.ts";
+import { enterLecture, leaveLecture, lecture, ownItem, ownKeys, writeOwn, PROFILE_KEYS, setLectureDesign, setOwnItem, withProfile } from "./profile-store.ts";
+import { initDesigns } from "./designs-view.ts";
+import { sorted, addDesign, contentOf, duplicate, emptyTree, find, folder, free, inBin, makeDesign, place, readTree, type DesignNode, type DirNode, type Tree } from "./designs-model.ts";
+import { fnv } from "../engine/share/print.ts";
+import { ENGINE_VERSION, type DesignProfile, decodeDesign, designPrint, encodeDesign, SITE_VERSION, type Design } from "../engine/share/index.ts";
 import { layoutFromFactory, layoutFromModule, type Converted } from "../engine/schematic/convert.ts";
-import { writeMsch, type Schematic } from "../engine/schematic/msch.ts";
+import type { Schematic } from "../engine/schematic/msch.ts";
 import type { ModRange } from "./sandbox-draw.ts";
 import { buildSandboxCatalog, type SbCatalog } from "../engine/sandbox/index.ts";
 import { fact } from "../engine/modular.ts";
@@ -190,7 +211,8 @@ setLang(
 const REPO_IFACES = interfacesJson as unknown as InterfacesFile;
 // Machines modulaires (S13) : la ferme d'arbres et les moteurs diesel relevés entrent dans le calcul.
 const REPO_MODULAR = modularJson as unknown as ModularFile;
-const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES, modular: REPO_MODULAR } as unknown as RawFiles;
+const MINESHAFT = mineshaftJson as unknown as MineshaftFile;
+const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: REPO_IFACES, modular: REPO_MODULAR, mineshaft: MINESHAFT } as unknown as RawFiles;
 /** Poteaux de transport d'énergie (réseau de l'objectif énergie). */
 const POLES = (powerJson as unknown as PowerFile).entries
   .filter((e) => e.subcategory === "Transfer Poles" && e.transfer)
@@ -209,12 +231,17 @@ const CATALOG = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJso
 (files as RawFiles).farmPoles = CATALOG.poles.map((p) => ({ id: p.id, name: p.name, rangeCells: p.rangeCells, capacityMFps: p.capacityMFps, w: p.size.w, h: p.size.h, price: p.price }));
 const REPO_PORTS = portsJson as unknown as PortsFile;
 /** Relevés de bâtiments pour les plans de pose : ceux du dépôt, remplacés par les relevés locaux. */
-let ports = { sig: null as string | null, machines: REPO_PORTS.machines, local: {} as Record<string, PortsEntry> };
+let ports = { raw: null as string | null, fix: null as unknown, dsl: null as unknown, sig: "", machines: REPO_PORTS.machines, local: {} as Record<string, PortsEntry> };
 function currentPorts(): typeof ports {
-  const sig = rawLocalSurveys();
-  if (sig !== ports.sig) {
+  const raw = rawLocalSurveys();
+  if (raw !== ports.raw) {
     const local = loadLocalSurveys();
-    ports = { sig, machines: mergeSurveys(REPO_PORTS, local), local };
+    ports = { ...ports, raw, fix: null, machines: mergeSurveys(REPO_PORTS, local), local };
+  }
+  // La signature suit aussi les corrections et les relevés diesel : ils changent la pose, et d'un profil à l'autre.
+  if (ports.fix !== corrections || ports.dsl !== dieselReadings) {
+    const extra = countCorrections(corrections) || dieselReadings.length ? `+${fnv(JSON.stringify([corrections, dieselReadings]))}` : "";
+    ports = { ...ports, fix: corrections, dsl: dieselReadings, sig: raw + extra };
   }
   return ports;
 }
@@ -248,44 +275,94 @@ let dataErrors: Message[] = [];
 let prog: ProgressState = loadProgress();
 let player: PlayerInfo = loadPlayer();
 
-// ---------------------------------------------------------------- visite d'orientation (S24)
-/** Pendant la visite, la page montre un exemple : rien n'est enregistré, la partie revient à la fin. */
-let touring: { settings: string; prog: ProgressState; hash: string } | null = null;
+// ---------------------------------------------------------------- tutoriel (S24, refait remarque n° 14)
+/** Le joueur fait son premier plan pendant le tutoriel : objet et débit sont les siens et restent enregistrés.
+ * Seule exception : une partie neuve (aucune recherche renseignée) ne peut rien produire ; le temps du premier
+ * parcours, la progression est alors simulée « tout débloqué » (la bulle le dit), puis rétablie. */
+let simulated: ProgressState | null = null;
 function saveSettings(s: Settings): void {
-  if (!touring) storeSettings(s);
+  storeSettings(s);
 }
 const KEY_TOUR = "ind-calc:v1:visite";
+/** « Modifier la proposition » (G5) : le graphe et le dernier « Appliquer » quand l'étape est atteinte (l'étape avance quand ils changent). */
+let tourGraph: { g: Graph | null; solved: Graph | null } = { g: null, solved: null };
+/** Graphe édité d'avant le parcours « Modifier la proposition » joué sur une progression simulée : rendu à la fin. */
+let tourGedit: { saved: StoredGraphEdit | null } | null = null;
+const checklist = createChecklist({ start: (mode) => tour.start(mode), replay: () => tour.start("first") });
 const tour = createTour(SITE_TOUR, {
   onStart() {
-    touring = { settings: JSON.stringify(settings), prog, hash: location.hash };
-    // L'exemple : 60 Crankshaft/min, toutes les recherches, usine module par module, sans filtre.
-    prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
-    Object.assign(settings, { goal: "objet", item: "crankshaft", mode: "rate", rate: 60, fixed: null, machineFilters: {}, usine: { ...settings.usine, full: false } });
-    enter("objet");
-    planDirty = true;
-    render(); // l'adresse peut ne pas changer (première visite sur #objet) : l'exemple doit s'afficher tout de suite
+    checklist.hide(false);
+  },
+  onStartMode(mode) {
+    // Le premier parcours et les mini-parcours de Planifier (construire, régler) ont besoin d'un plan : partie neuve → simulée.
+    if ((mode === "first" || mode === "poser" || mode === "regler" || mode === "modifier") && !prog.unlocked.length && !simulated) {
+      simulated = prog;
+      if (mode === "modifier") tourGedit = { saved: gedit?.touched ? storeGraphEdit(gedit) : null };
+      prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
+      planDirty = true;
+      render();
+    }
   },
   go(hash) {
     location.hash = hash;
   },
-  onEnd() {
-    if (!touring) return;
-    const back = touring;
-    touring = null;
-    for (const k of Object.keys(settings)) delete (settings as Record<string, unknown>)[k];
-    Object.assign(settings, JSON.parse(back.settings));
-    prog = back.prog;
-    planDirty = true;
+  test(cond) {
+    if (cond === "item") return settings.goal === "objet" && !isBlank("objet") && data.items.has(settings.item);
+    if (cond === "schema") return settings.resultTab === "schema";
+    if (cond === "simulated") return simulated !== null;
+    if (cond === "drawer") return !$("plan-drawer").hidden;
+    if (cond === "noplan") return settings.goal !== "objet" || isBlank("objet");
+    if (cond === "gnode") return !!graphView?.selected;
+    if (cond === "gchanged") return !!graphView?.graph && graphView.graph !== tourGraph.g;
+    if (cond === "gsolved") return !!gedit?.solved && gedit.solved !== tourGraph.solved;
+    return true;
+  },
+  onReach(mode, index) {
+    if (mode === "modifier") tourGraph = { g: graphView?.graph ?? null, solved: gedit?.solved ?? null };
+    const it = reachedItem(mode, index);
+    if (it) checklist.check(it);
+  },
+  onEnd(mode) {
     try {
       localStorage.setItem(KEY_TOUR, "1");
     } catch {
-      // stockage indisponible : la visite reviendra à la prochaine première visite
+      // stockage indisponible : la carte d'accueil reviendra à la prochaine première visite
     }
-    if (location.hash !== back.hash && back.hash) location.hash = back.hash;
-    else render();
+    if (mode !== "first") checklist.check(mode as CheckItem);
+    if (simulated) {
+      // Le graphe modifié pendant un parcours simulé ne reste pas : on rend celui d'avant (ou la proposition).
+      if (tourGedit) {
+        gedit = tourGedit.saved ? loadGraphEdit(tourGedit.saved) : null;
+        graphDoc = null;
+        tourGedit = null;
+        saveGraphEdit(true);
+      }
+      prog = simulated;
+      simulated = null;
+      planDirty = true;
+      render();
+    }
+    checklist.show();
   },
 });
 /** Journal des RP (S21) : temps de jeu, relevés, configurations, dépenses, sessions. */
+/** Démarrage en session de lecture alors que « Je joue » du joueur était resté actif : rappelé au retour à sa partie. */
+let ownAway = (() => {
+  const j = lecture() ? ownJournal() : null;
+  return !!j && needsRecall(j, Date.now());
+})();
+function ownJournal(): RpJournal | null {
+  try {
+    return parseRpJournal(JSON.parse(ownItem(PROFILE_KEYS.journal) ?? "null"));
+  } catch {
+    return null;
+  }
+}
+/** Pendant une lecture, l'horloge du joueur reste tenue (le site est ouvert) : rien d'autre de sa partie n'est écrit. */
+function touchOwn(): void {
+  const j = lecture() && !ownAway ? ownJournal() : null;
+  if (j?.clock.playing) setOwnItem(PROFILE_KEYS.journal, JSON.stringify(touch(j, Date.now())));
+}
 let journal: RpJournal = loadJournal() ?? startJournal(Date.now(), player);
 saveJournal(journal);
 let built = loadBuilt();
@@ -318,6 +395,34 @@ let rpView: ResearchView | null = null;
 let planDirty = true;
 let rows: BuildRow[] = [];
 let signature = "";
+
+/** Graphe édité de Planifier (G4, graph-edit.ts) ; null : l'onglet Schéma suit la proposition. Enregistré au rechargement. */
+const KEY_GRAPH = "ind-calc:v1:graph";
+let gedit: GraphEdit | null = (() => {
+  try {
+    return loadGraphEdit(JSON.parse(localStorage.getItem(KEY_GRAPH) ?? "null"));
+  } catch {
+    return null;
+  }
+})();
+/** Plan montré dans l'aperçu de « Recalculer », repris tel quel par le calcul qui suit « Appliquer ». */
+let pendingGraphPlan: { g: Graph; plan: Plan } | null = null;
+/** Test de charge en cours (`__grapheCharge`) : ce graphe-là ne s'enregistre pas. */
+let graphLoad = false;
+let graphSaveTimer: number | undefined;
+function saveGraphEdit(now = false): void {
+  clearTimeout(graphSaveTimer);
+  const write = () => {
+    try {
+      if (gedit?.touched) localStorage.setItem(KEY_GRAPH, JSON.stringify(storeGraphEdit(gedit)));
+      else localStorage.removeItem(KEY_GRAPH);
+    } catch {
+      // stockage indisponible : le graphe reste pour cette visite
+    }
+  };
+  if (now) write();
+  else graphSaveTimer = window.setTimeout(write, 400);
+}
 
 const KEY_UI = "ind-calc:v1:ui";
 let ui: { view: "tree" | "list"; selected: string | null; dataTab: "verifier" | "batiments" } = { view: "tree", selected: null, dataTab: "verifier" };
@@ -568,6 +673,11 @@ function readRoute(): void {
     history.replaceState(null, "", `#${OLD_ROUTES[h] || GOAL_ROUTE[settings.goal]}`);
   }
   route = parseRoute(location.hash);
+  // Ancien lien du bac à sable (#bac/<code>) : ouvert comme un design partagé (P2), plus chargé d'office.
+  if (route.page === "bac" && route.code) {
+    legacyCode = route.code;
+    delete route.code;
+  }
   if (route.goal && route.goal !== settings.goal) {
     settings.goal = route.goal;
     planDirty = true;
@@ -591,11 +701,16 @@ let lastHash = "";
 function setDocTitle(): void {
   const page = currentPage();
   const view = page === "plan" ? goalTitle(settings.goal) : t(page === "usine" && route.usineTab === "recherche" ? "page.recherche" : `page.${page}`);
-  document.title = `${view} — ${t("site.title")}`;
+  document.title = `${lecture() ? `${t("lec.title", { name: activeDesign()?.name ?? view })} — ` : ""}${view} — ${t("site.title")}`;
 }
+
+/** Partage (P2) : ancien lien du bac à sable en attente, et la vue où revenir après la fenêtre d'un lien. */
+let legacyCode: string | null = null;
+let shareReturn: string | null = null;
 
 function showPage(): void {
   if (lastHash) scrollOf.set(lastHash, window.scrollY);
+  if (readShareHash(location.hash) && lastHash && !readShareHash(lastHash)) shareReturn = lastHash;
   readRoute();
   const before = stack.length;
   stack = nextStack(stack, location.hash);
@@ -636,6 +751,14 @@ function showPage(): void {
     el?.closest(".vrow")?.classList.add("vfocus");
     el?.scrollIntoView({ block: "center" });
     el?.focus({ preventScroll: true });
+  }
+  // Partage (P2) : un lien #d=… ouvre la fenêtre « Design partagé » par-dessus la page.
+  const sh = readShareHash(location.hash);
+  if (sh?.kind === "design") void share.receive(sh.data);
+  else if (legacyCode) {
+    const c = legacyCode;
+    legacyCode = null;
+    void share.receiveLegacy(c);
   }
 }
 
@@ -744,6 +867,141 @@ function fixedNow(): Record<string, number> | undefined {
   saveSettings(settings);
   return undefined;
 }
+/** Graphe importé (Industrialist Calculator) du plan affiché, s'il y en a un. */
+function importNow(): ImportedGraph | null {
+  const key = planKey(settings.goal, settings.item);
+  return (key && settings.imports[key]) || null;
+}
+/**
+ * Importe un fichier « …_save.json » du calculateur de Pollywrath. Son graphe s'ouvre tel quel dans
+ * l'éditeur (G5 : nœuds, nombres, positions, liaisons, cible), gardé comme un graphe modifié ; son nœud
+ * cible donne l'objectif et le débit, ses recettes deviennent les recettes imposées (remarque n°16).
+ * Ce qui n'a pas d'équivalent chez nous est signalé, jamais remplacé.
+ */
+async function importPollywrath(file: File): Promise<void> {
+  const close = [{ value: "", label: t("m.close"), primary: true }];
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await file.text());
+  } catch {
+    return void (await ask(t("m.importFailed"), `<p>${esc(t("gv.f.imp.bad"))}</p>`, close));
+  }
+  const pg = pollywrathToGraph(raw, planData(), pwMap as unknown as PollywrathMapFile, { world: gameView(), fileName: file.name });
+  if (!pg || !pg.graph.nodes.length) {
+    let msg = t("gv.f.imp.bad");
+    try {
+      parsePollywrathSave(raw, planData(), pwMap as unknown as PollywrathMap, file.name);
+    } catch (err) {
+      msg = (err as Error).message;
+    }
+    return void (await ask(t("m.importFailed"), `<p>${esc(msg)}</p>`, close));
+  }
+  // Objectif tiré de leur cible (si elle est reconnue) ; sinon l'objectif ne change pas.
+  try {
+    const res = parsePollywrathSave(raw, planData(), pwMap as unknown as PollywrathMap, file.name);
+    settings.goal = "objet";
+    if (!settings.entered.includes("objet")) settings.entered = [...settings.entered, "objet"];
+    settings.item = res.item;
+    settings.mode = "rate";
+    settings.rate = res.ratePerMin;
+    settings.imports = { ...settings.imports, [planKey("objet", res.item)!]: res.graph };
+    syncForm();
+  } catch {
+    // pas de cible reconnue : le graphe s'ouvre quand même, la cible se marque à la main
+  }
+  gedit = { sig: goalSig(), graph: pg.graph, solved: null, touched: true };
+  graphDoc = null;
+  saveGraphEdit(true);
+  settings.resultTab = "schema";
+  update();
+  go({ page: "plan", goal: "objet", tab: "schema" });
+  const label = (recipeLabel: string) => `<li>${esc(recipeLabel)}</li>`;
+  const html =
+    `<p>${esc(t("gv.f.imp.ok"))}</p>` +
+    (pg.unknown.length ? `<p>${esc(t("gv.f.imp.unknown"))}</p><ul>${pg.unknown.map((u) => label(u.nodes > 1 ? `${u.label} ×${u.nodes}` : u.label)).join("")}</ul>` : "") +
+    (pg.droppedEdges ? `<p class="hint">${esc(t("gv.f.imp.edges", { n: pg.droppedEdges }))}</p>` : "") +
+    (pg.targetLost || !pg.graph.target ? `<p class="hint">${esc(t("gv.f.imp.target"))}</p>` : "") +
+    `<p class="hint"><a href="https://industrialist-calculator.pages.dev" target="_blank" rel="noopener">${esc(t("pw.credit"))}</a></p>`;
+  await ask(t("gv.f.imp.title", { name: pg.name }), html, close);
+}
+
+/**
+ * Export du graphe de l'éditeur vers Industrialist Calculator (G5) : leur fichier « …_save.json ». Les
+ * nœuds sans équivalent chez eux sont signalés avant, et laissés de côté (jamais remplacés).
+ */
+async function exportGraphPollywrath(): Promise<void> {
+  const g = graphView?.graph ?? gedit?.graph;
+  if (!g) return;
+  const pd = planData();
+  const close = [{ value: "", label: t("m.close"), primary: true }];
+  const name = g.target ? itemName(g.target.item) : "Industrialist";
+  const ex = exportPollywrath(g, pd, pwMap as unknown as PollywrathMapFile, { name, pollutionPct: gameView().pollutionPct ?? null });
+  if (!ex.save.data.nodes.length) return void (await ask(t("gv.f.exp.title"), `<p>${esc(t("gv.f.exp.empty"))}</p>`, close));
+  const recipeLabel = (id: string) => {
+    const r = pd.recipes.get(id);
+    const out = r ? Object.keys(r.outputs)[0] : undefined;
+    return `${itemName(out ?? id)} (${r ? (pd.machines.get(r.machine)?.name ?? r.machine) : id})`;
+  };
+  const notes: string[] = [];
+  if (ex.missing.length) notes.push(`<p>${esc(t("gv.f.exp.missing"))}</p><ul>${ex.missing.map((m) => `<li>${esc(recipeLabel(m.recipeId))}</li>`).join("")}</ul>`);
+  if (ex.droppedEdges) notes.push(`<p class="hint">${esc(t("gv.f.exp.edges", { n: ex.droppedEdges }))}</p>`);
+  if (ex.targetLost) notes.push(`<p class="hint">${esc(t("gv.f.exp.target"))}</p>`);
+  const fileName = `${name.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Industrialist"}_save.json`;
+  if (notes.length) {
+    const ok = await ask(t("gv.f.exp.title"), notes.join("") + `<p class="hint">${esc(t("gv.f.exp.done", { file: fileName }))}</p>`, [
+      { value: "ok", label: t("gv.f.exp.ok"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (ok !== "ok") return;
+  }
+  downloadJson(ex.save, fileName);
+}
+
+/** Menu « Fichier » de la barre du canevas (G5) : échange avec Industrialist Calculator. */
+function openGraphFileMenu(anchor: HTMLElement): void {
+  if (popAnchorEl() === anchor) return closePop();
+  const opt = (v: string, label: string, note = "") => `<button type="button" data-opt="${v}">${esc(label)}${note ? `<small class="hint">${esc(note)}</small>` : ""}</button>`;
+  openPopMenu(document.body, anchor, opt("import", t("gv.f.import"), t("gv.f.note")) + opt("export", t("gv.f.export")), (el) => {
+    if (el.dataset.opt === "import") $("pw-import").click();
+    else void exportGraphPollywrath();
+  }, "pop-menu gv-file-pop");
+}
+
+/**
+ * Réglages spéciaux d'un nœud dans sa bulle (G5) : ceux de la fiche S62, pour le même plan (écran chiffré
+ * S10, moteur diesel S18, Mineshaft Drill), sans rien changer à leur calcul. "" s'il n'y en a pas.
+ */
+function graphExtra(id: string): string {
+  const v = viewCtx();
+  if (v.goal === "recherche") return "";
+  const node = graphView?.graph?.nodes.find((n) => n.id === id);
+  const r = node ? v.data.recipes.get(node.recipeId) : undefined;
+  if (!node || !r) return "";
+  const m = r.machine;
+  const sets: string[] = [renderScreenInputs(v.ifaces?.[m], m, machineN(v, m), v.msettings?.[m])];
+  if (m === "diesel-engine-controller" && v.diesel) {
+    // Un autre nom de groupe que celui de la fiche : les deux réglages peuvent être à l'écran ensemble.
+    sets.push(renderDieselHud(v.diesel.configs, v.diesel.choice, v.diesel.configs.find((c) => c.id === node.recipeId) ?? null).replace(/name="dsl-mode"/g, 'name="dsl-mode-gv"'));
+  }
+  if (v.mineshaft && m === v.mineshaft.file.meta.machine) {
+    const d = Number(/@(\d+)$/.exec(node.recipeId)?.[1]);
+    sets.push(renderMineshaftHud(v.mineshaft, Number.isFinite(d) ? d : null, (x) => itemN(v, x)));
+  }
+  const html = sets.filter(Boolean).join("");
+  return html ? `<p class="gv-bx-h">${esc(t("gv.b.extra"))}</p>${html}` : "";
+}
+/** Fenêtre « graphe importé » : leurs nombres de machines face aux nôtres, recettes non reconnues. */
+async function showImported(): Promise<void> {
+  const g = importNow();
+  if (!g || !plan) return;
+  const v = { data: planData() };
+  const ours = (id: string) => plan!.steps.filter((s) => s.recipeId === id).reduce((n, s) => n + s.machines, 0);
+  const num = (n: number) => fmt(Math.round(n * 100) / 100);
+  const rows = g.recipes.map((id) => { const r = v.data.recipes.get(id); const out = r ? Object.keys(r.outputs)[0] : undefined; return `<tr><td>${esc(out ? itemN(v, out) : id)} <span class="hint">(${esc(r ? machineN(v, r.machine) : "")})</span></td><td class="num">${num(g.theirs[id] ?? 0)}</td><td class="num">${ours(id) ? num(ours(id)) : "—"}</td></tr>`; }).join("");
+  const miss = Object.values(g.unknown);
+  const html = `<p>${esc(t("pw.dlg.intro"))}</p><table class="pw-table"><thead><tr><th>${esc(t("pw.col.recipe"))}</th><th class="num">${esc(t("pw.col.theirs"))}</th><th class="num">${esc(t("pw.col.ours"))}</th></tr></thead><tbody>${rows}</tbody></table>${miss.length ? `<p>${esc(t("pw.unknown"))}</p><ul>${miss.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}<p class="hint"><a href="https://industrialist-calculator.pages.dev" target="_blank" rel="noopener">${esc(t("pw.credit"))}</a></p>`;
+  await ask(t("pw.dlg.title", { name: g.name }), html, [{ value: "", label: t("m.close"), primary: true }]);
+}
 /** Filtre de machines du plan affiché (S9) : un par objet, un pour l'énergie, un pour l'argent. */
 function filterNow(): PlanMachines {
   return planMachines(settings, planKey(settings.goal, settings.item));
@@ -809,6 +1067,20 @@ function setDieselReadings(list: DieselReading[]): void {
   update();
 }
 
+/** Mineshaft Drill du plan (remarque n°16) : données et réglage (défaut : profondeur auto, Steel, HCl). */
+function mineshaftNow(): MineshaftView {
+  const key = planKey(settings.goal, settings.item);
+  return { file: MINESHAFT, choice: (key && settings.mineshaftChoice[key]) || DEFAULT_MINESHAFT };
+}
+function setMineshaftChoice(patch: Partial<MineshaftChoice>): void {
+  const key = planKey(settings.goal, settings.item);
+  if (!key) return;
+  const next = { ...mineshaftNow().choice, ...patch };
+  const { [key]: _, ...rest } = settings.mineshaftChoice;
+  settings.mineshaftChoice = sameMineshaft(next, DEFAULT_MINESHAFT) ? rest : { ...rest, [key]: next };
+  update();
+}
+
 function msettingsNow(): MachineSettings {
   const key = planKey(settings.goal, settings.item);
   return (key && settings.machineSettings[key]) || {};
@@ -835,11 +1107,36 @@ let planDataCache: { base: GameData; sig: string; data: GameData } | null = null
 function planData(): GameData {
   const ms = msettingsNow();
   const all = currentInterfaces();
-  const sig = `${JSON.stringify(ms)}|${all.sig}`;
-  if (!planDataCache || planDataCache.base !== data || planDataCache.sig !== sig) planDataCache = { base: data, sig, data: applyMachineSettings(data, all.all, ms) };
+  const msd = mineshaftNow().choice;
+  const sig = `${JSON.stringify(ms)}|${all.sig}|${JSON.stringify(msd)}`;
+  if (!planDataCache || planDataCache.base !== data || planDataCache.sig !== sig) {
+    const applied = applyMachineSettings(data, all.all, ms);
+    planDataCache = { base: data, sig, data: sameMineshaft(msd, DEFAULT_MINESHAFT) ? applied : withMineshaft(applied, MINESHAFT, msd) };
+  }
   return planDataCache.data;
 }
 let planBuiltFrom: GameData | null = null;
+
+/** Réglages du calcul autres que l'objectif (critères, filtres, contraintes…), communs à la proposition et au recalcul du graphe. */
+function baseRequest(): Omit<SolveRequest, "item"> {
+  const goal = settings.goal;
+  return {
+    poles: POLES,
+    distanceTiles: settings.distanceTiles === null ? null : settings.distanceTiles / CELLS_PER_TILE,
+    criterion: settings.criteria[goal][0], then: settings.criteria[goal].slice(1),
+    forced: settings.forced,
+    useUnverified: settings.useUnverified,
+    selfPowered: settings.selfPowered,
+    maxPollution: settings.maxPollution,
+    budget: settings.useBudget && player.money !== null ? player.money : null,
+    depots: DEPOTS,
+    existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
+    fixedMachines: fixedNow(),
+    machines: engineFilter(filterNow()),
+    diesel: dieselRecipeNow(),
+    onlyRecipes: importNow()?.recipes,
+  };
+}
 
 function ensurePlan(): void {
   const pd = planData();
@@ -852,24 +1149,21 @@ function ensurePlan(): void {
     plan = rpView?.best?.plan ?? solve(pd, playerState(), { item: "", demands: {}, tiers: false });
     return;
   }
-  const request = (target: Partial<Parameters<typeof solve>[2]>) =>
-    solve(pd, playerState(), {
-      item: settings.item,
-      ...target,
-      poles: POLES,
-      distanceTiles: settings.distanceTiles === null ? null : settings.distanceTiles / CELLS_PER_TILE,
-      criterion: settings.criteria[goal][0], then: settings.criteria[goal].slice(1),
-      forced: settings.forced,
-      useUnverified: settings.useUnverified,
-      selfPowered: settings.selfPowered,
-      maxPollution: settings.maxPollution,
-      budget: settings.useBudget && player.money !== null ? player.money : null,
-      depots: DEPOTS,
-      existing: settings.useExisting ? Object.fromEntries(Object.entries(settings.existing).filter(([id]) => data.items.has(id))) : {},
-      fixedMachines: fixedNow(),
-      machines: engineFilter(filterNow()),
-      diesel: dieselRecipeNow(),
-    });
+  const request = (target: Partial<Parameters<typeof solve>[2]>) => solve(pd, playerState(), { item: settings.item, ...target, ...baseRequest() });
+  // Graphe édité puis recalculé (G4) : le plan vient de lui (recettes posées, nœuds fixés, cible et
+  // débit), plus de la proposition brute. Le solveur ne tourne ici que parce qu'un réglage a changé ;
+  // juste après « Appliquer », c'est le plan montré dans l'aperçu.
+  const ge = gedit;
+  if (goal === "objet" && ge?.solved && ge.sig === goalSig()) {
+    poseSchem = null;
+    const ready = pendingGraphPlan?.g === ge.solved ? pendingGraphPlan.plan : null;
+    pendingGraphPlan = null;
+    const p = ready ?? solveFromGraph(pd, playerState(), ge.solved, baseRequest()).plan;
+    if (p) {
+      plan = p;
+      return;
+    }
+  }
   poseSchem = null; // le schéma à exporter suit le nouveau plan
   plan = request(
     goal === "argent"
@@ -887,7 +1181,7 @@ function ensurePlan(): void {
 
 function viewCtx(): ViewCtx {
   ensurePlan();
-  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow(), game: gameView() };
+  return { data: planData(), plan: plan!, settings, corrections, goal: settings.goal, research: rpView, fresh: isFresh(), plot: plotOf(player), ifaces: currentInterfaces().all, msettings: msettingsNow(), diesel: dieselNow(), mineshaft: mineshaftNow(), game: gameView() };
 }
 
 /** Un réglage, la progression, « Mon usine » ou les données ont changé : recalcul puis affichage. */
@@ -913,6 +1207,7 @@ function render(): void {
   else if (page === "arbre") renderTreePage();
   else if (page === "recettes") renderRecettes();
   else if (page === "propositions") props.refresh();
+  else if (page === "methodes") methods.show();
   else if (page === "bac") sandbox.show(route.code);
   else renderData();
 }
@@ -1144,7 +1439,12 @@ function renderPlanPage(): void {
   planBar.hidden = noResult;
   if (openWarn) planBar.querySelector<HTMLDetailsElement>(".pb-warn")?.setAttribute("open", "");
   $("rtabs-result").hidden = noResult;
+  if (!noResult) syncGraphDoc(v.plan);
+  renderGraphBar();
   if (noResult) {
+    // Rien à poser : les étapes du plan précédent (design quitté) ne restent pas dans le rail.
+    railSteps = [];
+    renderStepRail();
     for (const t of ["liste", "schema", "pose", "details"] as ResultTab[]) $(`rpanel-${t}`).hidden = true;
     return;
   }
@@ -1167,6 +1467,8 @@ function planBarInput(advanced: number): PlanBarInput {
     msettings: goal === "recherche" ? {} : msettingsNow(),
     ifaces: currentInterfaces().all,
     diesel: (key && settings.dieselChoice[key]) || null,
+    mineshaft: goal === "recherche" ? null : mineshaftNow(),
+    imported: importNow(),
     advanced,
   };
 }
@@ -1234,19 +1536,19 @@ function renderResultTabs(): void {
   if (tab === "details") $("details").innerHTML = renderDetails(viewCtx());
 }
 
-// Schéma : cadre navigable comme l'arbre de recherche.
-let flowPZ: PanZoom | null = null;
-/** Bloc sélectionné dans le schéma (clé d'étape), ou flèche sélectionnée (numéro). */
-let flowSel: string | null = null;
-let flowEdge: number | null = null;
-let flowEdgeBefore: number | null = null;
-let flowKey = "";
+// Schéma : l'éditeur de graphe (PLAN-GRAPHE.md, lot G2). La proposition du solveur devient un graphe
+// (plan → graphe, G1) affiché par graph-view.ts : nœuds HTML, liaisons de prise à prise.
+let graphView: GraphView | null = null;
 /**
- * Échelle de départ (S28) : toute la chaîne, l'objet final compris, dans la largeur du cadre ; le cadre
- * prend la hauteur qu'il faut (entre 240 px et 70 % de l'écran). En dessous de FLOW_FAR, les blocs
- * passent en lecture de loin (nom et machines en gros).
+ * Graphe affiché et plan qu'il accompagne : étape du plan → nœud (par recette) et l'inverse. `arranged` :
+ * la disposition de départ est faite (« Ranger » d'entrée, avec les vraies hauteurs des nœuds).
  */
-const FLOW_FAR = 0.75;
+/** `links` : les liens étape → nœud posés avec le plan ; `nodeOfStep` : ceux qui valent encore (`keepLinks`). */
+let graphDoc: { plan: Plan; g: Graph; links: Map<string, string>; nodeOfStep: Map<string, string>; stepOf: Map<string, string>; arranged: boolean } | null = null;
+/** Bloc sélectionné dans le schéma (clé d'étape), ou liaison sélectionnée. */
+let flowSel: string | null = null;
+let flowEdge: { from: string; to: string; item: string; perMin: number; loop: boolean } | null = null;
+let flowKey = "";
 /** Largeur réservée aux boutons de zoom, à droite du cadre. */
 const FLOW_ZOOM_W = 52;
 /** Plan de pose : tout voir si c'est lisible, sinon assez grand pour lire (calé à gauche). */
@@ -1254,75 +1556,391 @@ const FLOW_MIN_SCALE = 0.6;
 function flowStartScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
   return Math.max(FLOW_MIN_SCALE, Math.min(1, frame.w / content.w, frame.h / content.h));
 }
-function flowFitScale(frame: { w: number; h: number }, content: { w: number; h: number }): number {
-  return Math.min(1, frame.w / content.w, frame.h / content.h);
+
+function graphText(): GraphViewText {
+  const unit = settings.rateUnit;
+  const rate = (perMin: number) => {
+    const x = displayRate(perMin, unit);
+    return `${fmt(x, Math.abs(x) >= 100 ? 0 : Math.abs(x) >= 10 ? 1 : 2)}/${unit === "s" ? "s" : "min"}`;
+  };
+  return {
+    rate,
+    num: (x) => fmt(x, Math.abs(x) >= 100 || Number.isInteger(x) ? 0 : 2),
+    item: (id) => itemName(id),
+    machine: (id) => planData().machines.get(id)?.name ?? id,
+    cycle: (sec) => `${fmt(sec, sec >= 10 ? 0 : 1)} s`,
+    energy: (mf) => fmtMF(mf),
+    pollution: (ph) => `${fmtPct(fmt(ph, Math.abs(ph) >= 10 ? 0 : Math.abs(ph) >= 1 ? 1 : 2))}/h`,
+    target: t("gv.target"),
+    fixed: t("gv.fixed"),
+    missing: t("gv.missing"),
+    partial: (got, need) => t("gv.partial", { got, need }),
+    nodeAria: (product, n, machine) => t("gv.node.aria", { product, n, machine }),
+  };
 }
+
+/**
+ * Étape du plan d'un nœud du graphe : seulement s'il fait encore la recette de cette étape (un nœud
+ * ajouté à la main, ou dont la recette a été remplacée, n'a pas de fiche du plan).
+ */
+function stepOfNode(id: string): string | undefined {
+  const d = graphDoc;
+  const key = d?.stepOf.get(id);
+  if (!key) return undefined;
+  const node = d!.g.nodes.find((n) => n.id === id);
+  return key && node && d!.plan.steps.find((s) => s.key === key)?.recipeId === node.recipeId ? key : undefined;
+}
+
 function renderFlowCanvas(): void {
-  const f = renderFlow(viewCtx());
+  const v = viewCtx();
+  const p = v.plan;
   const canvas = $("flow-canvas");
   const frame = $("flow-frame");
-  frame.classList.toggle("empty", !f);
-  if (!f) {
+  const empty = !p.steps.length;
+  frame.classList.toggle("empty", empty);
+  if (empty) {
     canvas.innerHTML = `<p class="flow-empty">${t("m.flow.empty")}</p>`;
     frame.style.height = "";
+    graphDoc = null;
     return;
   }
-  canvas.innerHTML = f.svg;
-  const fw = frame.clientWidth || 800;
-  const maxH = window.innerHeight * 0.7;
-  const s = flowFitScale({ w: fw - FLOW_ZOOM_W, h: maxH }, { w: f.width, h: f.height });
-  frame.style.height = `${Math.round(Math.max(240, Math.min(maxH, f.height * s + 8)))}px`;
-  flowPZ ??= new PanZoom(frame, {
-    minWidth: 150,
-    initialView: (fr, c) => {
-      // La colonne des boutons de zoom (à droite) ne cache pas l'objet final.
-      const room = Math.max(1, fr.w - FLOW_ZOOM_W);
-      const k = flowFitScale({ w: room, h: fr.h }, c);
-      const w = fr.w / k;
-      const h = fr.h / k;
-      return { x: (c.w - room / k) / 2, y: (c.h - h) / 2, w, h };
+  // Téléphone : le cadre prend 70 % de l'écran (sur ordinateur, toute la hauteur du centre, en CSS).
+  frame.style.height = `${Math.round(Math.max(320, window.innerHeight * 0.7))}px`;
+  syncGraphDoc(p);
+  const doc = graphDoc!;
+  graphView ??= new GraphView(frame, {
+    data: planData(),
+    world: () => gameView(),
+    text: graphText(),
+    reserveRight: FLOW_ZOOM_W,
+    coverTop: () => document.querySelector(".top")?.getBoundingClientRect().bottom ?? 0,
+    badge: (id) => {
+      const key = stepOfNode(id);
+      if (!key) return ""; // nœud sans étape du plan : rien à vérifier (et pas de contexte à construire, ×400 en charge)
+      const vc = viewCtx();
+      const st = vc.plan.steps.find((s) => s.key === key);
+      return st ? warnButton(vc, stepWarnings(vc, st)) : "";
     },
-    onView: (k) => frame.classList.toggle("far", k < FLOW_FAR),
+    onSelect: (id) => selectFlow(id ? (stepOfNode(id) ?? null) : null),
+    onEdge: (e) => {
+      const d = graphDoc;
+      // Une liaison tirée à la main (vers un nœud ajouté) n'a pas de fiche du plan.
+      const from = e ? stepOfNode(e.from) : undefined;
+      const to = e ? stepOfNode(e.to) : undefined;
+      const next = e && d && from && to ? { from, to, item: e.item, perMin: balanceGraph(d.g, planData(), gameView()).edges.get(e.id) ?? 0, loop: false } : null;
+      // Second clic sur la même liaison : désélectionnée.
+      flowEdge = next && flowEdge && next.from === flowEdge.from && next.to === flowEdge.to && next.item === flowEdge.item ? null : next;
+      applyFlowSel();
+    },
+    onChange: (g) => onGraphChange(g),
+    onRecalc: () => void recalcGraph(),
+    onFile: (b) => openGraphFileMenu(b),
+    extra: (id) => graphExtra(id),
   });
-  flowPZ.attach(canvas.querySelector("svg")!, f.width, f.height, signature === flowKey);
+  bindGraphBubbleSettings(graphView.bubbleEl);
+  // Les données, la langue et l'unité peuvent avoir changé depuis la création du canevas.
+  Object.assign((graphView as unknown as { opts: GraphViewOptions }).opts, { data: planData(), text: graphText() });
+  const keep = signature === flowKey && doc.arranged;
+  graphLoad = false;
+  graphView.show(canvas, doc.g, keep);
+  // « Ranger » d'entrée, avec les vraies hauteurs des nœuds (le cadre doit être affiché pour les mesurer).
+  if (!doc.arranged && frame.clientWidth > 0) {
+    doc.arranged = true;
+    graphView.arrange(false, false); // disposition de départ : pas un pas d'annulation
+  }
   flowKey = signature;
+  graphView.setStale(graphStale());
   applyFlowSel();
 }
 
-/** Bloc sélectionné : lui et ses flux en évidence, et la barre du bas pour aller plus loin. */
-function applyFlowSel(): void {
-  const svg = $("flow-canvas").querySelector("svg");
-  const hud = $("flow-hud");
-  if (flowSel && !svg?.querySelector(`.fn[data-key="${CSS.escape(flowSel)}"]`)) flowSel = null;
-  if (svg) {
-    svg.classList.toggle("has-sel", !!flowSel);
-    for (const el of svg.querySelectorAll<SVGElement>(".sel, .hl")) el.classList.remove("sel", "hl");
-    if (flowSel) {
-      const k = CSS.escape(flowSel);
-      const node = svg.querySelector(`.fn[data-key="${k}"]`)!;
-      node.classList.add("sel");
-      const r = node.querySelector("rect")!;
-      const n = (a: string) => Number(r.getAttribute(a));
-      flowPZ?.reveal(n("x") - 20, n("y"), n("width") + 70, n("height")); // à l'écart des boutons de zoom
-      for (const el of svg.querySelectorAll<SVGElement>(`[data-from="${k}"], [data-to="${k}"]`)) el.classList.add("hl");
-      for (const el of svg.querySelectorAll<SVGElement>(".fe.hl, .fl.hl")) {
-        const other = el.dataset.from === flowSel ? el.dataset.to : el.dataset.from;
-        if (other) svg.querySelector(`.fn[data-key="${CSS.escape(other)}"]`)?.classList.add("hl");
-      }
+/**
+ * Test de charge (développement seulement) : le graphe affiché, copié jusqu'à `n` nœuds (copies
+ * décalées, liaisons comprises), pour vérifier que le glisser reste fluide. `__grapheCharge(400)`.
+ */
+if (import.meta.env.DEV) {
+  (window as unknown as { __grapheCharge: (n?: number) => number }).__grapheCharge = (n = 400) => {
+    const base = graphDoc ? planToGraph(graphDoc.plan).graph : null;
+    if (!base || !graphView) return 0;
+    graphLoad = true; // le graphe de charge ne s'enregistre pas
+    const nodes: Graph["nodes"] = [];
+    const edges: Graph["edges"] = [];
+    for (let c = 0; nodes.length < n; c++) {
+      const id = (x: string) => (c ? `${x}c${c}` : x);
+      for (const nd of base.nodes) if (nodes.length < n) nodes.push({ ...nd, id: id(nd.id) });
+      for (const e of base.edges) if (nodes.some((x) => x.id === id(e.from)) && nodes.some((x) => x.id === id(e.to))) edges.push({ ...e, id: `${id(e.from)}>${id(e.to)}:${e.item}`, from: id(e.from), to: id(e.to) });
+    }
+    graphView.show($("flow-canvas"), { ...base, nodes, edges }, false);
+    graphView.arrange();
+    return nodes.length;
+  };
+}
+
+/**
+ * Réglages spéciaux dans la bulle d'un nœud (G5) : mêmes gestes que dans la fiche S62, mêmes réglages du
+ * plan (écran chiffré, moteur diesel, Mineshaft Drill). Branché une fois.
+ */
+let graphBubbleBound = false;
+function bindGraphBubbleSettings(bub: HTMLElement): void {
+  if (graphBubbleBound) return;
+  graphBubbleBound = true;
+  bub.addEventListener("click", (e) => {
+    const reset = (e.target as Element).closest<HTMLElement>("[data-iset-reset]");
+    if (reset) setMachineSetting(reset.dataset.isetReset!, null, null);
+  });
+  bub.addEventListener("change", (e) => {
+    const el = e.target as HTMLInputElement | HTMLSelectElement;
+    if (el.matches("[data-iset-input]")) return setMachineSetting(el.dataset.machine!, el.dataset.setting!, parseFactor(el.value));
+    if (el.matches("[data-dsl-fuel]")) setDieselChoice({ fuel: el.value, config: null });
+    else if (el.matches("[data-dsl-mode]")) setDieselChoice({ mode: (el as HTMLInputElement).dataset.dslMode as DieselChoice["mode"], config: null });
+    else if (el.matches("[data-dsl-config]")) setDieselChoice({ config: el.value || null });
+    else {
+      const msd = mineshaftPatch(el);
+      if (msd) setMineshaftChoice(msd);
+    }
+  });
+  bub.addEventListener("keydown", (e) => {
+    const inp = (e.target as Element).closest<HTMLInputElement>("[data-iset-input]");
+    if (inp && e.key === "Enter") inp.blur();
+  });
+}
+
+// ---------------------------------------------------------------- graphe édité (G4)
+
+/**
+ * Le graphe à afficher pour ce plan. Pas modifié : il suit la proposition (refait quand le plan change).
+ * Modifié : il est gardé, même si l'objectif change (le bandeau le dit et propose quoi faire).
+ */
+function syncGraphDoc(p: Plan): void {
+  const sig = goalSig();
+  if (!gedit?.touched && (gedit?.sig !== sig || graphDoc?.plan !== p || graphDoc.g !== gedit.graph)) {
+    gedit = { sig, graph: planToGraph(p).graph, solved: null, touched: false };
+    graphDoc = null;
+  }
+  const ge = gedit!;
+  const g = ge.graph;
+  if (graphDoc?.plan === p && graphDoc.g === g) return;
+  // Étape ↔ nœud seulement si le graphe vaut pour cet objectif (sinon, pas de fiche du plan sur ses nœuds).
+  const nodeOfStep = ge.sig === sig ? restoreLinks(p, g, ge.links, ge.linksFor) : new Map<string, string>();
+  if (ge.sig === sig) {
+    ge.links = Object.fromEntries(nodeOfStep);
+    ge.linksFor = linksSig(p);
+  }
+  graphDoc = { plan: p, g, links: nodeOfStep, nodeOfStep, stepOf: new Map([...nodeOfStep].map(([k, id]) => [id, k])), arranged: graphDoc ? graphDoc.arranged : ge.touched };
+}
+
+/** Un geste du canevas (ou « Appliquer ») : le document suit, s'enregistre, et le bandeau se met à jour. */
+function onGraphChange(g: Graph): void {
+  if (graphLoad || !gedit) return;
+  gedit.graph = g;
+  if (graphView?.canUndo) gedit.touched = true;
+  if (graphDoc) {
+    graphDoc.g = g;
+    graphDoc.nodeOfStep = gedit.sig === goalSig() ? keepLinks(graphDoc.links, graphDoc.plan, g) : new Map();
+    graphDoc.stepOf = new Map([...graphDoc.nodeOfStep].map(([k, id]) => [id, k]));
+    // Enregistrés (ceux qui valent encore : après un rechargement, un identifiant supprimé peut revenir
+    // sur un nœud neuf) : au rechargement, un nœud ajouté à la main reste sans étape.
+    gedit.links = Object.fromEntries(graphDoc.nodeOfStep);
+    gedit.linksFor = linksSig(graphDoc.plan);
+  }
+  saveGraphEdit();
+  renderGraphBar();
+  syncHudCount(); // la fiche S62 montre le nombre du graphe (bulle, Ctrl Z…)
+}
+
+/** Le plan affiché ne suit plus le graphe édité (pour cet objectif). */
+function graphStale(): boolean {
+  return !!gedit?.touched && gedit.sig === goalSig() && !!plan && !graphMatchesPlan(gedit.graph, plan);
+}
+
+/** « 120/min Gearbox » : la cible du graphe, pour le bandeau. */
+function graphGoalLabel(g: Graph): string | null {
+  return g.target && g.rate ? `${graphText().rate(g.rate)} ${itemName(g.target.item)}` : null;
+}
+
+/** Bandeau au-dessus du résultat : plan tiré du graphe, graphe à recalculer, ou objectif changé. */
+function renderGraphBar(): void {
+  const bar = $("graph-bar");
+  const ge = gedit;
+  const b = (attr: string, label: string, primary = false) => `<button type="button"${primary ? ' class="primary"' : ""} ${attr}>${esc(label)}</button>`;
+  let cls = "";
+  let html = "";
+  if (ge?.touched && settings.goal !== "recherche" && !isBlank(settings.goal)) {
+    if (ge.sig !== goalSig()) {
+      cls = "goal";
+      const what = graphGoalLabel(ge.graph);
+      const sameItem = settings.goal === "objet" && settings.mode === "rate" && ge.graph.target?.item === settings.item;
+      html =
+        `<p>${esc(t("gbar.goal", { what: what ?? t("gbar.goal.other") }))}</p><span class="gbar-b">` +
+        (sameItem ? b('data-gbar="rate"', t("gbar.rate", { rate: graphText().rate(settings.rate) }), true) : "") +
+        (what ? b('data-gbar="restore"', t("gbar.restore"), !sameItem) : "") +
+        b('data-gbar="take"', t("gbar.take")) +
+        "</span>";
+    } else if (graphStale()) {
+      cls = "due";
+      html = `<p>${esc(t("gbar.due", { what: t(ge.solved ? "gbar.due.last" : "gbar.due.prop") }))}</p><span class="gbar-b">${b('data-gbar="recalc"', t("gbar.recalc"), true)}${b('data-gbar="back"', t("gbar.back"))}</span>`;
+    } else if (ge.solved) {
+      html = `<p>${esc(t("gbar.solved"))}</p><span class="gbar-b">${b('data-gbar="back"', t("gbar.back"))}</span>`;
     }
   }
-  // Flèche sélectionnée : elle, son étiquette et ses deux blocs en évidence.
-  const hit = flowEdge !== null && !flowSel ? svg?.querySelector<SVGElement>(`.fe-hit[data-edge="${flowEdge}"]`) : null;
-  if (!hit) flowEdge = null;
-  if (svg && hit) {
-    svg.classList.add("has-sel");
-    for (const el of svg.querySelectorAll<SVGElement>(`[data-edge="${flowEdge}"]`)) el.classList.add("hl");
-    for (const k of [hit.dataset.from!, hit.dataset.to!]) svg.querySelector(`.fn[data-key="${CSS.escape(k)}"]`)?.classList.add("hl");
+  bar.className = `gbar${cls ? ` ${cls}` : ""}`;
+  bar.innerHTML = html;
+  bar.hidden = !html;
+  graphView?.setStale(cls === "due");
+}
+
+/** Oublie le graphe édité : l'onglet Schéma revient à la proposition (après accord si `confirm`). */
+async function dropGraphEdit(confirm: boolean): Promise<void> {
+  if (confirm) {
+    const ok = await ask(t("gbar.drop.title"), t("gbar.drop.html"), [
+      { value: "ok", label: t("gbar.drop.ok"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (ok !== "ok") return;
   }
-  hud.hidden = !flowSel && !hit;
-  const edge = hit ? { from: hit.dataset.from!, to: hit.dataset.to!, item: hit.dataset.item!, perMin: Number(hit.dataset.rate), loop: !!hit.dataset.loop } : null;
+  gedit = null;
+  graphDoc = null;
+  saveGraphEdit(true);
+  update();
+}
+
+/** Objectif du site = cible et débit du graphe (« Appliquer », « Revenir à l'objectif du graphe »). */
+function setGoalFromGraph(g: Graph): void {
+  enter("objet");
+  settings.goal = "objet";
+  settings.item = g.target!.item;
+  settings.mode = "rate";
+  settings.rate = g.rate!;
+  // Les machines fixées par l'ancienne fiche (S8) sont dans le graphe (cadenas) : plus de réglage à part.
+  settings.fixed = null;
+  syncForm();
+  if (location.hash.split("/")[0] !== GOAL_HASH.objet) location.hash = GOAL_HASH.objet;
+}
+
+function restoreGraphGoal(): void {
+  const g = gedit?.graph;
+  if (!g?.target || !g.rate) return;
+  setGoalFromGraph(g);
+  gedit!.sig = goalSig();
+  saveGraphEdit(true);
+  update();
+}
+
+/**
+ * « Recalculer » (PLAN-GRAPHE.md § 2, décision 2) : le graphe devient une requête pour le solveur
+ * (recettes posées, nœuds fixés, cible et débit) ; l'aperçu montre avant / après par nœud et les
+ * manques ; « Appliquer » écrit les nombres (un pas d'annulation) et le plan du site suit le graphe.
+ * `rate` : un autre débit pour la cible (bandeau « objectif changé »).
+ */
+async function recalcGraph(rate?: number): Promise<void> {
+  const g0 = graphView?.graph ?? gedit?.graph;
+  if (!g0) return;
+  const pd = planData();
+  const world = gameView();
+  const T = graphText();
+  const close = [{ value: "", label: t("m.close"), primary: true }];
+  if (!g0.target) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noTarget"))}</p>`, close));
+  let g: Graph = rate ? { ...g0, rate } : g0;
+  let fromGraph = "";
+  if (!(g.rate !== null && g.rate > 0)) {
+    // Pas de débit (graphe monté à la main) : celui que la cible produit aujourd'hui.
+    const out = balanceGraph(g, pd, world).output?.perMin ?? 0;
+    if (!(out > 0)) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noRate"))}</p>`, close));
+    g = { ...g, rate: Math.round(out * 1e4) / 1e4 };
+    fromGraph = `<p class="hint">${esc(t("gv.rc.fromGraph", { rate: T.rate(g.rate!) }))}</p>`;
+  }
+  const target = g.target!;
+  const r = solveFromGraph(pd, playerState(), g, baseRequest());
+  if (!r.plan) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noTarget"))}</p>`, close));
+  const solved = r.plan;
+  const cmp = compareWithPlan(g, solved);
+  const name = (recipeId: string) => {
+    const rc = pd.recipes.get(recipeId);
+    const out = rc ? Object.keys(rc.outputs)[0] : undefined;
+    return `${esc(itemName(out ?? recipeId))} <span class="hint">(${esc(rc ? (pd.machines.get(rc.machine)?.name ?? rc.machine) : recipeId)})</span>`;
+  };
+  const n = (x: number) => esc(T.num(Math.round(x * 100) / 100));
+  const rowsHtml =
+    cmp.nodes
+      .map((c) => {
+        const after = c.after === null ? `<i>${esc(t("gv.rc.unused"))}</i>` : n(c.after);
+        const cls = c.after === null ? "gone" : Math.abs(c.after - c.before) > 1e-6 ? "up" : "";
+        return `<tr class="${cls}"><td>${name(c.recipeId)}${c.fixed ? ` ${icon("lock")}` : ""}</td><td class="num">${n(c.before)}</td><td class="num">${after}</td></tr>`;
+      })
+      .join("") + cmp.added.map((a) => `<tr class="new"><td>${name(a.recipeId)} · ${esc(t("gv.rc.added"))}</td><td class="num">—</td><td class="num">${n(a.machines)}</td></tr>`).join("");
+  const unused = cmp.nodes.filter((c) => c.after === null).length;
+  const preview = applyComparison(g, solved, cmp);
+  const gapList = (x: Graph) => {
+    const s = balanceGraph(x, pd, world).shortages;
+    return s.length ? s.map((q) => `${T.rate(q.perMin)} ${itemName(q.item)}`).join(", ") : t("gv.rc.none");
+  };
+  const unknown = r.problems.filter((p) => p.code === "recette-inconnue").map((p) => p.id ?? "");
+  const html =
+    `<p>${esc(t("gv.rc.intro", { rate: T.rate(g.rate!), item: itemName(target.item) }))}</p>${fromGraph}` +
+    `<div class="rc-wrap"><table class="rc-table"><thead><tr><th>${esc(t("gv.rc.col.node"))}</th><th class="num">${esc(t("gv.rc.col.before"))}</th><th class="num">${esc(t("gv.rc.col.after"))}</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>` +
+    `<p class="rc-gaps">${esc(t("gv.rc.rate", { before: T.rate(g.rate!), after: T.rate(cmp.rate.after) }))}<br>${esc(t("gv.rc.gaps", { before: gapList(g), after: gapList(preview) }))}</p>` +
+    (solved.unresolved.length ? `<p class="hint">${esc(t("gv.rc.unresolved", { list: solved.unresolved.map((u) => itemName(u.item)).join(", ") }))}</p>` : "") +
+    (unknown.length ? `<p class="hint">${esc(t("gv.rc.unknown", { list: unknown.join(", ") }))}</p>` : "") +
+    (unused ? `<label class="ask-field"><input type="checkbox" id="rc-drop"> ${esc(t("gv.rc.drop", { n: unused }))}</label>` : "");
+  const choice = await ask(t("gv.rc.title"), html, [
+    { value: "apply", label: t("gv.rc.apply"), primary: true },
+    { value: "", label: t("m.cancel") },
+  ]);
+  if (choice !== "apply") return;
+  const removeUnused = (document.getElementById("rc-drop") as HTMLInputElement | null)?.checked ?? false;
+  const next = removeUnused ? applyComparison(g, solved, cmp, { removeUnused }) : preview;
+  if (graphView?.graph === g0) graphView.run({ type: "replace", graph: next });
+  const ge: GraphEdit = gedit ?? { sig: "", graph: next, solved: null, touched: true };
+  gedit = ge;
+  ge.graph = next;
+  ge.solved = next;
+  ge.touched = true;
+  if (graphDoc) graphDoc.g = next;
+  setGoalFromGraph(next);
+  ge.sig = goalSig();
+  pendingGraphPlan = { g: next, plan: solved };
+  saveGraphEdit(true);
+  update();
+}
+
+/**
+ * Nombre de machines réglé dans la fiche (S62) : il passe par le graphe (nombre fixé, cadenas), comme
+ * dans la bulle ; plus de calcul en douce. null : le nombre n'est plus fixé.
+ */
+function graphMachines(stepKey: string, n: number | null): void {
+  const id = graphDoc?.nodeOfStep.get(stepKey);
+  if (!id || !graphView) return;
+  const node = graphView.graph?.nodes.find((x) => x.id === id);
+  if (!node) return;
+  if (n === null) graphView.run({ type: "setFixed", id, fixed: false });
+  else if (n !== node.machines || !node.fixed) graphView.run({ type: "batch", commands: [{ type: "setMachines", id, machines: n }, { type: "setFixed", id, fixed: true }] });
+  syncHudCount();
+}
+
+/** La fiche (S62) montre le nombre du graphe (pas celui du dernier calcul) et s'il est fixé. */
+function syncHudCount(): void {
+  const inp = $("flow-hud").querySelector<HTMLInputElement>("[data-mset-input]");
+  const id = inp && graphDoc?.nodeOfStep.get(inp.dataset.key!);
+  const node = id ? graphView?.graph?.nodes.find((x) => x.id === id) : undefined;
+  if (!inp || !node) return;
+  if (document.activeElement !== inp) inp.value = String(Math.ceil(node.machines - 1e-9));
+  inp.closest(".mset")?.classList.toggle("on", !!node.fixed);
+}
+
+/** Bloc sélectionné : lui et ses liaisons en évidence, et sa fiche (S62) à côté. */
+function applyFlowSel(): void {
+  const hud = $("flow-hud");
+  const nodeId = flowSel && graphDoc ? graphDoc.nodeOfStep.get(flowSel) : undefined;
+  if (flowSel && !nodeId) flowSel = null;
+  if (flowSel) flowEdge = null;
+  // La sélection du canevas suit la fiche, sauf un nœud sans étape du plan (ajouté à la main) ou une
+  // sélection multiple : le canevas les garde.
+  const gsel = graphView?.selected ?? null;
+  if (graphView && gsel !== (nodeId ?? null) && (flowSel || (gsel && stepOfNode(gsel)))) graphView.select(nodeId ?? null);
+  const edge = flowEdge;
+  hud.hidden = !flowSel && !edge;
   hud.innerHTML = flowSel ? renderFlowHud(viewCtx(), flowSel, (m) => surveyState(m, REPO_PORTS, currentPorts().local)) : edge ? renderEdgeHud(viewCtx(), edge) : "";
-  // « Comment c'est calculé » (S7) : sous la barre du bas, pour le bloc ou la flèche sélectionnés.
+  // « Comment c'est calculé » (S7) : sous la barre du bas, pour le bloc ou la liaison sélectionnés.
+  syncHudCount();
   const calc = $("flow-calc");
   calc.innerHTML = flowSel ? renderStepCalc(viewCtx(), recipesCtx(), flowSel) : edge ? renderEdgeCalc(viewCtx(), edge) : "";
   calc.hidden = !calc.innerHTML;
@@ -1457,10 +2075,10 @@ function portsLabel(machine: string): string {
 // ---------------------------------------------------------------- schéma du plan affiché (S55)
 /** Produits d'une recette dans l'ordre : les ports de sortie sont pris dans cet ordre, comme dans le bac à sable. */
 const outOrder = (recipe: string): string[] | undefined => { const r = data.recipes.get(recipe); return r ? Object.keys(r.outputs) : undefined; };
-/** Le plan affiché (module ou usine), converti à la demande en schéma .msch, le même format que le bac à sable. */
+/** Le plan affiché (module ou usine), converti à la demande pour le bac à sable. */
 let poseSchem: { name: string; conv: () => Converted } | null = null;
 const schemButtons = () =>
-  `<button type="button" class="link" data-msch="file">${t("m.schem.file")}</button> · <button type="button" class="link" data-msch="bac">${t("m.schem.bac")}</button>`;
+  `<button type="button" class="link" data-msch="bac">${t("m.schem.bac")}</button>`;
 /** Écran d'attente par-dessus la page pendant un long calcul (conversion d'une grosse usine en schéma). */
 async function busy<T>(text: string, fn: () => Promise<T> | T): Promise<T> {
   const el = document.createElement("div");
@@ -1476,34 +2094,27 @@ async function busy<T>(text: string, fn: () => Promise<T> | T): Promise<T> {
     el.remove();
   }
 }
-async function onSchem(kind: string): Promise<void> {
+async function onSchem(): Promise<void> {
   if (!poseSchem) return;
   const ps = poseSchem;
-  await busy(t("m.schem.busy"), () => schemGo(kind, ps));
+  await busy(t("m.schem.busy"), () => schemGo(ps));
 }
-async function schemGo(kind: string, ps: NonNullable<typeof poseSchem>): Promise<void> {
+async function schemGo(ps: NonNullable<typeof poseSchem>): Promise<void> {
   const c = ps.conv(), name = ps.name;
   const s: Schematic = { name, description: "", labels: [], width: c.width, height: c.height, layout: c.layout };
-  if (kind === "bac") {
-    go({ page: "bac" });
-    sandbox.open(s);
-    return;
-  }
-  const u = URL.createObjectURL(new Blob([(await writeMsch(s)) as BlobPart], { type: "application/octet-stream" })), a = document.createElement("a");
-  a.href = u;
-  a.download = `${name.replace(/[\\/:*?"<>|]/g, "_")}.msch`;
-  a.click();
-  URL.revokeObjectURL(u);
+  go({ page: "bac" });
+  sandbox.open(s);
 }
 /** Partager ou modifier depuis le tableau de bord (S60) : la vue Usine se calcule d'abord si besoin. */
 async function shareGo(kind: string): Promise<void> {
+  if (kind === "file") return share.openShare();
   if (!poseSchem) {
     if (settings.resultTab !== "pose") $("rtab-pose").click();
     await busy(t("m.schem.wait"), async () => {
       for (let i = 0; i < 600 && !poseSchem; i++) await new Promise((r) => setTimeout(r, 100));
     });
   }
-  await onSchem(kind);
+  await onSchem();
 }
 document.querySelector(".cmd-right")!.addEventListener("click", (e) => {
   const b = (e.target as Element).closest<HTMLElement>("[data-share]");
@@ -1511,7 +2122,7 @@ document.querySelector(".cmd-right")!.addEventListener("click", (e) => {
 });
 $("pose-links").addEventListener("click", (e) => {
   const b = (e.target as Element).closest<HTMLElement>("[data-msch]");
-  if (b) void onSchem(b.dataset.msch!);
+  if (b) void onSchem();
 });
 
 /** La liste « Vue » des modules, et le rail des étapes à gauche qui la reprend (S60). */
@@ -1547,39 +2158,735 @@ function fillPoseSteps(): { mods: Step[]; asms: Step[] } {
   return { mods, asms };
 }
 
-// ---------------------------------------------------------------- plans enregistrés (S64, maquette S58)
-/** Un objectif gardé dans ce navigateur : de quoi le rouvrir d'un clic depuis le rail. */
-type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number };
+// ---------------------------------------------------------------- mes designs (P2 bis, designs-model.ts)
+/** Ancien plan enregistré (S64, avant P2 bis) : lu une fois, pour le ranger dans « Mes designs ». */
+type SavedPlan = { name: string; goal: Goal; item: string; mode: "rate" | "machines"; rate: number; machines: number; energyMFps: number; money: number; graph?: StoredGraphEdit; d?: string; active?: true };
+/** P2 : `d` le design entier (réglages, graphe, bac à sable) au format du lien ; `active` le design affiché avant d'ouvrir un lien. */
+const SAVED_MAX = 50;
 const KEY_SAVED = "ind-calc:v1:saved-plans";
 function loadSaved(): SavedPlan[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_SAVED) ?? "[]");
-    return Array.isArray(raw) ? raw.filter((p) => p && typeof p.name === "string" && typeof p.goal === "string").slice(0, 20) : [];
+    return Array.isArray(raw) ? raw.filter((p) => p && typeof p.name === "string" && typeof p.goal === "string").slice(0, SAVED_MAX) : [];
   } catch {
     return [];
   }
 }
-function storeSaved(list: SavedPlan[]): void {
-  try {
-    localStorage.setItem(KEY_SAVED, JSON.stringify(list.slice(0, 20)));
-  } catch {
-    // stockage indisponible : la liste reste pour cette visite
-  }
-  savedPlans = list;
-}
-let savedPlans = loadSaved();
 const GOAL_HASH: Record<Goal, string> = { objet: "#objet", "énergie": "#energie", recherche: "#rp", argent: "#argent" };
-function savedName(): string {
-  const g = settings.goal;
-  if (g === "objet") return settings.mode === "rate" ? `${fmt(displayRate(settings.rate, settings.rateUnit), 2)}/${settings.rateUnit === "s" ? "s" : "min"} ${itemName(settings.item)}` : `${settings.machines} × ${itemName(settings.item)}`;
-  if (g === "énergie") return `${fmt(settings.energyMFps, 2)} MF/s`;
-  if (g === "argent") return `${fmt(settings.money, 0)}/min`;
+function savedName(s: Settings = settings): string {
+  const g = s.goal;
+  if (g === "objet") return s.mode === "rate" ? `${fmt(displayRate(s.rate, s.rateUnit), 2)}/${s.rateUnit === "s" ? "s" : "min"} ${itemName(s.item)}` : `${s.machines} × ${itemName(s.item)}`;
+  if (g === "énergie") return `${fmt(s.energyMFps, 2)} MF/s`;
+  if (g === "argent") return `${fmt(s.money, 0)}/min`;
   return t("plan.goal.recherche");
 }
-function renderSaved(): void {
-  $("plan-saved").innerHTML =
-    savedPlans.map((p, i) => `<div class="cmd-row"><button type="button" class="cmd-step" data-saved="${i}"><span class="n">${icon("check")}</span><span class="nm">${esc(p.name)}</span></button><button type="button" class="icon-btn" data-saved-x="${i}" aria-label="${esc(t("plan.saved.del", { name: p.name }))}" title="${esc(t("plan.saved.del", { name: p.name }))}">${icon("close")}</button></div>`).join("") +
-    `<button type="button" class="link small" id="plan-save">${esc(t("plan.saved.add"))}</button>`;
+// ---------------------------------------------------------------- partage par lien (P2, PLAN-PARTAGE.md)
+
+/** Réglages complets d'un design reçu (un champ venu d'une autre version prend la valeur par défaut). */
+const designSettings = (d: Design): Settings => {
+  const { schema: _s, ...rest } = d.settings; // description et étiquettes d'un schéma du bac à sable
+  return { ...DEFAULT_SETTINGS, ...rest } as Settings;
+};
+/** Le design affiché : réglages, graphe édité et bac à sable (relus, jamais modifiés). */
+function currentDesign(withSandbox: boolean): Design {
+  const d = assembleDesign({ site: SITE_VERSION, engine: ENGINE_VERSION, name: activeDesign()?.name ?? savedName(), settings, graph: gedit, sandbox: sandbox.layout(), withSandbox, profile: lectureProfile() });
+  return frozenOn() ? { ...d, site: frozen!.site, ...(frozen!.engine ? { engine: frozen!.engine } : {}), factory: frozen!.layout } : d;
+}
+
+// ---- usine figée d'un fichier .indus (P4) : montrée telle quelle tant que le design n'est pas modifié
+const KEY_FROZEN = "ind-calc:v1:frozen";
+/** `sig` : le design auquel elle va (null : pas encore affiché) ; `show` : montrée à la place de l'usine recalculée. */
+let frozen: { design: number | null; layout: Layout; site: string; engine?: string; sig: string | null; show: boolean } | null = null;
+const frozenSig = () => {
+  const { resultTab: _r, usine: _u, entered: _e, existing: _x, useExisting: _y, ...rest } = settings;
+  return fnv(stableJson([rest, gedit?.touched ? [gedit.graph, gedit.solved] : null]));
+};
+const frozenOn = () => !!frozen && frozen.sig !== null && frozen.sig === frozenSig();
+async function storeFrozen(): Promise<void> {
+  try {
+    if (!frozen) return localStorage.removeItem(KEY_FROZEN);
+    const { layout, ...rest } = frozen;
+    localStorage.setItem(KEY_FROZEN, JSON.stringify({ ...rest, data: await encodeDesign({ site: rest.site, settings: {}, factory: layout }) }));
+  } catch {
+    // stockage plein : elle reste dans le design enregistré
+  }
+}
+async function loadFrozen(): Promise<void> {
+  try {
+    const x = JSON.parse(localStorage.getItem(KEY_FROZEN) ?? "null") as { design: number; site: string; engine?: string; sig: string; show: boolean; data: string } | null;
+    if (!x || x.design !== designs.active) return;
+    const layout = (await decodeDesign(x.data)).factory;
+    if (!layout || frozen || x.design !== designs.active) return;
+    frozen = { design: x.design, layout, site: x.site, ...(x.engine ? { engine: x.engine } : {}), sig: x.sig, show: x.show !== false };
+    render();
+  } catch {
+    frozen = null;
+  }
+}
+/** Le bandeau de l'usine figée, et son dessin s'il est demandé ; vrai : rien d'autre à montrer. */
+function renderFrozen(): boolean {
+  const bar = $("pose-frozen"), on = frozenOn(), usine = !poseStep || poseStep === USINE || !plan?.steps.some(isPosable);
+  bar.hidden = !frozen || !usine;
+  if (!frozen || !usine) return false;
+  const key = on ? (frozen.show ? "frz.on" : "frz.off") : "frz.stale";
+  bar.innerHTML = `<span>${esc(t(key, { v: frozen.site || "?" }))}</span>${on ? ` <button type="button" class="small" data-frozen>${esc(t(frozen.show ? "frz.recalc" : "frz.show"))}</button>` : ""}`;
+  if (!on || !frozen.show) return false;
+  const f = frozenSvg(frozen.layout, { cat: sandboxCatalog(), img: (kind, id) => pictureOf(kind, id)?.src ?? null, itemName });
+  if (f.unknown) bar.firstElementChild!.textContent += ` ${t("frz.unknown", { n: f.unknown })}`;
+  $("pose-busy").hidden = $("pose-cut").hidden = $("cat-cut").hidden = true;
+  $("pose-head").innerHTML = $("pose-legend").innerHTML = $("pose-details").innerHTML = $("pose-links").innerHTML = $("pose-mods").innerHTML = $("pose-bar").innerHTML = $("pose-more-usine").innerHTML = "";
+  showFocus(null);
+  const layout = frozen.layout;
+  poseSchem = { name: t("m.schem.factory"), conv: () => ({ width: 0, height: 0, layout: structuredClone(layout) }) as Converted };
+  $("rpanel-pose").classList.remove("computing");
+  showPoseSvg(f, `frozen|${frozen.sig}`, true);
+  return true;
+}
+/** L'usine à mettre dans un fichier : celle qui est figée, sinon celle du site, calculée au besoin. */
+function factoryForFile(): { now: Layout | null; later: Promise<Layout | null> | null } {
+  if (frozenOn()) return { now: frozen!.layout, later: null };
+  ensurePlan();
+  if (!printable()) return { now: null, later: null };
+  if (!currentFactory()) startFactory();
+  const st = currentFactory()!, p = plan;
+  const conv = (fp: FactoryPlan) => layoutFromFactory(fp, sandboxCatalog(), CATALOG, (id) => !!data.items.get(id)?.isFluid, settings.tier3Only).layout;
+  if (st.plan) return { now: conv(st.plan), later: null };
+  if (st.error || st.cancelled) return { now: null, later: null };
+  const wait = async () => {
+    while (!st.plan && !st.error && !st.cancelled && factories.get(st.key) === st) await new Promise((r) => setTimeout(r, 200));
+    return st.plan && plan === p ? conv(st.plan) : null;
+  };
+  return { now: null, later: wait() };
+}
+/** Affiche un design : réglages, graphe et bac à sable (`sandboxOnly` : ancien lien du bac à sable). */
+function applyDesign(d: Design, sandboxOnly = false): void {
+  if (d.sandbox) sandbox.setLayout(d.sandbox);
+  if (sandboxOnly) return;
+  showProfile(d.profile ?? null);
+  frozen = d.factory ? { design: null, layout: d.factory, site: d.site, ...(d.engine ? { engine: d.engine } : {}), sig: null, show: true } : null;
+  saveSettings(designSettings(d));
+  Object.assign(settings, loadSettings());
+  gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
+  graphDoc = null;
+  pendingGraphPlan = null;
+  saveGraphEdit(true);
+  planDirty = true;
+  syncForm();
+}
+// ---- session de lecture (P3 bis b) : le profil du design affiché est celui du site (profile-store.ts)
+/** Le profil en vigueur dans la session de lecture, à ranger dans le design (null : c'est la partie du joueur). */
+function lectureProfile(): DesignProfile | null {
+  return lecture() ? profileNow() : null;
+}
+/** Le profil en vigueur, celui du joueur ou de la session de lecture, pour un design ou un lien. */
+function profileNow(w = { base: true, contrib: true }): DesignProfile {
+  return assembleProfile({ progress: simulated ?? prog, player, month: gameView().month, rp: rpNow(), corrections, surveys: loadLocalSurveys(), interfaces: loadLocalInterfaces(), diesel: dieselReadings }, w);
+}
+const hasContribNow = () => hasContrib(profileNow({ base: false, contrib: true }));
+/** Le design du lien, avec ce qui est coché dans « Partager ». */
+function sharedDesign(w: ShareWith): Design {
+  const { profile: _p, factory: _f, ...cur } = currentDesign(w.sandbox);
+  const d = { ...cur, site: SITE_VERSION, engine: ENGINE_VERSION };
+  const p = w.profile || w.contrib ? profileNow({ base: w.profile, contrib: w.contrib }) : null;
+  return p && (p.player || hasContrib(p)) ? { ...d, profile: p } : d;
+}
+
+// ---- imprimer le profil (P3 bis c, print-profile.ts)
+const KEY_PRINTS = "ind-calc:v1:prints";
+let prints: Prints = loadPrints();
+function loadPrints(): Prints {
+  try {
+    return readPrints(JSON.parse(localStorage.getItem(KEY_PRINTS) ?? "null"));
+  } catch {
+    return noPrints();
+  }
+}
+/** Remplace la partie du joueur et la pile des impressions, ou rien (stockage plein). */
+function writeGame(keys: OwnKeys, next: Prints): boolean {
+  const before = ownItem(KEY_PRINTS);
+  try {
+    localStorage.setItem(KEY_PRINTS, JSON.stringify(next));
+  } catch {
+    share.toast(t("dsg.full"), true, 8000);
+    return false;
+  }
+  if (!writeOwn(keys)) {
+    setOwnItem(KEY_PRINTS, before ?? "null");
+    share.toast(t("dsg.full"), true, 8000);
+    return false;
+  }
+  prints = next;
+  return true;
+}
+function gameChanged(): void {
+  if (!lecture()) {
+    ownAway = false;
+    reloadProfile();
+    render();
+  }
+  designsView.refresh();
+}
+const countNow = (c: unknown) => countCorrections((c ?? {}) as OverridesFile);
+/** La fenêtre « Que reprendre sur ta partie ? » ; null : annulé. */
+async function choosePrint(p: DesignProfile, name: string): Promise<PrintGroup[] | null> {
+  const own = withOwnProfile();
+  const num = (v: unknown) => (typeof v === "number" ? fmt(v, 2) : "—");
+  const cell = (g: PrintGroup, x: DesignProfile): string => {
+    const pl = (x.player ?? {}) as unknown as PlayerInfo;
+    if (g === "research") return `${x.progress?.unlocked.length ?? 0}`;
+    if (g === "game") return [t(`dif.${pl.difficulty}` as never), `${num(pl.pollutionPct ?? DEFAULT_POLLUTION)} %`, pl.month ? t("prn.month", { n: pl.month }) : t("prn.month.auto"), ...(pl.igloo ? [t("prn.igloo")] : []), ...(pl.gamePass ? [t("prn.pass")] : [])].join(" · ");
+    if (g === "plot") return pl.plotW && pl.plotH ? `${num(pl.plotW)} × ${num(pl.plotH)}` : "—";
+    if (g === "money") return `${num(pl.money)} $ · ${num(pl.rp)} RP`;
+    if (g === "setup") return t(pl.research ? "prn.filled" : "prn.empty");
+    return t("prn.contrib.n", { n: countNow(x.corrections) + [x.surveys, x.interfaces, x.diesel].reduce<number>((s, v) => s + Object.keys((v ?? {}) as object).length, 0) });
+  };
+  const groups = groupsOf(p);
+  const rows = groups.map((g) => `<tr><td><input type="checkbox" id="prn-${g}" checked aria-label="${esc(t(`prn.g.${g}`))}"></td><td><label for="prn-${g}">${esc(t(`prn.g.${g}`))}</label></td><td>${esc(cell(g, own))}</td><td><b>${g === "contrib" ? "+ " : ""}${esc(cell(g, p))}</b></td></tr>`).join("");
+  const body = `<table class="prn-t"><thead><tr><th></th><th></th><th>${esc(t("prn.mine"))}</th><th>${esc(t("prn.after"))}</th></tr></thead><tbody>${rows}</tbody></table>${groups.includes("contrib") ? `<p class="hint">${esc(t("prn.contrib.hint"))}</p>` : ""}<p class="hint">${esc(t("prn.kept", { name }))}</p>`;
+  if ((await ask(t("prn.title"), body, [{ value: "ok", label: t("prn.go"), primary: true }, { value: "", label: t("m.cancel") }])) !== "ok") return null;
+  const on = groups.filter((g) => input(`prn-${g}`).checked);
+  return on.length ? on : null;
+}
+/** Le profil du joueur, même pendant une session de lecture, pour la colonne « Ma partie ». */
+function withOwnProfile(): DesignProfile {
+  const k = ownKeys();
+  const o = (key: string): Record<string, unknown> => {
+    try {
+      return (JSON.parse(k[key] ?? "null") ?? {}) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  };
+  return {
+    progress: { unlocked: (o(PROFILE_KEYS.progress).unlocked as string[] | undefined) ?? [], reqItemsDone: [], owned: [] },
+    player: { difficulty: "normal", ...o(PROFILE_KEYS.player) },
+    corrections: o(PROFILE_KEYS.corrections),
+    surveys: o(PROFILE_KEYS.surveys).machines,
+    interfaces: o(PROFILE_KEYS.interfaces).interfaces,
+    diesel: o(PROFILE_KEYS.diesel).diesel,
+  };
+}
+/** Imprime le profil de la session de lecture affichée : le design devient un design ordinaire. */
+async function printActive(groups: PrintGroup[]): Promise<void> {
+  const n = activeDesign(), p = lectureProfile();
+  if (!n || !p) return;
+  const dirty = designDirty(n);
+  const clean = async (s: string) => {
+    const { profile: _p, ...d } = await decodeDesign(s);
+    return encodeDesign(d);
+  };
+  let data = n.d;
+  try {
+    if (data) data = await clean(data);
+  } catch {
+    data = undefined;
+  }
+  if (designs.active !== n.id || !lecture()) return;
+  const own = ownKeys();
+  touchOwn();
+  if (!writeGame(printOnto(ownKeys(), p, groups, Date.now()), { ...prints, on: [...prints.on, { design: n.id, name: n.name, keys: own }] })) return;
+  const work = dirty ? await encodeDesign({ ...currentDesign(true), profile: undefined } as Design) : undefined;
+  if (data) n.d = data;
+  else delete n.d;
+  delete n.w;
+  delete n.lec;
+  ownAway = false;
+  showProfile(null);
+  rebase();
+  if (work !== undefined) designs.base = ""; // ce qui n'était pas enregistré le reste
+  storeDesigns();
+  designsView.refresh();
+  share.toast(t("prn.done", { name: n.name }), false, 5000);
+}
+const printLecture = () =>
+  withDesigns(async () => {
+    const p = lectureProfile(), n = activeDesign();
+    const groups = p && n ? await choosePrint(p, n.name) : null;
+    if (groups) await printActive(groups);
+  });
+/** Après un changement de l'arbre : un design imprimé jeté rend la partie d'avant, restauré remet la sienne. Le joueur est prévenu. */
+async function settlePrints(): Promise<void> {
+  const live = (id: number) => !!find(designs, id) && !inBin(designs, id);
+  for (const e of [...prints.on].reverse()) {
+    if (live(e.design)) continue;
+    const u = unprint(prints, e.design, ownKeys());
+    if (!u.apply) {
+      writeGame(ownKeys(), u.prints);
+      continue;
+    }
+    if (!writeGame(settled(u.apply, Date.now()), u.prints)) return;
+    gameChanged();
+    const a = await ask(t("prn.back.title"), `<p>${esc(t("prn.back.text", { name: e.name }))}</p>`, [{ value: "ok", label: t("prn.back.ok"), primary: true }, { value: "keep", label: t("prn.back.keep") }]);
+    if (a === "keep") {
+      const was = prints.off.find((x) => x.design === e.design);
+      if (was && writeGame(was.keys, { ...prints, off: prints.off.filter((x) => x !== was) })) gameChanged();
+    }
+  }
+  for (const e of [...prints.off]) {
+    if (live(e.design)) {
+      const u = reprint(prints, e.design, ownKeys());
+      if (!u.apply || !writeGame(settled(u.apply, Date.now()), u.prints)) return;
+      gameChanged();
+      await ask(t("prn.again.title"), `<p>${esc(t("prn.again.text", { name: e.name }))}</p>`, [{ value: "ok", label: t("prn.back.ok"), primary: true }]);
+    } else if (!find(designs, e.design)) writeGame(ownKeys(), { ...prints, off: prints.off.filter((x) => x !== e) });
+  }
+}
+/** « Remettre ma partie d'avant » : défait la dernière impression, le design reste. */
+async function undoPrint(): Promise<void> {
+  const e = prints.on.at(-1);
+  if (!e || (await ask(t("prn.undo.title"), `<p>${esc(t("prn.undo.text", { name: e.name }))}</p>`, [{ value: "ok", label: t("prn.undo.ok"), primary: true }, { value: "", label: t("m.cancel") }])) !== "ok") return;
+  if (!writeGame(settled(e.keys, Date.now()), { ...prints, on: prints.on.slice(0, -1) })) return;
+  gameChanged();
+  share.toast(t("lec.toast"));
+}
+/** Le design affiché juste avant celui qui s'ouvre (là où « Revenir à ma partie » ramène). */
+let leftDesign: number | null = null;
+/** Le design affiché porte un profil : la session s'ouvre (ou change) ; sinon on revient à la partie du joueur. */
+function showProfile(p: DesignProfile | null): void {
+  const was = lecture();
+  if (!p && !was) return;
+  if (p) {
+    if (!was && journal.clock.playing) setJournal(touch(journal, Date.now()));
+    enterLecture(p, { design: designs.active, back: was ? was.back : leftDesign, mine: was ? was.mine : { existing: settings.existing, useExisting: settings.useExisting } });
+  } else {
+    touchOwn();
+    leaveLecture();
+  }
+  reloadProfile();
+  if (!p && ownAway) {
+    ownAway = false;
+    void recallPlaying();
+  }
+}
+/** Compte les changements de profil : une réponse attendue d'avant ne s'applique plus. */
+let profileEpoch = 0;
+/** Relit tout ce qui vient du profil actif, et refait ce qui en dépend. */
+function readProfile(): void {
+  corrections = pruneIntegratedCorrections(loadCorrections(), repoOverrides).kept;
+  dieselReadings = loadDieselReadings();
+  (files as RawFiles).dieselReadings = dieselReadings;
+  player = loadPlayer();
+  journal = loadJournal() ?? startJournal(Date.now(), player);
+  rebuildData();
+  prog = sanitizeProgress(data, loadProgress());
+  simulated = null;
+  planDirty = true;
+}
+function reloadProfile(): void {
+  profileEpoch++;
+  // Parcours guidé sur une progression simulée : elle appartenait à l'autre profil.
+  tourGedit = null;
+  readProfile();
+  modulesFor = "";
+  $("recall").hidden = true;
+  syncPlayerForm();
+  buildings.reload();
+  renderLecture();
+}
+function renderLecture(): void {
+  const on = !!lecture();
+  document.body.classList.toggle("lecture", on);
+  $("lecture").hidden = !on;
+  if (on) setHtml($("lecture-txt"), t("lec.text.html", { name: esc(activeDesign()?.name ?? "") }));
+  setDocTitle();
+}
+/** « Revenir à ma partie » : le design d'avant la lecture, sinon le premier sans profil, sinon un design neuf. */
+async function backToMine(): Promise<void> {
+  const ok = (n: Tree["root"]["kids"][number] | undefined): n is DesignNode => n?.type === "des" && !n.lec;
+  const first = (d: DirNode): DesignNode | undefined => {
+    for (const k of sorted(d.kids)) {
+      const r = k.type === "dir" ? first(k) : ok(k) ? k : undefined;
+      if (r) return r;
+    }
+    return undefined;
+  };
+  const b = lecture()?.back ?? null;
+  const kept = b === null || inBin(designs, b) ? undefined : find(designs, b)?.node;
+  const to = ok(kept) ? kept : first(designs.root);
+  if (to) await openDesign(to.id);
+  else await createDesign(designs.root);
+  if (!lecture()) share.toast(t("lec.toast"));
+}
+/**
+ * Ouvre un design reçu par lien : rangé dans « Reçus » (nom pris : la fenêtre de conflit) et affiché ; le design
+ * affiché reste dans « Mes designs » avec son travail en cours. Rend son nom, ou null s'il n'a pas été ouvert.
+ */
+async function openReceived(d: Design, choice: OpenChoice, legacy: boolean): Promise<string | null> {
+  const groups = choice === "print" && d.profile ? await choosePrint(d.profile, d.name?.trim() || savedName(designSettings(d))) : null;
+  if ((choice === "print" && !groups) || !(await keepActive())) return null;
+  // Ancien lien du bac à sable : seul le montage change, les réglages et le graphe restent ceux affichés.
+  const cur = currentDesign(true);
+  const { print: _print, ...got }: Design = legacy ? { ...cur, ...(d.sandbox ? { sandbox: d.sandbox } : {}) } : d;
+  const name = d.name?.trim() || savedName(designSettings(got));
+  // L'empreinte de l'auteur a servi à la fenêtre ; le design rangé s'en passe.
+  const n = makeDesign(designs, name, { d: await encodeDesign({ ...got, name }), ...(got.profile ? { lec: true as const } : {}) });
+  const inbox = folder(designs, t("dsg.inbox"));
+  const r = await place(designs, n, null, inbox, designsView.asker("link", t("dsg.from.link")));
+  if (!r.done) {
+    if (!inbox.kids.length) designs.root.kids = designs.root.kids.filter((k) => k !== inbox);
+    storeDesigns();
+    designsView.refresh();
+    return null;
+  }
+  inbox.open = true;
+  const left = (leftDesign = designs.active);
+  designs.active = n.id;
+  dropBlank(left);
+  applyDesign(got, legacy);
+  rebase();
+  if (!storeDesigns()) return n.name;
+  designsView.select(n.id);
+  await settlePrints(); // « remplacer » a pu envoyer un design imprimé à la corbeille
+  if (groups) await printActive(groups);
+  return n.name;
+}
+
+// ---- l'arbre « Mes designs » : stockage, design affiché, travail en cours (P2 bis)
+const KEY_DESIGNS = "ind-calc:v1:designs";
+let designs: Tree = emptyTree();
+/** Une action à la fois (ouvrir, enregistrer…) : deux doubles clics rapides ne se croisent pas. */
+let designBusy = false;
+function storeDesigns(): boolean {
+  setLectureDesign(designs.active);
+  try {
+    localStorage.setItem(KEY_DESIGNS, JSON.stringify(designs));
+    return true;
+  } catch {
+    share.toast(t("dsg.full"), true, 8000);
+    return false;
+  }
+}
+const activeDesign = (): DesignNode | null => {
+  const n = designs.active === null ? null : find(designs, designs.active)?.node;
+  return n?.type === "des" ? n : null;
+};
+/** Le profil de la session de lecture, hors ce qui ne se range pas dans le design (journal, heure du relevé, dépense des RP). */
+function profileSig(): unknown[] {
+  const { rpAt: _a, spendRp: _s, month: _m, ...rest } = player;
+  const p = simulated ?? prog;
+  return [[...p.unlocked].sort(), [...p.reqItemsDone].sort(), [...p.owned].sort(), rest, gameView().month, corrections, loadLocalSurveys(), loadLocalInterfaces(), dieselReadings];
+}
+/** Signature du design affiché (hors vue : onglet, affichage de l'usine) : dit s'il a changé depuis son ouverture. */
+function designSig(): string {
+  const { resultTab: _r, usine: _u, entered, ...rest } = settings;
+  const sb = sandbox.layout();
+  return fnv(stableJson([rest, [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null, ...(lecture() ? [profileSig()] : [])]));
+}
+/** Le design affiché devient la référence : rien à enregistrer. */
+function rebase(): void {
+  render(); // le rendu peut annuler un réglage périmé : la référence se prend après
+  if (!frozen) void storeFrozen();
+  else if (frozen.sig === null) {
+    Object.assign(frozen, { sig: frozenSig(), design: designs.active });
+    void storeFrozen();
+    if (settings.resultTab === "pose") render();
+  }
+  designs.base = designSig();
+  renderLecture();
+}
+const changedSinceOpen = () => designs.base !== null && designSig() !== designs.base;
+function designDirty(n: DesignNode): boolean {
+  if (n.w !== undefined) return true;
+  if (n.id !== designs.active) return false;
+  return changedSinceOpen() || (!n.d && !isBlank(settings.goal));
+}
+const machinesNow = () => (plan && !isBlank(settings.goal) && settings.goal !== "recherche" ? { mach: Math.round(plan.totals.machines) } : {});
+/** Avant de quitter le design affiché : son travail non enregistré y est gardé. Faux si le stockage le refuse. */
+async function keepActive(): Promise<boolean> {
+  nameActive();
+  const n = activeDesign();
+  if (!n || !designDirty(n)) return true;
+  if (n.w !== undefined && !changedSinceOpen()) return true; // déjà gardé tel quel
+  const before = { w: n.w, at: n.at };
+  Object.assign(n, { w: await encodeDesign(currentDesign(true)), at: Date.now(), ...machinesNow() });
+  if (storeDesigns()) return true;
+  if (before.w === undefined) delete n.w;
+  else n.w = before.w;
+  n.at = before.at;
+  return false;
+}
+/** Un design neuf quitté sans rien y avoir mis ne reste pas dans la liste. */
+function dropBlank(id: number | null): void {
+  const f = id === null || id === designs.active ? null : find(designs, id);
+  if (f?.parent && f.node.type === "des" && f.node.auto && f.node.d === undefined && f.node.w === undefined && !inBin(designs, f.node.id)) f.parent.kids = f.parent.kids.filter((k) => k !== f.node);
+}
+/** Un design jamais enregistré ni renommé porte le nom de son objectif. */
+function nameActive(): void {
+  const n = activeDesign(), p = n?.auto ? find(designs, n.id)?.parent : null;
+  if (!n || !p) return;
+  const name = free(p, isBlank(settings.goal) ? t("dsg.newdesign") : savedName(), n);
+  if (name === n.name) return;
+  n.name = name;
+  storeDesigns();
+}
+async function withDesigns<R>(fn: () => Promise<R>): Promise<R | null> {
+  if (designBusy) return null;
+  designBusy = true;
+  try {
+    return await fn();
+  } finally {
+    designBusy = false;
+  }
+}
+/** Réglages d'un design vide : les défauts du site, en gardant l'affichage et « Ma production ». */
+const blankSettings = (): Settings => ({ ...structuredClone(DEFAULT_SETTINGS), goal: settings.goal, rateUnit: settings.rateUnit, energyUnit: settings.energyUnit, usine: settings.usine, resultTab: settings.resultTab, ...(lecture()?.mine ?? { existing: settings.existing, useExisting: settings.useExisting }) });
+function showBlank(): void {
+  applyDesign({ site: SITE_VERSION, settings: blankSettings() as unknown as Design["settings"] });
+}
+function afterShow(): void {
+  if (currentPage() === "plan" && location.hash.split("/")[0] !== GOAL_HASH[settings.goal]) location.hash = GOAL_HASH[settings.goal];
+  rebase();
+  storeDesigns();
+  designsView.refresh();
+}
+const openDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des" || !(await keepActive())) return;
+    const data = contentOf(n);
+    let d: Design | null = null;
+    if (data) {
+      try {
+        d = await decodeDesign(data);
+      } catch {
+        return share.toast(t("share.saved.bad"), true);
+      }
+    }
+    const left = (leftDesign = designs.active);
+    designs.active = id;
+    dropBlank(left);
+    if (d) applyDesign(d);
+    else showBlank();
+    afterShow();
+    share.toast(t("dsg.opened", { name: n.name }));
+  });
+const createDesign = (dir: DirNode) =>
+  withDesigns(async () => {
+    if (!(await keepActive())) return null;
+    const n = addDesign(designs, dir, t("dsg.newdesign"), { auto: true });
+    designs.active = n.id;
+    showBlank();
+    afterShow();
+    return n.id;
+  });
+const saveDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des") return;
+    nameActive();
+    const before = { d: n.d, w: n.w };
+    if (n.id === designs.active) {
+      n.d = await encodeDesign(currentDesign(true));
+      Object.assign(n, { at: Date.now(), ...machinesNow() });
+      designs.base = designSig();
+    } else if (n.w) n.d = n.w;
+    delete n.w;
+    delete n.auto;
+    if (storeDesigns()) share.toast(t("dsg.saved", { name: n.name }));
+    else {
+      if (before.d !== undefined) n.d = before.d;
+      else delete n.d;
+      if (before.w !== undefined) n.w = before.w;
+      if (n.id === designs.active) designs.base = "";
+    }
+  });
+/** Revient au dernier enregistrement (le travail en cours est abandonné, après confirmation). */
+const revertDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des" || !n.d) return;
+    if ((await ask(t("dsg.revert.title"), `<p>${esc(t("dsg.revert.ask", { name: n.name }))}</p>`, [{ value: "ok", label: t("dsg.revert.ok"), primary: true }, { value: "", label: t("m.cancel") }])) !== "ok") return;
+    const d = await decodeDesign(n.d);
+    delete n.w;
+    if (id === designs.active) {
+      applyDesign(d);
+      afterShow();
+    } else storeDesigns();
+  });
+const copyDesign = (id: number) =>
+  withDesigns(async () => {
+    const n = find(designs, id)?.node;
+    if (n?.type !== "des") return;
+    const data = id === designs.active ? await encodeDesign(currentDesign(true)) : contentOf(n);
+    const c = duplicate(designs, id, t("dsg.copyname", { name: n.name }), data);
+    if (!c) return;
+    if (!storeDesigns()) return void find(designs, c.id)?.parent?.kids.pop();
+    designsView.select(c.id);
+  });
+/** Le design affiché n'est plus dans l'arbre (corbeille, suppression) : un design vide s'ouvre aussitôt. */
+async function settleDesigns(): Promise<void> {
+  await settleActive();
+  await settlePrints();
+}
+async function settleActive(): Promise<void> {
+  if (designs.active !== null && find(designs, designs.active) && !inBin(designs, designs.active)) return;
+  const n = addDesign(designs, designs.root, t("dsg.newdesign"), { auto: true });
+  designs.active = n.id;
+  showBlank();
+  afterShow();
+}
+/** Au démarrage : la session de lecture gardée doit être celle du design affiché. */
+async function settleLecture(): Promise<void> {
+  const n = activeDesign();
+  if (lecture() && lecture()!.design === n?.id && n?.lec) return renderLecture();
+  const content = n?.lec ? contentOf(n) : undefined;
+  let p: DesignProfile | null = null;
+  try {
+    if (content) p = (await decodeDesign(content)).profile ?? null;
+  } catch {
+    p = null; // design abîmé : la partie du joueur
+  }
+  if (designs.active !== n?.id || (!p && !lecture())) return;
+  showProfile(p);
+  render();
+}
+/** Au démarrage : l'arbre enregistré, ou les anciens plans enregistrés rangés dedans (une fois ; l'ancienne liste reste). */
+async function bootDesigns(): Promise<void> {
+  const read = () => {
+    try {
+      return readTree(JSON.parse(localStorage.getItem(KEY_DESIGNS) ?? "null"));
+    } catch {
+      return null;
+    }
+  };
+  const got = read();
+  if (got) designs = got;
+  else {
+    const t0 = emptyTree();
+    for (const p of loadSaved().reverse()) {
+      let data = p.d;
+      if (!data) {
+        const graph = p.graph ? loadGraphEdit(p.graph) : null;
+        const s = { ...settings, goal: p.goal, item: p.item, mode: p.mode, rate: p.rate, machines: p.machines, energyMFps: p.energyMFps, money: p.money, entered: [...new Set([...settings.entered, p.goal])] };
+        data = await encodeDesign(assembleDesign({ site: SITE_VERSION, name: p.name, settings: s, graph, sandbox: null, withSandbox: false }));
+      }
+      addDesign(t0, t0.root, p.name, p.active ? { w: data } : { d: data });
+    }
+    designs = t0;
+  }
+  if (!activeDesign()) {
+    const n = addDesign(designs, designs.root, t("dsg.newdesign"), { auto: true });
+    designs.active = n.id;
+    designs.base = null;
+    nameActive();
+    storeDesigns();
+  }
+  await settleLecture();
+  await loadFrozen();
+  designsView.refresh();
+  await settlePrints();
+  // Un autre onglet a changé l'arbre : on repart du sien (le design affiché ici y reste, s'il existe encore).
+  addEventListener("storage", (e) => {
+    if (e.key === KEY_PRINTS) {
+      // Un autre onglet a imprimé ou remis la partie : celle-ci est relue.
+      prints = loadPrints();
+      return gameChanged();
+    }
+    if (e.key !== KEY_DESIGNS) return;
+    const other = read();
+    if (!other) return;
+    const mine = designs.active, base = designs.base;
+    designs = other;
+    if (mine !== null && find(other, mine) && !inBin(other, mine)) [designs.active, designs.base] = [mine, base];
+    designsView.refresh();
+  });
+  setInterval(() => {
+    if (document.hidden || currentPage() !== "plan" || designBusy) return;
+    nameActive();
+    if (lecture()) renderLecture(); // le design a pu être renommé
+    designsView.render();
+  }, 1500);
+}
+
+// ---- empreinte (P3) : le plan et l'usine de l'auteur, comparés à ceux recalculés à l'ouverture
+/** Y a-t-il un plan à empreinter (objectif saisi, usine à poser) ? */
+const printable = () => !isBlank(settings.goal) && settings.goal !== "recherche" && !!plan?.steps.some(isPosable);
+/** Empreinte du design affiché ; la pose dès que l'usine est calculée (lancée ici si elle ne l'est pas encore). */
+function currentPrint(): { now: string | undefined; later: Promise<string | undefined> | null } {
+  ensurePlan();
+  if (!printable()) return { now: undefined, later: null };
+  if (!currentFactory()) startFactory();
+  const p = plan!, st = currentFactory()!, now = designPrint(p, st.plan);
+  if (st.plan || st.error || st.cancelled) return { now, later: null };
+  const wait = async () => {
+    // Fini, arrêté, ou remplacé (réglages changés) : dans ces deux derniers cas, rien à compléter.
+    while (!st.plan && !st.error && !st.cancelled && factories.get(st.key) === st) await new Promise((r) => setTimeout(r, 200));
+    return st.plan && plan === p ? designPrint(p, st.plan) : undefined;
+  };
+  return { now, later: wait() };
+}
+/**
+ * Empreinte d'un design reçu, sans l'afficher : ses réglages et son graphe prennent la place des nôtres le temps de
+ * préparer le calcul (tout d'un trait, rien ne s'affiche entre-temps), puis l'usine se calcule en arrière-plan.
+ * Le résultat est gardé comme celui de la page : ouvrir ensuite le design ne le recalcule pas.
+ */
+function probeDesign(d: Design): { print: Promise<string | undefined>; cancel: () => void } {
+  return withProfile(d.profile ?? null, () => probeNow(d));
+}
+function probeNow(d: Design): ReturnType<typeof probeDesign> {
+  // Avec un profil, l'essai se fait avec lui (c'est la session de lecture qui s'ouvrira) : le nôtre revient aussitôt.
+  const keep = { corrections, dieselReadings, player, journal, data, dataErrors, prog, simulated, settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache };
+  let job: FactoryJob | null = null;
+  let stopped = false;
+  let todo: { plan: Plan; key: string; input: FactoryInput } | null = null;
+  let empty: string | undefined;
+  try {
+    if (d.profile) readProfile();
+    settings = cleanSettings(designSettings(structuredClone(d)));
+    gedit = d.graph ? (structuredClone(d.graph) as GraphEdit) : null;
+    pendingGraphPlan = null;
+    planDirty = true;
+    const v = viewCtx();
+    if (printable()) {
+      rows = buildRows(v);
+      signature = buildSignature(settings.goal, rows);
+      todo = { plan: plan!, key: factoryKey(), input: factoryInputNow() };
+    } else if (plan && !isBlank(settings.goal) && settings.goal !== "recherche") empty = designPrint(plan); // rien à poser ici (recherches manquantes…) : le plan diffère
+  } catch {
+    todo = null; // design illisible pour ce moteur : « pas pu être comparée »
+  } finally {
+    ({ corrections, dieselReadings, player, journal, data, dataErrors, prog, simulated, settings, gedit, plan, rpView, planDirty, planBuiltFrom, rows, signature, poseSchem, pendingGraphPlan, planDataCache } = keep);
+    (files as RawFiles).dieselReadings = dieselReadings;
+    if (d.profile) {
+      layouts.clear();
+      rcEntries = null;
+      modulesFor = "";
+    }
+    saveSettings(settings); // le calcul a pu annuler un réglage périmé du design reçu et l'enregistrer
+  }
+  const run = async (): Promise<string | undefined> => {
+    if (!todo) return empty;
+    const { plan: p, key, input } = todo;
+    const hit = await loadFactory(key);
+    if (hit) return designPrint(p, hit.plan);
+    if (stopped) return undefined;
+    return new Promise((resolve) => {
+      job = runFactory(input, {
+        progress: () => {},
+        done: (fp, ms) => {
+          void saveFactory(key, fp, ms);
+          resolve(designPrint(p, fp));
+        },
+        error: () => resolve(designPrint(p)),
+      });
+    });
+  };
+  return {
+    print: run(),
+    cancel: () => {
+      stopped = true;
+      job?.cancel();
+    },
+  };
+}
+/** Pastilles de la fenêtre « Partager » : étapes et machines du plan affiché, graphe retouché (le nom dit l'objectif). */
+function shareFacts(): string[] {
+  const out: string[] = [];
+  if (plan && settings.entered.includes(settings.goal) && settings.goal !== "recherche") {
+    out.push(t("share.steps", { n: plan.steps.length }), t("share.machines", { n: Math.round(plan.totals.machines) }));
+  }
+  if (gedit?.touched) out.push(t("share.nodes", { n: gedit.graph.nodes.length }));
+  return out;
 }
 
 /** Fenêtre « Entrées / sorties » (maquette volets.html) : ce qui entre et ce qui sort, repris de la réponse. */
@@ -1732,8 +3039,9 @@ function renderStepRail(): void {
 
 function renderPose(): void {
   // La boîte de calcul et le bandeau du plan abrégé ne concernent que « Toute l'usine » ; renderFactory les remet.
-  $("pose-busy").hidden = $("pose-cut").hidden = true;
+  $("pose-busy").hidden = $("pose-cut").hidden = $("pose-frozen").hidden = true;
   const { mods, asms } = fillPoseSteps();
+  if (renderFrozen()) return;
   if (!mods.length && !asms.length) {
     $("pose-head").innerHTML = `<p class="muted">${t("m.pose.none")}</p>`;
     $("pose-frame").hidden = true;
@@ -1800,6 +3108,8 @@ type Assembly =
 const asmPole = new Map<string, string>();
 let asmRanges = false;
 const asmCache = new Map<string, Assembly | null>();
+// R15 : un ensemble dont on sait dessiner l'intérieur n'est plus « une place seulement réservée ».
+setDrawnInside((k) => !!assemblyOf(k));
 
 function assemblyOf(key: string): Assembly | null {
   const st = plan?.steps.find((s) => s.key === key);
@@ -1938,30 +3248,7 @@ function startFactory(complete = false): void {
       factories.delete(k);
     }
   const key = factoryKey();
-  const pts = currentPorts();
-  const v = settings.usine;
-  // Sans parcelle renseignée, le placement n'a pas de limite (seulement la place la plus petite).
-  const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
-  const input = factoryInput(
-    plan!,
-    {
-      name: anyName,
-      isFluid: (id) => !!data.items.get(id)?.isFluid,
-      machine: (id) => data.machines.get(id) ?? null,
-      ports: pts.machines,
-      // Ensembles modulaires (S14) : leur place réservée a la taille de leur plan de pose.
-      reserve: (key) => {
-        const a = assemblyOf(key);
-        return a ? { w: a.width, h: a.height, label: a.label } : null;
-      },
-      sb: sandboxCatalog(),
-      outOrder,
-    },
-    CATALOG,
-    plot,
-    { priority: settings.posePriority, tier3Only: settings.tier3Only },
-    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow(), ...(complete ? {} : { budgetMs: FACTORY_BUDGET_MS }) },
-  );
+  const input = factoryInputNow(complete);
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
   factories.set(key, st);
   const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
@@ -1994,6 +3281,34 @@ function startFactory(complete = false): void {
       },
     });
   });
+}
+
+/** Entrée du calcul de l'usine pour le plan et les réglages en cours. */
+function factoryInputNow(complete = false): FactoryInput {
+  const pts = currentPorts();
+  const v = settings.usine;
+  // Sans parcelle renseignée, le placement n'a pas de limite (seulement la place la plus petite).
+  const plot = plotOf(player) ?? { w: 100_000, h: 100_000 };
+  return factoryInput(
+    plan!,
+    {
+      name: anyName,
+      isFluid: (id) => !!data.items.get(id)?.isFluid,
+      machine: (id) => data.machines.get(id) ?? null,
+      ports: pts.machines,
+      // Ensembles modulaires (S14) : leur place réservée a la taille de leur plan de pose.
+      reserve: (key) => {
+        const a = assemblyOf(key);
+        return a ? { w: a.width, h: a.height, label: a.label } : null;
+      },
+      sb: sandboxCatalog(),
+      outOrder,
+    },
+    CATALOG,
+    plot,
+    { priority: settings.posePriority, tier3Only: settings.tier3Only },
+    { ...(v.full ? { full: true } : { glue: v.glue }), evacSides: evacNow(), ...(complete ? {} : { budgetMs: FACTORY_BUDGET_MS }) },
+  );
 }
 
 function updateFactoryProgress(): void {
@@ -2087,7 +3402,10 @@ function renderFactory(): void {
   $("pose-details").innerHTML = info.details;
   // Le panneau d'abord : il change la largeur du cadre de l'usine.
   showFocus(poseFocus);
-  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st)), `${st.key}|${USINE}`, true);
+  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st), (k) => {
+    const asm = assemblyOf(k);
+    return asm ? assemblyView(k, asm).svg : null;
+  }), `${st.key}|${USINE}`, true);
   setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
   markFocused();
   $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn) + renderFactoryEvac(st.plan, anyName, evacNow());
@@ -2113,7 +3431,7 @@ function setPosed(key: string, on: boolean): void {
   if (on) keys.add(POSED + key);
   else keys.delete(POSED + key);
   built = setBuilt(built, signature, keys);
-  if (!touring) saveBuilt(built);
+  saveBuilt(built);
   const st = currentFactory();
   if (st?.plan) $("pose-mods").innerHTML = renderFactoryModules(st.plan, posedSet(), moduleWarn);
   markPosed();
@@ -2176,18 +3494,20 @@ let bubbleRaf = 0;
 function followBubble(key: string): void {
   cancelAnimationFrame(bubbleRaf);
   const panel = $("pose-focus");
-  panel.classList.remove("big");
-  panel.querySelector("[data-focus-big]")?.setAttribute("aria-pressed", "false");
   let w0 = 0;
   const tick = () => {
     if (panel.hidden || !matchMedia("(min-width: 900px)").matches) return;
+    if (panel.classList.contains("full")) {
+      panel.style.transform = ""; // plein écran : la bulle n'est plus accrochée au module
+      bubbleRaf = requestAnimationFrame(tick);
+      return;
+    }
     const box = $("pose-canvas").querySelector(`.u-mod[data-mod="${CSS.escape(key)}"] > rect`); // module (u-box) ou ensemble (u-farm…)
     const host = $("pose-split").getBoundingClientRect();
     if (box && host.width) {
       const r = box.getBoundingClientRect();
       w0 ||= r.width || 1;
-      const big = panel.classList.contains("big");
-      const sc = big ? 1 : Math.max(0.75, Math.min(1.6, r.width / w0));
+      const sc = Math.max(0.75, Math.min(1.6, r.width / w0));
       const pw = panel.offsetWidth * sc, ph = panel.offsetHeight * sc;
       let x = r.left - host.left, y = r.bottom - host.top + 10;
       if (y + ph > host.height) y = r.top - host.top - ph - 10; // pas la place dessous : au-dessus
@@ -2665,7 +3985,7 @@ function pictureOf(kind: EntryKind, id: string): Picture | null {
   const wiki = WIKI_IMAGES.get(key);
   if (myImages[key]) return { src: myImages[key]!, own: true, fallback: !!wiki };
   if (!wiki) return null;
-  return { src: `${import.meta.env.BASE_URL}${wiki.file}`, own: false, credit: { label: t("m.rc.wikiCredit", { license: wiki.license }), url: wiki.url } };
+  return { src: `/${wiki.file}`, own: false, credit: { label: t("m.rc.wikiCredit", { license: wiki.license }), url: wiki.url } };
 }
 
 function recipesCtx(): RecipesCtx {
@@ -2678,7 +3998,7 @@ function recipesCtx(): RecipesCtx {
     locked: (r) => (fresh || !r.research || !data.nodes.has(r.research) || isNodeUnlocked(data, p, r.research) ? null : nodeName(r.research)),
     edit: rcEdit,
     mine: corrections,
-    fixCount: countCorrections(corrections) + Object.keys(notes).length,
+    fixCount: !hasOwnFixes() ? 0 : countCorrections(corrections) + Object.keys(notes).length,
     highlight: route.page === "recettes" ? (route.card?.craft ?? null) : null,
   };
 }
@@ -2910,6 +4230,12 @@ function bindRecettes(): void {
       saveImages(myImages);
       renderRecettes();
     }
+  });
+  $("pw-import").addEventListener("change", async () => {
+    const box = input("pw-import");
+    const file = box.files?.[0];
+    box.value = "";
+    if (file) await importPollywrath(file);
   });
   $("rc-img-import").addEventListener("change", async () => {
     const box = input("rc-img-import");
@@ -3160,8 +4486,8 @@ function bindRecettesEdit(): void {
  * `spend: false` : import d'un fichier ou remise à zéro, sans effet sur les RP.
  */
 async function setProgress(next: ProgressState, opts: { spend?: boolean } = {}): Promise<void> {
-  if (touring) {
-    // Pendant la visite (S24) : on essaie sur l'exemple, rien n'est enregistré ni dépensé.
+  if (simulated) {
+    // Progression simulée pendant le tutoriel : rien n'est enregistré ni dépensé.
     prog = next;
     planDirty = true;
     return render();
@@ -3592,36 +4918,13 @@ function bindPlan(): void {
     else if (!typing && (e.key === "r" || e.key === "R") && !document.querySelector("dialog[open]")) setDrawer(drawer.hidden !== false);
   });
   bindRails();
-  $("pose-focus").addEventListener("click", (e) => {
-    const b = (e.target as Element).closest<HTMLElement>("[data-focus-big]");
-    if (!b) return;
-    const on = $("pose-focus").classList.toggle("big");
-    b.setAttribute("aria-pressed", String(on));
-    requestAnimationFrame(() => $("focus-frame").querySelector<HTMLElement>("[data-qzoom=\"fit\"]")?.click());
-  });
-  // Plans enregistrés (S64).
-  renderSaved();
-  $("plan-saved").addEventListener("click", (e) => {
-    const el = e.target as Element;
-    if (el.closest("#plan-save")) {
-      const p: SavedPlan = { name: savedName(), goal: settings.goal, item: settings.item, mode: settings.mode, rate: settings.rate, machines: settings.machines, energyMFps: settings.energyMFps, money: settings.money };
-      storeSaved([p, ...savedPlans.filter((x) => x.name !== p.name || x.goal !== p.goal)]);
-      return renderSaved();
-    }
-    const x = el.closest<HTMLElement>("[data-saved-x]");
-    if (x) {
-      storeSaved(savedPlans.filter((_, i) => i !== Number(x.dataset.savedX)));
-      return renderSaved();
-    }
-    const b = el.closest<HTMLElement>("[data-saved]");
-    const p = b ? savedPlans[Number(b.dataset.saved)] : undefined;
-    if (!p) return;
-    Object.assign(settings, { item: data.items.has(p.item) ? p.item : settings.item, mode: p.mode, rate: p.rate, machines: p.machines, energyMFps: p.energyMFps, money: p.money });
-    enter(p.goal);
-    settings.goal = p.goal;
-    syncForm();
-    if (location.hash.split("/")[0] !== GOAL_HASH[p.goal]) location.hash = GOAL_HASH[p.goal];
-    update();
+  // Bandeau du graphe édité (G4).
+  $("graph-bar").addEventListener("click", (e) => {
+    const a = (e.target as Element).closest<HTMLElement>("[data-gbar]")?.dataset.gbar;
+    if (a === "recalc") void recalcGraph();
+    else if (a === "rate") void recalcGraph(settings.rate);
+    else if (a === "restore") restoreGraphGoal();
+    else if (a === "back" || a === "take") void dropGraphEdit(true);
   });
   // Rail des étapes (S60) : la même chose que la liste « Vue », dans l'onglet Usine.
   $("plan-steps").addEventListener("click", (e) => {
@@ -3779,7 +5082,14 @@ function bindPlan(): void {
   const setFull = (on: boolean) => {
     $("pose-focus").classList.toggle("full", on);
     document.body.classList.toggle("focus-full", on);
-    $("pose-focus").querySelector("[data-focus-full]")?.setAttribute("aria-pressed", String(on));
+    // R15 : un seul bouton ; en plein écran il montre l'icône inverse (réduire).
+    const b = $("pose-focus").querySelector<HTMLElement>("[data-focus-full]");
+    if (b) {
+      b.setAttribute("aria-pressed", String(on));
+      b.innerHTML = icon(on ? "shrink" : "full");
+      b.title = t(on ? "focus.unfull" : "focus.full");
+      b.setAttribute("aria-label", b.title);
+    }
     requestAnimationFrame(() => focusPZ?.fit());
   };
   $("pose-focus").addEventListener("click", (e) => {
@@ -3806,35 +5116,6 @@ function bindPlan(): void {
       else posePZ?.reset();
     });
   }
-  // Schéma : un clic sur un bloc le sélectionne ; ailleurs, désélectionne (pas après un glisser).
-  $("flow-canvas").addEventListener("click", (e) => {
-    if (flowPZ?.suppressClick) return;
-    if ((e.target as Element).closest("[data-fix]")) return; // ⚠ : la correction (bindShared)
-    const node = (e.target as Element).closest<SVGGElement>(".fn[data-key]");
-    const edge = (e.target as Element).closest<SVGElement>("[data-edge]");
-    if (!node && edge) {
-      // Flèche (ou son étiquette) : sélectionnée, ou désélectionnée au second clic.
-      const i = Number(edge.dataset.edge);
-      selectFlow(null);
-      flowEdge = i === flowEdgeBefore ? null : i;
-      flowEdgeBefore = flowEdge;
-      applyFlowSel();
-      return;
-    }
-    flowEdgeBefore = null;
-    selectFlow(node ? (node.dataset.key === flowSel ? null : node.dataset.key!) : null);
-  });
-  // Survol d'une flèche : elle et son étiquette ressortent.
-  let hovered: string | null = null;
-  const hover = (i: string | null) => {
-    const svg = $("flow-canvas").querySelector("svg");
-    if (!svg || i === hovered) return;
-    for (const el of svg.querySelectorAll(".hover")) el.classList.remove("hover");
-    hovered = i;
-    if (i !== null) for (const el of svg.querySelectorAll(`[data-edge="${i}"]`)) el.classList.add("hover");
-  };
-  $("flow-canvas").addEventListener("pointerover", (e) => hover((e.target as Element).closest<SVGElement>("[data-edge]")?.dataset.edge ?? null));
-  $("flow-canvas").addEventListener("pointerleave", () => hover(null));
   $("flow-hud").addEventListener("click", (e) => {
     if ((e.target as Element).closest("[data-flow-close]")) selectFlow(null);
     // Écran chiffré (S10) : « ↺ 1× » remet tous ses réglages à leur valeur par défaut.
@@ -3854,6 +5135,10 @@ function bindPlan(): void {
     if (el.matches("[data-dsl-fuel]")) setDieselChoice({ fuel: el.value, config: null });
     else if (el.matches("[data-dsl-mode]")) setDieselChoice({ mode: (el as HTMLInputElement).dataset.dslMode as DieselChoice["mode"], config: null });
     else if (el.matches("[data-dsl-config]")) setDieselChoice({ config: el.value || null });
+    else {
+      const msd = mineshaftPatch(el);
+      if (msd) setMineshaftChoice(msd);
+    }
   });
   // Nombre de machines d'un bloc (S8) : −/+, molette sur le nombre, ou un nombre tapé (Entrée, ou en quittant le champ).
   const msetInput = () => $("flow-hud").querySelector<HTMLInputElement>("[data-mset-input]");
@@ -3862,7 +5147,7 @@ function bindPlan(): void {
     if (!inp) return;
     const n = Math.max(1, (parseInt(inp.value, 10) || 1) + d);
     inp.value = String(n);
-    setFixed(inp.dataset.key!, n);
+    graphMachines(inp.dataset.key!, n);
   };
   $("flow-hud").addEventListener(
     "wheel",
@@ -3878,7 +5163,7 @@ function bindPlan(): void {
     if (!inp) return;
     const raw = inp.value.trim();
     const n = parseInt(raw, 10);
-    setFixed(inp.dataset.key!, raw ? (n >= 1 ? n : 1) : null);
+    graphMachines(inp.dataset.key!, raw ? (n >= 1 ? n : 1) : null);
   });
   // Écran chiffré d'une machine (S10) : un nombre tapé (« 1,67 »), appliqué en quittant le champ ou avec Entrée.
   $("flow-hud").addEventListener("change", (e) => {
@@ -3914,9 +5199,10 @@ function bindPlan(): void {
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-fzoom]")) {
     b.addEventListener("click", () => {
       const z = b.dataset.fzoom;
-      if (z === "in") flowPZ?.zoom(1.25);
-      else if (z === "out") flowPZ?.zoom(1 / 1.25);
-      else flowPZ?.reset(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
+      if (z === "in") graphView?.zoom(1.25);
+      else if (z === "out") graphView?.zoom(1 / 1.25);
+      else if (z === "arrange") graphView?.arrange(); // « Ranger » : de l'extraction à l'objectif
+      else graphView?.fit(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
     });
   }
 }
@@ -3934,6 +5220,7 @@ function bindShared(): void {
     // Ton plan (S28) : ouvrir un réglage, ou l'annuler (✕).
     const pb = t.closest<HTMLElement>("[data-pb]")?.dataset.pb;
     if (pb === "criteria" || pb === "mfilter" || pb === "advanced") return openSetting(pb);
+    if (pb === "pw") return void showImported();
     if (pb === "details" || pb === "schema") return go({ page: "plan", goal: settings.goal, tab: pb });
     const pbx = t.closest<HTMLElement>("[data-pb-x]");
     if (pbx) {
@@ -3942,6 +5229,15 @@ function bindShared(): void {
       if (what === "fixed") return setFixed(pbx.dataset.key!, null);
       if (what === "forced") return setForced(pbx.dataset.item!, "");
       if (what === "msetting") return setMachineSetting(pbx.dataset.machine!, null, null);
+      if (what === "pw") {
+        const key = planKey(settings.goal, settings.item);
+        if (key) {
+          const { [key]: _, ...rest } = settings.imports;
+          settings.imports = rest;
+        }
+        return update();
+      }
+      if (what === "mineshaft") return setMineshaftChoice({ ...DEFAULT_MINESHAFT });
       if (what === "diesel") {
         const key = planKey(settings.goal, settings.item);
         if (key) {
@@ -3991,6 +5287,18 @@ function bindShared(): void {
       return update();
     }
     if (t.closest("[data-fix-reset]")) {
+      // Plan tiré du graphe (G4) : les nombres fixés sont ses cadenas ; on les retire du graphe (à recalculer).
+      const fixedNodes = gedit?.solved && gedit.sig === goalSig() ? gedit.graph.nodes.filter((n) => n.fixed) : [];
+      if (fixedNodes.length) {
+        if (graphView?.graph === gedit!.graph) graphView.run({ type: "batch", commands: fixedNodes.map((n) => ({ type: "setFixed" as const, id: n.id, fixed: false })) });
+        else {
+          gedit!.graph = { ...gedit!.graph, nodes: gedit!.graph.nodes.map(({ fixed: _f, ...n }) => n) };
+          graphDoc = null;
+          saveGraphEdit(true);
+          render();
+        }
+        return;
+      }
       settings.fixed = null;
       return update();
     }
@@ -4204,6 +5512,29 @@ function bindTree(): void {
     else if (treeBubble) renderTreeBubble();
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-unlockmode]")) b.addEventListener("click", () => setTreeBubble(b.dataset.unlockmode === "bulle"));
+  $("tree-unlock-all").addEventListener("click", async () => {
+    const target = unlockableNodes(data, prog.unlocked, player.difficulty);
+    const added = [...target].filter((id) => !prog.unlocked.includes(id));
+    if (!added.length) {
+      await ask(t("tr.all.confirm.title"), t("tr.all.none"), [{ value: "", label: t("m.cancel") }]);
+      return;
+    }
+    const left = [...data.nodes.values()].filter((n) => !n.isRoot && !n.startUnlocked && !target.has(n.id)).map((n) => n.name);
+    const skip = left.length ? t("tr.all.skip", { list: esc(left.join(", ")) }) : "";
+    const choice = await ask(t("tr.all.confirm.title"), t("tr.all.confirm.html", { n: String(added.length), d: t(`dif.${player.difficulty}` as never), skip }), [
+      { value: "yes", label: t("tr.all"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (choice === "yes") void setProgress({ ...prog, unlocked: [...target] });
+  });
+  $("tree-lock-all").addEventListener("click", async () => {
+    if (!prog.unlocked.length) return;
+    const choice = await ask(t("tr.none.confirm.title"), t("tr.none.confirm.html", { n: String(prog.unlocked.length) }), [
+      { value: "yes", label: t("tr.none"), primary: true },
+      { value: "", label: t("m.cancel") },
+    ]);
+    if (choice === "yes") void setProgress({ ...prog, unlocked: [] }, { spend: false });
+  });
   const bubble = $("rs-bubble");
   bubble.addEventListener("pointerdown", (e) => e.stopPropagation()); // pas de glisser du canevas depuis la bulle
   bubble.addEventListener("click", (e) => {
@@ -4520,6 +5851,8 @@ const remarks = initRemarks(remarkContext, () => {
 });
 // S36 : la page Propositions (son bouton « 💬 Proposer une idée » ouvre la fenêtre Remarque).
 const props = initPropositions($("page-propositions"), (from) => remarks.open(null, from));
+// Remarque n° 16 : la page « Méthodes de calcul », son exemple recalculé avec les données du moment.
+const methods = initMethods($("page-methodes"), () => data);
 // B3 : le bac à sable. Catalogue refait seulement quand les données (corrections) ou les relevés changent.
 let sbCat: { data: GameData; ports: unknown; cat: SbCatalog } | null = null;
 const SB_MODS = new Map<string, ModRange>();
@@ -4544,18 +5877,87 @@ const sandbox = initSandbox($("page-bac"), {
   inEditor: (id) => data.machines.has(id),
   propose: (fills, from) => remarks.open({ piece: { fichier: "bac-recettes.json", resume: t("bac.rec.proposeN", { n: Object.keys(fills).length }), contenu: fills }, kind: "fix" }, from),
 });
+const designsView = initDesigns($("plan-saved"), {
+  tree: () => designs,
+  save: storeDesigns,
+  dirty: designDirty,
+  open: async (id) => void (await openDesign(id)),
+  create: createDesign,
+  store: async (id) => void (await saveDesign(id)),
+  revert: async (id) => void (await revertDesign(id)),
+  copy: async (id) => void (await copyDesign(id)),
+  share: async (id) => {
+    if (id !== designs.active) await openDesign(id);
+    if (id === designs.active) share.openShare();
+  },
+  keep: keepActive,
+  settle: settleDesigns,
+  confirm: async (text, ok) => (await ask(t("dsg.sure"), `<p>${esc(text)}</p>`, [{ value: "ok", label: ok, primary: true }, { value: "", label: t("m.cancel") }])) === "ok",
+  toast: (m, bad) => share.toast(m, bad),
+  printed: () => prints.on.at(-1)?.name ?? null,
+  unprint: undoPrint,
+  openFile: () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; // pas de filtre : un ancien fichier du bac à sable s'ouvre aussi
+    inp.onchange = () => inp.files?.[0] && void share.receiveFile(inp.files[0]);
+    inp.click();
+  },
+});
+const share = initShare({
+  build: sharedDesign,
+  factory: factoryForFile,
+  busy,
+  contribs: hasContribNow,
+  sandboxEmpty: () => !hasSandbox(sandbox.layout()),
+  print: currentPrint,
+  probe: probeDesign,
+  facts: shareFacts,
+  nameOf: (d) => savedName(designSettings(d)),
+  currentName: () => activeDesign()?.name ?? savedName(),
+  open: openReceived,
+  done: (legacy, opened) => {
+    // Le choix est fait : l'adresse perd son #d=… (ou #bac/<code>), « Retour » ne la repropose pas.
+    stack = stack.filter((h) => !readShareHash(h));
+    saveStack();
+    const to = legacy || (opened && isBlank(settings.goal) && hasSandbox(sandbox.layout())) ? "#bac" : opened || !shareReturn ? GOAL_HASH[settings.goal] : shareReturn;
+    shareReturn = null;
+    history.replaceState(null, "", to);
+    showPage();
+  },
+  legacyFallback: (code) => {
+    // Code d'avant le format actuel (JSON en base64) : le bac à sable le lit comme avant.
+    if (currentPage() === "bac") sandbox.show(code);
+    else location.hash = `#bac/${encodeURIComponent(code)}`;
+  },
+});
+$("pose-frozen").addEventListener("click", (e) => {
+  if (!frozen || !(e.target as Element).closest("[data-frozen]")) return;
+  frozen.show = !frozen.show;
+  void storeFrozen();
+  renderPose();
+});
+if (location.pathname.startsWith("/v/")) {
+  $("vbar").hidden = false;
+  $("vbar-txt").textContent = t("ver.old", { v: SITE_VERSION });
+}
+$("lecture-print").addEventListener("click", () => void printLecture());
+$("lecture-back").addEventListener("click", () => void backToMine());
 window.addEventListener("hashchange", showPage);
+const cameByLink = !!readShareHash(location.hash); // avant showPage, qui ouvre le lien
+void bootDesigns();
 showPage();
-// Visite d'orientation (S24) : seule à la toute première visite, puis par le bouton « ? ».
-$("help").addEventListener("click", () => tour.start("full"));
-if (isFresh()) {
+// Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
+$("help").addEventListener("click", () => checklist.show());
+{
   let seen: string | null = "1";
   try {
     seen = localStorage.getItem(KEY_TOUR);
   } catch {
     // stockage indisponible : pas de visite automatique
   }
-  if (!seen) tour.start("core");
+  if (!seen && isFresh()) {
+    if (!cameByLink) tour.start("first"); // arrivé par un lien : on montre le design reçu, la visite attendra
+  } else if (seen) checklist.render(); // la liste reste là d'une visite à l'autre, tant qu'elle n'est pas masquée
 }
 window.setInterval(tickRp, 5000);
 bindHistory();
@@ -4588,7 +5990,7 @@ function correctionsPiece(): Piece {
   return { fichier: "overrides.json", resume: joinList(parts), contenu: { ...mergeCorrections(repoOverrides, corrections), _notes: { ...repoNotes, ...notes } } };
 }
 /** Il y a quelque chose à envoyer : des corrections ou des notes du joueur. */
-const hasOwnFixes = (): boolean => countCorrections(corrections) + Object.keys(notes).length > 0;
+const hasOwnFixes = (): boolean => !lecture() && countCorrections(corrections) + Object.keys(notes).length > 0;
 
 /** Bouton « 📤 Envoyer mes corrections » de Contribuer, et la note « Envoyées le… » (maquette S35, écran 1). */
 function renderFixSend(): void {
@@ -4648,6 +6050,8 @@ function bindLang(): void {
     remarks.refresh();
     props.refresh();
     sandbox.refresh();
+    // La liste « Premiers pas » (et sa case « Modifier la proposition ») suit la langue.
+    if (!document.getElementById("steps-box")?.hidden) checklist.render();
   });
 }
 
@@ -4688,6 +6092,7 @@ function bindHistory(): void {
   }).observe(box);
   const keepSeen = () => {
     if (journal.clock.playing) setJournal(touch(journal, Date.now()));
+    touchOwn();
   };
   window.addEventListener("pagehide", keepSeen);
   document.addEventListener("visibilitychange", keepSeen);
@@ -4701,6 +6106,7 @@ async function recallPlaying(): Promise<void> {
     return;
   }
   const before = journal;
+  const epoch = profileEpoch;
   const away = fmtDuration((now - before.clock.seen) / 1000);
   // Tant qu'il n'y a pas de réponse : « arrêté à la fermeture du site ».
   setJournal(stopAtLastSeen(journal, now));
@@ -4722,6 +6128,7 @@ async function recallPlaying(): Promise<void> {
       resolve(v);
     }),
   );
+  if (epoch !== profileEpoch) return;
   bar.hidden = true;
   if (choice !== "go" || journal.clock.playing) return;
   // La session continue : l'arrêt ajouté disparaît, l'horloge reprend comme avant la fermeture.

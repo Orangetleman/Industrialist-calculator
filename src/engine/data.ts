@@ -24,6 +24,7 @@ import { resolveScreenFlags } from "./interfaces.ts";
 import type { FarmPole } from "./build/assembly.ts";
 import { applyModular, type DieselReading } from "./modular-calc.ts";
 import type { ModularFile } from "./modular.ts";
+import { applyMineshaft, type MineshaftFile } from "./mineshaft.ts";
 import { msg, type Message } from "./message.ts";
 
 export type GameData = {
@@ -45,7 +46,7 @@ export type GameData = {
  * `modular` (facultatif) : machines modulaires (S13) : l'arbre devient une ferme, les moteurs
  * diesel relevés deviennent des installations énergétiques.
  */
-export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile; modular?: ModularFile; /** Poteaux qui peuvent alimenter une ferme d'arbres (catalogue des plans de pose, S14). */ farmPoles?: FarmPole[]; /** Relevés de configuration du moteur diesel notés dans ce navigateur (S18). */ dieselReadings?: DieselReading[] };
+export type RawFiles = { items: ItemsFile; machines: MachinesFile; recipes: RecipesFile; research: ResearchFile; energy?: EnergyFile; interfaces?: InterfacesFile; modular?: ModularFile; /** Poteaux qui peuvent alimenter une ferme d'arbres (catalogue des plans de pose, S14). */ farmPoles?: FarmPole[]; /** Relevés de configuration du moteur diesel notés dans ce navigateur (S18). */ dieselReadings?: DieselReading[]; /** Mineshaft Drill (remarque n°16) : recettes paramétrées, réglage par défaut ici, celui du plan avec withMineshaft. */ mineshaft?: MineshaftFile };
 
 export type OverrideResult = { data: GameData; errors: Message[]; applied: number };
 
@@ -60,6 +61,7 @@ export function buildGameData(files: RawFiles, overrides: OverridesFile[] = []):
   addEnergy(recipes, machines, files.energy);
   if (items.has("water") && items.has("residue")) addTreeScrubber(machines, recipes);
   if (files.modular) applyModular(recipes, machines, files.modular, files.farmPoles ?? [], files.dieselReadings ?? []);
+  if (files.mineshaft) applyMineshaft(recipes, machines, files.mineshaft, undefined, (id) => items.get(id)?.name ?? id);
   for (const o of overrides) {
     const r = applyOverrides({ items, machines, recipes, nodes }, o);
     errors.push(...r.errors);

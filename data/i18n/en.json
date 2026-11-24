@@ -182,5 +182,9 @@
     "relevé dans l'éditeur de bâtiments du calculateur": "recorded in the planner's building editor",
     "correction notée dans l'éditeur de bâtiments du calculateur": "correction noted in the planner's building editor",
     "interface notée dans l'éditeur de bâtiments du calculateur": "interface noted in the planner's building editor"
+  },
+  "mineshaft.json": {
+    "aller-retour du puits à chaque changement de tête (2 × profondeur / vitesse)": "shaft round trip at each head change (2 × depth / speed)",
+    "12 s pour poser une nouvelle tête": "12 s to fit a new head"
   }
 }

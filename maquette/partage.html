@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette P0 : partager un design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<!-- La charte du site (Plasma Chantier, S59) telle quelle : mêmes variables, boutons, en-tête, fenêtres. -->
+<link rel="stylesheet" href="/src/styles.css">
+<style>
+/* Maquette P0 (PLAN-PARTAGE.md, 2e version) : seulement ce qui est nouveau. Rien n'est relié au vrai site. */
+body { min-height: 100vh; }
+.top-in .sp { flex: 1; }
+.cur { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.share-btn { display: inline-flex; align-items: center; gap: 6px; }
+#app { display: grid; grid-template-columns: 330px 1fr; gap: 16px; max-width: 1280px; margin: 18px auto 0; padding: 0 16px; }
+@media (max-width: 760px) { #app { grid-template-columns: 1fr; } }
+
+/* Explorateur de designs (remplace « Plans enregistrés ») */
+.ex { background: var(--surface); border: 1px solid var(--line); padding: 12px 0 8px; align-self: start; user-select: none; }
+.ex-head { display: flex; align-items: center; gap: 6px; padding: 0 12px 8px; }
+.ex-head .eyebrow { color: var(--accent); flex: 1; }
+.ex-head button { padding: 3px 7px; font-size: .8rem; }
+.xn { display: flex; align-items: center; gap: 6px; padding: 4px 12px; cursor: pointer; white-space: nowrap; border-left: 3px solid transparent; font-size: .9rem; }
+.xn:hover { background: var(--panel2); }
+.xn.sel { background: var(--steel-soft); }
+.xn.on { border-left-color: var(--accent); font-weight: 600; }
+.xn.drop { outline: 1px dashed var(--accent); outline-offset: -1px; }
+.xn .tw { width: 10px; color: var(--muted); font-size: .7rem; }
+.xn .ic { color: var(--muted); }
+.xn.on .ic { color: var(--accent); }
+.xn .name { overflow: hidden; text-overflow: ellipsis; }
+.xn .tag { margin-left: auto; font-family: var(--f-mono); font-size: .68rem; color: var(--warn); background: var(--warn-soft); padding: 0 6px; border-radius: 999px; }
+.xn input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--accent); padding: 0 4px; border-radius: 4px; }
+.xerr { margin: 2px 12px 4px 40px; font-size: .78rem; color: var(--bad); }
+.ex-head.drop { outline: 1px dashed var(--accent); }
+.menu { position: fixed; z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px; min-width: 190px; box-shadow: 0 10px 30px rgb(0 0 0 / .45); }
+.menu div { padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: .9rem; }
+.menu div:hover { background: var(--steel-soft); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+
+/* Plan (fictif) */
+.stage { background: var(--gv-bg); border: 1px solid var(--line); height: 340px; position: relative; overflow: hidden;
+  background-image: radial-gradient(circle, #2a2240 1px, transparent 1.2px); background-size: 22px 22px; }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gn { position: absolute; width: 130px; background: var(--gv-node); border: 1px solid var(--gv-node-line); border-radius: 6px; font-size: .78rem; }
+.gn b { display: block; background: var(--gv-node-head); padding: 3px 8px; border-radius: 6px 6px 0 0; font-weight: 600; }
+.gn span { display: block; padding: 3px 8px; font-family: var(--f-mono); color: var(--accent); }
+.demo { margin-top: 14px; }
+.demo .actions { margin-top: 8px; }
+
+/* Fenêtre « Partager » */
+.share { position: absolute; right: 16px; top: 58px; z-index: 25; width: min(470px, calc(100vw - 24px)); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 18px 50px rgb(0 0 0 / .55); overflow: hidden; }
+.share::before { content: ""; display: block; height: 4px; background: var(--brand-bar); }
+.sh-in { padding: 16px 18px 18px; }
+.sh-top { display: flex; align-items: flex-start; gap: 10px; }
+.sh-top h3 { font-size: 1.15rem; margin-top: 2px; }
+.sh-top .x { margin-left: auto; padding: 2px 8px; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.link-row { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.link-row code { flex: 1; min-width: 0; padding: 9px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: .8rem; }
+.link-row button { border: 0; border-left: 1px solid var(--line); border-radius: 0; display: inline-flex; gap: 6px; align-items: center; min-width: 118px; justify-content: center; }
+.link-row button.done { background: var(--ok-soft); color: var(--ok); }
+.gauge { margin-top: 8px; }
+.gauge .bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.gauge .bar i { display: block; height: 100%; background: var(--ok); transition: width .25s; }
+.gauge.over .bar i { background: var(--warn); }
+.gauge p { font-size: .8rem; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; gap: 12px; }
+.gauge p span:last-child { white-space: nowrap; }
+.gauge.over p b { color: var(--warn); }
+.incl { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+.incl .eyebrow { margin-right: 4px; }
+.chipt { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: .82rem; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+.chipt[aria-pressed="true"] { border-color: var(--steel); background: var(--steel-soft); color: var(--steel); }
+.chipt[disabled] { cursor: default; opacity: 1; }
+.forever { margin-top: 16px; padding: 12px 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; }
+.forever .big { grid-row: span 2; width: 34px; height: 34px; color: var(--steel); }
+.forever b { font-weight: 600; }
+.forever p { font-size: .82rem; color: var(--muted); }
+.frz { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: .88rem; cursor: pointer; }
+.frz input { accent-color: var(--accent); }
+#shFrzHint { grid-column: 1 / -1; }
+.forever .actions { grid-column: 1 / -1; margin-top: 8px; }
+
+/* Lien reçu */
+dialog.recv { max-width: min(520px, calc(100vw - 32px)); padding: 0; overflow: hidden; }
+dialog.recv::before { content: ""; display: block; height: 4px; background: var(--brand-bar); }
+.recv .in { padding: 18px; }
+.mini { height: 120px; margin: 12px 0; background: var(--gv-bg); border: 1px solid var(--line); border-radius: 8px; position: relative; }
+.mini i { position: absolute; width: 56px; height: 20px; background: var(--gv-node); border: 1px solid var(--gv-node-line); border-radius: 4px; }
+.note { display: flex; gap: 8px; font-size: .85rem; padding: 8px 10px; border-radius: 8px; margin-top: 8px; }
+.note.w { background: var(--warn-soft); color: var(--warn); }
+.note.i { background: var(--steel-soft); color: var(--ink); }
+dialog.cf { max-width: min(580px, calc(100vw - 32px)); }
+.cfopts { display: grid; gap: 6px; margin-top: 12px; }
+.cfopts > button { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 10px 12px; background: var(--bg); }
+.cfopts > button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.cfopts > button .ic { margin-top: 2px; color: var(--accent); width: 1.2rem; height: 1.2rem; }
+.cfopts b { display: block; font-weight: 600; }
+.cfopts small { display: block; color: var(--muted); font-size: .8rem; }
+.cfall { display: flex; gap: 8px; align-items: center; font-size: .85rem; margin-top: 4px; cursor: pointer; }
+.cfall input, .cmp input { accent-color: var(--accent); }
+.cmps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 6px; }
+.cmp { display: flex; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; align-items: flex-start; }
+.cmp:has(input:checked) { border-color: var(--steel); background: var(--steel-soft); }
+.cmpb { display: grid; gap: 2px; font-size: .82rem; }
+.cmpb b { font-size: .78rem; font-family: var(--f-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 500; }
+.cmpn { font-weight: 600; font-size: .92rem; }
+.cmpb em { font-style: normal; color: var(--acc2); font-family: var(--f-mono); font-size: .72rem; margin-left: 4px; }
+#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--ok); color: var(--ok); padding: 7px 16px; border-radius: 8px; z-index: 40; display: none; font-size: .9rem; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol>
+  <symbol id="i-safe" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-dir" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-bin" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 12h11M12 7l5 5-5 5M20 5v14"/></symbol>
+  <symbol id="i-cmp" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+</svg>
+<header class="top">
+  <div class="top-in">
+    <span class="brand">Planificateur</span>
+    <span class="cur" id="cur"></span>
+    <span class="sp"></span>
+    <button id="bShare" class="primary share-btn"><svg class="ic"><use href="#i-share"/></svg>Partager</button>
+  </div>
+</header>
+
+<div id="app">
+  <aside class="ex">
+    <div class="ex-head">
+      <span class="eyebrow">Mes designs</span>
+      <button id="bNewD" title="Nouveau design">+ design</button><button id="bNewF" title="Nouveau dossier">+ dossier</button>
+    </div>
+    <div id="tree"></div>
+    <div style="padding:8px 12px 0"><button class="link small" id="bOpenF">Ouvrir un fichier .indus…</button></div>
+  </aside>
+  <section>
+    <div class="stage" id="graph"></div>
+    <div class="panel demo">
+      <span class="eyebrow">Simulation · maquette seulement</span>
+      <p class="hint" style="margin-top:4px">Fait comme si quelqu'un ouvrait un lien partagé alors que cette page est déjà ouverte.</p>
+      <div class="actions">
+        <button id="bSimLink">Ouvrir un lien reçu (version plus ancienne du site)</button>
+        <button id="bSimLong">Partager un gros design (lien trop long)</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="share" id="share" hidden role="dialog" aria-labelledby="shName">
+  <div class="sh-in">
+    <div class="sh-top">
+      <div><span class="eyebrow">Partager</span><h3 id="shName"></h3></div>
+      <button class="x" id="shClose" aria-label="Fermer">✕</button>
+    </div>
+    <div class="facts"><span class="pill">5 étapes</span><span class="pill">18 machines</span><span class="pill">crankshaft 60/s</span></div>
+    <div class="link-row"><code id="shLink"></code><button id="shCopy"></button></div>
+    <div class="gauge" id="gauge"><div class="bar"><i id="gBar"></i></div><p><span id="gTxt"></span><span>Discord : 2 000</span></p></div>
+    <div class="incl"><span class="eyebrow">Contient</span>
+      <button class="chipt" aria-pressed="true" disabled>Graphe</button>
+      <button class="chipt" aria-pressed="true" disabled>Réglages</button>
+      <button class="chipt" aria-pressed="true" id="shSand">Bac à sable</button>
+    </div>
+    <div class="forever">
+      <svg class="ic big"><use href="#i-safe"/></svg>
+      <b>Version indestructible</b>
+      <p>Un lien se recalcule avec le site du jour : une mise à jour peut changer l'usine. Le fichier garde le design exact et la version du site qui l'a créé.</p>
+      <label class="frz"><input type="checkbox" id="shFrz" checked> Inclure l'usine figée <span class="hint" id="shSize"></span></label>
+      <p class="hint" id="shFrzHint"></p>
+      <div class="actions"><button id="shDl"><svg class="ic"><use href="#i-dl"/></svg> Télécharger <span class="mono" id="shFile"></span></button></div>
+    </div>
+  </div>
+</div>
+
+<dialog class="recv" id="recv">
+  <div class="in">
+    <span class="eyebrow">Design reçu par lien</span>
+    <h3>Usine de plastique</h3>
+    <div class="mini"><i style="left:24px;top:22px"></i><i style="left:120px;top:22px"></i><i style="left:216px;top:50px"></i><i style="left:120px;top:80px"></i><i style="left:320px;top:50px"></i></div>
+    <div class="facts" style="margin:0"><span class="pill">5 étapes</span><span class="pill">18 machines</span><span class="pill">plastique 30/min</span><span class="pill">bac à sable : 112 blocs</span></div>
+    <div class="note w"><svg class="ic"><use href="#i-warn"/></svg><span>Créé avec une version plus ancienne du site : l'usine est recalculée et peut différer un peu.</span></div>
+    <div class="note i"><svg class="ic"><use href="#i-info"/></svg><span>Il sera rangé dans « Reçus » et affiché (même nom déjà là : on vous demande quoi faire). « <b id="rPrev"></b> » reste dans vos designs.</span></div>
+    <div class="row dialog-actions"><button id="rNo">Annuler</button><button id="rYes" class="primary">Ouvrir le design</button></div>
+  </div>
+</dialog>
+<dialog class="recv cf" id="cf">
+  <div class="in">
+    <span class="eyebrow">Conflit de noms</span>
+    <h3 id="cfTitle"></h3>
+    <p id="cfMsg" style="margin-top:8px"></p>
+    <div id="cfOpts" class="cfopts">
+      <button id="cfReplace"><svg class="ic"><use href="#i-check"/></svg><span><b>Remplacer le design dans la destination</b><small>L'ancien part à la corbeille.</small></span></button>
+      <button id="cfMerge"><svg class="ic"><use href="#i-dir"/></svg><span><b>Fusionner les dossiers</b><small>Pour chaque design de même nom, on vous redemandera.</small></span></button>
+      <button id="cfSkip"><svg class="ic"><use href="#i-skip"/></svg><span><b id="cfSkipTxt"></b><small>Rien ne change.</small></span></button>
+      <button id="cfKeep"><svg class="ic"><use href="#i-copy"/></svg><span><b>Conserver les deux</b><small>Celui qui arrive reçoit un numéro, « (2) ».</small></span></button>
+      <button id="cfCompare"><svg class="ic"><use href="#i-cmp"/></svg><span><b>Comparer les informations des deux designs</b><small>Choisir lequel garder, ou les deux.</small></span></button>
+      <label class="cfall" id="cfAllRow"><input type="checkbox" id="cfAll"> <span id="cfAllTxt"></span></label>
+      <div class="row dialog-actions"><button id="cfCancel">Annuler</button></div>
+    </div>
+    <div id="cfCmp" hidden>
+      <p class="hint" style="margin-top:8px">Cochez ce que vous voulez garder. Les deux cochés : les deux sont gardés.</p>
+      <div class="cmps" id="cfCards"></div>
+      <p class="hint" id="cfHint"></p>
+      <div class="row dialog-actions"><button id="cfBack">Annuler</button><button id="cfGo" class="primary">Continuer</button></div>
+    </div>
+  </div>
+</dialog>
+<div class="menu" id="menu" hidden></div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ic = (n) => `<svg class="ic"><use href="#i-${n}"/></svg>`;
+let uid = 10;
+// Arbre : dossiers et designs. `active` : le design affiché ; `unsaved` : modifié et pas enregistré.
+const root = { id: 0, type: "dir", name: "Mes designs", open: true, kids: [
+  { id: 1, type: "dir", name: "Métal", open: true, kids: [
+    { id: 2, type: "des", name: "Vilebrequin 60/s", unsaved: true, at: "24/11/2026 14:02", mach: 18, ko: 3.1 },
+    { id: 3, type: "des", name: "Barres d'acier", at: "20/11/2026 09:40", mach: 9, ko: 1.4 } ] },
+  { id: 4, type: "dir", name: "Énergie", open: false, kids: [
+    { id: 5, type: "des", name: "Centrale diesel", at: "12/11/2026 21:15", mach: 24, ko: 4.0 },
+    { id: 8, type: "des", name: "Essai rapide", at: "02/11/2026 18:30", mach: 6, ko: 0.9 } ] },
+  { id: 20, type: "dir", name: "Archives", open: false, kids: [
+    { id: 21, type: "dir", name: "Énergie", open: false, kids: [
+      { id: 22, type: "des", name: "Centrale diesel", at: "01/10/2026 10:05", mach: 20, ko: 3.6 },
+      { id: 23, type: "des", name: "Essai rapide", at: "28/09/2026 16:44", mach: 4, ko: 0.6 },
+      { id: 24, type: "des", name: "Turbines vapeur", at: "30/09/2026 11:12", mach: 14, ko: 2.2 } ] } ] },
+  { id: 6, type: "des", name: "Essai rapide", at: "23/11/2026 22:51", mach: 11, ko: 1.7 },
+  { id: 7, type: "dir", name: "Corbeille", trash: true, open: false, kids: [] } ] };
+let active = 2, sel = 2, renaming = null, sand = true;
+
+function find(id, n = root, p = null) { if (n.id === id) return [n, p]; for (const k of n.kids ?? []) { const r = find(id, k, n); if (r) return r; } return null; }
+const node = (id) => find(id)[0];
+const inside = (a, b) => !!find(b, node(a));
+const key = (s) => s.trim().toLocaleLowerCase("fr");
+/** Un nom déjà pris dans ce dossier (sans compter `except`) ? Majuscules et espaces autour ne comptent pas. */
+const taken = (dir, name, except) => dir.kids.some((k) => k !== except && key(k.name) === key(name));
+/** « Nom », sinon « Nom (2) », « Nom (3) »… : jamais deux fois le même nom dans un dossier. */
+function free(dir, name, except) {
+  if (!taken(dir, name, except)) return name;
+  const base = name.replace(/ \(\d+\)$/, "");
+  for (let i = 2; ; i++) if (!taken(dir, `${base} (${i})`, except)) return `${base} (${i})`;
+}
+const inTrash = (id) => { for (let [, p] = find(id) ?? []; p; [, p] = find(p.id)) if (p.trash) return true; return false; };
+/**
+ * Après toute suppression ou tout déplacement : si le design affiché n'existe plus ou est dans la corbeille, on
+ * affiche un nouveau design vide (jamais une page cassée, et Partager reste utilisable) ; la sélection perdue
+ * revient à la racine.
+ */
+function ensureActive() {
+  if (!find(active) || inTrash(active)) {
+    const why = find(active) ? "Le design affiché est parti à la corbeille" : "Le design affiché a été supprimé";
+    const n = { id: ++uid, type: "des", name: free(root, "Nouveau design"), unsaved: true, at: now(), mach: 0, ko: 0.1 };
+    root.kids.push(n); active = n.id;
+    toast(`${why} : un nouveau design vide est ouvert`);
+  }
+  if (!find(sel)) sel = active;
+}
+const now = () => new Date().toLocaleString("fr", { dateStyle: "short", timeStyle: "short" }).replace(",", "");
+/** Dossiers d'abord, puis ordre alphabétique ; la corbeille toujours en bas. */
+const order = (a, b) => (a.trash ? 1 : b.trash ? -1 : 0) || (a.type === b.type ? 0 : a.type === "dir" ? -1 : 1) || a.name.localeCompare(b.name, "fr", { numeric: true });
+
+function render() {
+  ensureActive();
+  const t = $("tree"); t.innerHTML = "";
+  const walk = (n, depth) => {
+    if (n.id !== 0) {
+      const r = document.createElement("div");
+      r.className = "xn" + (n.id === sel ? " sel" : "") + (n.id === active ? " on" : ""); r.style.paddingLeft = 12 + (depth - 1) * 16 + "px"; r.dataset.id = n.id;
+      r.draggable = !n.trash;
+      r.innerHTML = `<span class="tw">${n.type === "dir" ? (n.open ? "▼" : "▶") : ""}</span>${ic(n.trash ? "bin" : n.type === "dir" ? "dir" : "doc")}`;
+      if (renaming === n.id) {
+        const inp = document.createElement("input"); inp.value = n.name; r.append(inp);
+        const err = document.createElement("div"); err.className = "xerr"; err.hidden = true;
+        queueMicrotask(() => { r.after(err); inp.focus(); inp.select(); });
+        const [, par] = find(n.id);
+        inp.oninput = () => { const bad = taken(par, inp.value, n); inp.setAttribute("aria-invalid", bad); err.hidden = !bad; err.textContent = `« ${inp.value.trim()} » existe déjà dans ${par.name}`; };
+        const done = (ok) => {
+          if (renaming !== n.id) return;
+          if (ok && inp.value.trim() && taken(par, inp.value, n)) return; // nom pris : on reste dans le champ
+          if (ok && inp.value.trim()) n.name = inp.value.trim();
+          renaming = null; render();
+        };
+        inp.onkeydown = (e) => { if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); };
+        inp.onblur = () => done(!taken(par, inp.value, n));
+      } else {
+        r.insertAdjacentHTML("beforeend", `<span class="name"></span>`); r.querySelector(".name").textContent = n.name;
+        if (n.unsaved) r.insertAdjacentHTML("beforeend", `<span class="tag" title="Modifié depuis le dernier enregistrement : gardé ici, jamais perdu">non enregistré</span>`);
+      }
+      t.append(r);
+    }
+    if (n.type === "dir" && n.open) for (const k of [...n.kids].sort(order)) walk(k, depth + 1);
+  };
+  walk(root, 0);
+  const inp = t.querySelector("input"); if (inp) { inp.focus(); inp.select(); } // tout de suite : la frappe qui suit F2 n'est pas perdue
+  const a = node(active); $("cur").textContent = a.name;
+  drawGraph(a);
+}
+
+function drawGraph(d) {
+  const name = d.name;
+  if (d.mach === 0) { $("graph").innerHTML = '<p class="hint" style="position:absolute;inset:0;display:grid;place-items:center">Design vide : choisissez quoi produire pour commencer.</p>'; return; }
+  const seed = [...name].reduce((s, c) => s + c.charCodeAt(0), 0), g = $("graph");
+  const pos = [[30, 40], [30, 190], [230, 110], [430, 50], [430, 200]].map(([x, y], i) => [x, y + ((seed * (i + 3)) % 30)]);
+  const names = ["Fonderie", "Laminoir", "Assembleur", name, "Stockage"];
+  g.innerHTML = `<svg>${[[0, 2], [1, 2], [2, 3], [2, 4]].map(([a, b]) => { const p = pos[a], q = pos[b]; const x1 = p[0] + 130, y1 = p[1] + 24, x2 = q[0], y2 = q[1] + 24, m = (x1 + x2) / 2;
+    return `<path d="M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}" fill="none" stroke="var(--gv-edge)" stroke-width="2"/>`; }).join("")}</svg>` +
+    pos.map(([x, y], i) => `<div class="gn" style="left:${x}px;top:${y}px"><b></b><span>×${(seed % 7) + i + 1}</span></div>`).join("");
+  g.querySelectorAll(".gn b").forEach((b, i) => (b.textContent = names[i]));
+}
+
+function toast(m) { const e = $("toast"); e.textContent = m; e.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => (e.style.display = "none"), 2200); }
+
+// --- Explorateur : clic, double clic, F2, clic droit, glisser
+$("tree").addEventListener("click", (e) => {
+  const r = e.target.closest(".xn"); if (!r || e.target.tagName === "INPUT") return;
+  // Comme VS Code : un clic choisit (et ouvre/ferme un dossier), un double clic ouvre le design, F2 renomme.
+  // Le double clic est compté à la main : la liste se redessine entre les deux clics.
+  const n = node(+r.dataset.id), now = Date.now(), dbl = lastClick.id === n.id && now - lastClick.t < 400;
+  lastClick = { id: n.id, t: now }; sel = n.id;
+  if (n.type === "dir") n.open = !n.open;
+  else if (dbl && inTrash(n.id)) toast("Restaurez ce design pour l'ouvrir");
+  else if (dbl && n.id !== active) { active = n.id; toast(`« ${n.name} » ouvert`); }
+  render();
+});
+let lastClick = { id: -1, t: 0 };
+$("tree").addEventListener("contextmenu", (e) => {
+  const r = e.target.closest(".xn"); if (!r) return; e.preventDefault();
+  const n = node(+r.dataset.id); sel = n.id; render();
+  const items = [];
+  if (n.type === "des" && !inTrash(n.id)) items.push(["Ouvrir", () => { active = n.id; }], ["Partager…", () => { active = n.id; openShare(false); }]);
+  if (n.unsaved) items.push(["Enregistrer", () => { n.unsaved = false; toast("Enregistré"); }]);
+  if (n.type === "des" && !inTrash(n.id)) items.push(["Dupliquer", () => { const [, p] = find(n.id); p.kids.push({ id: ++uid, type: "des", name: free(p, n.name + " (copie)") }); }]);
+  if (n.type === "dir" && !n.trash) items.push(["Nouveau design ici", () => newItem("des", n)], ["Nouveau dossier ici", () => newItem("dir", n)]);
+  if (!n.trash && !inTrash(n.id)) items.push(null, ["Renommer (F2)", () => { renaming = n.id; }], ["Mettre à la corbeille (Suppr)", () => moveTo(n.id, 7)]);
+  if (find(n.id)[1]?.trash) items.push(["Restaurer", () => moveTo(n.id, n.from != null && find(n.from) && !inTrash(n.from) ? n.from : 0)],
+    ["Supprimer définitivement…", () => { if (confirm(`Supprimer définitivement « ${n.name} » ? C'est irréversible.`)) { const [, p] = find(n.id); p.kids.splice(p.kids.indexOf(n), 1); ensureActive(); } }]);
+  if (n.trash && n.kids.length) items.push(["Vider la corbeille…", () => { if (confirm(`Supprimer définitivement les ${n.kids.length} éléments de la corbeille ? C'est irréversible.`)) { n.kids = []; ensureActive(); } }]);
+  const m = $("menu"); m.innerHTML = ""; m.hidden = false; m.style.left = e.clientX + "px"; m.style.top = e.clientY + "px";
+  for (const it of items) {
+    if (!it) { m.append(document.createElement("hr")); continue; }
+    const d = document.createElement("div"); d.textContent = it[0]; d.onclick = () => { m.hidden = true; it[1](); render(); }; m.append(d);
+  }
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#menu")) $("menu").hidden = true;
+  if (!e.target.closest("#share, #bShare, #menu, #bSimLong")) $("share").hidden = true;
+});
+document.addEventListener("keydown", (e) => {
+  if ($("cf").open) return;
+  if (e.key === "F2" && sel && !renaming && !node(sel).trash && !inTrash(sel)) { renaming = sel; render(); }
+  if (e.key === "Escape") $("share").hidden = true;
+  if (e.target.tagName === "INPUT" || renaming) return;
+  const s = node(sel);
+  if (e.key === "Delete" && s && !s.trash && !inTrash(s.id)) moveTo(s.id, 7);
+  if (e.key === "Enter" && s?.type === "des" && !inTrash(s.id)) { active = s.id; render(); }
+});
+
+let drag = null;
+$("tree").addEventListener("dragstart", (e) => { drag = +e.target.closest(".xn").dataset.id; });
+$("tree").addEventListener("dragover", (e) => {
+  const r = e.target.closest(".xn"); if (!r || drag == null) return;
+  const n = node(+r.dataset.id); if (n.type !== "dir" || inside(drag, n.id)) return;
+  e.preventDefault(); document.querySelectorAll(".drop").forEach((x) => x.classList.remove("drop")); r.classList.add("drop");
+});
+$("tree").addEventListener("drop", (e) => { e.preventDefault(); const r = e.target.closest(".xn"); if (r) moveTo(drag, +r.dataset.id); drag = null; render(); });
+const head = document.querySelector(".ex-head");
+head.title = "Déposer ici pour ranger à la racine";
+head.addEventListener("dragover", (e) => { if (drag != null) { e.preventDefault(); head.classList.add("drop"); } });
+head.addEventListener("dragleave", () => head.classList.remove("drop"));
+head.addEventListener("drop", (e) => { e.preventDefault(); head.classList.remove("drop"); moveTo(drag, 0); drag = null; render(); });
+$("tree").addEventListener("dragend", () => { drag = null; render(); });
+
+/** Déplace (glisser, restaurer, Suppr). La corbeille garde tout, sans question (comme celle de Windows). */
+async function moveTo(id, dirId) {
+  if (id === dirId || inside(id, dirId)) return;
+  const [n, p] = find(id), d = node(dirId); if (p === d) return;
+  if (d.trash) {
+    n.from = p.id; p.kids.splice(p.kids.indexOf(n), 1); n.name = free(d, n.name); d.kids.push(n);
+    toast(`« ${n.name} » mis à la corbeille`); render(); return;
+  }
+  const ses = { verb: "Déplacement", from: p === root ? "Mes designs" : p.name, all: null, left: 1 };
+  const r = await place(n, p, d, ses);
+  if (r !== "cancel") { d.open = true; delete n.from; }
+  const m = ses.moved ?? 0, k = ses.skipped ?? 0, pl = (x, w) => `${x} ${w}${x > 1 ? "s" : ""}`;
+  toast(r === "cancel" ? "Déplacement annulé" : k ? `${pl(m, "élément")} déplacé${m > 1 ? "s" : ""}, ${pl(k, "ignoré")} (resté${k > 1 ? "s" : ""} à sa place)` : `Rangé dans ${d === root ? "Mes designs" : d.name}`);
+  render();
+}
+/**
+ * Pose `n` (venu de `p`, ou d'ailleurs si `p` est null) dans `d`. Nom libre : posé. Nom pris : la fenêtre de
+ * conflit, avec les options de l'Explorateur de Windows. Rend "done", "skip" ou "cancel".
+ */
+async function place(n, p, d, ses) {
+  const clash = d.kids.find((k) => k !== n && key(k.name) === key(n.name));
+  const take = () => { if (p) p.kids.splice(p.kids.indexOf(n), 1); d.kids.push(n); };
+  if (!clash) { take(); ses.moved = (ses.moved ?? 0) + 1; return "done"; }
+  const both = n.type === "dir" && clash.type === "dir";
+  const ch = ses.all ?? (await askConflict(n, clash, d, ses, both));
+  if (ch === "cancel") return "cancel";
+  if (ch === "skip") { ses.skipped = (ses.skipped ?? 0) + 1; return "skip"; }
+  if (ch === "keep") { n.name = free(d, n.name); take(); ses.moved = (ses.moved ?? 0) + 1; return "done"; }
+  if (ch === "merge") { // dossiers : on verse le contenu, chaque doublon repasse par la fenêtre
+    const sub = { ...ses, all: null, left: n.kids.filter((k) => clash.kids.some((c) => key(c.name) === key(k.name))).length };
+    for (const k of [...n.kids]) { const r = await place(k, n, clash, sub); if (r === "cancel") return "cancel"; if (sub.counted) { sub.left--; sub.counted = false; } }
+    ses.moved = (ses.moved ?? 0) + (sub.moved ?? 0); ses.skipped = (ses.skipped ?? 0) + (sub.skipped ?? 0);
+    if (!n.kids.length && p) p.kids.splice(p.kids.indexOf(n), 1); // vide : il disparaît, comme sous Windows
+    return "done";
+  }
+  // remplacer : l'ancien part à la corbeille (rien n'est détruit sans le demander)
+  const [, cp] = find(clash.id), bin = node(7);
+  cp.kids.splice(cp.kids.indexOf(clash), 1); clash.from = cp.id; clash.name = free(bin, clash.name); bin.kids.push(clash);
+  if (clash.id === active) active = n.id;
+  take(); ses.moved = (ses.moved ?? 0) + 1; return "done";
+}
+
+/** Fenêtre de conflit. Rend "replace" | "skip" | "keep" | "merge" | "cancel" ; « pour les suivants » remplit ses.all. */
+function askConflict(n, clash, d, ses, folders) {
+  return new Promise((done) => {
+    const dlg = $("cf"), dest = d === root ? "Mes designs" : d.name, what = folders ? "dossier" : "design";
+    ses.counted = true;
+    $("cfTitle").textContent = `${ses.verb} d'un élément${ses.from ? ` de ${ses.from}` : ""} vers ${dest}`;
+    $("cfMsg").textContent = folders
+      ? `${dest} contient déjà un dossier nommé « ${clash.name} ».`
+      : `${dest} contient déjà un ${clash.type === "dir" ? "dossier" : "design"} nommé « ${clash.name} ».`;
+    $("cfOpts").hidden = false; $("cfCmp").hidden = true;
+    $("cfReplace").hidden = folders || clash.type === "dir" || n.type === "dir";
+    $("cfMerge").hidden = !folders;
+    $("cfCompare").hidden = folders || clash.type === "dir" || n.type === "dir";
+    $("cfKeep").hidden = !(folders || clash.type === "dir" || n.type === "dir"); // sinon via « Comparer », comme Windows
+    $("cfSkipTxt").textContent = `Ignorer ce ${what}`;
+    $("cfAllRow").hidden = ses.left <= 1; $("cfAll").checked = false; $("cfAllTxt").textContent = ses.left > 2 ? `Effectuer cette action pour les ${ses.left - 1} conflits suivants` : "Effectuer cette action pour le conflit suivant";
+    const end = (ch) => { dlg.close(); if ($("cfAll").checked && ch !== "cancel") ses.all = ch; done(ch); };
+    $("cfReplace").onclick = () => end("replace"); $("cfMerge").onclick = () => end("merge");
+    $("cfSkip").onclick = () => end("skip"); $("cfKeep").onclick = () => end("keep");
+    $("cfCancel").onclick = () => end("cancel"); dlg.oncancel = (e) => { e.preventDefault(); end("cancel"); };
+    $("cfCompare").onclick = () => {
+      $("cfOpts").hidden = true; $("cfCmp").hidden = false;
+      const card = (x, side, other) => `<label class="cmp"><input type="checkbox" id="cfC${side}" checked><span class="cmpb"><b>${side === "S" ? `Design venant de ${ses.from ?? "l'extérieur"}` : `Déjà dans ${dest}`}</b>
+        <span class="cmpn"></span><span>Modifié le ${x.at ?? "?"}${dateKey(x) > dateKey(other) ? ' <em>plus récent</em>' : ""}</span>
+        <span>${x.mach ?? "?"} machines · ${String(x.ko ?? "?").replace(".", ",")} Ko${(x.ko ?? 0) > (other.ko ?? 0) ? ' <em>plus volumineux</em>' : ""}</span></span></label>`;
+      $("cfCards").innerHTML = card(n, "S", clash) + card(clash, "D", n);
+      $("cfCards").querySelectorAll(".cmpn").forEach((e, i) => (e.textContent = i ? clash.name : n.name));
+      const upd = () => { $("cfGo").disabled = !$("cfCS").checked && !$("cfCD").checked;
+        $("cfHint").textContent = $("cfCS").checked && $("cfCD").checked ? `Les deux sont gardés : celui qui arrive sera nommé « ${free(d, n.name)} ».`
+          : $("cfCS").checked ? "Celui qui arrive remplace l'autre, qui part à la corbeille." : $("cfCD").checked ? "Rien n'est déplacé." : "Cochez au moins un design."; };
+      $("cfCS").onchange = upd; $("cfCD").onchange = upd; upd();
+      $("cfGo").onclick = () => end($("cfCS").checked && $("cfCD").checked ? "keep" : $("cfCS").checked ? "replace" : "skip");
+      $("cfBack").onclick = () => end("cancel");
+    };
+    dlg.showModal();
+  });
+}
+const dateKey = (x) => (x.at ?? "").replace(/(\d+)\/(\d+)\/(\d+) (.*)/, "$3$2$1 $4");
+function newItem(type, dir) {
+  const n = type === "dir" ? { id: ++uid, type, name: free(dir, "Nouveau dossier"), open: true, kids: [] } : { id: ++uid, type, name: free(dir, "Nouveau design"), unsaved: true };
+  dir.kids.push(n); dir.open = true; sel = n.id; renaming = n.id; if (type === "des") active = n.id;
+}
+const target = () => { const s = node(sel); return s?.type === "dir" && !s.trash ? s : root; };
+$("bNewD").onclick = () => { newItem("des", target()); render(); };
+$("bNewF").onclick = () => { newItem("dir", target()); render(); };
+$("bOpenF").onclick = () => toast("Maquette : ouvrirait le sélecteur de fichier .indus");
+
+// --- Partager : le lien est copié dès l'ouverture quand il passe sur Discord
+let long = false;
+function openShare(isLong) {
+  long = isLong;
+  const a = node(active), n = long ? 4712 : sand ? 1240 : 386, fits = n <= 2000;
+  $("shName").textContent = a.name;
+  $("shLink").textContent = "industrialist.myprisme.fr/#d=1." + "eJyFk0tPwzAQhP9K5HMOdlLaYk0q3KRxjZhQ8Q".repeat(Math.ceil(n / 40)).slice(0, 80);
+  $("gBar").style.width = Math.min(100, (n / 2000) * 100) + "%";
+  $("gauge").classList.toggle("over", !fits);
+  $("gTxt").innerHTML = fits ? `<b>${n.toLocaleString("fr")}</b> caractères · passe sur Discord` : `<b>${n.toLocaleString("fr")} caractères : trop long pour Discord</b>, envoyez le fichier`;
+  $("shFile").textContent = a.name + ".indus";
+  $("shDl").className = fits ? "" : "primary";
+  setCopy(fits);
+  $("share").hidden = false;
+}
+function setCopy(done) {
+  const b = $("shCopy"); b.classList.toggle("done", done);
+  b.innerHTML = done ? `${ic("check")} Lien copié` : `${ic("copy")} Copier`;
+}
+$("bShare").onclick = () => ($("share").hidden ? openShare(false) : ($("share").hidden = true));
+$("shSand").onclick = () => { sand = !sand; $("shSand").setAttribute("aria-pressed", sand); openShare(long); };
+$("shCopy").onclick = () => { setCopy(true); toast("Lien copié"); };
+function frz() {
+  const on = $("shFrz").checked;
+  $("shSize").textContent = on ? "· fichier ≈ 38 Ko" : "· fichier ≈ 2 Ko";
+  $("shFrzHint").textContent = on ? "S'affiche à l'identique à vie, sans rien recalculer." : "Plus léger : l'usine sera recalculée par la version du site qui a créé le fichier.";
+}
+$("shFrz").onchange = frz; frz();
+$("shDl").onclick = () => toast(`Maquette : téléchargerait « ${node(active).name}.indus »${$("shFrz").checked ? " avec l'usine figée" : " sans l'usine figée"}`);
+$("shClose").onclick = () => ($("share").hidden = true);
+$("bSimLong").onclick = () => openShare(true);
+
+// --- Ouvrir un lien reçu
+$("bSimLink").onclick = () => { $("rPrev").textContent = node(active).name; $("recv").showModal(); };
+$("rNo").onclick = () => $("recv").close();
+$("rYes").onclick = async () => {
+  $("recv").close();
+  let inbox = root.kids.find((k) => k.type === "dir" && key(k.name) === "reçus");
+  if (!inbox) { inbox = { id: ++uid, type: "dir", name: free(root, "Reçus"), open: true, kids: [] }; root.kids.push(inbox); }
+  const n = { id: ++uid, type: "des", name: "Usine de plastique", at: now(), mach: 18, ko: 2.6 };
+  const r = await place(n, null, inbox, { verb: "Ouverture", from: "un lien", all: null, left: 1 });
+  if (r === "done") { inbox.open = true; active = sel = n.id; toast(`« ${n.name} » ouvert, rangé dans ${inbox.name}`); }
+  else toast("Design reçu non ouvert");
+  render();
+};
+render();
+</script>
+</body>
+</html>

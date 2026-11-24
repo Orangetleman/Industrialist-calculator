@@ -22,6 +22,31 @@ export const BLOCKED_RESEARCH: Record<Difficulty, readonly string[]> = {
   sandbox_plus: [],
 };
 
+/**
+ * « Tout débloquer » : les recherches atteignables à cette difficulté. Une recherche interdite reste fermée ;
+ * ses suites aussi si elles ne tiennent que par elle (jamais de case cochée sans prérequis).
+ */
+export function unlockableNodes(data: GameData, unlocked: Iterable<string>, d: Difficulty): Set<string> {
+  const blocked = new Set(BLOCKED_RESEARCH[d]);
+  const done = new Set(unlocked);
+  const ok = (id: string): boolean => {
+    const n = data.nodes.get(id);
+    return !!n && !blocked.has(id) && (n.isRoot || !!n.startUnlocked || done.has(id));
+  };
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const n of data.nodes.values()) {
+      if (done.has(n.id) || n.isRoot || n.startUnlocked || blocked.has(n.id)) continue;
+      const fine = !n.parents.length || (n.requires === "any" ? n.parents.some(ok) : n.parents.every(ok));
+      if (fine) {
+        done.add(n.id);
+        changed = true;
+      }
+    }
+  }
+  return done;
+}
+
 /** Progression vue par les plans : recherches bloquées, ou tout l'arbre (Sandbox), plus les machines à posséder (Sandbox+). */
 export function withDifficulty<P extends Progress>(data: GameData, p: P, d: Difficulty | null | undefined): P {
   if (!d || d === "normal") return p;

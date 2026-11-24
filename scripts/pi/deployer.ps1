@@ -39,7 +39,20 @@ if ($Retour) {
 Push-Location $racine
 try {
   Lancer "Tests" { npm test --silent }
-  if (-not $Remarques) { Lancer "Build" { npm run build --silent } }
+  if (-not $Remarques) {
+    # P4 : chaque mise en ligne a son numéro de version, gardé à vie sous /v/<version>/. Remis si la suite échoue.
+    $paquets = @{}
+    foreach ($f in "package.json", "package-lock.json") { $paquets[$f] = [IO.File]::ReadAllBytes((Join-Path $racine $f)) }
+    Lancer "Numéro de version" { npm version patch --no-git-tag-version }
+    $version = (Get-Content -Raw -Encoding UTF8 (Join-Path $racine "package.json") | ConvertFrom-Json).version
+    try {
+      Lancer "Build" { npm run build --silent }
+      Lancer "Copie gardée de la version $version" { node scripts/build-archive.ts }
+    } catch {
+      foreach ($f in $paquets.Keys) { [IO.File]::WriteAllBytes((Join-Path $racine $f), $paquets[$f]) }
+      throw
+    }
+  }
 } finally { Pop-Location }
 
 if ($Remarques) {
@@ -78,5 +91,6 @@ if ($Installer) {
   }
 }
 
-Lancer "Mise en ligne" { ssh $Pi "sudo industrialist-publier $envoi/dist && rm -rf $envoi" }
+Lancer "Mise en ligne" { ssh $Pi "sudo install -m 755 $envoi/publier.sh /usr/local/sbin/industrialist-publier && sudo industrialist-publier $envoi/dist && rm -rf $envoi" }
+Write-Host "Version $version en ligne. À garder dans git : git commit -m 'Version $version' package.json package-lock.json" -ForegroundColor Cyan
 Write-Host "En ligne : https://industrialist.myprisme.fr  (réseau local : http://myprism.local:8090)" -ForegroundColor Green

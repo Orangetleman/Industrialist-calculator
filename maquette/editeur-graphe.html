@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette G0 — Éditeur de graphe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Maquette G0 (PLAN-GRAPHE.md) : l'onglet Schéma devient un éditeur de graphe. Gestes inspirés d'Industrialist
+   Calculator (Pollywrath, MIT), charte Plasma Chantier S59 (src/styles.css). Fond charbon profond semé de croix
+   (décision n° 3). Valeurs des recettes : data/recipes.json du 2026-11-17 (aucune valeur inventée) ; les nombres
+   de machines de départ sont ceux de notre calcul pour 120 Gearbox/min. */
+:root {
+  --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
+  --accent: #ff6a1a; --accent-soft: #33190c; --on-accent: #1a0800; --warn: #ffd23f; --warn-soft: #2a220c;
+  --ok: #4ade80; --ok-soft: #10261a; --bad: #ff7a9a; --bad-soft: #36121e; --steel: #c4a1ff;
+  --in: #38bdf8; --in-ink: #8fd8fb; --in-soft: #0f2235; --out: #e879f9; --out-ink: #f0abfc; --out-soft: #2d1436;
+  /* Canevas : charbon profond, plus sombre et plus marqué que les dessins actuels ; croix comme les points de Pollywrath. */
+  --cv-bg: #08070a; --cv-cross: #2b2440; --node: #130f1c; --node-line: #3b2e5a; --node-head: #1a1426; --edge: #7d6fa8;
+  --brand-bar: repeating-linear-gradient(45deg, var(--accent) 0 10px, var(--bg) 10px 20px);
+  --f-display: "Audiowide", system-ui, sans-serif; --f-body: "IBM Plex Sans", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --lw: 220px; --rw: 300px;
+}
+* { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; } ::-webkit-scrollbar-track { background: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--f-body); font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 1px solid var(--line); border-radius: 3px; padding: 4px 8px; }
+button:hover { border-color: var(--accent); }
+button.p { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+input, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 3px 6px; }
+.ic { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.num { font-family: var(--f-mono); }
+kbd { font: 10px var(--f-mono); color: var(--muted); border: 1px solid var(--line); border-bottom-width: 2px; padding: 0 4px; border-radius: 3px; }
+.eyebrow { font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+.app { height: 100vh; display: grid; grid-template-rows: auto auto 1fr; }
+.top { display: flex; align-items: center; gap: 14px; padding: 6px 12px; background: var(--surface); position: relative; font-family: var(--f-display); }
+.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 3px; background: var(--brand-bar); }
+.nav { display: flex; gap: 2px; } .nav a { padding: 4px 9px; color: var(--muted); text-decoration: none; } .nav a.on { color: var(--ink); background: var(--panel2); }
+.sp { flex: 1; }
+.goal { display: flex; align-items: center; gap: 10px; padding: 9px 12px 7px; margin-top: 3px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; } .seg button { border: 0; border-radius: 0; color: var(--muted); padding: 4px 9px; } .seg button.on { background: var(--accent); color: var(--on-accent); }
+.say { color: var(--muted); }
+.field { background: var(--bg); border: 1px solid var(--line); padding: 4px 8px; border-radius: 3px; min-width: 56px; text-align: center; font-family: var(--f-mono); }
+.pick { display: inline-flex; align-items: center; gap: 6px; border-color: var(--accent); } .pick i { width: 18px; height: 18px; background: var(--panel2); display: inline-block; }
+
+.body { display: grid; grid-template-columns: var(--lw) minmax(0, 1fr) var(--rw); min-height: 0; }
+.rail { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+.rail.l { border-right: 1px solid var(--line); } .rail.r { border-left: 1px solid var(--line); }
+.rh { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--accent); font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.rb { flex: 1; min-height: 0; overflow: auto; }
+.step { display: flex; align-items: center; gap: 7px; padding: 5px 10px; border-left: 3px solid transparent; cursor: pointer; white-space: nowrap; }
+.step:hover { background: var(--panel2); } .step.on { background: var(--accent-soft); border-left-color: var(--accent); }
+.step .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; } .step .x { color: var(--accent); font-family: var(--f-mono); font-size: 11px; }
+.step .w { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); flex: none; }
+
+/* ------------------------------------------------------------ le canevas */
+.stage { position: relative; min-width: 0; overflow: hidden; background: var(--cv-bg); touch-action: none; user-select: none; }
+.stage::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10.5v7M10.5 14h7' stroke='%232b2440' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-size: var(--cs, 28px) var(--cs, 28px); background-position: var(--cx, 0) var(--cy, 0); }
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.edges { position: absolute; left: 0; top: 0; overflow: visible; width: 1px; height: 1px; }
+.edges path { fill: none; stroke: var(--edge); stroke-width: 2; cursor: pointer; }
+.edges path.hit { stroke: transparent; stroke-width: 14; }
+.edges path.short { stroke: var(--bad); stroke-dasharray: 6 5; }
+.edges path.sel, .edges g:hover path.line { stroke: var(--accent); }
+.edges path.tmp { stroke: var(--accent); stroke-dasharray: 5 4; pointer-events: none; }
+.elab { font: 11px var(--f-mono); fill: var(--muted); pointer-events: none; }
+.elab rect { fill: var(--cv-bg); stroke: none; } .elab.short text { fill: var(--bad); }
+
+.node { position: absolute; width: 256px; background: var(--node); border: 1px solid var(--node-line); color: var(--ink); font-size: 12px; cursor: grab; }
+.node:hover { border-color: var(--steel); }
+.node.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.node.target { border-color: var(--accent); }
+.node.target::before { content: "CIBLE"; position: absolute; top: -9px; right: 8px; background: var(--accent); color: var(--on-accent); font: 600 9px/1 var(--f-mono); letter-spacing: .1em; padding: 3px 6px; }
+.node .hd { display: flex; align-items: baseline; gap: 8px; padding: 7px 10px 2px; background: var(--node-head); border-bottom: 1px solid var(--node-line); }
+.node .hd b { font-family: var(--f-display); font-weight: 400; font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .hd .n { font: 500 20px/1 var(--f-mono); color: var(--accent); }
+.node .hd .n small { font-size: 11px; color: var(--muted); margin-right: 2px; }
+.node .hd .lock { color: var(--warn); } .node .hd .lock .ic { width: 12px; height: 12px; }
+.node .mach { padding: 2px 10px 6px; background: var(--node-head); color: var(--muted); font-size: 11px; display: flex; gap: 8px; white-space: nowrap; }
+.node .mach span { flex: none; } .node .mach span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.node .mach span + span::before { content: "·"; margin-right: 8px; color: var(--node-line); }
+.node .io { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 8px 0; }
+.node .col { display: flex; flex-direction: column; gap: 5px; }
+.row { position: relative; display: flex; align-items: center; gap: 6px; padding: 3px 8px; margin: 0 0 0 8px; border: 1px solid var(--in); background: var(--in-soft); color: var(--in-ink); cursor: pointer; min-height: 26px; }
+.row .q { font-family: var(--f-mono); font-size: 11px; white-space: nowrap; } .row .it { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col.o .row { margin: 0 8px 0 0; border-color: var(--out); background: var(--out-soft); color: var(--out-ink); flex-direction: row-reverse; text-align: right; }
+.row.miss { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); } .row.miss .q::before { content: "−"; }
+.row.part { border-style: dashed; border-color: var(--warn); }
+.row:hover { filter: brightness(1.25); }
+.port { position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6px; background: var(--in); border: 1px solid var(--cv-bg); cursor: crosshair; z-index: 2; transition: transform .1s; }
+.port::after { content: ""; position: absolute; inset: -8px; } /* zone sensible plus large que la prise dessinée */
+.col.i .port { left: -14px; } .col.o .port { right: -14px; background: var(--out); }
+.port:hover, .port.arm { transform: scale(1.5); box-shadow: 0 0 0 2px var(--accent); }
+.port.ok { box-shadow: 0 0 0 3px var(--ok); } .port.no { animation: shake .3s; box-shadow: 0 0 0 3px var(--bad); }
+@keyframes shake { 25% { transform: translateX(-3px) } 75% { transform: translateX(3px) } }
+.far .node .io, .far .node .mach, .far .elab { display: none; } .far .node { width: 200px; }
+
+/* Outils flottants : colonne droite (vue), barre du bas (gestes) */
+.tools { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 5; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; }
+.tools button { border: 0; border-radius: 0; width: 34px; height: 32px; display: grid; place-items: center; color: var(--muted); } .tools button:hover { color: var(--accent); }
+.tools hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+.tray { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 5; display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; max-width: calc(100% - 20px); overflow-x: auto; }
+.tray button { border: 0; border-radius: 0; min-width: 62px; padding: 6px 8px 5px; display: grid; justify-items: center; gap: 3px; color: var(--muted); font: 9px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.tray button .ic { width: 17px; height: 17px; } .tray button:hover { color: var(--ink); background: var(--panel2); }
+.tray button.on { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.tray button.go { color: var(--on-accent); background: var(--accent); } .tray button.go:hover { background: #ff8340; }
+.tray hr { border: 0; border-left: 1px solid var(--line); margin: 0; }
+.tray button:disabled { opacity: .4; cursor: default; }
+.modehint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 66px; white-space: nowrap; z-index: 5; padding: 4px 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font: 11px var(--f-mono); }
+.tabs { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; }
+.tabs button { border: 0; border-radius: 0; color: var(--muted); padding: 5px 12px; display: inline-flex; gap: 6px; align-items: center; } .tabs button.on { color: var(--ink); box-shadow: inset 0 -2px var(--accent); }
+
+/* Bulle du nœud (S67) : accrochée sous lui, dans le monde */
+.bubble { position: absolute; width: 256px; background: var(--surface); border: 1px solid var(--accent); border-radius: 3px; box-shadow: 0 10px 30px #000a; z-index: 6; font-size: 12px; cursor: default; }
+.bubble::before { content: ""; position: absolute; left: 18px; top: -7px; width: 12px; height: 12px; background: var(--surface); border-left: 1px solid var(--accent); border-top: 1px solid var(--accent); transform: rotate(45deg); }
+.bubble header { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-bottom: 1px solid var(--line); } .bubble header b { flex: 1; font-weight: 400; font-family: var(--f-display); }
+.bubble header button { border: 0; padding: 2px; color: var(--muted); }
+.brow { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 5px 8px; } .brow > span:first-child { color: var(--muted); }
+.cnt { display: inline-flex; align-items: center; } .cnt button { width: 24px; padding: 2px 0; border-radius: 0; } .cnt input { width: 58px; text-align: center; border-radius: 0; border-left: 0; border-right: 0; font-family: var(--f-mono); }
+.bubble .acts { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 8px 8px; } .bubble .acts button { font-size: 11px; }
+.bubble select { max-width: 150px; }
+.sw { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; } .sw i { width: 28px; height: 16px; border: 1px solid var(--line); border-radius: 8px; position: relative; } .sw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.sw.on i { border-color: var(--accent); } .sw.on i::after { left: 14px; background: var(--accent); }
+
+/* Volet droit : chiffres, équilibre, partager */
+.sec { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.st { display: flex; align-items: center; gap: 7px; padding: 8px 10px 4px; color: var(--accent); font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.st .n { color: var(--muted); letter-spacing: 0; margin-left: auto; }
+.kv { display: flex; align-items: center; gap: 7px; padding: 3px 10px; } .kv .ic { color: var(--muted); } .kv span { flex: 1; color: var(--muted); } .kv b { font-weight: 400; font-family: var(--f-mono); }
+.li { display: flex; align-items: center; gap: 8px; padding: 4px 10px; } .li .nm { flex: 1; } .li .q { font-family: var(--f-mono); font-size: 11px; }
+.li.bad .q, .li.bad .nm { color: var(--bad); } .li.ok .q { color: var(--ok); }
+.li button { font-size: 11px; padding: 1px 7px; }
+.share { display: flex; gap: 6px; padding: 4px 10px 10px; flex-wrap: wrap; } .share button { flex: 1; display: inline-flex; gap: 6px; justify-content: center; align-items: center; white-space: nowrap; }
+.empty { padding: 2px 10px 6px; color: var(--muted); font-size: 11px; }
+
+/* Fenêtres : sélecteur de recettes, aperçu du recalcul */
+.veil { position: fixed; inset: 0; background: #0009; z-index: 40; display: grid; place-items: center; }
+.dlg { width: min(640px, 94vw); max-height: 86vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--accent); border-radius: 3px; box-shadow: 0 20px 60px #000c; }
+.dlg header { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); font-family: var(--f-display); } .dlg header button { border: 0; color: var(--muted); padding: 2px; }
+.dlg .bd { overflow: auto; padding: 8px 12px 12px; }
+.dlg .ft { display: flex; gap: 8px; justify-content: flex-end; padding: 8px 12px; border-top: 1px solid var(--line); }
+.search { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); } .search input { flex: 1; }
+.rc { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); margin-bottom: 6px; cursor: pointer; background: var(--bg); }
+.rc:hover { border-color: var(--accent); }
+.rc .mid { text-align: center; color: var(--muted); font-size: 11px; } .rc .mid b { display: block; color: var(--ink); font-family: var(--f-display); font-weight: 400; font-size: 12px; }
+.rc .side { display: flex; flex-direction: column; gap: 3px; } .rc .side.o { align-items: flex-end; }
+.tag { display: inline-block; padding: 1px 6px; border: 1px solid var(--in); background: var(--in-soft); color: var(--in-ink); font-size: 11px; } .side.o .tag { border-color: var(--out); background: var(--out-soft); color: var(--out-ink); }
+.tag .num { margin-right: 4px; }
+table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); } th { color: var(--muted); font-weight: 400; font-size: 11px; } td.num, th.num { text-align: right; }
+td.up { color: var(--ok); } td.down { color: var(--warn); } td.new { color: var(--accent); }
+.note { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); z-index: 50; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); padding: 4px 10px; border-radius: 3px; font-size: 11px; max-width: 94vw; }
+.note button { border: 0; color: inherit; padding: 0 4px; }
+
+@media (max-width: 900px) {
+  .body { grid-template-columns: 1fr; grid-template-rows: 62vh auto; } .rail.l { display: none; } .rail.r { border: 0; border-top: 1px solid var(--line); }
+  .tools { display: none; } .goal { flex-wrap: wrap; } .top .nav { display: none; } .note { top: auto; bottom: 8px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></symbol>
+  <symbol id="i-sel" viewBox="0 0 24 24"><path d="M5 3h4M15 3h4M3 5v4M21 5v4M3 15v4M21 15v4M5 21h4M15 21h4"/></symbol>
+  <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="6"/><rect x="14" y="4" width="7" height="6"/><rect x="3" y="14" width="7" height="6"/><rect x="14" y="14" width="7" height="6"/><path d="M10 7h4M10 17h4"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3H15"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-10 16-10 0 9-4 16-9 17z"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="m10 17 5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-ul" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M21 3 3 21M21 3h-6M21 3v6M3 21h6M3 21v-6"/></symbol>
+</svg>
+<div class="note" id="note">Maquette G0 — à essayer : glisser un nœud · molette = zoom · clic sur une ligne d'entrée rouge = recettes qui la produisent · tirer une prise mauve vers une prise cyan = relier · clic sur un nœud = sa bulle (nombre − / +) · Maj + clic = cible · Alt + clic = supprimer · Recalculer = aperçu avant / après <button id="note-x" title="Fermer">✕</button></div>
+<div class="app">
+  <header class="top">
+    <span>Planificateur</span>
+    <nav class="nav"><a class="on" href="#">Planifier</a><a href="#">Arbre</a><a href="#">Recettes</a><a href="#">Bac à sable</a><a href="#">Mon usine</a><a href="#">Contribuer</a></nav>
+    <span class="sp"></span><button style="border:0;color:var(--muted)">FR</button><button style="border:0;color:var(--muted)">?</button>
+  </header>
+  <section class="goal">
+    <span class="seg"><button class="on">Un objet</button><button>De l'énergie</button><button>Des RP</button><button>De l'argent</button></span>
+    <span class="say">Je veux</span><span class="field" id="g-rate">120</span><span class="say" id="g-unit">par minute de</span>
+    <button class="pick"><i></i><span id="g-item">Gearbox</span> <kbd>Ctrl K</kbd></button>
+    <span class="say" id="g-from" style="font-size:11px"></span>
+    <span class="sp"></span><button>Réglages <kbd>R</kbd></button>
+  </section>
+  <div class="body">
+    <aside class="rail l">
+      <div class="rh"><svg class="ic"><use href="#i-list"/></svg>Étapes<span class="sp"></span><span id="l-count" style="color:var(--muted);letter-spacing:0"></span></div>
+      <div class="rb" id="steps"></div>
+    </aside>
+    <main class="stage" id="stage">
+      <div class="tabs"><button><svg class="ic"><use href="#i-map"/></svg>Usine</button><button class="on"><svg class="ic"><use href="#i-chart"/></svg>Graphe</button><button><svg class="ic"><use href="#i-list"/></svg>Liste</button></div>
+      <div class="tools">
+        <button id="z-in" title="Zoomer (+)"><svg class="ic"><use href="#i-plus"/></svg></button><button id="z-out" title="Dézoomer (−)"><svg class="ic"><use href="#i-minus"/></svg></button><button id="z-fit" title="Tout voir (0)"><svg class="ic"><use href="#i-fit"/></svg></button>
+      </div>
+      <div class="world" id="world">
+        <svg class="edges" id="edges"></svg>
+        <div id="nodes"></div>
+        <div class="bubble" id="bubble" hidden>
+          <header><b id="b-name"></b><button id="b-x" title="Fermer (Échap)"><svg class="ic"><use href="#i-x"/></svg></button></header>
+          <div class="brow"><span>Machines</span><span class="cnt"><button id="b-less" title="Une de moins (ou molette)">−</button><input id="b-n" inputmode="decimal"><button id="b-more" title="Une de plus">+</button></span></div>
+          <div class="brow"><span>Exact</span><span class="num" id="b-exact"></span></div>
+          <div class="brow"><span>Recette</span><select id="b-recipe"></select></div>
+          <div class="brow"><span>Fixer ce nombre</span><label class="sw" id="b-fix"><i></i><span style="color:var(--muted);font-size:11px">le recalcul le garde</span></label></div>
+          <div class="acts"><button id="b-scale" title="Multiplie toute la chaîne en amont par le même rapport"><svg class="ic"><use href="#i-scale"/></svg> Mettre la chaîne à l'échelle</button><button id="b-target"><svg class="ic"><use href="#i-target"/></svg> Cible</button><button id="b-del"><svg class="ic"><use href="#i-trash"/></svg> Supprimer</button><button>Fiche ›</button></div>
+        </div>
+      </div>
+      <div class="tray" id="tray">
+        <button data-tool="add" title="Ajouter une recette (Ctrl K)"><svg class="ic"><use href="#i-plus"/></svg>Ajouter</button>
+        <button data-tool="link" title="Relier des prises : tirer d'une sortie vers une entrée (toujours possible)"><svg class="ic"><use href="#i-link"/></svg>Relier</button>
+        <button data-tool="target" title="Marquer la cible (Maj + clic)"><svg class="ic"><use href="#i-target"/></svg>Cible</button>
+        <button data-tool="del" title="Supprimer (Alt + clic, ou Suppr)"><svg class="ic"><use href="#i-trash"/></svg>Supprimer</button>
+        <button data-tool="multi" title="Sélection multiple (Ctrl + clic)"><svg class="ic"><use href="#i-sel"/></svg>Sélection</button>
+        <hr>
+        <button id="t-layout" title="Ranger : de l'extraction à l'objectif, sans chevauchement"><svg class="ic"><use href="#i-layout"/></svg>Ranger</button>
+        <button id="t-undo" title="Annuler (Ctrl Z)"><svg class="ic"><use href="#i-undo"/></svg>Annuler</button>
+        <button id="t-redo" title="Rétablir (Ctrl Y)"><svg class="ic"><use href="#i-redo"/></svg>Rétablir</button>
+        <button id="t-unit" title="Unité des débits"><svg class="ic"><use href="#i-clock"/></svg>/min</button>
+        <hr>
+        <button class="go" id="t-calc" title="Le solveur reprend ces recettes et propose les nombres ; aperçu avant d'appliquer"><svg class="ic"><use href="#i-calc"/></svg>Recalculer</button>
+      </div>
+      <div class="modehint" id="modehint" hidden></div>
+    </main>
+    <aside class="rail r">
+      <div class="rh"><svg class="ic"><use href="#i-chart"/></svg>Ce plan</div>
+      <div class="rb">
+        <div class="sec" id="kpis"></div>
+        <div class="sec"><div class="st"><svg class="ic"><use href="#i-in"/></svg>Équilibre<span class="n" id="bal-n"></span></div><div id="balance"></div></div>
+        <div class="sec"><div class="st"><svg class="ic"><use href="#i-edit"/></svg>Ton plan<span class="n">priorités · machines</span></div><div class="li"><span class="nm" style="color:var(--muted)">Recettes du graphe imposées au recalcul</span></div></div>
+        <div class="sec"><div class="st"><svg class="ic"><use href="#i-dl"/></svg>Modifier ou partager</div>
+          <div class="share"><button><svg class="ic"><use href="#i-ul"/></svg>Importer un graphe</button><button><svg class="ic"><use href="#i-dl"/></svg>Exporter</button></div>
+          <div class="share" style="padding-top:0"><button><svg class="ic"><use href="#i-map"/></svg>Bac à sable</button><button><svg class="ic"><use href="#i-dl"/></svg>.msch</button></div>
+          <div class="empty">Import et export aussi au format d'Industrialist Calculator.</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------- données (data/recipes.json, 2026-11-17)
+const ITEMS = { gearbox: "Gearbox", crankshaft: "Crankshaft", "plastic-casing": "Plastic Casing", "steel-rod": "Steel Rod", gear: "Gear", "steel-plate": "Steel Plate", "steel-ingot": "Steel Ingot", "iron-mix": "Iron Mix", "plastic-pellets": "Plastic Pellets", "raw-iron": "Raw Iron", coal: "Coal", "iron-powder": "Iron Powder" };
+const RECIPES = {
+  craft_assembler_06: { m: "Craft Assembler", dur: 15, in: { "plastic-casing": 2, crankshaft: 1 }, out: { gearbox: 1 }, mf: 4000, cost: 1000, area: 32, pol: 0 },
+  craft_assembler_05: { m: "Craft Assembler", dur: 15, in: { "steel-rod": 2, gear: 4 }, out: { crankshaft: 1 }, mf: 4000, cost: 1000, area: 32, pol: 0 },
+  roller_03: { m: "Roller", dur: 8, in: { "steel-ingot": 2 }, out: { "steel-rod": 2 }, mf: 6250, cost: 411, area: 8, pol: 0 },
+  roller_04: { m: "Roller", dur: 8, in: { "steel-plate": 2 }, out: { gear: 2 }, mf: 6250, cost: 411, area: 8, pol: 0 },
+  press_03: { m: "Press", dur: 4, in: { "steel-ingot": 1 }, out: { "steel-plate": 1 }, mf: 12500, cost: 409, area: 8, pol: 0 },
+  blast_furnace_02: { m: "Blast Furnace", dur: 5, in: { coal: 5, "iron-mix": 3.2 }, out: { "steel-ingot": 6 }, mf: 15000, cost: 60000, area: 64, pol: 0.216 },
+  blast_furnace_03: { m: "Blast Furnace", dur: 5, in: { coal: 1.66, "iron-powder": 1.6 }, out: { "iron-mix": 3.2 }, mf: 15000, cost: 60000, area: 64, pol: 0.216 },
+  industrial_plastic_molder_02: { m: "Industrial Plastic Molder", dur: 12, in: { "plastic-pellets": 120 }, out: { "plastic-casing": 6 }, mf: 20000, cost: 200000, area: 60, pol: 0 },
+  plastic_molding_machine_02: { m: "Plastic Molding Machine", dur: 7, in: { "plastic-pellets": 20 }, out: { "plastic-casing": 1 }, mf: 14000, cost: 100000, area: 16, pol: 0 },
+  grinder_03: { m: "Grinder", dur: 12, in: { "raw-iron": 3.2 }, out: { "iron-powder": 1.9 }, mf: 33000, cost: 10000, area: 24, pol: 0 },
+  iron_drill_01: { m: "Iron Drill", dur: 15, in: {}, out: { "raw-iron": 1 }, mf: 1200, cost: 350, area: 12, pol: 0.432 },
+  coal_drill_01: { m: "Coal Drill", dur: 4, in: {}, out: { coal: 1 }, mf: 120, cost: 50, area: 12, pol: 0.864 },
+  plastic_production_facility_01: { m: "Plastic Production Facility", dur: 6, in: { meg: 1, pta: 1 }, out: { "plastic-pellets": 80 }, mf: 80000, cost: 100000, area: 120, pol: 0.432 },
+};
+Object.assign(ITEMS, { meg: "MEG", pta: "PTA" });
+// Graphe de départ : la proposition du site pour 120 Gearbox/min (nombres de notre calcul).
+let G = { target: "n1", nodes: [
+  { id: "n1", r: "craft_assembler_06", n: 30, x: 1320, y: 260 },
+  { id: "n2", r: "craft_assembler_05", n: 30, x: 990, y: 300 },
+  { id: "n3", r: "industrial_plastic_molder_02", n: 8, x: 990, y: 60 },
+  { id: "n4", r: "roller_04", n: 32, x: 660, y: 380 },
+  { id: "n5", r: "roller_03", n: 16, x: 660, y: 160 },
+  { id: "n6", r: "press_03", n: 32, x: 330, y: 380 },
+  { id: "n7", r: "blast_furnace_02", n: 10, x: 0, y: 260 },
+], edges: [
+  { from: "n2", to: "n1", item: "crankshaft" }, { from: "n3", to: "n1", item: "plastic-casing" },
+  { from: "n4", to: "n2", item: "gear" }, { from: "n5", to: "n2", item: "steel-rod" },
+  { from: "n6", to: "n4", item: "steel-plate" }, { from: "n7", to: "n5", item: "steel-ingot" }, { from: "n7", to: "n6", item: "steel-ingot" },
+] };
+let perSec = false, sel = null, tool = null, held = null, undo = [], redo = [], uid = 100;
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const name = (i) => ITEMS[i] ?? i;
+const fmt = (v) => { const d = v >= 100 ? 0 : v >= 10 ? 1 : 2; return v.toLocaleString("fr-FR", { maximumFractionDigits: d, minimumFractionDigits: 0 }); };
+const rate = (v) => fmt(perSec ? v / 60 : v) + (perSec ? "/s" : "/min");
+const byId = (id) => G.nodes.find((n) => n.id === id);
+const R = (nd) => RECIPES[nd.r];
+const perMin = (nd, qty) => (qty / R(nd).dur) * 60 * nd.n;
+const mainOut = (nd) => Object.keys(R(nd).out)[0];
+const snap = () => { undo.push(JSON.stringify(G)); redo = []; if (undo.length > 50) undo.shift(); };
+
+// ---------------------------------------------------------------- équilibre (nombre × recette, sans solveur)
+function balance() {
+  const offer = {}, demand = {}, portState = {}, alloc = new Map();
+  // Chaque sortie se répartit entre ses consommateurs au prorata de ce qu'ils attendent d'elle.
+  for (const n of G.nodes) for (const [it, q] of Object.entries(R(n).out)) {
+    const prod = perMin(n, q);
+    const takers = G.edges.filter((e) => e.from === n.id && e.item === it);
+    const wants = takers.map((e) => { const t = byId(e.to); const feeders = G.edges.filter((x) => x.to === t.id && x.item === it).length; return perMin(t, R(t).in[it]) / feeders; });
+    const total = wants.reduce((s, w) => s + w, 0);
+    takers.forEach((e, i) => alloc.set(e, total <= prod ? wants[i] : (prod * wants[i]) / total));
+    const used = Math.min(prod, total);
+    if (n.id !== G.target && prod - used > 1e-9) offer[it] = (offer[it] ?? 0) + (prod - used);
+    portState[`${n.id}|out|${it}`] = { prod, used };
+  }
+  for (const n of G.nodes) for (const [it, q] of Object.entries(R(n).in)) {
+    const need = perMin(n, q);
+    const feeders = G.edges.filter((e) => e.to === n.id && e.item === it);
+    const got = feeders.reduce((s, e) => s + alloc.get(e), 0);
+    portState[`${n.id}|in|${it}`] = { need, got, feeders: feeders.length };
+    if (need - got > 1e-9) demand[it] = (demand[it] ?? 0) + (need - got);
+  }
+  return { offer, demand, portState, alloc };
+}
+function totals() {
+  let m = 0, mf = 0, cost = 0, area = 0, pol = 0;
+  for (const n of G.nodes) { const k = Math.ceil(n.n - 1e-9); m += k; mf += R(n).mf * n.n; cost += R(n).cost * k; area += R(n).area * k; pol += R(n).pol * k; }
+  return { m, mf, cost, area, pol };
+}
+
+// ---------------------------------------------------------------- rendu
+const nodesEl = $("#nodes"), edgesEl = $("#edges"), world = $("#world"), stage = $("#stage");
+let z = 0.72, tx = 40, ty = 70;
+function draw() {
+  world.style.transform = `translate(${tx}px,${ty}px) scale(${z})`;
+  stage.style.setProperty("--cs", 28 * z + "px"); stage.style.setProperty("--cx", tx + "px"); stage.style.setProperty("--cy", ty + "px");
+  const far = z < 0.28;
+  if (far !== stage.classList.contains("far")) { stage.classList.toggle("far", far); render(); }
+}
+function render() {
+  const B = balance();
+  nodesEl.innerHTML = G.nodes.map((n) => {
+    const r = R(n);
+    const ins = Object.entries(r.in).map(([it, q]) => { const s = B.portState[`${n.id}|in|${it}`]; const cls = !s.feeders ? "miss" : s.got < s.need - 1e-9 ? "part" : ""; const q2 = cls === "miss" ? s.need : s.need; return `<div class="row ${cls}" data-in="${it}" title="${cls === "miss" ? "Rien ne produit cet ingrédient : clic pour choisir une recette" : cls === "part" ? "Reçoit " + rate(s.got) + " sur " + rate(s.need) : "Clic : recettes qui le produisent"}"><i class="port" data-port="in" data-item="${it}"></i><span class="q">${rate(q2)}</span><span class="it">${name(it)}</span></div>`; }).join("");
+    const outs = Object.entries(r.out).map(([it, q]) => { const s = B.portState[`${n.id}|out|${it}`]; return `<div class="row" data-out="${it}" title="Clic : recettes qui le consomment"><i class="port" data-port="out" data-item="${it}"></i><span class="q">${rate(s.prod)}</span><span class="it">${name(it)}</span></div>`; }).join("");
+    return `<div class="node${sel === n.id ? " sel" : ""}${G.target === n.id ? " target" : ""}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px">
+      <div class="hd"><b>${name(mainOut(n))}</b>${n.fixed ? '<span class="lock" title="Nombre fixé"><svg class="ic"><use href="#i-lock"/></svg></span>' : ""}<span class="n"><small>×</small>${fmt(Math.ceil(n.n - 1e-9))}</span></div>
+      <div class="mach"><span>${r.m}</span><span class="num">${r.dur} s</span><span class="num">${fmt(r.mf / 1000)} kMF/s</span>${r.pol ? `<span class="num">${fmt(r.pol)} %/h</span>` : ""}</div>
+      <div class="io"><div class="col i">${ins}</div><div class="col o">${outs}</div></div></div>`;
+  }).join("");
+  // Arêtes : de la prise de sortie à la prise d'entrée, orthogonales ; étiquette = débit attendu.
+  const pos = portPos;
+  edgesEl.innerHTML = G.edges.map((e, i) => {
+    const a = pos(e.from, "out", e.item), b = pos(e.to, "in", e.item); if (!a || !b) return "";
+    const s = B.portState[`${e.to}|in|${e.item}`]; const short = s.got < s.need - 1e-9;
+    const mx = (a.x + b.x) / 2; const d = `M${a.x} ${a.y} H${mx} V${b.y} H${b.x}`;
+    const lab = rate(B.alloc.get(e)); const w = lab.length * 6.6 + 10;
+    return `<g data-edge="${i}"><path class="hit" d="${d}"/><path class="line${short ? " short" : ""}" d="${d}"/><g class="elab${short ? " short" : ""}" transform="translate(${mx - w / 2},${(a.y + b.y) / 2 - 8})"><rect width="${w}" height="16"/><text x="5" y="12">${lab}</text></g></g>`;
+  }).join("") + `<path class="tmp" id="tmp" hidden/>`;
+  // Rail gauche, chiffres, équilibre.
+  $("#steps").innerHTML = G.nodes.map((n) => `<div class="step${sel === n.id ? " on" : ""}" data-go="${n.id}"><span class="nm">${R(n).m} — ${name(mainOut(n))}</span>${Object.keys(R(n).in).some((it) => !B.portState[`${n.id}|in|${it}`].feeders) ? '<i class="w" title="Un ingrédient manque"></i>' : ""}<span class="x">×${fmt(Math.ceil(n.n - 1e-9))}</span></div>`).join("");
+  $("#l-count").textContent = G.nodes.length + " étapes";
+  const T = totals();
+  $("#kpis").innerHTML = [["i-box", "Machines", fmt(T.m)], ["i-map", "Place au sol", fmt(T.area) + " cases"], ["i-bolt", "Énergie", fmt(T.mf / 1e6) + " MMF/s"], ["i-coin", "Prix", fmt(T.cost / 1000) + " k$"], ["i-leaf", "Pollution", fmt(T.pol) + " %/h"]].map(([i, k, v]) => `<div class="kv"><svg class="ic"><use href="#${i}"/></svg><span>${k}</span><b>${v}</b></div>`).join("");
+  const miss = Object.entries(B.demand), extra = Object.entries(B.offer);
+  $("#bal-n").textContent = miss.length ? miss.length + " manque" + (miss.length > 1 ? "s" : "") : "équilibré";
+  $("#balance").innerHTML = (miss.length ? `<div class="kv"><span style="color:var(--bad)">Manques</span></div>` + miss.map(([it, v]) => `<div class="li bad"><span class="nm">${name(it)}</span><span class="q">−${rate(v)}</span><button data-make="${it}">Produire ›</button></div>`).join("") : `<div class="empty">Chaque entrée reliée reçoit ce qu'il lui faut.</div>`)
+    + (extra.length ? `<div class="kv"><span style="color:var(--ok)">Excédents</span></div>` + extra.map(([it, v]) => `<div class="li ok"><span class="nm">${name(it)}</span><span class="q">+${rate(v)}</span></div>`).join("") : "");
+  const t = byId(G.target);
+  $("#g-rate").textContent = t ? fmt(perSec ? perMin(t, R(t).out[mainOut(t)]) / 60 : perMin(t, R(t).out[mainOut(t)])) : "—";
+  $("#g-unit").textContent = (perSec ? "par seconde" : "par minute") + " de"; $("#g-item").textContent = t ? name(mainOut(t)) : "—";
+  $("#g-from").textContent = t ? "(d'après le nœud cible)" : "(aucune cible : Maj + clic sur un nœud)";
+  $("#t-unit").lastChild.textContent = perSec ? "/s" : "/min";
+  $("#t-undo").disabled = !undo.length; $("#t-redo").disabled = !redo.length;
+  placeBubble();
+}
+function commit() { render(); }
+
+// ---------------------------------------------------------------- déplacement, zoom
+stage.addEventListener("wheel", (e) => {
+  if (e.target.closest(".bubble")) return;
+  e.preventDefault(); const r = stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const k = Math.exp(-e.deltaY * 0.0015), nz = Math.max(0.2, Math.min(3, z * k)); tx = mx - (mx - tx) * nz / z; ty = my - (my - ty) * nz / z; z = nz; draw();
+}, { passive: false });
+const zoomBy = (k) => { const r = stage.getBoundingClientRect(), mx = r.width / 2, my = r.height / 2; const nz = Math.max(0.2, Math.min(3, z * k)); tx = mx - (mx - tx) * nz / z; ty = my - (my - ty) * nz / z; z = nz; draw(); };
+function fit() { const r = stage.getBoundingClientRect(); const xs = G.nodes.map((n) => n.x), ys = G.nodes.map((n) => n.y); const w = Math.max(...xs) + 280 - Math.min(...xs), h = Math.max(...ys) + 200 - Math.min(...ys); z = Math.min(2, (r.width - 90) / w, (r.height - 110) / h); tx = (r.width - 60 - w * z) / 2 - Math.min(...xs) * z; ty = (r.height - h * z) / 2 - Math.min(...ys) * z + 10; draw(); }
+$("#z-in").onclick = () => zoomBy(1.25); $("#z-out").onclick = () => zoomBy(0.8); $("#z-fit").onclick = fit;
+
+let drag = null, link = null, moved = false, tap = null, press = null;
+const SLOP = 4;
+stage.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0 || e.target.closest(".bubble, .tools, .tray, .tabs, .modehint")) return;
+  moved = false;
+  const port = e.target.closest(".port");
+  const node = e.target.closest(".node");
+  if (port) press = port.dataset.port === "out" ? { kind: "link", from: node.dataset.id, item: port.dataset.item, el: port } : null;
+  else if (node && !e.target.closest(".row")) { const nd = byId(node.dataset.id); press = { kind: "node", nd, el: node, x: nd.x, y: nd.y }; }
+  else if (!node) press = { kind: "pan", tx, ty };
+  else press = null;
+  if (press) Object.assign(press, { sx: e.clientX, sy: e.clientY, id: e.pointerId });
+});
+stage.addEventListener("pointermove", (e) => {
+  if (press && !moved && Math.hypot(e.clientX - press.sx, e.clientY - press.sy) > SLOP) {
+    moved = true; stage.setPointerCapture(press.id);
+    if (press.kind === "link") { link = press; press.el.classList.add("arm"); }
+    else if (press.kind === "node") { snap(); drag = press; press.el.style.cursor = "grabbing"; }
+    else drag = press;
+  }
+  if (drag && drag.kind === "pan") { tx = drag.tx + e.clientX - drag.sx; ty = drag.ty + e.clientY - drag.sy; draw(); }
+  if (drag && drag.kind === "node") { drag.nd.x = drag.x + (e.clientX - drag.sx) / z; drag.nd.y = drag.y + (e.clientY - drag.sy) / z; render(); }
+  if (link) {
+    const p = $("#tmp"); const a = portPos(link.from, "out", link.item); const r = stage.getBoundingClientRect();
+    const bx = (e.clientX - r.left - tx) / z, by = (e.clientY - r.top - ty) / z;
+    p.hidden = false; p.setAttribute("d", `M${a.x} ${a.y} H${(a.x + bx) / 2} V${by} H${bx}`);
+    const over = nearInPort(e.clientX, e.clientY);
+    $$(".port.ok, .port.no").forEach((x) => x.classList.remove("ok", "no"));
+    if (over) over.classList.add(over.dataset.item === link.item ? "ok" : "no");
+  }
+});
+// Prises aimantées : la prise d'entrée la plus proche du pointeur, à 22 px près (écran), même si on ne la touche pas pile.
+function nearInPort(x, y) {
+  let best = null, bd = 22;
+  for (const p of $$(".port[data-port=in]")) { const r = p.getBoundingClientRect(); const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)); if (d < bd) { bd = d; best = p; } }
+  return best ?? document.elementFromPoint(x, y)?.closest(".port[data-port=in]");
+}
+const endPress = (e) => {
+  $$(".port.ok").forEach((x) => x.classList.remove("ok"));
+  if (link) {
+    const over = nearInPort(e.clientX, e.clientY);
+    if (over) {
+      const to = over.closest(".node").dataset.id;
+      if (over.dataset.item === link.item && to !== link.from && !G.edges.some((x) => x.from === link.from && x.to === to && x.item === link.item)) { snap(); G.edges.push({ from: link.from, to, item: link.item }); }
+      else { over.classList.add("no"); setTimeout(() => over.classList.remove("no"), 400); }
+    }
+    $("#tmp").hidden = true; link = null; render();
+  }
+  if (drag && drag.kind === "node") drag.el.style.cursor = "";
+  if (moved && stage.hasPointerCapture?.(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+  drag = null; press = null;
+};
+stage.addEventListener("pointerup", endPress);
+stage.addEventListener("pointercancel", endPress);
+// Centre d'une prise dans le monde : la ligne est placée par rapport au nœud, la prise par rapport à la ligne.
+function portPos(id, dir, it) { const el = $(`.node[data-id="${id}"] .port[data-port="${dir}"][data-item="${it}"]`); if (!el) return null; const nd = byId(id); const row = el.parentElement;
+  // Vue allégée (dézoom) : les lignes sont cachées, la liaison part du milieu du bord du nœud.
+  if (!el.offsetParent) { const box = el.closest(".node"); return { x: nd.x + (dir === "out" ? box.offsetWidth : 0), y: nd.y + box.offsetHeight / 2 }; }
+  return { x: nd.x + row.offsetLeft + el.offsetLeft + el.offsetWidth / 2, y: nd.y + row.offsetTop + el.offsetTop + el.offsetHeight / 2 }; }
+
+// ---------------------------------------------------------------- clics : sélection, modes, lignes, arêtes
+// Le mode du clic : la touche tenue pendant le clic (Alt, Maj, Ctrl), sinon l'outil choisi dans la barre.
+const mode = (e) => (e?.altKey ? "del" : e?.shiftKey ? "target" : e?.ctrlKey || e?.metaKey ? "multi" : null) || held || tool;
+stage.addEventListener("click", (e) => {
+  if (moved || e.target.closest(".bubble, .tools, .tray, .tabs")) return;
+  const edge = e.target.closest("[data-edge]");
+  if (edge) { if (mode(e) === "del") { snap(); G.edges.splice(+edge.dataset.edge, 1); render(); } else { $$(".edges .sel").forEach((x) => x.classList.remove("sel")); edge.querySelector(".line").classList.add("sel"); } return; }
+  const node = e.target.closest(".node"); if (!node) { sel = null; render(); return; }
+  const id = node.dataset.id, m = mode(e);
+  if (m === "del") { snap(); removeNode(id); return; }
+  if (m === "target") { snap(); G.target = G.target === id ? null : id; render(); return; }
+  // Au doigt (ou sans glisser) : un appui sur une prise de sortie, puis un appui sur une prise d'entrée.
+  const port = e.target.closest(".port");
+  if (port) {
+    if (port.dataset.port === "out") { $$(".port.arm").forEach((x) => x.classList.remove("arm")); tap = tap && tap.from === id && tap.item === port.dataset.item ? null : { from: id, item: port.dataset.item }; if (tap) port.classList.add("arm"); }
+    else if (tap) { if (port.dataset.item === tap.item && tap.from !== id && !G.edges.some((x) => x.from === tap.from && x.to === id && x.item === tap.item)) { snap(); G.edges.push({ from: tap.from, to: id, item: tap.item }); tap = null; render(); } else { port.classList.add("no"); setTimeout(() => port.classList.remove("no"), 400); } }
+    return;
+  }
+  const row = e.target.closest(".row");
+  if (row && row.dataset.in) return openSelector(row.dataset.in, "in", id);
+  if (row && row.dataset.out) return openSelector(row.dataset.out, "out", id);
+  sel = id; render();
+});
+function removeNode(id) { G.nodes = G.nodes.filter((n) => n.id !== id); G.edges = G.edges.filter((e) => e.from !== id && e.to !== id); if (G.target === id) G.target = null; if (sel === id) sel = null; render(); }
+$("#steps").addEventListener("click", (e) => { const s = e.target.closest("[data-go]"); if (!s) return; sel = s.dataset.go; const nd = byId(sel); const r = stage.getBoundingClientRect(); tx = r.width / 2 - (nd.x + 128) * z; ty = r.height / 2 - (nd.y + 80) * z; draw(); render(); });
+$("#balance").addEventListener("click", (e) => { const b = e.target.closest("[data-make]"); if (b) openSelector(b.dataset.make, "in", null); });
+// Modes temporaires (Alt, Maj, Ctrl) et outils collants de la barre.
+// Rappel du mode : d'où il vient (touche tenue ou outil de la barre) et ce que fait le clic ; Échap sort de l'outil.
+const KEY = { del: "Alt enfoncée", target: "Maj enfoncée", multi: "Ctrl enfoncée" };
+const TOOL = { del: "Outil Supprimer", target: "Outil Cible", multi: "Outil Sélection", link: "Outil Relier" };
+const DOES = { del: "clic = supprimer un nœud ou une liaison", target: "clic = marquer la cible", multi: "clic = ajouter à la sélection", link: "tire une prise mauve vers une prise cyan" };
+const HINT = new Proxy({}, { get: (_, m) => (DOES[m] ? `${held ? KEY[m] : TOOL[m]} : ${DOES[m]}${held ? "" : " · Échap pour sortir"}` : undefined) });
+addEventListener("keydown", (e) => {
+  if (e.target.matches("input, select")) return;
+  if (e.key === "Alt") { held = "del"; e.preventDefault(); } if (e.key === "Shift") held = "target"; if (e.key === "Control") held = "multi";
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); doUndo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); doRedo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openSelector(null, "in", null); }
+  if (e.key === "Delete" && sel) { snap(); removeNode(sel); }
+  if (e.key === "Escape") { closeDlg(); $("#b-x").click(); tool = null; $$("[data-tool]").forEach((b) => b.classList.remove("on")); }
+  if (e.key === "0" && !e.ctrlKey) fit(); if (e.key === "+" || e.key === "=") zoomBy(1.25); if (e.key === "-") zoomBy(0.8);
+  showHint();
+});
+addEventListener("keyup", (e) => { if (["Alt", "Shift", "Control"].includes(e.key)) held = null; showHint(); });
+addEventListener("blur", () => { held = null; showHint(); });
+function showHint() { const m = mode(); $("#modehint").hidden = !m || !HINT[m]; $("#modehint").textContent = HINT[m] ?? ""; }
+$("#tray").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-tool]"); if (!b) return;
+  if (b.dataset.tool === "add") return openSelector(null, "in", null);
+  tool = tool === b.dataset.tool ? null : b.dataset.tool; $$("[data-tool]").forEach((x) => x.classList.toggle("on", x.dataset.tool === tool)); showHint();
+});
+$("#t-unit").onclick = () => { perSec = !perSec; render(); };
+function doUndo() { if (!undo.length) return; redo.push(JSON.stringify(G)); G = JSON.parse(undo.pop()); render(); }
+function doRedo() { if (!redo.length) return; undo.push(JSON.stringify(G)); G = JSON.parse(redo.pop()); render(); }
+$("#t-undo").onclick = doUndo; $("#t-redo").onclick = doRedo;
+// Ranger : colonnes selon la distance à la cible (flow-layout.ts fera mieux : ici, l'idée).
+$("#t-layout").onclick = () => { snap(); const depth = {}; const q = []; if (G.target) { depth[G.target] = 0; q.push(G.target); } for (const n of G.nodes) if (!(n.id in depth) && !G.edges.some((e) => e.from === n.id)) { depth[n.id] = 0; q.push(n.id); } while (q.length) { const id = q.shift(); for (const e of G.edges) if (e.to === id && !(e.from in depth)) { depth[e.from] = depth[id] + 1; q.push(e.from); } } for (const n of G.nodes) if (!(n.id in depth)) depth[n.id] = 0; const max = Math.max(...Object.values(depth)); const cols = {}; for (const n of G.nodes) (cols[depth[n.id]] ??= []).push(n); for (const [d, list] of Object.entries(cols)) list.forEach((n, i) => { n.x = (max - d) * 330; n.y = i * 230 - ((list.length - 1) * 230) / 2 + 300; }); render(); fit(); };
+
+// ---------------------------------------------------------------- bulle du nœud
+const bubble = $("#bubble");
+function placeBubble() { const nd = sel && byId(sel); if (!nd) { bubble.hidden = true; return; } const el = $(`.node[data-id="${sel}"]`); bubble.hidden = false; bubble.style.left = nd.x + "px"; bubble.style.top = nd.y + el.offsetHeight + 12 + "px"; $("#b-name").textContent = `${R(nd).m} — ${name(mainOut(nd))}`; if (document.activeElement !== $("#b-n")) $("#b-n").value = fmt(Math.ceil(nd.n - 1e-9)); $("#b-exact").textContent = fmt(nd.n) + (Number.isInteger(nd.n) ? "" : " (" + fmt((nd.n / Math.ceil(nd.n)) * 100) + " % d'utilisation)"); $("#b-fix").classList.toggle("on", !!nd.fixed); const alts = Object.entries(RECIPES).filter(([, r]) => mainOut(nd) in r.out); $("#b-recipe").innerHTML = alts.map(([id, r]) => `<option value="${id}"${id === nd.r ? " selected" : ""}>${r.m} · ${r.dur} s</option>`).join(""); $("#b-target").classList.toggle("p", G.target === sel); }
+const setN = (v) => { const nd = byId(sel); if (!nd || !(v > 0)) return; snap(); nd.n = v; render(); };
+$("#b-less").onclick = () => setN(Math.ceil(byId(sel).n - 1e-9) - 1); $("#b-more").onclick = () => setN(Math.ceil(byId(sel).n - 1e-9) + 1);
+$("#b-n").addEventListener("change", (e) => setN(parseFloat(e.target.value.replace(",", "."))));
+$("#b-n").addEventListener("wheel", (e) => { e.preventDefault(); setN(Math.max(1, Math.ceil(byId(sel).n - 1e-9) + (e.deltaY < 0 ? 1 : -1))); });
+$("#b-fix").onclick = () => { snap(); const nd = byId(sel); nd.fixed = !nd.fixed; render(); };
+$("#b-recipe").onchange = (e) => { snap(); const nd = byId(sel); nd.r = e.target.value; G.edges = G.edges.filter((x) => !((x.to === nd.id && !(x.item in R(nd).in)) || (x.from === nd.id && !(x.item in R(nd).out)))); render(); };
+$("#b-target").onclick = () => { snap(); G.target = G.target === sel ? null : sel; render(); };
+$("#b-del").onclick = () => { snap(); removeNode(sel); };
+$("#b-x").onclick = () => { sel = null; render(); };
+$("#b-scale").onclick = () => { const nd = byId(sel); const v = parseFloat(prompt("Nouveau nombre de machines pour ce nœud (la chaîne en amont suit le même rapport) :", fmt(nd.n))?.replace(",", ".")); if (!(v > 0)) return; snap(); const k = v / nd.n; const seen = new Set(); const walk = (id) => { if (seen.has(id)) return; seen.add(id); byId(id).n *= k; for (const e of G.edges) if (e.to === id) walk(e.from); }; walk(sel); render(); };
+
+// ---------------------------------------------------------------- sélecteur de recettes (palette S61 étendue)
+function openSelector(item, dir, forNode) {
+  closeDlg();
+  const list = (f) => Object.entries(RECIPES).filter(([, r]) => !item || (f === "in" ? item in r.out : item in r.in));
+  const title = !item ? "Ajouter une recette" : dir === "in" ? `Produire ${name(item)}` : `Consommer ${name(item)}`;
+  const card = ([id, r]) => `<div class="rc" data-add="${id}"><div class="side">${Object.entries(r.in).map(([i, q]) => `<span class="tag"><span class="num">${fmt(q)}</span>${name(i)}</span>`).join("") || '<span style="color:var(--muted);font-size:11px">extraction</span>'}</div><div class="mid"><b>${r.m}</b>${r.dur} s · ${fmt(r.mf / 1000)} kMF/s</div><div class="side o">${Object.entries(r.out).map(([i, q]) => `<span class="tag"><span class="num">${fmt(q)}</span>${name(i)}</span>`).join("")}</div></div>`;
+  const v = document.createElement("div"); v.className = "veil"; v.id = "dlg";
+  v.innerHTML = `<div class="dlg"><header><span>${title}</span><span class="sp"></span><button data-close title="Fermer (Échap)"><svg class="ic"><use href="#i-x"/></svg></button></header>
+    <div class="search"><input placeholder="Chercher un objet, une recette, une machine…" autofocus><span class="seg"><button class="${dir === "in" ? "on" : ""}">Produire</button><button class="${dir === "out" ? "on" : ""}">Consommer</button><button>Énergie</button></span></div>
+    <div class="bd">${list(dir).map(card).join("") || '<div class="empty">Aucune recette connue dans la maquette (les 12 recettes de la chaîne Gearbox seulement).</div>'}</div></div>`;
+  document.body.append(v);
+  v.addEventListener("click", (e) => {
+    if (e.target === v || e.target.closest("[data-close]")) return closeDlg();
+    const c = e.target.closest("[data-add]"); if (!c) return;
+    snap(); const id = "n" + uid++; const anchor = forNode ? byId(forNode) : null;
+    const nd = { id, r: c.dataset.add, n: 1, x: anchor ? anchor.x + (dir === "in" ? -330 : 330) : 300, y: anchor ? anchor.y : 300 };
+    if (anchor && item) { const need = dir === "in" ? perMin(anchor, R(anchor).in[item]) : perMin(anchor, R(anchor).out[item]); const r = RECIPES[nd.r]; nd.n = need / ((dir === "in" ? r.out[item] : r.in[item]) / r.dur * 60); }
+    freeSpot(nd); G.nodes.push(nd); if (anchor && item) G.edges.push(dir === "in" ? { from: id, to: anchor.id, item } : { from: anchor.id, to: id, item });
+    sel = id; closeDlg(); render();
+  });
+}
+function closeDlg() { $("#dlg")?.remove(); }
+// Un nœud ajouté ne se pose jamais sur un autre : on cherche la place libre la plus proche, en haut ou en bas.
+function freeSpot(nd) {
+  const H = (n) => $(`.node[data-id="${n.id}"]`)?.offsetHeight ?? 190, W = 256, GAP = 24, h = 190;
+  const hits = (y) => G.nodes.some((o) => o.x < nd.x + W + GAP && nd.x < o.x + W + GAP && o.y < y + h + GAP && y < o.y + H(o) + GAP);
+  for (let k = 0; k < 60; k++) { for (const y of [nd.y + k * 30, nd.y - k * 30]) if (!hits(y)) { nd.y = y; return; } }
+}
+
+// ---------------------------------------------------------------- recalculer : aperçu avant / après
+$("#t-calc").onclick = () => {
+  closeDlg(); const t = byId(G.target); if (!t) return alert("Marque d'abord un nœud cible (Maj + clic).");
+  // Mini-solveur de maquette : la demande descend de la cible le long des arêtes ; les nœuds fixés gardent leur nombre.
+  const want = {}; const prop = {}; const order = []; const seen = new Set();
+  const visit = (id) => { if (seen.has(id)) return; seen.add(id); for (const e of G.edges) if (e.from === id) visit(e.to); order.push(id); };
+  for (const n of G.nodes) visit(n.id); // ordre : la cible et l'aval d'abord, l'amont ensuite
+  const tr = perMin(t, R(t).out[mainOut(t)]); want[`${t.id}|${mainOut(t)}`] = tr;
+  for (const id of order) { const n = byId(id); const r = R(n); const outs = Object.keys(r.out); let need = 0; for (const it of outs) { const takers = G.edges.filter((e) => e.from === id && e.item === it); const d = takers.reduce((s, e) => s + (want[`${e.to}|${it}|${id}`] ?? 0), 0) + (id === t.id ? tr : 0); need = Math.max(need, d / ((r.out[it] / r.dur) * 60)); } const m = n.fixed ? n.n : need; prop[id] = m; for (const [it, q] of Object.entries(r.in)) { const feeders = G.edges.filter((e) => e.to === id && e.item === it); for (const e of feeders) want[`${id}|${it}|${e.from}`] = ((q / r.dur) * 60 * m) / feeders.length; } }
+  const v = document.createElement("div"); v.className = "veil"; v.id = "dlg";
+  const rows = G.nodes.map((n) => { const a = Math.ceil(n.n - 1e-9), b = Math.max(0, Math.ceil(prop[n.id] - 1e-9)); const cls = b > a ? "up" : b < a ? "down" : ""; return `<tr><td>${R(n).m} — ${name(mainOut(n))}${n.fixed ? ' <span style="color:var(--warn)">fixé</span>' : ""}</td><td class="num">${fmt(a)}</td><td class="num ${cls}">${fmt(b)}</td><td class="num ${cls}">${b === a ? "" : (b > a ? "+" : "") + fmt(b - a)}</td></tr>`; }).join("");
+  v.innerHTML = `<div class="dlg"><header><span>Recalculer</span><span class="sp"></span><button data-close><svg class="ic"><use href="#i-x"/></svg></button></header>
+    <div class="bd"><p style="color:var(--muted);margin:0 0 8px">Objectif : <b style="color:var(--ink)">${rate(tr)} ${name(mainOut(t))}</b>, avec les recettes de ce graphe (imposées) et les nombres fixés. Dans le site, c'est le solveur qui calcule, priorités comprises ; ici, la demande descend simplement de la cible.</p>
+    <table><thead><tr><th>Nœud</th><th class="num">Avant</th><th class="num">Après</th><th class="num">Écart</th></tr></thead><tbody>${rows}</tbody></table>
+    <p style="color:var(--muted);margin:8px 0 0;font-size:11px">Les ingrédients sans producteur restent des manques : « Produire › » dans Équilibre, ou l'option « compléter la chaîne » (G4).</p></div>
+    <div class="ft"><button data-close>Annuler</button><button class="p" id="apply">Appliquer</button></div></div>`;
+  document.body.append(v);
+  v.addEventListener("click", (e) => { if (e.target === v || e.target.closest("[data-close]")) return closeDlg(); if (e.target.closest("#apply")) { snap(); for (const n of G.nodes) n.n = prop[n.id]; closeDlg(); render(); } });
+};
+$("#note-x").onclick = () => ($("#note").hidden = true);
+document.querySelectorAll(".seg").forEach((g) => g.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; g.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); }));
+render(); draw(); requestAnimationFrame(fit);
+</script>
+</body>
+</html>

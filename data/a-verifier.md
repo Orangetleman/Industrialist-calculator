@@ -979,3 +979,71 @@ n'est pas repris : une recette ajoutée doit avoir une sortie, ce que le moteur 
   large comme les autres ports fluide des grands bâtiments ?
   **Répondu le 2026-11-02** : (a) 7 500 $ et 1 × 1 sont justes : le bac à sable prend désormais le prix et la taille de
   machines.json pour les pièces reliées. (b) Non, les ports de la Pipe Valve font bien 1 case.
+
+## MET — Page « Méthodes de calcul » (remarque n° 16, 2026-11-16)
+
+- **MET-01** Le joueur de la remarque n° 16 voit environ 400 Trommel pour du Purple Gold. Avec toutes les
+  recherches débloquées, pollution 0 % et 60 Purple Gold Ingot/min, le site en pose de 13 à 88 selon la priorité
+  (88 avec « La chaîne la plus courte »). Sa progression, son débit et sa priorité ne sont pas connus : à demander
+  pour reproduire son plan et dire si c'est un manque de recherches, un débit plus élevé ou un défaut de l'arrondi
+  en machines entières (le site ne garantit pas le minimum en machines entières, voir la page).
+- **MET-02** Limites écrites sur la page, tirées du code (optimize.ts) : un prix, une pollution ou une consommation
+  inconnus comptent pour zéro dans l'optimisation ; « le moins de matières premières » additionne toutes les
+  matières sans distinction d'unité. À décider : faut-il pénaliser les valeurs inconnues comme la taille (10 000
+  cases) ou pondérer les matières premières ?
+
+### Mineshaft Drill (remarque joueur n°16, 2026-11-16)
+
+Modélisé dans `data/mineshaft.json` et `src/engine/mineshaft.ts` : une recette par profondeur = le cycle d'une
+tête (extraction jusqu'à 0 % de durabilité, aller-retour du puits, changement de tête). Source principale : page
+Mineshaft Drill de Miraheze (révision 44241) et ses tableaux `Template:Mineshaft-Drill-Table/*`. Ce qui vient
+d'Industrialist Calculator (`special_recipes/mineshaft_drill.ts`, Pollywrath, MIT) est marqué « source :
+Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md` § 6.
+
+- **MSD-01** **Resource Modifier** : le wiki écrit « perte = 0,5 × tête × acide × Resource Modifier × Speed
+  Modifier » sans donner le Resource Modifier. Compté 1 (comme Industrialist Calculator). Dépend-il de l'objet
+  extrait ou de la profondeur ? À relever en jeu (durée de vie d'une tête à une profondeur connue).
+- **MSD-02** **Trajet à chaque changement de tête** : compté aller-retour (2 × profondeur ÷ 50 m/s, ÷ 100 avec
+  Machine Oil), source : Industrialist Calculator. Le wiki donne la vitesse (50 m/s) mais ne dit pas si la tête
+  remonte à chaque changement. À 8 000 m : 320 s par tête, soit 20 % du cycle.
+- **MSD-03** **Durée d'un changement de tête** : 12 s, source : Industrialist Calculator ; absente du wiki.
+- **MSD-04** **Énergie** : le wiki dit 0,1 MMF/s en permanence + 3 MMF/s en forage (3,1 MMF/s), seulement le
+  passif au changement de tête. Industrialist Calculator compte 2 MMF/s en extraction, 0,5 en trajet, 0,1 au
+  changement (contradiction sur l'extraction). Retenu : 3,1 MMF/s en extraction (wiki) **et en trajet** (borne
+  haute, faute de source), 0,1 au changement. Le courant doit être HV : le calcul le compte comme de l'énergie
+  ordinaire (HV Transformer non compté).
+- **MSD-05** **Acide** : 10 L/s Water, 3 L/s Acetic, 1,5 L/s Hydrochloric, 1 L/s Sulfuric (wiki). Compté
+  seulement pendant l'extraction (source : Industrialist Calculator) ; le wiki ne dit pas s'il coule pendant le
+  trajet et le changement.
+- **MSD-06** **Dynamite et premier puits** : la dynamite ne sert qu'à creuser le puits plus vite (24 m / 5 s,
+  wiki) ; le premier forage (1 m/s, 2 m/s avec huile) n'est pas compté : le calcul est en régime établi. Durée
+  de vie d'une tête : 100 % ÷ perte, sans arrondi (Industrialist Calculator arrondit à la seconde au-dessus).
+- **MSD-07** **Écarts de rendement wiki / Industrialist Calculator** : 2 000 m Raw Lead 9,3 / 9,27 ; 4 000 m
+  Table Salt 58,84 / 58,54 ; 7 000 m Rock absent du wiki / 11,65 chez eux ; 7 800 m Medium Earth Fragment 6,67 /
+  7,67 ; 8 200 à 9 000 m : le wiki arrondit à 0,1 (ex. 8 400 m Raw Uranium 0,2 / 0,15) ; 100 m : seulement chez
+  eux (identique à 300 m). Valeurs du wiki retenues. À relever en jeu : 7 000 m et 7 800 m.
+
+### Export vers Industrialist Calculator (lot G1 de l'éditeur de graphe, 2026-11-20)
+
+- **GRA-01** **Rang des prises** : leurs arêtes désignent une prise par son rang (`sourceIndex`,
+  `targetIndex`) dans la liste des sorties / entrées de leur recette. L'export prend le rang dans nos listes
+  (`data/recipes.json`). Vérifié seulement sur leur graphe tutoriel « Gearbox » : 21 arêtes sur 21 entre recettes
+  connues tombent juste ainsi (les 9 autres touchent des recettes sans équivalent). Les autres recettes ne sont
+  pas contrôlées.
+- **GRA-02** **Fichier exporté non encore ouvert chez eux** : l'export (`src/engine/graph/pollywrath-export.ts`)
+  est relu par notre import, pas encore par leur site. `globalSettings` ne porte que `global_pollution` (leur
+  `difficulty`, leurs recherches débloquées, etc. ne sont pas écrits, faute de correspondance sûre). À essayer
+  dans leur panneau « Saves » au lot G5. **G5 (2026-11-23)** : l'export est maintenant dans l'éditeur (bouton
+  Fichier). **Ouvert dans leur site le 2026-11-23** (à la demande de l'utilisateur) : panneau Saves, import du
+  `Gearbox_save.json` (Gearbox 120/min, 18 nœuds, 19 liaisons ; Steam Cracking Plant et Tree laissés de côté) →
+  « Gearbox (Imported), Nodes: 18 », chargé sans erreur (nombres de machines décimaux acceptés). Leur bilan :
+  Gearbox +2/s (= 120/min), manques seulement Ethylene 1,33/s et Paraxylene 0,5/s (ce que faisait la recette
+  laissée de côté ; notre aperçu disait 80/min et 30/min), excédents Crude Oil 0,889/s et Water 2,22/s (notre
+  équilibre : 53,3/min et 133/min), Coal 0,37/s. Aucun autre manque : les 19 liaisons tombent sur les bonnes
+  prises (confirme GRA-01 pour ces recettes). Reste ouvert : l'excédent de Coal (non comparé chez nous), les
+  champs de `globalSettings` autres que la pollution. **Groupes (2026-11-24)** : format relevé dans leur dépôt
+  (commit 1c9ff48, `src/types/saves.ts`, `src/persistence/saveMigrations.ts`), lus et écrits ; un export avec un
+  groupe replié chargé dans leur site (groupe replié, 3 membres cachés, même prise mandataire) et leur sauvegarde
+  relue par notre import. **Groupe déplié essayé chez eux le 2026-11-24** : export Gearbox (19 nœuds, « Group 1 »
+  déplié, 2 membres, 2 prises mandataires de chaque côté) accepté et chargé ; groupe resté déplié, membres visibles
+  à leur place, cadre recalculé par leur site (1862, −26 au lieu de 1880, 16) ; même bilan qu'au premier essai.

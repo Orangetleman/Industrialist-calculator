@@ -1,0 +1,1928 @@
+{
+ "réglages-seuls": {
+  "site": "0.1.0",
+  "settings": {
+   "goal": "énergie",
+   "entered": [
+    "énergie"
+   ],
+   "item": "crankshaft",
+   "mode": "rate",
+   "rateUnit": "s",
+   "rate": 60,
+   "machines": 15,
+   "criteria": {
+    "objet": [
+     "area",
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "raw",
+     "steps"
+    ],
+    "argent": [
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "area",
+     "raw"
+    ],
+    "énergie": [
+     "machines",
+     "cost",
+     "raw",
+     "pollution",
+     "area"
+    ],
+    "recherche": [
+     "machines",
+     "energy",
+     "cost"
+    ]
+   },
+   "useUnverified": false,
+   "forced": {},
+   "fixed": null,
+   "machineFilters": {},
+   "machineSettings": {},
+   "dieselChoice": {},
+   "mineshaftChoice": {},
+   "imports": {},
+   "evacSides": {},
+   "money": 10000,
+   "selfPowered": true,
+   "maxPollution": null,
+   "useBudget": false,
+   "existing": {},
+   "useExisting": true,
+   "resultTab": "pose",
+   "energyUnit": "k",
+   "energyMFps": 2500000,
+   "energyGuaranteed": false,
+   "energyNoFuel": false,
+   "distanceTiles": null,
+   "tier3Only": false,
+   "posePriority": [
+    "place",
+    "forme",
+    "prix",
+    "pieces"
+   ],
+   "usine": {
+    "full": false,
+    "glue": false,
+    "detail": false,
+    "power": true,
+    "plugs": false,
+    "links": false
+   },
+   "rpMode": "node",
+   "rpRate": null,
+   "rpNode": null,
+   "rpMinutes": 60,
+   "rpCap": null,
+   "rpSatellites": true,
+   "rpLogic": false,
+   "rpCurrent": true
+  }
+ },
+ "graphe-gearbox": {
+  "site": "0.1.0",
+  "name": "Gearbox 120/min",
+  "settings": {
+   "goal": "objet",
+   "entered": [
+    "objet"
+   ],
+   "item": "gearbox",
+   "mode": "rate",
+   "rateUnit": "min",
+   "rate": 120,
+   "machines": 15,
+   "criteria": {
+    "objet": [
+     "area",
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "raw",
+     "steps"
+    ],
+    "argent": [
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "area",
+     "raw"
+    ],
+    "énergie": [
+     "machines",
+     "cost",
+     "raw",
+     "pollution",
+     "area"
+    ],
+    "recherche": [
+     "machines",
+     "energy",
+     "cost"
+    ]
+   },
+   "useUnverified": false,
+   "forced": {},
+   "fixed": null,
+   "machineFilters": {},
+   "machineSettings": {},
+   "dieselChoice": {},
+   "mineshaftChoice": {},
+   "imports": {},
+   "evacSides": {},
+   "money": 10000,
+   "selfPowered": false,
+   "maxPollution": null,
+   "useBudget": false,
+   "existing": {},
+   "useExisting": true,
+   "resultTab": "pose",
+   "energyUnit": "k",
+   "energyMFps": 1000000,
+   "energyGuaranteed": false,
+   "energyNoFuel": false,
+   "distanceTiles": null,
+   "tier3Only": false,
+   "posePriority": [
+    "place",
+    "forme",
+    "prix",
+    "pieces"
+   ],
+   "usine": {
+    "full": false,
+    "glue": false,
+    "detail": false,
+    "power": true,
+    "plugs": false,
+    "links": false
+   },
+   "rpMode": "node",
+   "rpRate": null,
+   "rpNode": null,
+   "rpMinutes": 60,
+   "rpCap": null,
+   "rpSatellites": true,
+   "rpLogic": false,
+   "rpCurrent": true
+  },
+  "graph": {
+   "sig": "objet|gearbox|rate|120",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n1",
+      "recipeId": "advanced_assembler_07",
+      "machines": 20,
+      "x": 5157.5,
+      "y": -12
+     },
+     {
+      "id": "n2",
+      "recipeId": "press_mk2_05",
+      "machines": 2.25,
+      "x": 4800,
+      "y": 0,
+      "fixed": true,
+      "group": "g1"
+     },
+     {
+      "id": "n3",
+      "recipeId": "industrial_plastic_molder_02",
+      "machines": 8.000000000000002,
+      "x": 4800,
+      "y": 200,
+      "group": "g1"
+     },
+     {
+      "id": "n4",
+      "recipeId": "lathe_05",
+      "machines": 1.9999999999999993,
+      "x": 4800,
+      "y": 400
+     },
+     {
+      "id": "n5",
+      "recipeId": "plastic_production_facility_01",
+      "machines": 6,
+      "x": 4480,
+      "y": 0
+     },
+     {
+      "id": "n6",
+      "recipeId": "roller_mk2_03",
+      "machines": 1.5999999999999992,
+      "x": 4480,
+      "y": 200
+     },
+     {
+      "id": "n7",
+      "recipeId": "press_mk2_02",
+      "machines": 3.1999999999999984,
+      "x": 4480,
+      "y": 400
+     },
+     {
+      "id": "n8",
+      "recipeId": "oxidation_plant_06",
+      "machines": 0.2777777777777779,
+      "x": 4160,
+      "y": 0
+     },
+     {
+      "id": "n9",
+      "recipeId": "plastic_refinery_02",
+      "machines": 2.0000000000000004,
+      "x": 4160,
+      "y": 200
+     },
+     {
+      "id": "n10",
+      "recipeId": "blast_furnace_MK2_04",
+      "machines": 0.8000000000000006,
+      "x": 4160,
+      "y": 400
+     },
+     {
+      "id": "n11",
+      "recipeId": "oxidation_plant_05",
+      "machines": 0.16666666666666666,
+      "x": 3840,
+      "y": 0
+     },
+     {
+      "id": "n12",
+      "recipeId": "steam_cracking_plant_01",
+      "machines": 1.3333333333333333,
+      "x": 3840,
+      "y": 200
+     },
+     {
+      "id": "n13",
+      "recipeId": "foundry_05",
+      "machines": 0.606666666666667,
+      "x": 3840,
+      "y": 400
+     },
+     {
+      "id": "n14",
+      "recipeId": "industrial_oil_separator_03",
+      "machines": 0.054464422929152816,
+      "x": 3520,
+      "y": 0
+     },
+     {
+      "id": "n15",
+      "recipeId": "atmospheric_distillation_plant_01",
+      "machines": 0.22484094052558798,
+      "x": 3520,
+      "y": 200
+     },
+     {
+      "id": "n16",
+      "recipeId": "ore_enrichment_facility_08",
+      "machines": 0.2666666666666667,
+      "x": 3520,
+      "y": 400
+     },
+     {
+      "id": "n17",
+      "recipeId": "oil_fracking_tower_01",
+      "machines": 0.6197977562624857,
+      "x": 3200,
+      "y": 0
+     },
+     {
+      "id": "n18",
+      "recipeId": "iron_drill_01",
+      "machines": 13.333333333333327,
+      "x": 3200,
+      "y": 200
+     },
+     {
+      "id": "n19",
+      "recipeId": "quarry_02",
+      "machines": 0.4131985041749905,
+      "x": 2880,
+      "y": 0
+     },
+     {
+      "id": "n20",
+      "recipeId": "chemical_reactor_04",
+      "machines": 0.1517676348547718,
+      "x": 2880,
+      "y": 200
+     },
+     {
+      "id": "n21",
+      "recipeId": "water_treatment_plant_01",
+      "machines": 0.015809128630705403,
+      "x": 2560,
+      "y": 0
+     },
+     {
+      "id": "n22",
+      "recipeId": "oxidation_plant_08",
+      "machines": 0.0758838174273859,
+      "x": 2560,
+      "y": 200
+     },
+     {
+      "id": "n23",
+      "recipeId": "industrial_firebox_01",
+      "machines": 0.22484094052558784,
+      "x": 2240,
+      "y": 0
+     },
+     {
+      "id": "n24",
+      "recipeId": "advanced_oil_separator_02",
+      "machines": 0.6329183955739974,
+      "x": 1920,
+      "y": 0
+     },
+     {
+      "id": "n25",
+      "recipeId": "oxidation_plant_07",
+      "machines": 0.08431535269709545,
+      "x": 1920,
+      "y": 200
+     },
+     {
+      "id": "n26",
+      "recipeId": "advanced_oil_separator_03",
+      "machines": 0.42268326417703556,
+      "x": 1600,
+      "y": 0
+     },
+     {
+      "id": "n27",
+      "recipeId": "advanced_oil_separator_04",
+      "machines": 0.5621023513139698,
+      "x": 1600,
+      "y": 200
+     },
+     {
+      "id": "n28",
+      "recipeId": "boiler_01",
+      "machines": 1.8298610043884331,
+      "x": 1280,
+      "y": 0
+     },
+     {
+      "id": "n29",
+      "recipeId": "gas_burner_02",
+      "machines": 0.18298610043884342,
+      "x": 960,
+      "y": 0
+     },
+     {
+      "id": "n30",
+      "recipeId": "advanced_oxidation_plant_05",
+      "machines": 0.2,
+      "x": 640,
+      "y": 0
+     },
+     {
+      "id": "n31",
+      "recipeId": "electrolysis_plant_01",
+      "machines": 2.655232826187185,
+      "x": 320,
+      "y": 0
+     },
+     {
+      "id": "n32",
+      "recipeId": "gas_refinery_01",
+      "machines": 0.06666666666666542,
+      "x": 320,
+      "y": 200
+     },
+     {
+      "id": "n33",
+      "recipeId": "water_pump2_01",
+      "machines": 4.495847463415465,
+      "x": 0,
+      "y": 0
+     }
+    ],
+    "edges": [
+     {
+      "id": "n24>n10:coke-fuel",
+      "from": "n24",
+      "to": "n10",
+      "item": "coke-fuel"
+     },
+     {
+      "id": "n24>n13:coke-fuel",
+      "from": "n24",
+      "to": "n13",
+      "item": "coke-fuel"
+     },
+     {
+      "id": "n24>n23:coke-fuel",
+      "from": "n24",
+      "to": "n23",
+      "item": "coke-fuel"
+     },
+     {
+      "id": "n26>n24:heavy-oil",
+      "from": "n26",
+      "to": "n24",
+      "item": "heavy-oil"
+     },
+     {
+      "id": "n27>n24:heavy-oil",
+      "from": "n27",
+      "to": "n24",
+      "item": "heavy-oil"
+     },
+     {
+      "id": "n15>n24:heavy-oil",
+      "from": "n15",
+      "to": "n24",
+      "item": "heavy-oil"
+     },
+     {
+      "id": "n27>n25:hydrogen-sulfide",
+      "from": "n27",
+      "to": "n25",
+      "item": "hydrogen-sulfide"
+     },
+     {
+      "id": "n30>n11:ethanol",
+      "from": "n30",
+      "to": "n11",
+      "item": "ethanol"
+     },
+     {
+      "id": "n30>n29:hydrogen",
+      "from": "n30",
+      "to": "n29",
+      "item": "hydrogen"
+     },
+     {
+      "id": "n31>n29:hydrogen",
+      "from": "n31",
+      "to": "n29",
+      "item": "hydrogen"
+     },
+     {
+      "id": "n15>n27:light-oil",
+      "from": "n15",
+      "to": "n27",
+      "item": "light-oil"
+     },
+     {
+      "id": "n15>n32:water-free-gas",
+      "from": "n15",
+      "to": "n32",
+      "item": "water-free-gas"
+     },
+     {
+      "id": "n15>n12:crude-oil",
+      "from": "n15",
+      "to": "n12",
+      "item": "crude-oil"
+     },
+     {
+      "id": "n14>n12:crude-oil",
+      "from": "n14",
+      "to": "n12",
+      "item": "crude-oil"
+     },
+     {
+      "id": "n10>n7:steel-ingot",
+      "from": "n10",
+      "to": "n7",
+      "item": "steel-ingot"
+     },
+     {
+      "id": "n10>n6:steel-ingot",
+      "from": "n10",
+      "to": "n6",
+      "item": "steel-ingot"
+     },
+     {
+      "id": "n28>n24:steam",
+      "from": "n28",
+      "to": "n24",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n26:steam",
+      "from": "n28",
+      "to": "n26",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n27:steam",
+      "from": "n28",
+      "to": "n27",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n14:steam",
+      "from": "n28",
+      "to": "n14",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n17:steam",
+      "from": "n28",
+      "to": "n17",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n12:steam",
+      "from": "n28",
+      "to": "n12",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n21:steam",
+      "from": "n28",
+      "to": "n21",
+      "item": "steam"
+     },
+     {
+      "id": "n20>n17:sulfuric-acid",
+      "from": "n20",
+      "to": "n17",
+      "item": "sulfuric-acid"
+     },
+     {
+      "id": "n20>n16:sulfuric-acid",
+      "from": "n20",
+      "to": "n16",
+      "item": "sulfuric-acid"
+     },
+     {
+      "id": "n31>n30:oxygen",
+      "from": "n31",
+      "to": "n30",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n11:oxygen",
+      "from": "n31",
+      "to": "n11",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n8:oxygen",
+      "from": "n31",
+      "to": "n8",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n25:oxygen",
+      "from": "n31",
+      "to": "n25",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n22:oxygen",
+      "from": "n31",
+      "to": "n22",
+      "item": "oxygen"
+     },
+     {
+      "id": "n13>n10:iron-ingot",
+      "from": "n13",
+      "to": "n10",
+      "item": "iron-ingot"
+     },
+     {
+      "id": "n29>n28:hot-water",
+      "from": "n29",
+      "to": "n28",
+      "item": "hot-water"
+     },
+     {
+      "id": "n32>n30:refined-gas",
+      "from": "n32",
+      "to": "n30",
+      "item": "refined-gas"
+     },
+     {
+      "id": "n23>n22:sulfur-dioxide",
+      "from": "n23",
+      "to": "n22",
+      "item": "sulfur-dioxide"
+     },
+     {
+      "id": "n3>n1:plastic-casing",
+      "from": "n3",
+      "to": "n1",
+      "item": "plastic-casing"
+     },
+     {
+      "id": "n18>n16:raw-iron",
+      "from": "n18",
+      "to": "n16",
+      "item": "raw-iron"
+     },
+     {
+      "id": "n4>n1:steel-rod",
+      "from": "n4",
+      "to": "n1",
+      "item": "steel-rod"
+     },
+     {
+      "id": "n17>n26:fracking-oil",
+      "from": "n17",
+      "to": "n26",
+      "item": "fracking-oil"
+     },
+     {
+      "id": "n17>n15:fracking-oil",
+      "from": "n17",
+      "to": "n15",
+      "item": "fracking-oil"
+     },
+     {
+      "id": "n17>n14:fracking-oil",
+      "from": "n17",
+      "to": "n14",
+      "item": "fracking-oil"
+     },
+     {
+      "id": "n16>n13:treated-raw-iron",
+      "from": "n16",
+      "to": "n13",
+      "item": "treated-raw-iron"
+     },
+     {
+      "id": "n11>n9:acetic-acid",
+      "from": "n11",
+      "to": "n9",
+      "item": "acetic-acid"
+     },
+     {
+      "id": "n8>n5:meg",
+      "from": "n8",
+      "to": "n5",
+      "item": "meg"
+     },
+     {
+      "id": "n25>n23:liquid-sulfur",
+      "from": "n25",
+      "to": "n23",
+      "item": "liquid-sulfur"
+     },
+     {
+      "id": "n22>n20:sulfur-trioxide",
+      "from": "n22",
+      "to": "n20",
+      "item": "sulfur-trioxide"
+     },
+     {
+      "id": "n5>n3:plastic-pellets",
+      "from": "n5",
+      "to": "n3",
+      "item": "plastic-pellets"
+     },
+     {
+      "id": "n9>n5:pta",
+      "from": "n9",
+      "to": "n5",
+      "item": "pta"
+     },
+     {
+      "id": "n7>n2:steel-plate",
+      "from": "n7",
+      "to": "n2",
+      "item": "steel-plate"
+     },
+     {
+      "id": "n2>n1:gear",
+      "from": "n2",
+      "to": "n1",
+      "item": "gear"
+     },
+     {
+      "id": "n19>n17:sand",
+      "from": "n19",
+      "to": "n17",
+      "item": "sand"
+     },
+     {
+      "id": "n6>n4:steel-coil",
+      "from": "n6",
+      "to": "n4",
+      "item": "steel-coil"
+     },
+     {
+      "id": "n12>n9:paraxylene",
+      "from": "n12",
+      "to": "n9",
+      "item": "paraxylene"
+     },
+     {
+      "id": "n12>n8:ethylene",
+      "from": "n12",
+      "to": "n8",
+      "item": "ethylene"
+     },
+     {
+      "id": "n33>n31:water",
+      "from": "n33",
+      "to": "n31",
+      "item": "water"
+     },
+     {
+      "id": "n33>n13:water",
+      "from": "n33",
+      "to": "n13",
+      "item": "water"
+     },
+     {
+      "id": "n33>n29:water",
+      "from": "n33",
+      "to": "n29",
+      "item": "water"
+     },
+     {
+      "id": "n33>n17:water",
+      "from": "n33",
+      "to": "n17",
+      "item": "water"
+     },
+     {
+      "id": "n33>n21:water",
+      "from": "n33",
+      "to": "n21",
+      "item": "water"
+     },
+     {
+      "id": "n21>n20:distilled-water",
+      "from": "n21",
+      "to": "n20",
+      "item": "distilled-water"
+     }
+    ],
+    "target": {
+     "node": "n1",
+     "item": "gearbox"
+    },
+    "rate": 120,
+    "groups": [
+     {
+      "id": "g1",
+      "name": "Bloc fer",
+      "collapsed": true
+     }
+    ]
+   },
+   "solved": {
+    "nodes": [
+     {
+      "id": "n1",
+      "recipeId": "advanced_assembler_07",
+      "machines": 20,
+      "x": 5157.5,
+      "y": -12
+     },
+     {
+      "id": "n2",
+      "recipeId": "press_mk2_05",
+      "machines": 2.25,
+      "x": 4800,
+      "y": 0,
+      "fixed": true,
+      "group": "g1"
+     },
+     {
+      "id": "n3",
+      "recipeId": "industrial_plastic_molder_02",
+      "machines": 8.000000000000002,
+      "x": 4800,
+      "y": 200,
+      "group": "g1"
+     },
+     {
+      "id": "n4",
+      "recipeId": "lathe_05",
+      "machines": 1.9999999999999993,
+      "x": 4800,
+      "y": 400
+     },
+     {
+      "id": "n5",
+      "recipeId": "plastic_production_facility_01",
+      "machines": 6,
+      "x": 4480,
+      "y": 0
+     },
+     {
+      "id": "n6",
+      "recipeId": "roller_mk2_03",
+      "machines": 1.5999999999999992,
+      "x": 4480,
+      "y": 200
+     },
+     {
+      "id": "n7",
+      "recipeId": "press_mk2_02",
+      "machines": 3.1999999999999984,
+      "x": 4480,
+      "y": 400
+     },
+     {
+      "id": "n8",
+      "recipeId": "oxidation_plant_06",
+      "machines": 0.2777777777777779,
+      "x": 4160,
+      "y": 0
+     },
+     {
+      "id": "n9",
+      "recipeId": "plastic_refinery_02",
+      "machines": 2.0000000000000004,
+      "x": 4160,
+      "y": 200
+     },
+     {
+      "id": "n10",
+      "recipeId": "blast_furnace_MK2_04",
+      "machines": 0.8000000000000006,
+      "x": 4160,
+      "y": 400
+     },
+     {
+      "id": "n11",
+      "recipeId": "oxidation_plant_05",
+      "machines": 0.16666666666666666,
+      "x": 3840,
+      "y": 0
+     },
+     {
+      "id": "n12",
+      "recipeId": "steam_cracking_plant_01",
+      "machines": 1.3333333333333333,
+      "x": 3840,
+      "y": 200
+     },
+     {
+      "id": "n13",
+      "recipeId": "foundry_05",
+      "machines": 0.606666666666667,
+      "x": 3840,
+      "y": 400
+     },
+     {
+      "id": "n14",
+      "recipeId": "industrial_oil_separator_03",
+      "machines": 0.054464422929152816,
+      "x": 3520,
+      "y": 0
+     },
+     {
+      "id": "n15",
+      "recipeId": "atmospheric_distillation_plant_01",
+      "machines": 0.22484094052558798,
+      "x": 3520,
+      "y": 200
+     },
+     {
+      "id": "n16",
+      "recipeId": "ore_enrichment_facility_08",
+      "machines": 0.2666666666666667,
+      "x": 3520,
+      "y": 400
+     },
+     {
+      "id": "n17",
+      "recipeId": "oil_fracking_tower_01",
+      "machines": 0.6197977562624857,
+      "x": 3200,
+      "y": 0
+     },
+     {
+      "id": "n18",
+      "recipeId": "iron_drill_01",
+      "machines": 13.333333333333327,
+      "x": 3200,
+      "y": 200
+     },
+     {
+      "id": "n19",
+      "recipeId": "quarry_02",
+      "machines": 0.4131985041749905,
+      "x": 2880,
+      "y": 0
+     },
+     {
+      "id": "n20",
+      "recipeId": "chemical_reactor_04",
+      "machines": 0.1517676348547718,
+      "x": 2880,
+      "y": 200
+     },
+     {
+      "id": "n21",
+      "recipeId": "water_treatment_plant_01",
+      "machines": 0.015809128630705403,
+      "x": 2560,
+      "y": 0
+     },
+     {
+      "id": "n22",
+      "recipeId": "oxidation_plant_08",
+      "machines": 0.0758838174273859,
+      "x": 2560,
+      "y": 200
+     },
+     {
+      "id": "n23",
+      "recipeId": "industrial_firebox_01",
+      "machines": 0.22484094052558784,
+      "x": 2240,
+      "y": 0
+     },
+     {
+      "id": "n24",
+      "recipeId": "advanced_oil_separator_02",
+      "machines": 0.6329183955739974,
+      "x": 1920,
+      "y": 0
+     },
+     {
+      "id": "n25",
+      "recipeId": "oxidation_plant_07",
+      "machines": 0.08431535269709545,
+      "x": 1920,
+      "y": 200
+     },
+     {
+      "id": "n26",
+      "recipeId": "advanced_oil_separator_03",
+      "machines": 0.42268326417703556,
+      "x": 1600,
+      "y": 0
+     },
+     {
+      "id": "n27",
+      "recipeId": "advanced_oil_separator_04",
+      "machines": 0.5621023513139698,
+      "x": 1600,
+      "y": 200
+     },
+     {
+      "id": "n28",
+      "recipeId": "boiler_01",
+      "machines": 1.8298610043884331,
+      "x": 1280,
+      "y": 0
+     },
+     {
+      "id": "n29",
+      "recipeId": "gas_burner_02",
+      "machines": 0.18298610043884342,
+      "x": 960,
+      "y": 0
+     },
+     {
+      "id": "n30",
+      "recipeId": "advanced_oxidation_plant_05",
+      "machines": 0.2,
+      "x": 640,
+      "y": 0
+     },
+     {
+      "id": "n31",
+      "recipeId": "electrolysis_plant_01",
+      "machines": 2.655232826187185,
+      "x": 320,
+      "y": 0
+     },
+     {
+      "id": "n32",
+      "recipeId": "gas_refinery_01",
+      "machines": 0.06666666666666542,
+      "x": 320,
+      "y": 200
+     },
+     {
+      "id": "n33",
+      "recipeId": "water_pump2_01",
+      "machines": 4.495847463415465,
+      "x": 0,
+      "y": 0
+     }
+    ],
+    "edges": [
+     {
+      "id": "n24>n10:coke-fuel",
+      "from": "n24",
+      "to": "n10",
+      "item": "coke-fuel"
+     },
+     {
+      "id": "n24>n13:coke-fuel",
+      "from": "n24",
+      "to": "n13",
+      "item": "coke-fuel"
+     },
+     {
+      "id": "n24>n23:coke-fuel",
+      "from": "n24",
+      "to": "n23",
+      "item": "coke-fuel"
+     },
+     {
+      "id": "n26>n24:heavy-oil",
+      "from": "n26",
+      "to": "n24",
+      "item": "heavy-oil"
+     },
+     {
+      "id": "n27>n24:heavy-oil",
+      "from": "n27",
+      "to": "n24",
+      "item": "heavy-oil"
+     },
+     {
+      "id": "n15>n24:heavy-oil",
+      "from": "n15",
+      "to": "n24",
+      "item": "heavy-oil"
+     },
+     {
+      "id": "n27>n25:hydrogen-sulfide",
+      "from": "n27",
+      "to": "n25",
+      "item": "hydrogen-sulfide"
+     },
+     {
+      "id": "n30>n11:ethanol",
+      "from": "n30",
+      "to": "n11",
+      "item": "ethanol"
+     },
+     {
+      "id": "n30>n29:hydrogen",
+      "from": "n30",
+      "to": "n29",
+      "item": "hydrogen"
+     },
+     {
+      "id": "n31>n29:hydrogen",
+      "from": "n31",
+      "to": "n29",
+      "item": "hydrogen"
+     },
+     {
+      "id": "n15>n27:light-oil",
+      "from": "n15",
+      "to": "n27",
+      "item": "light-oil"
+     },
+     {
+      "id": "n15>n32:water-free-gas",
+      "from": "n15",
+      "to": "n32",
+      "item": "water-free-gas"
+     },
+     {
+      "id": "n15>n12:crude-oil",
+      "from": "n15",
+      "to": "n12",
+      "item": "crude-oil"
+     },
+     {
+      "id": "n14>n12:crude-oil",
+      "from": "n14",
+      "to": "n12",
+      "item": "crude-oil"
+     },
+     {
+      "id": "n10>n7:steel-ingot",
+      "from": "n10",
+      "to": "n7",
+      "item": "steel-ingot"
+     },
+     {
+      "id": "n10>n6:steel-ingot",
+      "from": "n10",
+      "to": "n6",
+      "item": "steel-ingot"
+     },
+     {
+      "id": "n28>n24:steam",
+      "from": "n28",
+      "to": "n24",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n26:steam",
+      "from": "n28",
+      "to": "n26",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n27:steam",
+      "from": "n28",
+      "to": "n27",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n14:steam",
+      "from": "n28",
+      "to": "n14",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n17:steam",
+      "from": "n28",
+      "to": "n17",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n12:steam",
+      "from": "n28",
+      "to": "n12",
+      "item": "steam"
+     },
+     {
+      "id": "n28>n21:steam",
+      "from": "n28",
+      "to": "n21",
+      "item": "steam"
+     },
+     {
+      "id": "n20>n17:sulfuric-acid",
+      "from": "n20",
+      "to": "n17",
+      "item": "sulfuric-acid"
+     },
+     {
+      "id": "n20>n16:sulfuric-acid",
+      "from": "n20",
+      "to": "n16",
+      "item": "sulfuric-acid"
+     },
+     {
+      "id": "n31>n30:oxygen",
+      "from": "n31",
+      "to": "n30",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n11:oxygen",
+      "from": "n31",
+      "to": "n11",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n8:oxygen",
+      "from": "n31",
+      "to": "n8",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n25:oxygen",
+      "from": "n31",
+      "to": "n25",
+      "item": "oxygen"
+     },
+     {
+      "id": "n31>n22:oxygen",
+      "from": "n31",
+      "to": "n22",
+      "item": "oxygen"
+     },
+     {
+      "id": "n13>n10:iron-ingot",
+      "from": "n13",
+      "to": "n10",
+      "item": "iron-ingot"
+     },
+     {
+      "id": "n29>n28:hot-water",
+      "from": "n29",
+      "to": "n28",
+      "item": "hot-water"
+     },
+     {
+      "id": "n32>n30:refined-gas",
+      "from": "n32",
+      "to": "n30",
+      "item": "refined-gas"
+     },
+     {
+      "id": "n23>n22:sulfur-dioxide",
+      "from": "n23",
+      "to": "n22",
+      "item": "sulfur-dioxide"
+     },
+     {
+      "id": "n3>n1:plastic-casing",
+      "from": "n3",
+      "to": "n1",
+      "item": "plastic-casing"
+     },
+     {
+      "id": "n18>n16:raw-iron",
+      "from": "n18",
+      "to": "n16",
+      "item": "raw-iron"
+     },
+     {
+      "id": "n4>n1:steel-rod",
+      "from": "n4",
+      "to": "n1",
+      "item": "steel-rod"
+     },
+     {
+      "id": "n17>n26:fracking-oil",
+      "from": "n17",
+      "to": "n26",
+      "item": "fracking-oil"
+     },
+     {
+      "id": "n17>n15:fracking-oil",
+      "from": "n17",
+      "to": "n15",
+      "item": "fracking-oil"
+     },
+     {
+      "id": "n17>n14:fracking-oil",
+      "from": "n17",
+      "to": "n14",
+      "item": "fracking-oil"
+     },
+     {
+      "id": "n16>n13:treated-raw-iron",
+      "from": "n16",
+      "to": "n13",
+      "item": "treated-raw-iron"
+     },
+     {
+      "id": "n11>n9:acetic-acid",
+      "from": "n11",
+      "to": "n9",
+      "item": "acetic-acid"
+     },
+     {
+      "id": "n8>n5:meg",
+      "from": "n8",
+      "to": "n5",
+      "item": "meg"
+     },
+     {
+      "id": "n25>n23:liquid-sulfur",
+      "from": "n25",
+      "to": "n23",
+      "item": "liquid-sulfur"
+     },
+     {
+      "id": "n22>n20:sulfur-trioxide",
+      "from": "n22",
+      "to": "n20",
+      "item": "sulfur-trioxide"
+     },
+     {
+      "id": "n5>n3:plastic-pellets",
+      "from": "n5",
+      "to": "n3",
+      "item": "plastic-pellets"
+     },
+     {
+      "id": "n9>n5:pta",
+      "from": "n9",
+      "to": "n5",
+      "item": "pta"
+     },
+     {
+      "id": "n7>n2:steel-plate",
+      "from": "n7",
+      "to": "n2",
+      "item": "steel-plate"
+     },
+     {
+      "id": "n2>n1:gear",
+      "from": "n2",
+      "to": "n1",
+      "item": "gear"
+     },
+     {
+      "id": "n19>n17:sand",
+      "from": "n19",
+      "to": "n17",
+      "item": "sand"
+     },
+     {
+      "id": "n6>n4:steel-coil",
+      "from": "n6",
+      "to": "n4",
+      "item": "steel-coil"
+     },
+     {
+      "id": "n12>n9:paraxylene",
+      "from": "n12",
+      "to": "n9",
+      "item": "paraxylene"
+     },
+     {
+      "id": "n12>n8:ethylene",
+      "from": "n12",
+      "to": "n8",
+      "item": "ethylene"
+     },
+     {
+      "id": "n33>n31:water",
+      "from": "n33",
+      "to": "n31",
+      "item": "water"
+     },
+     {
+      "id": "n33>n13:water",
+      "from": "n33",
+      "to": "n13",
+      "item": "water"
+     },
+     {
+      "id": "n33>n29:water",
+      "from": "n33",
+      "to": "n29",
+      "item": "water"
+     },
+     {
+      "id": "n33>n17:water",
+      "from": "n33",
+      "to": "n17",
+      "item": "water"
+     },
+     {
+      "id": "n33>n21:water",
+      "from": "n33",
+      "to": "n21",
+      "item": "water"
+     },
+     {
+      "id": "n21>n20:distilled-water",
+      "from": "n21",
+      "to": "n20",
+      "item": "distilled-water"
+     }
+    ],
+    "target": {
+     "node": "n1",
+     "item": "gearbox"
+    },
+    "rate": 120,
+    "groups": [
+     {
+      "id": "g1",
+      "name": "Bloc fer",
+      "collapsed": true
+     }
+    ]
+   },
+   "touched": true
+  }
+ },
+ "graphe-importé": {
+  "site": "0.1.0",
+  "settings": {
+   "goal": "objet",
+   "entered": [],
+   "item": "crankshaft",
+   "mode": "rate",
+   "rateUnit": "s",
+   "rate": 60,
+   "machines": 15,
+   "criteria": {
+    "objet": [
+     "area",
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "raw",
+     "steps"
+    ],
+    "argent": [
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "area",
+     "raw"
+    ],
+    "énergie": [
+     "machines",
+     "cost",
+     "raw",
+     "pollution",
+     "area"
+    ],
+    "recherche": [
+     "machines",
+     "energy",
+     "cost"
+    ]
+   },
+   "useUnverified": false,
+   "forced": {},
+   "fixed": null,
+   "machineFilters": {},
+   "machineSettings": {},
+   "dieselChoice": {},
+   "mineshaftChoice": {},
+   "imports": {},
+   "evacSides": {},
+   "money": 10000,
+   "selfPowered": false,
+   "maxPollution": null,
+   "useBudget": false,
+   "existing": {},
+   "useExisting": true,
+   "resultTab": "pose",
+   "energyUnit": "k",
+   "energyMFps": 1000000,
+   "energyGuaranteed": false,
+   "energyNoFuel": false,
+   "distanceTiles": null,
+   "tier3Only": false,
+   "posePriority": [
+    "place",
+    "forme",
+    "prix",
+    "pieces"
+   ],
+   "usine": {
+    "full": false,
+    "glue": false,
+    "detail": false,
+    "power": true,
+    "plugs": false,
+    "links": false
+   },
+   "rpMode": "node",
+   "rpRate": null,
+   "rpNode": null,
+   "rpMinutes": 60,
+   "rpCap": null,
+   "rpSatellites": true,
+   "rpLogic": false,
+   "rpCurrent": true
+  },
+  "graph": {
+   "sig": "objet|gearbox|rate|120",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n1",
+      "recipeId": "craft_assembler_06",
+      "machines": 30,
+      "x": 4446,
+      "y": 273
+     },
+     {
+      "id": "n2",
+      "recipeId": "craft_assembler_05",
+      "machines": 30,
+      "x": 3952,
+      "y": 247
+     },
+     {
+      "id": "n3",
+      "recipeId": "roller_03",
+      "machines": 16,
+      "x": 3458,
+      "y": 299
+     },
+     {
+      "id": "n4",
+      "recipeId": "roller_04",
+      "machines": 32,
+      "x": 3458,
+      "y": 52
+     },
+     {
+      "id": "n5",
+      "recipeId": "press_03",
+      "machines": 32,
+      "x": 2964,
+      "y": 52
+     },
+     {
+      "id": "n6",
+      "recipeId": "blast_furnace_02",
+      "machines": 10,
+      "x": 2470,
+      "y": 195
+     },
+     {
+      "id": "n7",
+      "recipeId": "blast_furnace_03",
+      "machines": 10,
+      "x": 1976,
+      "y": 104
+     },
+     {
+      "id": "n8",
+      "recipeId": "coal_drill_01",
+      "machines": 53.28,
+      "x": 1482,
+      "y": 247
+     },
+     {
+      "id": "n9",
+      "recipeId": "grinder_03",
+      "machines": 20.210526315789,
+      "x": 1482,
+      "y": 0
+     },
+     {
+      "id": "n10",
+      "recipeId": "iron_drill_01",
+      "machines": 80.842105263158,
+      "x": 988,
+      "y": 0
+     },
+     {
+      "id": "n11",
+      "recipeId": "industrial_plastic_molder_02",
+      "machines": 8,
+      "x": 3952,
+      "y": 572
+     },
+     {
+      "id": "n12",
+      "recipeId": "plastic_production_facility_01",
+      "machines": 6,
+      "x": 3458,
+      "y": 546
+     },
+     {
+      "id": "n13",
+      "recipeId": "plastic_refinery_02",
+      "machines": 2,
+      "x": 2964,
+      "y": 520
+     },
+     {
+      "id": "n14",
+      "recipeId": "oxidation_plant_01",
+      "machines": 0.666666666667,
+      "x": 2470,
+      "y": 520
+     },
+     {
+      "id": "n15",
+      "recipeId": "plastic_refinery_01",
+      "machines": 4,
+      "x": 1976,
+      "y": 494
+     },
+     {
+      "id": "n16",
+      "recipeId": "oil_rig_01",
+      "machines": 8.333333333333,
+      "x": 1482,
+      "y": 741
+     },
+     {
+      "id": "n17",
+      "recipeId": "water_pump2_01",
+      "machines": 0.666666666667,
+      "x": 1482,
+      "y": 494
+     },
+     {
+      "id": "n18",
+      "recipeId": "oxidation_plant_02",
+      "machines": 1.111111111111,
+      "x": 2964,
+      "y": 819
+     },
+     {
+      "id": "n19",
+      "recipeId": "oil_rig_01",
+      "machines": 7.407407407407,
+      "x": 1976,
+      "y": 1092
+     },
+     {
+      "id": "n20",
+      "recipeId": "water_pump2_01",
+      "machines": 0.37037037037,
+      "x": 988,
+      "y": 741
+     },
+     {
+      "id": "n21",
+      "recipeId": "gas_refinery_01",
+      "machines": 0.037037037037,
+      "x": 988,
+      "y": 988
+     },
+     {
+      "id": "n22",
+      "recipeId": "condenser_01",
+      "machines": 0.111111111111,
+      "x": 494,
+      "y": 910
+     },
+     {
+      "id": "n23",
+      "recipeId": "natural_gas_well_01",
+      "machines": 0.222222222222,
+      "x": 0,
+      "y": 962
+     }
+    ],
+    "edges": [
+     {
+      "id": "n2>n1:crankshaft",
+      "from": "n2",
+      "to": "n1",
+      "item": "crankshaft"
+     },
+     {
+      "id": "n3>n2:steel-rod",
+      "from": "n3",
+      "to": "n2",
+      "item": "steel-rod"
+     },
+     {
+      "id": "n4>n2:gear",
+      "from": "n4",
+      "to": "n2",
+      "item": "gear"
+     },
+     {
+      "id": "n5>n4:steel-plate",
+      "from": "n5",
+      "to": "n4",
+      "item": "steel-plate"
+     },
+     {
+      "id": "n6>n3:steel-ingot",
+      "from": "n6",
+      "to": "n3",
+      "item": "steel-ingot"
+     },
+     {
+      "id": "n6>n5:steel-ingot",
+      "from": "n6",
+      "to": "n5",
+      "item": "steel-ingot"
+     },
+     {
+      "id": "n7>n6:iron-mix",
+      "from": "n7",
+      "to": "n6",
+      "item": "iron-mix"
+     },
+     {
+      "id": "n8>n7:coal",
+      "from": "n8",
+      "to": "n7",
+      "item": "coal"
+     },
+     {
+      "id": "n8>n6:coal",
+      "from": "n8",
+      "to": "n6",
+      "item": "coal"
+     },
+     {
+      "id": "n9>n7:iron-powder",
+      "from": "n9",
+      "to": "n7",
+      "item": "iron-powder"
+     },
+     {
+      "id": "n10>n9:raw-iron",
+      "from": "n10",
+      "to": "n9",
+      "item": "raw-iron"
+     },
+     {
+      "id": "n11>n1:plastic-casing",
+      "from": "n11",
+      "to": "n1",
+      "item": "plastic-casing"
+     },
+     {
+      "id": "n12>n11:plastic-pellets",
+      "from": "n12",
+      "to": "n11",
+      "item": "plastic-pellets"
+     },
+     {
+      "id": "n13>n12:pta",
+      "from": "n13",
+      "to": "n12",
+      "item": "pta"
+     },
+     {
+      "id": "n14>n13:acetic-acid",
+      "from": "n14",
+      "to": "n13",
+      "item": "acetic-acid"
+     },
+     {
+      "id": "n15>n14:ethanol",
+      "from": "n15",
+      "to": "n14",
+      "item": "ethanol"
+     },
+     {
+      "id": "n16>n15:crude-oil",
+      "from": "n16",
+      "to": "n15",
+      "item": "crude-oil"
+     },
+     {
+      "id": "n17>n15:water",
+      "from": "n17",
+      "to": "n15",
+      "item": "water"
+     },
+     {
+      "id": "n18>n12:meg",
+      "from": "n18",
+      "to": "n12",
+      "item": "meg"
+     },
+     {
+      "id": "n22>n21:water-free-gas",
+      "from": "n22",
+      "to": "n21",
+      "item": "water-free-gas"
+     },
+     {
+      "id": "n23>n22:raw-gas",
+      "from": "n23",
+      "to": "n22",
+      "item": "raw-gas"
+     }
+    ],
+    "target": {
+     "node": "n1",
+     "item": "gearbox"
+    },
+    "rate": 120
+   },
+   "solved": null,
+   "touched": true
+  }
+ },
+ "bac-à-sable": {
+  "site": "0.1.0",
+  "name": "Montage",
+  "settings": {
+   "goal": "objet",
+   "entered": [],
+   "item": "crankshaft",
+   "mode": "rate",
+   "rateUnit": "s",
+   "rate": 60,
+   "machines": 15,
+   "criteria": {
+    "objet": [
+     "area",
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "raw",
+     "steps"
+    ],
+    "argent": [
+     "machines",
+     "energy",
+     "cost",
+     "pollution",
+     "area",
+     "raw"
+    ],
+    "énergie": [
+     "machines",
+     "cost",
+     "raw",
+     "pollution",
+     "area"
+    ],
+    "recherche": [
+     "machines",
+     "energy",
+     "cost"
+    ]
+   },
+   "useUnverified": false,
+   "forced": {},
+   "fixed": null,
+   "machineFilters": {},
+   "machineSettings": {},
+   "dieselChoice": {},
+   "mineshaftChoice": {},
+   "imports": {},
+   "evacSides": {},
+   "money": 10000,
+   "selfPowered": false,
+   "maxPollution": null,
+   "useBudget": false,
+   "existing": {},
+   "useExisting": true,
+   "resultTab": "pose",
+   "energyUnit": "k",
+   "energyMFps": 1000000,
+   "energyGuaranteed": false,
+   "energyNoFuel": false,
+   "distanceTiles": null,
+   "tier3Only": false,
+   "posePriority": [
+    "place",
+    "forme",
+    "prix",
+    "pieces"
+   ],
+   "usine": {
+    "full": false,
+    "glue": false,
+    "detail": false,
+    "power": true,
+    "plugs": false,
+    "links": false
+   },
+   "rpMode": "node",
+   "rpRate": null,
+   "rpNode": null,
+   "rpMinutes": 60,
+   "rpCap": null,
+   "rpSatellites": true,
+   "rpLogic": false,
+   "rpCurrent": true
+  },
+  "sandbox": {
+   "blocks": [
+    {
+     "u": 0,
+     "id": "press",
+     "x": 0,
+     "y": 0,
+     "r": 1,
+     "choice": "iron-coil"
+    },
+    {
+     "u": 1,
+     "id": "conveyor",
+     "x": 3,
+     "y": 0,
+     "r": 0,
+     "open": [
+      "N",
+      "E"
+     ]
+    },
+    {
+     "u": 2,
+     "id": "crossing",
+     "x": 4,
+     "y": 2,
+     "r": 3,
+     "pair": 2
+    }
+   ],
+   "wires": [
+    {
+     "a": 0,
+     "ia": 0,
+     "b": 1,
+     "ib": 1,
+     "t": "p"
+    }
+   ],
+   "routes": [
+    {
+     "a": 1,
+     "ia": 0,
+     "b": 2,
+     "ib": 2
+    }
+   ],
+   "fills": {
+    "r": {
+     "s": 2.5
+    }
+   }
+  }
+ }
+}

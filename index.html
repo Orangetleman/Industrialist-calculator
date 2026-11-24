@@ -10,6 +10,8 @@
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#160f25">
   <!-- S59 : sombre par défaut, clair en option ; posé avant le style pour éviter un éclair. -->
+  <!-- P4 : une version d'origine (/v/<version>/) partage l'adresse du site en ligne : son stockage est rangé à part. -->
+  <script>(function () { var m = /^\/v\/([^/]+)\//.exec(location.pathname); if (!m) return; ["getItem", "setItem", "removeItem"].forEach(function (f) { var o = Storage.prototype[f]; Storage.prototype[f] = function (k, v) { k = "v:" + m[1] + ":" + k; return f === "setItem" ? o.call(this, k, v) : o.call(this, k); }; }); })();</script>
   <script>try { if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}</script>
   <!-- Aperçu des liens partagés (Discord, réseaux…) : en anglais, la langue de la communauté du jeu (S33, décision S16 Public).
        L'image vient de scripts/og-image.html. -->
@@ -56,10 +58,13 @@
     <!-- Accès direct à la liste des propositions des joueurs (S36), à côté de « Remarque » qui sert à en envoyer une. -->
     <a class="props-btn" href="#propositions" data-nav="propositions" data-i18n-attr="title=header.props.title" title="Voir les propositions des joueurs et voter"><span data-ic="idea"></span><span class="lbl" data-i18n="header.props">Propositions</span></a>
     <button type="button" class="remark-btn" id="remark-btn" aria-label="Envoyer une remarque" data-i18n-attr="aria-label=rm.btn.aria" aria-haspopup="dialog" data-ic="remark"><span class="lbl" data-i18n="rm.btn">Remarque</span><span class="rm-dot" id="remark-dot" hidden></span></button>
-    <button type="button" class="help-btn" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">?</button>
+    <button type="button" class="help-btn wide" id="help" title="Visite du site" aria-label="Rejouer la visite du site" data-i18n="header.help.label" data-i18n-attr="title=header.help.title;aria-label=header.help.aria">? Tutoriel</button>
   </div>
   <!-- Rappel « Tu jouais encore ? » (S21) : un bandeau sous l'en-tête, pas une fenêtre (S23). -->
   <div class="recall-bar" id="recall" role="status" hidden></div>
+  <div class="lec-bar" id="vbar" role="status" hidden><span id="vbar-txt"></span><a class="button small" href="/" data-i18n="ver.last">Aller à la dernière version</a></div>
+  <!-- P3 bis b : session de lecture (maquette session-lecture.html). -->
+  <div class="lec-bar" id="lecture" role="status" hidden><span id="lecture-txt"></span><button type="button" class="small" id="lecture-print" data-i18n="lec.print">Imprimer ce profil sur ma partie…</button><button type="button" class="small" id="lecture-back" data-i18n="lec.back">Revenir à ma partie</button></div>
 </header>
 
 <main id="main" tabindex="-1">
@@ -133,6 +138,8 @@
 
     </form>
     <button type="button" class="cmd-set-btn" id="plan-set-open" aria-controls="plan-drawer" aria-expanded="false"><span data-ic="settings"></span><span data-i18n="plan.set">Réglages</span> <kbd>R</kbd></button>
+    <!-- P2 partage (maquette partage.html) : le design entier (réglages, graphe, bac à sable) dans un lien. -->
+    <button type="button" class="primary shr-btn" id="share-open" aria-haspopup="dialog" aria-expanded="false" aria-controls="share"><span data-ic="share"></span><span data-i18n="share.btn">Partager</span></button>
     </div>
     <!-- S60 suite : les réglages du plan dans un tiroir (maquette S58), tous visibles d'un coup ; R l'ouvre, Échap le ferme. -->
     <aside class="cmd-drawer" id="plan-drawer" aria-labelledby="plan-drawer-h" hidden>
@@ -140,6 +147,7 @@
       <details class="criteria" id="criteria">
         <summary><span class="criteria-title" data-i18n="crit.title">Priorités</span> <span class="criteria-order" id="criteria-order"></span> <span class="criteria-edit" data-i18n="crit.edit">changer l'ordre</span></summary>
         <p class="hint" data-i18n="crit.help">La première décide quand un objet se fabrique de plusieurs façons ; les suivantes ne départagent qu'à égalité. Glisse une ligne ou utilise les flèches.</p>
+        <p class="me-link"><a href="#methodes" data-i18n="me.link" data-i18n-attr="title=me.link.tip" title="Les méthodes de calcul expliquées : priorités, machines entières, limites connues">Comment le calcul choisit ?</a></p>
         <ol class="prio-list" id="criteria-list" aria-label="Priorités du plan, dans l'ordre" data-i18n-attr="aria-label=crit.list.aria"></ol>
       </details>
       <p class="hint crit-hint" id="criterion-hint"></p>
@@ -170,6 +178,7 @@
           <label class="inline"><span data-i18n="adv.pollution">Pollution au plus</span> <input id="max-pollution" type="number" min="0" step="any" inputmode="decimal" placeholder="—"> %/h</label>
           <label class="check"><input type="checkbox" id="use-existing"> <span data-i18n="adv.existing">Utiliser ma production déjà en place</span> <span class="hint" id="existing-hint-plan"></span></label>
           <label class="check"><input type="checkbox" id="unverified"> <span data-i18n="adv.unverified">Utiliser aussi les valeurs « à vérifier »</span> <span class="hint" data-i18n="adv.unverified.hint">(recettes aux valeurs variables ou manquantes)</span></label>
+          <label class="inline pw-import" data-goals="objet"><span class="btn" data-i18n="pw.button">Importer un graphe (Industrialist Calculator)</span><input type="file" id="pw-import" accept=".json,application/json" hidden> <span class="hint" data-i18n="pw.hint">Fichier « …_save.json » exporté depuis le panneau Saves du calculateur de Pollywrath. Ses recettes sont imposées et son objet cible devient l'objectif ; nous recalculons les quantités.</span></label>
         </div>
         <p class="hint" id="adv-note"></p>
       </details>
@@ -190,11 +199,13 @@
     <aside class="cmd-rail cmd-left" aria-labelledby="plan-steps-h">
       <h2 class="cmd-h" id="plan-steps-h"><span data-i18n="plan.steps">Étapes de pose</span> <span class="cmd-n" id="plan-steps-n"></span><button type="button" class="cmd-fold" data-fold="l" data-i18n-attr="title=plan.fold;aria-label=plan.fold" title="Réduire le volet" aria-label="Réduire le volet"><span data-ic="chevL"></span></button></h2>
       <div class="cmd-rb">
+        <div class="cmd-rb-top">
         <div class="cmd-prog" id="plan-steps-prog" aria-hidden="true"><i></i></div>
         <div class="cmd-steps" id="plan-steps"></div>
         <div id="pose-mods"></div>
-        <h2 class="cmd-h cmd-h2" data-i18n="plan.saved">Plans enregistrés</h2>
-        <div class="cmd-steps" id="plan-saved"></div>
+        </div>
+        <h2 class="cmd-h cmd-h2" data-i18n="dsg.title">Mes designs</h2>
+        <div class="dsgs" id="plan-saved"></div>
       </div>
       <div class="cmd-strip"><button type="button" data-fold="l" data-i18n-attr="title=plan.steps"><span data-ic="list"></span><span data-i18n="plan.strip.steps">Étapes</span></button></div>
     </aside>
@@ -209,6 +220,8 @@
       <button type="button" role="tab" id="rtab-details" data-rtab="details" aria-controls="rpanel-details" data-i18n="tab.details">Détails</button>
       <span class="cmd-help" id="plan-help" tabindex="0" role="note" data-i18n-attr="title=plan.help;aria-label=plan.help" title="" aria-label="">?</span>
     </div>
+    <!-- G4 : le graphe édité (onglet Schéma) et le plan du site : tiré du graphe, à recalculer, objectif changé. -->
+    <div id="graph-bar" class="gbar" role="status" aria-live="polite" hidden></div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
     <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
       <div class="flow-frame" id="flow-frame" tabindex="0" aria-label="Schéma : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revoir toute la chaîne" data-i18n-attr="aria-label=flow.aria">
@@ -218,9 +231,10 @@
           <button type="button" data-fzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
           <button type="button" data-fzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
           <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne" data-i18n-attr="aria-label=zoom.fit;title=zoom.fit.chain" data-ic="fit"></button>
+          <button type="button" data-fzoom="arrange" aria-label="Ranger" title="Ranger : de l'extraction à l'objectif, sans chevauchement" data-i18n-attr="aria-label=gv.arrange;title=gv.arrange" data-ic="tiles"></button>
         </div>
       </div>
-      <p class="hint" data-i18n="flow.hint">De gauche (extraction) à droite (objectif). Clique un bloc ou une flèche : la barre du bas mène à son plan de pose ou à son bâtiment, et « Comment c'est calculé » détaille chaque nombre et sa source. Les flèches en pointillés sont des boucles (un sous-produit qui remonte la chaîne).</p>
+      <p class="hint" data-i18n="flow.hint">De gauche (extraction) à droite (objectif) : chaque nœud est une recette, entrées en bleu à gauche, sorties en mauve à droite. Clique un nœud pour sa bulle et sa fiche, une ligne d'entrée pour les recettes qui la produisent ; tire une prise vers une autre pour les relier. Alt + clic supprime, Maj + clic marque la cible, Ctrl Z annule.</p>
     </div>
     <div class="rpanel" role="tabpanel" id="rpanel-pose" aria-labelledby="rtab-pose" hidden>
       <!-- S25 : le dessin d'abord ; trois boutons au-dessus, le reste replié dans « Plus d'options ». -->
@@ -242,6 +256,7 @@
           </div>
           <div class="u-busy" id="pose-busy" hidden></div>
           <div class="u-cut warn-text" id="pose-cut" role="status" hidden></div>
+          <div class="u-cut" id="pose-frozen" role="status" hidden></div>
           <div class="u-pick" id="pose-pick" hidden></div>
           <div class="u-tip" id="pose-tip" hidden></div>
         </div>
@@ -249,7 +264,6 @@
           <div class="focus-bar">
             <button type="button" class="link" data-focus-back data-i18n="focus.back">Retour à l'usine</button>
             <span class="focus-title" id="focus-title"></span>
-            <button type="button" class="icon-btn" data-focus-big aria-pressed="false" title="Agrandir la bulle" data-i18n-attr="title=plan.bubble.big;aria-label=plan.bubble.big" data-ic="full"></button>
             <button type="button" class="icon-btn" data-focus-full aria-pressed="false" title="Plein écran (Échap pour revenir)" data-i18n-attr="title=focus.full;aria-label=focus.full" data-ic="full"></button>
             <button type="button" class="icon-btn" data-focus-back aria-label="Fermer le panneau" title="Fermer" data-i18n-attr="aria-label=focus.close;title=common.close" data-ic="close"></button>
           </div>
@@ -295,7 +309,7 @@
               <h2 class="cmd-h" id="plan-share-h"><span data-i18n="plan.share">Modifier ou partager</span> <span class="cmd-help" tabindex="0" role="note" data-i18n-attr="title=plan.share.hint;aria-label=plan.share.hint">?</span></h2>
               <div class="cmd-share-b">
                 <button type="button" class="primary" data-share="bac"><span data-ic="edit"></span> <span data-i18n="plan.share.bac.s">Bac à sable</span></button>
-                <button type="button" data-share="file"><span data-ic="download"></span> <span>.msch</span></button>
+                <button type="button" data-share="file"><span data-ic="download"></span> <span data-i18n="plan.share.file">Fichier</span></button>
               </div>
             </section>
           </div>
@@ -333,7 +347,7 @@
           <div id="flow-calc" hidden></div>
         </section>
       </div>
-      <div class="cmd-strip"><button type="button" data-fold="r" data-i18n-attr="title=plan.dash"><span data-ic="chart"></span><span data-i18n="plan.strip.plan">Plan</span></button><button type="button" data-share="bac" data-i18n-attr="title=plan.share.bac"><span data-ic="edit"></span><span data-i18n="plan.strip.bac">Bac</span></button><button type="button" data-share="file" title=".msch"><span data-ic="download"></span><span>.msch</span></button></div>
+      <div class="cmd-strip"><button type="button" data-fold="r" data-i18n-attr="title=plan.dash"><span data-ic="chart"></span><span data-i18n="plan.strip.plan">Plan</span></button><button type="button" data-share="bac" data-i18n-attr="title=plan.share.bac"><span data-ic="edit"></span><span data-i18n="plan.strip.bac">Bac</span></button><button type="button" data-share="file" data-i18n-attr="title=plan.share.file"><span data-ic="download"></span><span data-i18n="plan.share.file">Fichier</span></button></div>
     </aside>
     </div>
   </section>
@@ -474,6 +488,10 @@
         <button type="button" role="radio" data-unlockmode="panneau" aria-checked="true" title="Clique une recherche, puis le bouton du cadre ou du panneau" data-i18n="tr.unlock.panel" data-i18n-attr="title=tr.unlock.panel.title">Panneau</button>
         <button type="button" role="radio" data-unlockmode="bulle" aria-checked="false" title="Clique une recherche : une bulle s'ouvre à côté, avec le bouton pour la débloquer" data-i18n="tr.unlock.bubble" data-i18n-attr="title=tr.unlock.bubble.title">Bulle</button>
       </span></span>
+      <span class="tree-all">
+        <button type="button" class="primary" id="tree-unlock-all" data-i18n="tr.all" data-i18n-attr="title=tr.all.title" title="Cocher toutes les recherches accessibles à la difficulté choisie">Tout débloquer</button>
+        <button type="button" id="tree-lock-all" data-i18n="tr.none" data-i18n-attr="title=tr.none.title" title="Décocher toutes les recherches">Tout décocher</button>
+      </span>
     </div>
 
     <div id="tree-view">
@@ -573,6 +591,13 @@
     <div id="pr-list" class="pr-list"></div>
   </section>
 
+  <!-- Remarque n° 16 : méthodes de calcul expliquées (src/ui/methods-view.ts), hors du menu ; liens depuis les priorités et le pied de page. -->
+  <section class="page me-page" id="page-methodes" aria-labelledby="h-me" hidden>
+    <h1 id="h-me" data-i18n="page.methodes">Méthodes de calcul</h1>
+    <p class="lead" data-i18n="me.lead">Comment le calculateur trouve une installation : ce qu'il calcule, dans quel ordre, et où il peut se tromper. Cette page décrit le code du site tel qu'il est, sans simplification cachée.</p>
+    <div class="me-body"></div>
+  </section>
+
   <section class="page" id="page-donnees" aria-labelledby="h-data" hidden>
     <h1 id="h-data" data-i18n="page.donnees">Contribuer</h1>
     <p class="lead" data-i18n="dn.lead">Pour contribuer, hors du parcours de jeu : corriger une valeur relevée en jeu, relever les entrées et sorties d'un bâtiment.</p>
@@ -617,6 +642,52 @@
 <!-- S35 : fenêtre « Remarque », remplie par src/ui/remarques-view.ts. -->
 <dialog id="remark" class="rm-dialog" aria-labelledby="rm-title"></dialog>
 
+<!-- P2 partage : fenêtre « Partager » (sous le bouton) et fenêtre « Design partagé » à l'ouverture d'un lien. -->
+<div class="shr" id="share" hidden role="dialog" aria-labelledby="shr-name">
+  <div class="shr-in">
+    <div class="shr-top">
+      <div><span class="eyebrow" data-i18n="share.btn">Partager</span><h3 id="shr-name"></h3></div>
+      <button type="button" class="icon-btn shr-x" id="shr-close" data-ic="close" aria-label="Fermer" data-i18n-attr="aria-label=common.close"></button>
+    </div>
+    <div class="shr-facts" id="shr-facts"></div>
+    <div class="shr-link"><code id="shr-link"></code><button type="button" id="shr-copy"></button></div>
+    <div class="shr-gauge" id="shr-gauge"><div class="bar"><i id="shr-bar"></i></div><p><span id="shr-len"></span><span data-i18n="share.discord">Discord : 2 000</span></p></div>
+    <div class="shr-note i" id="shr-b" hidden><span data-ic="info"></span><span><span id="shr-b-txt"></span> <button type="button" class="link" id="shr-b-go" data-i18n="share.b.go">Copier ce lien allégé</button></span></div>
+    <div class="shr-note w" id="shr-miss" role="status" hidden><span data-ic="warn"></span><span data-i18n="share.miss">Tes contributions ne seront pas dans le lien.</span></div>
+    <div class="shr-incl"><span class="eyebrow" data-i18n="share.has">Contient</span>
+      <button type="button" class="shr-chip" aria-pressed="true" disabled data-i18n="share.has.graph">Graphe</button>
+      <button type="button" class="shr-chip" aria-pressed="true" disabled data-i18n="share.has.settings">Réglages</button>
+      <button type="button" class="shr-chip" aria-pressed="true" id="shr-sand" data-i18n="share.has.sandbox">Bac à sable</button>
+      <button type="button" class="shr-chip" aria-pressed="true" id="shr-prof" data-i18n="share.has.profile">Mon profil</button>
+      <button type="button" class="shr-chip" aria-pressed="true" id="shr-contrib" data-i18n="share.has.contrib">Mes contributions</button>
+    </div>
+    <div class="shr-file">
+      <b data-i18n="share.f.title">Version indestructible</b>
+      <p data-i18n="share.f.text">Un lien se recalcule avec le site du jour. Le fichier garde le design exact.</p>
+      <label><input type="checkbox" id="shr-frz" checked> <span data-i18n="share.f.frozen">Inclure l'usine figée</span> <span class="hint" id="shr-fsize"></span></label>
+      <p class="hint" id="shr-fhint"></p>
+      <button type="button" id="shr-dl"></button>
+    </div>
+  </div>
+</div>
+<dialog class="shr-recv" id="shr-recv" aria-labelledby="shr-r-name">
+  <div class="in">
+    <span class="eyebrow" id="shr-r-eye"></span>
+    <h3 id="shr-r-name"></h3>
+    <svg class="shr-mini" id="shr-r-mini" aria-hidden="true"></svg>
+    <div class="shr-facts" id="shr-r-facts"></div>
+    <div class="shr-note w" id="shr-r-warn" hidden><span data-ic="warn"></span><span id="shr-r-warn-txt"></span></div>
+    <div class="shr-note i" id="shr-r-check" role="status" hidden><span id="shr-r-check-ic"></span><span id="shr-r-check-txt"></span></div>
+    <div class="shr-note i" id="shr-r-keep" hidden><span data-ic="info"></span><span id="shr-r-keep-txt"></span></div>
+    <div class="shr-ch" id="shr-r-ch" hidden>
+      <button type="button" id="shr-r-read"><b data-i18n="share.r.read">Ouvrir en session de lecture</b><small data-i18n="share.r.read.sub">Ta partie n'est pas touchée.</small></button>
+      <button type="button" id="shr-r-print"><b data-i18n="share.r.print">Imprimer le profil sur ma partie</b><small data-i18n="share.r.print.sub">Tu choisis ce qui est repris.</small></button>
+    </div>
+    <p class="hint" id="shr-r-orig" hidden><a target="_blank" rel="noopener"></a></p>
+    <div class="row dialog-actions"><button type="button" id="shr-r-no" data-i18n="m.cancel">Annuler</button><button type="button" id="shr-r-yes" class="primary" data-i18n="share.r.open">Ouvrir le design</button></div>
+  </div>
+</dialog>
+<div class="shr-toast" id="shr-toast" role="status" hidden></div>
 <dialog id="ask" aria-labelledby="ask-title">
   <form method="dialog">
     <h3 id="ask-title" data-i18n="dialog.confirm">Confirmer</h3>
@@ -629,7 +700,8 @@
 <footer class="src">
   <p data-i18n-html="footer.who.html">Outil de fan, <b>non officiel</b>, fait par <b>Orangentleman</b> pour le jeu Roblox Industrialist.</p>
   <p data-i18n-html="footer.data.html">Données : wiki Industrialist (<a href="https://industrialist.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Miraheze</a>, CC BY-NC-SA 4.0, images comprises ; <a href="https://industrialist.fandom.com/wiki/Industrialist_Wiki" target="_blank" rel="noopener">Fandom</a>, CC BY-SA), relevés en jeu, et pour la pousse des arbres le calculateur communautaire lié depuis la page Tree. En cas d'écart, le Recipe Book du jeu fait foi.</p>
-  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a></p>
+  <p class="foot-remark"><button type="button" class="link" id="remark-foot" aria-haspopup="dialog" data-i18n="footer.remark">Envoyer une remarque</button> <span data-i18n="footer.remark.hint">· une valeur fausse, un bogue, une idée, une traduction</span> · <a href="#propositions" data-i18n="footer.props">Propositions des joueurs</a> · <a href="#methodes" data-i18n="me.foot">Méthodes de calcul</a></p>
+  <p class="foot-credit"><a href="https://industrialist-calculator.pages.dev" target="_blank" rel="noopener" data-i18n="credit.editor">Éditeur inspiré d'Industrialist Calculator (Pollywrath)</a></p>
 </footer>
 <script type="module" src="/src/ui/main.ts"></script>
 </body>

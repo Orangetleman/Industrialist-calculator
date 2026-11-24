@@ -3,6 +3,7 @@
 // dans la barre du bas du schéma. Fonctions pures pour le HTML.
 
 import { esc, fmt } from "./format.ts";
+import { getItem, setItem } from "./profile-store.ts";
 import { t } from "../i18n/i18n.ts";
 import { DIESEL_FUELS, dieselFuelName, dieselLitersPerMMF, dieselPick, parseDieselReading, type DieselConfig, type DieselPickMode, type DieselReading } from "../engine/modular-calc.ts";
 import { controllerPanel } from "./assembly-view.ts";
@@ -12,7 +13,7 @@ const KEY = "ind-calc:v1:diesel";
 
 export function loadDieselReadings(): DieselReading[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || "null") as { diesel?: unknown } | null;
+    const raw = JSON.parse(getItem(KEY) || "null") as { diesel?: unknown } | null;
     return Array.isArray(raw?.diesel) ? raw!.diesel.map(parseDieselReading).filter((r): r is DieselReading => !!r) : [];
   } catch {
     return [];
@@ -21,7 +22,7 @@ export function loadDieselReadings(): DieselReading[] {
 
 export function saveDieselReadings(list: DieselReading[]): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ diesel: list }));
+    setItem(KEY, JSON.stringify({ diesel: list }));
   } catch {
     // stockage indisponible : le relevé vaut pour la session
   }

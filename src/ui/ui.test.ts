@@ -8,7 +8,8 @@ import { makeData, progress } from "../../tests/engine-helpers.ts";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { balanceTimeline, emptySetup } from "../engine/research-balance.ts";
 import { missingNodes } from "../engine/unlock.ts";
-import { SITE_TOUR, tourSeq } from "./tour.ts";
+import { CHECKLIST, SITE_TOUR, tourSeq } from "./tour.ts";
+import { reachedItem, stepsOf } from "./checklist.ts";
 import { phasedOrder, renderOrder } from "./module-view.ts";
 import { say, turnMessage } from "./engine-text.ts";
 import { msg, type Message } from "../engine/message.ts";
@@ -16,7 +17,7 @@ import { setLang } from "../i18n/i18n.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
 import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
-import { buildRows, buildSignature, criterionHint, criterionText, renderAnswer, renderBuildList, renderDetails, renderFlow, type ViewCtx } from "./plan-view.ts";
+import { buildRows, buildSignature, criterionHint, criterionText, renderAnswer, renderBuildList, renderDetails, type ViewCtx } from "./plan-view.ts";
 import { renderVerify } from "./render.ts";
 import { currentRp, EMPTY_PLAYER, exportProgress, fitsPlot, parseOptional, parseProgressExport, plotOf, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
 import { layoutResearch, RN_H, RN_W } from "./research-layout.ts";
@@ -259,11 +260,7 @@ describe("vue d'un plan : réponse, liste de construction, schéma, détails", (
     expect(builtFor(setBuilt(store, "p39", []), "p39").size).toBe(0);
   });
 
-  it("schéma et détails", () => {
-    const f = renderFlow(v)!;
-    expect(f.svg.startsWith("<svg")).toBe(true);
-    expect((f.svg.match(/class="fn /g) ?? []).length).toBe(plan.steps.length);
-    expect(f.svg).toContain('class="fn final"');
+  it("détails", () => {
     const details = renderDetails(v);
     expect(details).toContain('data-force="crankshaft"');
     expect(details).toContain("Remarques sur le calcul");
@@ -273,7 +270,7 @@ describe("vue d'un plan : réponse, liste de construction, schéma, détails", (
     const d = makeData({ recipes: [{ id: "r<x>", machine: "m", t: 10, out: { "<b>evil</b>": 1 } }] });
     const p = solve(d, progress(), { item: "<b>evil</b>", ratePerMin: 6 });
     const w: ViewCtx = { data: d, plan: p, settings: DEFAULT_SETTINGS, corrections: {}, goal: "objet" };
-    const html = renderAnswer(w) + renderBuildList(w, buildRows(w), new Set()) + renderFlow(w)!.svg + renderDetails(w);
+    const html = renderAnswer(w) + renderBuildList(w, buildRows(w), new Set()) + renderDetails(w);
     expect(html).not.toContain("<b>evil</b>");
     expect(html).toContain("&lt;b&gt;evil&lt;/b&gt;");
   });
@@ -479,19 +476,44 @@ describe("S26 : ordre de pose du joueur", () => {
   });
 });
 
-describe("S24 : visite d'orientation", () => {
-  it("l'essentiel, puis un détail qui entre dans le schéma et l'usine complète (Q25)", () => {
-    const core = tourSeq(SITE_TOUR, "core");
-    const detail = tourSeq(SITE_TOUR, "detail");
-    // S35 : 9 étapes, celle des remarques (« 💬 ») juste avant la dernière.
-    expect(core).toHaveLength(9);
-    expect(SITE_TOUR[core.at(-2)!]!.target).toBe("#remark-btn");
-    expect([...core, ...detail].sort((a, b) => a - b)).toEqual(tourSeq(SITE_TOUR, "full"));
-    const hashes = detail.map((k) => SITE_TOUR[k]!.hash);
-    expect(hashes).toContain("#objet/schema");
-    expect(hashes).toContain("#objet/pose/usine-entiere");
-    // Une cible par étape, sauf les cartes centrées (bienvenue, fin).
+describe("Remarque n° 14 : tutoriel « Ton premier plan » et mini-parcours", () => {
+  it("le premier parcours : accueil, puis 5 étapes sur la page Planifier, deux guidées par l'action", () => {
+    const first = tourSeq(SITE_TOUR, "first");
+    expect(first).toHaveLength(9);
+    expect(SITE_TOUR[first[0]!]!.center).toBe(true);
+    const guided = first.filter((k) => SITE_TOUR[k]!.until);
+    expect(guided.map((k) => SITE_TOUR[k]!.until)).toEqual(["item", "schema"]);
+    // Toutes sur Planifier ; la dernière reste où l'on est (pas d'adresse : l'onglet Schéma ouvert ne se referme pas).
+    for (const k of first) expect((SITE_TOUR[k]!.hash ?? "#objet").startsWith("#objet"), SITE_TOUR[k]!.title).toBe(true);
+    // La dernière étape propose d'ouvrir Mon usine.
+    expect(SITE_TOUR[first.at(-1)!]!.alt?.hash).toBe("#usine");
+    // Une cible par étape, sauf la carte centrée.
     for (const s of SITE_TOUR) expect(!!s.target !== !!s.center, s.title).toBe(true);
+  });
+  it("chaque case de « Premiers pas » a son mini-parcours, sur la bonne page", () => {
+    for (const it of CHECKLIST) {
+      const n = stepsOf(it);
+      if (it === "premier-plan" || it === "plan-pose") expect(n).toBe(0);
+      else expect(n, it).toBeGreaterThan(0);
+    }
+    expect(tourSeq(SITE_TOUR, "partie").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#usine", "#usine/recherche"]);
+    expect(tourSeq(SITE_TOUR, "arbre").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#arbre"]);
+    expect(tourSeq(SITE_TOUR, "recettes").map((k) => SITE_TOUR[k]!.hash)).toEqual(["#recettes", "#objet"]);
+    expect(tourSeq(SITE_TOUR, "regler").map((k) => SITE_TOUR[k]!.until)).toEqual(["drawer", undefined]);
+    expect(tourSeq(SITE_TOUR, "poser")).toHaveLength(3);
+    // « Modifier la proposition » (G5) : Schéma, un nœud, la bulle, les outils, Recalculer, le bandeau.
+    const mod = tourSeq(SITE_TOUR, "modifier");
+    expect(mod.map((k) => SITE_TOUR[k]!.target)).toEqual(["#rtabs-result", "#flow-frame", "#flow-frame", ".gv-tray", ".gv-recalc", "#graph-bar"]);
+    expect(mod.map((k) => SITE_TOUR[k]!.until)).toEqual(["schema", "gnode", "gchanged", undefined, "gsolved", undefined]);
+    expect(tourSeq(SITE_TOUR, "inconnu")).toEqual([]);
+    // Aucune étape orpheline : chaque étape est du premier parcours ou d'une case.
+    const covered = new Set([...tourSeq(SITE_TOUR, "first"), ...CHECKLIST.flatMap((it) => tourSeq(SITE_TOUR, it))]);
+    expect(covered.size).toBe(SITE_TOUR.length);
+  });
+  it("les cases du premier parcours se cochent quand on atteint la réponse et les vues", () => {
+    const first = tourSeq(SITE_TOUR, "first");
+    expect(first.map((k) => reachedItem("first", k))).toEqual([null, null, "premier-plan", null, null, null, "plan-pose", null, null]);
+    expect(reachedItem("arbre", tourSeq(SITE_TOUR, "arbre")[0]!)).toBeNull();
   });
 });
 
