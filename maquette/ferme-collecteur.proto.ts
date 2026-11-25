@@ -88,6 +88,8 @@ export type FarmSet = {
   /** Câbles : de la prise du contrôleur vers le bord, poteau par poteau. */
   pipes: Cell[];
   exit: Cell | null;
+  water: Cell[];
+  entry: Cell | null;
   cables: { x1: number; y1: number; x2: number; y2: number }[];
   /** Nombre de chaque bloc (id machines.json) ; poteaux à part. */
   counts: Record<string, number>;
@@ -168,6 +170,8 @@ type Farm = {
   tanks: Tank[];
   pipes: Cell[];
   exit: Cell | null;
+  water: Cell[];
+  entry: Cell | null;
   /** Places réservées aux poteaux, de la prise vers le bord (la dernière est hors de la ferme). */
   poleSpots: { x: number; y: number }[];
   ok: boolean;
@@ -294,7 +298,7 @@ function farmOnce(g: FarmGeometry, N: number, cells: number, reach: number | nul
     left -= take.length;
   }
   const base = { N, trees, spr, ctrl, plug: plugPos, poleSpots };
-  if (trees.length < N + extra && !full) return { ...base, harv: [], outs: [], tanks: [], pipes: [], exit: null, ok: false, lost: N - trees.length, short: true };
+  if (trees.length < N + extra && !full) return { ...base, harv: [], outs: [], tanks: [], pipes: [], exit: null, water: [], entry: null, ok: false, lost: N - trees.length, short: true };
 
   // Récolteurs : places libres de la taille d'un récolteur ; glouton, les arbres les plus difficiles d'abord.
   const hw = Math.max(1, Math.round(g.sizes.harvester.w / T));
@@ -533,14 +537,33 @@ function farmOnce(g: FarmGeometry, N: number, cells: number, reach: number | nul
   };
   let tcands = nt ? ring(false) : [];
   let inner = false;
+  const water: Cell[] = [];
+  let entry: Cell | null = null;
   for (let k = 0; k < nt; k++) {
     const box = placedBox();
     let bestT: Tank | null = null;
-    for (const c of tcands) {
-      if (rectBlocked(c.r) || crossesRay(c.r)) continue;
-      const port = at(tankPorts[c.rot]!, c.r.x0, c.r.y0);
-      if (port && !rayClear(port, bbox([box, c.r]), c.r)) continue;
-      bestT = { r: c.r, rot: c.rot, port };
+    const bd: Rect = { x0: Math.floor(box.x0) - 14, y0: Math.floor(box.y0) - 14, x1: Math.ceil(box.x1) + 14, y1: Math.ceil(box.y1) + 14 };
+    const wcost = (x: number, y: number) => (pipeSet.has(ck(x, y)) || (exit && y === exit.y && x >= exit.x) || caseBlocked(x, y) ? null : 1);
+    const edge: Cell[] = [];
+    for (let y = Math.floor(box.y0) - 1; y <= box.y1; y++) if (wcost(Math.floor(box.x0) - 1, y) !== null) edge.push({ x: Math.floor(box.x0) - 1, y });
+    const src = water.length ? water : edge;
+    const fl = flood(src, bd, wcost);
+    const list = tcands
+      .filter((c) => !rectBlocked(c.r) && !crossesRay(c.r))
+      .map((c) => ({ c, port: at(tankPorts[c.rot]!, c.r.x0, c.r.y0)! }))
+      .map((q) => ({ ...q, d: fl.d(q.port) + q.c.s * 2 }))
+      .filter((q) => q.d < 1e8 && wcost(q.port.x, q.port.y) !== null)
+      .sort((a, b) => a.d - b.d);
+    for (const q of list.slice(0, 40)) {
+      const r = q.c.r;
+      // Le réservoir ne se pose ni sur un tuyau d'eau, ni sur l'arrivée (vers la gauche) déjà prévue.
+      if (water.some((w) => w.x >= r.x0 && w.x < r.x1 && w.y >= r.y0 && w.y < r.y1) || (entry && entry.y >= r.y0 && entry.y < r.y1 && r.x0 <= entry.x)) continue;
+      const f2 = flood(src.filter((w) => !(w.x >= r.x0 && w.x < r.x1 && w.y >= r.y0 && w.y < r.y1)), bd, (x, y) => (x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1 ? null : wcost(x, y)));
+      if (f2.d(q.port) >= 1e8) continue;
+      const way = f2.path(q.port);
+      if (!entry) entry = way[way.length - 1]!;
+      for (const c of way) if (!water.some((w) => w.x === c.x && w.y === c.y)) water.push(c);
+      bestT = { r, rot: q.c.rot, port: q.port };
       break;
     }
     if (!bestT && !inner) {
@@ -552,11 +575,10 @@ function farmOnce(g: FarmGeometry, N: number, cells: number, reach: number | nul
     }
     if (!bestT) break;
     tanks.push({ r: bestT.r, rot: bestT.rot, port: bestT.port });
-    if (bestT.port) rays.push({ x: bestT.port.x, y: bestT.port.y, dir: bestT.port.facing });
   }
   const lost = trees.filter((t) => !t.h).length;
   const ok = (full || trees.length >= N) && trees.length > 0 && !lost && harv.every((h) => h.out) && tanks.length === nt;
-  return { ...base, harv, outs, tanks, pipes, exit, ok, lost, short: false };
+  return { ...base, harv, outs, tanks, pipes, exit, water, entry, ok, lost, short: false };
 }
 
 const byIdUnit = (blocks: AsmBlock[], id: string) => blocks.find((b) => b.id === id)?.unit ?? 1;
@@ -582,7 +604,7 @@ function oneFarm(g: FarmGeometry, N: number, reach: number | null): Farm {
   for (const t of TRIES) {
     TRY = t;
     const f = oneTry(g, N, reach);
-    const b = bbox([...f.trees.map((q) => q.r), ...f.spr.map((q) => q.r), ...f.harv.map((q) => q.r), ...f.outs.map((q) => q.r), ...f.tanks.map((q) => q.r), f.ctrl.r, ...f.pipes.map((q) => ({ x0: q.x, y0: q.y, x1: q.x + 1, y1: q.y + 1 }))]);
+    const b = bbox([...f.trees.map((q) => q.r), ...f.spr.map((q) => q.r), ...f.harv.map((q) => q.r), ...f.outs.map((q) => q.r), ...f.tanks.map((q) => q.r), f.ctrl.r, ...[...f.pipes, ...f.water].map((q) => ({ x0: q.x, y0: q.y, x1: q.x + 1, y1: q.y + 1 }))]);
     const k = [f.ok ? 0 : 1, (b.x1 - b.x0) * (b.y1 - b.y0), f.harv.length + f.spr.length + f.outs.length, f.pipes.length];
     if (!best || lexLess(k, key)) [best, key] = [f, k];
   }
@@ -654,7 +676,7 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
   const T = g.tree;
   const N = Math.max(0, Math.ceil(trees - 1e-9));
   const problems: Message[] = [];
-  const empty: FarmSet = { farms: 0, trees: [], capacity: 0, reserveReach: null, blocks: [], corridors: [], poles: [], pipes: [], exit: null, cables: [], counts: {}, poleCounts: {}, pole: null, poleOptions: [], width: 0, height: 0, gap: null, problems };
+  const empty: FarmSet = { farms: 0, trees: [], capacity: 0, reserveReach: null, blocks: [], corridors: [], poles: [], pipes: [], exit: null, water: [], entry: null, cables: [], counts: {}, poleCounts: {}, pole: null, poleOptions: [], width: 0, height: 0, gap: null, problems };
   if (!N) return empty;
   // Poteau : d'abord pour une seule ferme, puis pour la part de chacune.
   let farms = 1;
@@ -687,15 +709,18 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
   }
   for (const f of layouts) if (!f.ok) problems.push(msg("asm.farmLost", { trees: f.N, n: f.lost }));
   // Écart entre deux fermes : le cercle d'un contrôleur ne touche aucun bloc de l'autre.
-  const rectsOf = (f: Farm): Rect[] => [...f.trees.map((t) => t.r), ...f.spr.map((s) => s.r), ...f.harv.map((h) => h.r), ...f.outs.map((o) => o.r), ...f.tanks.map((t) => t.r), f.ctrl.r];
+  const rectsOf = (f: Farm): Rect[] => [...f.trees.map((t) => t.r), ...f.spr.map((s) => s.r), ...f.harv.map((h) => h.r), ...f.outs.map((o) => o.r), ...f.tanks.map((t) => t.r), f.ctrl.r, ...[...f.pipes, ...f.water].map((q) => ({ x0: q.x, y0: q.y, x1: q.x + 1, y1: q.y + 1 }))];
   const big = layouts[0]!;
   const rs = rectsOf(big);
   const fb = bbox([...rs, ...big.poleSpots.map((p) => ({ x0: p.x - T / 2, y0: p.y - T / 2, x1: p.x + T / 2, y1: p.y + T / 2 }))]);
   const [ccx, ccy] = mid(big.ctrl.r);
   const clash = (dx: number, dy: number) => rs.some((r) => rdist(ccx, ccy, shift(r, dx, dy)) <= g.reach.controller || rdist(ccx + dx, ccy + dy, r) <= g.reach.controller || overlap(fb, shift(fb, dx, dy)));
   const cols = Math.ceil(Math.sqrt(farms));
-  let dx = fb.x1 - fb.x0;
-  let dy = fb.y1 - fb.y0;
+  // Les tuyaux de chaque ferme et deux couloirs (bûches, eau) tiennent entre deux fermes.
+  const pb = layouts.map((f) => bbox([...rectsOf(f), fb, ...[...f.pipes, ...f.water].map((c) => ({ x0: c.x, y0: c.y, x1: c.x + 1, y1: c.y + 1 }))]));
+  const ab = bbox(pb);
+  let dx = ab.x1 - ab.x0 + 4;
+  let dy = ab.y1 - ab.y0 + 4;
   if (farms > 1) {
     while (clash(dx, 0)) dx++;
     if (farms > cols) {
@@ -734,7 +759,6 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
     f.tanks.forEach((t, n) => {
       const served = f.spr.slice(n * g.perTank, (n + 1) * g.perTank).map((_, m) => id(`s${n * g.perTank + m}`));
       blocks.push({ id: id(`w${n}`), kind: "tank", machine: FARM_IDS.tank, unit: u, ...R(t.r), rot: t.rot, serves: served, ...(t.port ? { port: { ...t.port, x: t.port.x + ox, y: t.port.y + oy } } : {}) });
-      if (t.port) corridors.push({ x: t.port.x + ox, y: t.port.y + oy, dir: t.port.facing, len: 0, block: id(`w${n}`) });
     });
     blocks.push({ id: id("c"), kind: "controller", machine: FARM_IDS.controller, unit: u, ...R(f.ctrl.r), rot: 0, reach: g.reach.controller, plug: { x: f.plug.x + ox, y: f.plug.y + oy }, serves: [] });
     // Poteaux : chaîne depuis la prise ; avec un poteau de plus grande portée, on saute des places.
@@ -755,10 +779,11 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
     }
   });
   // Coordonnées positives et longueur des passages jusqu'au bord de l'ensemble.
-  const all = [...blocks.map(rectOf), ...poles.map(rectOf), ...layouts.flatMap((f, k) => f.pipes.map((c) => { const x = c.x + (k % cols) * dx, y = c.y + Math.floor(k / cols) * dy; return { x0: x, y0: y, x1: x + 1, y1: y + 1 }; }))];
+  const all = [...blocks.map(rectOf), ...poles.map(rectOf), ...layouts.flatMap((f, k) => [...f.pipes, ...f.water].map((c) => { const x = c.x + (k % cols) * dx, y = c.y + Math.floor(k / cols) * dy; return { x0: x, y0: y, x1: x + 1, y1: y + 1 }; }))];
   const b = bbox(all);
-  const mx = -b.x0 + 1;
-  const my = -b.y0 + 1;
+  const mg = layouts.length > 1 ? 3 : 1;
+  const mx = -b.x0 + mg;
+  const my = -b.y0 + mg;
   for (const q of blocks) {
     q.x += mx;
     q.y += my;
@@ -775,8 +800,8 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
     c.y1 += my;
     c.y2 += my;
   }
-  const width = b.x1 - b.x0 + 2;
-  const height = b.y1 - b.y0 + 2;
+  const width = b.x1 - b.x0 + 2 * mg;
+  const height = b.y1 - b.y0 + 2 * mg;
   // Un passage va jusqu'au bord de sa ferme (au-delà, l'écart entre deux fermes laisse passer le tuyau).
   const unitBox = new Map<number, Rect>();
   for (const q of blocks) unitBox.set(q.unit, unitBox.has(q.unit) ? bbox([unitBox.get(q.unit)!, rectOf(q)]) : rectOf(q));
@@ -788,31 +813,46 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
     const fb2 = unitBox.get(u)!;
     c.len = Math.max(0, c.dir === "N" ? c.y - fb2.y0 + 1 : c.dir === "S" ? fb2.y1 - c.y : c.dir === "W" ? c.x - fb2.x0 + 1 : fb2.x1 - c.x);
   }
-  // Maillage : les tuyaux de chaque ferme, puis un seul point de départ sur le bord droit de l'ensemble.
-  const pipes: Cell[] = [];
-  const seen = new Set<string>();
-  const addP = (c: Cell) => { if (!seen.has(ck(c.x, c.y))) { seen.add(ck(c.x, c.y)); pipes.push(c); } };
-  const exits = layouts.map((f, k) => {
-    const ox = (k % cols) * dx + mx, oy = Math.floor(k / cols) * dy + my;
-    f.pipes.forEach((c) => addP({ x: c.x + ox, y: c.y + oy }));
-    return f.exit ? { x: f.exit.x + ox, y: f.exit.y + oy } : null;
-  });
-  let exit: Cell | null = null;
+  // Maillage : bûches vers un départ unique (à droite), eau depuis une arrivée unique (à gauche).
   const hard = new Set<string>();
   for (const r of [...blocks, ...poles].map(rectOf)) for (let x = Math.floor(r.x0); x < r.x1; x++) for (let y = Math.floor(r.y0); y < r.y1; y++) hard.add(ck(x, y));
-  for (const c of corridors) for (let n = 0; n < c.len; n++) hard.add(ck(c.x + STEP[c.dir].x * n, c.y + STEP[c.dir].y * n));
-  let net: Cell[] = [];
   const bounds: Rect = { x0: 0, y0: 0, x1: width - 1, y1: height - 1 };
-  for (const e of exits.filter((q): q is Cell => !!q).sort((p, q) => q.x - p.x)) {
-    const right: Cell[] = [];
-    if (!net.length) for (let y = 0; y < height; y++) if (!hard.has(ck(width - 1, y))) right.push({ x: width - 1, y });
-    const fl = flood(net.length ? net : right, bounds, (x, y) => (hard.has(ck(x, y)) ? null : 1));
-    if (fl.d(e) >= 1e8) { problems.push(msg("asm.farmLost", { trees: 0, n: 0 })); continue; }
-    const way = fl.path(e);
-    if (!exit) exit = way[way.length - 1]!;
-    way.forEach(addP);
-    net = [...pipes].filter((c) => way.some((w) => w.x === c.x && w.y === c.y)).concat(net);
+  const abs = (k: number, c: Cell): Cell => ({ x: c.x + (k % cols) * dx + mx, y: c.y + Math.floor(k / cols) * dy + my });
+  const logsIn = layouts.map((f, k) => f.pipes.map((c) => abs(k, c)));
+  const waterIn = layouts.map((f, k) => f.water.map((c) => abs(k, c)));
+  const joinAll = (own: Cell[][], ends: (Cell | null)[], other: Set<string>, edgeX: number): { cells: Cell[]; end: Cell | null } => {
+    const seen = new Set<string>();
+    const cells: Cell[] = [];
+    const add = (c: Cell) => { if (!seen.has(ck(c.x, c.y))) { seen.add(ck(c.x, c.y)); cells.push(c); } };
+    let end: Cell | null = null;
+    const order = ends.map((e, k) => ({ e, k })).filter((q) => q.e).sort((p, q) => Math.abs(p.e!.x - edgeX) - Math.abs(q.e!.x - edgeX));
+    for (const { e, k } of order) {
+      const cost = (x: number, y: number) => (hard.has(ck(x, y)) || other.has(ck(x, y)) ? null : 1);
+      const edge: Cell[] = [];
+      if (!end) for (let y = 0; y < height; y++) if (cost(edgeX, y) !== null) edge.push({ x: edgeX, y });
+      const fl = flood(end ? [...cells] : edge, bounds, cost);
+      const best = end ? own[k]!.reduce((a, c) => (fl.d(c) < fl.d(a) ? c : a), e!) : e!;
+      if (fl.d(best) >= 1e8) { problems.push(msg("asm.farmLost", { trees: 0, n: 0 })); continue; }
+      const way = fl.path(best);
+      end ??= way[way.length - 1]!;
+      way.forEach(add);
+      own[k]!.forEach(add);
+    }
+    return { cells, end };
+  };
+  const keys = (a: Cell[]) => new Set(a.map((c) => ck(c.x, c.y)));
+  const logEnds = layouts.map((f, k) => (f.exit ? abs(k, f.exit) : null));
+  const waterEnds = layouts.map((f, k) => (f.entry ? abs(k, f.entry) : null));
+  const n0 = problems.length;
+  let WN = joinAll(waterIn, waterEnds, keys(logsIn.flat()), 0);
+  let L = joinAll(logsIn, logEnds, keys(WN.cells), width - 1);
+  if (problems.length > n0) {
+    const bad = problems.splice(n0);
+    L = joinAll(logsIn, logEnds, keys(waterIn.flat()), width - 1);
+    WN = joinAll(waterIn, waterEnds, keys(L.cells), 0);
+    if (problems.length > n0) problems.push(...bad);
   }
+  const pipes = L.cells, exit = L.end, water = WN.cells, entry = WN.end;
   const counts: Record<string, number> = {};
   for (const q of blocks) counts[q.machine] = (counts[q.machine] ?? 0) + 1;
   const poleCounts: Record<string, number> = {};
@@ -820,7 +860,7 @@ export function designFarm(g: FarmGeometry, trees: number, loadMFps: number, pol
   const poleOptions = def ? g.poles.filter((p) => p.capacityMFps >= def!.capacityMFps - 1e-9 && p.rangeCells >= def!.rangeCells) : [];
   if (!g.ports.output) problems.push(msg("asm.noOutputPort"));
   if (!g.ports.tank) problems.push(msg("asm.noTankPort"));
-  return { farms: layouts.length, trees: sizes, capacity: cap, reserveReach: reach, blocks, corridors, poles, pipes, exit, cables, counts, poleCounts, pole: pick, poleOptions, width, height, gap: layouts.length > 1 ? dx - (fb.x1 - fb.x0) : null, problems };
+  return { farms: layouts.length, trees: sizes, capacity: cap, reserveReach: reach, blocks, corridors, poles, pipes, exit, water, entry, cables, counts, poleCounts, pole: pick, poleOptions, width, height, gap: layouts.length > 1 ? dx - (fb.x1 - fb.x0) : null, problems };
 }
 
 /** Nombre de chaque bloc pour `trees` arbres, d'après le plan de pose (sert au calcul, S14). */
