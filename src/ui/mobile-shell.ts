@@ -604,7 +604,7 @@ function longPress(): void {
     tip.hidden = true;
     // Le plan du bac à sable a son propre appui long (zone à copier ou à effacer).
     const el = e.target as Element;
-    if (!e.isPrimary || el.closest("#bac-map, .m-grip, input:not([type="checkbox"], [type="radio"]), select, textarea")) return;
+    if (!e.isPrimary || el.closest("#bac-map, .m-grip, input:not([type='checkbox'], [type='radio']), select, textarea")) return;
     const s = textOf(el);
     if (!s) return;
     [x, y] = [e.clientX, e.clientY];
