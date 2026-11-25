@@ -12,10 +12,11 @@ import relevesJson from "../../../data/releves.json";
 import researchJson from "../../../data/research.json";
 import { buildGameData, type RawFiles } from "../data.ts";
 import type { LogisticsFile, PortsFile, PowerFile } from "../extension-types.ts";
-import { solve } from "../solve.ts";
+import { addMachines, solve } from "../solve.ts";
+import { balanceGraph, planToGraph } from "../graph/index.ts";
 import type { OverridesFile } from "../types.ts";
 import { buildCatalog } from "./catalog.ts";
-import { designFactory, factoryInput, type FactoryPlan } from "./factory.ts";
+import { designFactory, factoryInput, lineExtras, type FactoryPlan } from "./factory.ts";
 import { OPPOSITE, STEP } from "./geometry.ts";
 
 const cat = buildCatalog(logisticsJson as unknown as LogisticsFile, powerJson as unknown as PowerFile, (relevesJson as { poleRangeTiles: Record<string, number> }).poleRangeTiles);
@@ -89,4 +90,37 @@ describe("usine : fusion de deux sources", () => {
     const u = factory("cut-oak-log", 60, full, true, "machines");
     expect(u.problems.filter((p) => p.item === "Water" && p.to !== "oak-log")).toEqual([]);
   }, 60_000);
+});
+
+describe("machine ajoutée : plan, graphe et usine d'accord", () => {
+  it("90 Chair/min sans Overflow Gate : 8 Boiler partout, totaux compris", () => {
+    const look = { name: (id: string) => data.items.get(id)?.name ?? id, isFluid: (id: string) => !!data.items.get(id)?.isFluid, machine: (id: string) => data.machines.get(id) ?? null, ports, gate: false };
+    const base0 = solve(data, { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 } as never, { item: "chair", ratePerMin: 90, criterion: "area", then: ["machines", "energy", "cost", "pollution", "raw", "steps"], tiers: false } as never);
+    const ex = lineExtras(base0, look, cat);
+    expect(ex).toEqual([{ key: "steam", n: 1, item: "steam" }]);
+    const plan = addMachines(base0, look.name, ex);
+    const [a, b] = [base0.steps.find((s) => s.key === "steam")!, plan.steps.find((s) => s.key === "steam")!];
+    expect(b.machines).toBe(a.machines + 1);
+    expect(plan.totals.machines).toBe(base0.totals.machines + 1);
+    expect(plan.totals.buildCost - base0.totals.buildCost).toBeCloseTo(a.buildCost! / a.machines);
+    expect(plan.totals.footprint - base0.totals.footprint).toBeCloseTo(a.footprint! / a.machines);
+    expect(lineExtras(plan, look, cat)).toEqual([]); // rien de plus à ajouter
+    // L'usine part du même nombre, et le graphe l'affiche.
+    const input = factoryInput(plan, look, cat, { w: 1e5, h: 1e5 }, { priority: ["place", "forme", "prix", "pieces"] });
+    expect(input.steps.find((s) => s.key === "steam")!.req!.count).toBe(b.machines);
+    expect(input.lines!.every((l) => !l.extra)).toBe(true);
+    const { graph, nodeOfStep } = planToGraph(plan);
+    const bal = balanceGraph(graph, data, { pollutionPct: 0, extra: { [b.recipeId]: { exact: b.machinesExact, whole: b.machines } } });
+    expect(bal.nodes.get(nodeOfStep.get("steam")!)!.machinesWhole).toBe(b.machines);
+  });
+});
+
+describe("Item Overflow Gate", () => {
+  it("permise pour les objets, par type", () => {
+    const plan = solve(data, { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 } as never, { item: "chair", ratePerMin: 60, criterion: "area", tiers: false } as never);
+    const of = (gate: boolean | { objet: boolean; fluide: boolean }) => Object.keys(factoryInput(plan, { name: (id) => id, isFluid: (id) => !!data.items.get(id)?.isFluid, machine: (id) => data.machines.get(id) ?? null, ports, gate }, cat, { w: 1e5, h: 1e5 }, { priority: ["place", "forme", "prix", "pieces"] }).gates ?? {}).sort();
+    expect(of(true)).toEqual(["fluide", "objet"]);
+    expect(of({ objet: true, fluide: false })).toEqual(["objet"]);
+    expect(of(false)).toEqual([]);
+  });
 });

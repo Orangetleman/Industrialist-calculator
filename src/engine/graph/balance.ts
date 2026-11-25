@@ -69,12 +69,18 @@ export type GraphBalance = {
   totals: GraphTotals;
 };
 
+/** Machines entières d'un nœud : l'entier au-dessus, ou le nombre du plan s'il en a ajouté (débit partagé entre des tuyaux). */
+export function wholeOf(n: { recipeId: string; machines: number }, world: GraphWorld = {}): number {
+  const x = world.extra?.[n.recipeId];
+  return x && Math.abs(x.exact - n.machines) < 1e-6 * Math.max(1, x.exact) ? x.whole : ceilTol(n.machines);
+}
+
 export function balanceGraph(g: Graph, data: GameData, world: GraphWorld = {}): GraphBalance {
   const nodes = new Map<NodeId, NodeBalance>();
   for (const n of g.nodes) {
     const p = recipePorts(data, n.recipeId, world);
     const empty = (item: string): PortBalance => ({ item, perMin: 0, flow: 0, links: 0 });
-    const nb: NodeBalance = { id: n.id, problem: null, ins: p.ins.map(empty), outs: p.outs.map(empty), machinesWhole: ceilTol(n.machines), trees: 0, energyMFps: null, cost: null, area: null, pollutionPerHour: null };
+    const nb: NodeBalance = { id: n.id, problem: null, ins: p.ins.map(empty), outs: p.outs.map(empty), machinesWhole: wholeOf(n, world), trees: 0, energyMFps: null, cost: null, area: null, pollutionPerHour: null };
     nodes.set(n.id, nb);
     if (!p.eff) {
       nb.problem = "recette inconnue";

@@ -1,6 +1,6 @@
 // Lignes de tuyaux : le partage à parts égales affame un simple pont ; avec Overflow Gate ou le partage ajusté, tout est servi.
 import { describe, expect, it } from "vitest";
-import { planLines, linesWithGate, linesWithoutGate, served, simulate, type Chain, type Client } from "./lines.ts";
+import { mergeFlow, planLines, splitFlow, linesWithGate, linesWithoutGate, served, simulate, type Chain, type Client } from "./lines.ts";
 
 const CAP = 120;
 const chairs = (k: number): Client[] => [
@@ -48,5 +48,15 @@ describe("lignes de tuyaux (débit au-delà d'un tuyau)", () => {
     expect(on.gates).toBeGreaterThan(0);
     const off = planLines(chairs(2), 9, 90, CAP, false)!;
     expect([off.gate, off.extra]).toEqual([false, 1]);
+  });
+
+  it("embranchement à trois : parts égales, une branche pleine renvoie son flux ; fusion de trois flux", () => {
+    expect(splitFlow(90, [60, 60, 60], CAP)).toEqual([30, 30, 30]);
+    const r = splitFlow(90, [10, 60, 60], CAP);
+    expect(r[0]).toBeCloseTo(10);
+    expect(r[1]).toBeCloseTo(40);
+    expect(r[2]).toBeCloseTo(40);
+    expect(mergeFlow([20, 30, 40], CAP).reduce((a, b) => a + b, 0)).toBeCloseTo(90);
+    expect(mergeFlow([60, 60, 60], CAP).reduce((a, b) => a + b, 0)).toBeCloseTo(CAP);
   });
 });

@@ -86,7 +86,9 @@ export type FactoryInput = {
   options?: FactoryOptions;
   /** Ressources à plusieurs lignes, et l'Overflow Gate (ports relevés). */
   lines?: ItemLines[];
-  gate?: { id: string; price: number | null; entry: PortsEntry } | null;
+  gates?: GateSet;
+  /** Machines ajoutées au plan pour partager un débit (déjà dans les étapes). */
+  extras?: { key: string; n: number; item: string }[];
   /** S56 : catalogue du bac à sable, pour vérifier chaque module et chaque étape collée (sans lui, rien n'est vérifié). */
   sb?: SbCatalog | null;
 };
@@ -108,6 +110,8 @@ export type FactoryNet = { id: string; item: string; perMin: number; from: strin
 /** Overflow Gate posée sur un tuyau : sa place, sa rotation, la case d'entrée, celle de sortie et celle du surplus. */
 export type FactoryGate = { id: string; net: string; x: number; y: number; w: number; h: number; rot: Rot; from: Pt; to: Pt; side: Pt; perSec: number };
 /** Ressource dont le débit dépasse un tuyau : ses lignes, de la sortie de chaque groupe de machines aux clients. */
+/** Overflow Gate de chaque type (ports relevés). */
+export type GateSet = Partial<Record<"objet" | "fluide", { id: string; price: number | null; entry: PortsEntry }>>;
 export type ItemLines = { item: string; from: string; kind: "objet" | "fluide"; cap: number; perSource: number; gate: boolean; chains: Chain[]; /** Machines ajoutées au module producteur. */ extra: number };
 /**
  * Passage du collecteur central gardé pour un module : le texte, les choix (ressource, rangée, machine) et si
@@ -208,6 +212,18 @@ function asmTurns(w: number, h: number, ends: AsmEnd[]): { w: number; h: number;
   return out;
 }
 
+/** Overflow Gates permises : toutes, aucune, ou par type. */
+export type GateAllowed = boolean | { objet: boolean; fluide: boolean };
+function gateSet(ok: GateAllowed | undefined, ports: Record<string, PortsEntry>, cat: Catalog): GateSet {
+  const out: GateSet = {};
+  for (const kind of ["objet", "fluide"] as const) {
+    const piece = cat.gates[kind];
+    const entry = piece && ports[piece.id];
+    if ((ok === true || (ok && ok[kind])) && piece && entry?.footprint) out[kind] = { id: piece.id, price: piece.price, entry };
+  }
+  return out;
+}
+
 /** Ce qu'il faut savoir d'une étape du plan (champs de `Step`). */
 type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: number; recipeId?: string; machinesExact?: number };
 
@@ -216,7 +232,7 @@ type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: nu
  * les liaisons et les noms. Les étapes sans module (arbres, centrales composées) gardent une place réservée.
  */
 export function factoryInput(
-  plan: { steps: PlanStep[]; edges: FactoryEdge[] },
+  plan: { steps: PlanStep[]; edges: FactoryEdge[]; fixed?: { steps: { key: string }[] }; lineExtras?: { key: string; n: number; item: string }[] },
   look: {
     name: Namer;
     isFluid: (item: string) => boolean;
@@ -228,8 +244,8 @@ export function factoryInput(
     sb?: SbCatalog | null;
     /** Produits d'une recette dans l'ordre (ports de sortie, comme le bac à sable). */
     outOrder?: (recipe: string) => string[] | undefined;
-    /** Overflow Gate permise (débloquée, pas d'option contraire). */
-    gate?: boolean;
+    /** Overflow Gates permises (débloquées, pas d'option contraire). */
+    gate?: GateAllowed;
   },
   cat: Catalog,
   plot: { w: number; h: number },
@@ -238,10 +254,8 @@ export function factoryInput(
 ): FactoryInput {
   const names: Record<string, string> = {};
   const nm = (id: string) => (names[id] ??= look.name(id));
-  const gateEntry = look.ports["overflow-gate"];
-  const gatePiece = cat.gates.fluide;
-  const gate = look.gate && gateEntry?.footprint && gatePiece ? { id: gatePiece.id, price: gatePiece.price, entry: gateEntry } : null;
-  const lines = itemLines(plan, look, cat, !!gate);
+  const gates = gateSet(look.gate, look.ports, cat);
+  const lines = itemLines(plan, look, cat, gates);
   const steps = plan.steps.map((s0): FactoryStep => {
     const extra = lines.filter((l) => l.from === s0.key).reduce((t, l) => t + l.extra, 0);
     const s = extra ? { ...s0, machines: s0.machines + extra } : s0;
@@ -264,11 +278,11 @@ export function factoryInput(
       .filter(({ left }) => left > 1e-6)
       .map(({ b, left }): FactoryEvacReq => ({ from: s.key, item: b.item, perMin: left, ...(options.evacSides?.[b.item] ? { side: options.evacSides[b.item] } : {}) })),
   );
-  return { steps, edges, evac, names, cat, plot, options, ...(lines.length ? { lines } : {}), ...(gate ? { gate } : {}), ...(look.sb ? { sb: look.sb } : {}) };
+  return { steps, edges, evac, names, cat, plot, options, ...(lines.length ? { lines } : {}), ...(Object.keys(gates).length ? { gates } : {}), ...(plan.lineExtras?.length ? { extras: plan.lineExtras } : {}), ...(look.sb ? { sb: look.sb } : {}) };
 }
 
 /** Ressources dont le débit dépasse un tuyau, une seule étape les produisant : la répartition en lignes. */
-function itemLines(plan: { steps: PlanStep[]; edges: FactoryEdge[] }, look: { isFluid: (item: string) => boolean; machine: (id: string) => unknown }, cat: Catalog, gateOk: boolean): ItemLines[] {
+function itemLines(plan: { steps: PlanStep[]; edges: FactoryEdge[]; fixed?: { steps: { key: string }[] } }, look: { isFluid: (item: string) => boolean; machine: (id: string) => unknown }, cat: Catalog, gates: GateSet): ItemLines[] {
   const out: ItemLines[] = [];
   for (const item of [...new Set(plan.edges.map((e) => e.item))]) {
     const es = plan.edges.filter((e) => e.item === item && e.from !== e.to);
@@ -287,7 +301,7 @@ function itemLines(plan: { steps: PlanStep[]; edges: FactoryEdge[] }, look: { is
     const list = clients as { key: string; n: number; p: number }[];
     const s = total / Math.max(1e-9, Math.min(p.machines, p.machinesExact ?? p.machines)); // une machine à fond
     if (s > cap + 1e-6) continue;
-    const gate = gateOk && kind === "fluide";
+    const gate = !!gates[kind];
     // Le plus de machines par sortie d'abord (moins de tuyaux) ; sans machine de plus si possible.
     let best: { r: NonNullable<ReturnType<typeof planLines>>; k: number } | null = null;
     for (let k = Math.floor(cap / s + 1e-6); k >= 1; k--) {
@@ -296,11 +310,17 @@ function itemLines(plan: { steps: PlanStep[]; edges: FactoryEdge[] }, look: { is
       if (!best || r.extra < best.r.extra) best = { r, k };
       if (!r.extra) break;
     }
-    if (!best || (best.r.extra && best.k > 1)) continue;
+    // Nombre fixé par le joueur : on n'ajoute rien (le dépassement sera signalé).
+    if (!best || (best.r.extra && (best.k > 1 || plan.fixed?.steps.some((q) => q.key === p.key)))) continue;
     const G = Math.ceil(p.machines / best.k);
     out.push({ item, from: from!, kind, cap, perSource: s * Math.max(1, Math.floor(p.machines / G)), gate: best.r.gate, chains: best.r.chains, extra: best.r.extra });
   }
   return out;
+}
+
+/** Machines à ajouter au plan pour que chaque débit se partage entre les tuyaux (pas d'Overflow Gate possible). */
+export function lineExtras(plan: Parameters<typeof itemLines>[0], look: { isFluid: (item: string) => boolean; machine: (id: string) => unknown; ports: Record<string, PortsEntry>; gate?: GateAllowed }, cat: Catalog): { key: string; n: number; item: string }[] {
+  return itemLines(plan, look, cat, gateSet(look.gate, look.ports, cat)).flatMap((l) => (l.extra ? [{ key: l.from, n: l.extra, item: l.item }] : []));
 }
 
 /** Machines de chaque ligne d'une étape, par ressource. */
@@ -1001,10 +1021,10 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   let early = new Set<string>();
   let failedNow = new Set<string>();
   let gates: FactoryGate[] = [];
-  const gatePorts = ([0, 1, 2, 3] as Rot[]).map((rot) => (input.gate ? placeBlock("g", input.gate.id, input.gate.entry, 0, 0, rot) : null));
+  const gatePorts = (kind: "objet" | "fluide") => ([0, 1, 2, 3] as Rot[]).map((rot) => (input.gates?.[kind] ? placeBlock("g", input.gates[kind].id, input.gates[kind].entry, 0, 0, rot) : null));
   /** Pose une Overflow Gate sur le tuyau droit `a` → `b` (cases voisines, le flux va de a vers b) ; rend les cases de surplus. */
-  const gateAt = (a: Pt, b: Pt): { g: NonNullable<(typeof gatePorts)[number]>; x: number; y: number; from: Pt; to: Pt; sides: { c: Pt; d: Dir }[] } | null => {
-    for (const g of gatePorts) {
+  const gateAt = (kind: "objet" | "fluide", a: Pt, b: Pt): { g: NonNullable<ReturnType<typeof gatePorts>[number]>; x: number; y: number; from: Pt; to: Pt; sides: { c: Pt; d: Dir }[] } | null => {
+    for (const g of gatePorts(kind)) {
       if (!g || g.cells.length !== 2) continue;
       const inP = g.ports.find((q) => q.direction === "entrée")!;
       const outs = g.ports.filter((q) => q.direction === "sortie");
@@ -1133,7 +1153,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
             const o1 = pipeAt(k1);
             const o2 = pipeAt(k2);
             if (!o1 || !o2 || o1.cross || o2.cross || o1.links.size !== 2 || o2.links.size !== 2 || !plain(k0) || !plain(k3) || o1.net !== p.id) continue;
-            const g = l.gate ? gateAt(line[1]!, line[2]!) : null;
+            const g = l.gate ? gateAt(l.kind, line[1]!, line[2]!) : null;
             if (l.gate && (!g || ck(g.from) !== k0 || ck(g.to) !== k3)) continue;
             const sides: { c: Pt; d: Dir }[] = g ? g.sides : (dx ? (["N", "S"] as Dir[]) : (["E", "W"] as Dir[])).map((d) => ({ c: { x: line[1]!.x + STEP[d].x, y: line[1]!.y + STEP[d].y }, d }));
             for (const sd of sides) {
@@ -1183,7 +1203,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
                 undo();
                 continue;
               }
-              if (g) gates.push({ id: input.gate!.id, net: p.id, x: g.x, y: g.y, w: g.g.w, h: g.g.h, rot: g.g.rot, from: g.from, to: g.to, side: sd.c, perSec: Math.max(0, ch.slice(i + 1).reduce((t, r) => t + r.line.demand - (r.src >= 0 ? l.perSource : 0), 0)) });
+              if (g) gates.push({ id: input.gates![l.kind]!.id, net: p.id, x: g.x, y: g.y, w: g.g.w, h: g.g.h, rot: g.g.rot, from: g.from, to: g.to, side: sd.c, perSec: Math.max(0, ch.slice(i + 1).reduce((t, r) => t + r.line.demand - (r.src >= 0 ? l.perSource : 0), 0)) });
               break;
             }
           }
@@ -2146,7 +2166,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     cells: grid.cells,
     nets,
     gates,
-    extras: (input.lines ?? []).filter((l) => l.extra).map((l) => ({ key: l.from, n: l.extra, item: l.item })),
+    extras: input.extras ?? (input.lines ?? []).filter((l) => l.extra).map((l) => ({ key: l.from, n: l.extra, item: l.item })),
     netCells,
     glued,
     touches: touchAt.map((t) => ({ ...t, x: byKey.get(t.from)!.x + t.x, y: byKey.get(t.from)!.y + t.y })),
@@ -2168,7 +2188,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       upgraded,
       overloaded: links.filter((l) => l.lines > 1).length,
       polesCost: poleNodes.reduce((s, p) => s + price(p.type), 0) + links.reduce((s, l) => s + l.relays * price(l.relayType), 0),
-      modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0) + input.steps.reduce((t, s) => t + (byKey.get(s.key)?.mod ? 0 : (s.reserve?.pipesCost ?? 0)), 0) + gates.length * (input.gate?.price ?? 0),
+      modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0) + input.steps.reduce((t, s) => t + (byKey.get(s.key)?.mod ? 0 : (s.reserve?.pipesCost ?? 0)), 0) + gates.reduce((t, g) => t + (Object.values(input.gates ?? {}).find((q) => q.id === g.id)?.price ?? 0), 0),
       keptPoles,
       newPoles,
       pruned,

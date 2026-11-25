@@ -415,7 +415,7 @@ export const usineFr = {
   "uf.net.flow": "{r} / {cap} par seconde",
   "uf.net.over": "trop pour un tuyau : ajoute un tuyau à côté",
   "uf.gate.tip": "{gate} : sert d'abord la suite du tuyau, le surplus ({r}/s) part sur le côté",
-  "uf.extras": "Débit : {list}. Sans cela, un tuyau dépasserait sa limite ; ces machines sont dans l'usine et son prix, pas dans les totaux du plan.",
+  "uf.extras": "Débit : {list}. Sans cela, un tuyau dépasserait sa limite ; ces machines sont comptées dans le plan, le graphe et l'usine.",
   "uf.extra.one": "+{n} {m} pour partager {item} entre les tuyaux",
   "uf.gates": "{n} × {gate} posée(s) pour le surplus",
   "uf.contact": "Contact direct : {item}, sans tuyau",

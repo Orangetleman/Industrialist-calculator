@@ -163,3 +163,26 @@ export function simulate(chains: Chain[], s: number, cap: number, gate: boolean,
 
 /** Chaque ligne reçoit-elle tout ce qu'elle demande ? (à 1 % près) */
 export const served = (chains: Chain[], s: number, cap: number, gate: boolean): boolean => simulate(chains, s, cap, gate).every((c, i) => c.every((v, j) => v >= chains[i]![j]!.demand * 0.99));
+
+/**
+ * Embranchement à deux ou trois branches (une entrée) : parts égales, une branche pleine renvoie son flux aux autres
+ * (confirmé par l'utilisateur le 2026-11-25). Rend ce que reçoit chaque branche.
+ */
+export function splitFlow(input: number, demands: number[], cap: number): number[] {
+  const got = demands.map(() => 0);
+  const want = demands.map((d) => Math.min(d, cap));
+  let left = Math.min(input, cap);
+  for (;;) {
+    const open = want.flatMap((d, i) => (d - got[i]! > EPS ? [i] : []));
+    if (!open.length || left <= EPS) return got;
+    const part = left / open.length;
+    for (const i of open) {
+      const q = Math.min(part, want[i]! - got[i]!);
+      got[i]! += q;
+      left -= q;
+    }
+  }
+}
+
+/** Fusion de deux ou trois flux : la sortie porte leur somme, au plus `cap` ; pleine, chaque entrée passe à parts égales. */
+export const mergeFlow = (inputs: number[], cap: number): number[] => splitFlow(cap, inputs, cap);

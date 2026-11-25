@@ -228,6 +228,8 @@ export type Plan = {
   tiers: Tier[];
   /** Machines fixées dans le schéma (S8) : débit obtenu, étape qui limite, utilisation de chacune. */
   fixed?: FixedResult;
+  /** Machines ajoutées pour partager un débit entre plusieurs tuyaux (étape, nombre, ressource). */
+  lineExtras?: { key: string; n: number; item: string }[];
 };
 
 /** Une étape au nombre de machines fixé : `exact` machines suffiraient, `planMachines` sans réglage. */
@@ -1031,4 +1033,34 @@ function emptyPlan(req: SolveRequest, criterion: Criterion, ratePerMin: number, 
     economy: economyFrom(data, player, new Set(nodes), new Set(), totals),
     tiers: [],
   };
+}
+
+/**
+ * Le plan avec des machines de plus sur certaines étapes (mêmes débits) : machines, prix, place, énergie en pointe et
+ * pollution de l'étape et des totaux suivent. Sert au partage d'un débit entre plusieurs tuyaux.
+ */
+export function addMachines(plan: Plan, name: (id: string) => string, extras: { key: string; n: number; item: string }[]): Plan {
+  if (!extras.length) return plan;
+  const totals = { ...plan.totals, pollutionPerHour: [...plan.totals.pollutionPerHour] as [number, number] };
+  const steps = plan.steps.map((s): Step => {
+    const n = extras.filter((x) => x.key === s.key).reduce((t, x) => t + x.n, 0);
+    if (!n || s.machineKind === "farm" || s.parts || s.machines < 1) return s;
+    const k = (s.machines + n) / s.machines;
+    const up = <T extends number | null>(v: T): T => (v === null ? v : (v * k) as T);
+    const pollution = typeof s.pollutionPerHour === "number" ? up(s.pollutionPerHour) : s.pollutionPerHour === null ? null : ([up(s.pollutionPerHour[0]), up(s.pollutionPerHour[1])] as [number, number]);
+    const next: Step = { ...s, machines: s.machines + n, utilization: s.machinesExact / (s.machines + n), energyPeak: up(s.energyPeak), footprint: up(s.footprint), buildCost: up(s.buildCost), pollutionPerHour: pollution };
+    totals.machines += n;
+    if (s.energyAvg !== null && s.energyAvg >= 0) totals.energyPeak += next.energyPeak! - s.energyPeak!;
+    if (s.footprint !== null) totals.footprint += next.footprint! - s.footprint;
+    if (s.buildCost !== null) totals.buildCost += next.buildCost! - s.buildCost;
+    const was = s.pollutionPerHour;
+    if (was !== null) {
+      const [a, b] = typeof was === "number" ? [was, was] : was;
+      totals.pollutionPerHour[0] += a * (k - 1);
+      totals.pollutionPerHour[1] += b * (k - 1);
+    }
+    return next;
+  });
+  const warnings = [...plan.warnings, ...extras.map((x): Warning => ({ code: "débit-tuyaux", message: msg("plan.lineExtra", { n: x.n, m: name(plan.steps.find((s) => s.key === x.key)?.machine ?? x.key), item: name(x.item) }), items: [x.item] }))];
+  return { ...plan, steps, totals, warnings, lineExtras: extras };
 }

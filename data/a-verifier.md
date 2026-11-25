@@ -840,9 +840,9 @@ Méthode de relevé : RELEVES.md, « Points de recherche (panneau de suivi) ».
   seule sortie ; chaque pièce limite ce qui en sort à son débit. Le moteur (B1) distribuera à parts
   égales dans ces limites. La maquette fait un flot maximal, qui s'en approche.
   **Précision du 2026-11-25** (utilisateur) : un embranchement divise le flux en deux (ou en trois selon la pièce). Une
-  branche pleine renvoie son flux à l'autre : supposé, à confirmer. Overflow Gate (relevée le 2026-11-25 : 1 × 2, entrée
+  branche pleine renvoie son flux à l'autre : **confirmé par l'utilisateur** (2026-11-25). Overflow Gate (relevée le 2026-11-25 : 1 × 2, entrée
   en bas, sortie en haut, surplus à gauche et à droite) : la sortie principale d'abord, d'après le wiki. L'Item Overflow
-  Gate n'est pas relevée : les objets se passent de Gate.
+  Gate a été relevée le même jour : mêmes ports, en objets.
 - **BAS-06** (répondu le 2026-10-26) : le mois courant, la pollution globale et le « Satellite buff »
   sont des mécaniques décrites sur le wiki, à prendre en compte (R18, lot S40). Formules de Industrialist Calculator : COMPARAISON-POLLYWRATH.md, § 4 (POL-12).
 - **BAS-07** (rappel de l'utilisateur, 2026-10-31, après B1) : deux machines dont des ports se touchent

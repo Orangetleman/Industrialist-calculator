@@ -16,6 +16,7 @@ import {
   addRecipeCommand,
   applyCommand,
   balanceGraph,
+  wholeOf,
   clickMode,
   collapsedOwners,
   countCommand,
@@ -580,7 +581,7 @@ export class GraphView {
       const nb = this.bal.nodes.get(n.id)!;
       const badge = this.opts.badge?.(n.id) ?? "";
       const key = [
-        n.recipeId, n.machines, n.x, n.y, n.fixed ? 1 : 0, g.target?.node === n.id ? 1 : 0, badge, nb.energyMFps, nb.pollutionPerHour,
+        n.recipeId, n.machines, wholeOf(n, this.opts.world()), n.x, n.y, n.fixed ? 1 : 0, g.target?.node === n.id ? 1 : 0, badge, nb.energyMFps, nb.pollutionPerHour,
         nb.ins.map((p) => `${p.item}:${p.perMin}:${p.flow}:${p.links}`).join(","),
         nb.outs.map((p) => `${p.item}:${p.perMin}`).join(","),
       ].join("|");
@@ -648,7 +649,7 @@ export class GraphView {
     const product = T.item(main ?? n.recipeId);
     const machineId = p.eff?.recipe.machine ?? "";
     const machine = machineId ? T.machine(machineId) : "";
-    const count = Math.ceil(n.machines - 1e-9);
+    const count = wholeOf(n, world);
     const facts = [
       p.eff?.durationS ? `<span>${esc(T.cycle(p.eff.durationS))}</span>` : "",
       nb.energyMFps ? `<span>${esc(T.energy(nb.energyMFps))}</span>` : "",
@@ -1363,7 +1364,7 @@ export class GraphView {
     this.bubFor = { id: n.id, recipe: n.recipeId };
     this.bub.querySelector("[data-b-title]")!.textContent = `${r ? T.machine(r.machine) : n.recipeId} — ${product}`;
     const input = this.bub.querySelector<HTMLInputElement>("[data-b=n]")!;
-    const whole = Math.ceil(n.machines - 1e-9);
+    const whole = wholeOf(n, this.opts.world());
     if (forceCount || document.activeElement !== input) input.value = T.num(whole);
     const exact = Math.abs(n.machines - Math.round(n.machines)) < 1e-9 ? T.num(Math.round(n.machines)) : t("gv.b.use", { n: T.num(n.machines), pct: T.num(Math.round((n.machines / whole) * 100)) });
     this.bub.querySelector("[data-b-exact]")!.textContent = exact;

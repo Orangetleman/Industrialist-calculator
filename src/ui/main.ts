@@ -21,7 +21,7 @@ import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import imagesJson from "../../data/images.json";
 import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
-import { type AsmEnd, factoryInput, type FactoryInput, type FactoryPlan } from "../engine/build/factory.ts";
+import { lineExtras, type AsmEnd, factoryInput, type FactoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import type { Step } from "../engine/solve.ts";
@@ -33,7 +33,7 @@ import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, render
 import { factoryFrameClasses, incompleteMachines, linksButton, renderFactoryBar, renderFactoryInfo, renderFactoryEvac, renderFactoryModule, renderFactoryModules, renderFactoryMore, renderFactorySvg, setDrawnInside, turnText } from "./factory-view.ts";
 import { loadFactory, runFactory, saveFactory, type FactoryJob } from "./factory-job.ts";
 import { buildGameData, type GameData, type RawFiles } from "../engine/data.ts";
-import { solve, type Plan, type PlayerState, type SolveRequest } from "../engine/solve.ts";
+import { addMachines, solve, type Plan, type PlayerState, type SolveRequest } from "../engine/solve.ts";
 import type { Criterion } from "../engine/choose.ts";
 import type { OverridesFile } from "../engine/types.ts";
 import type { EnergyFile, InterfacesFile, LogisticsFile, PortsEntry, PortsFile, PowerFile, ResearchStationsFile } from "../engine/extension-types.ts";
@@ -1139,6 +1139,28 @@ function baseRequest(): Omit<SolveRequest, "item"> {
   };
 }
 
+/** Overflow Gates permises : recherche débloquée et option « Sans Overflow Gate » décochée. */
+function gateAllowed(): { objet: boolean; fluide: boolean } {
+  const open = (id: string) => {
+    const n = data.nodes.get(id);
+    return !settings.usine.noGate && !!n && (n.isRoot || !!n.startUnlocked || (simulated ?? prog).unlocked.includes(id));
+  };
+  return { objet: open("item-overflow-gate"), fluide: open("liquid-overflow-gate") };
+}
+
+/** Le plan, avec les machines qu'il faut en plus pour que chaque débit se partage entre les tuyaux. */
+function withLineExtras(p: Plan): Plan {
+  return addMachines(p, anyName, lineExtras(p, { isFluid: (id) => !!data.items.get(id)?.isFluid, machine: (id) => data.machines.get(id) ?? null, ports: currentPorts().machines, gate: gateAllowed() }, CATALOG));
+}
+/** Nombres entiers du plan qui dépassent l'arrondi (débit partagé), pour le graphe. */
+function graphWorld() {
+  const extra = Object.fromEntries((plan?.lineExtras ?? []).flatMap((x) => {
+    const s = plan!.steps.find((q) => q.key === x.key);
+    return s ? [[s.recipeId, { exact: s.machinesExact, whole: s.machines }]] : [];
+  }));
+  return { ...gameView(), extra };
+}
+
 function ensurePlan(): void {
   const pd = planData();
   if (!planDirty && plan && planBuiltFrom === pd) return;
@@ -1161,7 +1183,7 @@ function ensurePlan(): void {
     pendingGraphPlan = null;
     const p = ready ?? solveFromGraph(pd, playerState(), ge.solved, baseRequest()).plan;
     if (p) {
-      plan = p;
+      plan = withLineExtras(p);
       return;
     }
   }
@@ -1178,6 +1200,7 @@ function ensurePlan(): void {
   // N machines finales impossibles à convertir (aucune recette utilisable) : on calcule au débit
   // pour pouvoir dire ce qui manque, plutôt qu'un message technique.
   if (goal === "objet" && settings.mode === "machines" && plan.warnings.some((w) => w.code === "machines-finales")) plan = request({ ratePerMin: settings.rate });
+  plan = withLineExtras(plan);
 }
 
 function viewCtx(): ViewCtx {
@@ -1629,7 +1652,7 @@ function renderFlowCanvas(): void {
   const doc = graphDoc!;
   graphView ??= new GraphView(frame, {
     data: planData(),
-    world: () => gameView(),
+    world: () => graphWorld(),
     text: graphText(),
     reserveRight: FLOW_ZOOM_W,
     coverTop: () => document.querySelector(".top")?.getBoundingClientRect().bottom ?? 0,
@@ -1877,7 +1900,7 @@ async function recalcGraph(rate?: number): Promise<void> {
   const target = g.target!;
   const r = solveFromGraph(pd, playerState(), g, baseRequest());
   if (!r.plan) return void (await ask(t("gv.rc.title"), `<p>${esc(t("gv.rc.noTarget"))}</p>`, close));
-  const solved = r.plan;
+  const solved = withLineExtras(r.plan);
   const cmp = compareWithPlan(g, solved);
   const name = (recipeId: string) => {
     const rc = pd.recipes.get(recipeId);
@@ -2226,8 +2249,8 @@ const KEY_FROZEN = "ind-calc:v1:frozen";
 /** `sig` : le design auquel elle va (null : pas encore affiché) ; `show` : montrée à la place de l'usine recalculée. */
 let frozen: { design: number | null; layout: Layout; site: string; engine?: string; sig: string | null; show: boolean } | null = null;
 const frozenSig = () => {
-  const { resultTab: _r, usine: _u, entered: _e, existing: _x, useExisting: _y, ...rest } = settings;
-  return fnv(stableJson([rest, gedit?.touched ? [gedit.graph, gedit.solved] : null]));
+  const { resultTab: _r, usine, entered: _e, existing: _x, useExisting: _y, ...rest } = settings;
+  return fnv(stableJson([usine.noGate ? { ...rest, noGate: true } : rest, gedit?.touched ? [gedit.graph, gedit.solved] : null]));
 };
 const frozenOn = () => !!frozen && frozen.sig !== null && frozen.sig === frozenSig();
 async function storeFrozen(): Promise<void> {
@@ -2596,9 +2619,9 @@ function profileSig(): unknown[] {
 }
 /** Signature du design affiché (hors vue : onglet, affichage de l'usine) : dit s'il a changé depuis son ouverture. */
 function designSig(): string {
-  const { resultTab: _r, usine: _u, entered, ...rest } = settings;
+  const { resultTab: _r, usine, entered, ...rest } = settings;
   const sb = sandbox.layout();
-  return fnv(stableJson([rest, [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null, ...(lecture() ? [profileSig()] : [])]));
+  return fnv(stableJson([usine.noGate ? { ...rest, noGate: true } : rest, [...entered].sort(), gedit?.touched ? [gedit.graph, gedit.solved] : null, hasSandbox(sb) ? sb : null, ...(lecture() ? [profileSig()] : [])]));
 }
 /** Le design affiché devient la référence : rien à enregistrer. */
 function rebase(): void {
@@ -3253,16 +3276,10 @@ function showPoseSvg(f: { svg: string; width: number; height: number }, k: strin
   applySel($("pose-frame"), poseSel, "pose-pick");
 }
 
-/** Overflow Gate permise : recherche débloquée et option « Sans Overflow Gate » décochée. */
-function gateOk(): boolean {
-  const n = data.nodes.get("liquid-overflow-gate");
-  return !settings.usine.noGate && !!n && (n.isRoot || !!n.startUnlocked || prog.unlocked.includes(n.id));
-}
-
 /** Clé du calcul de toute l'usine : il est refait quand l'un de ces réglages change. */
 function factoryKey(v = settings.usine): string {
   const plot = plotOf(player);
-  return `${signature}|${settings.tier3Only}|${gateOk()}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${JSON.stringify(evacNow())}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
+  return `${signature}|${settings.tier3Only}|${JSON.stringify(gateAllowed())}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${JSON.stringify(evacNow())}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
 }
 /** Bords choisis pour les produits à évacuer de ce plan (S27). */
 const evacNow = () => settings.evacSides[planKey(settings.goal, settings.item) ?? ""] ?? {};
@@ -3349,7 +3366,7 @@ function factoryInputNow(complete = false): FactoryInput {
       },
       sb: sandboxCatalog(),
       outOrder,
-      gate: gateOk(),
+      gate: gateAllowed(),
     },
     CATALOG,
     plot,
@@ -4954,8 +4971,7 @@ function bindPlan(): void {
   $("pose-nogate").addEventListener("change", (e) => {
     const { noGate: _, ...usine } = settings.usine;
     settings.usine = (e.target as HTMLInputElement).checked ? { ...usine, noGate: true } : usine;
-    saveSettings(settings);
-    renderPose();
+    update(); // le plan peut avoir une machine de plus ou de moins
   });
   // Tiroir des réglages (S60, maquette S58) : tout à plat ; R l'ouvre, Échap le ferme. Un lien qui ouvre une
   // rubrique (barre « Ton plan », visite…) ouvre le tiroir avec elle.

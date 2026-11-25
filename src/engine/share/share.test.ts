@@ -79,6 +79,7 @@ describe("réglages", () => {
       { machineFilters: { "objet|crankshaft": { mode: "exclure", exclure: ["press"], seulement: [], noExtraction: [] } }, machineSettings: { "objet|crankshaft": { "chemical-plant": { temp: 0.5 } } } as never },
       { dieselChoice: { énergie: { fuel: "refined-diesel", mode: "carburant", config: null } } as never, mineshaftChoice: { "objet|gold": { depth: "auto", head: "steel", acid: "hcl", oil: true } } as never },
       { evacSides: { "objet|crankshaft": { crankshaft: "droite" } }, existing: { "iron-ore": 30.25 }, useExisting: false, money: 1e9 },
+      { usine: { full: false, glue: false, detail: false, power: true, plugs: false, links: false, noGate: true } },
       { usine: { full: true, glue: true, detail: true, power: false, plugs: true, links: true }, tier3Only: true, distanceTiles: 0 },
       { goal: "recherche", rpMode: "rate", rpRate: 0.1, rpNode: "advanced-assembler", rpMinutes: 90, rpCap: 0, rpSatellites: false, rpLogic: true, rpCurrent: false },
     ];

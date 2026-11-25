@@ -416,7 +416,7 @@ export const usineEn: { [K in keyof typeof usineFr]: Msg } = {
   "uf.net.flow": "{r} / {cap} per second",
   "uf.net.over": "too much for one pipe: add a pipe next to it",
   "uf.gate.tip": "{gate}: feeds the rest of the pipe first, the surplus ({r}/s) leaves on the side",
-  "uf.extras": "Flow: {list}. Otherwise a pipe would exceed its limit; these machines are in the factory and its price, not in the plan totals.",
+  "uf.extras": "Flow: {list}. Otherwise a pipe would exceed its limit; these machines are counted in the plan, the graph and the factory.",
   "uf.extra.one": "+{n} {m} to share {item} between pipes",
   "uf.gates": "{n} × {gate} placed for the surplus",
   "uf.contact": "Direct contact: {item}, no pipe",
