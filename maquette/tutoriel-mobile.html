@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maquette tutoriel mobile</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* MB10 (PLAN-MOBILE.md) : deux formats de tutoriel pour le téléphone. Charte Plasma, volets à plat. Le plan montré est
+   schématique ; les chiffres « 82 machines · 2 252 cases » sont ceux du site pour Crankshaft 60/min. */
+:root { --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a; --accent: #ff6a1a; --accent-soft: #33190c; --on-accent: #1a0800; --ok: #4ade80; --in: #38bdf8; --out: #e879f9; --cv: #120c20; --stripe: repeating-linear-gradient(45deg, var(--accent) 0 10px, var(--bg) 10px 20px); --d: "Audiowide", system-ui, sans-serif; --b: "IBM Plex Sans", system-ui, sans-serif; --m: "IBM Plex Mono", monospace; color-scheme: dark; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; } [hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #050308; color: var(--ink); font: 16px/1.4 var(--b); }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; touch-action: manipulation; }
+.ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.lab { height: 44px; display: flex; gap: 4px; align-items: center; justify-content: center; font-size: 13px; color: #bbb; }
+.lab button { min-height: 34px; padding: 0 12px; border: 1px solid #444; } .lab .on { background: #ddd; color: #111; }
+.room { height: calc(100% - 44px); display: grid; place-items: center; }
+.dev { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+@media (min-width: 900px) and (pointer: fine) { .dev { width: 390px; height: 844px; max-height: 100%; outline: 1px solid #555; } }
+.app { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; }
+.head { height: 52px; display: flex; align-items: center; background: var(--surface); position: relative; z-index: 3; padding-left: 14px; } .head::after { content: ""; position: absolute; inset: auto 0 -3px 0; height: 3px; background: var(--stripe); }
+.goal { flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 8px; font: 15px var(--d); text-align: left; } .goal b { font-weight: 400; } .goal i { font-style: normal; color: var(--accent); }
+.hi { width: 48px; height: 52px; display: grid; place-items: center; }
+.stage { position: relative; margin-top: 3px; background: var(--cv) radial-gradient(#2c2245 1px, transparent 1.5px) 0 0 / 24px 24px; overflow: hidden; }
+.mods { position: absolute; inset: 40px 28px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .mods div { border: 1px solid #4f3d7a; background: #201733; display: grid; place-content: center; font-size: 13px; color: var(--muted); }
+.empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; color: var(--muted); padding: 24px; }
+.cta { min-height: 52px; padding: 0 22px; background: var(--accent); color: var(--on-accent); font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ghost { min-height: 48px; padding: 0 16px; color: var(--muted); }
+.dock { display: flex; background: var(--surface); border-top: 1px solid var(--line); }
+.dock button { flex: 1; height: 60px; display: grid; place-content: center; justify-items: center; gap: 3px; font-size: 12px; color: var(--muted); position: relative; } .dock .on { color: var(--accent); box-shadow: inset 0 3px var(--accent); } .dock .menu { flex: 0 0 76px; background: var(--accent); color: var(--on-accent); }
+.dot { position: absolute; top: 8px; right: 12px; width: 9px; height: 9px; background: var(--on-accent); }
+.panel { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 3px solid var(--accent); z-index: 6; max-height: 88%; overflow: auto; }
+.ph { display: flex; align-items: center; padding-left: 16px; font: 16px var(--d); min-height: 56px; } .ph span { flex: 1; } .ph button { width: 56px; height: 56px; display: grid; place-items: center; }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px; border-top: 1px solid var(--line); text-align: left; } .row .g { flex: 1; } .row small { display: block; color: var(--muted); font-size: 14px; } .row .go { color: var(--accent); font-size: 15px; } .row.done .g { color: var(--muted); text-decoration: line-through; }
+.chk { width: 26px; height: 26px; border: 2px solid var(--muted); display: grid; place-items: center; flex: none; } .done .chk { background: var(--ok); border-color: var(--ok); color: #05210f; }
+.field { display: flex; align-items: center; gap: 10px; min-height: 52px; margin: 0 16px 12px; padding: 0 12px; border: 1px solid var(--accent); background: var(--bg); width: calc(100% - 32px); text-align: left; }
+.step { display: flex; margin: 0 16px 16px; } .step button { width: 56px; height: 52px; background: var(--panel2); font: 24px var(--m); } .step output { flex: 1; display: grid; place-items: center; font: 20px var(--m); background: var(--bg); }
+.kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); } .kpi div { background: var(--surface); padding: 10px 16px; font: 20px var(--m); } .kpi small { display: block; font: 14px var(--b); color: var(--muted); }
+.scrim { position: absolute; inset: 0; background: rgb(5 3 8 / .7); z-index: 5; }
+/* Cible du coach : un cadre qui respire, sans voile, la page reste utilisable. */
+.target { position: relative; } .target::after { content: ""; position: absolute; inset: 2px; border: 2px solid var(--accent); pointer-events: none; animation: breathe 1.4s ease-in-out infinite; z-index: 2; }
+@keyframes breathe { 50% { inset: -3px; border-color: rgb(255 106 26 / .35); } }
+/* ----- Format A : cartes */
+.cards { position: absolute; inset: auto 0 0; z-index: 8; background: var(--surface); border-top: 3px solid var(--accent); padding: 0 0 12px; touch-action: pan-y; }
+.track { display: flex; transition: transform .28s ease-out; } .card { flex: 0 0 100%; padding: 18px 20px 6px; }
+.anim { height: 150px; background: var(--cv) radial-gradient(#2c2245 1px, transparent 1.5px) 0 0 / 20px 20px; position: relative; overflow: hidden; margin-bottom: 14px; }
+.card h3 { margin: 0 0 6px; font: 18px var(--d); } .card p { margin: 0; color: var(--muted); font-size: 16px; }
+.cfoot { display: flex; align-items: center; gap: 12px; padding: 8px 20px 0; } .dots { flex: 1; display: flex; gap: 6px; } .dots i { width: 22px; height: 4px; background: var(--line); } .dots .on { background: var(--accent); }
+.finger { position: absolute; width: 34px; height: 34px; border-radius: 50%; background: rgb(255 255 255 / .85); box-shadow: 0 0 0 8px rgb(255 255 255 / .18); }
+.a-tap .finger { left: 50%; top: 42%; animation: tap 1.6s ease-in-out infinite; } @keyframes tap { 0%, 100% { transform: scale(1); } 45% { transform: scale(.75); box-shadow: 0 0 0 18px rgb(255 255 255 / .05); } }
+.a-tap .box { position: absolute; left: 22%; right: 22%; top: 34%; height: 46px; border: 1px solid var(--accent); display: grid; place-items: center; font-size: 15px; }
+.a-pinch .finger:first-child { left: 40%; top: 45%; animation: pa 1.8s ease-in-out infinite; } .a-pinch .finger:nth-child(2) { left: 52%; top: 45%; animation: pb 1.8s ease-in-out infinite; } @keyframes pa { 50% { transform: translate(-46px, -26px); } } @keyframes pb { 50% { transform: translate(46px, 26px); } }
+.a-pinch .grid { position: absolute; inset: 30px 90px; border: 1px solid #4f3d7a; background: #201733; animation: zoom 1.8s ease-in-out infinite; } @keyframes zoom { 50% { transform: scale(1.5); } }
+.a-bar { display: grid; place-items: end stretch; } .a-bar .db { display: flex; height: 44px; background: var(--surface); } .a-bar .db span { flex: 1; display: grid; place-items: center; font-size: 12px; color: var(--muted); } .a-bar .db .on { color: var(--accent); box-shadow: inset 0 3px var(--accent); animation: slide 3.2s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+/* ----- Format B : coach */
+.coach { position: absolute; inset: 55px 0 auto; z-index: 7; background: var(--panel2); border-bottom: 3px solid var(--accent); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 10px 6px 10px 16px; min-height: 64px; }
+.coach small { grid-column: 1; color: var(--muted); font: 13px var(--m); } .coach b { grid-column: 1; font-weight: 600; font-size: 16px; } .coach .x { grid-row: 1 / 3; grid-column: 2; width: 48px; height: 48px; display: grid; place-items: center; color: var(--muted); }
+.coach .bar { grid-column: 1 / -1; height: 3px; background: var(--line); } .coach .bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.coach.low { inset: auto 0 0; border-bottom: 0; border-top: 3px solid var(--accent); z-index: 9; } /* une liste plein écran : le coach passe en bas, rien n'est caché */
+.coaching .mods { top: 108px; } .coaching .stage > div[style] { top: 66px !important; } /* le contenu commence sous le coach */
+.ok { animation: okf .9s ease-out; } @keyframes okf { 0% { background: var(--ok); color: #05210f; } }
+.toast { position: absolute; z-index: 9; left: 16px; right: 16px; bottom: 76px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--ok); }
+</style>
+</head>
+<body>
+<div class="lab"><button data-fmt="A" class="on">A · Cartes</button><button data-fmt="B">B · Coach</button><button data-reset>Recommencer</button></div>
+<div class="room"><div class="dev" id="dev"></div></div>
+<script>
+const P = { home: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z", flow: "M2.5 9h6v6h-6zM15.5 3h6v6h-6zM15.5 15h6v6h-6zM8.5 12h3.5M15.5 6H12v12h3.5", list: "M9 6h11M9 12h11M9 18h11M4 6h1M4 12h1M4 18h1", chart: "M4 20V10M10 20V4M16 20v-8M21 20H3", menu: "M4 6h16M4 12h16M4 18h16", edit: "M4 20l4-1L20 7l-3-3L5 16z", x: "M5 5l14 14M19 5 5 19", search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM16 16l5 5", check: "M5 12l5 5L20 7", next: "m9 18 6-6-6-6", set: "M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4" };
+const I = (k) => `<svg class="ic" viewBox="0 0 24 24"><path d="${P[k]}"/></svg>`;
+const LESSONS = [["Mon premier plan", "4 gestes"], ["Les vues du plan", "3 gestes"], ["Modifier le schéma", "4 gestes"], ["Construire module par module", "3 gestes"], ["Régler le plan", "2 gestes"], ["Dire ce que j'ai recherché", "2 gestes"], ["L'arbre de recherche", "2 gestes"], ["Recettes et remarques", "2 gestes"]];
+// Leçon 1 : ce qui s'enseigne, et le geste réel qui la valide (format B).
+const L1 = [
+  { t: "Touche l'objectif", d: "En haut, ce que tu veux produire.", card: "tap", h: "Ce que tu veux produire", p: "En haut de l'écran. Touche-le pour choisir l'objet et la quantité.", target: "goal" },
+  { t: "Choisis Crankshaft", d: "Ou n'importe quel objet.", card: "tap2", h: "L'objet, puis la quantité", p: "Cherche par son nom anglais, comme dans le Recipe Book du jeu. − et + règlent le débit.", target: "item" },
+  { t: "Ferme : le plan se calcule", d: "Touche « Calculer ».", card: "tap3", h: "Le site calcule", p: "Machines, place, énergie et plan de pose, pour ta partie. Le calcul attend que tu fermes le panneau.", target: "calc" },
+  { t: "Pince l'usine pour zoomer", d: "Deux doigts. Un doigt la déplace.", card: "pinch", h: "Ton usine, vue de dessus", p: "Deux doigts pour zoomer, un doigt pour te déplacer. Touche un module pour son détail.", target: "stage" },
+  { t: "Ouvre le Bilan", d: "En bas : les chiffres du plan.", card: "bar", h: "Tout est en bas", p: "Usine, Schéma, Étapes, Bilan : les vues du plan, à portée de pouce. Menu mène au reste du site.", target: "bilan" },
+];
+const s = { fmt: "A", screen: "list", i: 0, panel: "", item: "", qty: 60, calc: false, view: "usine", done: new Set(), toast: "" };
+const dev = document.getElementById("dev");
+function stage() {
+  if (!s.calc) return `<div class="empty"><p>Choisis un objet et une quantité : le calcul n'utilise que ce que tu as débloqué.</p></div>`;
+  if (s.view === "bilan") return `<div style="position:absolute;inset:0;background:var(--bg)"><div style="padding:14px 16px;font:15px var(--d);color:var(--accent)">CE PLAN</div><div class="kpi"><div><small>Machines</small>82</div><div><small>Cases au sol</small>2 252</div></div></div>`;
+  return `<div class="mods ${tgt("stage")}" data-a="pinch">${["Raw Iron", "Steel Plate", "Iron Powder", "Gear", "Steel Ingot", "Crankshaft"].map((n) => `<div>${n}</div>`).join("")}</div>`;
+}
+const tgt = (k) => (s.screen === "lesson" && s.fmt === "B" && L1[s.i]?.target === k ? "target" : "");
+function panel() {
+  if (s.panel === "goal") return `<div class="scrim" data-a="close"></div><section class="panel"><div class="ph"><span>Que veux-tu produire ?</span><button data-a="close">${I("x")}</button></div>
+    <button class="field ${tgt("item")}" data-a="pick">${I("search")}<span>${s.item || "Choisir un objet"}</span></button>
+    <div class="step"><button data-a="minus">−</button><output>${s.qty} / min</output><button data-a="plus">+</button></div>
+    <div style="padding:0 16px 16px"><button class="cta ${s.item ? tgt("calc") : ""}" style="width:100%" data-a="calc">Calculer</button></div></section>`;
+  if (s.panel === "pick") return `<section class="panel" style="top:0;max-height:none"><div class="ph"><span>Objet</span><button data-a="goal">${I("x")}</button></div>${["Crankshaft", "Gear", "Steel Plate", "Copper Wire"].map((n) => `<button class="row" data-a="item:${n}"><span class="g">${n}</span></button>`).join("")}</section>`;
+  if (s.panel === "steps") return `<div class="scrim" data-a="close"></div><section class="panel"><div class="ph"><span>Premiers pas</span><button data-a="close">${I("x")}</button></div>${LESSONS.map(([n, g], k) => `<div class="row ${s.done.has(k) ? "done" : ""}"><span class="chk">${s.done.has(k) ? I("check") : ""}</span><span class="g">${n}<small>${g}</small></span><button class="go" data-a="${k ? "soon" : "start"}">${s.done.has(k) ? "Revoir" : "Y aller"} ›</button></div>`).join("")}</section>`;
+  return "";
+}
+function lesson() {
+  if (s.screen !== "lesson") return "";
+  const n = L1.length, x = L1[s.i];
+  if (s.fmt === "B") return `<div class="coach${s.panel === "pick" ? " low" : ""}"><small>Mon premier plan · ${s.i + 1} / ${n}</small><b>${x.t}</b><button class="x" data-a="quit" aria-label="Quitter la leçon">${I("x")}</button><span class="bar"><i style="width:${(s.i / n) * 100}%"></i></span></div>`;
+  const anim = (k) => (k === "pinch" ? `<div class="anim a-pinch"><div class="grid"></div><span class="finger"></span><span class="finger"></span></div>` : k === "bar" ? `<div class="anim a-bar"><div class="db"><span class="on">Usine</span><span>Schéma</span><span>Étapes</span><span>Bilan</span></div></div>` : `<div class="anim a-tap"><div class="box">${k === "tap" ? "Crankshaft 60 / min" : k === "tap2" ? "Crankshaft" : "Calculer"}</div><span class="finger"></span></div>`);
+  return `<div class="scrim" style="z-index:7"></div><section class="cards" id="cards"><div class="track" style="transform:translateX(${-s.i * 100}%)">${L1.map((c) => `<div class="card">${anim(c.card)}<h3>${c.h}</h3><p>${c.p}</p></div>`).join("")}</div>
+    <div class="cfoot"><button class="ghost" data-a="quit">Passer</button><span class="dots">${L1.map((_, k) => `<i class="${k <= s.i ? "on" : ""}"></i>`).join("")}</span><button class="cta" data-a="${s.i < n - 1 ? "next" : "try"}">${s.i < n - 1 ? "Suivant" : "À toi"} ${I("next")}</button></div></section>`;
+}
+function draw() {
+  const head = s.calc ? `<b>${s.item}</b> <i>${s.qty} par minute</i>` : `<b>Que veux-tu produire ?</b>`;
+  dev.innerHTML = `<div class="app${s.screen === "lesson" && s.fmt === "B" ? " coaching" : ""}"><header class="head"><button class="goal ${tgt("goal")}" data-a="goal"><span>${head}</span>${I("edit")}</button><button class="hi">${I("set")}</button></header>
+    <main class="stage">${stage()}</main>
+    <nav class="dock">${[["usine", "Usine", "home"], ["schema", "Schéma", "flow"], ["etapes", "Étapes", "list"], ["bilan", "Bilan", "chart"]].map(([k, n, i]) => `<button class="${s.view === k ? "on" : ""} ${k === "bilan" ? tgt("bilan") : ""}" data-a="view:${k}">${I(i)}${n}</button>`).join("")}<button class="menu" data-a="steps">${I("menu")}Menu${s.done.size < 8 ? '<i class="dot"></i>' : ""}</button></nav></div>
+    ${panel()}${lesson()}${s.toast && !s.panel ? `<div class="toast">${s.toast}</div>` : ""}`;
+}
+let tt;
+function toast(m) { s.toast = m; clearTimeout(tt); tt = setTimeout(() => { s.toast = ""; draw(); }, 2600); }
+/** Format B : une étape se valide par le geste réel. */
+function did(k) {
+  if (s.screen !== "lesson" || s.fmt !== "B" || L1[s.i].target !== k) return;
+  s.i++;
+  if (s.i >= L1.length) { s.screen = "app"; s.done.add(0); toast("Leçon terminée. Les autres attendent dans Menu › Premiers pas."); }
+}
+function act(a) {
+  const [k, v] = a.split(":");
+  if (k === "goal") { s.panel = "goal"; did("goal"); }
+  else if (k === "close") s.panel = "";
+  else if (k === "pick") s.panel = "pick";
+  else if (k === "item") { s.item = v; s.panel = "goal"; did("item"); }
+  else if (k === "minus") s.qty = Math.max(10, s.qty - 10);
+  else if (k === "plus") s.qty += 10;
+  else if (k === "calc") { if (!s.item) return; s.panel = ""; s.calc = true; s.view = "usine"; did("calc"); }
+  else if (k === "pinch") did("stage");
+  else if (k === "view") { s.view = v; if (v === "bilan") did("bilan"); }
+  else if (k === "steps") s.panel = "steps";
+  else if (k === "start") { s.panel = ""; s.screen = "lesson"; s.i = 0; Object.assign(s, { item: "", calc: false, view: "usine" }); }
+  else if (k === "soon") toast("Dans la maquette, seule la première leçon est jouable.");
+  else if (k === "next") s.i++;
+  else if (k === "try") { s.screen = "app"; s.done.add(0); toast("À toi : touche l'objectif en haut pour commencer."); }
+  else if (k === "quit") { s.screen = "app"; toast("Tu retrouves les leçons dans Menu › Premiers pas."); }
+  draw();
+}
+dev.addEventListener("click", (e) => { const b = e.target.closest("[data-a]"); if (b) act(b.dataset.a); });
+// Format A : balayer les cartes.
+let sx = null;
+dev.addEventListener("pointerdown", (e) => { if (e.target.closest("#cards")) sx = e.clientX; });
+dev.addEventListener("pointerup", (e) => { if (sx === null) return; const d = e.clientX - sx; sx = null; if (Math.abs(d) < 40) return; s.i = Math.max(0, Math.min(L1.length - 1, s.i + (d < 0 ? 1 : -1))); draw(); });
+// Format B : pincer l'usine (deux doigts) valide l'étape.
+const pts = new Set();
+dev.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch" && e.target.closest(".mods")) { pts.add(e.pointerId); if (pts.size > 1) { did("stage"); draw(); } } });
+dev.addEventListener("pointerup", (e) => pts.delete(e.pointerId));
+document.querySelectorAll("[data-fmt]").forEach((b) => (b.onclick = () => { s.fmt = b.dataset.fmt; document.querySelectorAll("[data-fmt]").forEach((x) => x.classList.toggle("on", x === b)); act("start"); }));
+document.querySelector("[data-reset]").onclick = () => { Object.assign(s, { screen: "lesson", i: 0, panel: "", item: "", calc: false, view: "usine", done: new Set() }); draw(); };
+// Première visite : la leçon 1 s'ouvre d'elle-même.
+s.screen = "lesson";
+draw();
+</script>
+</body>
+</html>
