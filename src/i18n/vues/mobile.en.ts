@@ -45,5 +45,13 @@ export const mobileEn: Record<keyof typeof mobileFr, Msg> = {
   "mob.mine": "My feedback",
   "mob.prev": "Previous step",
   "mob.next": "Next step",
+  "mob.stepn": "Step {n} / {total}",
+  "mob.stepall": "{total} steps",
+  "mob.picksteps": "Show a step",
+  "mob.bt.grid": "Grid",
+  "mob.bt.ports": "Ports",
+  "mob.bt.card": "Card",
+  "mob.notip": "No tooltip recorded",
+  "mob.noports": "No port: tap an edge cell in the grid.",
   "mob.card": "Full card",
 };

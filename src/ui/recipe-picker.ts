@@ -131,6 +131,7 @@ export function openRecipePicker(o: { title: string; tabs: PickerTab[]; item?: s
   q.addEventListener("input", () => {
     focus = 0;
     render();
+    list.scrollTop = 0;
   });
   render();
   q.focus();

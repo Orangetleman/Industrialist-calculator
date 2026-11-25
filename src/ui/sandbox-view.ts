@@ -1498,7 +1498,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     const items = found ?? treeLevel(cat, menu, mob.path);
     const opts = items.map((x) => ("key" in x ? leaf(x.key, x.v) : `<button type="button" data-mb="into" data-k="${esc(x.into)}">${mob.path.length === 1 ? ic(CATS.find((c) => c.id === x.into)!.ic) : mob.path.length === 2 ? blockIcon(d, menu.byKey.get(x.into)!.def, 34) : ""}<span>${esc(crumb(x.into, mob.path.length))}</span><i>›</i></button>`)).join("");
     const body = opts || `<p>${esc(t("bac.filter.none"))}</p>`;
-    if (keep && el.querySelector(".mopts")) { el.querySelector(".mopts")!.innerHTML = body; return; }
+    if (keep && el.querySelector(".mopts")) { el.querySelector(".mopts")!.innerHTML = body; el.querySelector(".mopts")!.scrollTop = 0; return; }
     el.innerHTML = `${crumbs}${mob.path.length ? "" : `<input type="search" id="bac-mq" value="${esc(mob.q)}" placeholder="${esc(t("mob.bac.search"))}" aria-label="${esc(t("mob.bac.search"))}">`}<div class="mopts">${body}</div>`;
   }
   function mobClick(e: Event): void {
@@ -1806,7 +1806,26 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       tool: () => mob.tool,
       setTool: (x: MobTool) => { if (ui.mounted) mobTool(x); },
       pinned: () => ui.pinned !== null && mob.tool === "voir",
-      unpin(): void { ui.pinned = null; renderInfo(true); drawGhost(); mob.listen?.(); },
+      /** « Retour » : referme la fiche, remonte d'une étape dans l'arbre de pose, lâche l'outil. */
+      canBack: () => ui.mounted && (ui.pinned !== null || mob.tool !== "voir" || ui.schemMode || !!ui.btnFrom),
+      back(): void {
+        if (ui.btnFrom) ui.btnFrom = null;
+        else if (ui.schemMode) ui.schemMode = false;
+        else if (mob.tool === "poser") {
+          if (ui.op) ui.op = null;
+          else if (ui.clip) return mobTool("voir");
+          else if (!mob.open) mob.open = true;
+          else if (mob.q) mob.q = "";
+          else if (mob.path.length) mob.path.pop();
+          else return mobTool("voir");
+          if (mob.open) ui.sel = null;
+          return mobDone();
+        } else if (mob.tool !== "voir") return mobTool("voir");
+        ui.pinned = null;
+        renderInfo(true);
+        drawGhost();
+        mob.listen?.();
+      },
       listen(f: () => void): void { mob.listen = f; },
       /** Passage au téléphone ou à l'ordinateur : l'outil revient à « Voir ». */
       reset(): void { mob.tool = "voir"; ui.breakMode = ui.schemMode = false; if (ui.mounted) { mobTree(); drawGhost(); applyView(); } },

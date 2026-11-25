@@ -2,6 +2,7 @@
 // Une fenêtre au-dessus de la page, un champ, une grille de vignettes ; Ctrl+K l'ouvre, les flèches
 // choisissent, Entrée valide, Échap ferme. Les derniers objets choisis sont gardés dans ce navigateur.
 
+import { icon } from "./icons.ts";
 import { t } from "../i18n/i18n.ts";
 import { esc } from "./format.ts";
 
@@ -49,6 +50,7 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
   el.className = "cmd-pal";
   el.hidden = true;
   el.innerHTML = `<div class="pal-box" role="dialog" aria-modal="true">
+    <button type="button" class="pal-x" data-pal-close></button>
     <input class="pal-q" type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" >
     <div class="pal-tabs" role="group"><button type="button" data-pal-tab="all"></button><button type="button" data-pal-tab="recent"></button></div>
     <div class="pal-grid" role="listbox"></div>
@@ -65,6 +67,8 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
     q.setAttribute("aria-label", ph);
     el.querySelector('[data-pal-tab="all"]')!.textContent = t("pal.all");
     el.querySelector('[data-pal-tab="recent"]')!.textContent = t("pal.recent");
+    el.querySelector(".pal-x")!.innerHTML = icon("chevL");
+    el.querySelector(".pal-x")!.setAttribute("aria-label", t("common.close"));
     el.querySelector(".pal-help")!.textContent = t("pal.help");
   }
 
@@ -129,6 +133,7 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
   q.addEventListener("input", () => {
     focus = 0;
     render();
+    grid.scrollTop = 0; // la liste déjà défilée cachait les premiers résultats
   });
   q.addEventListener("keydown", (e) => {
     const k = e.key;
@@ -149,7 +154,7 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
   });
   el.addEventListener("click", (e) => {
     const target = e.target as Element;
-    if (target === el) return close();
+    if (target === el || target.closest("[data-pal-close]")) return close();
     const b = target.closest<HTMLElement>("[data-pal]");
     if (b) return pick(b.dataset.pal!);
     const tb = target.closest<HTMLElement>("[data-pal-tab]");
@@ -157,6 +162,7 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
       tab = tb.dataset.palTab as typeof tab;
       focus = 0;
       render();
+      grid.scrollTop = 0;
       q.focus();
     }
   });

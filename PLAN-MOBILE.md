@@ -232,6 +232,16 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
 - **MB6** (2026-11-25) : Usine, barre d'étape (précédente, suivante, nom, nombre, « posé ») au-dessus du dessin.
 - **Correctif en ligne** : version 0.1.8 (`a24ea93`), ouverture directe de Recettes et Contribuer.
 
+- **Retours de l'utilisateur sur téléphone** (2026-11-25) :
+  - « retour » : l'ancienne méthode ajoutait une entrée d'historique ; `refine` (`replaceState`) l'effaçait, et le retour
+    suivant pouvait mener à une page d'avant (éditeur de bâtiments après un choix d'objet). Remplacée par `CloseWatcher`
+    (Chrome Android), qui ne touche pas à l'historique ; liste unique `overlays()` de ce qui se ferme, dans l'ordre. Navigateur
+    sans `CloseWatcher` : retour ordinaire. Essai : `__retour()` dans la console en développement ;
+  - calcul de l'usine : bandeau en bas, le dessin reste visible ; recherches : retour au premier résultat ; bouton ‹ dans le
+    choix d'objet ; étapes : liste déroulante visible (numéro, flèche), « retour » ramène à toute l'usine ;
+  - éditeur : onglets Grille, Ports (liste avec info-bulles), Fiche ; info-bulle et contenu en tête du panneau d'un port ;
+    appui long : le texte que le survol montre sur PC, partout sur le site.
+
 ### Pistes pour MB10 (à maquetter, rien de décidé)
 
 Ce qui ne va pas au téléphone : la bulle cache la cible (40 % de l'écran), le voile empêche d'essayer, huit étapes de suite,

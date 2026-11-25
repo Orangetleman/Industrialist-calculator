@@ -5,15 +5,16 @@
 import { t, type Key } from "../i18n/i18n.ts";
 import { panZoomOf } from "./canvas.ts";
 import { icon, type IconName } from "./icons.ts";
+import { closePop, popEl } from "./popmenu.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** Vue montrée dans Planifier : un onglet du résultat, ou un volet (étapes, bilan). */
 export type MView = "pose" | "schema" | "etapes" | "bilan" | "liste" | "details";
-type Panel = "" | "goal" | "menu" | "bac";
+type Panel = "" | "goal" | "menu" | "bac" | "steps";
 /** Ce que le bac à sable offre à la coquille (MB7). */
-export type MobileBac = { tool(): string; setTool(x: never): void; pinned(): boolean; unpin(): void; listen(f: () => void): void; reset(): void; rows(): { id: string; ic: string; label: string; on?: boolean }[]; act(id: string): void };
+export type MobileBac = { tool(): string; setTool(x: never): void; pinned(): boolean; canBack(): boolean; back(): void; listen(f: () => void): void; reset(): void; rows(): { id: string; ic: string; label: string; on?: boolean }[]; act(id: string): void };
 type DockItem = { id: string; ic: IconName; label: Key };
 
 export const PLAN_DOCK: DockItem[] = [
@@ -84,6 +85,8 @@ let on = false;
 let page: Page = "plan";
 let tab = "";
 let view: MView = "pose";
+/** Dernier dessin montré (usine ou schéma) : « retour » y ramène depuis Étapes et Bilan. */
+let lastDraw: MView = "pose";
 let contrib = "posts";
 let panel: Panel = "";
 let pageTitle = (): string => "";
@@ -175,27 +178,37 @@ function drawHead(): void {
       : page === "recettes" && cardOpen()
         ? `<button type="button" class="m-ib" data-m="cardback" aria-label="${esc(t("rcp.back"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#rc-card h2")?.textContent ?? pageTitle())}</span>${location.hash.startsWith("#recettes/objet/") ? `<button type="button" class="m-go" data-m="plan">${esc(t("nav.plan"))}</button>` : ""}`
       : bldOpen()
-        ? `<button type="button" class="m-ib" data-m="bldback" aria-label="${esc(t("mob.bld.list"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#bld-head h3")?.textContent ?? "")}</span><button type="button" class="m-ib" data-m="bldcard" aria-pressed="${document.body.classList.contains("m-bldcard")}" aria-label="${esc(t("mob.bld.card"))}">${icon(document.body.classList.contains("m-bldcard") ? "tiles" : "settings")}</button><button type="button" class="m-go" data-m="bldsave">${esc(t("bld.save"))}</button>`
+        ? `<button type="button" class="m-ib" data-m="bldback" aria-label="${esc(t("mob.bld.list"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#bld-head h3")?.textContent ?? "")}</span><button type="button" class="m-go" data-m="bldsave">${esc(t("bld.save"))}</button>`
       : `<span class="m-title">${esc(pageTitle())}</span>${page === "recettes" || page === "arbre" ? `<span class="m-sp"></span>${page === "arbre" ? `<button type="button" class="m-ib" data-m="treeview" aria-label="${esc(t(treeList() ? "tr.view.tree" : "tr.view.list"))}">${icon(treeList() ? "share" : "list")}</button>` : ""}<button type="button" class="m-ib" data-m="opts" aria-expanded="${document.body.classList.contains("m-opts")}" aria-label="${esc(t("mob.opts"))}">${icon("settings")}</button>` : ""}${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
 }
-/** Usine : l'étape montrée, la précédente, la suivante, « posé » (MB6). */
+/** Usine : l'étape montrée, la précédente, la suivante, « posé » (MB6) ; le nom ouvre la liste des étapes. */
+const stepRows = () => [...document.querySelectorAll<HTMLElement>("#plan-steps .cmd-row")];
+const stepAt = (rows: HTMLElement[]) => rows.findIndex((r) => r.classList.contains("on"));
 function drawSteps(): void {
-  const rows = [...document.querySelectorAll<HTMLElement>("#plan-steps .cmd-row")];
-  const i = rows.findIndex((r) => r.classList.contains("on"));
+  const rows = stepRows();
+  const i = stepAt(rows);
   stepBar.hidden = !(page === "plan" && view === "pose" && i >= 0 && rows.length > 1);
   if (stepBar.hidden) return;
   const row = rows[i]!, box = row.querySelector<HTMLInputElement>("input.cmd-box");
   const name = row.querySelector(".nm")?.innerHTML ?? "", n = row.querySelector(".x")?.textContent ?? "";
-  stepBar.innerHTML = `<button type="button" data-step-go="-1" aria-label="${esc(t("mob.prev"))}"${i ? "" : " disabled"}>${icon("chevL")}</button><button type="button" class="nm" data-m="steps"><span>${name}</span><i>${esc(n)}</i></button>${box ? `<button type="button" class="ck" data-step-posed aria-pressed="${box.checked}" aria-label="${esc(box.getAttribute("aria-label") ?? "")}"><span class="m-sw">${box.checked ? icon("check") : ""}</span></button>` : ""}<button type="button" data-step-go="1" aria-label="${esc(t("mob.next"))}"${i < rows.length - 1 ? "" : " disabled"}>${icon("chevR")}</button>`;
+  stepBar.innerHTML = `<button type="button" data-step-go="-1" aria-label="${esc(t("mob.prev"))}"${i ? "" : " disabled"}>${icon("chevL")}</button><button type="button" class="nm" data-m="steps" aria-haspopup="listbox" aria-expanded="${panel === "steps"}"><span><small>${esc(i ? t("mob.stepn", { n: i, total: rows.length - 1 }) : t("mob.stepall", { total: rows.length - 1 }))}</small>${name}</span><i>${esc(n)}</i>${icon("more")}</button>${box ? `<button type="button" class="ck" data-step-posed aria-pressed="${box.checked}" aria-label="${esc(box.getAttribute("aria-label") ?? "")}"><span class="m-sw">${box.checked ? icon("check") : ""}</span></button>` : "<span></span>"}<button type="button" data-step-go="1" aria-label="${esc(t("mob.next"))}"${i < rows.length - 1 ? "" : " disabled"}>${icon("chevR")}</button>`;
+}
+function drawStepList(): void {
+  const rows = stepRows(), i = stepAt(rows);
+  menu.querySelector("h2")!.textContent = t("mob.picksteps");
+  menu.querySelector(".m-grid")!.innerHTML = "";
+  menu.querySelector(".m-rows")!.innerHTML = rows
+    .map((r, k) => `<button type="button" role="option" data-step-pick="${k}" aria-selected="${k === i}">${k ? `<b>${k}</b>` : icon("home")}<span>${r.querySelector(".nm")?.innerHTML ?? ""}</span><i>${esc(r.querySelector(".x")?.textContent ?? "")}</i>${r.querySelector<HTMLInputElement>("input.cmd-box")?.checked ? icon("check") : ""}</button>`)
+    .join("");
+  requestAnimationFrame(() => menu.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "center" }));
 }
 function onSteps(e: Event): void {
   const b = (e.target as Element).closest<HTMLElement>("button");
   if (!b) return;
-  const rows = [...document.querySelectorAll<HTMLElement>("#plan-steps .cmd-row")];
-  const i = rows.findIndex((r) => r.classList.contains("on"));
+  const rows = stepRows(), i = stepAt(rows);
   if (b.dataset.stepGo) rows[i + Number(b.dataset.stepGo)]?.querySelector<HTMLElement>(".cmd-step")?.click();
   else if ("stepPosed" in b.dataset) rows[i]?.querySelector<HTMLInputElement>("input.cmd-box")?.click();
-  else setView("etapes");
+  else setPanel("steps");
   drawSteps();
 }
 function drawDock(): void {
@@ -219,6 +232,7 @@ function drawMenu(): void {
 function apply(): void {
   if (!on) return;
   const b = document.body;
+  if (view === "pose" || view === "schema") lastDraw = view;
   b.dataset.mview = view;
   b.dataset.mpage = page;
   b.dataset.mcontrib = contrib;
@@ -226,11 +240,12 @@ function apply(): void {
   else delete b.dataset.mbac;
   b.classList.toggle("m-bld", bldOpen());
   drawSteps();
+  drawBldTabs();
   b.classList.toggle("m-binfo", page === "bac" && !!bac?.pinned());
   if (panel) b.dataset.mpanel = panel;
   else delete b.dataset.mpanel;
   scrim.hidden = !panel;
-  menu.hidden = panel !== "menu" && panel !== "bac";
+  menu.hidden = panel !== "menu" && panel !== "bac" && panel !== "steps";
   const blank = $("rtabs-result").hidden;
   empty.hidden = !(page === "plan" && blank && (view === "pose" || view === "schema" || view === "liste" || view === "details"));
   empty.innerHTML = `<p>${esc($("no-plan").hidden ? ($("answer").textContent ?? "").trim() || ($("plan-title").textContent ?? "") : "")}</p><button type="button" class="primary" data-m="goal">${esc(t("mob.pickgoal"))}</button>`;
@@ -242,6 +257,7 @@ function apply(): void {
   drawHead();
   drawDock();
   if (panel === "menu") drawMenu();
+  if (panel === "steps") drawStepList();
   if (panel === "bac" && bac) {
     menu.querySelector("h2")!.textContent = t("mob.bac.more");
     menu.querySelector(".m-grid")!.innerHTML = "";
@@ -254,48 +270,89 @@ function apply(): void {
 /** Ce qui est ouvert par-dessus, du plus haut au plus bas, et comment le fermer. */
 function overlays(): { close(): void }[] {
   const out: { close(): void }[] = [];
-  const box = document.getElementById("steps-box");
-  if (document.body.classList.contains("m-steps") && box && !box.hidden) out.push({ close: closeSteps });
-  if (!$("share").hidden) out.push({ close: () => $("shr-close").click() });
-  if (panel) out.push({ close: () => setPanel("") });
-  if (document.body.classList.contains("m-bstats")) out.push({ close: closeStats });
-  const dlg = document.getElementById("bac-dlg");
-  if (page === "bac" && dlg && !dlg.hidden) out.push({ close: () => document.getElementById("bac-dlg-back")?.click() });
-  if (page === "bac" && bac?.pinned()) out.push({ close: () => bac?.unpin() });
-  if (!$("plan-drawer").hidden) out.push({ close: () => $("plan-set-close").click() });
-  if (document.body.classList.contains("m-fiche")) out.push({ close: closeFiche });
-  if (document.body.classList.contains("m-opts")) out.push({ close: closeOpts });
-  const bb = document.getElementById("bld-bubble");
-  if (page === "donnees" && bb && !bb.hidden) out.push({ close: () => bb.querySelector<HTMLElement>("[data-bb-close]")?.click() });
-  else if (document.body.classList.contains("m-bldcard")) out.push({ close: closeBldCard });
-  else if (bldOpen()) out.push({ close: () => { bldList = true; apply(); } });
-  if (document.body.classList.contains("m-node")) out.push({ close: closeNode });
-  if (page === "plan" && !$("pose-focus").hidden && view === "pose") out.push({ close: () => $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click() });
+  const has = (c: string) => document.body.classList.contains(c);
+  const add = (open: boolean, close: () => void) => open && out.push({ close });
+  const byId = (id: string) => document.getElementById(id);
+  const tip = q(".m-tip");
+  add(!!tip && !tip.hidden, () => (tip!.hidden = true));
+  // La bulle de la visite reste ouverte : la quitter a son bouton.
+  add(!!popEl(), closePop);
+  for (const p of document.querySelectorAll<HTMLElement>(".cmd-pal")) add(!p.hidden, () => p.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+  const box = byId("steps-box");
+  add(has("m-steps") && !!box && !box.hidden, closeSteps);
+  add(has("m-about"), () => document.body.classList.remove("m-about"));
+  add(!$("share").hidden, () => $("shr-close").click());
+  add(!!panel, () => setPanel(""));
+  add(!$("plan-drawer").hidden, () => $("plan-set-close").click());
+  if (page === "bac") {
+    const dlg = byId("bac-dlg");
+    add(!!dlg && !dlg.hidden, () => byId("bac-dlg-back")?.click());
+    add(has("m-bstats"), closeStats);
+    add(!!bac?.canBack(), () => bac?.back());
+  }
+  if (page === "plan") {
+    add(has("m-fiche"), closeFiche);
+    const bub = q(".gv-bub");
+    add(view === "schema" && !!bub && !bub.hidden, () => bub!.querySelector<HTMLElement>("[data-b=close]")?.click());
+    const tool = q('.gv-tray [data-tool][aria-pressed="true"]');
+    add(view === "schema" && !!tool, () => tool!.click());
+    const full = $("pose-focus").classList.contains("full");
+    add(view === "pose" && full, () => $("pose-focus").querySelector<HTMLElement>("[data-focus-full]")?.click());
+    add(view === "pose" && !$("pose-focus").hidden, () => $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click());
+    const sub = q(".cmd-pane.sub.on [data-back]");
+    add(view === "bilan" && !!sub, () => sub!.click());
+    add(view === "liste" || view === "details", () => setView("bilan"));
+    add(view === "etapes" || view === "bilan", () => setView(lastDraw));
+    const rows = stepRows();
+    add(view === "pose" && stepAt(rows) > 0, () => rows[0]!.querySelector<HTMLElement>(".cmd-step")?.click());
+  }
+  add(has("m-opts"), closeOpts);
+  add(has("m-node"), closeNode);
+  if (page === "donnees") {
+    const bb = $("bld-bubble");
+    add(!bb.hidden, () => bb.querySelector<HTMLElement>("[data-bb-close]")?.click());
+    const face = q("#bld-facepop [data-face-close], #bld-facepop [data-fp-close]");
+    add(!!face, () => face!.click());
+    add(bldOpen() && bldTab !== "grid", () => setBldTab("grid"));
+    add(bldOpen(), () => {
+      bldList = true;
+      apply();
+    });
+  }
   return out;
 }
+
+/**
+ * Bouton ou geste « retour ». `CloseWatcher` (Chrome, Android compris) reçoit le retour tant que quelque chose est
+ * ouvert, sans toucher à l'historique : l'ancienne méthode (une entrée d'historique en plus) se perdait quand la page
+ * réécrivait son adresse, et pouvait ramener à une page d'avant. Sans lui, le retour reste celui du navigateur.
+ */
+type Watcher = { destroy(): void; requestClose(): void; onclose: (() => void) | null };
+const WatcherCtor = (globalThis as unknown as { CloseWatcher?: new () => Watcher }).CloseWatcher;
+let watcher: Watcher | null = null;
+let syncing = 0;
 let treeSeen = false;
 let lastHash = "";
-let pushed: string | null = null;
-let syncing = 0;
+let lastEsc = -1e9;
 function syncHistory(): void {
   clearTimeout(syncing);
   syncing = window.setTimeout(() => {
     const open = on && overlays().length > 0;
-    if (open && pushed === null) {
-      history.pushState({ m: 1 }, "");
-      pushed = location.href;
-    } else if (!open && pushed !== null) {
-      const same = pushed === location.href;
-      pushed = null;
-      if (same && history.state?.m) history.back();
+    if (open && !watcher && WatcherCtor) {
+      watcher = new WatcherCtor();
+      watcher.onclose = () => {
+        watcher = null;
+        // Échap a déjà été traité par la page : on ne ferme pas deux choses.
+        if (performance.now() - lastEsc > 150) overlays()[0]?.close();
+        syncHistory();
+      };
+    } else if (!open && watcher) {
+      const w = watcher;
+      watcher = null;
+      w.onclose = null;
+      w.destroy();
     }
-  }, 60);
-}
-function onPop(): void {
-  if (pushed === null) return;
-  pushed = null;
-  overlays()[0]?.close();
-  syncHistory();
+  }, 40);
 }
 
 function setPanel(p: Panel): void {
@@ -320,10 +377,32 @@ function closeOpts(): void {
   if (on) drawHead();
   syncHistory();
 }
-function closeBldCard(): void {
-  document.body.classList.remove("m-bldcard");
+/** Éditeur d'un bâtiment : la grille, la liste de ses ports (avec leur info-bulle), sa fiche. */
+let bldTab: "grid" | "ports" | "card" = "grid";
+let bldTabs: HTMLElement, portList: HTMLElement;
+function setBldTab(x: typeof bldTab): void {
+  bldTab = x;
   apply();
+  window.scrollTo(0, 0);
   syncHistory();
+  if (x === "grid") requestAnimationFrame(() => panZoomOf($("bld-frame"))?.reset());
+}
+function drawBldTabs(): void {
+  document.body.classList.toggle("m-bldcard", bldOpen() && bldTab === "card");
+  document.body.classList.toggle("m-bldports", bldOpen() && bldTab === "ports");
+  if (!bldOpen()) return;
+  const ports = [...document.querySelectorAll<SVGElement>("#bld-svg [data-port]")];
+  bldTabs.innerHTML = (["grid", "ports", "card"] as const).map((x) => `<button type="button" role="tab" data-bt="${x}" aria-selected="${x === bldTab}">${esc(t(`mob.bt.${x}` as Key))}${x === "ports" ? ` <i>${ports.length}</i>` : ""}</button>`).join("");
+  if (bldTab !== "ports") return;
+  portList.innerHTML = ports.length
+    ? ports.map((p) => { const [a, ...b] = (p.querySelector("title")?.textContent ?? "").split(" — "); return `<button type="button" data-pick-port="${p.dataset.port}"><i class="bld-sw ${esc(p.classList[1] ?? "")}"></i><span>${esc(b.join(" — ").split(" · ")[0]! || t("mob.notip"))}<small>${esc((a ?? "").split(" · ").slice(0, 3).join(" · "))}</small></span>${icon("chevR")}</button>`; }).join("")
+    : `<p class="hint">${esc(t("mob.noports"))}</p>`;
+}
+function pickPort(e: Event): void {
+  const b = (e.target as Element).closest<HTMLElement>("[data-pick-port]");
+  if (!b) return;
+  setBldTab("grid");
+  setTimeout(() => document.querySelector(`#bld-svg [data-port="${b.dataset.pickPort}"]`)?.dispatchEvent(new MouseEvent("click", { bubbles: true })), 60);
 }
 function closeNode(): void {
   document.body.classList.remove("m-node");
@@ -344,11 +423,9 @@ function closeFiche(): void {
 /** Aller à une adresse depuis un panneau : elle remplace l'entrée posée pour « Retour ». */
 function nav(href: string): void {
   panel = "";
-  const was = pushed !== null && history.state?.m;
-  pushed = null;
-  if (was) location.replace(href);
-  else location.hash = href;
+  location.hash = href;
   apply();
+  syncHistory();
 }
 
 function setView(v: MView): void {
@@ -370,8 +447,14 @@ function setContrib(id: string): void {
 }
 
 function onClick(e: Event): void {
-  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac]");
+  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac], [data-step-pick], [data-bt]");
   if (!el) return;
+  if (el.dataset.stepPick) {
+    setPanel("");
+    stepRows()[Number(el.dataset.stepPick)]?.querySelector<HTMLElement>(".cmd-step")?.click();
+    return;
+  }
+  if (el.dataset.bt) return setBldTab(el.dataset.bt as typeof bldTab);
   if (el.dataset.href) return nav(el.dataset.href);
   if (el.dataset.bac) {
     bac?.act(el.dataset.bac);
@@ -410,15 +493,9 @@ function onClick(e: Event): void {
   else if (m === "close") setPanel("");
   else if (m === "bldback") {
     bldList = true;
-    document.body.classList.remove("m-bldcard");
+    setBldTab("grid");
     apply();
     syncHistory();
-  } else if (m === "bldcard") {
-    document.body.classList.toggle("m-bldcard");
-    apply();
-    syncHistory();
-    window.scrollTo(0, 0);
-    if (!document.body.classList.contains("m-bldcard")) requestAnimationFrame(() => panZoomOf($("bld-frame"))?.reset());
   } else if (m === "bldsave") $("bld-save")?.click();
   else if (m === "mine") {
     $("remark-btn").click();
@@ -507,6 +584,52 @@ function watchBubble(bub: HTMLElement): void {
   }).observe(bub, { attributes: true, attributeFilter: ["hidden"] });
 }
 
+/** Appui long : montre le texte qu'un survol montre sur PC (`title`), en bas de l'écran. */
+function longPress(): void {
+  const tip = Object.assign(document.createElement("div"), { className: "m-tip", hidden: true });
+  tip.setAttribute("role", "status");
+  document.body.append(tip);
+  let timer = 0, shown = false, x = 0, y = 0;
+  const textOf = (el: Element | null): string => {
+    for (let e = el; e && e !== document.body; e = e.parentElement) {
+      const s = e.getAttribute("title") || [...e.children].find((c) => c.tagName === "title")?.textContent;
+      if (s) return s;
+    }
+    return "";
+  };
+  document.addEventListener("pointerdown", (e) => {
+    clearTimeout(timer);
+    shown = false;
+    if (!on || e.pointerType !== "touch") return;
+    tip.hidden = true;
+    // Le plan du bac à sable a son propre appui long (zone à copier ou à effacer).
+    const el = e.target as Element;
+    if (!e.isPrimary || el.closest("#bac-map, .m-grip, input:not([type="checkbox"], [type="radio"]), select, textarea")) return;
+    const s = textOf(el);
+    if (!s) return;
+    [x, y] = [e.clientX, e.clientY];
+    timer = window.setTimeout(() => {
+      tip.textContent = s;
+      tip.hidden = false;
+      shown = true;
+      syncHistory();
+    }, 480);
+  }, true);
+  const stop = (e: PointerEvent) => {
+    if (e.type === "pointermove" && Math.hypot(e.clientX - x, e.clientY - y) < 10) return;
+    clearTimeout(timer);
+  };
+  for (const ev of ["pointermove", "pointerup", "pointercancel"] as const) document.addEventListener(ev, stop, true);
+  // Le clic qui suit un appui long ne déclenche rien ; pas de menu du navigateur par-dessus.
+  document.addEventListener("click", (e) => {
+    if (!shown) return;
+    shown = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+  document.addEventListener("contextmenu", (e) => { if (on && textOf(e.target as Element)) e.preventDefault(); });
+}
+
 // ---------------------------------------------------------------- visite guidée (tour.ts) : ses cibles, sur mobile
 
 const ALIAS: Record<string, string> = { ".bld-tools": "#bld-frame", "#rtabs-result": ".m-dock", "#me": ".m-menu", "#remark-btn": ".m-menu", "#plan-set-open": ".m-set", "#graph-bar": "#flow-frame", "#upto-form": "#upto-form" };
@@ -545,6 +668,13 @@ function build(): void {
   sent = el("section", "m-sent", `<h2></h2><div class="m-sent-b"></div><div class="m-rows"><button type="button" data-m="mine">${icon("remark")}<span></span>${icon("chevR")}</button></div>`);
   sent.addEventListener("click", onClick);
   document.querySelector("#dpanel-verifier .corrections-panel")!.after(sent);
+  bldTabs = el("div", "m-bldtabs");
+  bldTabs.setAttribute("role", "tablist");
+  portList = el("div", "m-rows m-portlist");
+  $("bld-editor").prepend(bldTabs);
+  bldTabs.after(portList);
+  bldTabs.addEventListener("click", onClick);
+  portList.addEventListener("click", pickPort);
   more = el("div", "m-rows m-more");
   $("pane-root").querySelector(".cmd-pb")!.append(more);
   fiche = el("button", "m-fiche-btn");
@@ -569,7 +699,7 @@ function sync(): void {
   view = nextView(view, nt, nt !== tab);
   tab = nt;
   if (p !== page) {
-    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats", "m-opts", "m-node", "m-bldcard");
+    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats", "m-opts", "m-node");
     panel = "";
   }
   // Arbre : la liste d'abord, la première fois (décision n° 4 du plan) ; ensuite, la dernière vue choisie.
@@ -612,7 +742,7 @@ function enable(active: boolean): void {
     panel = "";
     scrim.hidden = menu.hidden = true;
     for (const k of ["mview", "mpage", "mpanel", "mcontrib", "mbac"]) delete document.body.dataset[k];
-    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo", "m-opts", "m-node", "m-bld", "m-bldcard");
+    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo", "m-opts", "m-node", "m-bld", "m-bldcard", "m-bldports");
   }
   window.dispatchEvent(new Event("resize"));
 }
@@ -652,7 +782,16 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
   matchMedia("(orientation: landscape)").addEventListener("change", () => {
     if (on) setTimeout(() => ["pose-frame", "flow-frame"].forEach((id) => $(id).clientWidth && panZoomOf($(id))?.reset()), 250);
   });
-  window.addEventListener("popstate", onPop);
+  // Tout ce qui s'ouvre ou se ferme suit un geste ou une adresse : le retour se met à jour après.
+  for (const ev of ["click", "pointerup", "keyup", "change", "hashchange"]) window.addEventListener(ev, () => on && (syncHistory(), setTimeout(() => on && syncHistory(), 450)), true);
+  window.addEventListener("keydown", (e) => e.key === "Escape" && (lastEsc = performance.now()), true);
+  if (import.meta.env.DEV) (window as unknown as { __retour: () => boolean }).__retour = () => (watcher ? (watcher.requestClose(), true) : false);
+  longPress();
+  // Une recherche repart du premier résultat, même si la liste avait été défilée.
+  document.addEventListener("input", (e) => {
+    const el = e.target as HTMLElement;
+    if (on && el.matches("#rc-q, #bld-search, #tree-filter, #verify-filter, #pr-q")) window.scrollTo(0, 0);
+  });
   document.addEventListener("keydown", (e) => {
     if (on && e.key === "Escape" && panel) setPanel("");
   });
@@ -705,7 +844,7 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
   $("bld-items").addEventListener("click", (e) => {
     if (!on || !(e.target as Element).closest("[data-bld]")) return;
     bldList = false;
-    document.body.classList.remove("m-bldcard");
+    bldTab = "grid";
     setTimeout(() => {
       apply();
       window.scrollTo(0, 0);
@@ -714,7 +853,8 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
     }, 0);
   });
   lit2.observe($("bld-editor"), { attributes: true, attributeFilter: ["hidden"] });
-  new MutationObserver(() => on && page === "donnees" && drawHead()).observe($("bld-head"), { childList: true });
+  new MutationObserver(() => on && page === "donnees" && (drawHead(), drawBldTabs())).observe($("bld-head"), { childList: true });
+  new MutationObserver(() => on && page === "donnees" && drawBldTabs()).observe($("bld-canvas"), { childList: true });
   const bb = $("bld-bubble");
   new MutationObserver(() => {
     if (!on) return;

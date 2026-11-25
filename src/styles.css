@@ -2214,3 +2214,5 @@ body.lecture .me-chip { background: var(--steel-soft); color: var(--steel); }
   /* Le pupitre du bac à sable occupe le bas de l'écran. */
   body:has(#page-bac:not([hidden])) .steps-box.folded { display: none; }
 }
+
+.pal-x { display: none; } /* fermeture au doigt (mobile.css) ; sur PC, Échap ou un clic à côté */

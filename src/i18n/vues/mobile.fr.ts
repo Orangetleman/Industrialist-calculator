@@ -44,5 +44,13 @@ export const mobileFr = {
   "mob.mine": "Mes remarques",
   "mob.prev": "Étape précédente",
   "mob.next": "Étape suivante",
+  "mob.stepn": "Étape {n} / {total}",
+  "mob.stepall": "{total} étapes",
+  "mob.picksteps": "Voir une étape",
+  "mob.bt.grid": "Grille",
+  "mob.bt.ports": "Ports",
+  "mob.bt.card": "Fiche",
+  "mob.notip": "Pas d’info-bulle relevée",
+  "mob.noports": "Aucun port : touche une case du bord dans la grille.",
   "mob.card": "Fiche complète",
 } satisfies Record<string, Msg>;
