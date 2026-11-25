@@ -6057,7 +6057,10 @@ function correctionsPiece(): Piece {
   return { fichier: "overrides.json", resume: joinList(parts), contenu: { ...mergeCorrections(repoOverrides, corrections), _notes: { ...repoNotes, ...notes } } };
 }
 /** Il y a quelque chose à envoyer : des corrections ou des notes du joueur. */
-const hasOwnFixes = (): boolean => !lecture() && countCorrections(corrections) + Object.keys(notes).length > 0;
+// Une fonction, pas une constante : la page ouverte directement sur Recettes ou Contribuer s'en sert avant d'arriver à cette ligne.
+function hasOwnFixes(): boolean {
+  return !lecture() && countCorrections(corrections) + Object.keys(notes).length > 0;
+}
 
 /** Bouton « 📤 Envoyer mes corrections » de Contribuer, et la note « Envoyées le… » (maquette S35, écran 1). */
 function renderFixSend(): void {
