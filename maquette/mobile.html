@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maquette mobile — Planificateur</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* PLAN-MOBILE.md, phase 1. Charte Plasma (jetons de src/styles.css), volets à plat (R28).
+   Nombres du plan : relevés sur le site (Crankshaft 60/min, tout débloqué). Le dessin de l'usine et les ports
+   du bac à sable sont schématiques. */
+:root {
+  --bg: #0e0a18; --surface: #160f25; --panel2: #201733; --ink: #f0ecfa; --muted: #a99cc8; --line: #392a5a;
+  --accent: #ff6a1a; --accent-soft: #33190c; --on-accent: #1a0800; --ok: #4ade80; --warn: #ffd23f; --bad: #ff7a9a;
+  --in: #38bdf8; --in-soft: #0f2235; --out: #e879f9; --out-soft: #2d1436; --cv: #08070a;
+  --stripe: repeating-linear-gradient(45deg, var(--accent) 0 10px, var(--bg) 10px 20px);
+  --d: "Audiowide", "Arial Narrow", system-ui, sans-serif; --b: "IBM Plex Sans", system-ui, sans-serif; --m: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #050308; color: var(--ink); font: 16px/1.4 var(--b); }
+button, input { font: inherit; color: inherit; background: none; border: 0; padding: 0; border-radius: 0; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.mono { font-family: var(--m); }
+
+/* Barre de la maquette (hors du site) */
+.lab { height: 40px; display: flex; gap: 4px; align-items: center; justify-content: center; font: 13px var(--b); color: #bbb; background: #050308; white-space: nowrap; }
+.lab button { min-height: 32px; padding: 0 10px; border: 1px solid #444; }
+.lab button.on { background: #ddd; color: #111; }
+.lab .sz { display: none; }
+.room { height: calc(100% - 40px); display: grid; grid-template: 100% / 100%; place-items: center; overflow: auto; }
+.dev { container: dev / size; position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); user-select: none; -webkit-user-select: none; }
+@media (min-width: 900px) and (pointer: fine) {
+  .lab .sz { display: contents; }
+  .dev { width: var(--w, 390px); height: var(--h, 844px); max-height: 100%; outline: 1px solid #555; }
+}
+
+/* Ossature */
+.app { position: absolute; inset: 0; display: grid; grid-template: "head" auto "stage" 1fr "bar" auto / 1fr; }
+.head { grid-area: head; height: 52px; display: flex; align-items: center; background: var(--surface); position: relative; z-index: 3; padding-left: 14px; }
+.head::after { content: ""; position: absolute; inset: auto 0 -3px 0; height: 3px; background: var(--stripe); }
+.head .t { flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 8px; font: 15px var(--d); text-align: left; }
+.head .t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head .t b { color: var(--accent); font-weight: 400; white-space: nowrap; }
+.head .i { width: 48px; height: 52px; display: grid; place-items: center; }
+.head .i.on { color: var(--accent); }
+.stage { grid-area: stage; position: relative; overflow: hidden; min-height: 0; margin-top: 3px; }
+.scroll { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; padding-bottom: 20px; }
+.bar { grid-area: bar; display: flex; background: var(--surface); border-top: 1px solid var(--line); z-index: 6; padding-bottom: env(safe-area-inset-bottom); }
+.bar button { flex: 1; min-width: 0; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; color: var(--muted); position: relative; }
+.bar button.on { color: var(--accent); }
+.bar button.on::before { content: ""; position: absolute; top: -1px; left: 12%; right: 12%; height: 3px; background: var(--accent); }
+.bar .menu { flex: 0 0 72px; background: var(--accent); color: var(--on-accent); }
+
+/* Vues du plan (direction A : en haut du dessin) */
+.views { display: flex; background: var(--surface); border-bottom: 1px solid var(--line); position: absolute; z-index: 2; inset: 0 0 auto 0; }
+.views button { flex: 1; height: 48px; color: var(--muted); font: 14px var(--d); }
+.views button.on { color: var(--ink); box-shadow: inset 0 -3px var(--accent); }
+
+/* Lignes à plat */
+.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 16px; border-bottom: 1px solid var(--line); text-align: left; }
+.row .g { flex: 1; min-width: 0; } .row small { display: block; color: var(--muted); font-size: 14px; }
+.row .n { font: 16px var(--m); color: var(--accent); }
+.row.on { background: var(--accent-soft); }
+.chk { width: 28px; height: 28px; border: 2px solid var(--muted); display: grid; place-items: center; flex: none; }
+.done .chk { background: var(--ok); border-color: var(--ok); color: #05210f; } .done .g { color: var(--muted); text-decoration: line-through; }
+.sq { width: 40px; height: 40px; flex: none; background: var(--panel2); display: grid; place-items: center; font: 13px var(--d); color: var(--muted); }
+.h { font: 15px var(--d); color: var(--accent); padding: 18px 16px 8px; }
+.kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-block: 1px solid var(--line); }
+.kpi div { background: var(--surface); padding: 10px 16px; font: 20px var(--m); } .kpi small { display: block; font: 14px var(--b); color: var(--muted); }
+.cta { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 18px; background: var(--accent); color: var(--on-accent); font-weight: 600; width: 100%; }
+.cta.alt { background: var(--panel2); color: var(--ink); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+.seg { display: flex; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.seg button { flex: 1 0 auto; min-height: 48px; padding: 0 14px; color: var(--muted); white-space: nowrap; } .seg button.on { color: var(--ink); box-shadow: inset 0 -3px var(--accent); }
+.step { display: flex; align-items: stretch; }
+.step button { width: 60px; height: 56px; font: 26px var(--m); background: var(--panel2); } .step input, .step output { width: 100px; flex: 1; min-width: 0; text-align: center; font: 22px var(--m); background: var(--bg); display: grid; place-items: center; }
+.find { display: flex; align-items: center; gap: 10px; background: var(--bg); padding: 0 16px; border-block: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
+.find input { flex: 1; min-width: 0; height: 52px; outline: none; }
+.tag { font-size: 13px; padding: 2px 8px; background: var(--panel2); color: var(--muted); }
+
+/* Panneau bas, trois crans */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: var(--surface); border-top: 3px solid var(--accent); z-index: 4; display: flex; flex-direction: column; transform: translateY(calc(100% - var(--v, 84px))); transition: transform .2s ease-out; }
+.sheet.drag { transition: none; }
+.grip { flex: none; touch-action: none; cursor: grab; }
+.grip i { display: block; width: 44px; height: 4px; background: var(--muted); margin: 8px auto 4px; }
+.grip .st { display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 4px 0 16px; }
+.grip .st .g { flex: 1; min-width: 0; font: 15px var(--d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .grip .st small { display: block; font: 14px var(--m); color: var(--muted); }
+.grip .x { width: 52px; height: 52px; display: grid; place-items: center; }
+.sheet .body { overflow: auto; overscroll-behavior: contain; max-height: calc(var(--v) - 78px); flex: 1; }
+/* Panneau qui couvre (choix, réglages, menu, partage) */
+.modal { position: absolute; inset: 0; z-index: 10; background: #050308c0; display: flex; flex-direction: column; justify-content: flex-end; }
+.modal .in { background: var(--surface); border-top: 3px solid var(--accent); max-height: 92%; overflow: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom); }
+.modal .in.full { height: 92%; }
+.mh { display: flex; align-items: center; padding-left: 16px; font: 16px var(--d); position: sticky; top: 0; background: var(--surface); z-index: 3; } .mh span { flex: 1; } .mh button { width: 56px; height: 56px; display: grid; place-items: center; }
+.menug { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--line); } .menug button { background: var(--surface); height: 88px; display: grid; place-content: center; justify-items: center; gap: 6px; font-size: 14px; } .menug .on { color: var(--accent); }
+
+/* Dessin */
+.map { position: absolute; inset: 0; touch-action: none; background: var(--cv) radial-gradient(#2c2245 1px, transparent 1.5px) 0 0 / 24px 24px; overflow: hidden; }
+.w { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.w svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.node { position: absolute; width: 190px; background: #130f1c; border: 1px solid #3b2e5a; padding: 8px 10px; text-align: left; line-height: 1.25; }
+.node b { font: 15px var(--d); display: flex; justify-content: space-between; gap: 6px; } .node b em { color: var(--accent); font: 15px var(--m); } .node small { color: var(--muted); font-size: 14px; }
+.node.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); } .node.tgt { box-shadow: 0 0 0 3px var(--in); }
+.fp { position: absolute; background: #201733; border: 2px solid #4f3d7a; display: grid; place-content: center; text-align: center; font-size: 14px; } .fp.on { border-color: var(--accent); background: var(--accent-soft); } .fp.ok { border-color: var(--ok); }
+.float { position: absolute; right: 8px; bottom: 96px; display: grid; gap: 8px; z-index: 3; }
+.float button, .tools button { width: 52px; height: 52px; background: #1d1430f0; border: 1px solid var(--line); display: grid; place-items: center; } .float button.on, .tools button.on { background: var(--accent); color: var(--on-accent); }
+.tools { position: absolute; inset: auto 0 0 0; display: flex; background: var(--surface); border-top: 1px solid var(--line); z-index: 3; } .tools button { flex: 1; width: auto; height: 60px; border: 0; font-size: 12px; align-content: center; gap: 2px; }
+.ghostbar { position: absolute; inset: auto 0 60px 0; display: grid; grid-template-columns: 60px 60px 1fr 60px; z-index: 4; border-top: 1px solid var(--line); } .ghostbar button { height: 60px; display: grid; place-items: center; background: var(--panel2); } .ghostbar .cta { background: var(--accent); }
+.ghost { position: absolute; left: 50%; top: 42%; z-index: 2; pointer-events: none; border: 2px dashed var(--accent); background: #ff6a1a33; transform: translate(-50%, -50%); display: grid; place-items: center; font-size: 13px; }
+.port { position: absolute; width: 22px; height: 22px; } .port.i { background: var(--in); } .port.o { background: var(--out); } .port.sel { outline: 3px solid var(--accent); }
+.say { position: absolute; left: 50%; transform: translateX(-50%); bottom: 130px; background: #1d1430f0; border-left: 3px solid var(--accent); padding: 8px 12px; font-size: 14px; z-index: 5; white-space: nowrap; }
+
+/* Paysage et tablette : rail à gauche, panneau à droite */
+@container dev (min-aspect-ratio: 1/1) {
+  .app { grid-template: "bar head" auto "bar stage" 1fr / 76px 1fr; }
+  .bar { flex-direction: column; border-top: 0; border-right: 1px solid var(--line); padding: 0 0 0 env(safe-area-inset-left); overflow: auto; }
+  .bar button, .bar .menu { flex: 0 1 68px; min-height: 48px; width: 100%; height: auto; } .bar .menu { order: -1; flex: 0 0 55px; }
+  .bar button.on::before { inset: 10% auto 10% 0; width: 3px; height: auto; }
+  .sheet { left: auto; width: min(340px, 46cqw); border-top: 0; border-left: 3px solid var(--accent); transform: none; } .sheet .body { max-height: none; } .sheet .grip i { display: none; }
+  .has-sheet .map, .has-sheet .views, .has-sheet .tools, .has-sheet .ghostbar { right: min(340px, 46cqw); } .has-sheet .float { right: calc(min(340px, 46cqw) + 8px); }
+  .float { bottom: 12px; } .modal { flex-direction: row; justify-content: flex-end; } .modal .in, .modal .in.full { width: min(440px, 70cqw); height: 100%; max-height: none; border-top: 0; border-left: 3px solid var(--accent); }
+}
+@container dev (max-height: 480px) { .head { height: 44px; } .head .t, .head .i { height: 44px; } .views button { height: 44px; } .float { grid-auto-flow: column; } .bar button, .bar .menu { min-height: 44px; flex: 1 1 44px; gap: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet { transition: none; } }
+</style>
+</head>
+<body>
+<div class="lab"><button data-dir="A" class="on">A · Onglets</button><button data-dir="B">B · Dock</button>
+<span class="sz">&nbsp; <button data-sz="390,844" class="on">390</button><button data-sz="360,800">360</button><button data-sz="844,390">Paysage</button><button data-sz="768,1024">Tablette</button><button data-sz="1024,768">Tablette ↔</button></span></div>
+<div class="room"><div class="dev" id="dev"></div></div>
+<script>
+const P = { plan: "M3 21V9l6 4V9l6 4V4h6v17z", rec: "M4 4h16v16H4zM4 10h16M10 10v10", bac: "M3 3h8v8H3zM13 13h8v8h-8zM17 3v6M14 6h6M7 14v6M4 17h6", me: "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-5 16-5 16 0", plus: "M4 6h16M4 12h16M4 18h16", tree: "M3 10h6v5H3zM15 3h6v5h-6zM15 16h6v5h-6zM9 12h3V5h3M12 12v7h3", share: "M18 8a3 3 0 100-6 3 3 0 000 6zM6 15a3 3 0 100-6 3 3 0 000 6zM18 22a3 3 0 100-6 3 3 0 000 6zM9 13l6 4M9 11l6-5", x: "M5 5l14 14M19 5L5 19", find: "M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l5 5", fit: "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5", edit: "M4 20l4-1L20 7l-3-3L5 16z", set: "M4 7h10M18 7h2M4 17h2M10 17h10M16 5v4M8 15v4", check: "M5 12l5 5L20 7", undo: "M9 7L4 12l5 5M4 12h10a6 6 0 010 8", rot: "M20 11a8 8 0 10-2 6M20 5v6h-6", link: "M10 14l4-4M8 12l-3 3a3 3 0 004 4l3-3M16 12l3-3a3 3 0 00-4-4l-3 3", del: "M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13", list: "M9 6h11M9 12h11M9 18h11M4 6h1M4 12h1M4 18h1", flow: "M3 5h7v5H3zM14 14h7v5h-7zM10 8h4v9", stat: "M4 20V10M10 20V4M16 20v-8M21 20H3", hand: "M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3" };
+const I = (k) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[k]}"/></svg>`;
+const STEPS = [["Advanced Assembler", 5, "Crankshaft"], ["Industrial Roller", 12, "Gear"], ["Industrial Roller", 6, "Steel Rod"], ["Press", 16, "Steel Plate"], ["Blast Furnace", 5, "Steel Ingot"], ["Ingot Molder", 4, "Iron Ingot"], ["Electric Furnace", 3, "Liquid Iron"], ["Blast Furnace", 1, "Iron Mix"], ["Grinder", 5, "Iron Powder"], ["Iron Drill", 18, "Raw Iron"]];
+const NODES = [["Crankshaft", "Advanced Assembler", 5, 700, 130], ["Gear", "Industrial Roller", 12, 460, 40], ["Steel Rod", "Industrial Roller", 6, 460, 220], ["Steel Plate", "Press", 16, 220, 40], ["Steel Ingot", "Blast Furnace", 5, -20, 130]];
+const EDGES = [[1, 0, "240/min"], [2, 0, "120/min"], [3, 1, "240/min"], [4, 3, ""], [4, 2, ""]];
+const FP = [["Crankshaft", 10, 560, 190, 110], ["Steel Ingot", 130, 270, 70, 260], ["Iron Ingot", 10, 400, 100, 60], ["Iron Powder", 10, 290, 100, 70], ["Raw Iron", 10, 150, 100, 110], ["Steel Plate", 230, 120, 110, 180], ["Gear", 230, 330, 110, 130], ["Steel Rod", 230, 490, 110, 110]];
+const ITEMS = ["Crankshaft", "Gear", "Steel Rod", "Steel Plate", "Steel Ingot", "Iron Ingot", "Copper Wire", "Copper Plate", "Aluminium Ingot", "Clay Brick", "Concrete Block", "Cement", "Boron", "Chlorine", "Acetic Acid", "Ammonia"];
+const PRIO = ["Le moins de place", "Le moins de machines", "Le moins d'énergie", "Le moins cher", "Le moins de pollution", "Le moins de matières premières", "La chaîne la plus courte"];
+const RES = ["Production", "Water Pump", "Research Station"];
+const s = { dir: "A", page: "plan", view: "liste", node: -1, mod: -1, snap: 0, modal: "", item: "Crankshaft", qty: 60, done: new Set(), edit: false, link: -1, me: "recherches", res: new Set(["Production"]), rec: "", recsel: "", tool: "voir", sel: "", rot: 0, posed: [{ n: "Press", x: 70, y: 90 }, { n: "Roller", x: 250, y: 90 }], pipes: [], port: null, say: "", goal: "Un objet", pages: {} };
+const views = {}; // position de chaque dessin
+const $ = (q) => document.querySelector(q), dev = $("#dev");
+const nav = [["plan", "Planifier", "plan"], ["recettes", "Recettes", "rec"], ["bac", "Bac à sable", "bac"], ["partie", "Ma partie", "me"], ["plus", "Plus", "plus"]];
+const pv = [["liste", "Étapes", "list"], ["schema", "Schéma", "flow"], ["usine", "Usine", "plan"], ["bilan", "Bilan", "stat"]];
+const row = (act, main, sub, right = "", cls = "", lead = "") => `<button class="row ${cls}" data-a="${act}">${lead}<span class="g">${main}${sub ? `<small>${sub}</small>` : ""}</span>${right}</button>`;
+const sq = (n) => `<span class="sq">${n.slice(0, 2)}</span>`;
+
+function head() {
+  const t = { recettes: "Recettes", bac: "Bac à sable", partie: "Ma partie", plus: "Plus", contribuer: "Contribuer", methodes: "Méthodes", propositions: "Propositions" }[s.page];
+  if (s.page === "plan") return `<button class="t" data-a="modal:goal"><span>${s.item}</span><b>${s.qty}/min</b>${I("edit")}</button><button class="i" data-a="modal:set" aria-label="Réglages">${I("set")}</button><button class="i" data-a="modal:share" aria-label="Partager">${I("share")}</button>`;
+  return `<span class="t"><span>${t}</span></span>${s.page === "bac" ? `<button class="i" data-a="undo" aria-label="Annuler">${I("undo")}</button><button class="i" data-a="stats" aria-label="Statistiques">${I("stat")}</button>` : ""}`;
+}
+const bilan = () => `<div class="kpi"><div><small>Cases au sol</small>2 252</div><div><small>Machines</small>82</div><div><small>Énergie</small>1,92 MMF/s</div><div><small>Prix</small>8,88 M$</div></div>`;
+function stage() {
+  const p = s.page;
+  if (p === "plan") {
+    const top = s.dir === "A" ? `<div class="views">${pv.map(([k, n]) => `<button data-a="view:${k}" class="${s.view === k ? "on" : ""}">${n}</button>`).join("")}</div>` : "";
+    const pad = s.dir === "A" ? "top:48px" : "";
+    if (s.view === "liste") return top + `<div class="scroll" style="${pad}">${STEPS.map((x, i) => row("done:" + i, x[0], x[2], `<span class="n">×${x[1]}</span>`, s.done.has(i) ? "done" : "", `<span class="chk">${s.done.has(i) ? I("check") : ""}</span>`)).join("")}</div>`;
+    if (s.view === "bilan") return top + `<div class="scroll" style="${pad}">${bilan()}<div class="h">À régler</div>${row("", "7 points", "")}<div class="h">Exporter</div>${row("page:bac", "Ouvrir dans le bac à sable")}${row("modal:share", "Fichier")}</div>`;
+    const fl = `<div class="float"><button data-a="fit" aria-label="Tout voir">${I("fit")}</button>${s.view === "schema" ? `<button data-a="edit" class="${s.edit ? "on" : ""}" aria-label="Modifier">${I("edit")}</button>` : ""}</div>`;
+    return top + `<div class="map" style="${pad}" data-map="${s.view}"><div class="w">${s.view === "schema" ? graph() : plant()}</div></div>${fl}${sheet()}`;
+  }
+  if (p === "recettes") return `<div class="scroll"><label class="find">${I("find")}<input data-in="rec" type="search" placeholder="Objet ou machine" value="${s.rec}"></label>${ITEMS.filter((n) => n.toLowerCase().includes(s.rec.toLowerCase())).map((n) => row("rec:" + n, n, "", "", "", sq(n))).join("")}</div>${s.recsel ? sheet() : ""}`;
+  if (p === "partie") return `<div class="scroll"><div class="seg">${[["recherches", "Recherches"], ["argent", "Argent et RP"], ["prod", "Production"], ["tracking", "Suivi RP"]].map(([k, n]) => `<button data-a="me:${k}" class="${s.me === k ? "on" : ""}">${n}</button>`).join("")}</div>${s.me === "recherches" ? `<label class="find">${I("find")}<input type="search" placeholder="Recherche ou machine"></label>${RES.map((n) => row("res:" + n, n, s.res.has(n) ? "Débloquée" : "Disponible", "", s.res.has(n) ? "done" : "", `<span class="chk">${s.res.has(n) ? I("check") : ""}</span>`).replace("done", "ok " + (s.res.has(n) ? "done" : ""))).join("")}${row("modal:tree", "Voir l'arbre", "", I("tree"))}` : `<div class="h">${s.me === "argent" ? "Argent" : s.me === "prod" ? "Déjà en place" : "Stations"}</div><div class="row"><span class="g">Valeur</span><div class="step"><button>−</button><output>0</output><button>+</button></div></div>`}</div>`;
+  if (p === "bac") return `<div class="map" data-map="bac" style="bottom:60px"><div class="w">${bac()}</div></div>${s.sel && s.tool === "poser" ? `<div class="ghost" style="width:100px;height:100px;rotate:${s.rot}deg">${s.sel}</div><div class="ghostbar"><button data-a="tool:voir" aria-label="Renoncer">${I("x")}</button><button data-a="rot" aria-label="Tourner">${I("rot")}</button><button class="cta" data-a="pose">Poser</button><button data-a="modal:mach" aria-label="Changer">${I("list")}</button></div>` : ""}${s.say ? `<div class="say">${s.say}</div>` : ""}<div class="float" style="bottom:${s.sel && s.tool === "poser" ? 132 : 72}px"><button data-a="fit" aria-label="Tout voir">${I("fit")}</button></div><div class="tools">${[["voir", "Voir", "hand"], ["poser", "Poser", "plus"], ["relier", "Relier", "link"], ["effacer", "Effacer", "del"]].map(([k, n, i]) => `<button data-a="tool:${k}" class="${s.tool === k ? "on" : ""}">${I(i)}<span>${n}</span></button>`).join("")}</div>`;
+  if (p === "plus") return `<div class="scroll">${[["contribuer", "Contribuer"], ["methodes", "Méthodes de calcul"], ["propositions", "Propositions"]].map(([k, n]) => row("page:" + k, n)).join("")}${row("modal:remark", "Envoyer une remarque")}${row("modal:tuto", "Tutoriel", "0 / 8")}${row("", "Langue", "", "<span class='n'>FR</span>")}${row("", "Thème", "", "<span class='n'>Sombre</span>")}${row("", "À propos", "Outil de fan, non officiel")}</div>`;
+  if (p === "contribuer") return `<div class="scroll"><label class="find">${I("find")}<input type="search" placeholder="Bâtiment ou recette"></label>${row("", "Advanced Assembler", "dans le dépôt")}${row("", "Advanced Coal Drill", "manquant")}<div class="h">Dessiner les ports</div><div class="row"><span class="g">Sur ordinateur ou tablette</span></div><button class="cta alt" data-a="modal:share">M'envoyer le lien</button></div>`;
+  return `<div class="scroll"><div class="h">Sommaire</div>${["Priorités", "Machines entières", "Recherche", "Énergie"].map((n) => row("", n)).join("")}</div>`;
+}
+function graph() {
+  // Portrait : la chaîne descend (texte lisible sans zoomer) ; paysage : elle va de gauche à droite.
+  const up = dev.clientHeight > dev.clientWidth, V = [[110, 520], [220, 350], [0, 350], [220, 180], [110, 10]];
+  const N = NODES.map((n, i) => (up ? [...n.slice(0, 3), ...V[i]] : n));
+  return `<svg width="1" height="1">${EDGES.map(([a, b, l]) => { const A = N[a], B = N[b]; if (up) { const x1 = A[3] + 95, y1 = A[4] + 56, x2 = B[3] + 95, y2 = B[4], m = y2 - 40; return `<path d="M${x1} ${y1}V${m}H${x2}V${y2}" fill="none" stroke="#7d6fa8" stroke-width="2"/><text x="${x1 + 8}" y="${m - 10}" fill="#a99cc8" font-size="14">${l}</text>`; } const x1 = A[3] + 190, y1 = A[4] + 32, x2 = B[3], y2 = B[4] + 32, m = (x1 + x2) / 2; return `<path d="M${x1} ${y1}H${m}V${y2}H${x2}" fill="none" stroke="#7d6fa8" stroke-width="2"/><text x="${m - 30}" y="${y1 - 8}" fill="#a99cc8" font-size="13">${l}</text>`; }).join("")}</svg>` + N.map((n, i) => `<div class="node ${s.node === i ? "on" : ""} ${s.link >= 0 && s.link !== i ? "tgt" : ""}" data-k="node:${i}" style="left:${n[3]}px;top:${n[4]}px"><b>${n[0]}<em>×${n[2]}</em></b><small>${n[1]}</small></div>`).join("");
+}
+const plant = () => FP.map((f, i) => { const k = STEPS.findIndex((x) => x[2] === f[0]); return `<div class="fp ${s.mod === i ? "on" : ""} ${s.done.has(k) ? "ok" : ""}" data-k="mod:${i}" style="left:${f[1]}px;top:${f[2]}px;width:${f[3]}px;height:${f[4]}px">${f[0]}</div>`; }).join("");
+function bac() {
+  return `<svg width="1" height="1">${s.pipes.map(([a, b]) => { const A = s.posed[a], B = s.posed[b]; return A && B ? `<path d="M${A.x + 100} ${A.y + 50}H${(A.x + 100 + B.x) / 2}V${B.y + 50}H${B.x}" stroke="#ff6a1a" stroke-width="6" fill="none"/>` : ""; }).join("")}</svg>` + s.posed.map((m, i) => `<div class="fp" data-k="b:${i}" style="left:${m.x}px;top:${m.y}px;width:100px;height:100px">${m.n}</div><div class="port i ${s.port && s.port !== i + 1 ? "sel" : ""}" data-k="b:${i}" style="left:${m.x - 11}px;top:${m.y + 39}px"></div><div class="port o ${s.port === i + 1 ? "sel" : ""}" data-k="b:${i}" style="left:${m.x + 89}px;top:${m.y + 39}px"></div>`).join("");
+}
+function sheet() {
+  let t = "", u = "", b = "", close = "";
+  if (s.page === "recettes") { t = s.recsel; u = "fiche"; close = "rec:"; b = `<div class="h">Fabriqué par</div>${row("", "Machine", "recette")}<div class="h">Sert à</div>${row("", "Objets")}<button class="cta" data-a="take:${s.recsel}">Planifier</button><button class="cta alt">Corriger</button>`; }
+  else if (s.view === "schema" && s.node >= 0) {
+    const n = NODES[s.node]; t = n[0]; u = `${n[1]} ×${n[2]}`; close = "node:-1";
+    b = s.edit ? `<div class="row"><span class="g">Machines</span><div class="step"><button data-a="cnt:-1">−</button><output>${n[2]}</output><button data-a="cnt:1">+</button></div></div>${row("modal:pick", "Changer de recette")}${row("linkon", s.link >= 0 ? "Touche le nœud à relier" : "Relier à…", "", I("link"), s.link >= 0 ? "on" : "")}${row("", "Supprimer", "", I("del"))}` : `<div class="kpi"><div><small>Machines</small>×${n[2]}</div><div><small>Étape</small>${[...s.done].some((i) => STEPS[i][2] === n[0]) ? "posée" : "à poser"}</div></div>${row("rec2:" + n[0], "Voir la recette")}<button class="cta alt" data-a="edit">Modifier</button>`;
+  } else if (s.view === "usine" && s.mod >= 0) { const k = STEPS.findIndex((x) => x[2] === FP[s.mod][0]), x = STEPS[k]; t = FP[s.mod][0]; u = `${x[0]} ×${x[1]}`; close = "mod:-1"; b = `<button class="cta" data-a="done:${k}">${s.done.has(k) ? "Posé ✓" : "Marquer posé"}</button>${row("", "Plan du module", "", I("fit"))}${row("view:schema", "Voir dans le schéma")}`; }
+  else { t = `${s.qty}/min ${s.item}`; u = "82 machines · 2 252 cases"; b = bilan() + row("view:bilan", "Tout le bilan"); }
+  return `<section class="sheet"><div class="grip"><i></i><div class="st"><div class="g">${t}<small>${u}</small></div>${close ? `<button class="x" data-a="${close}" aria-label="Fermer">${I("x")}</button>` : ""}</div></div><div class="body">${b}</div></section>`;
+}
+function modal() {
+  const m = s.modal; if (!m) return "";
+  const T = { goal: "Objectif", set: "Réglages", share: "Partager", menu: "Aller à", pick: "Objet", mach: "Machine", tuto: "Premiers pas", remark: "Remarque", tree: "Arbre", stats: "Statistiques" };
+  const B = {
+    goal: () => `<div class="seg">${["Un objet", "Énergie", "RP", "Argent"].map((g) => `<button data-a="goal:${g}" class="${s.goal === g ? "on" : ""}">${g}</button>`).join("")}</div>${row("modal:pick", s.item, "Objet", I("find"), "", sq(s.item))}<div class="row"><span class="g">Par minute</span><div class="step"><button data-a="qty:-10">−</button><input data-in="qty" inputmode="decimal" value="${s.qty}"><button data-a="qty:10">+</button></div></div>${row("modal:set", "Priorité", PRIO[0])}<button class="cta" data-a="modal:">Calculer</button>`,
+    set: () => `<div class="h">Priorités</div>${PRIO.map((x, i) => `<div class="row"><span class="n">${i + 1}</span><span class="g">${x}</span><button class="sq" data-a="up:${i}" aria-label="Monter" style="width:48px;height:48px">↑</button></div>`).join("")}<div class="h">Machines</div><div class="seg"><button class="on">Toutes</button><button>Toutes sauf…</button><button>Seulement…</button></div><div class="h">Options</div>${["Produire ma propre énergie", "Ne pas dépasser mon argent", "Utiliser ma production déjà en place"].map((x) => row("", x, "", "", "", `<span class="chk"></span>`)).join("")}`,
+    share: () => `<div class="row"><span class="g mono" style="font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">industrialist.myprisme.fr/#…</span><span class="tag">passe sur Discord</span></div><div class="two"><button class="cta" data-a="say:Copié">Copier</button><button class="cta alt" data-a="say:Feuille de partage du téléphone">Envoyer…</button></div><div class="h">Contient</div>${["Graphe", "Réglages", "Mon profil"].map((x) => row("", x, "", "", "done", `<span class="chk">${I("check")}</span>`).replace("done", "")).join("")}${row("", "Fichier avec l'usine figée", ".indus")}`,
+    menu: () => `<div class="menug">${[["plan", "Planifier", "plan"], ["recettes", "Recettes", "rec"], ["bac", "Bac à sable", "bac"], ["partie", "Ma partie", "me"], ["contribuer", "Contribuer", "edit"], ["plus", "Plus", "plus"]].map(([k, n, i]) => `<button data-a="page:${k}" class="${s.page === k ? "on" : ""}">${I(i)}${n}</button>`).join("")}</div>`,
+    pick: () => `<label class="find">${I("find")}<input data-in="rec" type="search" placeholder="Objet" value="${s.rec}"></label>${ITEMS.filter((n) => n.toLowerCase().includes(s.rec.toLowerCase())).map((n) => row("item:" + n, n, "", "", s.item === n ? "on" : "", sq(n))).join("")}`,
+    mach: () => `<label class="find">${I("find")}<input type="search" placeholder="Machine"></label>${["Press", "Roller", "Furnace", "Grinder"].map((n) => row("mach:" + n, n, "", "", "", sq(n))).join("")}`,
+    tuto: () => ["Mon premier plan", "Les vues du plan", "Modifier la proposition", "Construire et partager"].map((x) => row("", x, "", "", "", `<span class="chk"></span>`)).join(""),
+    remark: () => `<textarea rows="6" style="width:100%;background:var(--bg);color:var(--ink);border:0;padding:16px;font:16px var(--b)" placeholder="Ta remarque"></textarea><button class="cta">Envoyer</button>`,
+    tree: () => `<div class="map" data-map="tree" style="top:56px"><div class="w">${RES.map((n, i) => `<div class="node ${s.res.has(n) ? "on" : ""}" data-k="res:${n}" style="left:${i ? 250 : 0}px;top:${i ? i * 100 - 100 : 40}px"><b>${n}</b></div>`).join("")}</div></div>`,
+    stats: () => bilan(),
+  };
+  return `<div class="modal" data-a="modal:"><div class="in ${["pick", "mach", "tree", "set"].includes(m) ? "full" : ""}" style="position:relative" data-a="stop"><div class="mh"><span>${T[m]}</span><button data-a="modal:" aria-label="Fermer">${I("x")}</button></div>${B[m]()}</div></div>`;
+}
+function bar() {
+  if (s.dir === "A") return nav.map(([k, n, i]) => `<button data-a="page:${k}" class="${s.page === k || (k === "plus" && ["contribuer", "methodes", "propositions"].includes(s.page)) ? "on" : ""}">${I(i)}${n}</button>`).join("");
+  const here = s.page === "plan" ? pv.map(([k, n, i]) => `<button data-a="view:${k}" class="${s.view === k ? "on" : ""}">${I(i)}${n}</button>`).join("") : `<button data-a="page:plan">${I("plan")}Mon plan</button>`;
+  return here + `<button class="menu" data-a="modal:menu" aria-label="Aller à">${I("plus")}Menu</button>`;
+}
+let lastScroll = {};
+function draw(keepFocus) {
+  const key = s.page + s.view + s.me;
+  const old = dev.querySelector(".scroll"), ms = dev.querySelector(".modal .in"); if (old) lastScroll[old.dataset.key] = old.scrollTop;
+  const msTop = ms?.scrollTop ?? 0, msKey = ms?.dataset.key;
+  const f = keepFocus && document.activeElement?.dataset?.in, pos = f ? document.activeElement.selectionStart : 0;
+  const st = stage();
+  dev.innerHTML = `<div class="app ${st.includes('class="sheet"') ? "has-sheet" : ""}"><header class="head">${head()}</header><main class="stage">${st}</main><nav class="bar">${bar()}</nav></div>${modal()}`;
+  const sc = dev.querySelector(".scroll"); if (sc) { sc.dataset.key = key; sc.scrollTop = lastScroll[key] ?? 0; }
+  const mn = dev.querySelector(".modal .in"); if (mn) { mn.dataset.key = s.modal; if (msKey === s.modal) mn.scrollTop = msTop; }
+  if (f) { const el = [...dev.querySelectorAll(`[data-in="${f}"]`)].pop(); el?.focus(); try { el?.setSelectionRange(pos, pos); } catch {} }
+  setSnap(); dev.querySelectorAll(".map").forEach(panzoom);
+  // L'élément choisi reste visible : le dessin glisse au-dessus du panneau ouvert.
+  const on = dev.querySelector(".map .on"), sh = dev.querySelector(".sheet"), map = dev.querySelector(".map");
+  if (on && sh && s.snap === 1 && !s.modal) { const b = on.getBoundingClientRect(), m = map.getBoundingClientRect(), side = dev.clientWidth >= dev.clientHeight, low = side ? m.bottom : sh.parentElement.getBoundingClientRect().bottom - parseFloat(sh.style.getPropertyValue("--v")), v = views[map.dataset.map];
+    if (b.bottom > low - 12) v.y -= b.bottom - low + 12; if (b.top - Math.max(0, b.bottom - low + 12) < m.top + 12) v.y += m.top + 12 - (b.top - Math.max(0, b.bottom - low + 12));
+    map.querySelector(".w").style.transform = `translate(${v.x}px,${v.y}px) scale(${v.k})`; }
+}
+function setSnap(px) {
+  const sh = dev.querySelector(".sheet"); if (!sh) return;
+  const H = sh.parentElement.clientHeight; sh.style.setProperty("--v", (px ?? [84, Math.min(340, H * .5), H - 60][s.snap]) + "px");
+}
+/* Un doigt : déplacer. Deux doigts : zoomer. Toucher : choisir. */
+function panzoom(map) {
+  const w = map.querySelector(".w"), id = map.dataset.map, pts = new Map(); let moved = 0, hit = null;
+  const apply = () => { const v = views[id]; w.style.transform = `translate(${v.x}px,${v.y}px) scale(${v.k})`; };
+  const fit = () => { const ks = [...w.children].filter((e) => e.style.left); let a = 1e9, b = 1e9, c = -1e9, d = -1e9; ks.forEach((e) => { a = Math.min(a, e.offsetLeft); b = Math.min(b, e.offsetTop); c = Math.max(c, e.offsetLeft + e.offsetWidth); d = Math.max(d, e.offsetTop + e.offsetHeight); }); const W = map.clientWidth, H = map.clientHeight - 90, k = Math.min(1.2, (W - 24) / (c - a), (H - 24) / (d - b)); views[id] = { k, x: (W - (c - a) * k) / 2 - a * k, y: (H - (d - b) * k) / 2 - b * k }; apply(); };
+  map.fit = fit; views[id] ? apply() : fit();
+  const zoom = (f, cx, cy) => { const v = views[id], k = Math.max(.2, Math.min(3, v.k * f)), r = k / v.k; v.x = cx - (cx - v.x) * r; v.y = cy - (cy - v.y) * r; v.k = k; apply(); };
+  map.onpointerdown = (e) => { const r = map.getBoundingClientRect(); if (!pts.size) { moved = 0; hit = e.target.closest("[data-k]"); } pts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]); map.setPointerCapture(e.pointerId); };
+  map.onpointermove = (e) => { const p = pts.get(e.pointerId); if (!p) return; const r = map.getBoundingClientRect(), q = [e.clientX - r.left, e.clientY - r.top], o = [...pts].find(([i]) => i !== e.pointerId)?.[1];
+    if (o) { const d0 = Math.hypot(p[0] - o[0], p[1] - o[1]), d1 = Math.hypot(q[0] - o[0], q[1] - o[1]); if (d0) zoom(d1 / d0, (q[0] + o[0]) / 2, (q[1] + o[1]) / 2); views[id].x += (q[0] - p[0]) / 2; views[id].y += (q[1] - p[1]) / 2; moved = 99; } else { moved += Math.hypot(q[0] - p[0], q[1] - p[1]); if (moved > 8) { views[id].x += q[0] - p[0]; views[id].y += q[1] - p[1]; } }
+    pts.set(e.pointerId, q); apply(); };
+  map.onpointerup = map.onpointercancel = (e) => { if (!pts.delete(e.pointerId) || pts.size) return; if (e.type === "pointerup" && moved <= 8) hit ? act(hit.dataset.k) : act("void"); };
+  map.onwheel = (e) => { e.preventDefault(); const r = map.getBoundingClientRect(); zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); };
+}
+let sayT;
+function tell(t) { s.say = t; clearTimeout(sayT); sayT = setTimeout(() => { s.say = ""; dev.querySelector(".say")?.remove(); }, 2200); }
+function act(a) {
+  const i = a.indexOf(":"), k = i < 0 ? a : a.slice(0, i), v = i < 0 ? "" : a.slice(i + 1);
+  if (k === "page") { if (!v.startsWith("page")) { s.page = v; s.modal = ""; s.say = ""; } }
+  else if (k === "view") { s.page = "plan"; s.view = v; s.snap = 0; s.link = -1; }
+  else if (k === "modal") { s.modal = v; s.rec = ""; }
+  else if (k === "node") { const n = +v; if (s.link >= 0 && n >= 0 && n !== s.link) { EDGES.push([s.link, n, ""]); s.link = -1; } else if (n >= 0 || s.link < 0) { s.node = n; s.link = -1; s.snap = n < 0 ? 0 : 1; } }
+  else if (k === "void") { s.node = -1; s.mod = -1; s.link = -1; s.port = null; s.snap = 0; }
+  else if (k === "mod") { s.mod = +v; s.snap = s.mod < 0 ? 0 : 1; }
+  else if (k === "done") { const n = +v; s.done.has(n) ? s.done.delete(n) : s.done.add(n); }
+  else if (k === "res") s.res.has(v) ? s.res.delete(v) : s.res.add(v);
+  else if (k === "edit") { s.edit = !s.edit; s.link = -1; }
+  else if (k === "linkon") { s.link = s.link < 0 ? s.node : -1; s.snap = s.link < 0 ? 1 : 0; if (s.link >= 0) delete views.schema; }
+  else if (k === "cnt") NODES[s.node][2] = Math.max(1, NODES[s.node][2] + +v);
+  else if (k === "qty") s.qty = Math.max(1, s.qty + +v);
+  else if (k === "goal") s.goal = v;
+  else if (k === "item") { s.item = v; s.modal = "goal"; s.rec = ""; }
+  else if (k === "take") { s.item = v; s.page = "plan"; s.recsel = ""; s.modal = "goal"; s.rec = ""; }
+  else if (k === "rec") { s.recsel = v; s.snap = 1; }
+  else if (k === "rec2") { s.page = "recettes"; s.recsel = v; s.snap = 1; }
+  else if (k === "up") { const n = +v; if (n) PRIO.splice(n - 1, 0, PRIO.splice(n, 1)[0]); }
+  else if (k === "me") s.me = v;
+  else if (k === "tool") { s.tool = v; s.port = null; s.say = ""; if (v === "poser" && !s.sel) s.modal = "mach"; if (v === "relier") tell("Sortie, puis entrée"); }
+  else if (k === "mach") { s.sel = v; s.tool = "poser"; s.modal = ""; }
+  else if (k === "rot") s.rot = (s.rot + 90) % 360;
+  else if (k === "pose") { const g = dev.querySelector(".ghost").getBoundingClientRect(), m = dev.querySelector(".map").getBoundingClientRect(), vv = views.bac; s.posed.push({ n: s.sel, x: Math.round(((g.left + g.width / 2 - m.left - vv.x) / vv.k - 50) / 20) * 20, y: Math.round(((g.top + g.height / 2 - m.top - vv.y) / vv.k - 50) / 20) * 20 }); }
+  else if (k === "b") { const n = +v; if (s.tool === "effacer") { s.pipes = s.pipes.filter((p) => !p.includes(n)).map((p) => p.map((q) => (q > n ? q - 1 : q))); s.posed.splice(n, 1); } else if (s.tool === "relier") { if (s.port === null) s.port = n + 1; else { if (s.port !== n + 1) s.pipes.push([s.port - 1, n]); s.port = null; } } else tell(s.posed[n].n); }
+  else if (k === "undo") { s.pipes.length ? s.pipes.pop() : s.posed.length > 2 && s.posed.pop(); }
+  else if (k === "stats") s.modal = "stats";
+  else if (k === "fit") return dev.querySelector(".map").fit();
+  else return;
+  draw();
+}
+dev.addEventListener("click", (e) => { if (e.target.closest("input,textarea")) return; const el = e.target.closest("[data-a]"); if (el && el.dataset.a && el.dataset.a !== "stop") { if (el.dataset.a.startsWith("say:")) { el.textContent = el.dataset.a.slice(4); return; } act(el.dataset.a); } });
+dev.addEventListener("input", (e) => { const k = e.target.dataset.in; if (!k) return; if (k === "qty") s.qty = Math.max(0, parseFloat(e.target.value.replace(",", ".")) || 0); else { s[k] = e.target.value; draw(true); } });
+let dg = null;
+dev.addEventListener("pointerdown", (e) => { const g = e.target.closest(".grip"); if (!g || e.target.closest("button")) return; const sh = g.parentElement; dg = { y: e.clientY, v: parseFloat(getComputedStyle(sh).getPropertyValue("--v")), sh, m: 0, g }; g.setPointerCapture(e.pointerId); sh.classList.add("drag"); });
+dev.addEventListener("pointermove", (e) => { if (!dg) return; dg.m = dg.y - e.clientY; setSnap(Math.max(84, Math.min(dg.sh.parentElement.clientHeight, dg.v + dg.m))); });
+const end = () => { if (!dg) return; const { m, sh } = dg; dg = null; sh.classList.remove("drag"); if (Math.abs(m) < 8) s.snap = s.snap ? 0 : 1; else s.snap = Math.max(0, Math.min(2, s.snap + Math.sign(m) * (Math.abs(m) > 320 ? 2 : 1))); setSnap(); };
+dev.addEventListener("pointerup", end); dev.addEventListener("pointercancel", end);
+const pick = (b, q) => { document.querySelectorAll(q).forEach((x) => x.classList.toggle("on", x === b)); };
+document.querySelectorAll("[data-dir]").forEach((b) => (b.onclick = () => { s.dir = b.dataset.dir; s.modal = ""; pick(b, "[data-dir]"); for (const k in views) delete views[k]; draw(); }));
+document.querySelectorAll("[data-sz]").forEach((b) => (b.onclick = () => { const [w, h] = b.dataset.sz.split(","); dev.style.setProperty("--w", w + "px"); dev.style.setProperty("--h", h + "px"); pick(b, "[data-sz]"); for (const k in views) delete views[k]; draw(); }));
+let rz; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => setSnap(), 60); }).observe(dev);
+draw();
+</script>
+</body>
+</html>
