@@ -238,9 +238,12 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
     (Chrome Android), qui ne touche pas à l'historique ; liste unique `overlays()` de ce qui se ferme, dans l'ordre. Navigateur
     sans `CloseWatcher` : retour ordinaire. Essai : `__retour()` dans la console en développement ;
   - calcul de l'usine : bandeau en bas, le dessin reste visible ; recherches : retour au premier résultat ; bouton ‹ dans le
-    choix d'objet ; étapes : liste déroulante visible (numéro, flèche), « retour » ramène à toute l'usine ;
+    choix d'objet ; étapes : le nom, encadré avec une flèche, ouvre l'écran Étapes (une liste déroulante essayée a été refusée) ; « retour » ramène à toute l'usine ;
   - éditeur : onglets Grille, Ports (liste avec info-bulles), Fiche ; info-bulle et contenu en tête du panneau d'un port ;
     appui long : le texte que le survol montre sur PC, partout sur le site.
+
+- **Attente du calcul de l'usine** (2026-11-25) : la zone du plan devient une grille de pose animée (`mobile-gen.ts`) : cases
+  allumées du centre vers les bords selon l'avancement réel, onde tant qu'il travaille, fondu vers le plan. Bandeau court.
 
 ### Pistes pour MB10 (à maquetter, rien de décidé)
 

@@ -47,7 +47,6 @@ export const mobileEn: Record<keyof typeof mobileFr, Msg> = {
   "mob.next": "Next step",
   "mob.stepn": "Step {n} / {total}",
   "mob.stepall": "{total} steps",
-  "mob.picksteps": "Show a step",
   "mob.bt.grid": "Grid",
   "mob.bt.ports": "Ports",
   "mob.bt.card": "Card",

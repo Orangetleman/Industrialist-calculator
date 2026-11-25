@@ -5,6 +5,7 @@
 import { t, type Key } from "../i18n/i18n.ts";
 import { panZoomOf } from "./canvas.ts";
 import { icon, type IconName } from "./icons.ts";
+import { createGen } from "./mobile-gen.ts";
 import { closePop, popEl } from "./popmenu.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -12,14 +13,14 @@ const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;",
 
 /** Vue montrée dans Planifier : un onglet du résultat, ou un volet (étapes, bilan). */
 export type MView = "pose" | "schema" | "etapes" | "bilan" | "liste" | "details";
-type Panel = "" | "goal" | "menu" | "bac" | "steps";
+type Panel = "" | "goal" | "menu" | "bac";
 /** Ce que le bac à sable offre à la coquille (MB7). */
 export type MobileBac = { tool(): string; setTool(x: never): void; pinned(): boolean; canBack(): boolean; back(): void; listen(f: () => void): void; reset(): void; rows(): { id: string; ic: string; label: string; on?: boolean }[]; act(id: string): void };
 type DockItem = { id: string; ic: IconName; label: Key };
 
 export const PLAN_DOCK: DockItem[] = [
   { id: "pose", ic: "home", label: "tab.usine" },
-  { id: "schema", ic: "share", label: "tab.schema" },
+  { id: "schema", ic: "flow", label: "tab.schema" },
   { id: "etapes", ic: "list", label: "mob.steps" },
   { id: "bilan", ic: "chart", label: "mob.sum" },
 ];
@@ -58,7 +59,7 @@ const MENU: { href: string; ic: IconName; label: Key }[] = [
   { href: "#recettes", ic: "list", label: "nav.recettes" },
   { href: "#bac", ic: "tiles", label: "page.bac" },
   { href: "#usine", ic: "config", label: "nav.usine" },
-  { href: "#arbre", ic: "group", label: "page.arbre" },
+  { href: "#arbre", ic: "flow", label: "page.arbre" },
   { href: "#propositions", ic: "edit", label: "nav.contribuer" },
 ];
 
@@ -179,7 +180,7 @@ function drawHead(): void {
         ? `<button type="button" class="m-ib" data-m="cardback" aria-label="${esc(t("rcp.back"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#rc-card h2")?.textContent ?? pageTitle())}</span>${location.hash.startsWith("#recettes/objet/") ? `<button type="button" class="m-go" data-m="plan">${esc(t("nav.plan"))}</button>` : ""}`
       : bldOpen()
         ? `<button type="button" class="m-ib" data-m="bldback" aria-label="${esc(t("mob.bld.list"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#bld-head h3")?.textContent ?? "")}</span><button type="button" class="m-go" data-m="bldsave">${esc(t("bld.save"))}</button>`
-      : `<span class="m-title">${esc(pageTitle())}</span>${page === "recettes" || page === "arbre" ? `<span class="m-sp"></span>${page === "arbre" ? `<button type="button" class="m-ib" data-m="treeview" aria-label="${esc(t(treeList() ? "tr.view.tree" : "tr.view.list"))}">${icon(treeList() ? "share" : "list")}</button>` : ""}<button type="button" class="m-ib" data-m="opts" aria-expanded="${document.body.classList.contains("m-opts")}" aria-label="${esc(t("mob.opts"))}">${icon("settings")}</button>` : ""}${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
+      : `<span class="m-title">${esc(pageTitle())}</span>${page === "recettes" || page === "arbre" ? `<span class="m-sp"></span>${page === "arbre" ? `<button type="button" class="m-ib" data-m="treeview" aria-label="${esc(t(treeList() ? "tr.view.tree" : "tr.view.list"))}">${icon(treeList() ? "flow" : "list")}</button>` : ""}<button type="button" class="m-ib" data-m="opts" aria-expanded="${document.body.classList.contains("m-opts")}" aria-label="${esc(t("mob.opts"))}">${icon("settings")}</button>` : ""}${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
 }
 /** Usine : l'étape montrée, la précédente, la suivante, « posé » (MB6) ; le nom ouvre la liste des étapes. */
 const stepRows = () => [...document.querySelectorAll<HTMLElement>("#plan-steps .cmd-row")];
@@ -191,16 +192,7 @@ function drawSteps(): void {
   if (stepBar.hidden) return;
   const row = rows[i]!, box = row.querySelector<HTMLInputElement>("input.cmd-box");
   const name = row.querySelector(".nm")?.innerHTML ?? "", n = row.querySelector(".x")?.textContent ?? "";
-  stepBar.innerHTML = `<button type="button" data-step-go="-1" aria-label="${esc(t("mob.prev"))}"${i ? "" : " disabled"}>${icon("chevL")}</button><button type="button" class="nm" data-m="steps" aria-haspopup="listbox" aria-expanded="${panel === "steps"}"><span><small>${esc(i ? t("mob.stepn", { n: i, total: rows.length - 1 }) : t("mob.stepall", { total: rows.length - 1 }))}</small>${name}</span><i>${esc(n)}</i>${icon("more")}</button>${box ? `<button type="button" class="ck" data-step-posed aria-pressed="${box.checked}" aria-label="${esc(box.getAttribute("aria-label") ?? "")}"><span class="m-sw">${box.checked ? icon("check") : ""}</span></button>` : "<span></span>"}<button type="button" data-step-go="1" aria-label="${esc(t("mob.next"))}"${i < rows.length - 1 ? "" : " disabled"}>${icon("chevR")}</button>`;
-}
-function drawStepList(): void {
-  const rows = stepRows(), i = stepAt(rows);
-  menu.querySelector("h2")!.textContent = t("mob.picksteps");
-  menu.querySelector(".m-grid")!.innerHTML = "";
-  menu.querySelector(".m-rows")!.innerHTML = rows
-    .map((r, k) => `<button type="button" role="option" data-step-pick="${k}" aria-selected="${k === i}">${k ? `<b>${k}</b>` : icon("home")}<span>${r.querySelector(".nm")?.innerHTML ?? ""}</span><i>${esc(r.querySelector(".x")?.textContent ?? "")}</i>${r.querySelector<HTMLInputElement>("input.cmd-box")?.checked ? icon("check") : ""}</button>`)
-    .join("");
-  requestAnimationFrame(() => menu.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "center" }));
+  stepBar.innerHTML = `<button type="button" data-step-go="-1" aria-label="${esc(t("mob.prev"))}"${i ? "" : " disabled"}>${icon("chevL")}</button><button type="button" class="nm" data-m="steps"><span><small>${esc(i ? t("mob.stepn", { n: i, total: rows.length - 1 }) : t("mob.stepall", { total: rows.length - 1 }))}</small>${name}</span><i>${esc(n)}</i>${icon("list")}</button>${box ? `<button type="button" class="ck" data-step-posed aria-pressed="${box.checked}" aria-label="${esc(box.getAttribute("aria-label") ?? "")}"><span class="m-sw">${box.checked ? icon("check") : ""}</span></button>` : "<span></span>"}<button type="button" data-step-go="1" aria-label="${esc(t("mob.next"))}"${i < rows.length - 1 ? "" : " disabled"}>${icon("chevR")}</button>`;
 }
 function onSteps(e: Event): void {
   const b = (e.target as Element).closest<HTMLElement>("button");
@@ -208,7 +200,7 @@ function onSteps(e: Event): void {
   const rows = stepRows(), i = stepAt(rows);
   if (b.dataset.stepGo) rows[i + Number(b.dataset.stepGo)]?.querySelector<HTMLElement>(".cmd-step")?.click();
   else if ("stepPosed" in b.dataset) rows[i]?.querySelector<HTMLInputElement>("input.cmd-box")?.click();
-  else setPanel("steps");
+  else return setView("etapes");
   drawSteps();
 }
 function drawDock(): void {
@@ -245,7 +237,7 @@ function apply(): void {
   if (panel) b.dataset.mpanel = panel;
   else delete b.dataset.mpanel;
   scrim.hidden = !panel;
-  menu.hidden = panel !== "menu" && panel !== "bac" && panel !== "steps";
+  menu.hidden = panel !== "menu" && panel !== "bac";
   const blank = $("rtabs-result").hidden;
   empty.hidden = !(page === "plan" && blank && (view === "pose" || view === "schema" || view === "liste" || view === "details"));
   empty.innerHTML = `<p>${esc($("no-plan").hidden ? ($("answer").textContent ?? "").trim() || ($("plan-title").textContent ?? "") : "")}</p><button type="button" class="primary" data-m="goal">${esc(t("mob.pickgoal"))}</button>`;
@@ -257,7 +249,6 @@ function apply(): void {
   drawHead();
   drawDock();
   if (panel === "menu") drawMenu();
-  if (panel === "steps") drawStepList();
   if (panel === "bac" && bac) {
     menu.querySelector("h2")!.textContent = t("mob.bac.more");
     menu.querySelector(".m-grid")!.innerHTML = "";
@@ -447,13 +438,8 @@ function setContrib(id: string): void {
 }
 
 function onClick(e: Event): void {
-  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac], [data-step-pick], [data-bt]");
+  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac], [data-bt]");
   if (!el) return;
-  if (el.dataset.stepPick) {
-    setPanel("");
-    stepRows()[Number(el.dataset.stepPick)]?.querySelector<HTMLElement>(".cmd-step")?.click();
-    return;
-  }
   if (el.dataset.bt) return setBldTab(el.dataset.bt as typeof bldTab);
   if (el.dataset.href) return nav(el.dataset.href);
   if (el.dataset.bac) {
@@ -863,6 +849,12 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
   }).observe(bb, { attributes: true, attributeFilter: ["hidden"] });
   // MB6 : barre d'étape à jour avec la liste des étapes.
   new MutationObserver(() => on && drawSteps()).observe($("plan-steps"), { childList: true });
+  // Calcul de l'usine : la grille animée suit le bandeau d'avancement.
+  const gen = createGen($("pose-frame"), $("pose-busy"));
+  const genSync = () => gen.sync(on && page === "plan" && view === "pose");
+  new MutationObserver(genSync).observe($("pose-busy"), { attributes: true, attributeFilter: ["hidden"], childList: true, subtree: true });
+  new MutationObserver(genSync).observe(document.body, { attributes: true, attributeFilter: ["data-mview", "data-mpage"] });
+  genSync();
   const rech = $("upanel-recherche");
   new MutationObserver(() => on && labelCells(rech)).observe(rech, { childList: true, subtree: true });
   labelCells(rech);

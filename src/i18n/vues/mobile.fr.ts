@@ -46,7 +46,6 @@ export const mobileFr = {
   "mob.next": "Étape suivante",
   "mob.stepn": "Étape {n} / {total}",
   "mob.stepall": "{total} étapes",
-  "mob.picksteps": "Voir une étape",
   "mob.bt.grid": "Grille",
   "mob.bt.ports": "Ports",
   "mob.bt.card": "Fiche",
