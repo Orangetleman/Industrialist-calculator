@@ -15,7 +15,7 @@ import type { LogisticsFile, PortsFile, PowerFile } from "../engine/extension-ty
 import type { OverridesFile } from "../engine/types.ts";
 import { buildSandboxCatalog } from "../engine/sandbox/index.ts";
 import { setLang } from "../i18n/i18n.ts";
-import { alertText, buildMenu, entriesFor, keyLabel, linePositions, machinesFor, recipeLine, routeErrorText, shortcut, wireErrorText } from "./sandbox-model.ts";
+import { alertText, buildMenu, entriesFor, keyLabel, linePositions, machinesFor, recipeLine, routeErrorText, shortcut, treeLevel, wireErrorText } from "./sandbox-model.ts";
 
 const { data } = buildGameData({ items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson } as unknown as RawFiles, [overridesJson as unknown as OverridesFile]);
 const cat = buildSandboxCatalog(data, { ports: portsJson as unknown as PortsFile, logistics: logisticsJson as unknown as LogisticsFile, power: powerJson as unknown as PowerFile, releves: relevesJson });
@@ -36,6 +36,16 @@ describe("menu de pose", () => {
     const firstLocked = list.findIndex((e) => !cat.blocks.get(e.def)!.geo);
     expect(firstLocked).toBeGreaterThan(0);
     expect(list.slice(firstLocked).every((e) => !cat.blocks.get(e.def)!.geo)).toBe(true);
+  });
+  it("arbre du téléphone (MB7) : tier, catégorie, famille, pièce ; chaque bâtiment du menu s'y trouve", () => {
+    expect(treeLevel(cat, menu, [])).toEqual([1, 2, 3, 4].map((n) => ({ into: String(n) })));
+    const pipes = treeLevel(cat, menu, ["1", "Pipes"]);
+    expect(pipes).toContainEqual({ into: "fam:o1" });
+    expect(treeLevel(cat, menu, ["1", "Pipes", "fam:f1"])).toContainEqual({ key: "fam:f1", v: "short-fluid-pipe" });
+    const seen = new Set<string>();
+    for (const tr of treeLevel(cat, menu, [])) for (const ca of treeLevel(cat, menu, [(tr as { into: string }).into])) for (const x of treeLevel(cat, menu, [(tr as { into: string }).into, (ca as { into: string }).into])) seen.add("into" in x ? x.into : x.key);
+    const reachable = menu.entries.filter((e) => e.tier !== null && e.cat);
+    expect(reachable.filter((e) => !seen.has(e.key)).map((e) => e.key)).toEqual([]);
   });
   it("raccourci [tier, catégorie, bloc]", () => {
     expect(shortcut(cat, menu, menu.byKey.get("press")!)).toBe("[1,5,3]");

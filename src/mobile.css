@@ -199,3 +199,41 @@ body.mob .gv-v .ge-lab text { font-size: 13px; }
 /* Choix d'une recette : une fiche par ligne, à sa hauteur. */
 body.mob .gv-pick .gv-rc { flex: none; height: auto; min-height: 64px; overflow: visible; display: grid; grid-template-columns: 1fr; gap: 6px; justify-items: start; text-align: left; padding: 10px 16px; border-width: 0 0 1px; border-radius: 0; }
 body.mob .gv-pick .gv-rc .side { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; } body.mob .gv-pick .gv-rc .mid { order: -1; text-align: left; font-size: 14px; } body.mob .gv-pick .gv-rc .mid b { font-size: 16px; display: block; }
+
+/* ------------------------------------------------------------ MB7 : bac à sable */
+.bac-mfloat, .bac-mfit, .bac-mtree { display: none; }
+.m-sp { flex: 1; }
+body.mob .bac-root .bac-pan:not(.bac-schbar):not(.bac-stats):not(.bac-pf), body.mob .bac-root .bac-hint { display: none !important; }
+body.mob .bac-root button { border-radius: 0; touch-action: manipulation; }
+body.mob .bac-mfloat { display: flex; gap: 8px; position: absolute; left: 8px; top: 8px; z-index: 3; }
+body.mob .bac-root :is(.bac-mfloat button, .bac-mfit) { width: 48px; height: 48px; padding: 0; display: grid; place-items: center; background: var(--cv-hud); border: 1px solid var(--line); }
+body.mob .bac-root .bac-mfit { position: absolute; z-index: 3; right: 8px; top: 8px; }
+body.mob .bac-toast { top: 64px; width: max-content; max-width: calc(100% - 16px); font-size: 15px; padding: 10px 14px; border-radius: 0; }
+/* Menu de pose en arbre */
+body.mob .bac-mtree:not([hidden]) { display: flex; flex-direction: column; position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 3px solid var(--accent); }
+body.mob .bac-root .mcrumbs { display: flex; align-items: center; overflow-x: auto; scrollbar-width: none; flex: none; }
+body.mob .bac-root .mcrumbs button { flex: none; min-width: 48px; height: 48px; padding: 0 10px; border: 0; background: none; color: var(--muted); font-size: 15px; display: grid; place-items: center; white-space: nowrap; } body.mob .bac-root .mcrumbs .on { color: var(--accent); } .mcrumbs i { color: var(--muted); }
+body.mob .bac-mtree input { width: 100%; height: 48px; border: 0; border-block: 1px solid var(--line); padding: 0 16px; background: var(--bg); color: var(--ink); }
+body.mob .mopts { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); max-height: min(230px, 34dvh); overflow: auto; overscroll-behavior: contain; }
+body.mob .bac-root .mopts button { min-height: 56px; padding: 4px 10px; border: 0; background: var(--panel2); display: flex; align-items: center; gap: 10px; text-align: left; font-size: 14px; line-height: 1.2; color: var(--ink); } body.mob .mopts button > span { flex: 1; min-width: 0; } body.mob .mopts button > i { color: var(--accent); } body.mob .mopts button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+body.mob .mopts :is(img, svg:not(.ic)) { width: 34px; height: 34px; flex: none; object-fit: contain; } body.mob .mopts .locked { opacity: .45; } body.mob .mopts p { grid-column: 1 / -1; background: var(--panel2); padding: 14px 16px; }
+body.mob .macts { display: grid; grid-template-columns: 56px 56px auto 1fr; gap: 1px; background: var(--line); } body.mob .macts:not(:has([data-mb="line"])) { grid-template-columns: 56px 56px 1fr; }
+body.mob .bac-root .macts button { height: 56px; padding: 0 14px; border: 0; background: var(--panel2); display: grid; place-items: center; font-size: 15px; color: var(--ink); } body.mob .bac-root .macts .on { color: var(--accent); box-shadow: inset 0 -3px var(--accent); } body.mob .bac-root .macts .go { background: var(--accent); color: var(--on-accent); font-weight: 600; } body.mob .bac-root .macts .go.no { background: var(--bad-soft); color: var(--bad); }
+/* Fiche d'un bâtiment, statistiques */
+body.mob .bac-root .bac-pf { display: none; }
+body.mob.m-binfo[data-mbac="voir"] .bac-root .bac-pf { display: block; position: absolute; left: 0; right: 0; bottom: 0; top: auto; width: auto; max-height: 55%; overflow: auto; overscroll-behavior: contain; border: 0; border-top: 3px solid var(--accent); background: var(--surface); z-index: 4; }
+body.mob .bac-root .bac-pf-body { display: none; } body.mob .bac-root .bac-info { width: auto; min-width: 0; max-height: none; border: 0; padding: 12px 16px; } body.mob .bac-root .bac-info .i-line { font-size: 15px; } body.mob .bac-root .bac-info button { min-height: 44px; min-width: 44px; padding: 0 14px; font-size: 15px; } body.mob .bac-info .i-btns a { min-height: 44px; }
+body.mob .bac-root .bac-stats { display: none; } body.mob.m-bstats .bac-root .bac-stats { display: block; position: absolute; left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 70%; overflow: auto; overscroll-behavior: contain; resize: none; border: 0; border-top: 3px solid var(--accent); border-radius: 0; padding: 4px 16px 16px; font-size: 15px; z-index: 6; background: var(--surface); } body.mob .bac-stats summary { min-height: 48px; pointer-events: none; } body.mob .bac-root .bac-stats button { min-height: 44px; min-width: 56px; }
+body.mob .bac-schbar:not([hidden]) { left: 0; right: 0; bottom: 59px; transform: none; border-radius: 0; z-index: 5; } body.mob .bac-schbar input { flex: 1; min-width: 0; } body.mob .bac-root .bac-schbar button { min-height: 44px; min-width: 44px; justify-content: center; }
+body.mob .bac-dlg { position: fixed; inset: 0; z-index: 60; } body.mob .bac-root .bac-dlg button { min-height: 44px; }
+body.mob .bac-root:has(.bac-dlg:not([hidden])) { z-index: 60; }
+.m-sw { width: 28px; height: 28px; border: 2px solid var(--muted); display: grid; place-items: center; } .m-rows [aria-pressed="true"] .m-sw { background: var(--ok); border-color: var(--ok); } .m-rows [aria-pressed="true"] .m-sw .ic { color: #05210f; }
+body.mob[data-mpanel="bac"] .m-status { display: none; }
+@media (orientation: landscape) and (min-aspect-ratio: 5/4) {
+  body.mob .bac-mtree:not([hidden]), body.mob.m-binfo[data-mbac="voir"] .bac-root .bac-pf, body.mob.m-bstats .bac-root .bac-stats { left: auto; top: 0; width: min(340px, 46vw); max-height: none; border-top: 0; border-left: 3px solid var(--accent); }
+  body.mob .mopts { max-height: none; flex: 1; align-content: start; background: none; } body.mob .macts { margin-top: auto; grid-template-columns: 56px 56px 1fr; } body.mob .macts .go { grid-column: 1 / -1; }
+  body.mob .bac-root:has(.bac-mtree:not([hidden])) .bac-mfit { right: calc(min(340px, 46vw) + 8px); }
+  body.mob .bac-schbar:not([hidden]) { right: min(340px, 46vw); bottom: 0; }
+}
+body.mob .bac-schbar [data-sb="rot"] { display: none; } body.mob .bac-schbar input { min-width: 90px; }
+body.mob .bac-root .bac-pop button, body.mob .pop-menu button { min-height: 48px; font-size: 15px; }

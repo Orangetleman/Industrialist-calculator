@@ -11,7 +11,9 @@ const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;",
 
 /** Vue montrée dans Planifier : un onglet du résultat, ou un volet (étapes, bilan). */
 export type MView = "pose" | "schema" | "etapes" | "bilan" | "liste" | "details";
-type Panel = "" | "goal" | "menu";
+type Panel = "" | "goal" | "menu" | "bac";
+/** Ce que le bac à sable offre à la coquille (MB7). */
+export type MobileBac = { tool(): string; setTool(x: never): void; pinned(): boolean; unpin(): void; listen(f: () => void): void; reset(): void; rows(): { id: string; ic: string; label: string; on?: boolean }[]; act(id: string): void };
 type DockItem = { id: string; ic: IconName; label: Key };
 
 export const PLAN_DOCK: DockItem[] = [
@@ -19,6 +21,12 @@ export const PLAN_DOCK: DockItem[] = [
   { id: "schema", ic: "share", label: "tab.schema" },
   { id: "etapes", ic: "list", label: "mob.steps" },
   { id: "bilan", ic: "chart", label: "mob.sum" },
+];
+export const BAC_DOCK: DockItem[] = [
+  { id: "voir", ic: "move", label: "mob.bac.see" },
+  { id: "poser", ic: "plus", label: "mob.bac.pose" },
+  { id: "relier", ic: "link", label: "mob.bac.tie" },
+  { id: "effacer", ic: "trash", label: "mob.bac.del" },
 ];
 export const CONTRIB_DOCK: DockItem[] = [
   { id: "posts", ic: "idea", label: "mob.posts" },
@@ -61,6 +69,7 @@ let view: MView = "pose";
 let contrib = "posts";
 let panel: Panel = "";
 let pageTitle = (): string => "";
+let bac: MobileBac | null = null;
 
 export const mobileOn = (): boolean => on;
 
@@ -137,12 +146,12 @@ function drawHead(): void {
   head.innerHTML =
     page === "plan"
       ? `<button type="button" class="m-goal" data-m="goal" aria-expanded="${panel === "goal"}"><span>${goalText()}</span>${icon("edit")}</button><button type="button" class="m-ib m-set" data-m="set" aria-label="${esc(t("mob.settings"))}">${icon("settings")}</button><button type="button" class="m-ib" data-m="share" aria-label="${esc(t("share.btn"))}">${icon("share")}</button>`
-      : `<span class="m-title">${esc(pageTitle())}</span>`;
+      : `<span class="m-title">${esc(pageTitle())}</span>${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
 }
 function drawDock(): void {
   const contribPage = page === "donnees" || page === "propositions";
   const items =
-    page === "plan" ? PLAN_DOCK.map((d) => btn(d, d.id === dockOn(view))) : contribPage ? CONTRIB_DOCK.map((d) => btn(d, d.id === contrib)) : [`<button type="button" data-dock="back">${icon("home")}<span>${esc(t("mob.myplan"))}</span></button>`];
+    page === "plan" ? PLAN_DOCK.map((d) => btn(d, d.id === dockOn(view))) : page === "bac" ? BAC_DOCK.map((d) => btn(d, d.id === bac?.tool())) : contribPage ? CONTRIB_DOCK.map((d) => btn(d, d.id === contrib)) : [`<button type="button" data-dock="back">${icon("home")}<span>${esc(t("mob.myplan"))}</span></button>`];
   dock.innerHTML = `${items.join("")}<button type="button" class="m-menu" data-m="menu" aria-expanded="${panel === "menu"}">${icon("rows")}<span>${esc(t("mob.menu"))}</span>${stepsLeft() ? DOT : ""}</button>`;
 }
 function drawMenu(): void {
@@ -163,10 +172,13 @@ function apply(): void {
   b.dataset.mview = view;
   b.dataset.mpage = page;
   b.dataset.mcontrib = contrib;
+  if (page === "bac" && bac) b.dataset.mbac = bac.tool();
+  else delete b.dataset.mbac;
+  b.classList.toggle("m-binfo", page === "bac" && !!bac?.pinned());
   if (panel) b.dataset.mpanel = panel;
   else delete b.dataset.mpanel;
   scrim.hidden = !panel;
-  menu.hidden = panel !== "menu";
+  menu.hidden = panel !== "menu" && panel !== "bac";
   const blank = $("rtabs-result").hidden;
   empty.hidden = !(page === "plan" && blank && (view === "pose" || view === "schema" || view === "liste" || view === "details"));
   empty.innerHTML = `<p>${esc($("no-plan").hidden ? ($("answer").textContent ?? "").trim() || ($("plan-title").textContent ?? "") : "")}</p><button type="button" class="primary" data-m="goal">${esc(t("mob.pickgoal"))}</button>`;
@@ -176,6 +188,11 @@ function apply(): void {
   drawHead();
   drawDock();
   if (panel === "menu") drawMenu();
+  if (panel === "bac" && bac) {
+    menu.querySelector("h2")!.textContent = t("mob.bac.more");
+    menu.querySelector(".m-grid")!.innerHTML = "";
+    menu.querySelector(".m-rows")!.innerHTML = bac.rows().map((r) => `<button type="button" data-bac="${r.id}"${r.on === undefined ? "" : ` aria-pressed="${r.on}"`}>${r.ic}<span>${esc(r.label)}</span>${r.on === undefined ? "" : `<i class="m-sw">${r.on ? icon("check") : ""}</i>`}</button>`).join("");
+  }
 }
 
 // ---------------------------------------------------------------- retour du téléphone : ferme d'abord ce qui est ouvert
@@ -187,6 +204,10 @@ function overlays(): { close(): void }[] {
   if (document.body.classList.contains("m-steps") && box && !box.hidden) out.push({ close: closeSteps });
   if (!$("share").hidden) out.push({ close: () => $("shr-close").click() });
   if (panel) out.push({ close: () => setPanel("") });
+  if (document.body.classList.contains("m-bstats")) out.push({ close: closeStats });
+  const dlg = document.getElementById("bac-dlg");
+  if (page === "bac" && dlg && !dlg.hidden) out.push({ close: () => document.getElementById("bac-dlg-back")?.click() });
+  if (page === "bac" && bac?.pinned()) out.push({ close: () => bac?.unpin() });
   if (!$("plan-drawer").hidden) out.push({ close: () => $("plan-set-close").click() });
   if (document.body.classList.contains("m-fiche")) out.push({ close: closeFiche });
   if (page === "plan" && !$("pose-focus").hidden && view === "pose") out.push({ close: () => $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click() });
@@ -225,6 +246,10 @@ function closeSteps(): void {
   document.body.classList.remove("m-steps");
   syncHistory();
 }
+function closeStats(): void {
+  document.body.classList.remove("m-bstats");
+  syncHistory();
+}
 function closeFiche(): void {
   document.body.classList.remove("m-fiche");
   syncHistory();
@@ -257,15 +282,35 @@ function setContrib(id: string): void {
 }
 
 function onClick(e: Event): void {
-  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href]");
+  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac]");
   if (!el) return;
   if (el.dataset.href) return nav(el.dataset.href);
+  if (el.dataset.bac) {
+    bac?.act(el.dataset.bac);
+    // Un interrupteur laisse le menu ouvert ; le reste agit sur le plan.
+    if (el.hasAttribute("aria-pressed")) apply();
+    else {
+      setPanel("");
+      syncHistory();
+    }
+    return;
+  }
   const d = el.dataset.dock;
   if (d === "back") return nav("#objet");
+  if (d && BAC_DOCK.some((x) => x.id === d)) {
+    closeStats();
+    bac?.setTool(d as never);
+    return apply();
+  }
   if (d && CONTRIB_DOCK.some((x) => x.id === d)) return setContrib(d);
   if (d) return setView(d as MView);
   const m = el.dataset.m;
-  if (m === "goal" || m === "menu") setPanel(m);
+  if (m === "goal" || m === "menu" || m === "bac") setPanel(m);
+  else if (m === "stats") {
+    document.body.classList.toggle("m-bstats");
+    document.getElementById("bac-stats")?.setAttribute("open", "");
+    syncHistory();
+  }
   else if (m === "close") setPanel("");
   else if (m === "set") $("plan-set-open").click();
   else if (m === "share") $("share-open").click();
@@ -385,7 +430,7 @@ function sync(): void {
   view = nextView(view, nt, nt !== tab);
   tab = nt;
   if (p !== page) {
-    document.body.classList.remove("m-about", "m-steps", "m-fiche");
+    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats");
     panel = "";
   }
   page = p;
@@ -404,6 +449,7 @@ function enable(active: boolean): void {
   if (active === on) return;
   on = active;
   document.body.classList.toggle("mob", on);
+  bac?.reset();
   unifyMedia(on);
   if (on) {
     const st = menu.querySelector<HTMLElement>(".m-status")!;
@@ -416,15 +462,21 @@ function enable(active: boolean): void {
     restore();
     panel = "";
     scrim.hidden = menu.hidden = true;
-    for (const k of ["mview", "mpage", "mpanel", "mcontrib"]) delete document.body.dataset[k];
-    document.body.classList.remove("m-steps", "m-fiche", "m-about");
+    for (const k of ["mview", "mpage", "mpanel", "mcontrib", "mbac"]) delete document.body.dataset[k];
+    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo");
   }
   window.dispatchEvent(new Event("resize"));
 }
 
 /** À appeler une fois, après le premier affichage de la page. */
-export function initMobile(title: () => string): void {
+export function initMobile(title: () => string, sandbox: MobileBac): void {
   pageTitle = title;
+  bac = sandbox;
+  bac.listen(() => {
+    if (!on || page !== "bac") return;
+    apply();
+    syncHistory();
+  });
   build();
   const mq = matchMedia("(max-width: 899px), (pointer: coarse)");
   const size = new ResizeObserver(() => {

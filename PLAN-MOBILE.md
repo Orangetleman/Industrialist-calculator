@@ -211,6 +211,13 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
   crankshaft, electric-motor, tire. Deux liens d'une même sortie partagent leur départ, comme sur PC. Un nœud glissé à la
   main peut en couvrir un autre (« Aligner » range). Limite : un plan large dépasse l'écran, on le déplace.
 
+- **MB7** (2026-11-25) : bac à sable. Dock Voir, Poser, Relier, Effacer ; menu de pose en arbre (tier › catégorie › famille ›
+  pièce, miettes, recherche) tiré du même menu que le PC ; viseur (le plan glisse dessous, toucher un point l'y amène),
+  Poser, Tourner, Tracer (tuyau ou rangée) ; Relier en deux touches (tuyau entre ports libres compatibles, sinon câble ; un
+  poteau touché deux fois alimente sa portée) ; annuler / rétablir et tout voir posés sur le plan ; statistiques et
+  « Affichage et outils » (copier une zone, schémas, base de données, carte, flux, câbles, états, réglages, exemples, vider).
+  « Relier » trace un seul tuyau par geste. Non repris au doigt : filtre par port libre, raccourcis clavier.
+
 ### Pistes pour MB10 (à maquetter, rien de décidé)
 
 Ce qui ne va pas au téléphone : la bulle cache la cible (40 % de l'écran), le voile empêche d'essayer, huit étapes de suite,

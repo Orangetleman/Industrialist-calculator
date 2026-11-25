@@ -16,13 +16,15 @@ import { decodeDesign, designFromFile, designFromSchematic, designLink, encodeDe
 import { t, type Key } from "../i18n/i18n.ts";
 import { colon, esc, fmt, fmtMoney, fmtPct, parseNum, quote } from "./format.ts";
 import { ic } from "./bac-icons.ts";
+import { icon } from "./icons.ts";
 import { closePop, openPopMenu, popAnchorEl, popEl } from "./popmenu.ts";
+import { mobileOn } from "./mobile-shell.ts";
 import {
   arrowDefs, arrowMarkup, blockIcon, blockMarkup, compactBatch, btnKey, btnMarkup, buttonsOf, cutMarkup, portEdge, PORT_COL, rangeMarkup, rect, type Btn, type DrawCtx, type ImgOf, type ModRange,
 } from "./sandbox-draw.ts";
 import {
   ACTIONS, alertText, anchor, buildMenu, CATS, defaultKeys, entriesFor, FAMS, FIXED_KEYS, keyLabel, linePositions, locked, machinesFor, reasonText, recipeLine,
-  ROMAN, routeErrorText, shortcut, TIERS, wireErrorText, type Action, type Entry, type KeyMap, type Menu, type Names,
+  ROMAN, routeErrorText, shortcut, TIERS, treeLevel, wireErrorText, type Action, type Entry, type KeyMap, type Menu, type Names,
 } from "./sandbox-model.ts";
 
 
@@ -48,6 +50,9 @@ type Op =
   /** Appui sur un port libre : un clic filtre la grille, un glisser trace un tuyau depuis la case devant le port. */
   | { t: "port"; pr: PortRef & { p: PlacedPort }; s: [number, number]; fam: Fam; moved: boolean };
 type PortRef = { u: number; i: number };
+/** Outils du bas sur téléphone (MB7). */
+export type MobTool = "voir" | "poser" | "relier" | "effacer";
+export type MobRow = { id: string; ic: string; label: string; on?: boolean };
 type Sel = { e: Entry; v: string; locked: boolean };
 type Settings = { hideEmptyCats: boolean; runWithoutPower: boolean };
 type PlanView = Plan & { bad?: [number, number][]; invalid?: Piece[] };
@@ -97,6 +102,8 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     /** Mode câblage (S57) : bouton de départ d'un réglage de flux. */
     btnFrom: null as Btn | null,
   };
+  /** Téléphone (MB7) : outil du bas, arbre de pose ouvert, chemin dans l'arbre, recherche, premier bâtiment à relier. */
+  const mob = { tool: "voir" as MobTool, open: true, path: [] as string[], q: "", a: null as number | null, listen: null as (() => void) | null };
   const cam = { x: -6, y: -6, z: 30 };
   let baseCat: SbCatalog | null = null, cat!: SbCatalog, menu!: Menu, fillSig = "";
   let occ = new Map<string, number>(), byU = new Map<number, Placed>();
@@ -227,11 +234,18 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
 </div>
 <div class="bac-pan bac-schbar" id="bac-schbar" hidden></div>
 <canvas class="bac-pan bac-mini" id="bac-mini" role="img" aria-label="${esc(t("bac.mini.aria"))}" title="${esc(t("bac.mini.tip"))}"></canvas>
+<div class="bac-mfloat"><button type="button" data-mb="undo" aria-label="${esc(t("bac.undo"))}">${ic("undo")}</button><button type="button" data-mb="redo" aria-label="${esc(t("bac.redo"))}">${ic("redo")}</button></div>
+<button type="button" class="bac-mfit" data-mb="fit" aria-label="${esc(t("zoom.fit"))}">${icon("fit")}</button>
+<div class="bac-mtree" id="bac-mtree"></div>
 <div class="bac-hint" id="bac-hint"></div>
 <div class="bac-toast" id="bac-toast" role="status"></div>
 <div class="bac-dlg" id="bac-dlg" role="dialog" aria-modal="true" hidden><div class="in" id="bac-dlg-in"></div><button type="button" class="back" id="bac-dlg-back">${ic("back")} ${esc(t("bac.back"))}</button></div>`;
     root.classList.toggle("ui-off", ui.hidden);
     bindDom();
+    root.querySelectorAll("[data-mb]").forEach((b) => b.addEventListener("click", mobClick));
+    $("bac-mtree").addEventListener("click", mobClick);
+    $("bac-mtree").addEventListener("input", (e) => { mob.q = (e.target as HTMLInputElement).value; mobTree(true); });
+    mobTree();
     renderPanel();
     applyView();
     drawAll();
@@ -389,9 +403,9 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     return o;
   }
   /** Bouton sous le curseur (mode câblage), ou null. */
-  function btnUnder(): Btn | null {
+  function btnUnder(reach = 0.28): Btn | null {
     const wx = ui.cell[0] + ui.sub[0], wy = ui.cell[1] + ui.sub[1];
-    let best: Btn | null = null, bd = 0.28;
+    let best: Btn | null = null, bd = reach;
     for (const x of btns.values()) { const dd = Math.hypot(x.x - wx, x.y - wy); if (dd < bd && !("top" in x.ref)) { bd = dd; best = x; } }
     return best;
   }
@@ -655,7 +669,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
         }
         if (hasNodes(b)) {
           const n = S.wires.filter((w) => w.a === tg.u || w.b === tg.u).length;
-          h += `<div class="i-line muted">${esc([t("bac.wires.n", { n }), d.elec?.range ? t("bac.range", { v: fmt(d.elec.range, 1) }) : "", tg.pin ? t("bac.wires.hint") : ""].filter(Boolean).join(" · "))}</div>`;
+          h += `<div class="i-line muted">${esc([t("bac.wires.n", { n }), d.elec?.range ? t("bac.range", { v: fmt(d.elec.range, 1) }) : "", tg.pin && !mobileOn() ? t("bac.wires.hint") : ""].filter(Boolean).join(" · "))}</div>`;
         }
       }
       if (d.pipe) {
@@ -680,7 +694,7 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
           if (mi.rec?.filled) h += `<div class="i-btns"><button type="button" data-act="propose">${esc(t("bac.rec.propose"))}</button></div>`;
         }
       }
-      h += `<div class="i-btns"><button type="button" data-act="rot">${esc(t("bac.rotate", { k: KB.rotate ? keyLabel(KB.rotate, LAB) : "—" }))}</button><button type="button" data-act="del">${esc(t("bac.delete"))}</button></div>`;
+      h += `<div class="i-btns"><button type="button" data-act="rot">${esc(mobileOn() ? t("bac.mob.rot") : t("bac.rotate", { k: KB.rotate ? keyLabel(KB.rotate, LAB) : "—" }))}</button><button type="button" data-act="del">${esc(t("bac.delete"))}</button></div>`;
     }
     el.innerHTML = h;
     pfHeight();
@@ -1425,17 +1439,173 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
       if (at("[data-kbreset]")) { Object.assign(KB, defaultKeys()); store(KEY_KEYS, KB); keysDialog(); renderHint(); }
     });
   }
+  // ------------------------------------------------------------ téléphone (MB7)
+  /** Case sous le viseur : le milieu de la partie du plan qui n'est pas couverte par le menu de pose. */
+  function aim(): [number, number] {
+    const r = mapRect(), p = $("bac-mtree").getBoundingClientRect(), side = p.left > r.left + 40;
+    return cellAt({ clientX: r.left + (side ? p.left - r.left : r.width) / 2, clientY: r.top + (side || !p.height ? r.height : p.top - r.top) / 2 });
+  }
+  const aiming = () => mobileOn() && mob.tool === "poser" && (!!ui.clip || (!!ui.sel && !ui.sel.locked && !mob.open));
+  /** La vue a bougé : l'aperçu suit le viseur. */
+  function reaim(): void {
+    if (!aiming()) return;
+    const c = aim();
+    if (c[0] === ui.cell[0] && c[1] === ui.cell[1]) return;
+    ui.cell = c;
+    drawGhost();
+    const p = aimPlan();
+    $("bac-mtree").querySelector("[data-mb=pose]")?.classList.toggle("no", !!p && (!!p.bad || (!p.add.length && !ui.clip)));
+  }
+  const aimPlan = (): PlanView | null => (ui.clip ? null : ui.sel ? planFor(ui.op?.t === "line" ? ui.op.s : ui.cell, ui.cell) : null);
+  function mobTool(x: MobTool): void {
+    mob.tool = x;
+    mob.a = null;
+    mob.q = "";
+    mob.open = x === "poser" && !ui.sel && !ui.clip;
+    ui.op = null;
+    ui.breakMode = x === "effacer";
+    ui.schemMode = false;
+    if (x !== "poser") { ui.sel = null; ui.clip = null; }
+    if (x !== "voir") ui.pinned = null;
+    if (x === "relier") say(t("mob.bac.link"));
+    if (x === "effacer") say(t("mob.bac.erase"));
+    mobDone();
+  }
+  function mobDone(): void {
+    mobTree();
+    renderPanel();
+    renderInfo(true);
+    renderHint();
+    ui.cell = [NaN, NaN];
+    if (aiming()) reaim();
+    else drawGhost();
+    mob.listen?.();
+  }
+  const crumb = (p: string, i: number) => (i === 0 ? `T${p}` : i === 1 ? t(`bac.cat.${p}` as Key) : entryName(menu.byKey.get(p)!));
+  function mobTree(keep = false): void {
+    const el = $("bac-mtree"), on = mobileOn() && mob.tool === "poser";
+    el.hidden = !on;
+    if (!on) return;
+    const d = dctx(), q = mob.q.trim().toLowerCase();
+    const leaf = (key: string, v: string) => `<button type="button" class="${locked(cat, v) ? "locked" : ""}" data-mb="leaf" data-key="${esc(key)}" data-v="${esc(v)}">${blockIcon(d, v, 34)}<span>${esc(names.block(v))}</span></button>`;
+    const crumbs = `<div class="mcrumbs"><button type="button" data-mb="crumb" data-i="0" class="${mob.open && !mob.path.length ? "on" : ""}" aria-label="${esc(t("mob.bac.tiers"))}">${ic("module")}</button>${mob.path.map((p, i) => `<i>›</i><button type="button" data-mb="crumb" data-i="${i + 1}" class="${mob.open && i === mob.path.length - 1 ? "on" : ""}">${esc(crumb(p, i))}</button>`).join("")}${!mob.open && ui.sel ? `<i>›</i><button type="button" data-mb="crumb" data-i="${mob.path.length}" class="on">${esc(names.block(ui.sel.v))}</button>` : ""}</div>`;
+    if (!mob.open) {
+      const tr = ui.op?.t === "line";
+      el.innerHTML = `${ui.clip ? "" : crumbs}<div class="macts"><button type="button" data-mb="drop" aria-label="${esc(t("bac.mob.cancel"))}">${ic("close")}</button><button type="button" data-mb="rot" aria-label="${esc(t("bac.mob.rot"))}">${ic("rotate")}</button>${ui.clip ? "" : `<button type="button" data-mb="line" class="${tr ? "on" : ""}" aria-pressed="${tr}">${esc(t("mob.bac.line"))}</button>`}<button type="button" class="go" data-mb="pose">${esc(t(tr ? "mob.bac.poseline" : "mob.bac.pose"))}</button></div>`;
+      return;
+    }
+    const found = q ? menu.entries.flatMap((e) => (e.fam ? menu.variants[e.fam].map((v) => ({ key: e.key, v })) : [{ key: e.key, v: e.def }])).filter((x) => names.block(x.v).toLowerCase().includes(q)).sort((a, b) => +locked(cat, a.v) - +locked(cat, b.v)).slice(0, 40) : null;
+    const items = found ?? treeLevel(cat, menu, mob.path);
+    const opts = items.map((x) => ("key" in x ? leaf(x.key, x.v) : `<button type="button" data-mb="into" data-k="${esc(x.into)}">${mob.path.length === 1 ? ic(CATS.find((c) => c.id === x.into)!.ic) : mob.path.length === 2 ? blockIcon(d, menu.byKey.get(x.into)!.def, 34) : ""}<span>${esc(crumb(x.into, mob.path.length))}</span><i>›</i></button>`)).join("");
+    const body = opts || `<p>${esc(t("bac.filter.none"))}</p>`;
+    if (keep && el.querySelector(".mopts")) { el.querySelector(".mopts")!.innerHTML = body; return; }
+    el.innerHTML = `${crumbs}${mob.path.length ? "" : `<input type="search" id="bac-mq" value="${esc(mob.q)}" placeholder="${esc(t("mob.bac.search"))}" aria-label="${esc(t("mob.bac.search"))}">`}<div class="mopts">${body}</div>`;
+  }
+  function mobClick(e: Event): void {
+    const b = (e.target as Element).closest<HTMLElement>("[data-mb]");
+    if (!b) return;
+    e.stopPropagation();
+    const a = b.dataset.mb;
+    if (a === "undo") { doUndo(); return mobDone(); }
+    if (a === "redo") { doRedo(); return mobDone(); }
+    if (a === "fit") { fit(); return reaim(); }
+    if (a === "into") { mob.path.push(b.dataset.k!); mob.q = ""; return mobTree(); }
+    if (a === "crumb") { mob.path = mob.path.slice(0, Number(b.dataset.i)); mob.open = true; ui.op = null; mob.q = ""; mobTree(); return drawGhost(); }
+    if (a === "leaf") {
+      const v = b.dataset.v!, en = menu.byKey.get(b.dataset.key!)!;
+      if (locked(cat, v)) return say(t(en.fam ? "bac.locked.piece" : "bac.locked.block"));
+      if (mob.q) mob.path = [String(en.tier ?? ""), en.cat, ...(en.fam ? [en.key] : [])].filter(Boolean);
+      mob.q = "";
+      ui.sel = null;
+      select(en, v);
+      mob.open = false;
+      return mobDone();
+    }
+    if (a === "drop") { if (ui.op) { ui.op = null; return mobDone(); } return mobTool("voir"); }
+    if (a === "rot") { rotateSel(1); ui.cell = [NaN, NaN]; return reaim(); }
+    if (a === "line") { ui.cell = aim(); ui.op = ui.op ? null : { t: "line", s: ui.cell }; if (ui.op) say(t("mob.bac.linehint")); mobTree(); return drawGhost(); }
+    if (a === "pose") {
+      ui.cell = aim();
+      if (ui.clip) { pasteClip(ui.cell); return drawGhost(); }
+      const p = aimPlan();
+      if (!p || p.bad || !p.add.length) return say(t("bac.place.refused"));
+      ui.op = null;
+      apply(p);
+      mobTree();
+      ui.cell = [NaN, NaN];
+      reaim();
+    }
+  }
+  /** Relier (MB7) : le bâtiment touché d'abord donne, le second reçoit ; le tuyau part du port libre qui convient et arrive de même. */
+  function mobLink(c: [number, number]): void {
+    const u = occ.get(cellKey(...c)) ?? null;
+    if (u == null) { mob.a = null; ui.pinned = null; return drawGhost(); }
+    // Le même poteau touché deux fois alimente ce qui est à sa portée, comme sur PC.
+    if (mob.a === u && elecRole(cat, layout(), u) === "pole") { mob.a = null; ui.pinned = null; autoWire(u); return drawGhost(); }
+    if (mob.a == null || !byU.has(mob.a) || mob.a === u) {
+      mob.a = mob.a === u ? null : u;
+      ui.pinned = mob.a;
+      if (mob.a != null) say(t("mob.bac.link2", { name: names.block(byU.get(u)!.id) }));
+      return drawGhost();
+    }
+    const from = mob.a;
+    mob.a = null;
+    ui.pinned = null;
+    const end = (n: number, out: boolean) => {
+      const b = byU.get(n)!, def = cat.blocks.get(b.id)!, g = geo(def, b), mi = R?.machines.get(n);
+      const recs = mi?.rec ? [mi.rec] : (mi?.cand ?? def.recipes);
+      return (g?.ports ?? []).filter((p) => p.cells && (p.t === "o" || p.t === "f") && p.d !== (out ? "e" : "s") && portFree(p)).map((p) => {
+        const fluid = p.t === "f", items = p.items?.length ? p.items : [...new Set(recs.flatMap((r) => Object.keys(out ? r.out : r.in)))].filter((i) => !!cat.items.get(i)?.fluid === fluid);
+        const [dx, dy] = DV[p.dir as Dir], [x, y] = p.cells![0]!;
+        return { p, items, at: [x + dx, y + dy] as [number, number] };
+      });
+    };
+    for (const [A, B] of [[from, u], [u, from]] as const) {
+      const outs = end(A, true), ins = end(B, false);
+      const pairs = outs.flatMap((o) => ins.filter((i) => i.p.t === o.p.t && (!o.items.length || !i.items.length || o.items.some((x) => i.items.includes(x)))).map((i) => ({ o, i, d: Math.abs(o.at[0] - i.at[0]) + Math.abs(o.at[1] - i.at[1]) })));
+      pairs.sort((x, y) => x.d - y.d);
+      for (const { o, i } of pairs.slice(0, 16)) {
+        const p = tracePlan(o.at, i.at, famFor(o.p.t));
+        if (p.bad || !p.add.length) continue;
+        apply(p);
+        return say(t("mob.bac.linked"));
+      }
+    }
+    if (hasNodes(byU.get(from)!) && hasNodes(byU.get(u)!)) { linkToggle(from, u); return drawGhost(); }
+    say(t("mob.bac.nolink"));
+    drawGhost();
+  }
+  /** Un appui sur le plan, selon l'outil ; vrai : traité. */
+  function mobTap(c: [number, number]): boolean {
+    if (!mobileOn()) return false;
+    if (mob.tool === "poser") {
+      // Le point touché vient sous le viseur.
+      if (aiming()) { const a = aim(); cam.x += c[0] - a[0]; cam.y += c[1] - a[1]; applyView(); ui.cell = [NaN, NaN]; reaim(); }
+      return true;
+    }
+    if (mob.tool === "relier") { mobLink(c); return true; }
+    if (mob.tool === "voir") {
+      if (ui.vec) { const bt = btnUnder(0.6); if (bt) { btnClick(bt); return true; } if (ui.btnFrom) { ui.btnFrom = null; drawGhost(); return true; } }
+      const u = occ.get(cellKey(...c)) ?? null;
+      ui.pinned = u === ui.pinned ? null : u;
+      renderInfo(true);
+      drawGhost();
+      mob.listen?.();
+      return true;
+    }
+    return false;
+  }
   function touchDown(e: PointerEvent): void {
     capture(e);
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size === 2) { clearTimeout(ts?.timer); const [a, b] = [...touches.values()]; ts = { pinch: true, d: Math.hypot(a!.x - b!.x, a!.y - b!.y), z: cam.z }; ui.op = null; return; }
     const c = cellAt(e);
-    ui.cell = c;
+    if (!aiming()) ui.cell = c;
     const st = { sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y, c, moved: false, timer: 0 };
     st.timer = window.setTimeout(() => {
       if (ui.breakMode) ui.op = { t: "break", s: c, moved: true };
       else if (ui.schemMode) ui.op = { t: "schem", s: c };
-      else if (ui.sel && !ui.sel.locked) ui.op = { t: "line", s: c };
+      else if (ui.sel && !ui.sel.locked && !mobileOn()) ui.op = { t: "line", s: c };
       drawGhost();
     }, 350);
     ts = st;
@@ -1443,11 +1613,11 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
   function touchMove(e: PointerEvent): void {
     if (!touches.has(e.pointerId)) return;
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (ts?.pinch && touches.size === 2) { const [a, b] = [...touches.values()]; zoomAt((ts.z! * Math.hypot(a!.x - b!.x, a!.y - b!.y)) / ts.d! / cam.z, (a!.x + b!.x) / 2, (a!.y + b!.y) / 2); return; }
+    if (ts?.pinch && touches.size === 2) { const [a, b] = [...touches.values()]; zoomAt((ts.z! * Math.hypot(a!.x - b!.x, a!.y - b!.y)) / ts.d! / cam.z, (a!.x + b!.x) / 2, (a!.y + b!.y) / 2); reaim(); return; }
     if (!ts) return;
-    if (ui.op) return hover(cellAt(e));
+    if (ui.op && !aiming()) return hover(cellAt(e));
     if (Math.hypot(e.clientX - ts.sx!, e.clientY - ts.sy!) > 8) { ts.moved = true; clearTimeout(ts.timer); }
-    if (ts.moved) { cam.x = ts.cx! - (e.clientX - ts.sx!) / cam.z; cam.y = ts.cy! - (e.clientY - ts.sy!) / cam.z; applyView(true); }
+    if (ts.moved) { cam.x = ts.cx! - (e.clientX - ts.sx!) / cam.z; cam.y = ts.cy! - (e.clientY - ts.sy!) / cam.z; applyView(true); reaim(); }
   }
   function touchUp(e: PointerEvent): void {
     touches.delete(e.pointerId);
@@ -1455,9 +1625,13 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     if (ts.pinch) { if (!touches.size) ts = null; return; }
     clearTimeout(ts.timer);
     const c = cellAt(e);
-    if (ui.op) finishOp(c);
-    else if (!ts.moved) {
-      if (ui.clip) pasteClip(c);
+    if (ui.op && !aiming()) {
+      const copied = ui.op.t === "schem";
+      finishOp(c);
+      if (copied && ui.clip && mobileOn()) { mob.tool = "poser"; mob.open = false; ui.schemMode = false; mobDone(); }
+    } else if (!ts.moved) {
+      if (mobTap(c)) { /* traité */ }
+      else if (ui.clip) pasteClip(c);
       else if (ui.breakMode) apply(rectPlan(cat, layout(), c[0], c[1], c[0], c[1]));
       else if (ui.sel && !ui.sel.locked) { const p = planFor(c, c); if (!p.bad) apply(p); }
       else leftClick(c);
@@ -1627,6 +1801,35 @@ export function initSandbox(root: HTMLElement, deps: SandboxDeps) {
     root.style.setProperty("--bac-top", `${Math.max(0, top)}px`);
   }
   return {
+    /** Téléphone (MB7) : l'outil du bas, et les lignes du menu « ⋯ ». */
+    mobile: {
+      tool: () => mob.tool,
+      setTool: (x: MobTool) => { if (ui.mounted) mobTool(x); },
+      pinned: () => ui.pinned !== null && mob.tool === "voir",
+      unpin(): void { ui.pinned = null; renderInfo(true); drawGhost(); mob.listen?.(); },
+      listen(f: () => void): void { mob.listen = f; },
+      /** Passage au téléphone ou à l'ordinateur : l'outil revient à « Voir ». */
+      reset(): void { mob.tool = "voir"; ui.breakMode = ui.schemMode = false; if (ui.mounted) { mobTree(); drawGhost(); applyView(); } },
+      rows(): MobRow[] {
+        return [
+          { id: "copy", ic: "select", label: t("bac.mob.schem") }, { id: "schem", ic: "schem", label: t("bac.act.schemMenu") }, { id: "db", ic: "db", label: t("bac.tool.db") }, { id: "map", ic: "fit", label: t("bac.act.map") },
+          { id: "vec", ic: "link", label: t("mob.bac.flows"), on: ui.vec }, { id: "wires", ic: "power", label: t("bac.act.wires"), on: ui.wires }, { id: "status", ic: "chart", label: t("bac.act.status"), on: ui.status },
+          { id: "set", ic: "settings", label: t("bac.settings") }, ...[1, 2, 3].map((n) => ({ id: `ex${n}`, ic: "module", label: t(`bac.ex.${n}` as Key) })), { id: "clear", ic: "close", label: t("bac.clear") },
+        ].map((r) => ({ ...r, ic: r.ic === "fit" || r.ic === "settings" ? icon(r.ic) : ic(r.ic) }));
+      },
+      act(id: string): void {
+        if (id === "copy") { mobTool("voir"); ui.schemMode = true; say(t("mob.bac.copy")); }
+        else if (id === "schem") schematics();
+        else if (id === "db") openDb();
+        else if (id === "map") bigMap();
+        else if (id === "vec") toggleLinks();
+        else if (id === "wires") { ui.wires = !ui.wires; drawAll(); }
+        else if (id === "status") { ui.status = !ui.status; drawAll(); }
+        else if (id === "set") settingsDlg();
+        else if (id === "clear") $("bac-clear").click();
+        else if (id.startsWith("ex")) example(Number(id.slice(2)));
+      },
+    },
     /** La page s'affiche (`code` : un montage partagé par un lien #bac/<code>). */
     show(code?: string): void {
       refreshCatalog();

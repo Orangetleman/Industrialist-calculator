@@ -6012,7 +6012,7 @@ const cameByLink = !!readShareHash(location.hash); // avant showPage, qui ouvre 
 void bootDesigns();
 showPage();
 // MB3 : interface mobile (dock, panneaux), après le premier affichage.
-initMobile(() => { const p = currentPage(); return t(p === "propositions" || p === "donnees" ? "page.donnees" : (`page.${p}` as Key)); });
+initMobile(() => { const p = currentPage(); return t(p === "propositions" || p === "donnees" ? "page.donnees" : (`page.${p}` as Key)); }, sandbox.mobile);
 // Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
 $("help").addEventListener("click", () => checklist.show(true));
 {

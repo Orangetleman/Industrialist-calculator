@@ -51,6 +51,25 @@ export function buildMenu(cat: SbCatalog, category: (id: string) => string | nul
   return { entries, byKey: new Map(entries.map((e) => [e.key, e])), variants };
 }
 
+/**
+ * Menu de pose en arbre (MB7, téléphone) : tier › catégorie › famille › pièce. Une étape rend ses choix : d'autres
+ * étapes (`into`) ou des pièces (`key`, et `v` pour une pièce d'une famille). Chemin inconnu : l'étape la plus proche.
+ */
+export type TreeItem = { into: string } | { key: string; v: string };
+export function treeLevel(cat: SbCatalog, menu: Menu, path: string[], fams: (e: Entry) => boolean = (e) => !!e.fam): TreeItem[] {
+  const tiers = [...new Set(menu.entries.map((e) => e.tier))].filter((x): x is number => x !== null).sort((a, b) => a - b);
+  const [tr, c, f] = path;
+  if (!tr || !tiers.includes(Number(tr))) return tiers.map((x) => ({ into: String(x) }));
+  const tier = Number(tr);
+  if (!c) return CATS.filter((x) => entriesFor(cat, menu, tier, x.id).length).map((x) => ({ into: x.id }));
+  const list = entriesFor(cat, menu, tier, c);
+  if (f) {
+    const e = menu.byKey.get(f);
+    if (e?.fam) return [...menu.variants[e.fam]].sort((a, b) => +locked(cat, a) - +locked(cat, b)).map((v) => ({ key: e.key, v }));
+  }
+  return list.map((e) => (fams(e) ? { into: e.key } : { key: e.key, v: e.def }));
+}
+
 export const locked = (cat: SbCatalog, id: string) => !cat.blocks.get(id)?.geo;
 
 /** Les blocs d'une catégorie d'un tier : posables d'abord, les autres en gris à la fin (jamais cachés). */
