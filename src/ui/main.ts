@@ -1642,7 +1642,7 @@ function renderFlowCanvas(): void {
   Object.assign((graphView as unknown as { opts: GraphViewOptions }).opts, { data: planData(), text: graphText() });
   const keep = signature === flowKey && doc.arranged;
   graphLoad = false;
-  graphView.show(canvas, doc.g, keep);
+  graphView.show(canvas, doc.g, keep, !doc.arranged && frame.clientWidth > 0);
   // « Ranger » d'entrée, avec les vraies hauteurs des nœuds (le cadre doit être affiché pour les mesurer).
   if (!doc.arranged && frame.clientWidth > 0) {
     doc.arranged = true;
@@ -1973,7 +1973,9 @@ let poseFitAll = false;
  * Calculs de toute l'usine, en arrière-plan (Web Worker) : un par réglage de calcul (recalculée, module par
  * module, collée), gardé tant que le plan, les priorités, les relevés et la parcelle ne changent pas.
  */
-type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean; since?: number };
+type FactoryState = {
+  /** Plan abrégé d'avant « Chercher un meilleur plan » : repris si le joueur arrête la recherche. */
+  prev?: FactoryState; key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean; since?: number };
 const factories = new Map<string, FactoryState>();
 /** Module ouvert dans le panneau à côté de l'usine (adresse #…/pose/usine-entiere/<étape>). */
 let poseFocus: string | null = null;
@@ -3249,7 +3251,9 @@ function startFactory(complete = false): void {
     }
   const key = factoryKey();
   const input = factoryInputNow(complete);
+  const was = factories.get(key);
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
+  if (complete && was?.plan) st.prev = was;
   factories.set(key, st);
   const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
   const refresh = () => {
@@ -3394,7 +3398,7 @@ function renderFactory(): void {
   cut.hidden = $("cat-cut").hidden = !st.plan.cut;
   // Le même bouton dans « Ce plan » (volet droit), avec la durée déjà passée.
   $("cat-cut-n").textContent = st.plan.cut ? t("m.f.sec", { s: fmt(st.ms / 1000, 0) }) : "";
-  cut.innerHTML = st.plan.cut ? `<span>${t("uf.cut", { s: fmt(st.ms / 1000, 0) })}</span> <button type="button" class="small" data-usine="complete">${t("uf.cut.more")}</button>` : "";
+  cut.innerHTML = st.plan.cut ? `<span class="u-cut-t"><b>${t("uf.cut.title")}</b> <span>${t("uf.cut", { s: fmt(st.ms / 1000, 0) })}</span></span> <button type="button" class="primary" data-usine="complete">${icon("rotate")} ${t("uf.cut.more")}</button>` : "";
   const plot = plotOf(player);
   const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue, st.cached);
   $("pose-head").innerHTML = info.head;
@@ -4826,6 +4830,14 @@ function bindPlan(): void {
     const st = currentFactory();
     if (u.dataset.usine === "cancel" && st) {
       st.job?.cancel();
+      if (st.prev) {
+        // Recherche d'un meilleur plan arrêtée : le plan d'avant revient tel quel.
+        st.cancelled = true;
+        factories.set(st.key, st.prev);
+        renderPose();
+        $("pose-cut").querySelector<HTMLElement>("[data-usine]")?.focus();
+        return true;
+      }
       Object.assign(st, { job: null, cancelled: true });
       renderPose();
       $("pose-busy").querySelector<HTMLElement>("[data-usine]")?.focus();
@@ -5201,7 +5213,6 @@ function bindPlan(): void {
       const z = b.dataset.fzoom;
       if (z === "in") graphView?.zoom(1.25);
       else if (z === "out") graphView?.zoom(1 / 1.25);
-      else if (z === "arrange") graphView?.arrange(); // « Ranger » : de l'extraction à l'objectif
       else graphView?.fit(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
     });
   }

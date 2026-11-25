@@ -1,7 +1,7 @@
 // Canevas de l'éditeur de graphe (PLAN-GRAPHE.md, lots G2 et G3) : nœuds en HTML, arêtes SVG orthogonales
 // de prise à prise, le tout dans un « monde » déplacé et zoomé par canvas.ts.
 // G2 : se déplacer, zoomer, sélectionner un nœud, le glisser (au-delà de 4 px : un clic reste un clic),
-// « Ranger » (flow-layout.ts) ; sous 28 % de zoom, vue allégée où les liaisons partent du bord du nœud.
+// « Aligner » (graph-layout.ts, grille des croix ; liaisons tracées par graph-route.ts) ; sous 28 % de zoom, vue allégée (mêmes boîtes, mêmes liaisons).
 // G3 : l'édition. Chaque geste devient une commande du modèle (src/engine/graph/edit.ts), gardée par
 // GraphHistory (Ctrl Z / Ctrl Y) : ajouter une recette (barre, A), clic sur une ligne d'entrée ou de
 // sortie → le sélecteur filtré, relier deux prises (glisser, ou deux appuis au doigt ; une prise d'un
@@ -54,7 +54,8 @@ import {
 import { ENERGY } from "../engine/resources.ts";
 import { t } from "../i18n/i18n.ts";
 import { PanZoom, type Box } from "./canvas.ts";
-import { layoutFlow } from "./flow-layout.ts";
+import { arrangeGraph, GRID, NODE_W, snapGrid } from "./graph-layout.ts";
+import { routeEdges, type Route, type RouteIn } from "./graph-route.ts";
 import { icon } from "./icons.ts";
 import { openRecipePicker, type PickerCard, type PickerTab } from "./recipe-picker.ts";
 
@@ -66,11 +67,8 @@ export const FAR_ZOOM = 0.28;
 export const SNAP_PX = 22;
 /** Zoom de départ le plus petit : les lignes des nœuds restent lisibles. */
 const START_ZOOM = 0.55;
-/** Largeur d'un nœud (pixels du monde). */
-export const NODE_W = 256;
-/** Espaces de « Ranger » : entre colonnes (place des étiquettes) et entre nœuds d'une colonne. */
+/** Espace entre un nœud et celui qu'on ajoute depuis une de ses prises. */
 const GAP_X = 120;
-const GAP_Y = 32;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const EPS = 1e-7;
@@ -103,7 +101,7 @@ export type GraphViewOptions = {
   onSelect: (id: NodeId | null) => void;
   /** Clic sur une liaison (null : clic dans le vide). */
   onEdge?: (edge: GraphEdge | null) => void;
-  /** Le document a changé par un geste du canevas (glisser, « Ranger », édition, annuler). */
+  /** Le document a changé par un geste du canevas (glisser, « Aligner », édition, annuler). */
   onChange?: (g: Graph) => void;
   /** Largeur réservée à droite (colonne des boutons de zoom), que la vue de départ évite. */
   reserveRight?: number;
@@ -200,6 +198,14 @@ export class GraphView {
   private boxHtml = new Map<string, string>();
   /** HTML d'un nœud selon sa clé (recette, nombre, place, équilibre de ses prises…) : rien à refaire s'il n'a pas bougé. */
   private nodeCache = new Map<NodeId, { key: string; html: string }>();
+  /** Tracés des liaisons (graph-route.ts), et ce dont ils dépendent : rien à retracer si rien n'a bougé. */
+  private routes = new Map<string, Route>();
+  private routeKey = "";
+  /** Nœuds pas encore rangés (premier affichage) : « Aligner » suit aussitôt, inutile de tracer. */
+  private raw = false;
+  private slow = false;
+  /** Alt tenu pendant un glisser : placement libre, hors de la grille. */
+  private freeDrag = false;
   /** Signature de chaque liaison dessinée (débit, manque) : seules celles qui changent se réécrivent. */
   private edgeSig = new Map<string, string>();
   /** Nœuds sélectionnés ; `sel` est celui de la bulle et de la fiche (sélection d'un seul). */
@@ -373,7 +379,8 @@ export class GraphView {
    * Monte le canevas dans `host` (vidé) et dessine le graphe ; `keepView` garde la vue actuelle. Un
    * document neuf (autre que celui de l'historique) repart avec un historique vide.
    */
-  show(host: HTMLElement, g: Graph, keepView: boolean): void {
+  show(host: HTMLElement, g: Graph, keepView: boolean, raw = false): void {
+    this.raw = raw;
     if (this.worldEl.parentElement !== host) {
       host.replaceChildren(this.worldEl);
     }
@@ -397,8 +404,18 @@ export class GraphView {
 
   /** Tout voir. */
   fit(): void {
-    this.pz.setContent(this.contentBox());
-    this.pz.fit();
+    // Tout le graphe, dans ce qui n'est couvert ni par la barre du bas ni par les boutons de zoom.
+    const c = this.contentBox();
+    const W = this.frame.clientWidth;
+    const H = this.frame.clientHeight;
+    const right = Math.min(W / 3, this.opts.reserveRight ?? 0);
+    const bottom = Math.min(H / 3, this.tray.offsetHeight + 14);
+    const k = Math.min((W - right) / c.w, (H - bottom) / c.h);
+    this.pz.setContent(c);
+    if (!(k > 0)) return this.pz.fit();
+    // Pas plus gros que nature : un petit graphe reste à sa taille, centré.
+    const z = Math.min(1, k);
+    this.pz.fitBox({ x: c.x - ((W - right) / z - c.w) / 2, y: c.y - ((H - bottom) / z - c.h) / 2, w: W / z, h: H / z });
   }
 
   /** Vue de départ : lisible, calée sur l'objectif. */
@@ -422,18 +439,21 @@ export class GraphView {
   }
 
   /**
-   * « Ranger » : colonnes de l'extraction à l'objectif (flow-layout.ts), sans chevauchement. Un pas
-   * d'annulation, sauf au premier affichage (`record` faux : la disposition de départ).
+   * « Aligner » : colonnes de l'extraction à l'objectif (graph-layout.ts), sur la grille, sans chevauchement,
+   * puis tout est cadré. Un groupe replié est une seule boîte. Un pas d'annulation, sauf au premier affichage (`record` faux : la disposition de départ).
    */
   arrange(fit = true, record = true): void {
     if (!this.g || !this.g.nodes.length) return;
     const g = this.g;
-    // Hauteurs réelles des nœuds complets (même si la vue est allégée en ce moment).
-    const wasFar = this.far;
-    if (wasFar) this.frame.classList.remove("far");
-    const heights = new Map(g.nodes.map((n) => [n.id, this.nodeEls.get(n.id)?.offsetHeight ?? 120]));
-    if (wasFar) this.frame.classList.add("far");
-    const moves = arrangeGraph(g, this.opts.data, this.opts.world(), heights, this.bal);
+    const geom = this.geom;
+    this.raw = false;
+    this.routeKey = "";
+    this.routes = new Map();
+    this.slow = true; // geste demandé : on lui laisse le temps de bien tracer
+    const moves = arrangeGraph(g, {
+      height: (key) => geom.get(key)?.h ?? 120,
+      portY: (key, dir, item) => geom.get(key)?.[dir].get(item)?.y ?? null,
+    });
     if (record) this.exec({ type: "move", moves });
     else {
       const next = applyCommand(g, { type: "move", moves }, this.opts.data, this.opts.world());
@@ -496,6 +516,7 @@ export class GraphView {
   private afterChange(light = false): void {
     const g = this.g!;
     if (light) {
+      this.route();
       this.syncTray();
       this.pz.setContent(this.contentBox());
       this.opts.onChange?.(g);
@@ -531,6 +552,13 @@ export class GraphView {
       x1 = Math.max(x1, n.x + (gm?.w ?? NODE_W));
       y1 = Math.max(y1, n.y + (gm?.h ?? 120));
     }
+    for (const r of this.routes.values())
+      for (const p of r.pts) {
+        x0 = Math.min(x0, p.x);
+        y0 = Math.min(y0, p.y);
+        x1 = Math.max(x1, p.x);
+        y1 = Math.max(y1, p.y);
+      }
     const m = 40;
     return { x: x0 - m, y: y0 - m, w: x1 - x0 + 2 * m, h: y1 - y0 + 2 * m };
   }
@@ -571,7 +599,7 @@ export class GraphView {
       this.measure();
     } else this.measure(changed);
     this.drawFrames();
-    this.drawEdges(changed);
+    this.drawEdges();
     this.applySel();
     if (this.armed) this.portEl(this.armed)?.classList.add("arm");
     this.voidEl.hidden = g.nodes.length > 0;
@@ -649,25 +677,30 @@ export class GraphView {
   /** Prises de chaque nœud, relevées une fois (le rendu) : un glisser ne relit plus le DOM. `only` : ces boîtes-là. */
   private measure(only?: Set<string>): void {
     if (!only) this.geom.clear();
+    // Toujours les nœuds complets : en vue allégée ils gardent leur hauteur (--gn-h), et les liaisons leurs prises.
+    const far = this.frame.classList.contains("far");
+    if (far) this.frame.classList.remove("far");
     for (const [id, el] of this.nodeEls) {
       if (only && !only.has(id)) continue;
       const gm: NodeGeom = { w: el.offsetWidth, h: el.offsetHeight, ins: new Map(), outs: new Map() };
       for (const port of el.querySelectorAll<HTMLElement>(".gn-port")) {
         const dir = port.dataset.dir === "in" ? gm.ins : gm.outs;
-        // Vue allégée : les lignes sont cachées, la liaison part du milieu du bord du nœud.
-        dir.set(port.dataset.item!, this.far ? { x: port.dataset.dir === "in" ? 0 : gm.w, y: gm.h / 2 } : centerIn(port, el));
+        dir.set(port.dataset.item!, centerIn(port, el));
       }
       this.geom.set(id, gm);
+      el.style.setProperty("--gn-h", `${gm.h}px`);
     }
     for (const [gid, el] of this.groupEls) {
       if (only && !only.has(`@${gid}`)) continue;
       const gm: NodeGeom = { w: el.offsetWidth, h: el.offsetHeight, ins: new Map(), outs: new Map() };
       for (const port of el.querySelectorAll<HTMLElement>(".gn-port")) {
         const dir = port.dataset.dir === "in" ? gm.ins : gm.outs;
-        dir.set(port.dataset.item!, this.far ? { x: port.dataset.dir === "in" ? 0 : gm.w, y: gm.h / 2 } : centerIn(port, el));
+        dir.set(port.dataset.item!, centerIn(port, el));
       }
       this.geom.set(`@${gid}`, gm);
+      el.style.setProperty("--gn-h", `${gm.h}px`);
     }
+    if (far) this.frame.classList.add("far");
   }
 
   // ------------------------------------------------------------ groupes (G5)
@@ -791,22 +824,10 @@ export class GraphView {
     this.exec({ type: "setGroup", id: gid, collapsed });
   }
 
-  /**
-   * Liaisons, sous les nœuds. `changed` (rendu partiel) : les liaisons gardées ne se réécrivent que si leur
-   * débit ou leur manque change, et ne se replacent que si l'une de leurs boîtes a changé.
-   */
-  private drawEdges(changed: Set<string> | null = null): void {
+  /** Liaisons, sous les nœuds. Celles gardées ne se réécrivent que si leur débit, leur manque ou leur tracé change. */
+  private drawEdges(): void {
     const g = this.g!;
-    if (!changed) {
-      this.svg.replaceChildren();
-      this.edgeEls.clear();
-      this.edgeSig.clear();
-    }
     const live = new Set<string>();
-    const boxKey = (id: NodeId) => {
-      const gid = this.owners.get(id);
-      return gid ? `@${gid}` : id;
-    };
     for (const e of g.edges) {
       live.add(e.id);
       const flow = this.bal!.edges.get(e.id) ?? 0;
@@ -819,7 +840,7 @@ export class GraphView {
         els = this.makeEdge(e.id);
         this.svg.append(els.g);
         this.edgeEls.set(e.id, els);
-      } else if (this.edgeSig.get(e.id) === sig && changed && !changed.has(boxKey(e.from)) && !changed.has(boxKey(e.to))) continue;
+      }
       if (this.edgeSig.get(e.id) !== sig) {
         this.edgeSig.set(e.id, sig);
         els.g.classList.toggle("short", short);
@@ -827,7 +848,6 @@ export class GraphView {
         els.title.textContent = `${this.opts.text.item(e.item)} : ${label}`;
         els.rect.setAttribute("width", String(label.length * 6.6 + 10));
       }
-      this.placeEdge(e);
     }
     for (const [id, els] of this.edgeEls) {
       if (live.has(id)) continue;
@@ -837,6 +857,7 @@ export class GraphView {
     }
     this.tmp.removeAttribute("d");
     this.svg.append(this.tmp);
+    this.route(true);
   }
 
   private makeEdge(id: string): EdgeEls {
@@ -860,6 +881,64 @@ export class GraphView {
     return { g: g0, hit, line, lab, rect, text, title };
   }
 
+  /**
+   * Trace toutes les liaisons visibles (graph-route.ts) : autour des nœuds, jamais l'une sur l'autre. Rien à
+   * refaire si ni les boîtes, ni les prises, ni les liaisons n'ont bougé.
+   */
+  private route(force = false): void {
+    if (this.raw) return;
+    const g = this.g!;
+    const boxOf = new Map<string, Box>();
+    for (const n of g.nodes) {
+      if (this.owners.has(n.id)) continue;
+      const gm = this.geom.get(n.id);
+      boxOf.set(n.id, { x: n.x, y: n.y, w: gm?.w ?? NODE_W, h: gm?.h ?? 120 });
+    }
+    for (const gid of this.groupEls.keys()) {
+      const gm = this.geom.get(`@${gid}`);
+      boxOf.set(`@${gid}`, { ...this.groupPos(gid), w: gm?.w ?? NODE_W, h: gm?.h ?? 120 });
+    }
+    const boxes = [...boxOf.values()];
+    const list: RouteIn[] = [];
+    for (const e of g.edges) {
+      const els = this.edgeEls.get(e.id);
+      const fromKey = this.owners.has(e.from) ? `@${this.owners.get(e.from)}` : e.from;
+      const toKey = this.owners.has(e.to) ? `@${this.owners.get(e.to)}` : e.to;
+      const a = this.geom.get(fromKey)?.outs.get(e.item);
+      const b = this.geom.get(toKey)?.ins.get(e.item);
+      const ab = boxOf.get(fromKey);
+      const bb = boxOf.get(toKey);
+      if (!els || !a || !b || !ab || !bb || (fromKey === toKey && fromKey.startsWith("@"))) {
+        if (els) els.g.style.display = "none"; // liaison à l'intérieur d'un groupe replié : cachée
+        continue;
+      }
+      els.g.style.display = "";
+      const lw = Number(els.rect.getAttribute("width"));
+      list.push({ id: e.id, a: { x: ab.x + a.x, y: ab.y + a.y }, b: { x: bb.x + b.x, y: bb.y + b.y }, ab, bb, from: `${fromKey}:${e.item}`, to: `${toKey}:${e.item}`, lw });
+    }
+    const key = `${boxes.map((b) => `${b.x},${b.y},${b.w},${b.h}`).join(";")}|${list.map((r) => `${r.id},${r.a.x},${r.a.y},${r.b.x},${r.b.y},${r.lw}`).join(";")}`;
+    if (key !== this.routeKey) {
+      this.routeKey = key;
+      this.routes = routeEdges(boxes, list, this.routes, this.slow ? 2500 : 500);
+      this.slow = false;
+    } else if (!force) return;
+    for (const r of list) {
+      const p = this.routes.get(r.id)!;
+      this.setPath(this.edgeEls.get(r.id)!, p.d, p.lx, p.ly);
+    }
+  }
+
+  private setPath(els: EdgeEls, d: string, lx: number, ly: number): void {
+    if (els.line.getAttribute("d") !== d) {
+      els.hit.setAttribute("d", d);
+      els.line.setAttribute("d", d);
+    }
+    const w = Number(els.rect.getAttribute("width"));
+    const at = `translate(${(lx - w / 2).toFixed(1)},${(ly - 8).toFixed(1)})`;
+    if (els.lab.getAttribute("transform") !== at) els.lab.setAttribute("transform", at);
+  }
+
+  /** Tracé simple d'une liaison pendant le glisser d'un de ses nœuds ; le vrai tracé se refait au lâcher. */
   private placeEdge(e: GraphEdge): void {
     const els = this.edgeEls.get(e.id);
     const a = this.portAt(e.from, "outs", e.item);
@@ -875,10 +954,7 @@ export class GraphView {
     const nbn = this.boxOf(e.to)!;
     const below = Math.max(na.y + na.h, nbn.y + nbn.h) + 24;
     const p = edgePath(a, b, below);
-    els.hit.setAttribute("d", p.d);
-    els.line.setAttribute("d", p.d);
-    const w = Number(els.rect.getAttribute("width"));
-    els.lab.setAttribute("transform", `translate(${(p.lx - w / 2).toFixed(1)},${(p.ly - 8).toFixed(1)})`);
+    this.setPath(els, p.d, p.lx, p.ly);
   }
 
   private portAt(id: NodeId, dir: "ins" | "outs", item: string): Pt | null {
@@ -919,18 +995,13 @@ export class GraphView {
     this.k = k;
     const v = this.pz.view();
     const s = this.frame.style;
-    s.setProperty("--gv-cs", `${28 * k}px`);
+    s.setProperty("--gv-cs", `${GRID * k}px`);
     s.setProperty("--gv-cx", `${-v.x * k}px`);
     s.setProperty("--gv-cy", `${-v.y * k}px`);
     const far = k < FAR_ZOOM;
     if (far !== this.far) {
       this.far = far;
       this.frame.classList.toggle("far", far);
-      if (this.g) {
-        this.measure();
-        for (const gid of this.frameEls.keys()) this.placeFrame(gid);
-        for (const e of this.g.edges) this.placeEdge(e);
-      }
     }
     this.placeBubble();
   }
@@ -958,6 +1029,7 @@ export class GraphView {
       b('data-tool="del" aria-pressed="false"', "trash", t("gv.t.del"), t("gv.t.del.tip")) +
       b('data-tool="multi" aria-pressed="false"', "select", t("gv.t.multi"), t("gv.t.multi.tip")) +
       b('data-act="group"', "group", t("gv.t.group"), t("gv.t.group.tip")) +
+      b('data-act="arrange"', "tiles", t("gv.t.arrange"), t("gv.t.arrange.tip")) +
       "<hr>" +
       b('data-act="undo"', "undo", t("gv.t.undo"), t("gv.t.undo.tip")) +
       b('data-act="redo"', "redo", t("gv.t.redo"), t("gv.t.redo.tip")) +
@@ -991,6 +1063,7 @@ export class GraphView {
     if (act === "undo") return this.undo();
     if (act === "redo") return this.redo();
     if (act === "group") return this.groupSelection();
+    if (act === "arrange") return this.arrange();
     if (act === "file") return this.opts.onFile?.(b);
     const tool = b.dataset.tool as Mode | undefined;
     if (tool && MODES.includes(tool)) {
@@ -1006,7 +1079,9 @@ export class GraphView {
     let text = "";
     // Une prise choisie (premier appui) : le rappel dit quoi toucher ensuite, avant celui de l'outil Relier.
     if (this.armed && (!src || src.mode === "link")) text = t(this.armed.side === "out" ? "gv.armed.out" : "gv.armed.in", { item: this.opts.text.item(this.armed.item) });
-    else if (src) text = `${t(src.from === "key" ? `gv.key.${src.mode}` : `gv.tool.${src.mode}`)} : ${t(`gv.does.${src.mode}`)}${src.from === "tool" ? ` · ${t("gv.esc")}` : ""}`;    this.hintEl.hidden = !text;
+    else if (this.press?.kind === "node" && this.press.moved) text = t(this.freeDrag ? "gv.drag.free" : "gv.drag.grid");
+    else if (src) text = `${t(src.from === "key" ? `gv.key.${src.mode}` : `gv.tool.${src.mode}`)} : ${t(`gv.does.${src.mode}`)}${src.from === "tool" ? ` · ${t("gv.esc")}` : ""}`;
+    this.hintEl.hidden = !text;
     this.hintEl.textContent = text;
     // Ctrl tenu (ou outil Sélection) : la bulle du nœud choisi s'efface et laisse passer les clics, pour
     // qu'un Ctrl + clic sur un nœud qu'elle couvrait l'ajoute bien (remarque de G6 : le clic tombait sur
@@ -1019,6 +1094,11 @@ export class GraphView {
   private setHeld(m: Mode | null): void {
     if (m === this.held) return;
     this.held = m;
+    // Alt enfoncé ou relâché pendant un glisser : libre ou sur la grille, sans attendre le prochain mouvement.
+    if (this.press?.kind === "node" && this.press.moved) {
+      this.freeDrag = m === "del";
+      if (this.pending && this.press.group) this.moveGroup(this.press.group, this.pending);
+    }
     this.syncHint();
   }
 
@@ -1049,7 +1129,8 @@ export class GraphView {
       this.sel = this.sels.size === 1 ? [...this.sels][0]! : null;
       this.applySel();
       this.opts.onSelect(this.selected);
-    } else if ((ctrl && key === "k") || (!ctrl && !e.altKey && key === "a")) this.openPicker(null);
+    } else if (!ctrl && !e.altKey && key === "l") this.arrange();
+    else if ((ctrl && key === "k") || (!ctrl && !e.altKey && key === "a")) this.openPicker(null);
     else if (!ctrl && (e.key === "Delete" || e.key === "Backspace")) this.deleteSelection();
     else if (e.key === "Escape" && (this.armed || this.tool)) {
       this.disarm();
@@ -1138,7 +1219,9 @@ export class GraphView {
       const v = this.pz.view();
       want = { x: Math.round(v.x + v.w / 2 - NODE_W / 2), y: Math.round(v.y + v.h / 2 - size.h / 2) };
     }
-    const at = freeSpot(g, want, size, (id) => this.geom.get(id) ?? { w: NODE_W, h: 120 });
+    // Place libre, sur la grille.
+    want = { x: snapGrid(want.x), y: snapGrid(want.y) };
+    const at = freeSpot(g, want, size, (id) => this.geom.get(id) ?? { w: NODE_W, h: 120 }, 24, GRID);
     const { id, seq } = freshId(g, this.seq);
     const cmd = addRecipeCommand(data, recipeId, { id, at, world, ...(port && this.bal ? { from: { port, perMin: needAt(this.bal, port) } } : {}) });
     if (!this.exec(cmd)) return;
@@ -1453,12 +1536,18 @@ export class GraphView {
         p.k = this.scale();
         for (const m of p.group!) this.nodeEls.get(m.id)?.classList.add("dragging");
         if (p.grp) this.groupEls.get(p.grp)?.classList.add("dragging");
+        this.freeDrag = e.altKey;
+        this.syncHint();
       } else if (p.kind === "port") this.startLink(p);
     }
     if (p.kind === "port" && p.link) return this.dragLink(p, e);
     if (p.kind !== "node") return;
     const k = p.k!;
     this.pending = { x: dx / k, y: dy / k };
+    if (this.freeDrag !== e.altKey) {
+      this.freeDrag = e.altKey;
+      this.syncHint();
+    }
     // Un seul dessin par image : le glisser reste fluide même avec des centaines de nœuds.
     this.frameReq ||= requestAnimationFrame(() => {
       this.frameReq = 0;
@@ -1469,16 +1558,17 @@ export class GraphView {
   private onUp(e: PointerEvent, cancel = false): void {
     const p = this.press;
     if (!p || p.id !== e.pointerId) return;
+    if (p.kind === "node" && p.moved && this.pending) this.moveGroup(p.group!, this.pending);
     this.press = null;
     if (this.frame.hasPointerCapture(e.pointerId)) this.frame.releasePointerCapture(e.pointerId);
     document.body.classList.remove("panning");
     if (p.kind === "node" && p.moved) {
       if (this.frameReq) cancelAnimationFrame(this.frameReq);
       this.frameReq = 0;
-      if (this.pending) this.moveGroup(p.group!, this.pending);
       this.pending = null;
       for (const m of p.group!) this.nodeEls.get(m.id)?.classList.remove("dragging");
       if (p.grp) this.groupEls.get(p.grp)?.classList.remove("dragging");
+      this.syncHint();
       // Le document reçoit les positions finales en une commande : un pas d'annulation.
       const at = new Map(this.g!.nodes.map((n) => [n.id, n]));
       const moves = p.group!.map((m) => ({ id: m.id, x: at.get(m.id)!.x, y: at.get(m.id)!.y })).filter((m) => {
@@ -1486,6 +1576,7 @@ export class GraphView {
         return m.x !== m0.x0 || m.y !== m0.y0;
       });
       if (moves.length) this.exec({ type: "move", moves }, true);
+      else this.route(true);
       return;
     }
     if (p.kind === "port" && p.moved) return this.endLink(p, cancel);
@@ -1683,9 +1774,20 @@ export class GraphView {
     else this.exec(r.cmd);
   }
 
+  /**
+   * Écart d'un glisser : le nœud tenu (ou le coin du groupe) se cale sur la grille des croix, les autres gardent
+   * leur place par rapport à lui. Alt tenu : placement libre.
+   */
+  private snapped(group: { id: NodeId; x0: number; y0: number }[], d: Pt): Pt {
+    if (this.freeDrag || !group.length) return d;
+    const lead = group.find((m) => m.id === this.press?.node) ?? { x0: Math.min(...group.map((m) => m.x0)), y0: Math.min(...group.map((m) => m.y0)) };
+    return { x: snapGrid(lead.x0 + d.x) - lead.x0, y: snapGrid(lead.y0 + d.y) - lead.y0 };
+  }
+
   /** Déplace des nœuds pendant le glisser : leurs boîtes et leurs seules liaisons, sans tout redessiner. */
   private moveGroup(group: { id: NodeId; x0: number; y0: number }[], d: Pt): void {
     const g = this.g!;
+    d = this.snapped(group, d);
     const at = new Map(group.map((m) => [m.id, m]));
     // Copie locale (le document lui-même change au lâcher, par une commande).
     const nodes = g.nodes.map((n) => {
@@ -1699,13 +1801,17 @@ export class GraphView {
       if (n.group) groups.add(n.group);
       // Position par transformation : le navigateur ne refait pas la mise en page des autres nœuds.
       const el = this.nodeEls.get(n.id);
-      if (el) el.style.transform = `translate(${n.x}px,${n.y}px)`;
+      if (!el) continue;
+      el.style.transform = `translate(${n.x}px,${n.y}px)`;
+      // La boîte n'est plus là où son HTML la mettait : sans cela, revenir à cette place (Ctrl Z, « Aligner ») ne la bougeait pas.
+      this.boxHtml.set(n.id, "");
     }
     for (const gid of groups) {
       const box = this.groupEls.get(gid);
       if (box) {
         const p = this.groupPos(gid);
         box.style.transform = `translate(${p.x}px,${p.y}px)`;
+        this.boxHtml.set(`@${gid}`, "");
       }
       this.placeFrame(gid);
     }
@@ -1717,83 +1823,4 @@ export class GraphView {
     const r = this.frame.getBoundingClientRect();
     return r.width / Math.max(1, this.pz.view().w);
   }
-}
-
-/**
- * Disposition de « Ranger » (pur) : `layoutFlow` donne la colonne (profondeur depuis l'objectif) et
- * l'ordre dans la colonne (peu de croisements) ; les nœuds sont ensuite empilés avec leur vraie
- * hauteur, colonnes centrées. Rend les déplacements à appliquer.
- */
-export function arrangeGraph(g: Graph, data: GameData, world: GraphWorld, heights: Map<NodeId, number>, bal: GraphBalance | null = null): { id: NodeId; x: number; y: number }[] {
-  if (!g.nodes.length) return [];
-  const ids = new Set(g.nodes.map((n) => n.id));
-  const edges = g.edges.filter((e) => ids.has(e.from) && ids.has(e.to) && e.from !== e.to);
-  // Profondeur = plus long chemin vers l'objectif (0), boucles ouvertes d'abord : un parcours en
-  // profondeur, de l'objectif vers l'amont, écarte la liaison qui referme chaque boucle.
-  const sinks = g.nodes.filter((n) => !edges.some((e) => e.from === n.id)).map((n) => n.id);
-  const roots = [...new Set([...(g.target ? [g.target.node] : []), ...sinks, ...g.nodes.map((n) => n.id)])];
-  const back = new Set<GraphEdge>();
-  const state = new Map<NodeId, 1 | 2>(); // 1 : en cours, 2 : fini
-  const feeders = new Map<NodeId, GraphEdge[]>();
-  for (const e of edges) feeders.set(e.to, [...(feeders.get(e.to) ?? []), e]);
-  for (const r of roots) {
-    if (state.has(r)) continue;
-    const stack: { id: NodeId; i: number }[] = [{ id: r, i: 0 }];
-    state.set(r, 1);
-    while (stack.length) {
-      const top = stack.at(-1)!;
-      const list = feeders.get(top.id) ?? [];
-      if (top.i >= list.length) {
-        state.set(top.id, 2);
-        stack.pop();
-        continue;
-      }
-      const e = list[top.i++]!;
-      const st = state.get(e.from);
-      if (st === 1) back.add(e);
-      else if (!st) {
-        state.set(e.from, 1);
-        stack.push({ id: e.from, i: 0 });
-      }
-    }
-  }
-  const dag = edges.filter((e) => !back.has(e));
-  const depth = new Map(g.nodes.map((n) => [n.id, 0]));
-  for (let k = 0; k < g.nodes.length; k++) {
-    let changed = false;
-    for (const e of dag) {
-      const d = depth.get(e.to)! + 1;
-      if (d > depth.get(e.from)!) {
-        depth.set(e.from, d);
-        changed = true;
-      }
-    }
-    if (!changed) break;
-  }
-  const steps = g.nodes.map((n) => ({ key: n.id, depth: depth.get(n.id)!, isRaw: recipePorts(data, n.recipeId, world).ins.length === 0 }));
-  const flowEdges = edges.map((e) => ({ from: e.from, to: e.to, item: e.item, perMin: bal?.edges.get(e.id) ?? 0 }));
-  const finals = g.nodes.map((n) => n.id).filter((id) => depth.get(id) === 0);
-  const L = layoutFlow({ steps, unresolved: [], edges: flowEdges, finals } as unknown as Parameters<typeof layoutFlow>[0]);
-  const byCol = new Map<number, { id: string; y: number }[]>();
-  for (const n of L.nodes) {
-    if (!ids.has(n.id)) continue;
-    const list = byCol.get(n.col) ?? [];
-    list.push({ id: n.id, y: n.y });
-    byCol.set(n.col, list);
-  }
-  const colH = new Map<number, number>();
-  for (const [c, list] of byCol) {
-    list.sort((a, b) => a.y - b.y);
-    colH.set(c, list.reduce((s, x) => s + (heights.get(x.id) ?? 120), 0) + GAP_Y * (list.length - 1));
-  }
-  const H = Math.max(...colH.values());
-  const moves: { id: NodeId; x: number; y: number }[] = [];
-  for (const [c, list] of byCol) {
-    let y = (H - colH.get(c)!) / 2;
-    for (const x of list) {
-      moves.push({ id: x.id, x: c * (NODE_W + GAP_X), y: Math.round(y) });
-      y += (heights.get(x.id) ?? 120) + GAP_Y;
-    }
-  }
-  return moves;
 }

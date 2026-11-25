@@ -2,7 +2,7 @@
 // nombre exact de machines), chaque flux entre deux étapes une arête. Les flux venant d'un manque
 // ou d'une production existante n'ont pas de nœud : leur entrée reste à alimenter (manque visible).
 // Disposition provisoire par profondeur, de l'extraction (à gauche) à l'objectif (à droite) ;
-// « Ranger » (flow-layout.ts, lot G2) la remplacera.
+// « Aligner » (graph-layout.ts) la remplacera.
 
 import { ENERGY } from "../resources.ts";
 import type { Plan } from "../solve.ts";

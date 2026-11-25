@@ -1040,8 +1040,12 @@ Industrialist Calculator ». Comparaison complète : `COMPARAISON-POLLYWRATH.md`
   Gearbox +2/s (= 120/min), manques seulement Ethylene 1,33/s et Paraxylene 0,5/s (ce que faisait la recette
   laissée de côté ; notre aperçu disait 80/min et 30/min), excédents Crude Oil 0,889/s et Water 2,22/s (notre
   équilibre : 53,3/min et 133/min), Coal 0,37/s. Aucun autre manque : les 19 liaisons tombent sur les bonnes
-  prises (confirme GRA-01 pour ces recettes). Reste ouvert : l'excédent de Coal (non comparé chez nous), les
-  champs de `globalSettings` autres que la pollution. **Groupes (2026-11-24)** : format relevé dans leur dépôt
+  prises (confirme GRA-01 pour ces recettes). **Coal comparé le
+  2026-11-25** : Gearbox 120/min, priorité énergie, 20 nœuds exportés, chargés chez eux : Coal +0,1481/s (8,889/min chez nous),
+  Crude Oil 0,8889/s (53,33), Hydrogen 0,8889/s (53,33), Water 4,9429/s (296,57), manques Ethylene 1,3333/s (80), Paraxylene 0,5/s (30),
+  Oak Log 0,6667/s (40) : tout est identique. `difficulty` essayé le même jour et retiré : leur site refuse le fichier si la liste de
+  recherches ne va pas avec (« unlockedResearchIds contains research … unavailable in hard mode »). Reste ouvert : les champs de
+  `globalSettings` autres que la pollution (recherches : pas de correspondance sûre). **Groupes (2026-11-24)** : format relevé dans leur dépôt
   (commit 1c9ff48, `src/types/saves.ts`, `src/persistence/saveMigrations.ts`), lus et écrits ; un export avec un
   groupe replié chargé dans leur site (groupe replié, 3 membres cachés, même prise mandataire) et leur sauvegarde
   relue par notre import. **Groupe déplié essayé chez eux le 2026-11-24** : export Gearbox (19 nœuds, « Group 1 »

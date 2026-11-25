@@ -98,22 +98,25 @@ export type Pt = { x: number; y: number };
 
 /**
  * Place libre la plus proche de `want` pour un nœud de taille `size` : jamais sur un autre nœud
- * (exigence du § 6), à `gap` près. On descend et on monte par pas de 30, puis on décale d'une colonne.
+ * (exigence du § 6), à `gap` près. On descend et on monte par pas de 30 (de `grid`, pour rester sur la grille), puis on décale d'une colonne.
  */
-export function freeSpot(g: Graph, want: Pt, size: Size, sizeOf: (id: NodeId) => Size, gap = 24): Pt {
+export function freeSpot(g: Graph, want: Pt, size: Size, sizeOf: (id: NodeId) => Size, gap = 24, grid = 0): Pt {
+  const dy = grid || 30;
+  const up = (v: number) => (grid ? Math.ceil(v / grid) * grid : v);
   const hits = (x: number, y: number) =>
     g.nodes.some((o) => {
       const s = sizeOf(o.id);
       return o.x < x + size.w + gap && x < o.x + s.w + gap && o.y < y + size.h + gap && y < o.y + s.h + gap;
     });
   for (let col = 0; col < 8; col++) {
-    const xs = col === 0 ? [want.x] : [want.x - col * (size.w + gap), want.x + col * (size.w + gap)];
+    const dx = up(size.w + gap);
+    const xs = col === 0 ? [want.x] : [want.x - col * dx, want.x + col * dx];
     for (const x of xs)
       for (let k = 0; k < 40; k++)
-        for (const y of k ? [want.y + k * 30, want.y - k * 30] : [want.y]) if (!hits(x, y)) return { x: Math.round(x), y: Math.round(y) };
+        for (const y of k ? [want.y + k * dy, want.y - k * dy] : [want.y]) if (!hits(x, y)) return { x: Math.round(x), y: Math.round(y) };
   }
   // Tout est pris autour : sous le nœud le plus bas.
-  return { x: Math.round(want.x), y: Math.round(Math.max(...g.nodes.map((n) => n.y + sizeOf(n.id).h)) + gap) };
+  return { x: Math.round(want.x), y: up(Math.round(Math.max(...g.nodes.map((n) => n.y + sizeOf(n.id).h)) + gap)) };
 }
 
 // ------------------------------------------------------------------ ajouter, relier, supprimer

@@ -1732,6 +1732,7 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
   Parcours chronométrés notés au § 7 de PLAN-GRAPHE.md (1400 px : 13,4 s / 40,8 s / 16,3 s / 8,5 s ; 375 px : 17,0 s / 12,8 s) ; 4 remarques d'ergonomie relevées pour plus tard. Fin des lots G.
 - **2026-11-23, après G6** : les 4 remarques corrigées (détail au § 7 de PLAN-GRAPHE.md) : le nombre choisi dans la bulle pose le cadenas ; un nœud ajouté à la main n'a plus la fiche de l'étape de même recette ; au téléphone, bulle et rappel du mode dans la partie visible sous l'en-tête collant ; Ctrl + clic à travers la bulle.
 - **2026-11-24** : lien étape ↔ nœud enregistré avec le graphe : au rechargement, un nœud ajouté à la main reste sans la fiche de l'étape de même recette (et les identifiants neufs ne reprennent plus celui d'un nœud supprimé).
+- **2026-11-25** : éditeur de graphe : « Aligner » (L), grille (Alt = libre), liaisons séparées, groupes repliés (§ 7 de PLAN-GRAPHE.md). Usine : la relance du calcul mise en avant (« Chercher un meilleur plan » : bandeau et bouton orange sur le plan, ligne orange dans « Ce plan ») ; l'arrêter rend le plan d'avant. Essayé sur Electric Motor en usine entière.
 - **2026-11-24** : groupes d'Industrialist Calculator importés et exportés (format relevé dans leur dépôt) ; export avec un groupe replié chargé dans leur site, leur sauvegarde relue chez nous (détail au § 7 de PLAN-GRAPHE.md, GRA-02).
 
 ## 7. Gestion des sessions
