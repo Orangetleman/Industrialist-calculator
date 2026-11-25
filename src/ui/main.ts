@@ -92,7 +92,7 @@ import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layo
 import { renderNodeBubble, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { createTour, SITE_TOUR, type CheckItem } from "./tour.ts";
 import { createChecklist, reachedItem } from "./checklist.ts";
-import { initMobile, mobileOn, tourReveal, tourTarget } from "./mobile-shell.ts";
+import { heavy, holdCalc, initMobile, mobileOn, tourReveal, tourTarget } from "./mobile-shell.ts";
 import {
   defaultDir,
   draftFrom,
@@ -1216,13 +1216,15 @@ function viewCtx(): ViewCtx {
 function update(): void {
   planDirty = true;
   saveSettings(settings);
+  // Téléphone : pendant qu'on règle l'objectif ou les réglages, le calcul attend la fermeture du panneau (écran d'attente).
+  if (holdCalc(render)) return;
   render();
 }
 
 let timer: number | undefined;
 function updateSoon(): void {
   clearTimeout(timer);
-  timer = window.setTimeout(update, 150);
+  timer = window.setTimeout(update, mobileOn() ? 600 : 150);
 }
 
 // ---------------------------------------------------------------- rendu
@@ -1679,7 +1681,7 @@ function renderFlowCanvas(): void {
       applyFlowSel();
     },
     onChange: (g) => onGraphChange(g),
-    onRecalc: () => void recalcGraph(),
+    onRecalc: () => heavy(() => void recalcGraph()),
     onFile: (b) => openGraphFileMenu(b),
     extra: (id) => graphExtra(id),
     vertical: () => mobileOn() && innerHeight > innerWidth, // MB5 : téléphone ou tablette debout
@@ -5017,7 +5019,7 @@ function bindPlan(): void {
       return;
     }
     const a = (e.target as Element).closest<HTMLElement>("[data-gbar]")?.dataset.gbar;
-    if (a === "recalc") void recalcGraph();
+    if (a === "recalc") heavy(() => void recalcGraph());
     else if (a === "rate") void recalcGraph(settings.rate);
     else if (a === "restore") restoreGraphGoal();
     else if (a === "back" || a === "take") void dropGraphEdit(true);

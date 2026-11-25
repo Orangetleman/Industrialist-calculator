@@ -245,6 +245,11 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
 - **Attente du calcul de l'usine** (2026-11-25) : la zone du plan devient une grille de pose animée (`mobile-gen.ts`) : cases
   allumées du centre vers les bords selon l'avancement réel, onde tant qu'il travaille, fondu vers le plan. Bandeau court.
 
+- **Lenteur déplacée vers l'attente** (2026-11-26) : mesuré sur MOX Fuel Rod (processeur ralenti 4×), chaque chiffre tapé
+  relançait calcul et tracé du schéma (~4 s) ; « Recalculer » ~2,5 s. Au téléphone, tant que le panneau Objectif ou Réglages
+  est ouvert, le calcul attend sa fermeture, puis passe derrière l'écran « Calcul du plan… » (animation hors script, elle tourne
+  pendant le calcul) ; « Recalculer » aussi. Le calcul lui-même n'est pas plus court : le passer dans un worker reste à faire.
+
 ### Pistes pour MB10 (à maquetter, rien de décidé)
 
 Ce qui ne va pas au téléphone : la bulle cache la cible (40 % de l'écran), le voile empêche d'essayer, huit étapes de suite,

@@ -52,5 +52,6 @@ export const mobileEn: Record<keyof typeof mobileFr, Msg> = {
   "mob.bt.card": "Card",
   "mob.notip": "No tooltip recorded",
   "mob.noports": "No port: tap an edge cell in the grid.",
+  "mob.calc": "Computing the plan…",
   "mob.card": "Full card",
 };

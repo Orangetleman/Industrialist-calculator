@@ -51,5 +51,6 @@ export const mobileFr = {
   "mob.bt.card": "Fiche",
   "mob.notip": "Pas d’info-bulle relevée",
   "mob.noports": "Aucun port : touche une case du bord dans la grille.",
+  "mob.calc": "Calcul du plan…",
   "mob.card": "Fiche complète",
 } satisfies Record<string, Msg>;

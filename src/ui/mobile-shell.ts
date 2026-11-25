@@ -256,6 +256,41 @@ function apply(): void {
   }
 }
 
+// ---------------------------------------------------------------- calculs reportés (attente visible)
+
+let waitEl: HTMLElement | null = null;
+let pending: (() => void) | null = null;
+/**
+ * Un calcul lourd au téléphone : l'écran d'attente s'affiche d'abord (son animation tourne même pendant le calcul,
+ * elle ne demande rien au script), puis le calcul. Hors téléphone : tout de suite.
+ */
+export function heavy(fn: () => void): void {
+  if (!on || !waitEl) return fn();
+  waitEl.hidden = false;
+  waitEl.querySelector("b")!.textContent = t("mob.calc");
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      try {
+        fn();
+      } finally {
+        setTimeout(() => (waitEl!.hidden = true), 120);
+      }
+    }),
+  );
+}
+/** Pendant qu'on règle l'objectif ou les réglages du plan, le calcul attend leur fermeture ; vrai : reporté. */
+export function holdCalc(fn: () => void): boolean {
+  if (!on || !(panel === "goal" || !$("plan-drawer").hidden)) return false;
+  pending = fn;
+  return true;
+}
+function release(): void {
+  if (!pending || panel === "goal" || !$("plan-drawer").hidden) return;
+  const fn = pending;
+  pending = null;
+  heavy(fn);
+}
+
 // ---------------------------------------------------------------- retour du téléphone : ferme d'abord ce qui est ouvert
 
 /** Ce qui est ouvert par-dessus, du plus haut au plus bas, et comment le fermer. */
@@ -349,6 +384,7 @@ function syncHistory(): void {
 function setPanel(p: Panel): void {
   panel = panel === p ? "" : p;
   apply();
+  release();
   syncHistory();
   if (panel === "menu") menu.querySelector<HTMLElement>("[data-href]")?.focus({ preventScroll: true });
 }
@@ -645,6 +681,10 @@ function build(): void {
   menu = el("section", "m-panel m-menu-panel", `<div class="m-ph"><h2></h2><button type="button" class="m-x" data-m="close">${icon("close")}</button></div><div class="m-grid"></div><div class="m-status"></div><div class="m-rows"></div>`);
   menu.hidden = true;
   document.body.append(dock, scrim, menu);
+  waitEl = el("div", "m-wait", "<i></i><b></b>");
+  waitEl.hidden = true;
+  waitEl.setAttribute("role", "status");
+  document.body.append(waitEl);
   empty = el("div", "m-empty");
   document.querySelector(".cmd-stage")!.append(empty);
   stepBar = el("div", "m-steps-bar");
@@ -796,6 +836,7 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
     sync();
     syncHistory();
   });
+  new MutationObserver(release).observe($("plan-drawer"), { attributes: true, attributeFilter: ["hidden"] });
   for (const id of ["rtabs-result", "plan-drawer", "share", "pose-focus", "flow-hud"]) mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] });
   new MutationObserver(() => {
     if ($("pose-focus").hidden) return;

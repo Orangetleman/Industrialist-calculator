@@ -356,3 +356,11 @@ body.mob .u-busy .long-tip { margin-top: 8px; padding: 0; border: 0; background:
 @media (orientation: landscape) and (min-aspect-ratio: 5/4) { body.mob .u-busy .long-tip { display: none; } }
 /* Étapes : chaque ligne mène à son dessin (la première, à toute l'usine) ; celle qu'on regarde est marquée. */
 body.mob #page-plan .cmd-step::after { content: "›"; color: var(--accent); font-size: 22px; padding-left: 10px; } body.mob #page-plan .cmd-step:not(:has(.x))::after { margin-left: auto; } body.mob #page-plan .cmd-row.on { background: var(--accent-soft); box-shadow: inset 3px 0 var(--accent); }
+
+/* Calcul reporté : la grille et une onde qui passe (animée hors du script, elle tourne pendant le calcul). */
+.m-wait { display: none; }
+body.mob .m-wait:not([hidden]) { display: grid; place-items: center; position: fixed; z-index: 1100; inset: calc(var(--m-top, 52px) + 3px) 0 var(--m-bot) var(--m-left); overflow: hidden; background-color: rgb(18 12 32 / .94); background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size: 26px 26px; }
+.m-wait i { position: absolute; inset: -40% 0 auto; height: 40%; background: linear-gradient(transparent, rgb(255 106 26 / .22), transparent); animation: m-scan 1.4s linear infinite; will-change: transform; }
+.m-wait b { position: relative; padding: 10px 18px; background: var(--surface); border: 1px solid var(--accent); font: 400 15px var(--f-display); }
+@keyframes m-scan { to { transform: translateY(350%); } }
+@media (prefers-reduced-motion: reduce) { .m-wait i { animation: none; display: none; } }
