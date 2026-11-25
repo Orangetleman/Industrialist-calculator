@@ -29,10 +29,12 @@ const CASES = [
   { item: "crankshaft", priority: ["forme", "place", "prix", "pieces"] },
 ] as const;
 
+// Champs ajoutés avec les lignes de tuyaux (2026-11-25) : les plans sont les mêmes sans eux.
+const NOUVEAUX = ["gates", "extras", "cap", "over"];
 export const empreinte = (item: string, priority: readonly string[]) => {
   const plan = solve(data, { unlocked: new Set(data.nodes.keys()) }, { item, ratePerMin: 60, criterion: "energy", tiers: false });
   const f = designFactory(factoryInput(plan, look, cat, { w: 160, h: 110 }, { priority: [...priority] } as never, { full: true }));
-  return createHash("sha256").update(JSON.stringify(f)).digest("hex").slice(0, 16);
+  return createHash("sha256").update(JSON.stringify(f, (k, v) => (NOUVEAUX.includes(k) ? undefined : v))).digest("hex").slice(0, 16);
 };
 
 it("toute l'usine : mêmes plans qu'avant S42", () => {

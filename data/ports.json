@@ -972,6 +972,28 @@
    ],
    "notes": "Port relevé avec l'entrée d'air par erreur, de type fluide (correction de l'utilisateur). Prise électrique non relevée.",
    "source": { "wiki": "jeu", "fetchedAt": "2026-10-18T14:24:45.029Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-10-18), corrigé par l'utilisateur le 2026-10-18" }
+  },
+  "overflow-gate": {
+   "footprint": { "w": 1, "h": 2 },
+   "ports": [
+    { "type": "fluide", "direction": "sortie", "side": "gauche", "cell": 1, "tip": "overflow out-put 1" },
+    { "type": "fluide", "direction": "sortie", "side": "droite", "cell": 1, "tip": "overflow out-put 2" },
+    { "type": "fluide", "direction": "entrée", "side": "bas", "cell": 1 },
+    { "type": "fluide", "direction": "sortie", "side": "haut", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-11-25T15:50:22.827Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-11-25)" }
+  },
+  "item-overflow-gate": {
+   "footprint": { "w": 1, "h": 2 },
+   "ports": [
+    { "type": "objet", "direction": "sortie", "side": "gauche", "cell": 1, "tip": "overflow out-put 1" },
+    { "type": "objet", "direction": "sortie", "side": "droite", "cell": 1, "tip": "overflow out-put 2" },
+    { "type": "objet", "direction": "sortie", "side": "haut", "cell": 1 },
+    { "type": "objet", "direction": "entrée", "side": "bas", "cell": 1 }
+   ],
+   "noPower": true,
+   "source": { "wiki": "jeu", "fetchedAt": "2026-11-25T21:57:07.742Z", "note": "relevé de l'utilisateur dans l'éditeur de bâtiments (export du 2026-11-25)" }
   }
  }
 }

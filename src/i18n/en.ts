@@ -622,6 +622,8 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   "pose.prio.hint": "the first one decides first; drag a row or use {i:up} {i:down} to change the order",
   "pose.prio.aria": "Module layout: priorities, in order",
   "pose.tier3": "Tier III pipes only",
+  "pose.nogate": "No Overflow Gate",
+  "pose.nogate.hint": "(one more machine when pipes can't be shared otherwise)",
   "pose.tier3.hint": "(faster, more expensive)",
   "pose.proposal.html": "<b>This is a suggestion.</b> Use it as a base to build, then improve it as you like: the game often allows better than an automatic plan.",
   "pose.hint": "One module per step, machines in one or two rows (or in stacked blocks), one manifold per resource. Buildings not yet surveyed have assumed ports.",

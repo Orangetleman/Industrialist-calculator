@@ -1740,6 +1740,8 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 
 - **2026-11-25, remarque 15 (suite)** : ferme d'arbres : toutes les sorties rejoignent un départ unique, tous les réservoirs une arrivée d'eau unique (`src/engine/build/assembly.ts`, maquette `maquette/ferme-collecteur.html`) ; l'usine s'y branche dans les deux modes et tourne la ferme ; tuyaux comptés (pièces, prix). Clic sur un bloc de la ferme dans l'usine : ouvre la bulle. Une ferme tient 549 arbres (607 avant), accepté. Reste : tuyaux doublés quand le débit dépasse (steam de 60 Chair/min : 375 L/s dans un réseau de 120), maquette d'abord.
 
+- **2026-11-25, remarque 15 (tuyaux)** : une ressource dont le débit dépasse un tuyau a un tuyau par groupe de machines (`src/engine/build/lines.ts`, simulé avec le partage à parts égales) ; Overflow Gate (relevée, fluides) pour le surplus quand elle évite une machine de plus ; option « Sans Overflow Gate » (Réglages) ; fusions de plusieurs sources ; les deux modes ; débit au survol, tuyau rouge si dépassé. Suite le même jour : Item Overflow Gate relevée et posée ; machine ajoutée comptée dans le plan, le graphe et l'usine ; embranchement et fusion à trois simulés ; l'option voyage dans le partage et l'empreinte.
+
 ## 7. Gestion des sessions
 
 La session de départ (celle qui a écrit ce plan) joue le **gestionnaire** : elle lance chaque

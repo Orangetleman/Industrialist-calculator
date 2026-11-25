@@ -61,7 +61,7 @@ export class Grid {
  * traversent qu'à angle droit, sur un tuyau droit (croisement). Renvoie false sans rien poser si
  * aucun chemin n'existe dans `bounds`.
  */
-export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds: Bounds, h: (c: Cell) => number): boolean {
+export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds: Bounds, h: (c: Cell) => number, trace?: Cell[]): boolean {
   const so = grid.get(start);
   // Collecteur de la même ressource collé au port : il l'alimente directement (té).
   if (so?.kind === "tuyau" && (so.net === net || so.cross?.net === net)) {
@@ -123,6 +123,7 @@ export function route(grid: Grid, net: string, start: Cell, toPort: Dir, bounds:
   // Pose : la case de départ se raccorde au port, puis chaque pas relie deux cases.
   const path: { c: Cell; d: Dir | null }[] = [];
   for (let n: Node | null = found; n; n = n.prev) path.unshift({ c: n.c, d: n.d });
+  trace?.push(...path.map((q) => q.c));
   grid.link(start, toPort, net);
   for (let i = 1; i < path.length; i++) {
     const d = path[i]!.d!;

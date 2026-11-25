@@ -574,6 +574,8 @@ ul.mod-legend i.sw-todo { width: 12px; height: 10px; border: 2px dashed #e3b25a;
 .usine .u-mod:hover .u-lbl text { opacity: .9; }
 .usine .u-mod.focus .u-box { stroke: var(--cv-acc-hi); stroke-width: 4; }
 .usine .u-hit, .usine .u-cable-hit { cursor: pointer; }
+.usine .u-gate rect { stroke: #fff; stroke-width: 1.5; }
+.usine .u-gate text { fill: #1a0800; font-weight: 700; pointer-events: none; }
 .usine .u-contact { stroke: #fff; stroke-width: 2; }
 .pose-frame:not(.u-full):not(.u-detail) .usine .u-detail { display: none; }
 .pose-frame:not(.u-full):not(.u-detail) .usine .u-lbl text { opacity: 1; }

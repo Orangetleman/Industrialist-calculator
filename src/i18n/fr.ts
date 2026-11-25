@@ -628,6 +628,8 @@ export const fr = {
   "pose.prio.hint": "la première départage d'abord ; glisse une ligne ou utilise {i:up} {i:down} pour changer l'ordre",
   "pose.prio.aria": "Disposition des modules : priorités, dans l'ordre",
   "pose.tier3": "Seulement des tuyaux de tier III",
+  "pose.nogate": "Sans Overflow Gate",
+  "pose.nogate.hint": "(une machine de plus quand les tuyaux ne peuvent pas se partager autrement)",
   "pose.tier3.hint": "(plus rapides, plus chers)",
   "pose.proposal.html": "<b>C'est une proposition.</b> Sers-t'en comme base pour construire, puis optimise-la comme tu le souhaites : le jeu permet souvent mieux qu'un calcul automatique.",
   "pose.hint": "Un module par étape, machines en une ou deux rangées (ou en blocs empilés), un collecteur par ressource. Les bâtiments non relevés ont des ports supposés.",

@@ -38,7 +38,7 @@ const moduleText = (m: ModulePlan) => [
   canon(m.poles.map((q) => [q.pole, q.x, q.y])),
 ];
 
-type PoseLike = Pick<FactoryPlan, "W" | "H" | "boxes" | "cells" | "nets" | "evacs" | "glued" | "touches" | "poleNodes" | "links" | "feed">;
+type PoseLike = Pick<FactoryPlan, "W" | "H" | "boxes" | "cells" | "nets" | "evacs" | "glued" | "touches" | "poleNodes" | "links" | "feed"> & Partial<Pick<FactoryPlan, "gates">>;
 
 function poseText(f: PoseLike): string {
   const cells: unknown[][] = [];
@@ -49,13 +49,15 @@ function poseText(f: PoseLike): string {
     f.H,
     canon(f.boxes.map((b) => [b.key, b.machine, b.x, b.y, b.w, b.h, b.rot, b.mod ? moduleText(b.mod) : 0])),
     canon(cells),
-    canon(f.nets.map((n) => [n.id, n.item, n.from, [...n.to].sort()])),
+    canon(f.nets.map((n) => [n.id, n.item, n.from, [...n.to].sort(), ...(n.more?.length ? [[...n.more].sort()] : [])])),
     canon(f.evacs.map((e) => [e.id, e.item, e.side, e.at.x, e.at.y, e.ok])),
     [...f.glued].sort(),
     canon(f.touches.map((t) => [t.from, t.to, t.item, t.x, t.y, t.dir])),
     at(f.feed),
     canon(f.poleNodes.map((p) => [p.type.id, ...at(p), canon(p.plugs.map((q) => [q.key, ...at(q)]))])),
     canon(f.links.map((l) => [...at(l.from), ...at(l.to), l.relays, l.relayType.id, l.lines])),
+    // Overflow Gates, s'il y en a (une usine sans Gate garde son empreinte).
+    ...(f.gates?.length ? [canon(f.gates.map((g) => [g.id, g.x, g.y, g.rot]))] : []),
   ]);
 }
 

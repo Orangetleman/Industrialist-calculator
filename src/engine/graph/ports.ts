@@ -7,7 +7,7 @@ import type { GameData } from "../data.ts";
 import { ENERGY } from "../resources.ts";
 
 /** Réglages de partie qui changent les quantités des recettes (S50). */
-export type GraphWorld = { pollutionPct?: number | null; month?: number | null; igloo?: boolean };
+export type GraphWorld = { pollutionPct?: number | null; month?: number | null; igloo?: boolean; /** Nombre entier posé par le plan au-delà de l'arrondi, par recette (débit partagé entre des tuyaux). */ extra?: Record<string, { exact: number; whole: number }> };
 
 export type Ports = {
   /** Objets consommés, dans l'ordre de la recette (entrées puis sorties nettes négatives). */

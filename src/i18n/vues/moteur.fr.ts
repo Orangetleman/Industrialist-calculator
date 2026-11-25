@@ -92,6 +92,8 @@ export const moteurFr = {
   "eng.fac.step.passages": "Passages entre les machines (module {i} sur {n})",
   "eng.fac.step.power": "Réseau électrique",
   "eng.fac.step.done": "Terminé",
+  "eng.fac.overload": "Trop de débit pour un tuyau : {item} depuis {from}, {r} par seconde (au plus {cap})",
+  "eng.plan.lineExtra": "+{n} {m} : le débit de {item} ne se partage pas autrement entre les tuyaux.",
   "eng.fac.unrouted": "{item} : {from} → {to}",
   "eng.fac.evacUnrouted": "{item} : {from} → bord",
   "eng.fac.passages": "{list}{wider}",

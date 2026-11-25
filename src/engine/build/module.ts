@@ -48,6 +48,10 @@ export type ModuleRequest = {
    * les machines suivantes de la rangée s'écartent d'une case (le module peut s'élargir). Remplace `ends`.
    */
   passages?: Record<string, Passage>;
+  /** Machines de chaque ligne (collecteur) d'une ressource, dans l'ordre : voir `lines.ts`. */
+  parts?: Record<string, number[]>;
+  /** Bloc d'un module replié : numéro (à partir de 0) de sa première ligne, par ressource. */
+  lineBase?: Record<string, number>;
 };
 
 export type Passage = { row: "haut" | "bas"; after: number };
@@ -90,6 +94,8 @@ export type ModulePlan = {
   folds: number;
   /** Les blocs d'un module replié (pour `redesign`). */
   blocks?: ModulePlan[];
+  /** Bloc d'un module replié à plusieurs lignes : ses lignes. */
+  sub?: Pick<ModuleRequest, "parts" | "lineBase">;
   rot: Rot;
   /** Ports relevés en jeu, ou supposés faute de relevé. */
   portsKnown: boolean;
@@ -256,6 +262,8 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   // Au-delà du tuyau le plus rapide permis, plusieurs collecteurs en parallèle, chacun pour un
   // groupe de machines voisines.
   const items = [...new Set(assign.map((a) => a.item))];
+  // Répartition demandée, si elle couvre toutes les machines.
+  const parts = Object.fromEntries(Object.entries(req.parts ?? {}).filter(([, v]) => v.reduce((t, n) => t + n, 0) === req.count)) as Record<string, number[]>;
   const flowOf = new Map(items.map((it) => {
     const a = assign.find((x) => x.item === it)!;
     const f = (a.role === "entrée" ? req.inputs : req.outputs).find((x) => x.item === it)!;
@@ -263,11 +271,18 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
   }));
   const linesOf = new Map(items.map((it) => {
     const { a, perSec } = flowOf.get(it)!;
+    if (parts?.[it]) return [it, parts[it].length] as const;
     if (pipeFor(cat, a.kind, perSec, req.tier3Only)) return [it, 1] as const;
     const fastest = Math.max(...cat.pipes.filter((x) => x.kind === a.kind).map((x) => x.flowPerSec));
-    return [it, Math.min(req.count, Math.ceil(perSec / fastest - 1e-9))] as const;
+    // Aucune ligne ne dépasse le tuyau le plus rapide : on compte les machines entières qu'un tuyau peut servir.
+    return [it, Math.ceil(req.count / Math.max(1, Math.floor(fastest / (perSec / req.count) + 1e-9)))] as const;
   }));
-  const netId = (it: string, i: number) => (linesOf.get(it)! > 1 ? `${it}#${1 + Math.floor((i * linesOf.get(it)!) / req.count)}` : it);
+  const lineAt = (it: string, i: number): number => {
+    let n = i;
+    return parts![it]!.findIndex((k) => (n -= k) < 0) + 1 || parts![it]!.length;
+  };
+  const base = (it: string) => (parts[it] ? req.lineBase?.[it] : undefined);
+  const netId = (it: string, i: number) => (parts[it] ? (base(it) !== undefined || parts[it].length > 1 ? `${it}#${(base(it) ?? 0) + lineAt(it, i)}` : it) : linesOf.get(it)! > 1 ? `${it}#${1 + Math.floor((i * linesOf.get(it)!) / req.count)}` : it);
   const sideOf = new Map<string, "haut" | "bas">();
   for (const it of items) {
     const ps = pipePorts.filter((p) => used.get(p.index)!.item === it);
@@ -282,7 +297,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     sideOf.set(a.item, f === "N" ? "haut" : "bas");
   }
   const isShared = (id: string) => shared.some((a) => a.item === id);
-  const netIds = items.flatMap((it) => (linesOf.get(it)! > 1 ? Array.from({ length: linesOf.get(it)! }, (_, j) => `${it}#${j + 1}`) : [it]));
+  const netIds = items.flatMap((it) => (base(it) !== undefined ? Array.from({ length: linesOf.get(it)! }, (_, j) => `${it}#${base(it)! + j + 1}`) : linesOf.get(it)! > 1 ? Array.from({ length: linesOf.get(it)! }, (_, j) => `${it}#${j + 1}`) : [it]));
   const itemOf = (id: string) => id.replace(/#\d+$/, "");
   // Le collecteur partagé est le plus proche de la rangée (collé), pour passer sur le port hôte.
   const near = (a: string, b: string) => Number(isShared(b)) - Number(isShared(a));
@@ -342,7 +357,7 @@ function layout(entry: Pick<PortsEntry, "footprint" | "ports">, assign: Assign[]
     const share = k > 1 ? allPorts.filter((q) => q.net === id && q.a.item === it).length / allPorts.filter((q) => q.a.item === it).length : 1;
     const pipe = pipeFor(cat, a.kind, perSec * share, req.tier3Only);
     if (!pipe) problems.push({ level: "erreur", message: msg("mod.tooFast", { item: name(it), r: num(perSec * share) }) });
-    return { id, item: it, line: k > 1 ? Number(id.split("#")[1]) : null, kind: a.kind, role: a.role, perSec: perSec * share, pipe, lane: null, end: null };
+    return { id, item: it, line: id.includes("#") ? Number(id.split("#")[1]) : null, kind: a.kind, role: a.role, perSec: perSec * share, pipe, lane: null, end: null };
   });
   for (const it of items) {
     const k = linesOf.get(it)!;
@@ -690,6 +705,14 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
     }
     return got.sort((a, b) => order(score(prio, a, metrics(a)), score(prio, b, metrics(b))))[0] ?? null;
   };
+  const blockOf = (r: ModuleRequest, prio: PoseCriterion[]): ModulePlan | null => {
+    const ranked = probed.map((x, k) => ({ k, s: score(prio, x.p, estimate(x, r.count)) })).sort((a, b) => order(a.s, b.s));
+    for (let i = 0; i < Math.min(4, ranked.length); i++) {
+      const p = build(probed[ranked[i]!.k]!.c, r);
+      if (p && !errors(p)) return { ...p, sub: { parts: r.parts, lineBase: r.lineBase } };
+    }
+    return null;
+  };
   // 3. Rangées repliées : le même module en blocs empilés, alimentés par des tuyaux principaux. On
   //    essaie le nombre de blocs qui rend l'ensemble à peu près carré, et ses voisins (2 à 4 blocs).
   const candidates = (prio: PoseCriterion[]): ModulePlan[] => {
@@ -698,6 +721,19 @@ export function designModule(req: ModuleRequest, entry: PortsEntry | null, wikiS
     if (!flat) return out;
     out.push(flat);
     if (flat.width <= 2 * flat.height && flat.height <= 2 * flat.width) return out; // déjà ramassé
+    // Plusieurs lignes : on coupe entre deux lignes, chaque bloc garde les siennes.
+    if (req.parts) {
+      const r0 = Math.round(Math.sqrt(Math.max(flat.width, flat.height) / Math.min(flat.width, flat.height)));
+      for (const k of [...new Set([r0 - 1, r0, r0 + 1])].filter((q) => q >= 2 && q <= 4)) {
+        const subs = cutLines(req, k);
+        if (!subs) continue;
+        const bs = subs.map((r) => blockOf(r, prio));
+        if (bs.some((b) => !b || errors(b))) continue;
+        const f = foldModule(bs as ModulePlan[], req, cat, name);
+        if (f) out.push({ ...f, sub: undefined });
+      }
+      return out;
+    }
     const ideal = Math.round(Math.sqrt(Math.max(flat.width, flat.height) / Math.min(flat.width, flat.height)));
     for (const k of [...new Set([ideal - 1, ideal, ideal + 1])].filter((k) => k >= 2 && k <= 4)) {
       const n = Math.ceil(req.count / k);
@@ -908,7 +944,10 @@ export function redesign(plan: ModulePlan, req: ModuleRequest, entry: PortsEntry
   };
   let out: ModulePlan | null;
   if (plan.folds > 1 && plan.blocks) {
-    const blocks = plan.blocks.map((b) => one(b, scaleRequest(req, b.count)));
+    const blocks = plan.blocks.map((b) => {
+      const o = one(b, { ...scaleRequest(req, b.count), ...(req.parts ? b.sub : {}) });
+      return o && b.sub ? { ...o, sub: b.sub } : o;
+    });
     if (blocks.some((b) => !b)) return null;
     out = foldModule(blocks as ModulePlan[], req, cat, name);
   } else out = one(plan, req);
@@ -1085,6 +1124,37 @@ export function passageOptions(plan: ModulePlan, req: ModuleRequest, entry: Port
 export function normalPriority(p: PoseCriterion[] | undefined): PoseCriterion[] {
   const seen = [...new Set((p ?? []).filter((k) => POSE_CRITERIA.includes(k)))];
   return [...seen, ...POSE_CRITERIA.filter((k) => !seen.includes(k))];
+}
+
+/** Les demandes de `k` blocs, coupées entre deux lignes (à la même machine pour toutes les ressources à lignes) ; null : impossible. */
+function cutLines(req: ModuleRequest, k: number): ModuleRequest[] | null {
+  const parts = Object.entries(req.parts!);
+  const cutsOf = (v: number[]) => v.map((_, i) => v.slice(0, i + 1).reduce((t, n) => t + n, 0));
+  const common = cutsOf(parts[0]![1]).filter((c) => c < req.count && parts.every(([, v]) => cutsOf(v).includes(c)));
+  const cuts: number[] = [];
+  for (let i = 1; i < k; i++) {
+    const want = (req.count * i) / k;
+    const c = common.filter((q) => !cuts.includes(q) && q > (cuts.at(-1) ?? 0)).sort((a, b) => Math.abs(a - want) - Math.abs(b - want))[0];
+    if (c === undefined) return null;
+    cuts.push(c);
+  }
+  return [...cuts, req.count].map((end, j) => {
+    const start = cuts[j - 1] ?? 0;
+    const inside = (v: number[]) => {
+      let at = 0;
+      let first = -1;
+      const got: number[] = [];
+      v.forEach((n, i) => {
+        if (at >= start && at + n <= end) {
+          if (first < 0) first = i;
+          got.push(n);
+        }
+        at += n;
+      });
+      return { first, got };
+    };
+    return { ...scaleRequest(req, end - start), parts: Object.fromEntries(parts.map(([it, v]) => [it, inside(v).got])), lineBase: Object.fromEntries(parts.map(([it, v]) => [it, inside(v).first])) };
+  });
 }
 
 /** La même demande pour `n` machines (débits au prorata) : sert à comparer les dispositions vite. */
