@@ -54,8 +54,8 @@ import {
 import { ENERGY } from "../engine/resources.ts";
 import { t } from "../i18n/i18n.ts";
 import { PanZoom, type Box } from "./canvas.ts";
-import { arrangeGraph, GRID, NODE_W, snapGrid } from "./graph-layout.ts";
-import { routeEdges, type Route, type RouteIn } from "./graph-route.ts";
+import { arrangeGraph, arrangeVertical, GRID, NODE_W, snapGrid } from "./graph-layout.ts";
+import { routeEdges, routeVertical, type Route, type RouteIn } from "./graph-route.ts";
 import { icon } from "./icons.ts";
 import { openRecipePicker, type PickerCard, type PickerTab } from "./recipe-picker.ts";
 
@@ -95,6 +95,8 @@ export type GraphViewOptions = {
   data: GameData;
   world: () => GraphWorld;
   text: GraphViewText;
+  /** Téléphone debout (MB5) : le graphe se lit de haut en bas ; les positions enregistrées ne changent pas. */
+  vertical?: () => boolean;
   /** HTML ajouté dans l'en-tête du nœud (⚠ d'une valeur à vérifier…). */
   badge?: (id: NodeId) => string;
   /** Sélection d'un nœud (null : plus rien, ou plusieurs). */
@@ -173,6 +175,17 @@ export function edgePath(a: Pt, b: Pt, below: number): { d: string; lx: number; 
   return { d: `M${a.x} ${a.y}H${ax}V${below}H${bx}V${b.y}H${b.x}`, lx: (ax + bx) / 2, ly: below };
 }
 
+/** Le même tracé simple, de haut en bas (MB5). */
+function edgePathV(a: Pt, b: Pt, beside: number): { d: string; lx: number; ly: number } {
+  if (b.y - a.y >= 24) {
+    const my = Math.round((a.y + b.y) / 2);
+    return { d: `M${a.x} ${a.y}V${my}H${b.x}V${b.y}`, lx: (a.x + b.x) / 2, ly: my };
+  }
+  const ay = a.y + 16;
+  const by = b.y - 16;
+  return { d: `M${a.x} ${a.y}V${ay}H${beside}V${by}H${b.x}V${b.y}`, lx: beside, ly: (ay + by) / 2 };
+}
+
 /** Hauteur probable d'un nœud pas encore dessiné (place libre) : en-tête, puis une ligne par prise. */
 const guessHeight = (rows: number) => 70 + 31 * Math.max(1, rows);
 
@@ -238,6 +251,12 @@ export class GraphView {
   private extraHtml = "";
   /** Sélection faite au Ctrl + clic (outil Sélection) : pas de bulle, elle cacherait les voisins à ajouter. */
   private multiPick = false;
+  /** Vue de haut en bas (MB5) : places affichées, à part du document ; `vkey` : ce dont elles dépendent. */
+  private vertical = false;
+  private vpos = new Map<NodeId, Pt>();
+  private vkey = "";
+  /** Outil Relier, en vue de haut en bas : premier nœud touché. */
+  private linkFrom: NodeId | null = null;
 
   constructor(frame: HTMLElement, opts: GraphViewOptions) {
     this.frame = frame;
@@ -279,6 +298,17 @@ export class GraphView {
       // Vue de départ : tout le graphe s'il tient lisiblement ; sinon assez grand pour lire (START_ZOOM),
       // calé sur l'objectif (à droite) et centré en hauteur. « Tout voir » montre toujours tout.
       initialView: (fr, c) => {
+        if (this.vertical) {
+          // De haut en bas : assez grand pour lire, calé sur l'objectif, au-dessus de la barre d'outils.
+          const free = Math.max(1, fr.h - this.tray.offsetHeight - 8);
+          const k = Math.max(0.85, Math.min(1, fr.w / Math.max(1, c.w), free / Math.max(1, c.h)));
+          const w = fr.w / k;
+          const t = this.g?.nodes.find((n) => n.id === this.g?.target?.node);
+          const cx = t ? t.x + (this.geom.get(t.id)?.w ?? NODE_W) / 2 - this.contentBox().x : c.w / 2;
+          const x = c.w <= w ? (c.w - w) / 2 : Math.max(0, Math.min(cx - w / 2, c.w - w));
+          const y = c.h * k <= free ? (c.h - free / k) / 2 : c.h - free / k;
+          return { x, y, w, h: fr.h / k };
+        }
         const room = Math.max(1, fr.w - reserve);
         const fit = Math.min(1, room / Math.max(1, c.w), fr.h / Math.max(1, c.h));
         const k = Math.max(fit, START_ZOOM);
@@ -317,6 +347,7 @@ export class GraphView {
       else if (b.dataset.gfold) this.setCollapsed(b.dataset.gfold, true);
     });
     this.bindBubble();
+    window.addEventListener("resize", () => this.syncVertical());
     // La page défile (téléphone) : la partie du canevas cachée par l'en-tête change ; bulle et rappel suivent.
     let raf = 0;
     window.addEventListener(
@@ -359,7 +390,52 @@ export class GraphView {
   }
 
   get graph(): Graph | null {
-    return this.g;
+    return this.vertical ? (this.hist?.graph ?? null) : this.g;
+  }
+
+  /** Le document tel qu'il s'affiche : en vue de haut en bas, aux places de cette vue. */
+  private shown(g: Graph): Graph {
+    if (!this.vertical) return g;
+    return { ...g, nodes: g.nodes.map((n) => ({ ...n, ...(this.vpos.get(n.id) ?? { x: n.y, y: n.x }) })) };
+  }
+
+  /** Passage du téléphone debout à couché (ou ordinateur) : l'autre disposition, mêmes nœuds. */
+  private syncVertical(force = false): void {
+    const want = this.opts.vertical?.() ?? false;
+    if (want === this.vertical && !force) return;
+    this.vertical = want;
+    this.frame.classList.toggle("gv-v", want);
+    this.vkey = "";
+    this.routeKey = "";
+    this.routes = new Map();
+    this.linkFrom = null;
+    if (force || !this.hist || !this.visible()) return;
+    this.g = this.shown(this.hist.graph);
+    this.render(true);
+    this.home();
+  }
+
+  /** Range la vue de haut en bas, d'après les boîtes mesurées ; refait seulement si les nœuds ou les liaisons ont changé. */
+  private layVertical(): void {
+    const g = this.hist?.graph;
+    if (!g || !this.vertical) return;
+    const key = `${g.nodes.map((n) => n.id).join()}|${g.edges.map((e) => `${e.from}>${e.to}:${e.item}`).join()}|${[...this.owners].join()}`;
+    if (key === this.vkey) return;
+    this.vkey = key;
+    const moves = arrangeVertical(g, (k) => this.geom.get(k) ?? { w: 168, h: 60 }, (k, dir, item) => this.geom.get(k)?.[dir].get(item)?.x ?? null);
+    this.vpos = new Map(moves.map((m) => [m.id, { x: m.x, y: m.y }]));
+    this.g = this.shown(g);
+    for (const n of this.g.nodes) {
+      const el = this.nodeEls.get(n.id);
+      if (!el) continue;
+      el.style.transform = `translate(${n.x}px,${n.y}px)`;
+      this.boxHtml.set(n.id, "");
+    }
+    for (const [gid, el] of this.groupEls) {
+      const p = this.groupPos(gid);
+      el.style.transform = `translate(${p.x}px,${p.y}px)`;
+      this.boxHtml.set(`@${gid}`, "");
+    }
   }
 
   /** La bulle du nœud (la page y branche les réglages spéciaux qu'elle fournit par `extra`). */
@@ -382,6 +458,7 @@ export class GraphView {
    */
   show(host: HTMLElement, g: Graph, keepView: boolean, raw = false): void {
     this.raw = raw;
+    this.syncVertical(this.opts.vertical?.() !== this.vertical);
     if (this.worldEl.parentElement !== host) {
       host.replaceChildren(this.worldEl);
     }
@@ -393,7 +470,7 @@ export class GraphView {
       this.armed = null;
       this.edgeSel = null;
     }
-    this.g = g;
+    this.g = this.shown(g);
     this.texts();
     this.render(true);
     this.pz.attachWorld(this.worldEl, this.contentBox(), keepView);
@@ -445,8 +522,26 @@ export class GraphView {
    */
   arrange(fit = true, record = true): void {
     if (!this.g || !this.g.nodes.length) return;
-    const g = this.g;
-    const geom = this.geom;
+    // De haut en bas : « Aligner » range cette vue ; la disposition enregistrée (celle du PC) n'est calculée qu'au départ.
+    if (this.vertical && record) {
+      this.vkey = "";
+      this.routeKey = "";
+      this.slow = true;
+      this.render();
+      if (fit) this.fit();
+      else this.home();
+      return;
+    }
+    const g = this.vertical ? this.hist!.graph : this.g;
+    if (this.vertical) {
+      this.frame.classList.remove("gv-v");
+      this.measure();
+    }
+    const geom = new Map(this.geom);
+    if (this.vertical) {
+      this.frame.classList.add("gv-v");
+      this.measure();
+    }
     this.raw = false;
     this.routeKey = "";
     this.routes = new Map();
@@ -459,7 +554,7 @@ export class GraphView {
     else {
       const next = applyCommand(g, { type: "move", moves }, this.opts.data, this.opts.world());
       this.hist = new GraphHistory(next, this.opts.data, this.opts.world());
-      this.g = next;
+      this.g = this.shown(next);
       this.afterChange();
     }
     if (fit) this.fit();
@@ -484,13 +579,13 @@ export class GraphView {
   /** Annuler / rétablir (Ctrl Z / Ctrl Y, boutons de la barre). */
   undo(): void {
     if (!this.hist?.canUndo) return;
-    this.g = this.hist.undo();
+    this.g = this.shown(this.hist.undo());
     this.afterChange();
   }
 
   redo(): void {
     if (!this.hist?.canRedo) return;
-    this.g = this.hist.redo();
+    this.g = this.shown(this.hist.redo());
     this.afterChange();
   }
 
@@ -499,8 +594,16 @@ export class GraphView {
   /** Applique une commande (un pas d'annulation) ; un geste refusé ne change rien et rend faux. */
   private exec(cmd: GraphCommand | null, light = false): boolean {
     if (!cmd || !this.hist) return false;
+    // De haut en bas, déplacer un nœud ne change que cette vue.
+    if (this.vertical && cmd.type === "move") {
+      for (const m of cmd.moves) this.vpos.set(m.id, { x: m.x, y: m.y });
+      this.g = this.shown(this.hist.graph);
+      this.route();
+      this.pz.setContent(this.contentBox());
+      return true;
+    }
     try {
-      this.g = this.hist.apply(cmd);
+      this.g = this.shown(this.hist.apply(cmd));
     } catch (err) {
       if (err instanceof GraphError) return false;
       throw err;
@@ -520,7 +623,7 @@ export class GraphView {
       this.route();
       this.syncTray();
       this.pz.setContent(this.contentBox());
-      this.opts.onChange?.(g);
+      this.opts.onChange?.(this.graph ?? g);
       return;
     }
     const has = (id: NodeId) => g.nodes.some((n) => n.id === id);
@@ -534,7 +637,7 @@ export class GraphView {
     if (this.gsel && !liveGroups(g).some((x) => x.id === this.gsel)) this.gsel = null;
     this.render();
     this.pz.setContent(this.contentBox());
-    this.opts.onChange?.(g);
+    this.opts.onChange?.(this.graph ?? g);
   }
 
   // ------------------------------------------------------------ rendu
@@ -599,6 +702,7 @@ export class GraphView {
       this.groupEls = new Map(kids.filter((el) => el.dataset.group).map((el) => [el.dataset.group!, el]));
       this.measure();
     } else this.measure(changed);
+    this.layVertical();
     this.drawFrames();
     this.drawEdges();
     this.applySel();
@@ -847,7 +951,7 @@ export class GraphView {
         els.g.classList.toggle("short", short);
         els.text.textContent = label;
         els.title.textContent = `${this.opts.text.item(e.item)} : ${label}`;
-        els.rect.setAttribute("width", String(label.length * 6.6 + 10));
+        els.rect.setAttribute("width", String(label.length * (this.vertical ? 7.9 : 6.6) + 10));
       }
     }
     for (const [id, els] of this.edgeEls) {
@@ -920,7 +1024,7 @@ export class GraphView {
     const key = `${boxes.map((b) => `${b.x},${b.y},${b.w},${b.h}`).join(";")}|${list.map((r) => `${r.id},${r.a.x},${r.a.y},${r.b.x},${r.b.y},${r.lw}`).join(";")}`;
     if (key !== this.routeKey) {
       this.routeKey = key;
-      this.routes = routeEdges(boxes, list, this.routes, this.slow ? 2500 : 500);
+      this.routes = (this.vertical ? routeVertical : routeEdges)(boxes, list, this.routes, this.slow ? 2500 : 500);
       this.slow = false;
     } else if (!force) return;
     for (const r of list) {
@@ -954,7 +1058,7 @@ export class GraphView {
     const na = this.boxOf(e.from)!;
     const nbn = this.boxOf(e.to)!;
     const below = Math.max(na.y + na.h, nbn.y + nbn.h) + 24;
-    const p = edgePath(a, b, below);
+    const p = this.vertical ? edgePathV(a, b, Math.max(na.x + na.w, nbn.x + nbn.w) + 24) : edgePath(a, b, below);
     this.setPath(els, p.d, p.lx, p.ly);
   }
 
@@ -1081,6 +1185,7 @@ export class GraphView {
     // Une prise choisie (premier appui) : le rappel dit quoi toucher ensuite, avant celui de l'outil Relier.
     if (this.armed && (!src || src.mode === "link")) text = t(this.armed.side === "out" ? "gv.armed.out" : "gv.armed.in", { item: this.opts.text.item(this.armed.item) });
     else if (this.press?.kind === "node" && this.press.moved) text = t(this.freeDrag ? "gv.drag.free" : "gv.drag.grid");
+    else if (src && this.vertical) text = src.mode === "link" ? t("mob.link") : `${t(`gv.tool.${src.mode}`)} : ${t(`gv.does.${src.mode}`)}`;
     else if (src) text = `${t(src.from === "key" ? `gv.key.${src.mode}` : `gv.tool.${src.mode}`)} : ${t(`gv.does.${src.mode}`)}${src.from === "tool" ? ` · ${t("gv.esc")}` : ""}`;
     this.hintEl.hidden = !text;
     this.hintEl.textContent = text;
@@ -1206,15 +1311,18 @@ export class GraphView {
 
   /** Pose la recette choisie à une place libre (à gauche d'une entrée, à droite d'une sortie, au centre sinon). */
   private addRecipe(recipeId: string, port: PortRef | null): void {
-    const g = this.g!;
+    // Place dans le document (disposition du PC) ; la vue de haut en bas se range ensuite d'elle-même.
+    const g = this.vertical ? this.hist!.graph : this.g!;
     const { data } = this.opts;
     const world = this.opts.world();
     const p = recipePorts(data, recipeId, world);
     const size = { w: NODE_W, h: guessHeight(Math.max(p.ins.length, p.outs.length)) };
     let want: Pt;
-    const anchor = port ? this.boxOf(port.node) : null;
-    if (port && anchor) {
-      const py = (this.portAt(port.node, port.side === "in" ? "ins" : "outs", port.item)?.y ?? anchor.y + 40) - anchor.y;
+    const home = this.vertical && port ? g.nodes.find((n) => n.id === port.node) : undefined;
+    const anchor = home ? { x: home.x, y: home.y, w: NODE_W, h: 120 } : port ? this.boxOf(port.node) : null;
+    if (this.vertical && !anchor) want = { x: Math.max(0, ...g.nodes.map((n) => n.x)), y: Math.max(0, ...g.nodes.map((n) => n.y)) + 2 * GRID + 180 };
+    else if (port && anchor) {
+      const py = this.vertical ? 60 : (this.portAt(port.node, port.side === "in" ? "ins" : "outs", port.item)?.y ?? anchor.y + 40) - anchor.y;
       want = { x: port.side === "in" ? anchor.x - NODE_W - GAP_X : anchor.x + anchor.w + GAP_X, y: Math.round(anchor.y + py - 60) };
     } else {
       const v = this.pz.view();
@@ -1222,7 +1330,7 @@ export class GraphView {
     }
     // Place libre, sur la grille.
     want = { x: snapGrid(want.x), y: snapGrid(want.y) };
-    const at = freeSpot(g, want, size, (id) => this.geom.get(id) ?? { w: NODE_W, h: 120 }, 24, GRID);
+    const at = freeSpot(g, want, size, (id) => (this.vertical ? { w: NODE_W, h: 180 } : (this.geom.get(id) ?? { w: NODE_W, h: 120 })), 24, GRID);
     const { id, seq } = freshId(g, this.seq);
     const cmd = addRecipeCommand(data, recipeId, { id, at, world, ...(port && this.bal ? { from: { port, perMin: needAt(this.bal, port) } } : {}) });
     if (!this.exec(cmd)) return;
@@ -1641,6 +1749,14 @@ export class GraphView {
       this.opts.onSelect(this.selected);
       return;
     }
+    if (this.vertical) {
+      // Au doigt : Relier se fait de nœud à nœud ; une entrée sans source ouvre le choix d'une recette.
+      if (m === "link") return this.tapLink(id);
+      const pt = p.port ?? p.row;
+      const miss = pt && this.bal?.nodes.get(id)?.[pt.side === "in" ? "ins" : "outs"].find((x) => x.item === pt.item);
+      if (pt?.side === "in" && miss && miss.links === 0 && miss.perMin > EPS) return this.openPicker(pt);
+      return this.pick(id);
+    }
     // Prise touchée (ou, avec l'outil Relier, n'importe où sur sa ligne) : relier en deux appuis.
     const port = p.port ?? (m === "link" ? p.row : undefined);
     if (port) return this.tapPort(port);
@@ -1697,6 +1813,32 @@ export class GraphView {
     this.portEl(this.armed)?.classList.remove("arm");
     this.armed = null;
     this.syncHint();
+  }
+
+  /** De haut en bas : un appui choisit un nœud, le second le relie à lui, par les produits que l'un fait et que l'autre demande. */
+  private tapLink(id: NodeId): void {
+    const a = this.linkFrom;
+    this.nodeEls.get(a ?? "")?.classList.remove("arm");
+    if (!a || a === id) {
+      this.linkFrom = a ? null : id;
+      if (!a) this.nodeEls.get(id)?.classList.add("arm");
+      return;
+    }
+    this.linkFrom = null;
+    const bal = this.bal!;
+    const items = (from: NodeId, to: NodeId) => (bal.nodes.get(from)?.outs ?? []).map((x) => x.item).filter((it) => bal.nodes.get(to)?.ins.some((y) => y.item === it));
+    const way: [NodeId, NodeId] = items(a, id).length ? [a, id] : [id, a];
+    const cmds: GraphCommand[] = [];
+    for (const it of items(...way)) {
+      const r = linkCommand(this.g!, { node: way[0], item: it, side: "out" }, { node: way[1], item: it, side: "in" });
+      if (!("refused" in r)) cmds.push(r.cmd);
+    }
+    if (cmds.length) this.exec(cmds.length > 1 ? { type: "batch", commands: cmds } : cmds[0]!);
+    else {
+      const el = this.nodeEls.get(id);
+      el?.classList.add("no");
+      setTimeout(() => el?.classList.remove("no"), 400);
+    }
   }
 
   /** Au doigt : un appui choisit une prise, un appui sur une prise de l'autre côté relie. */

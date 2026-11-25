@@ -122,7 +122,7 @@ condition de bascule : c'est ce qui protège l'ordinateur et limite les conflits
 | **MB7** Bac à sable | Quatre outils, viseur, paysage | `sandbox-view.ts`, `sandbox.css` | MB3 |
 | **MB8** Recettes, Ma partie, Arbre | Listes, fiches en panneau, tableaux en lignes | `recipes-view.ts`, `research-*.ts` | MB3 |
 | **MB9** Reste | Contribuer, Méthodes, Propositions, remarque, partage du téléphone | `share-view.ts`, `buildings.ts`, `methods-view.ts` | MB3 |
-| **MB10** Tutoriel et parcours réel | Étapes propres au mobile (`tour.ts` réutilisé), parcours chronométrés, téléphone réel | `tour.ts`, catalogues | tous |
+| **MB10** Tutoriel mobile, **à refaire entièrement** (remarque du 2026-11-25 : « le format du tuto ne convient pas vraiment pour un usage sur mobile », ce n'est pas une retouche de textes) | Autre format, pas la bulle + projecteur + voile du PC ; maquette d'abord, deux formats au plus. Contenu : premier plan, puis une courte leçon par usage, lancée par « Y aller ». `tour.ts` reste celui du PC | nouveau `mobile-tour.ts`, catalogues | maquette validée, MB5 à MB9 |
 
 Indépendants : MB1 et MB2 tout de suite ; après MB3, MB5, MB7, MB8 et MB9 peuvent avancer séparément.
 MB4 et MB6 touchent tous deux `main.ts` : jamais en même temps.
@@ -199,8 +199,21 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
   écran, panneaux à crans (module, fiche), « Retour » ferme le panneau, élément touché gardé visible, rail en paysage,
   clavier (`visualViewport`), visite guidée raccordée. 893 tests ; 12 captures ordinateur identiques avant / après.
   Aucun débordement en 390, 360, 844, 768, 1024. Liste et Détails : depuis Bilan.
-- **Pas encore refaits** : disposition verticale du schéma (MB5), dessin de l'usine et étapes détaillées (MB6), bac à
-  sable en arbre (MB7), Recettes, Ma partie, Arbre (MB8), éditeur de bâtiments et Contribuer (MB9), textes de la visite
-  propres au mobile (« à droite », « Ctrl+K ») (MB10). Ces pages gardent leur contenu, posé dans le nouveau cadre.
+- **Pas encore refaits** : dessin de l'usine et étapes détaillées (MB6), bac à
+  sable en arbre (MB7), Recettes, Ma partie, Arbre (MB8), éditeur de bâtiments et Contribuer (MB9), tutoriel au
+  format mobile (MB10, maquette d'abord). Ces pages gardent leur contenu, posé dans le nouveau cadre.
 - Écart avec la maquette : le petit panneau « 82 machines » sous Usine et Schéma n'est pas repris (le dessin gagne la
   place, Bilan est à une touche) ; une entrée Arbre à la place de « Plus », dont le contenu est en bas du menu.
+- **MB5** (2026-11-25) : schéma de haut en bas quand l'écran est debout (`arrangeVertical`, `routeVertical` : la disposition et
+  le tracé du PC, couchés puis relevés), nœuds compacts, vue de départ à 85 % calée sur l'objectif. Positions enregistrées
+  inchangées (glisser un nœud ne déplace que cette vue) ; écran couché et ordinateur gardent la disposition du PC. Relier =
+  deux nœuds touchés ; une entrée sans source ouvre le choix d'une recette. Tests : nœuds et liaisons séparés sur gearbox,
+  crankshaft, electric-motor, tire. Deux liens d'une même sortie partagent leur départ, comme sur PC. Un nœud glissé à la
+  main peut en couvrir un autre (« Aligner » range). Limite : un plan large dépasse l'écran, on le déplace.
+
+### Pistes pour MB10 (à maquetter, rien de décidé)
+
+Ce qui ne va pas au téléphone : la bulle cache la cible (40 % de l'écran), le voile empêche d'essayer, huit étapes de suite,
+des textes longs, et un projecteur sur des éléments qui changent de place. Deux formats à comparer :
+A « cartes » (une leçon = trois écrans animés à balayer, hors de la page, puis « À toi ») ; B « coach » (une ligne en haut de
+l'écran, une seule consigne à la fois, la page reste libre, l'étape se valide par le geste réel).

@@ -182,3 +182,20 @@ body.mob .rs-frame { height: calc(100dvh - var(--m-top, 52px) - var(--m-bot) - 2
 @media (prefers-reduced-motion: reduce) { body.mob * { transition: none !important; } }
 
 body.mob #plan-insp :is(#flow-hud, #flow-calc) { padding-inline: 16px !important; }
+
+/* ------------------------------------------------------------ MB5 : schéma de haut en bas, nœuds compacts (le détail est dans la bulle) */
+body.mob .gv-v .gn { width: 168px; }
+body.mob .gv-v .gn-hd { padding: 8px 10px 0; } body.mob .gv-v .gn-hd b { font-size: 15px; } body.mob .gv-v .gn-n { font-size: 19px; }
+body.mob .gv-v .gn-m { padding: 2px 10px 8px; font-size: 14px; border-bottom: 0; } body.mob .gv-v .gn-m span + span { display: none; }
+body.mob .gv-v .gn-io { position: static; display: block; padding: 0; }
+body.mob .gv-v .gn-col { position: absolute; left: 0; right: 0; height: 0; display: flex; flex-direction: row; justify-content: space-evenly; gap: 0; }
+body.mob .gv-v .gn-col.i { top: 0; } body.mob .gv-v .gn-col.o { bottom: 0; }
+body.mob .gv-v .gn-col .gn-row { width: 14px; height: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: none; overflow: visible; }
+body.mob .gv-v .gn-row > span { display: none; }
+body.mob .gv-v .gn-col .gn-port { left: 0; right: auto; top: 0; margin-top: -7px; width: 14px; height: 14px; }
+body.mob .gv-v .gn-row.miss .gn-port { background: var(--gv-bad); } body.mob .gv-v .gn-row.part .gn-port { background: var(--gv-warn); }
+body.mob .gv-v .gn.arm { outline: 3px solid var(--cv-acc); outline-offset: 2px; } body.mob .gv-v .gn.no { outline: 3px solid var(--gv-bad); }
+body.mob .gv-v .ge-lab text { font-size: 13px; }
+/* Choix d'une recette : une fiche par ligne, à sa hauteur. */
+body.mob .gv-pick .gv-rc { flex: none; height: auto; min-height: 64px; overflow: visible; display: grid; grid-template-columns: 1fr; gap: 6px; justify-items: start; text-align: left; padding: 10px 16px; border-width: 0 0 1px; border-radius: 0; }
+body.mob .gv-pick .gv-rc .side { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; } body.mob .gv-pick .gv-rc .mid { order: -1; text-align: left; font-size: 14px; } body.mob .gv-pick .gv-rc .mid b { font-size: 16px; display: block; }

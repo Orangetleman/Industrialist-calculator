@@ -19,6 +19,9 @@ export type ArrangeSizes = {
   height: (key: string) => number;
   /** Hauteur d'une prise dans sa boîte ; à défaut, son milieu. */
   portY?: (key: string, dir: "ins" | "outs", item: string) => number | null;
+  /** Largeur d'une boîte (NODE_W à défaut) et couloir minimal entre deux colonnes : la version verticale (MB5). */
+  width?: (key: string) => number;
+  gap?: number;
 };
 
 type Ent = { id: string; real: boolean; h: number; y: number; col: number; prev: Link[]; next: Link[] };
@@ -50,6 +53,15 @@ function fitColumn(col: Ent[], want: number[]): void {
   });
   let i = 0;
   for (const b of blocks) for (let k = 0; k < b.n; k++, i++) col[i]!.y = b.sum / b.w + off[i]!;
+}
+
+/**
+ * La même disposition, de haut en bas (MB5, téléphone) : le plan est couché (x et y échangés), rangé, puis relevé.
+ * `portX` : place d'une prise le long du bord haut ou bas de sa boîte.
+ */
+export function arrangeVertical(g: Graph, size: (key: string) => { w: number; h: number }, portX: (key: string, dir: "ins" | "outs", item: string) => number | null): { id: NodeId; x: number; y: number }[] {
+  const lying: Graph = { ...g, nodes: g.nodes.map((n) => ({ ...n, x: n.y, y: n.x })) };
+  return arrangeGraph(lying, { height: (k) => size(k).w, width: (k) => size(k).h, portY: portX, gap: 56 }).map((m) => ({ id: m.id, x: m.y, y: m.x }));
 }
 
 /** Déplacements qui alignent tout le graphe. Un groupe replié compte pour une boîte : ses nœuds le suivent. */
@@ -251,7 +263,9 @@ export function arrangeGraph(g: Graph, sizes: ArrangeSizes): { id: NodeId; x: nu
   let x = 0;
   cols.forEach((_, c) => {
     colX.push(x);
-    x += Math.ceil((NODE_W + Math.max(GAP_X, 96 + LANE * gutters[c]!.size)) / GRID) * GRID;
+    const w = sizes.width ? Math.max(...cols[c]!.filter((e) => e.real).map((e) => sizes.width!(e.id)), 0) : NODE_W;
+    const gap = sizes.gap !== undefined ? sizes.gap + LANE * gutters[c]!.size : Math.max(GAP_X, 96 + LANE * gutters[c]!.size);
+    x += Math.ceil((w + gap) / GRID) * GRID;
   });
 
   // Coin d'un groupe replié = celui de ses nœuds : tous suivent du même écart.

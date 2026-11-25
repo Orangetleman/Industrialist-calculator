@@ -16,5 +16,6 @@ export const mobileFr = {
   "mob.methods": "Méthodes de calcul",
   "mob.about": "À propos et sources",
   "mob.pickgoal": "Choisir l'objectif",
+  "mob.link": "Relier : touche un nœud, puis celui à relier",
   "mob.card": "Fiche complète",
 } satisfies Record<string, Msg>;

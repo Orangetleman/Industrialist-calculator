@@ -1659,6 +1659,7 @@ function renderFlowCanvas(): void {
     onRecalc: () => void recalcGraph(),
     onFile: (b) => openGraphFileMenu(b),
     extra: (id) => graphExtra(id),
+    vertical: () => mobileOn() && innerHeight > innerWidth, // MB5 : téléphone ou tablette debout
   });
   bindGraphBubbleSettings(graphView.bubbleEl);
   // Les données, la langue et l'unité peuvent avoir changé depuis la création du canevas.

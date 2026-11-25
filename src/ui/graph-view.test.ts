@@ -12,8 +12,8 @@ import researchJson from "../../data/research.json";
 import { buildGameData, type RawFiles } from "../engine/data.ts";
 import { applyCommand, balanceGraph, planToGraph } from "../engine/graph/index.ts";
 import { solve } from "../engine/solve.ts";
-import { arrangeGraph, GRID, NODE_W, snapGrid } from "./graph-layout.ts";
-import { routeEdges, type RouteIn } from "./graph-route.ts";
+import { arrangeGraph, arrangeVertical, GRID, NODE_W, snapGrid } from "./graph-layout.ts";
+import { routeEdges, routeVertical, type RouteIn } from "./graph-route.ts";
 import { edgePath } from "./graph-view.ts";
 
 const files = { items: itemsJson, machines: machinesJson, recipes: recipesJson, research: researchJson, energy: energyJson, interfaces: interfacesJson, modular: modularJson } as unknown as RawFiles;
@@ -74,6 +74,49 @@ describe("Aligner", () => {
     }
     expect(back).toBeLessThan(g.edges.length / 5);
   });
+});
+
+describe("De haut en bas (MB5, téléphone)", () => {
+  for (const item of ["gearbox", "crankshaft", "electric-motor", "tire"])
+    it(`${item} : vers le bas, nœuds et liaisons séparés, positions enregistrées intactes`, () => {
+      const p = planToGraph(solve(data, { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 }, { item, ratePerMin: 60, tiers: false })).graph;
+      const before = JSON.stringify(p);
+      const bal = balanceGraph(p, data, world);
+      const W = 168;
+      const H = 62;
+      const portX = (id: string, dir: "ins" | "outs", it2: string) => {
+        const l = bal.nodes.get(id)![dir];
+        return Math.round((W * (l.findIndex((x) => x.item === it2) + 1)) / (l.length + 1));
+      };
+      const at = new Map(arrangeVertical(p, () => ({ w: W, h: H }), portX).map((m) => [m.id, m]));
+      expect(JSON.stringify(p)).toBe(before);
+      const box = (id: string) => ({ x: at.get(id)!.x, y: at.get(id)!.y, w: W, h: H });
+      const boxes = p.nodes.map((n) => box(n.id));
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const [a, b] = [boxes[i]!, boxes[j]!];
+          expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).toBe(false);
+        }
+      expect(Math.max(...boxes.map((b) => b.y))).toBe(at.get(p.target!.node)!.y);
+      const list: RouteIn[] = p.edges.map((e) => ({ id: e.id, a: { x: at.get(e.from)!.x + portX(e.from, "outs", e.item), y: at.get(e.from)!.y + H }, b: { x: at.get(e.to)!.x + portX(e.to, "ins", e.item), y: at.get(e.to)!.y }, ab: box(e.from), bb: box(e.to), from: `${e.from}:${e.item}`, to: `${e.to}:${e.item}`, lw: 70 }));
+      const routes = routeVertical(boxes, list, undefined, 20000);
+      const segs = list.flatMap((e) => {
+        const r = routes.get(e.id)!.pts;
+        expect([r[0], r.at(-1)]).toEqual([e.a, e.b]);
+        return r.slice(1).map((q, i) => ({ e, x0: Math.min(q.x, r[i]!.x), x1: Math.max(q.x, r[i]!.x), y0: Math.min(q.y, r[i]!.y), y1: Math.max(q.y, r[i]!.y) }));
+      });
+      const bad: string[] = [];
+      for (const s of segs) for (const b of boxes) if (s.x0 < b.x + b.w && s.x1 > b.x && s.y0 < b.y + b.h && s.y1 > b.y) bad.push(`${s.e.id} traverse un nœud`);
+      for (let i = 0; i < segs.length; i++)
+        for (let j = i + 1; j < segs.length; j++) {
+          const [a, b] = [segs[i]!, segs[j]!];
+          if (a.e.from === b.e.from || a.e.to === b.e.to) continue;
+          const v = a.x0 === a.x1 && b.x0 === b.x1 && Math.abs(a.x0 - b.x0) < 2 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0;
+          const h = a.y0 === a.y1 && b.y0 === b.y1 && Math.abs(a.y0 - b.y0) < 2 && Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0;
+          if (v || h) bad.push(`${a.e.id} sur ${b.e.id}`);
+        }
+      expect(bad).toEqual([]);
+    });
 });
 
 /** Boîtes et liaisons d'un graphe rangé, prises réparties sur la hauteur comme à l'écran. */

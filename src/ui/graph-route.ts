@@ -18,6 +18,8 @@ export type RouteIn = {
   to: string;
   /** Largeur de l'étiquette de débit. */
   lw: number;
+  /** Hauteur de l'étiquette (LABEL_H à défaut). */
+  lh?: number;
 };
 export type Route = { pts: Pt[]; d: string; lx: number; ly: number };
 
@@ -392,7 +394,8 @@ export function routeEdges(boxes: Box[], edges: RouteIn[], prev?: Map<string, Ro
     let at = cands[0]!;
     let bc = Infinity;
     for (const c of cands) {
-      const r = [c.x - e.lw / 2, c.y - LABEL_H / 2, c.x + e.lw / 2, c.y + LABEL_H / 2] as const;
+      const h = e.lh ?? LABEL_H;
+      const r = [c.x - e.lw / 2, c.y - h / 2, c.x + e.lw / 2, c.y + h / 2] as const;
       let cost = 0;
       G.each(...r, () => (cost += 100));
       L.each(...r, () => (cost += 50));
@@ -404,8 +407,22 @@ export function routeEdges(boxes: Box[], edges: RouteIn[], prev?: Map<string, Ro
       if (cost < bc) [bc, at] = [cost, c];
       if (!cost) break;
     }
-    L.add(item(at.x - e.lw / 2 - 2, at.y - LABEL_H / 2 - 1, at.x + e.lw / 2 + 2, at.y + LABEL_H / 2 + 1));
+    const lh = e.lh ?? LABEL_H;
+    L.add(item(at.x - e.lw / 2 - 2, at.y - lh / 2 - 1, at.x + e.lw / 2 + 2, at.y + lh / 2 + 1));
     out.set(e.id, { pts, d: pathOf(pts), lx: at.x, ly: at.y });
   }
   return out;
+}
+
+const turn = (p: Pt): Pt => ({ x: p.y, y: p.x });
+const turnBox = (b: Box): Box => ({ x: b.y, y: b.x, w: b.h, h: b.w });
+/** Liaisons de haut en bas (MB5, téléphone) : le même tracé, sur le plan couché (x et y échangés). `prev` et le résultat sont relevés. */
+export function routeVertical(boxes: Box[], edges: RouteIn[], prev?: Map<string, Route>, budgetMs = 600): Map<string, Route> {
+  const flip = (r: Route): Route => {
+    const pts = r.pts.map(turn);
+    return { pts, d: pathOf(pts), lx: r.ly, ly: r.lx };
+  };
+  const was = prev && new Map([...prev].map(([k, r]) => [k, flip(r)]));
+  const lying = edges.map((e) => ({ ...e, a: turn(e.a), b: turn(e.b), ab: turnBox(e.ab), bb: turnBox(e.bb), lw: e.lh ?? LABEL_H, lh: e.lw }));
+  return new Map([...routeEdges(boxes.map(turnBox), lying, was, budgetMs)].map(([k, r]) => [k, flip(r)]));
 }

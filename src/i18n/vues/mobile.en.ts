@@ -17,5 +17,6 @@ export const mobileEn: Record<keyof typeof mobileFr, Msg> = {
   "mob.methods": "How it calculates",
   "mob.about": "About and sources",
   "mob.pickgoal": "Choose the goal",
+  "mob.link": "Link: tap a node, then the one to link",
   "mob.card": "Full card",
 };
