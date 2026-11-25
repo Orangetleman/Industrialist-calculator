@@ -89,6 +89,7 @@ export const moteurEn: { [K in keyof typeof moteurFr]: Msg } = {
   "eng.fac.step.passages": "Passages between the machines (module {i} of {n})",
   "eng.fac.step.power": "Power grid",
   "eng.fac.step.done": "Done",
+  "eng.fac.overload": "Too much flow for one pipe: {item} from {from}, {r} per second (at most {cap})",
   "eng.fac.unrouted": "{item}: {from} → {to}",
   "eng.fac.evacUnrouted": "{item}: {from} → edge",
   "eng.fac.passages": "{list}{wider}",

@@ -226,6 +226,8 @@ export function layoutFromFactory(f: FactoryPlan, sb: SbCatalog, cat: Catalog, i
       b.piece(set ? set.pieces[role === "croisement" ? "droit" : role].id : null, x, y, [...o.links]);
     }
   }
+  // Overflow Gates (ports relevés, rotation du plan).
+  for (const g of f.gates ?? []) b.add({ id: g.id, x: g.x, y: g.y, r: g.rot });
   // Étapes collées : la liaison d'un bouton à l'autre, comme le joueur la règle en jeu.
   poles(f, b);
   const routes = [...(f.touches ?? []).map((t) => touchRoute(sb, b.list(), t)).filter((r): r is Route => !!r), ...b.routes()];

@@ -73,7 +73,7 @@ export function engineFilter(pm: PlanMachines): MachineFilter | null {
 }
 
 /** Réglages de la vue « Toute l'usine » : `full` recalculée (sinon module par module), `glue` liaisons collées (module par module). */
-export type UsineView = { full: boolean; glue: boolean; detail: boolean; power: boolean; plugs: boolean; links: boolean };
+export type UsineView = { full: boolean; glue: boolean; detail: boolean; power: boolean; plugs: boolean; links: boolean; /** Sans Overflow Gate (absent : permise). */ noGate?: boolean };
 
 export type Settings = {
   /** Objectif affiché : produire un objet, de l'énergie, des RP, ou de l'argent. */
@@ -251,6 +251,7 @@ export function cleanSettings(s: Partial<Settings>): Settings {
   out.posePriority = normalPriority(Array.isArray(out.posePriority) ? out.posePriority : undefined);
   const u = out.usine && typeof out.usine === "object" ? (out.usine as Partial<UsineView>) : {};
   out.usine = Object.fromEntries(Object.entries(DEFAULT_SETTINGS.usine).map(([k, v]) => [k, typeof u[k as keyof UsineView] === "boolean" ? u[k as keyof UsineView] : v])) as UsineView;
+  if (u.noGate === true) out.usine.noGate = true;
   if (!(out.money > 0)) out.money = DEFAULT_SETTINGS.money;
   if (out.maxPollution !== null && !(out.maxPollution >= 0)) out.maxPollution = null;
   out.selfPowered = out.selfPowered === true;

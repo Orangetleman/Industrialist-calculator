@@ -190,8 +190,13 @@ export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf:
   }
   for (const n of f.nets) {
     const tier = tierOf(n.item, n.perMin) ?? 3;
-    const tip = t("uf.net.tip", { item: name(n.item), r: fmt(n.perMin, 0), from: sub(n.from), to: n.to.map(sub).join(and()), cells: String(f.netCells[n.id] ?? 0), full: f.full ? t("uf.net.full") : "", tier: tier === 3 ? "III" : "I" });
-    s += `<g class="u-net" data-sel="n:${esc(n.id)}" data-item="${esc(n.item)}" data-tip="${esc(`${tip}\n${t("uf.net.click")}`)}"><path class="u-hit" d="${byNet.get(n.id) ?? ""}"/><path class="u-line" d="${byNet.get(n.id) ?? ""}" stroke="${color.get(n.item)}" stroke-width="${tier === 3 ? 4.6 : 2.6}"/></g>`;
+    const tip = t("uf.net.tip", { item: name(n.item), r: fmt(n.perMin, 0), from: [n.from, ...(n.more ?? [])].map(sub).join(and()), to: n.to.map(sub).join(and()), cells: String(f.netCells[n.id] ?? 0), full: f.full ? t("uf.net.full") : "", tier: tier === 3 ? "III" : "I" });
+    // Plusieurs tuyaux pour une ressource : des teintes différentes, pour suivre chaque flux.
+    const same = f.nets.filter((q) => q.item === n.item && q.cap !== undefined && q.from === n.from);
+    const shade = same.length > 1 ? same.indexOf(n) % 3 : 0;
+    const stroke = n.over ? "#ff3b3b" : shade === 1 ? `color-mix(in srgb, ${color.get(n.item)}, #fff 55%)` : shade === 2 ? `color-mix(in srgb, ${color.get(n.item)}, #000 45%)` : color.get(n.item);
+    const flow = n.cap ? `\n${t("uf.net.flow", { r: fmt(n.perMin / 60, 1), cap: fmt(n.cap, 0) })}${n.over ? ` — ${t("uf.net.over")}` : ""}` : "";
+    s += `<g class="u-net${n.over ? " over" : ""}" data-sel="n:${esc(n.id)}" data-item="${esc(n.item)}" data-tip="${esc(`${tip}${flow}\n${t("uf.net.click")}`)}"><path class="u-hit" d="${byNet.get(n.id) ?? ""}"/><path class="u-line" d="${byNet.get(n.id) ?? ""}" stroke="${stroke}" stroke-width="${tier === 3 ? 4.6 : 2.6}"/></g>`;
   }
   s += evacSvg(f, name, color);
   const netItem = (id: string) => name(f.nets.find((n) => n.id === id)?.item ?? f.evacs?.find((e) => e.id === id)?.item ?? "");
@@ -199,6 +204,10 @@ export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf:
     if (o.kind !== "tuyau" || !o.cross) continue;
     const [x, y] = k.split(",").map(Number) as [number, number];
     s += `<rect class="u-xing" x="${(x + 0.5) * C - 4}" y="${(y + 0.5) * C - 4}" width="8" height="8" rx="1.5" data-tip="${esc(t("uf.crossing", { a: netItem(o.net) || t("uf.manifold"), b: netItem(o.cross.net) || t("uf.manifold") }))}"/>`;
+  }
+  for (const g of f.gates ?? []) {
+    const item = f.nets.find((n) => n.id === g.net)?.item ?? "";
+    s += `<g class="u-gate" data-tip="${esc(t("uf.gate.tip", { gate: name(g.id), r: fmt(g.perSec, 1) }))}"><rect x="${g.x * C + 0.5}" y="${g.y * C + 0.5}" width="${g.w * C - 1}" height="${g.h * C - 1}" rx="2" fill="${color.get(item) ?? "#9aa7b4"}"/><text x="${(g.x + g.w / 2) * C}" y="${(g.y + g.h / 2) * C + 3}" font-size="8" text-anchor="middle">OG</text></g>`;
   }
   s += contacts(f, name, color);
   // Vecteurs des liaisons, par ressource : de 15 % à 85 % du trajet, pour qu'ils se suivent comme une chaîne.
@@ -317,6 +326,8 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
     : fit === "non"
       ? `<p class="mod-fit warn-text">${t("uf.plot.no", { w: String(plot.w), h: String(plot.h) })}</p>`
       : `<p class="mod-fit ok-text">${t("uf.plot.fits", { w: String(plot.w), h: String(plot.h), turned: fit === "tourné" ? t("uf.plot.turned") : "" })}</p>`;
+  const gatesText = (f.gates ?? []).length ? `<p class="mod-other">${esc(t("uf.gates", { n: String(f.gates.length), gate: name(f.gates[0]!.id) }))}</p>` : "";
+  const extrasText = (f.extras ?? []).length ? `<ul class="notices"><li>${esc(t("uf.extras", { list: f.extras.map((x) => t("uf.extra.one", { n: String(x.n), m: name(f.boxes.find((b) => b.key === x.key)?.machine ?? x.key), item: name(x.item) })).join(semi()) }))}</li></ul>` : "";
   const missing = incompleteMachines(f);
   const pipes = f.full ? t("uf.pipes.full", { n: fmt(st.allPipeCells, 0) }) : t("uf.pipes.mod", { a: fmt(st.pipeCells, 0), b: fmt(st.allPipeCells, 0) });
   const sum = t("uf.sum.html", {
@@ -335,7 +346,7 @@ export function renderFactoryInfo(f: FactoryPlan, name: Name, plot: Plot, tierOf
   const mode = f.full
     ? t("uf.mode.full", { pruned: st.pruned ? t("uf.pruned", { n: st.pruned }) : "" })
     : t("uf.mode.mod", { glue: glue ? t("uf.mode.glue", { none: f.glued.length ? "" : t("uf.mode.noGlue") }) : "" });
-  const head = `<p class="mod-sum">${sum}</p>${plotText}${unlinked(f, name, sub)}${st.overloaded ? `<ul class="notices"><li>${t("uf.overloaded", { n: String(st.overloaded) })}</li></ul>` : ""}${
+  const head = `<p class="mod-sum">${sum}</p>${plotText}${gatesText}${extrasText}${unlinked(f, name, sub)}${st.overloaded ? `<ul class="notices"><li>${t("uf.overloaded", { n: String(st.overloaded) })}</li></ul>` : ""}${
     missing.length ? `<p class="mod-other warn-text">${t("uf.incomplete", { n: missing.length })}</p>` : ""
   }<p class="mod-other">${mode}${t("uf.time", { s: fmt(ms / 1000, 1), cached: cached ? t("uf.cached") : "" })}</p>${
     f.cut ? `<p class="mod-other warn-text">${t("uf.cut", { s: fmt(ms / 1000, 0) })} <button type="button" class="small" data-usine="complete">${t("uf.cut.more")}</button></p>` : ""

@@ -312,6 +312,9 @@ describe("anciens codes .msch (lecture seule)", () => {
     const l = factoryLayout(planFor("gearbox", 120));
     const d = await designFromMschCode(await toCode({ name: "Gearbox", description: "", labels: [], width: 160, height: 110, layout: l }));
     await roundTrip(d);
-    expect(d.sandbox!.blocks.map(({ id, x, y, r }) => [id, x, y, r])).toEqual(l.blocks.map(({ id, x, y, r }) => [id, x, y, r]));
+    // Le .msch part de 0 : un relais posé hors du bord (x < 0) décale tout, à l'identique.
+    const dx = Math.min(0, ...l.blocks.map((b) => b.x));
+    const dy = Math.min(0, ...l.blocks.map((b) => b.y));
+    expect(d.sandbox!.blocks.map(({ id, x, y, r }) => [id, x, y, r])).toEqual(l.blocks.map(({ id, x, y, r }) => [id, x - dx, y - dy, r]));
   }, 180_000);
 });

@@ -132,7 +132,7 @@ export type FactoryArrow = FlowArrow & { item: string };
  * Vecteurs de toute l'usine : tuyaux entre modules et, en mode recalculé, collecteurs des modules (ils sont dans
  * la grille de l'usine) ; en mode module par module, ceux de chaque module, tourné et placé.
  */
-export function factoryFlows(f: Pick<FactoryPlan, "cells" | "nets" | "boxes" | "full">): FactoryArrow[] {
+export function factoryFlows(f: Pick<FactoryPlan, "cells" | "nets" | "boxes" | "full"> & Partial<Pick<FactoryPlan, "gates">>): FactoryArrow[] {
   const inter = new Map(f.nets.map((n) => [n.id, n]));
   const box = new Map(f.boxes.map((b) => [b.key, b]));
   // Collecteur d'un module dans la grille : « étape~réseau ».
@@ -144,8 +144,10 @@ export function factoryFlows(f: Pick<FactoryPlan, "cells" | "nets" | "boxes" | "
   const end = (net: string, x: number, y: number, d: Dir): FlowEnd => {
     const o = f.cells.get(`${x + STEP[d].x},${y + STEP[d].y}`);
     const owner = o?.kind === "bloc" ? o.owner : null;
+    // Overflow Gate : le tuyau d'entrée y finit, les autres en partent.
+    if (owner === "~gate") return f.gates?.some((g) => g.from.x === x && g.from.y === y) ? "puits" : "source";
     const n = inter.get(net);
-    if (n) return owner === n.from ? "source" : owner && n.to.includes(owner) ? "puits" : null;
+    if (n) return owner !== null && (owner === n.from || !!n.more?.includes(owner)) ? "source" : owner && n.to.includes(owner) ? "puits" : null;
     const m = modNet(net);
     return m ? byRole(m.role, !!owner) : null;
   };

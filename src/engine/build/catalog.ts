@@ -16,6 +16,8 @@ export type Catalog = {
   pipes: PipeSet[];
   /** Croisement d'une case (deux lignes qui se croisent sans se mélanger), par paire de types. */
   crossings: { objet: Piece | null; fluide: Piece | null; mixte: Piece | null };
+  /** Overflow Gate : sert d'abord sa sortie principale, le surplus part sur les côtés. */
+  gates: { objet: Piece | null; fluide: Piece | null };
   /** Portée en tuiles (unité du wiki) et en cases : relevé en jeu, une tuile = deux cases. */
   poles: { id: string; name: string; perNodeMFps: number; nodes: number; /** Capacité du poteau : la somme de ses nœuds (relevé du 2026-10-13 : on compte le poteau comme si tous ses nœuds étaient reliés). */ capacityMFps: number; rangeTiles: number; rangeCells: number; size: { w: number; h: number }; price: number | null }[];
   /** Hypothèses faites faute de donnée, à confirmer en jeu (affichées avec chaque plan). */
@@ -60,6 +62,7 @@ export function buildCatalog(logistics: LogisticsFile, power: PowerFile, poleRan
   return {
     pipes,
     crossings: { objet: piece("pipe-intersection"), fluide: piece("fluid-pipe-intersection"), mixte: piece("fluid-pipe-and-item-intersection") },
+    gates: { objet: piece("item-overflow-gate"), fluide: piece("overflow-gate") },
     poles,
     // Relevés de l'utilisateur (2026-10-13) : Junction = 3 voies, Section = 4 voies ; un croisement de
     // tier III se raccorde aux tuyaux de tier I ; un collecteur répartit les objets entre les machines.

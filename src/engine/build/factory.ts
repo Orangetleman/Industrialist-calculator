@@ -7,11 +7,12 @@
 
 import type { PortsEntry } from "../extension-types.ts";
 import type { Catalog } from "./catalog.ts";
-import { OPPOSITE, STEP, type Dir } from "./geometry.ts";
+import { OPPOSITE, place as placeBlock, STEP, type Dir, type Rot } from "./geometry.ts";
 import type { SbCatalog } from "../sandbox/catalog.ts";
 import { layoutFromModules, touchRoute } from "../schematic/convert.ts";
 import { allKnown, checkCatalog, checkLayout, feedsOf, runFor } from "./verify.ts";
 import { alternatives, designModule, passageOptions, passageText, redesign, requestFromStep, withoutNet, withPieces, type ModulePlan, type ModuleRequest, type Namer, type Passage, type PoseCriterion } from "./module.ts";
+import { planLines, type Chain } from "./lines.ts";
 import { Grid, route, type Occupant } from "./route.ts";
 import { msg, type Message } from "../message.ts";
 
@@ -83,6 +84,9 @@ export type FactoryInput = {
   /** Parcelle du joueur, en cases (sert au placement : on évite d'en sortir). */
   plot: { w: number; h: number };
   options?: FactoryOptions;
+  /** Ressources à plusieurs lignes, et l'Overflow Gate (ports relevés). */
+  lines?: ItemLines[];
+  gate?: { id: string; price: number | null; entry: PortsEntry } | null;
   /** S56 : catalogue du bac à sable, pour vérifier chaque module et chaque étape collée (sans lui, rien n'est vérifié). */
   sb?: SbCatalog | null;
 };
@@ -100,7 +104,11 @@ export type FactoryBox = { key: string; machine: string; label: string; sub: str
 export type FactoryPlug = Pt & { key: string; load: number };
 export type FactoryPole = Pt & { id: string; type: Pole; plugs: FactoryPlug[]; load: number; module?: string };
 export type FactoryCable = { from: Pt & { id: string }; to: FactoryPole; d: number; relays: number; relayType: Pole; load: number; lines: number; internal: boolean };
-export type FactoryNet = { id: string; item: string; perMin: number; from: string; to: string[] };
+export type FactoryNet = { id: string; item: string; perMin: number; from: string; to: string[]; /** Autres sources (fusion). */ more?: string[]; /** Débit du tuyau le plus rapide (par seconde), dépassé ou non. */ cap?: number; over?: boolean };
+/** Overflow Gate posée sur un tuyau : sa place, sa rotation, la case d'entrée, celle de sortie et celle du surplus. */
+export type FactoryGate = { id: string; net: string; x: number; y: number; w: number; h: number; rot: Rot; from: Pt; to: Pt; side: Pt; perSec: number };
+/** Ressource dont le débit dépasse un tuyau : ses lignes, de la sortie de chaque groupe de machines aux clients. */
+export type ItemLines = { item: string; from: string; kind: "objet" | "fluide"; cap: number; perSource: number; gate: boolean; chains: Chain[]; /** Machines ajoutées au module producteur. */ extra: number };
 /**
  * Passage du collecteur central gardé pour un module : le texte, les choix (ressource, rangée, machine) et si
  * le module en devient plus grand qu'avant (seulement avec l'option `widen`).
@@ -122,6 +130,9 @@ export type FactoryPlan = {
   glued: string[];
   /** S56 : liaisons collées machine contre machine (le port de sortie du fournisseur touche le client) : la case de contact. */
   touches: { from: string; to: string; item: string; x: number; y: number; dir: Dir }[];
+  /** Overflow Gates posées, et machines ajoutées faute de répartition possible (étape, nombre, ressource). */
+  gates: FactoryGate[];
+  extras: { key: string; n: number; item: string }[];
   /** Liaisons non tracées (« objet : fournisseur → client »). */
   problems: Message[];
   /** Tuyaux des produits à évacuer, jusqu'au bord de l'usine (S27). */
@@ -198,7 +209,7 @@ function asmTurns(w: number, h: number, ends: AsmEnd[]): { w: number; h: number;
 }
 
 /** Ce qu'il faut savoir d'une étape du plan (champs de `Step`). */
-type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: number; recipeId?: string };
+type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: number; recipeId?: string; machinesExact?: number };
 
 /**
  * Entrée de `designFactory` pour un plan : une étape par module (demande, relevé des ports, taille du wiki),
@@ -217,6 +228,8 @@ export function factoryInput(
     sb?: SbCatalog | null;
     /** Produits d'une recette dans l'ordre (ports de sortie, comme le bac à sable). */
     outOrder?: (recipe: string) => string[] | undefined;
+    /** Overflow Gate permise (débloquée, pas d'option contraire). */
+    gate?: boolean;
   },
   cat: Catalog,
   plot: { w: number; h: number },
@@ -225,10 +238,17 @@ export function factoryInput(
 ): FactoryInput {
   const names: Record<string, string> = {};
   const nm = (id: string) => (names[id] ??= look.name(id));
-  const steps = plan.steps.map((s): FactoryStep => {
+  const gateEntry = look.ports["overflow-gate"];
+  const gatePiece = cat.gates.fluide;
+  const gate = look.gate && gateEntry?.footprint && gatePiece ? { id: gatePiece.id, price: gatePiece.price, entry: gateEntry } : null;
+  const lines = itemLines(plan, look, cat, !!gate);
+  const steps = plan.steps.map((s0): FactoryStep => {
+    const extra = lines.filter((l) => l.from === s0.key).reduce((t, l) => t + l.extra, 0);
+    const s = extra ? { ...s0, machines: s0.machines + extra } : s0;
+    const parts = partsOf(s0.key, s.machines, lines);
     const m = look.machine(s.machine);
     const base = m ? requestFromStep(s, look.isFluid, m.cost, s.recipeId ? look.outOrder?.(s.recipeId) : undefined) : null;
-    const req = base ? { ...base, priority: pose.priority, ...(pose.tier3Only ? { tier3Only: true } : {}) } : null;
+    const req = base ? { ...base, priority: pose.priority, ...(pose.tier3Only ? { tier3Only: true } : {}), ...(parts ? { parts } : {}) } : null;
     for (const f of [...s.inputs, ...s.byproducts]) nm(f.item);
     const reserve = req ? null : (look.reserve?.(s.key) ?? null);
     return { key: s.key, machine: s.machine, label: reserve?.label ?? `${s.machineKind === "farm" ? "≈ " : ""}${s.machines} × ${nm(s.machine)}`, sub: nm(s.item), depth: s.depth, power: Math.max(0, s.energyAvg ?? 0), req, entry: look.ports[s.machine] ?? null, size: m?.size ?? null, ...(reserve ? { reserve } : {}) };
@@ -244,7 +264,59 @@ export function factoryInput(
       .filter(({ left }) => left > 1e-6)
       .map(({ b, left }): FactoryEvacReq => ({ from: s.key, item: b.item, perMin: left, ...(options.evacSides?.[b.item] ? { side: options.evacSides[b.item] } : {}) })),
   );
-  return { steps, edges, evac, names, cat, plot, options, ...(look.sb ? { sb: look.sb } : {}) };
+  return { steps, edges, evac, names, cat, plot, options, ...(lines.length ? { lines } : {}), ...(gate ? { gate } : {}), ...(look.sb ? { sb: look.sb } : {}) };
+}
+
+/** Ressources dont le débit dépasse un tuyau, une seule étape les produisant : la répartition en lignes. */
+function itemLines(plan: { steps: PlanStep[]; edges: FactoryEdge[] }, look: { isFluid: (item: string) => boolean; machine: (id: string) => unknown }, cat: Catalog, gateOk: boolean): ItemLines[] {
+  const out: ItemLines[] = [];
+  for (const item of [...new Set(plan.edges.map((e) => e.item))]) {
+    const es = plan.edges.filter((e) => e.item === item && e.from !== e.to);
+    const from = es[0]?.from;
+    const p = plan.steps.find((s) => s.key === from);
+    if (!p || es.some((e) => e.from !== from || e.loop) || p.machineKind === "farm" || p.parts || p.machines < 1 || !look.machine(p.machine)) continue;
+    const kind = look.isFluid(item) ? "fluide" : "objet";
+    const cap = Math.max(0, ...cat.pipes.filter((q) => q.kind === kind).map((q) => q.flowPerSec));
+    const total = (item === p.item ? p.demandPerMin : (p.byproducts.find((b) => b.item === item)?.perMin ?? 0)) / 60;
+    if (total <= cap + 1e-6) continue;
+    const clients = es.map((e) => {
+      const c = plan.steps.find((s) => s.key === e.to);
+      return c && c.machineKind !== "farm" && !c.parts && c.machines >= 1 ? { key: e.to, n: c.machines, p: e.perMin / 60 / c.machines } : null;
+    });
+    if (clients.some((c) => !c) || new Set(es.map((e) => e.to)).size !== es.length) continue;
+    const list = clients as { key: string; n: number; p: number }[];
+    const s = total / Math.max(1e-9, Math.min(p.machines, p.machinesExact ?? p.machines)); // une machine à fond
+    if (s > cap + 1e-6) continue;
+    const gate = gateOk && kind === "fluide";
+    // Le plus de machines par sortie d'abord (moins de tuyaux) ; sans machine de plus si possible.
+    let best: { r: NonNullable<ReturnType<typeof planLines>>; k: number } | null = null;
+    for (let k = Math.floor(cap / s + 1e-6); k >= 1; k--) {
+      const r = planLines(list, Math.ceil(p.machines / k), Math.min(cap, s * Math.max(1, Math.floor(p.machines / Math.ceil(p.machines / k)))), cap, gate);
+      if (!r) continue;
+      if (!best || r.extra < best.r.extra) best = { r, k };
+      if (!r.extra) break;
+    }
+    if (!best || (best.r.extra && best.k > 1)) continue;
+    const G = Math.ceil(p.machines / best.k);
+    out.push({ item, from: from!, kind, cap, perSource: s * Math.max(1, Math.floor(p.machines / G)), gate: best.r.gate, chains: best.r.chains, extra: best.r.extra });
+  }
+  return out;
+}
+
+/** Machines de chaque ligne d'une étape, par ressource. */
+function partsOf(key: string, machines: number, lines: ItemLines[]): Record<string, number[]> | null {
+  const out: Record<string, number[]> = {};
+  for (const l of lines) {
+    const all = l.chains.flat();
+    if (l.from === key) {
+      const n = all.filter((q) => q.source >= 0).length;
+      // Parts aussi égales que possible.
+      out[l.item] = Array.from({ length: n }, (_, i) => Math.floor(((i + 1) * machines) / n) - Math.floor((i * machines) / n));
+    }
+    const mine = all.filter((q) => q.client === key && q.machines);
+    if (mine.length) out[l.item] = mine.map((q) => q.machines);
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 type Box = FactoryBox & { /** Ensemble modulaire à bouts connus : sa taille et ses bouts, dans les 4 rotations. */ asm?: { w: number; h: number; ends: AsmEnd[] }[]; placed: boolean; variants: ModulePlan[]; req: ModuleRequest | null; entry: PortsEntry | null; size: { w: number; l: number } | null };
@@ -290,6 +362,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     netCells: {},
     glued: [],
     touches: [],
+    gates: [],
+    extras: [],
     problems: [],
     poleNodes: [],
     links: [],
@@ -547,7 +621,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     for (const b of order) {
       const placed = boxes.filter((o) => o.placed);
       const prods = producers(b.key);
-      if (glue && prods.length === 1 && edgesAll.filter((e) => e.from === prods[0]!.e.from).length === 1) {
+      if (glue && !(input.lines ?? []).some((l) => l.item === prods[0]?.e.item) && prods.length === 1 && edgesAll.filter((e) => e.from === prods[0]!.e.from).length === 1) {
         const { e, p } = prods[0]!;
         const t = p.placed ? touchOf(p, b, e.item) : null;
         if (t) {
@@ -858,11 +932,11 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   let firstEdges: string[] = []; // liaisons à tracer d'abord (celles qui ont échoué au tour précédent)
   let failedEdges: string[] = [];
   /** Cases du collecteur d'une ressource (coordonnées de l'usine), rebaptisées au nom de la liaison. */
-  const collector = (b: Box, item: string, role: "entrée" | "sortie", id: string): Set<string> => {
+  const collector = (b: Box, item: string, role: "entrée" | "sortie", id: string, line = 0): Set<string> => {
     const out = new Set<string>();
     const base = b.variants[0];
     if (!base) return out;
-    const n = base.nets.find((x) => x.role === role && x.item === item);
+    const n = base.nets.filter((x) => x.role === role && x.item === item)[line];
     if (!n) return out;
     let cells: Pt[] = [];
     if (n.via && n.end) cells = [{ x: n.end.x, y: n.end.y }];
@@ -891,6 +965,232 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     if (!o) grid.link(a, OPPOSITE[end.dir], id);
     return new Set([`${a.x},${a.y}`]);
   };
+  let through = false;
+  // ------------------------------------------------------------ lignes, fusions et Overflow Gates
+  const lineItems = new Map((input.lines ?? []).map((l) => [l.item, l]));
+  const lined = (item: string) => lineItems.has(item);
+  /** Liaison → réseau : plusieurs sources d'un même client (fusion) partagent un réseau, si un tuyau y suffit. */
+  const netIds = new Map<FactoryEdge, string>();
+  {
+    const up = new Map<string, string>();
+    const find = (k: string): string => (up.has(k) ? find(up.get(k)!) : k);
+    for (const e of edgesAll) {
+      const [a, b] = [find(`+${e.from}:${e.item}`), find(`-${e.to}:${e.item}`)];
+      if (a !== b) up.set(b, a);
+    }
+    const total = new Map<string, number>();
+    const first = new Map<string, string>();
+    for (const e of edgesAll) {
+      const r = find(`+${e.from}:${e.item}`);
+      total.set(r, (total.get(r) ?? 0) + e.perMin / 60);
+      if (!first.has(r)) first.set(r, `${e.from}:${e.item}`);
+    }
+    const kindOf = (item: string) => input.steps.flatMap((s) => [...(s.req?.inputs ?? []), ...(s.req?.outputs ?? [])]).find((f) => f.item === item)?.fluid;
+    for (const e of edgesAll) {
+      const r = find(`+${e.from}:${e.item}`);
+      const cap = Math.max(0, ...cat.pipes.filter((q) => q.kind === (kindOf(e.item) ? "fluide" : "objet")).map((q) => q.flowPerSec));
+      netIds.set(e, total.get(r)! <= cap + 1e-6 ? first.get(r)! : `${e.from}:${e.item}`);
+    }
+  }
+  const netIdOf = (e: FactoryEdge) => netIds.get(e) ?? `${e.from}:${e.item}`;
+  const evacNet = (key: string, item: string) => {
+    const e = edgesAll.find((q) => q.from === key && q.item === item);
+    return e ? netIdOf(e) : `${key}:${item}`;
+  };
+  /** Ce qui n'a pas pu être tracé au tour précédent, à tracer d'abord : liaisons, tuyaux de ligne. */
+  let early = new Set<string>();
+  let failedNow = new Set<string>();
+  let gates: FactoryGate[] = [];
+  const gatePorts = ([0, 1, 2, 3] as Rot[]).map((rot) => (input.gate ? placeBlock("g", input.gate.id, input.gate.entry, 0, 0, rot) : null));
+  /** Pose une Overflow Gate sur le tuyau droit `a` → `b` (cases voisines, le flux va de a vers b) ; rend les cases de surplus. */
+  const gateAt = (a: Pt, b: Pt): { g: NonNullable<(typeof gatePorts)[number]>; x: number; y: number; from: Pt; to: Pt; sides: { c: Pt; d: Dir }[] } | null => {
+    for (const g of gatePorts) {
+      if (!g || g.cells.length !== 2) continue;
+      const inP = g.ports.find((q) => q.direction === "entrée")!;
+      const outs = g.ports.filter((q) => q.direction === "sortie");
+      const main = outs.find((q) => !q.tip) ?? outs.find((q) => q.facing === OPPOSITE[inP.facing])!;
+      if (STEP[main.facing].x !== b.x - a.x || STEP[main.facing].y !== b.y - a.y) continue;
+      // La case d'entrée touche a.
+      const x = a.x - STEP[main.facing].x - inP.cell.x;
+      const y = a.y - STEP[main.facing].y - inP.cell.y;
+      const at = (c: Pt) => ({ x: c.x + x, y: c.y + y });
+      return { g, x: g.x + x, y: g.y + y, from: at(inP.cell), to: at(main.cell), sides: outs.filter((q) => q !== main).map((q) => ({ c: at(q.cell), d: q.facing })) };
+    }
+    return null;
+  };
+  /** Un tuyau par ligne, de sa sortie à son arrivée ; le surplus d'une ligne passe à la suivante (Overflow Gate, ou té). */
+  const chainRoutes = (bounds: Rect) => {
+    gates = [];
+    const ck = (c: Pt) => `${c.x},${c.y}`;
+    const pt = (k: string): Pt => {
+      const [x, y] = k.split(",").map(Number) as [number, number];
+      return { x, y };
+    };
+    const pipeAt = (k: string) => {
+      const o = grid.cells.get(k);
+      return o?.kind === "tuyau" ? o : null;
+    };
+    for (const l of lineItems.values()) {
+      const prod = byKey.get(l.from);
+      if (!prod?.mod) continue;
+      let nSrc = 0;
+      let nNet = 0;
+      const nIn = new Map<string, number>();
+      type P = { id: string; line: Chain[number]; src: number; dst: number; cells: string[]; outMax: number; mergeMax: number };
+      const chains = l.chains.map((ch) =>
+        ch.map((line): P => {
+          const dst = line.machines ? (nIn.get(line.client!) ?? 0) : -1;
+          if (line.machines) nIn.set(line.client!, dst + 1);
+          const id = nNet++ ? `${l.from}:${l.item}#${nNet}` : `${l.from}:${l.item}`;
+          return { id, line, src: line.source >= 0 ? nSrc++ : -1, dst, cells: [], outMax: -1, mergeMax: Infinity };
+        }),
+      );
+      const term = (b: Box, role: "entrée" | "sortie", line: number, id: string): { cells: Set<string>; d: Dir | null; at: Pt | null } => {
+        const n = b.mod!.nets.filter((q) => q.role === role && name(q.item) === name(l.item))[line];
+        // Sans bout (usine entière, module refait) : une prise sur le collecteur de la ligne.
+        if (!n?.end) return { cells: through ? collector(b, l.item, role, id, line) : new Set(), d: null, at: null };
+        const a = anchorAbs(b, n.end);
+        return { cells: new Set([ck(a)]), d: OPPOSITE[n.end.dir], at: a };
+      };
+      const fail = (p: P) => failedNow.add(p.id) && problems.push(msg("fac.unrouted", { item: name(l.item), from: l.from, to: p.line.client ?? l.from }));
+      const all = chains.flat();
+      const T = new Map<P, { s: ReturnType<typeof term> | null; d: ReturnType<typeof term> | null }>();
+      for (const p of all) {
+        const s = p.src >= 0 ? term(prod, "sortie", p.src, p.id) : null;
+        const d = p.dst >= 0 && byKey.get(p.line.client!)?.mod ? term(byKey.get(p.line.client!)!, "entrée", p.dst, p.id) : null;
+        T.set(p, { s, d });
+        if (s?.at) grid.reserve(s.at, p.id);
+        if (d?.at) grid.reserve(d.at, p.id);
+      }
+      for (const ch of chains)
+        ch.forEach((p, i) => {
+          // Moyenne qui passe : ce que la ligne sert, et ce que les suivantes attendent d'elle.
+          const later = ch.slice(i + 1).reduce((t, q) => t + q.line.demand - (q.src >= 0 ? l.perSource : 0), 0);
+          const load = p.line.demand + Math.max(0, later);
+          nets.push({ id: p.id, item: l.item, perMin: Math.min(l.cap, load) * 60, from: l.from, to: p.line.client && p.line.machines ? [p.line.client] : [], cap: l.cap });
+        });
+      // Le réseau `id`, limité aux cases `only` pendant `f` (le reste du réseau est caché).
+      const limited = <R,>(id: string, only: Set<string>, f: () => R): R => {
+        const hidden: { net: string }[] = [];
+        for (const [k, o] of grid.cells) {
+          if (o.kind !== "tuyau") continue;
+          if (o.net === id && !only.has(k)) (o.net = "~"), hidden.push(o);
+          if (o.cross?.net === id) (o.cross.net = "~"), hidden.push(o.cross);
+        }
+        const r = f();
+        for (const o of hidden) o.net = id;
+        return r;
+      };
+      const routeFrom = (p: P, t: NonNullable<ReturnType<typeof term>>, goal: Set<string>): string[] | null => {
+        if (!t.at) return through && t.cells.size && goal.size ? connect(p.id, t.cells, goal, bounds) : null;
+        const g0 = pt([...goal][0]!);
+        const trace: Pt[] = [];
+        return limited(p.id, goal, () => route(grid, p.id, t.at!, t.d!, bounds, (q) => (goal.size === 1 ? Math.abs(q.x - g0.x) + Math.abs(q.y - g0.y) : 0), trace)) ? trace.map(ck) : null;
+      };
+      // Tuyaux entiers d'abord : sortie et arrivée connues.
+      for (const p of [...[...early].flatMap((id) => all.filter((q) => q.id === id)), ...all.filter((q) => !early.has(q.id))]) {
+        const { s, d } = T.get(p)!;
+        if (!s || !d) continue;
+        if (s.at) grid.link(s.at, s.d!, p.id);
+        const way = s.cells.size ? routeFrom(p, d, s.cells) : null;
+        if (way) p.cells = [...way].reverse();
+        else fail(p);
+      }
+      const plain = (k: string) => {
+        const o = pipeAt(k);
+        return !!o && !o.cross && o.links.size < 4;
+      };
+      for (const ch of chains)
+        for (let i = 0; i < ch.length - 1; i++) {
+          const p = ch[i]!;
+          const q = ch[i + 1]!;
+          const tq = T.get(q)!;
+          // Où le surplus arrive : le tuyau suivant, avant sa propre Gate (les deux premiers tiers de son trajet).
+          const entry = new Set(q.cells.filter((k, n) => plain(k) && (i + 2 >= ch.length || n <= q.cells.length * 0.66)));
+          if (p.src >= 0 && p.dst < 0) {
+            // Sortie sans arrivée à elle : elle rejoint le tuyau suivant.
+            const ts = T.get(p)!.s!;
+            const renamed = [...entry].map((k) => pipeAt(k)!);
+            for (const o of renamed) o.net = p.id;
+            const way = entry.size ? routeFrom(p, ts, entry) : null;
+            for (const o of renamed) o.net = q.id;
+            if (!way) fail(p);
+            else {
+              p.cells = way;
+              const at = q.cells.indexOf(way.at(-1)!);
+              if (at >= 0) q.outMax = Math.max(q.outMax, at);
+            }
+            continue;
+          }
+          let ok = false;
+          // La Gate le plus près possible de l'arrivée, après tout apport.
+          for (let n = p.cells.length - 3, tries = 0; n >= Math.max(1, p.outMax + 1) && !ok && tries < 40; n--, tries++) {
+            const [k0, k1, k2, k3] = [p.cells[n - 1]!, p.cells[n]!, p.cells[n + 1]!, p.cells[n + 2]!];
+            const line = [k0, k1, k2, k3].map(pt);
+            const dx = line[1]!.x - line[0]!.x;
+            const dy = line[1]!.y - line[0]!.y;
+            if (line.some((c, m) => m && (c.x - line[m - 1]!.x !== dx || c.y - line[m - 1]!.y !== dy))) continue;
+            const o1 = pipeAt(k1);
+            const o2 = pipeAt(k2);
+            if (!o1 || !o2 || o1.cross || o2.cross || o1.links.size !== 2 || o2.links.size !== 2 || !plain(k0) || !plain(k3) || o1.net !== p.id) continue;
+            const g = l.gate ? gateAt(line[1]!, line[2]!) : null;
+            if (l.gate && (!g || ck(g.from) !== k0 || ck(g.to) !== k3)) continue;
+            const sides: { c: Pt; d: Dir }[] = g ? g.sides : (dx ? (["N", "S"] as Dir[]) : (["E", "W"] as Dir[])).map((d) => ({ c: { x: line[1]!.x + STEP[d].x, y: line[1]!.y + STEP[d].y }, d }));
+            for (const sd of sides) {
+              const sk = ck(sd.c);
+              const there = grid.cells.get(sk);
+              const keep = [grid.cells.get(k1)!, grid.cells.get(k2)!] as const;
+              if (g) for (const k of [k1, k2]) grid.cells.set(k, { kind: "bloc", owner: "~gate" });
+              else grid.link(line[1]!, sd.d, p.id);
+              const undo = () => {
+                if (g) {
+                  grid.cells.set(k1, keep[0]);
+                  grid.cells.set(k2, keep[1]);
+                } else o1.links.delete(sd.d);
+              };
+              const back = OPPOSITE[sd.d];
+              if (q.src < 0) {
+                // Ligne sans sortie : elle part d'ici.
+                if (there || !tq.d) {
+                  undo();
+                  continue;
+                }
+                grid.link(sd.c, back, q.id);
+                const way = routeFrom(q, tq.d, new Set([sk]));
+                if (!way) {
+                  grid.cells.delete(sk);
+                  undo();
+                  continue;
+                }
+                q.cells = [...new Set([sk, ...[...way].reverse()])];
+                ok = true;
+              } else if (entry.has(sk)) {
+                grid.link(sd.c, back, q.id);
+                q.outMax = Math.max(q.outMax, q.cells.indexOf(sk));
+                ok = true;
+              } else if (!there && entry.size) {
+                grid.reserve(sd.c, q.id);
+                const tr: Pt[] = [];
+                const goal = pt([...entry][0]!);
+                if (!limited(q.id, entry, () => route(grid, q.id, sd.c, back, bounds, () => 0 * goal.x, tr))) {
+                  grid.cells.delete(sk);
+                  undo();
+                  continue;
+                }
+                q.outMax = Math.max(q.outMax, q.cells.indexOf(ck(tr.at(-1)!)));
+                ok = true;
+              } else {
+                undo();
+                continue;
+              }
+              if (g) gates.push({ id: input.gate!.id, net: p.id, x: g.x, y: g.y, w: g.g.w, h: g.g.h, rot: g.g.rot, from: g.from, to: g.to, side: sd.c, perSec: Math.max(0, ch.slice(i + 1).reduce((t, r) => t + r.line.demand - (r.src >= 0 ? l.perSource : 0), 0)) });
+              break;
+            }
+          }
+          if (!ok) fail(q);
+        }
+    }
+  };
   const routeTaps = (edges0: FactoryEdge[], bounds: Rect) => {
     const k0 = (e: FactoryEdge) => `${e.from}>${e.to}:${e.item}`;
     const edges = [...edges0.filter((e) => firstEdges.includes(k0(e))), ...edges0.filter((e) => !firstEdges.includes(k0(e)))];
@@ -900,16 +1200,24 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     for (const b of boxes) for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) if (b.x + i < W && b.y + j < H) inside.cells[(b.y + j) * W + b.x + i] = 1;
     // Les cases devant les bouts des ensembles modulaires sont prises d'avance : aucun autre tuyau n'y passe.
     for (const e of edges) {
-      asmTap(byKey.get(e.from)!, e.item, "sortie", `${e.from}:${e.item}`);
-      asmTap(byKey.get(e.to)!, e.item, "entrée", `${e.from}:${e.item}`);
+      asmTap(byKey.get(e.from)!, e.item, "sortie", netIdOf(e));
+      asmTap(byKey.get(e.to)!, e.item, "entrée", netIdOf(e));
     }
     const exits = new Map<string, Set<string>>(); // liaison → cases où un nouveau client peut se brancher
-    for (const e of edges) {
-      const id = `${e.from}:${e.item}`;
+    const joined = new Set<string>();
+    for (const e of [...edges.filter((q) => firstEdges.includes(k0(q))), null, ...edges.filter((q) => !firstEdges.includes(k0(q)))]) {
+      // Les lignes passent après ce qui avait échoué, avant le reste.
+      if (!e) {
+        chainRoutes(bounds);
+        continue;
+      }
+      if (lined(e.item)) continue;
+      const id = netIdOf(e);
       if (!nets.some((n) => n.id === id)) nets.push({ id, item: e.item, perMin: 0, from: e.from, to: [] });
       const n = nets.find((x) => x.id === id)!;
       n.perMin += e.perMin;
-      n.to.push(e.to);
+      if (!n.to.includes(e.to)) n.to.push(e.to);
+      if (e.from !== n.from && !n.more?.includes(e.from)) n.more = [...(n.more ?? []), e.from];
       const p = byKey.get(e.from)!;
       const c = byKey.get(e.to)!;
       let target = exits.get(id);
@@ -928,6 +1236,19 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
           }
         }
       }
+      // Fusion : une autre source rejoint le réseau déjà tracé ; un client déjà relié ne l'est pas deux fois.
+      if (exits.has(id) && !joined.has(`${id}|${e.from}`)) {
+        const own = p.mod ? collector(p, e.item, "sortie", id) : asmTap(p, e.item, "sortie", id);
+        const way = own.size ? connect(id, own, exits.get(id)!, bounds) : null;
+        if (way) for (const k of way) exits.get(id)!.add(k);
+        else {
+          problems.push(msg("fac.unrouted", { item: name(e.item), from: e.from, to: e.to }));
+          failedEdges.push(k0(e));
+          continue;
+        }
+      }
+      joined.add(`${id}|${e.from}`);
+      if (joined.has(`${id}>${e.to}`)) continue;
       const from = c.mod ? collector(c, e.item, "entrée", id) : asmTap(c, e.item, "entrée", id);
       const path = from.size && target.size ? connect(id, from, target, bounds) : null;
       if (!path) {
@@ -936,6 +1257,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
         continue;
       }
       tapLog.push(`${name(e.item)} ${e.from}->${e.to} : ${path.length} cases ajoutées ; écart des collecteurs ${rectGap(collRect(p, e.item, "sortie"), collRect(c, e.item, "entrée"))}`);
+      joined.add(`${id}>${e.to}`);
       // Les clients suivants se branchent sur le tuyau sorti du module, jamais sur le collecteur.
       if (!exits.has(id)) exits.set(id, new Set(path));
       else for (const k of path) exits.get(id)!.add(k);
@@ -943,11 +1265,11 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   };
   // `through` (usine entière) : les tuyaux entre modules peuvent passer entre les machines d'un module et
   // croiser ses collecteurs à angle droit ; sinon, ils contournent chaque module entier.
-  let through = false;
   const routeBetweenOnce = () => {
     grid = new Grid();
     nets = [];
     problems = [];
+    gates = [];
     for (const b of boxes) {
       if (!through || !b.mod) {
         for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) grid.block({ x: b.x + i, y: b.y + j }, b.key);
@@ -968,19 +1290,27 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     const bounds = { x0: 0, y0: 0, x1: W - 1, y1: H - 1 };
     const edges = edgesAll.filter((e) => !glued.includes(`${e.from}>${e.to}`));
     if (through) return routeTaps(edges, bounds);
-    for (const e of edges) {
+    const reserveOut = (e: FactoryEdge, id: string) => {
       const p = byKey.get(e.from)!;
-      const c = byKey.get(e.to)!;
-      const id = `${e.from}:${e.item}`;
       const out = endOf(p, e.item, "sortie");
+      return { c: out ? anchorAbs(p, out) : { x: p.x + p.w, y: p.y + Math.floor(p.h / 2) }, d: out ? OPPOSITE[out.dir] : ("W" as Dir), id };
+    };
+    for (const e of edges) {
+      if (lined(e.item)) continue;
+      const c = byKey.get(e.to)!;
+      const id = netIdOf(e);
       const inn = endOf(c, e.item, "entrée");
-      const a = out ? anchorAbs(p, out) : { x: p.x + p.w, y: p.y + Math.floor(p.h / 2) };
-      if (!nets.some((n) => n.id === id)) {
-        grid.link(a, out ? OPPOSITE[out.dir] : "W", id);
-        nets.push({ id, item: e.item, perMin: 0, from: e.from, to: [] });
+      const a = reserveOut(e, id);
+      let n = nets.find((x) => x.id === id);
+      if (!n) {
+        grid.link(a.c, a.d, id);
+        nets.push((n = { id, item: e.item, perMin: 0, from: e.from, to: [] }));
+      } else if (e.from !== n.from && !n.more?.includes(e.from)) {
+        grid.reserve(a.c, id);
+        n.more = [...(n.more ?? []), e.from];
       }
-      const n = nets.find((x) => x.id === id)!;
       n.perMin += e.perMin;
+      if (n.to.includes(e.to)) continue;
       n.to.push(e.to);
       grid.reserve(inn ? anchorAbs(c, inn) : { x: c.x - 1, y: c.y + Math.floor(c.h / 2) }, id);
     }
@@ -990,21 +1320,59 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       const end = b ? endOf(b, ev.item, "sortie") : null;
       if (!b || !end) continue;
       const a = anchorAbs(b, end);
-      if (!grid.cells.has(`${a.x},${a.y}`)) grid.link(a, OPPOSITE[end.dir], `${b.key}:${ev.item}`);
+      if (!grid.cells.has(`${a.x},${a.y}`)) grid.link(a, OPPOSITE[end.dir], evacNet(b.key, ev.item));
     }
-    for (const e of edges) {
+    const linked = new Set<string>();
+    const k0 = (e: FactoryEdge) => `${e.from}>${e.to}:${e.item}`;
+    for (const e of [...edges.filter((q) => early.has(k0(q))), null, ...edges.filter((q) => !early.has(k0(q)))]) {
+      if (!e) {
+        chainRoutes(bounds);
+        continue;
+      }
+      if (lined(e.item)) continue;
       const p = byKey.get(e.from)!;
       const c = byKey.get(e.to)!;
-      const id = `${e.from}:${e.item}`;
+      const id = netIdOf(e);
+      const n = nets.find((x) => x.id === id)!;
+      const h = (t: Pt) => (q: Pt) => Math.abs(q.x - t.x) + Math.abs(q.y - t.y);
+      const fail = () => failedNow.add(k0(e)) && problems.push(msg("fac.unrouted", { item: name(e.item), from: e.from, to: e.to }));
       const inn = endOf(c, e.item, "entrée");
       const start = inn ? anchorAbs(c, inn) : { x: c.x - 1, y: c.y + Math.floor(c.h / 2) };
-      const target = { x: p.x + p.w, y: p.y + p.h / 2 };
-      if (!route(grid, id, start, inn ? OPPOSITE[inn.dir] : "E", bounds, (q) => Math.abs(q.x - target.x) + Math.abs(q.y - target.y))) problems.push(msg("fac.unrouted", { item: name(e.item), from: e.from, to: e.to }));
+      const base = byKey.get(n.from)!;
+      if (!linked.has(`${id}>${e.to}`)) {
+        linked.add(`${id}>${e.to}`);
+        if (!route(grid, id, start, inn ? OPPOSITE[inn.dir] : "E", bounds, h({ x: base.x + base.w, y: base.y + base.h / 2 }))) fail();
+      }
+      // Fusion : les autres sources rejoignent le même réseau.
+      if (e.from !== n.from && !linked.has(`${id}|${e.from}`)) {
+        linked.add(`${id}|${e.from}`);
+        const a = reserveOut(e, id);
+        if (!route(grid, id, a.c, a.d, bounds, h({ x: base.x + base.w, y: base.y + base.h / 2 }))) fail();
+      }
     }
   };
   const routeBetween = (): void => {
     if (through) {
       firstEdges = [];
+      early = new Set();
+      if (input.lines?.length) {
+        // Avec des lignes : on essaie plusieurs ordres (ce qui a échoué d'abord) et on garde le meilleur.
+        let best: { n: number; first: string[]; early: Set<string> } | null = null;
+        for (let k = 0; k < 8; k++) {
+          failedNow = new Set();
+          routeBetweenOnce();
+          if (!best || problems.length < best.n) best = { n: problems.length, first: [...firstEdges], early: new Set(early) };
+          if (!problems.length) return;
+          const first = [...failedEdges, ...firstEdges.filter((x) => !failedEdges.includes(x))];
+          const next = new Set([...failedNow, ...early]);
+          if (first.join() === firstEdges.join() && [...next].join() === [...early].join()) break;
+          [firstEdges, early] = [first, next];
+        }
+        [firstEdges, early] = [best!.first, best!.early];
+        failedNow = new Set();
+        routeBetweenOnce();
+        return;
+      }
       for (let k = 0; k < 4; k++) {
         routeBetweenOnce();
         if (!failedEdges.length) return;
@@ -1015,10 +1383,36 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       }
       return;
     }
-    routeBetweenOnce();
+    early = new Set();
+    for (let k = 0; ; k++) {
+      failedNow = new Set();
+      routeBetweenOnce();
+      // Avec des lignes : ce qui a échoué est tracé d'abord au tour suivant (4 tours au plus).
+      if (!input.lines?.length || !failedNow.size || k >= 3 || [...failedNow].every((x) => early.has(x))) return;
+      early = new Set([...early, ...failedNow]);
+    }
+  };
+  let M0 = 2; // marge autour des modules ; plus large quand des lignes doivent faire le tour
+  /** Retire la marge que rien n'utilise. */
+  const crop = () => {
+    const used = [...grid.cells].filter(([, o]) => o.kind === "tuyau").map(([k]) => k.split(",").map(Number) as [number, number]);
+    const x0 = Math.min(...boxes.map((b) => b.x - 2), ...used.map((c) => c[0]));
+    const y0 = Math.min(...boxes.map((b) => b.y - 2), ...used.map((c) => c[1]));
+    const x1 = Math.max(...boxes.map((b) => b.x + b.w + 2), ...used.map((c) => c[0] + 1));
+    const y1 = Math.max(...boxes.map((b) => b.y + b.h + 2), ...used.map((c) => c[1] + 1));
+    [W, H] = [x1 - x0, y1 - y0];
+    for (const b of boxes) [b.x, b.y] = [b.x - x0, b.y - y0];
+    for (const g of gates) for (const c of [g, g.from, g.to, g.side]) [c.x, c.y] = [c.x - x0, c.y - y0];
+    for (const t of touchAt) [t.x, t.y] = [t.x - x0, t.y - y0];
+    const moved = [...grid.cells].map(([k, o]) => {
+      const [x, y] = k.split(",").map(Number) as [number, number];
+      return [`${x - x0},${y - y0}`, o] as const;
+    });
+    grid.cells.clear();
+    for (const [k, o] of moved) grid.cells.set(k as `${number},${number}`, o);
   };
   const margin = () => {
-    const M = 2;
+    const M = M0;
     const minX = Math.min(...boxes.map((b) => b.x));
     const minY = Math.min(...boxes.map((b) => b.y));
     for (const b of boxes) [b.x, b.y] = [b.x + M - minX, b.y + M - minY];
@@ -1030,6 +1424,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     CLRused = CLR;
     margin();
     routeBetween();
+    if (M0 > 2) crop();
     const fits = (W <= PLOT.w && H <= PLOT.h) || (H <= PLOT.w && W <= PLOT.h);
     return { area: W * H, long: Math.max(W, H) / Math.max(1, Math.min(W, H)), pipes: [...grid.cells.values()].filter((o) => o.kind === "tuyau").length, fits, problems: problems.length };
   };
@@ -1038,11 +1433,21 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   const tries: { area: number; long: number; pipes: number; fits: boolean; problems: number; CLR: number; wDist: number; bySize: boolean }[] = [];
   const settings: [number, number, boolean][] = [];
   for (const CLR of [1, 2, 3]) for (const wDist of [3, 8, 15, 30]) for (const bySize of [false, true]) settings.push([CLR, wDist, bySize]);
+  // Avec des lignes : elles font le tour des modules (marge retirée si elle ne sert pas), les écarts larges d'abord ;
+  // on s'arrête au premier groupe d'essais entièrement raccordé.
+  const lineCount = (input.lines ?? []).reduce((t, l) => t + l.chains.flat().length, 0);
+  const wide = lineCount > 0;
+  if (wide) {
+    settings.length = 0;
+    for (const [CLR, wDist, bySize] of [[3, 15, false], [4, 3, true], [3, 3, true], [2, 15, false], [4, 15, false], [4, 8, false], [6, 3, true], [6, 8, false], [6, 15, false], [8, 15, true], [8, 3, true], [8, 8, false]] as [number, number, boolean][]) settings.push([CLR, wDist, bySize]);
+    M0 = 2 + Math.min(12, lineCount);
+  }
   const share = full ? 0.3 : 0.9;
   for (const [i, [CLR, wDist, bySize]] of settings.entries()) {
     if (i > 0 && late()) break;
     progress((share * i) / settings.length, msg("fac.step.place", { i: i + 1, n: settings.length }));
     tries.push({ ...attempt(CLR, wDist, bySize), CLR, wDist, bySize });
+    if (wide && i % 4 === 3 && tries.some((t) => !t.problems)) break;
   }
   // Une case de tuyau compte comme 10 cases de surface : un peu plus de place plutôt que des détours.
   // D'abord ceux qui sont entièrement raccordés, puis ceux qui tiennent sur la parcelle.
@@ -1232,7 +1637,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       if (!b.mod || !b.req) continue;
       const base = b.variants[0]!;
       if (base.folds > 1) continue;
-      const ends = Object.fromEntries(base.nets.map((n) => [n.item, "milieu" as const]));
+      // Les lignes gardent leur bout : il faut sortir de plusieurs collecteurs côte à côte.
+      const ends = Object.fromEntries(base.nets.filter((n) => !lined(n.item)).map((n) => [n.item, "milieu" as const]));
       const r = safe(() => redesign(base, { ...b.req!, ends }, b.entry, b.size, cat, name), null);
       if (!r || r.width !== base.width || r.height !== base.height) continue;
       setVariant(b, r);
@@ -1267,7 +1673,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     const alts = new Map<string, ModulePlan[]>();
     for (const b of boxes) {
       if (!b.mod || !b.req || b.variants[0]!.folds > 1) continue;
-      const ends = Object.fromEntries(b.variants[0]!.nets.map((n) => [n.item, "milieu" as const]));
+      const ends = Object.fromEntries(b.variants[0]!.nets.filter((n) => !lined(n.item)).map((n) => [n.item, "milieu" as const]));
       alts.set(b.key, [b.variants[0]!, ...safe(() => alternatives(b.variants[0]!, { ...b.req!, ends }, b.entry, b.size, cat, name), [])]);
     }
     const chooseAlts = () => {
@@ -1401,7 +1807,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       if (late()) break;
       progress(0.8 + (0.15 * i) / doubles.length, msg("fac.step.passages", { i: i + 1, n: doubles.length }));
       const req = b.req!;
-      const ends = Object.fromEntries(b.variants[0]!.nets.map((n) => [n.item, "milieu" as const]));
+      const ends = Object.fromEntries(b.variants[0]!.nets.filter((n) => !lined(n.item)).map((n) => [n.item, "milieu" as const]));
       const size = { w: b.variants[0]!.width, h: b.variants[0]!.height };
       const keep = { variants: b.variants, mod: b.mod, w: b.w, h: b.h };
       const label = (os: Opt[], wider: boolean) => msg("fac.passages", { list: { join: os.map((o) => passageText(o.passage, req.count, name(o.item))), by: "point-virgule" }, wider: wider ? msg("fac.wider") : undefined });
@@ -1446,6 +1852,31 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     }
     routeBetween();
   }
+  // Lignes sans passage : de la place tout autour, puis entre les modules (on écarte ce qui est à droite ou au-dessous).
+  if (full && lineCount && problems.length) {
+    const keep = boxes.map((b) => ({ b, x: b.x, y: b.y }));
+    let best: { n: number; M: number; k: number } = { n: problems.length, M: M0, k: 0 };
+    const spread = (M: number, k: number) => {
+      const xs = [...new Set(keep.map((q) => q.x))].sort((p, q) => p - q);
+      const ys = [...new Set(keep.map((q) => q.y))].sort((p, q) => p - q);
+      // Un cran de plus à chaque module entièrement à gauche (ou au-dessus).
+      for (const q of keep) {
+        q.b.x = q.x + k * keep.filter((o) => o.x + o.b.w <= q.x).map((o) => xs.indexOf(o.x)).filter((v, i, l) => l.indexOf(v) === i).length;
+        q.b.y = q.y + k * keep.filter((o) => o.y + o.b.h <= q.y).map((o) => ys.indexOf(o.y)).filter((v, i, l) => l.indexOf(v) === i).length;
+      }
+      M0 = M;
+      margin();
+      routeBetween();
+    };
+    for (const [M, k] of [[10, 0], [14, 0], [10, 1], [14, 2]] as [number, number][]) {
+      if (late()) break;
+      spread(M, k);
+      if (problems.length < best.n) best = { n: problems.length, M, k };
+      if (!problems.length) break;
+    }
+    if (problems.length !== best.n) spread(best.M, best.k);
+    crop();
+  }
   // Appendices : une fois la disposition finale choisie, les bouts de tuyau qui ne mènent nulle part (bouts des
   // collecteurs recalculés, raccords d'origine des modules remplacés par la prise unique) sont retirés, pièce par
   // pièce depuis le bout ; un té qui perd une branche devient un tuyau droit ou un coude.
@@ -1475,12 +1906,12 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
         })
         .sort((p, q) => Math.min(p.x, W - 1 - p.x, p.y, H - 1 - p.y) - Math.min(q.x, W - 1 - q.x, q.y, H - 1 - q.y));
     if (through) {
-      for (const id of [`${b.key}~${n.id}`, `${b.key}:${ev.item}`]) {
+      for (const id of [`${b.key}~${n.id}`, evacNet(b.key, ev.item)]) {
         const own = cellsOf(id);
         if (own.length) options.push({ id, t: own[0]! });
       }
     } else if (n.end) {
-      const id = `${b.key}:${ev.item}`;
+      const id = evacNet(b.key, ev.item);
       const a = anchorAbs(b, n.end);
       const o = grid.cells.get(`${a.x},${a.y}`);
       if (!o) grid.link(a, OPPOSITE[n.end.dir], id);
@@ -1515,6 +1946,15 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     const cells = [...joined, ...[...grid.cells.keys()].filter((k) => !before.has(k))];
     const fallback = options[0]?.t ?? { x: b.x, y: b.y };
     evacs.push({ ...ev, id: done?.id ?? options[0]?.id ?? `${b.key}:${ev.item}`, side: done?.side ?? ev.side ?? "droite", at: done?.at ?? fallback, cells, ok: !!done });
+  }
+  // Un réseau qui demande plus que le tuyau le plus rapide est signalé, jamais caché.
+  for (const n of nets) {
+    const fluid = input.steps.flatMap((q) => [...(q.req?.inputs ?? []), ...(q.req?.outputs ?? [])]).find((f) => f.item === n.item)?.fluid;
+    n.cap ??= Math.max(0, ...cat.pipes.filter((q) => q.kind === (fluid ? "fluide" : "objet")).map((q) => q.flowPerSec));
+    if (n.perMin / 60 > n.cap + 1e-6) {
+      n.over = true;
+      problems.push(msg("fac.overload", { item: name(n.item), from: n.from, r: Math.round(n.perMin / 6) / 10, cap: n.cap }));
+    }
   }
   progress(0.95, msg("fac.step.power"));
   const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
@@ -1705,6 +2145,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     boxes: boxes.map((b) => ({ key: b.key, machine: b.machine, label: b.label, sub: b.sub, x: b.x, y: b.y, w: b.w, h: b.h, rot: b.rot, col: b.col, mod: b.mod, power: b.power, ...(b.assembly ? { assembly: true } : {}) })),
     cells: grid.cells,
     nets,
+    gates,
+    extras: (input.lines ?? []).filter((l) => l.extra).map((l) => ({ key: l.from, n: l.extra, item: l.item })),
     netCells,
     glued,
     touches: touchAt.map((t) => ({ ...t, x: byKey.get(t.from)!.x + t.x, y: byKey.get(t.from)!.y + t.y })),
@@ -1726,7 +2168,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       upgraded,
       overloaded: links.filter((l) => l.lines > 1).length,
       polesCost: poleNodes.reduce((s, p) => s + price(p.type), 0) + links.reduce((s, l) => s + l.relays * price(l.relayType), 0),
-      modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0) + input.steps.reduce((t, s) => t + (byKey.get(s.key)?.mod ? 0 : (s.reserve?.pipesCost ?? 0)), 0),
+      modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0) + input.steps.reduce((t, s) => t + (byKey.get(s.key)?.mod ? 0 : (s.reserve?.pipesCost ?? 0)), 0) + gates.length * (input.gate?.price ?? 0),
       keptPoles,
       newPoles,
       pruned,

@@ -3082,6 +3082,7 @@ function renderPose(): void {
   $("pose-mods").innerHTML = "";
   $("pose-more-usine").innerHTML = "";
   input("pose-tier3").checked = settings.tier3Only;
+  input("pose-nogate").checked = !!settings.usine.noGate;
   renderPriority();
   // Priorités et tuyaux de tier III : seulement pour les modules et l'usine (rien à départager dans un ensemble).
   const curAsm = poseStep !== USINE && asms.some((s) => s.key === poseStep);
@@ -3252,10 +3253,16 @@ function showPoseSvg(f: { svg: string; width: number; height: number }, k: strin
   applySel($("pose-frame"), poseSel, "pose-pick");
 }
 
+/** Overflow Gate permise : recherche débloquée et option « Sans Overflow Gate » décochée. */
+function gateOk(): boolean {
+  const n = data.nodes.get("liquid-overflow-gate");
+  return !settings.usine.noGate && !!n && (n.isRoot || !!n.startUnlocked || prog.unlocked.includes(n.id));
+}
+
 /** Clé du calcul de toute l'usine : il est refait quand l'un de ces réglages change. */
 function factoryKey(v = settings.usine): string {
   const plot = plotOf(player);
-  return `${signature}|${settings.tier3Only}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${JSON.stringify(evacNow())}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
+  return `${signature}|${settings.tier3Only}|${gateOk()}|${settings.posePriority.join(",")}|${currentPorts().sig}|${plot ? `${plot.w}x${plot.h}` : ""}|${JSON.stringify(evacNow())}|${v.full ? "full" : v.glue ? "glue" : "mod"}`;
 }
 /** Bords choisis pour les produits à évacuer de ce plan (S27). */
 const evacNow = () => settings.evacSides[planKey(settings.goal, settings.item) ?? ""] ?? {};
@@ -3342,6 +3349,7 @@ function factoryInputNow(complete = false): FactoryInput {
       },
       sb: sandboxCatalog(),
       outOrder,
+      gate: gateOk(),
     },
     CATALOG,
     plot,
@@ -4940,6 +4948,12 @@ function bindPlan(): void {
   bindPrioList($("pose-priority"), () => settings.posePriority, setPriority);
   $("pose-tier3").addEventListener("change", (e) => {
     settings.tier3Only = (e.target as HTMLInputElement).checked;
+    saveSettings(settings);
+    renderPose();
+  });
+  $("pose-nogate").addEventListener("change", (e) => {
+    const { noGate: _, ...usine } = settings.usine;
+    settings.usine = (e.target as HTMLInputElement).checked ? { ...usine, noGate: true } : usine;
     saveSettings(settings);
     renderPose();
   });
