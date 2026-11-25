@@ -48,7 +48,7 @@ export const moteurFr = {
   "eng.mod.plugFar": "Machine {m} : prise à plus de {r} cases de la file de poteaux.",
   "eng.mod.filesFar": "Les deux files de poteaux sont à {d} cases l'une de l'autre, plus que la portée ({r}) : relie-les par un poteau sur le côté du module.",
   "eng.mod.noLayout": "Aucune disposition trouvée.",
-  "eng.mod.rejected": "Le bac à sable rejette cette disposition : {why}.",
+  "eng.mod.rejected": "Disposition à corriger avant de poser, notre simulateur la refuse : {why}.",
   "eng.mod.why.short": "la machine n° {m} ne reçoit pas assez de {item}",
   "eng.mod.why.mixed": "un contact mélange {items}",
   "eng.mod.why.recipe": "la machine n° {m} ne trouve pas sa recette",

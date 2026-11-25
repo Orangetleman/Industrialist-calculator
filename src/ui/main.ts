@@ -53,6 +53,7 @@ import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } 
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtMF, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { icon, iconAt, withIcons } from "./icons.ts";
+import { craftableItems } from "../engine/craftable.ts";
 import { createItemPalette, itemTile, type PalItem } from "./item-palette.ts";
 import { applyStatic } from "../i18n/dom.ts";
 import { joinList, KEY_LANG, lang, setLang, startLang, t, type Key, type Lang } from "../i18n/i18n.ts";
@@ -1295,7 +1296,14 @@ const blankPrompt = (g: Goal): string => (g === "recherche" ? "" : t(`plan.blank
 
 /** Objets de la palette (S61) : nom du jeu et vignette du wiki ou du joueur. */
 const palItems = (): PalItem[] =>
-  [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name)).map((it) => ({ id: it.id, name: it.name, pic: pictureOf("objet", it.id)?.src ?? null }));
+  [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name)).map((it) => ({ id: it.id, name: it.name, pic: pictureOf("objet", it.id)?.src ?? null, ...(craftable().has(it.id) ? {} : { note: t("pal.noRecipe") }) }));
+/** Objets qu'au moins une recette complète (durée et quantités connues) fabrique ; les autres portent un avertissement. */
+let craftCache: { data: GameData; ids: Set<string> } | null = null;
+function craftable(): Set<string> {
+  const pd = planData();
+  if (craftCache?.data !== pd) craftCache = { data: pd, ids: craftableItems(pd) };
+  return craftCache.ids;
+}
 const itemPal = createItemPalette({
   items: palItems,
   current: () => settings.item,
@@ -1367,6 +1375,12 @@ function syncForm(): void {
   input("unverified").checked = settings.useUnverified;
 }
 
+/** Explication d'un objectif impossible ; sans recette connue, ce n'est pas la progression du joueur qui manque. */
+function noPlanAnswer(v: ViewCtx): string {
+  const html = renderAnswer(v);
+  if (v.goal !== "objet" || craftable().has(settings.item)) return html;
+  return html.replace(/<h2>[^]*?<\/h2>/, () => `<h2>${esc(t("noplan.noRecipe", { item: itemName(settings.item) }))}</h2>`);
+}
 function renderPlanPage(): void {
   const v = viewCtx();
   const goal = settings.goal;
@@ -1428,6 +1442,11 @@ function renderPlanPage(): void {
   const blank = isBlank(goal);
   const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
   $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(blankPrompt(goal))}</p>` : renderAnswer(v);
+  // Rien à produire (aucune recette utilisable, tout verrouillé…) : le pourquoi au milieu de la page, pas une page vide.
+  const impossible = !noResult && goal !== "recherche" && v.plan.status === "impossible" && !v.plan.steps.length;
+  $("no-plan").hidden = !impossible;
+  $("no-plan").innerHTML = impossible ? `${icon("warn")}${noPlanAnswer(v)}<p><button type="button" class="primary" data-no-plan-pick>${esc(t("noplan.pick"))}</button></p>` : "";
+  $("no-plan").classList.toggle("nopick", goal !== "objet");
   renderIoPane();
   const fixBar = $("fix-bar");
   fixBar.innerHTML = blank ? "" : renderFixBar(v);
@@ -1438,10 +1457,10 @@ function renderPlanPage(): void {
   planBar.innerHTML = noResult ? "" : renderPlanBar(v, planBarInput(adv));
   planBar.hidden = noResult;
   if (openWarn) planBar.querySelector<HTMLDetailsElement>(".pb-warn")?.setAttribute("open", "");
-  $("rtabs-result").hidden = noResult;
+  $("rtabs-result").hidden = noResult || impossible;
   if (!noResult) syncGraphDoc(v.plan);
   renderGraphBar();
-  if (noResult) {
+  if (noResult || impossible) {
     // Rien à poser : les étapes du plan précédent (design quitté) ne restent pas dans le rail.
     railSteps = [];
     renderStepRail();
@@ -1758,6 +1777,8 @@ function graphGoalLabel(g: Graph): string | null {
 }
 
 /** Bandeau au-dessus du résultat : plan tiré du graphe, graphe à recalculer, ou objectif changé. */
+/** Bandeau réduit par le joueur : reste réduit tant que sa situation ne change pas (« à recalculer », objectif changé…). */
+let graphBarFolded: string | null = null;
 function renderGraphBar(): void {
   const bar = $("graph-bar");
   const ge = gedit;
@@ -1782,7 +1803,12 @@ function renderGraphBar(): void {
       html = `<p>${esc(t("gbar.solved"))}</p><span class="gbar-b">${b('data-gbar="back"', t("gbar.back"))}</span>`;
     }
   }
-  bar.className = `gbar${cls ? ` ${cls}` : ""}`;
+  const state = cls || "solved";
+  if (graphBarFolded !== null && graphBarFolded !== state) graphBarFolded = null;
+  const folded = !!html && graphBarFolded !== null;
+  if (folded) html = `<button type="button" class="gbar-open" data-gbar-fold="0" aria-expanded="false">${icon(cls ? "warn" : "info")} ${esc(t(`gbar.short.${state}` as Key))} ${icon("chevR")}</button>`;
+  else if (html) html += `<button type="button" class="icon-btn gbar-x" data-gbar-fold="${state}" title="${esc(t("gbar.fold"))}" aria-label="${esc(t("gbar.fold"))}">${icon("close")}</button>`;
+  bar.className = `gbar${cls ? ` ${cls}` : ""}${folded ? " folded" : ""}`;
   bar.innerHTML = html;
   bar.hidden = !html;
   graphView?.setStale(cls === "due");
@@ -3511,12 +3537,16 @@ function followBubble(key: string): void {
     if (box && host.width) {
       const r = box.getBoundingClientRect();
       w0 ||= r.width || 1;
-      const sc = Math.max(0.75, Math.min(1.6, r.width / w0));
+      // Jamais sous les onglets ni sous le bandeau du graphe (son ✕ y disparaissait), ni plus haute que le plan.
+      const bar = $("graph-bar");
+      const top = Math.max(48, bar.hidden ? 0 : bar.getBoundingClientRect().bottom - host.top + 8);
+      const room = (host.height - top - 8) / Math.max(1, panel.offsetHeight);
+      const sc = Math.max(0.6, Math.min(1.6, Math.max(0.75, r.width / w0), room));
       const pw = panel.offsetWidth * sc, ph = panel.offsetHeight * sc;
       let x = r.left - host.left, y = r.bottom - host.top + 10;
       if (y + ph > host.height) y = r.top - host.top - ph - 10; // pas la place dessous : au-dessus
       x = Math.max(6, Math.min(x, host.width - pw - 6));
-      y = Math.max(48, Math.min(y, host.height - ph - 6)); // sous le groupe d'onglets posé sur le plan
+      y = Math.max(top, Math.min(y, host.height - ph - 6));
       panel.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) scale(${sc.toFixed(3)})`;
     }
     bubbleRaf = requestAnimationFrame(tick);
@@ -4852,6 +4882,9 @@ function bindPlan(): void {
     } else return false;
     return true;
   };
+  $("no-plan").addEventListener("click", (e) => {
+    if ((e.target as Element).closest("[data-no-plan-pick]")) itemPal.open();
+  });
   $("cat-cut").addEventListener("click", () => {
     startFactory(true);
     poseStep = USINE;
@@ -4932,6 +4965,13 @@ function bindPlan(): void {
   bindRails();
   // Bandeau du graphe édité (G4).
   $("graph-bar").addEventListener("click", (e) => {
+    const fold = (e.target as Element).closest<HTMLElement>("[data-gbar-fold]");
+    if (fold) {
+      graphBarFolded = fold.dataset.gbarFold === "0" ? null : fold.dataset.gbarFold!;
+      renderGraphBar();
+      $("graph-bar").querySelector<HTMLElement>("[data-gbar-fold]")?.focus();
+      return;
+    }
     const a = (e.target as Element).closest<HTMLElement>("[data-gbar]")?.dataset.gbar;
     if (a === "recalc") void recalcGraph();
     else if (a === "rate") void recalcGraph(settings.rate);
