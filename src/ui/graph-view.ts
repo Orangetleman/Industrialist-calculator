@@ -572,7 +572,8 @@ export class GraphView {
    */
   private render(full = false): void {
     const g = this.g!;
-    this.bal = balanceGraph(g, this.opts.data, this.opts.world());
+    const world = this.opts.world();
+    this.bal = balanceGraph(g, this.opts.data, world);
     this.owners = collapsedOwners(g);
     const boxes: [string, string][] = [];
     if (full) this.nodeCache.clear();
@@ -581,7 +582,7 @@ export class GraphView {
       const nb = this.bal.nodes.get(n.id)!;
       const badge = this.opts.badge?.(n.id) ?? "";
       const key = [
-        n.recipeId, n.machines, wholeOf(n, this.opts.world()), n.x, n.y, n.fixed ? 1 : 0, g.target?.node === n.id ? 1 : 0, badge, nb.energyMFps, nb.pollutionPerHour,
+        n.recipeId, n.machines, nb.machinesWhole, n.x, n.y, n.fixed ? 1 : 0, g.target?.node === n.id ? 1 : 0, badge, nb.energyMFps, nb.pollutionPerHour,
         nb.ins.map((p) => `${p.item}:${p.perMin}:${p.flow}:${p.links}`).join(","),
         nb.outs.map((p) => `${p.item}:${p.perMin}`).join(","),
       ].join("|");
