@@ -8,6 +8,7 @@
 // et s'exportent au format de data/ports.json.
 
 import type { GameData } from "../engine/data.ts";
+import { mobileOn } from "./mobile-shell.ts";
 import type { InterfaceKind, InterfaceSetting, MachineInterface, Port, PortsEntry, PortsFile } from "../engine/extension-types.ts";
 import { checkInterface, type Interfaces } from "../engine/interfaces.ts";
 import {
@@ -63,7 +64,7 @@ import {
   toggleFaceBlock,
   type Tool,
 } from "./buildings-model.ts";
-import { PanZoom } from "./canvas.ts";
+import { PanZoom, pinchStep } from "./canvas.ts";
 import { loadLocalInterfaces, loadLocalModular, loadLocalSurveys, saveLocalInterfaces, saveLocalModular, saveLocalSurveys } from "./surveys.ts";
 import { ic } from "./bac-icons.ts";
 import { lecture } from "./profile-store.ts";
@@ -151,6 +152,8 @@ export function initBuildings(
   const dirByTool: Record<PortTool, Port["direction"]> = { objet: "entrée", fluide: "entrée", énergie: "entrée", logique: "entrée" };
   /** Mode « Bulle » : un clic sur une case vide ouvre une bulle (type et sens choisis dedans). */
   let poseBubble = loadPose();
+  /** Au doigt (MB9), toujours la bulle, montrée en panneau : on touche une case, puis on choisit. */
+  const posing = () => poseBubble || mobileOn();
   /** Sens proposé dans la bulle d'une case vide (le dernier choisi). */
   let bubbleDir: Port["direction"] = "entrée";
   let bubble: Bubble = null;
@@ -495,7 +498,7 @@ export function initBuildings(
     const pose = `<span class="bld-sep"></span><span class="bld-dirlabel">${t("bld.pose")}</span><span class="seg" role="radiogroup" aria-label="${esc(t("bld.pose.aria"))}">
       <button type="button" role="radio" data-posemode="outils" aria-checked="${!poseBubble}" title="${esc(t("bld.pose.tools.title"))}">${t("bld.pose.tools")}</button>
       <button type="button" role="radio" data-posemode="bulle" aria-checked="${poseBubble}" title="${esc(t("bld.pose.bubble.title"))}">${t("bld.pose.bubble")}</button></span>`;
-    if (poseBubble) {
+    if (posing()) {
       $("#bld-tools").innerHTML = pose;
       return;
     }
@@ -1028,7 +1031,7 @@ export function initBuildings(
             : t("bld.help.corner1")
           : mode === "capture"
             ? t("bld.help.capture")
-            : poseBubble
+            : posing()
               ? t("bld.help.bubble")
               : t("bld.help.tools"),
       ),
@@ -1087,8 +1090,15 @@ export function initBuildings(
   }
 
   // ---------------------------------------------------------------- capture : glisser, molette, clavier
+  /** Doigts posés sur la capture : deux doigts l'agrandissent (MB9). */
+  const capTouch = new Map<number, { x: number; y: number }>();
   let bgDrag: { id: number; x: number; y: number; start: BgPlacement } | null = null;
   frame.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "touch" && mode === "capture") {
+      if (e.isPrimary) capTouch.clear();
+      capTouch.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (capTouch.size > 1) return void (bgDrag = null);
+    }
     if (mode !== "capture" || !bg || e.button !== 0 || (e.target as Element).closest("button")) return;
     bgDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, start: { x: bg.x, y: bg.y, scale: bg.scale } };
     frame.setPointerCapture(e.pointerId);
@@ -1097,6 +1107,20 @@ export function initBuildings(
   });
   frame.addEventListener("pointermove", (e) => {
     if (bubble && e.buttons) placeBubble(); // la bulle suit la grille qu'on fait glisser
+    const was = capTouch.get(e.pointerId);
+    if (was && bg && capTouch.size > 1) {
+      const other = [...capTouch].find(([i]) => i !== e.pointerId)![1];
+      const now = { x: e.clientX, y: e.clientY };
+      capTouch.set(e.pointerId, now);
+      const s = pinchStep(was, other, now, other);
+      const at = toGrid(s.from.x, s.from.y);
+      if (!at) return;
+      Object.assign(bg, scaleAround(bg, s.factor, at[0], at[1]));
+      const k = pz.unitsPerPixel() / CELL;
+      bg.x += s.dx * k;
+      bg.y += s.dy * k;
+      return moveBg();
+    }
     if (!bgDrag || !bg || e.pointerId !== bgDrag.id) return;
     const u = pz.unitsPerPixel() / CELL;
     bg.x = bgDrag.start.x + (e.clientX - bgDrag.x) * u;
@@ -1104,6 +1128,7 @@ export function initBuildings(
     moveBg();
   });
   const endDrag = (e: PointerEvent) => {
+    capTouch.delete(e.pointerId);
     if (!bgDrag || e.pointerId !== bgDrag.id) return;
     bgDrag = null;
     frame.classList.remove("dragging");
@@ -1533,7 +1558,7 @@ export function initBuildings(
     const portEl = target.closest<SVGGElement>("[data-port]");
     if (portEl) {
       const i = Number(portEl.dataset.port);
-      if (tool === "gomme" && !poseBubble) {
+      if (tool === "gomme" && !posing()) {
         entry.ports.splice(i, 1);
         bubble = null;
       } else bubble = bubble?.kind === "port" && bubble.index === i ? null : { kind: "port", index: i };
@@ -1543,7 +1568,7 @@ export function initBuildings(
     const gy = Math.floor(pt[1] / CELL);
     const inBody = gx >= 1 && gx <= w && gy >= 1 && gy <= h;
     let place: Place | null = null;
-    if (poseBubble) {
+    if (posing()) {
       if (inBody) {
         const p = bodyPoint(w, h, pt[0], pt[1]);
         if (p) place = { side: "dessus", cell: p };

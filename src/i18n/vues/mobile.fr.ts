@@ -38,5 +38,11 @@ export const mobileFr = {
   "mob.cat.e": "Énergie",
   "mob.cat.u": "Utilitaires",
   "mob.opts": "Options d’affichage",
+  "mob.bld.list": "Liste des bâtiments",
+  "mob.bld.card": "Grille ou fiche du bâtiment",
+  "mob.surveys": "Mes relevés de bâtiments",
+  "mob.mine": "Mes remarques",
+  "mob.prev": "Étape précédente",
+  "mob.next": "Étape suivante",
   "mob.card": "Fiche complète",
 } satisfies Record<string, Msg>;

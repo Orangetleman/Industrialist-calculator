@@ -125,7 +125,7 @@ function unifyMedia(active: boolean): void {
 
 // ---------------------------------------------------------------- éléments
 
-let head: HTMLElement, dock: HTMLElement, scrim: HTMLElement, menu: HTMLElement, empty: HTMLElement, more: HTMLElement, fiche: HTMLElement;
+let stepBar: HTMLElement, head: HTMLElement, dock: HTMLElement, scrim: HTMLElement, menu: HTMLElement, empty: HTMLElement, more: HTMLElement, fiche: HTMLElement;
 const moved: { el: HTMLElement; mark: Comment }[] = [];
 function move(el: HTMLElement | null, to: HTMLElement, first = false): void {
   if (!el) return;
@@ -142,6 +142,9 @@ function restore(): void {
 const q = (sel: string) => document.querySelector<HTMLElement>(sel);
 const lit = (d: Proxy) => q(d.sel)?.getAttribute(d.on) === "true" && !(page === "recettes" && cardOpen());
 const cardOpen = () => !!q("#rc-layout.has-card");
+const bldOpen = () => page === "donnees" && contrib === "bat" && !$("bld-editor").hidden && !bldList;
+/** Éditeur de bâtiments : la liste est rouverte (« ‹ ») sans oublier le bâtiment en cours. */
+let bldList = false;
 const treeList = () => q('[data-view="list"]')?.getAttribute("aria-checked") === "true";
 
 const btn = (d: DockItem, cur: boolean) =>
@@ -171,7 +174,29 @@ function drawHead(): void {
       ? `<button type="button" class="m-goal" data-m="goal" aria-expanded="${panel === "goal"}"><span>${goalText()}</span>${icon("edit")}</button><button type="button" class="m-ib m-set" data-m="set" aria-label="${esc(t("mob.settings"))}">${icon("settings")}</button><button type="button" class="m-ib" data-m="share" aria-label="${esc(t("share.btn"))}">${icon("share")}</button>`
       : page === "recettes" && cardOpen()
         ? `<button type="button" class="m-ib" data-m="cardback" aria-label="${esc(t("rcp.back"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#rc-card h2")?.textContent ?? pageTitle())}</span>${location.hash.startsWith("#recettes/objet/") ? `<button type="button" class="m-go" data-m="plan">${esc(t("nav.plan"))}</button>` : ""}`
+      : bldOpen()
+        ? `<button type="button" class="m-ib" data-m="bldback" aria-label="${esc(t("mob.bld.list"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#bld-head h3")?.textContent ?? "")}</span><button type="button" class="m-ib" data-m="bldcard" aria-pressed="${document.body.classList.contains("m-bldcard")}" aria-label="${esc(t("mob.bld.card"))}">${icon(document.body.classList.contains("m-bldcard") ? "tiles" : "settings")}</button><button type="button" class="m-go" data-m="bldsave">${esc(t("bld.save"))}</button>`
       : `<span class="m-title">${esc(pageTitle())}</span>${page === "recettes" || page === "arbre" ? `<span class="m-sp"></span>${page === "arbre" ? `<button type="button" class="m-ib" data-m="treeview" aria-label="${esc(t(treeList() ? "tr.view.tree" : "tr.view.list"))}">${icon(treeList() ? "share" : "list")}</button>` : ""}<button type="button" class="m-ib" data-m="opts" aria-expanded="${document.body.classList.contains("m-opts")}" aria-label="${esc(t("mob.opts"))}">${icon("settings")}</button>` : ""}${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
+}
+/** Usine : l'étape montrée, la précédente, la suivante, « posé » (MB6). */
+function drawSteps(): void {
+  const rows = [...document.querySelectorAll<HTMLElement>("#plan-steps .cmd-row")];
+  const i = rows.findIndex((r) => r.classList.contains("on"));
+  stepBar.hidden = !(page === "plan" && view === "pose" && i >= 0 && rows.length > 1);
+  if (stepBar.hidden) return;
+  const row = rows[i]!, box = row.querySelector<HTMLInputElement>("input.cmd-box");
+  const name = row.querySelector(".nm")?.innerHTML ?? "", n = row.querySelector(".x")?.textContent ?? "";
+  stepBar.innerHTML = `<button type="button" data-step-go="-1" aria-label="${esc(t("mob.prev"))}"${i ? "" : " disabled"}>${icon("chevL")}</button><button type="button" class="nm" data-m="steps"><span>${name}</span><i>${esc(n)}</i></button>${box ? `<button type="button" class="ck" data-step-posed aria-pressed="${box.checked}" aria-label="${esc(box.getAttribute("aria-label") ?? "")}"><span class="m-sw">${box.checked ? icon("check") : ""}</span></button>` : ""}<button type="button" data-step-go="1" aria-label="${esc(t("mob.next"))}"${i < rows.length - 1 ? "" : " disabled"}>${icon("chevR")}</button>`;
+}
+function onSteps(e: Event): void {
+  const b = (e.target as Element).closest<HTMLElement>("button");
+  if (!b) return;
+  const rows = [...document.querySelectorAll<HTMLElement>("#plan-steps .cmd-row")];
+  const i = rows.findIndex((r) => r.classList.contains("on"));
+  if (b.dataset.stepGo) rows[i + Number(b.dataset.stepGo)]?.querySelector<HTMLElement>(".cmd-step")?.click();
+  else if ("stepPosed" in b.dataset) rows[i]?.querySelector<HTMLInputElement>("input.cmd-box")?.click();
+  else setView("etapes");
+  drawSteps();
 }
 function drawDock(): void {
   const contribPage = page === "donnees" || page === "propositions";
@@ -199,6 +224,8 @@ function apply(): void {
   b.dataset.mcontrib = contrib;
   if (page === "bac" && bac) b.dataset.mbac = bac.tool();
   else delete b.dataset.mbac;
+  b.classList.toggle("m-bld", bldOpen());
+  drawSteps();
   b.classList.toggle("m-binfo", page === "bac" && !!bac?.pinned());
   if (panel) b.dataset.mpanel = panel;
   else delete b.dataset.mpanel;
@@ -210,6 +237,8 @@ function apply(): void {
   more.innerHTML = (["liste", "details"] as const).map((x) => `<button type="button" data-dock="${x}">${icon("list")}<span>${esc(t(x === "liste" ? "tab.liste" : "tab.details"))}</span>${icon("chevR")}</button>`).join("");
   more.hidden = blank;
   fiche.textContent = t("mob.card");
+  sent.querySelector("h2")!.textContent = t("mob.surveys");
+  sent.querySelector(".m-rows span")!.textContent = t("mob.mine");
   drawHead();
   drawDock();
   if (panel === "menu") drawMenu();
@@ -236,6 +265,10 @@ function overlays(): { close(): void }[] {
   if (!$("plan-drawer").hidden) out.push({ close: () => $("plan-set-close").click() });
   if (document.body.classList.contains("m-fiche")) out.push({ close: closeFiche });
   if (document.body.classList.contains("m-opts")) out.push({ close: closeOpts });
+  const bb = document.getElementById("bld-bubble");
+  if (page === "donnees" && bb && !bb.hidden) out.push({ close: () => bb.querySelector<HTMLElement>("[data-bb-close]")?.click() });
+  else if (document.body.classList.contains("m-bldcard")) out.push({ close: closeBldCard });
+  else if (bldOpen()) out.push({ close: () => { bldList = true; apply(); } });
   if (document.body.classList.contains("m-node")) out.push({ close: closeNode });
   if (page === "plan" && !$("pose-focus").hidden && view === "pose") out.push({ close: () => $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click() });
   return out;
@@ -281,9 +314,15 @@ function closeStats(): void {
 }
 /** Fiche ouverte depuis une autre vue de Recettes : « ‹ » revient à elle. */
 let cardTrail = false;
+let sent: HTMLElement;
 function closeOpts(): void {
   document.body.classList.remove("m-opts");
   if (on) drawHead();
+  syncHistory();
+}
+function closeBldCard(): void {
+  document.body.classList.remove("m-bldcard");
+  apply();
   syncHistory();
 }
 function closeNode(): void {
@@ -321,6 +360,8 @@ function setView(v: MView): void {
 }
 
 function setContrib(id: string): void {
+  // « Bâtiments » touché une seconde fois : la liste, puis le bâtiment en cours.
+  bldList = id === "bat" && contrib === "bat" ? bldOpen() : id === "bat" ? !!$("bld-editor").hidden : false;
   contrib = id;
   const to = { posts: "#propositions", bat: "#contribuer/batiments", val: "#contribuer/verifier", envois: "#contribuer/verifier" }[id]!;
   if (location.hash !== to) location.hash = to;
@@ -367,7 +408,22 @@ function onClick(e: Event): void {
     syncHistory();
   }
   else if (m === "close") setPanel("");
-  else if (m === "cardback") history.length > 1 && document.referrer === "" && cardTrail ? history.back() : (location.hash = "#recettes");
+  else if (m === "bldback") {
+    bldList = true;
+    document.body.classList.remove("m-bldcard");
+    apply();
+    syncHistory();
+  } else if (m === "bldcard") {
+    document.body.classList.toggle("m-bldcard");
+    apply();
+    syncHistory();
+    window.scrollTo(0, 0);
+    if (!document.body.classList.contains("m-bldcard")) requestAnimationFrame(() => panZoomOf($("bld-frame"))?.reset());
+  } else if (m === "bldsave") $("bld-save")?.click();
+  else if (m === "mine") {
+    $("remark-btn").click();
+    setTimeout(() => document.querySelector<HTMLElement>("dialog.rm-dialog [data-rm-tab=mine], dialog.rm-dialog [data-tab=mine]")?.click(), 50);
+  } else if (m === "cardback") history.length > 1 && document.referrer === "" && cardTrail ? history.back() : (location.hash = "#recettes");
   else if (m === "plan") {
     const it = $<HTMLInputElement>("item");
     it.value = q("#rc-card h2")?.textContent ?? "";
@@ -453,7 +509,7 @@ function watchBubble(bub: HTMLElement): void {
 
 // ---------------------------------------------------------------- visite guidée (tour.ts) : ses cibles, sur mobile
 
-const ALIAS: Record<string, string> = { "#rtabs-result": ".m-dock", "#me": ".m-menu", "#remark-btn": ".m-menu", "#plan-set-open": ".m-set", "#graph-bar": "#flow-frame", "#upto-form": "#upto-form" };
+const ALIAS: Record<string, string> = { ".bld-tools": "#bld-frame", "#rtabs-result": ".m-dock", "#me": ".m-menu", "#remark-btn": ".m-menu", "#plan-set-open": ".m-set", "#graph-bar": "#flow-frame", "#upto-form": "#upto-form" };
 /** L'élément à montrer pour une étape de la visite. */
 export const tourTarget = (sel: string): string => (on ? (ALIAS[sel] ?? sel) : sel);
 /** Ouvre le volet où se trouve la cible d'une étape de la visite. */
@@ -482,6 +538,13 @@ function build(): void {
   document.body.append(dock, scrim, menu);
   empty = el("div", "m-empty");
   document.querySelector(".cmd-stage")!.append(empty);
+  stepBar = el("div", "m-steps-bar");
+  stepBar.hidden = true;
+  document.querySelector(".cmd-stage")!.append(stepBar);
+  stepBar.addEventListener("click", onSteps);
+  sent = el("section", "m-sent", `<h2></h2><div class="m-sent-b"></div><div class="m-rows"><button type="button" data-m="mine">${icon("remark")}<span></span>${icon("chevR")}</button></div>`);
+  sent.addEventListener("click", onClick);
+  document.querySelector("#dpanel-verifier .corrections-panel")!.after(sent);
   more = el("div", "m-rows m-more");
   $("pane-root").querySelector(".cmd-pb")!.append(more);
   fiche = el("button", "m-fiche-btn");
@@ -506,7 +569,7 @@ function sync(): void {
   view = nextView(view, nt, nt !== tab);
   tab = nt;
   if (p !== page) {
-    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats", "m-opts", "m-node");
+    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats", "m-opts", "m-node", "m-bldcard");
     panel = "";
   }
   // Arbre : la liste d'abord, la première fois (décision n° 4 du plan) ; ensuite, la dernière vue choisie.
@@ -538,6 +601,9 @@ function enable(active: boolean): void {
     const st = menu.querySelector<HTMLElement>(".m-status")!;
     for (const id of ["me", "me-play", "lang-sw", "theme-btn"]) move($(id), st);
     move($("plan-insp"), $("page-plan"));
+    // Envois : mes relevés de bâtiments à côté de mes corrections.
+    move(q(".bld-list > .actions"), sent.querySelector<HTMLElement>(".m-sent-b")!);
+    move($("bld-io"), sent.querySelector<HTMLElement>(".m-sent-b")!);
     tab = readTab();
     view = nextView("pose", tab, true);
     sync();
@@ -546,7 +612,7 @@ function enable(active: boolean): void {
     panel = "";
     scrim.hidden = menu.hidden = true;
     for (const k of ["mview", "mpage", "mpanel", "mcontrib", "mbac"]) delete document.body.dataset[k];
-    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo", "m-opts", "m-node");
+    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo", "m-opts", "m-node", "m-bld", "m-bldcard");
   }
   window.dispatchEvent(new Event("resize"));
 }
@@ -573,6 +639,8 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
   vv?.addEventListener("resize", kb);
   vv?.addEventListener("scroll", kb);
   window.addEventListener("hashchange", () => {
+    // Un lien vers un bâtiment ouvre son éditeur, même si la liste était rouverte.
+    if (/^#(contribuer|donnees)\/batiments\/./.test(location.hash)) bldList = false;
     sync();
     // Une adresse qui nomme un onglet le montre, même si un volet (étapes, bilan) était ouvert.
     if (on && page === "plan" && /^#[^/]+\/(schema|pose|liste|details)/.test(location.hash)) {
@@ -628,11 +696,33 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
     const n = (e.target as Element).closest<SVGElement>(".rs-node");
     if (on && n && n.dataset.rs === lastNode && document.querySelector(".rs-node[aria-pressed='true']")) setTimeout(() => document.body.classList.add("m-node"), 0);
   });
-  const lit2 = new MutationObserver(() => on && PROXY_DOCK[page] && apply());
+  const lit2 = new MutationObserver(() => on && (PROXY_DOCK[page] || page === "donnees") && apply());
   for (const list of Object.values(PROXY_DOCK)) for (const d of list) lit2.observe(q(d.sel)!, { attributes: true, attributeFilter: [d.on] });
   lit2.observe(q('[data-view="list"]')!, { attributes: true, attributeFilter: ["aria-checked"] });
   lit2.observe($("rc-layout"), { attributes: true, attributeFilter: ["class"] });
   lit2.observe($("rc-card"), { childList: true });
+  // MB9 : bâtiment choisi → son éditeur ; panneau d'un port → l'élément touché reste visible.
+  $("bld-items").addEventListener("click", (e) => {
+    if (!on || !(e.target as Element).closest("[data-bld]")) return;
+    bldList = false;
+    document.body.classList.remove("m-bldcard");
+    setTimeout(() => {
+      apply();
+      window.scrollTo(0, 0);
+      panZoomOf($("bld-frame"))?.reset();
+      syncHistory();
+    }, 0);
+  });
+  lit2.observe($("bld-editor"), { attributes: true, attributeFilter: ["hidden"] });
+  new MutationObserver(() => on && page === "donnees" && drawHead()).observe($("bld-head"), { childList: true });
+  const bb = $("bld-bubble");
+  new MutationObserver(() => {
+    if (!on) return;
+    if (!bb.hidden) requestAnimationFrame(() => keepVisible($("bld-frame"), document.querySelector("#bld-svg .sel, #bld-svg [aria-pressed='true']"), bb));
+    syncHistory();
+  }).observe(bb, { attributes: true, attributeFilter: ["hidden"] });
+  // MB6 : barre d'étape à jour avec la liste des étapes.
+  new MutationObserver(() => on && drawSteps()).observe($("plan-steps"), { childList: true });
   const rech = $("upanel-recherche");
   new MutationObserver(() => on && labelCells(rech)).observe(rech, { childList: true, subtree: true });
   labelCells(rech);

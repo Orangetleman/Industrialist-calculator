@@ -225,6 +225,13 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
 - **Bogue du site corrigé** (`4c12411`, présent en ligne) : ouvrir ou recharger directement `#recettes` ou `#contribuer`
   arrêtait tout le script (`hasOwnFixes` lue avant sa déclaration).
 
+- **MB9** (2026-11-25) : Contribuer. Bâtiments : liste pleine page, puis grille en plein écran ; toucher une case ouvre le
+  panneau du port (la « bulle » du PC, toujours au doigt), Enregistrer en haut, fiche (prise, catégorie, interface, capture,
+  remarques, modulaire) d'un bouton ; deux doigts agrandissent la capture. Valeurs, Envois (corrections, relevés, remarques),
+  Postes, Méthodes et fenêtre Remarque à plat. Formulaires d'interface et de modulaire : ceux du PC, à revoir à l'usage.
+- **MB6** (2026-11-25) : Usine, barre d'étape (précédente, suivante, nom, nombre, « posé ») au-dessus du dessin.
+- **Correctif en ligne** : version 0.1.8 (`a24ea93`), ouverture directe de Recettes et Contribuer.
+
 ### Pistes pour MB10 (à maquetter, rien de décidé)
 
 Ce qui ne va pas au téléphone : la bulle cache la cible (40 % de l'écran), le voile empêche d'essayer, huit étapes de suite,

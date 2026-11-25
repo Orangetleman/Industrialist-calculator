@@ -39,5 +39,11 @@ export const mobileEn: Record<keyof typeof mobileFr, Msg> = {
   "mob.cat.e": "Energy",
   "mob.cat.u": "Utility",
   "mob.opts": "Display options",
+  "mob.bld.list": "Building list",
+  "mob.bld.card": "Building grid or card",
+  "mob.surveys": "My building surveys",
+  "mob.mine": "My feedback",
+  "mob.prev": "Previous step",
+  "mob.next": "Next step",
   "mob.card": "Full card",
 };
