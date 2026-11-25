@@ -218,6 +218,13 @@ toucher aux calculs. L'ordinateur ne lit rien de cela.
   « Affichage et outils » (copier une zone, schémas, base de données, carte, flux, câbles, états, réglages, exemples, vider).
   « Relier » trace un seul tuyau par geste. Non repris au doigt : filtre par port libre, raccourcis clavier.
 
+- **MB8** (2026-11-25) : Recettes (Tout, Objets, Machines en bas ; recherche fixe ; craft en lignes, machine d'abord ; « ‹ »
+  et « Planifier » en haut de la fiche), Mon usine (Ma partie, Ma recherche en bas ; volets à plat, cases de 28 px,
+  tableaux en lignes titrées), Arbre (catégories en bas ; liste d'abord, arbre en plein écran avec panneau à crans). Tri,
+  tout débloquer, légende : bouton « options ». Bulle « Débloquer » du PC non reprise (le panneau la remplace).
+- **Bogue du site corrigé** (`4c12411`, présent en ligne) : ouvrir ou recharger directement `#recettes` ou `#contribuer`
+  arrêtait tout le script (`hasOwnFixes` lue avant sa déclaration).
+
 ### Pistes pour MB10 (à maquetter, rien de décidé)
 
 Ce qui ne va pas au téléphone : la bulle cache la cible (40 % de l'écran), le voile empêche d'essayer, huit étapes de suite,

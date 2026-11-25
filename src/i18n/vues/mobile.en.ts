@@ -35,5 +35,9 @@ export const mobileEn: Record<keyof typeof mobileFr, Msg> = {
   "mob.bac.erase": "Tap to erase · long press and drag: an area",
   "mob.bac.copy": "Long press and drag: the area to copy",
   "mob.bac.flows": "Buttons and flows",
+  "mob.cat.p": "Production",
+  "mob.cat.e": "Energy",
+  "mob.cat.u": "Utility",
+  "mob.opts": "Display options",
   "mob.card": "Full card",
 };

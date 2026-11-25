@@ -28,6 +28,24 @@ export const BAC_DOCK: DockItem[] = [
   { id: "relier", ic: "link", label: "mob.bac.tie" },
   { id: "effacer", ic: "trash", label: "mob.bac.del" },
 ];
+/** Pages dont les boutons du bas sont des commandes déjà présentes dans la page (MB8) : le bouton, l'élément touché, l'attribut qui le dit allumé. */
+type Proxy = DockItem & { sel: string; on: string };
+export const PROXY_DOCK: Record<string, Proxy[]> = {
+  recettes: [
+    { id: "rc-tout", ic: "tiles", label: "rcp.all", sel: '[data-rc-filter="tout"]', on: "aria-pressed" },
+    { id: "rc-objets", ic: "module", label: "rcp.items", sel: '[data-rc-filter="objets"]', on: "aria-pressed" },
+    { id: "rc-machines", ic: "config", label: "rcp.machines", sel: '[data-rc-filter="machines"]', on: "aria-pressed" },
+  ],
+  usine: [
+    { id: "us-partie", ic: "home", label: "us.tab.partie", sel: "#utab-partie", on: "aria-selected" },
+    { id: "us-recherche", ic: "chart", label: "us.tab.recherche", sel: "#utab-recherche", on: "aria-selected" },
+  ],
+  arbre: [
+    { id: "ar-p", ic: "module", label: "mob.cat.p", sel: '#page-arbre [data-cat="Production"]', on: "aria-selected" },
+    { id: "ar-e", ic: "power", label: "mob.cat.e", sel: '#page-arbre [data-cat="Energy"]', on: "aria-selected" },
+    { id: "ar-u", ic: "config", label: "mob.cat.u", sel: '#page-arbre [data-cat="Utility"]', on: "aria-selected" },
+  ],
+};
 export const CONTRIB_DOCK: DockItem[] = [
   { id: "posts", ic: "idea", label: "mob.posts" },
   { id: "bat", ic: "module", label: "mob.buildings" },
@@ -121,6 +139,11 @@ function restore(): void {
   for (const { el, mark } of moved.splice(0).reverse()) mark.replaceWith(el);
 }
 
+const q = (sel: string) => document.querySelector<HTMLElement>(sel);
+const lit = (d: Proxy) => q(d.sel)?.getAttribute(d.on) === "true" && !(page === "recettes" && cardOpen());
+const cardOpen = () => !!q("#rc-layout.has-card");
+const treeList = () => q('[data-view="list"]')?.getAttribute("aria-checked") === "true";
+
 const btn = (d: DockItem, cur: boolean) =>
   `<button type="button" data-dock="${d.id}"${cur ? ' aria-current="page"' : ""}>${icon(d.ic)}<span>${esc(t(d.label))}</span></button>`;
 
@@ -146,12 +169,14 @@ function drawHead(): void {
   head.innerHTML =
     page === "plan"
       ? `<button type="button" class="m-goal" data-m="goal" aria-expanded="${panel === "goal"}"><span>${goalText()}</span>${icon("edit")}</button><button type="button" class="m-ib m-set" data-m="set" aria-label="${esc(t("mob.settings"))}">${icon("settings")}</button><button type="button" class="m-ib" data-m="share" aria-label="${esc(t("share.btn"))}">${icon("share")}</button>`
-      : `<span class="m-title">${esc(pageTitle())}</span>${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
+      : page === "recettes" && cardOpen()
+        ? `<button type="button" class="m-ib" data-m="cardback" aria-label="${esc(t("rcp.back"))}">${icon("chevL")}</button><span class="m-title m-tl">${esc(q("#rc-card h2")?.textContent ?? pageTitle())}</span>${location.hash.startsWith("#recettes/objet/") ? `<button type="button" class="m-go" data-m="plan">${esc(t("nav.plan"))}</button>` : ""}`
+      : `<span class="m-title">${esc(pageTitle())}</span>${page === "recettes" || page === "arbre" ? `<span class="m-sp"></span>${page === "arbre" ? `<button type="button" class="m-ib" data-m="treeview" aria-label="${esc(t(treeList() ? "tr.view.tree" : "tr.view.list"))}">${icon(treeList() ? "share" : "list")}</button>` : ""}<button type="button" class="m-ib" data-m="opts" aria-expanded="${document.body.classList.contains("m-opts")}" aria-label="${esc(t("mob.opts"))}">${icon("settings")}</button>` : ""}${page === "bac" ? `<span class="m-sp"></span><button type="button" class="m-ib" data-m="stats" aria-label="${esc(t("bac.stats.title"))}">${icon("chart")}</button><button type="button" class="m-ib" data-m="bac" aria-expanded="${panel === "bac"}" aria-label="${esc(t("mob.bac.more"))}">${icon("settings")}</button>` : ""}`;
 }
 function drawDock(): void {
   const contribPage = page === "donnees" || page === "propositions";
   const items =
-    page === "plan" ? PLAN_DOCK.map((d) => btn(d, d.id === dockOn(view))) : page === "bac" ? BAC_DOCK.map((d) => btn(d, d.id === bac?.tool())) : contribPage ? CONTRIB_DOCK.map((d) => btn(d, d.id === contrib)) : [`<button type="button" data-dock="back">${icon("home")}<span>${esc(t("mob.myplan"))}</span></button>`];
+    page === "plan" ? PLAN_DOCK.map((d) => btn(d, d.id === dockOn(view))) : page === "bac" ? BAC_DOCK.map((d) => btn(d, d.id === bac?.tool())) : PROXY_DOCK[page] ? PROXY_DOCK[page]!.map((d) => btn(d, lit(d))) : contribPage ? CONTRIB_DOCK.map((d) => btn(d, d.id === contrib)) : [`<button type="button" data-dock="back">${icon("home")}<span>${esc(t("mob.myplan"))}</span></button>`];
   dock.innerHTML = `${items.join("")}<button type="button" class="m-menu" data-m="menu" aria-expanded="${panel === "menu"}">${icon("rows")}<span>${esc(t("mob.menu"))}</span>${stepsLeft() ? DOT : ""}</button>`;
 }
 function drawMenu(): void {
@@ -210,9 +235,13 @@ function overlays(): { close(): void }[] {
   if (page === "bac" && bac?.pinned()) out.push({ close: () => bac?.unpin() });
   if (!$("plan-drawer").hidden) out.push({ close: () => $("plan-set-close").click() });
   if (document.body.classList.contains("m-fiche")) out.push({ close: closeFiche });
+  if (document.body.classList.contains("m-opts")) out.push({ close: closeOpts });
+  if (document.body.classList.contains("m-node")) out.push({ close: closeNode });
   if (page === "plan" && !$("pose-focus").hidden && view === "pose") out.push({ close: () => $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click() });
   return out;
 }
+let treeSeen = false;
+let lastHash = "";
 let pushed: string | null = null;
 let syncing = 0;
 function syncHistory(): void {
@@ -249,6 +278,24 @@ function closeSteps(): void {
 function closeStats(): void {
   document.body.classList.remove("m-bstats");
   syncHistory();
+}
+/** Fiche ouverte depuis une autre vue de Recettes : « ‹ » revient à elle. */
+let cardTrail = false;
+function closeOpts(): void {
+  document.body.classList.remove("m-opts");
+  if (on) drawHead();
+  syncHistory();
+}
+function closeNode(): void {
+  document.body.classList.remove("m-node");
+  syncHistory();
+}
+/** Tableaux en lignes : chaque case porte le titre de sa colonne. */
+function labelCells(root: HTMLElement): void {
+  for (const tb of root.querySelectorAll("table")) {
+    const heads = [...tb.querySelectorAll("thead th")].map((x) => x.textContent?.trim() ?? "");
+    for (const tr of tb.querySelectorAll("tbody tr")) if (tr.children.length === heads.length) [...tr.children].forEach((c, i) => (c as HTMLElement).dataset.l !== heads[i] && ((c as HTMLElement).dataset.l = heads[i]!));
+  }
 }
 function closeFiche(): void {
   document.body.classList.remove("m-fiche");
@@ -297,6 +344,14 @@ function onClick(e: Event): void {
   }
   const d = el.dataset.dock;
   if (d === "back") return nav("#objet");
+  const px = d && PROXY_DOCK[page]?.find((x) => x.id === d);
+  if (px) {
+    if (page === "recettes" && cardOpen()) location.hash = "#recettes";
+    q(px.sel)?.click();
+    closeNode();
+    window.scrollTo(0, 0);
+    return void setTimeout(apply, 0);
+  }
   if (d && BAC_DOCK.some((x) => x.id === d)) {
     closeStats();
     bac?.setTool(d as never);
@@ -312,6 +367,26 @@ function onClick(e: Event): void {
     syncHistory();
   }
   else if (m === "close") setPanel("");
+  else if (m === "cardback") history.length > 1 && document.referrer === "" && cardTrail ? history.back() : (location.hash = "#recettes");
+  else if (m === "plan") {
+    const it = $<HTMLInputElement>("item");
+    it.value = q("#rc-card h2")?.textContent ?? "";
+    it.dispatchEvent(new Event("input", { bubbles: true }));
+    it.dispatchEvent(new Event("change", { bubbles: true }));
+    nav("#objet");
+    setTimeout(() => panel !== "goal" && setPanel("goal"), 80);
+  } else if (m === "treeview") {
+    q(`[data-view="${treeList() ? "tree" : "list"}"]`)?.click();
+    closeNode();
+    setTimeout(() => {
+      apply();
+      panZoomOf($("rs-frame"))?.reset();
+    }, 0);
+  } else if (m === "opts") {
+    document.body.classList.toggle("m-opts");
+    apply();
+    syncHistory();
+  }
   else if (m === "set") $("plan-set-open").click();
   else if (m === "share") $("share-open").click();
   else if (m === "fiche") {
@@ -417,6 +492,7 @@ function build(): void {
   fiche.addEventListener("click", onClick);
   grip($("pose-focus"), () => $("pose-focus").querySelector<HTMLElement>("button[data-focus-back].icon-btn")?.click());
   grip($("plan-insp"), closeFiche);
+  grip($("rs-detail"), closeNode);
 }
 
 function readTab(): string {
@@ -430,9 +506,16 @@ function sync(): void {
   view = nextView(view, nt, nt !== tab);
   tab = nt;
   if (p !== page) {
-    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats");
+    document.body.classList.remove("m-about", "m-steps", "m-fiche", "m-bstats", "m-opts", "m-node");
     panel = "";
   }
+  // Arbre : la liste d'abord, la première fois (décision n° 4 du plan) ; ensuite, la dernière vue choisie.
+  if (p === "arbre" && page !== "arbre" && !treeSeen) {
+    treeSeen = true;
+    if (!treeList()) setTimeout(() => q('[data-view="list"]')?.click(), 0);
+  }
+  cardTrail = p === "recettes" && page === "recettes" && lastHash.startsWith("#recettes") ? true : p === "recettes" ? false : cardTrail;
+  lastHash = location.hash;
   page = p;
   // La bulle d'un nœud n'existe qu'une fois le schéma affiché.
   const bub = document.querySelector<HTMLElement>(".gv-bub");
@@ -463,7 +546,7 @@ function enable(active: boolean): void {
     panel = "";
     scrim.hidden = menu.hidden = true;
     for (const k of ["mview", "mpage", "mpanel", "mcontrib", "mbac"]) delete document.body.dataset[k];
-    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo");
+    document.body.classList.remove("m-steps", "m-fiche", "m-about", "m-bstats", "m-binfo", "m-opts", "m-node");
   }
   window.dispatchEvent(new Event("resize"));
 }
@@ -526,6 +609,33 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
     const key = decodeURIComponent(location.hash.split("/")[3] ?? "");
     requestAnimationFrame(() => keepVisible($("pose-frame"), key ? document.querySelector(`#pose-canvas .u-mod[data-mod="${CSS.escape(key)}"] > rect`) : null, $("pose-focus")));
   }).observe($("pose-focus"), { attributes: true, attributeFilter: ["hidden"] });
+  // MB8 : recherche choisie dans l'arbre → panneau ; boutons du bas à jour ; tableaux de Ma recherche en lignes.
+  const detail = $("rs-detail");
+  let lastNode = "";
+  new MutationObserver(() => {
+    if (!on) return;
+    if (!detail.querySelector(".m-grip")) grip(detail, closeNode);
+    const id = document.querySelector<SVGElement>(".rs-node[aria-pressed='true']")?.dataset.rs ?? "";
+    if (page === "arbre" && id && id !== lastNode && !treeList()) {
+      document.body.classList.add("m-node");
+      requestAnimationFrame(() => keepVisible($("rs-frame"), document.querySelector(".rs-node[aria-pressed='true']"), detail));
+      syncHistory();
+    }
+    lastNode = id;
+  }).observe(detail, { childList: true });
+  $("rs-frame").addEventListener("click", (e) => {
+    // Un second appui sur la même recherche rouvre son panneau.
+    const n = (e.target as Element).closest<SVGElement>(".rs-node");
+    if (on && n && n.dataset.rs === lastNode && document.querySelector(".rs-node[aria-pressed='true']")) setTimeout(() => document.body.classList.add("m-node"), 0);
+  });
+  const lit2 = new MutationObserver(() => on && PROXY_DOCK[page] && apply());
+  for (const list of Object.values(PROXY_DOCK)) for (const d of list) lit2.observe(q(d.sel)!, { attributes: true, attributeFilter: [d.on] });
+  lit2.observe(q('[data-view="list"]')!, { attributes: true, attributeFilter: ["aria-checked"] });
+  lit2.observe($("rc-layout"), { attributes: true, attributeFilter: ["class"] });
+  lit2.observe($("rc-card"), { childList: true });
+  const rech = $("upanel-recherche");
+  new MutationObserver(() => on && labelCells(rech)).observe(rech, { childList: true, subtree: true });
+  labelCells(rech);
   mo.observe($("plan-title"), { childList: true, characterData: true, subtree: true });
   mo.observe($("item-pick"), { childList: true, characterData: true, subtree: true });
   new MutationObserver(() => {

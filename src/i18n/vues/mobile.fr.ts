@@ -34,5 +34,9 @@ export const mobileFr = {
   "mob.bac.erase": "Touche pour effacer · appui long puis glisse : une zone",
   "mob.bac.copy": "Appui long puis glisse : la zone à copier",
   "mob.bac.flows": "Boutons et flux",
+  "mob.cat.p": "Production",
+  "mob.cat.e": "Énergie",
+  "mob.cat.u": "Utilitaires",
+  "mob.opts": "Options d’affichage",
   "mob.card": "Fiche complète",
 } satisfies Record<string, Msg>;
