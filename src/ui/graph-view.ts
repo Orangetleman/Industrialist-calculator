@@ -288,6 +288,7 @@ export class GraphView {
         return { x, y: (c.h - h) / 2, w, h };
       },
       onView: (k) => this.onView(k),
+      onPinch: () => this.dropPress(),
     });
     frame.addEventListener("pointerdown", (e) => this.onDown(e));
     frame.addEventListener("pointermove", (e) => this.onMove(e));
@@ -1553,6 +1554,16 @@ export class GraphView {
       this.frameReq = 0;
       if (this.pending && this.press?.group) this.moveGroup(this.press.group, this.pending);
     });
+  }
+
+  /** Deux doigts posés : le glisser d'un nœud ou le tracé en cours est abandonné, rien n'est écrit. */
+  private dropPress(): void {
+    const p = this.press;
+    if (!p) return;
+    // Retour à la place de départ, sans accrochage à la grille.
+    if (p.kind === "node" && p.moved) this.freeDrag = true;
+    this.pending = p.kind === "node" ? { x: 0, y: 0 } : null;
+    this.onUp(new PointerEvent("pointercancel", { pointerId: p.id }), true);
   }
 
   private onUp(e: PointerEvent, cancel = false): void {

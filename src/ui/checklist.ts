@@ -41,6 +41,8 @@ export function reachedItem(mode: string, index: number): CheckItem | null {
 export function createChecklist(hooks: { start(mode: string): void; replay(): void }) {
   const st = load();
   let box: HTMLElement | null = null;
+  /** Petit écran tactile (MB1) : la liste démarre repliée en une ligne ; sur ordinateur, le style ignore ce repli. */
+  let folded = true;
   function build(): HTMLElement {
     if (box) return box;
     box = Object.assign(document.createElement("aside"), { className: "steps-box", id: "steps-box" });
@@ -49,7 +51,11 @@ export function createChecklist(hooks: { start(mode: string): void; replay(): vo
       const el = (e.target as HTMLElement).closest<HTMLElement>("[data-steps]");
       const a = el?.dataset.steps;
       if (!a) return;
-      if (a === "hide") hide();
+      if (a === "fold") {
+        folded = !folded;
+        render();
+        box?.querySelector<HTMLElement>(".steps-fold")?.focus();
+      } else if (a === "hide") hide();
       else if (a === "replay") {
         hide(false);
         hooks.replay();
@@ -65,9 +71,10 @@ export function createChecklist(hooks: { start(mode: string): void; replay(): vo
     const b = build();
     const n = st.done.length;
     b.hidden = st.hidden;
-    b.innerHTML = `<div class="steps-head"><h2 id="steps-h">${t("steps.title")}</h2><span class="steps-n">${n} / ${CHECKLIST.length}</span></div>
+    b.classList.toggle("folded", folded);
+    b.innerHTML = `<button type="button" class="steps-fold" data-steps="fold" aria-expanded="${!folded}" aria-controls="steps-list" aria-labelledby="steps-h"></button><div class="steps-head"><h2 id="steps-h">${t("steps.title")}</h2><span class="steps-n">${n} / ${CHECKLIST.length}</span></div>
       <div class="steps-bar"><i style="width:${(n / CHECKLIST.length) * 100}%"></i></div>
-      <ul>${CHECKLIST.map((it) => {
+      <ul id="steps-list">${CHECKLIST.map((it) => {
         const done = st.done.includes(it);
         const k = stepsOf(it);
         const sub = k ? ` <small>${t("steps.n", { n: k })}</small>` : "";
@@ -76,8 +83,9 @@ export function createChecklist(hooks: { start(mode: string): void; replay(): vo
       <div class="steps-foot">${n === CHECKLIST.length ? `<span>${t("steps.all")}</span>` : `<button type="button" class="tour-link" data-steps="replay">${t("steps.replay")}</button>`}<button type="button" class="tour-link" data-steps="hide">${t("steps.hide")}</button></div>`;
   }
   /** Faire (ré)apparaître la liste (fin d'un parcours, bouton « ? Tutoriel »). */
-  function show(): void {
+  function show(open = false): void {
     st.hidden = false;
+    folded = !open;
     save(st);
     render();
   }

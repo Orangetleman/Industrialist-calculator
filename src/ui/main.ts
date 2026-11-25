@@ -5998,7 +5998,7 @@ const cameByLink = !!readShareHash(location.hash); // avant showPage, qui ouvre 
 void bootDesigns();
 showPage();
 // Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
-$("help").addEventListener("click", () => checklist.show());
+$("help").addEventListener("click", () => checklist.show(true));
 {
   let seen: string | null = "1";
   try {

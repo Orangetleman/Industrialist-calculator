@@ -125,6 +125,7 @@ export const pagesFr = {
   "tr.lg.locked": "Prérequis manquants",
   "tr.frame.aria": "Arbre de recherche : glisser pour se déplacer, molette ou + / − pour zoomer, 0 pour revenir au début",
   "tr.help": "Glisse pour te déplacer · molette pour zoomer · clique une recherche",
+  "tr.help.touch": "Un doigt : déplacer · deux doigts : zoomer · touche une recherche",
   "tr.zoom.reset": "Revenir au début",
   "tr.bubble.aria": "Recherche choisie",
   "tr.detail.aria": "Recherche sélectionnée",

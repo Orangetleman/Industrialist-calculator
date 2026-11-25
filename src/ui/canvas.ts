@@ -1,5 +1,5 @@
 // Déplacement et zoom d'un SVG dans un cadre, comme le canevas de recherche du jeu :
-// glisser pour se déplacer, molette (ou boutons, ou touches + / − / 0) pour zoomer.
+// glisser pour se déplacer, molette (ou boutons, ou touches + / − / 0) pour zoomer ; deux doigts : pincer.
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -16,7 +16,18 @@ export type PanZoomOptions = {
   onView?: (pxPerUnit: number) => void;
   /** Éléments sur lesquels un appui n'entame pas le déplacement (les nœuds de l'éditeur de graphe, qui se glissent eux-mêmes). */
   noPan?: string;
+  /** Deux doigts posés : le geste à un doigt en cours (nœud, liaison) est abandonné, le zoom prend la main. */
+  onPinch?: () => void;
 };
+
+export type Pt = { x: number; y: number };
+/** Pincement : facteur de zoom et déplacement (pixels) entre deux positions de deux doigts (fonction pure, testée). */
+export function pinchStep(a0: Pt, b0: Pt, a1: Pt, b1: Pt): { factor: number; from: Pt; dx: number; dy: number } {
+  const d0 = Math.hypot(a0.x - b0.x, a0.y - b0.y);
+  const d1 = Math.hypot(a1.x - b1.x, a1.y - b1.y);
+  const from = { x: (a0.x + b0.x) / 2, y: (a0.y + b0.y) / 2 };
+  return { factor: d0 > 0 && d1 > 0 ? d1 / d0 : 1, from, dx: (a1.x + b1.x) / 2 - from.x, dy: (a1.y + b1.y) / 2 - from.y };
+}
 
 export class PanZoom {
   private readonly frame: HTMLElement;
@@ -34,11 +45,19 @@ export class PanZoom {
   /** Vrai juste après un glisser : le clic qui suit ne doit pas sélectionner un nœud. */
   suppressClick = false;
   private measuredWidth = 0;
+  /** Doigts posés sur le cadre. */
+  private readonly touches = new Map<number, Pt>();
+  private pinching = false;
 
   constructor(frame: HTMLElement, opts: PanZoomOptions = {}) {
     this.frame = frame;
     this.opts = opts;
     frame.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
+    // En capture, avant les gestes propres au cadre : un second doigt fait un pincement, même posé sur un nœud.
+    frame.addEventListener("pointerdown", (e) => this.touchDown(e), true);
+    frame.addEventListener("pointermove", (e) => this.touchMove(e), true);
+    frame.addEventListener("pointerup", (e) => this.touchUp(e), true);
+    frame.addEventListener("pointercancel", (e) => this.touchUp(e), true);
     frame.addEventListener("pointerdown", (e) => this.onDown(e));
     frame.addEventListener("pointermove", (e) => this.onMove(e));
     frame.addEventListener("pointerup", (e) => this.onUp(e));
@@ -188,6 +207,56 @@ export class PanZoom {
     if (this.paused) return;
     e.preventDefault();
     this.zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
+  }
+
+  private touchDown(e: PointerEvent): void {
+    if (e.pointerType !== "touch" || this.paused) return;
+    if (e.isPrimary) this.touches.clear(); // nouveau geste : un doigt perdu (levé hors de la page) ne reste pas compté
+    if ((e.target as Element).closest?.("button, input, select, a")) return;
+    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.touches.size < 2) return;
+    e.stopImmediatePropagation();
+    if (!this.pinching) {
+      this.pinching = true;
+      this.drag = null;
+      this.frame.classList.remove("dragging");
+      document.body.classList.remove("panning");
+      this.opts.onPinch?.();
+    }
+    // Le cadre reçoit la suite du geste, même si l'élément touché est redessiné entre-temps.
+    for (const id of this.touches.keys()) {
+      try {
+        this.frame.setPointerCapture(id);
+      } catch {
+        // doigt déjà levé
+      }
+    }
+  }
+
+  private touchMove(e: PointerEvent): void {
+    const old = this.touches.get(e.pointerId);
+    if (!old) return;
+    const now = { x: e.clientX, y: e.clientY };
+    this.touches.set(e.pointerId, now);
+    if (!this.pinching) return;
+    e.stopImmediatePropagation();
+    const ids = [...this.touches.keys()].slice(0, 2);
+    if (this.touches.size < 2 || !ids.includes(e.pointerId)) return;
+    const other = this.touches.get(ids.find((i) => i !== e.pointerId)!)!;
+    const s = pinchStep(old, other, now, other);
+    this.zoom(s.factor, s.from.x, s.from.y);
+    const u = this.scale();
+    this.vb = { ...this.vb, x: this.vb.x - s.dx * u, y: this.vb.y - s.dy * u };
+    this.apply();
+  }
+
+  private touchUp(e: PointerEvent): void {
+    if (!this.touches.delete(e.pointerId) || !this.pinching) return;
+    e.stopImmediatePropagation();
+    if (this.touches.size) return; // le doigt qui reste ne déplace rien : pas de saut
+    this.pinching = false;
+    this.suppressClick = true;
+    setTimeout(() => (this.suppressClick = false), 0);
   }
 
   private onDown(e: PointerEvent): void {

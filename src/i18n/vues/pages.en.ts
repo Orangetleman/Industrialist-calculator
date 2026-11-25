@@ -126,6 +126,7 @@ export const pagesEn: { [K in keyof typeof pagesFr]: Msg } = {
   "tr.lg.locked": "Prerequisites missing",
   "tr.frame.aria": "Research tree: drag to move, wheel or + / − to zoom, 0 to go back to the start",
   "tr.help": "Drag to move · wheel to zoom · click a research",
+  "tr.help.touch": "One finger: move · two fingers: zoom · tap a research",
   "tr.zoom.reset": "Back to the start",
   "tr.bubble.aria": "Chosen research",
   "tr.detail.aria": "Selected research",

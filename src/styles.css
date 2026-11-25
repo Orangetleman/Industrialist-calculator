@@ -2189,3 +2189,25 @@ body.lecture .me-chip { background: var(--steel-soft); color: var(--steel); }
 .shr { max-height: calc(100vh - 80px); overflow: auto; }
 .u-frozen { background: #120c20; }
 #pose-frozen { background: var(--steel-soft); color: var(--ink); }
+
+/* ---------------------------------------------------------------- MB1 (PLAN-MOBILE.md) : petits écrans et tactile */
+/* L'en-tête passe à la ligne au lieu d'élargir la page. */
+@media (min-width: 761px) and (max-width: 1060px) {
+  .top-in, body.cmd-on .top-in { flex-wrap: wrap; }
+}
+/* Sous 16 px, iOS zoome la page à la saisie. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea { font-size: 16px !important; }
+}
+/* « Premiers pas » repliée en une ligne ; sur ordinateur, rien ne change. */
+.steps-fold { display: none; }
+@media (max-width: 760px), (pointer: coarse) {
+  .steps-fold { display: block; position: absolute; inset: 0 0 auto 0; height: 44px; background: none; border: 0; }
+  .steps-box.folded { left: auto; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; padding: 0 12px; }
+  .steps-box.folded .steps-head { height: 44px; gap: 12px; align-items: center; }
+  .steps-box.folded .steps-bar, .steps-box.folded ul, .steps-box.folded .steps-foot { display: none; }
+  .steps-box:not(.folded) { max-height: 70dvh; overflow: auto; }
+  .steps-box li button { min-height: 44px; align-items: center; }
+  /* Le pupitre du bac à sable occupe le bas de l'écran. */
+  body:has(#page-bac:not([hidden])) .steps-box.folded { display: none; }
+}

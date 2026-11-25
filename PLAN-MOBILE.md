@@ -74,6 +74,8 @@ réglages, choix d'objet, partage, pincement du bac à sable (géré à part dan
 Critère de bascule proposé : largeur < 900 px, ou pointeur grossier avec hauteur < 500 px. Une tablette
 en paysage garde la version ordinateur, débordements corrigés.
 
+(Plusieurs lignes ci-dessous et les § 4 et 5 sont remplacés par les décisions du § 7.)
+
 ### Ce que je simplifierais, franchement
 
 | Outil | Téléphone |
@@ -146,16 +148,38 @@ accepté ; `npm test` ; FR et EN ; thème clair et sombre ; vrais clics et touch
 10. Lecteur d'écran et clavier : panneaux nommés, focus rendu à la fermeture ; contraste testé.
 11. Parcours « Crankshaft 60/min → cocher une étape → partager » mesuré avant / après, accepté par l'utilisateur sur son téléphone.
 
-## 7. Questions
+## 7. Décisions (2026-11-25)
 
-1. Navigation A ou B ? [A]
-2. Tablette : mobile en portrait, ordinateur en paysage ? [oui]
-3. Cinq entrées « Planifier, Recettes, Bac à sable, Ma partie, Plus », avec l'Arbre dans Ma partie et Contribuer dans Plus ? [oui]
-4. Schéma en lecture d'abord, « Modifier » limité au nombre, à la recette, aux liaisons et à la suppression ? [oui]
-5. Schéma de haut en bas sur téléphone, sans changer les positions enregistrées ? [oui]
-6. Bac à sable : pose au viseur et liaison par deux touches, sans glisser ? [oui]
-7. Éditeur de bâtiments en lecture seule sur téléphone ? [oui]
-8. Vue d'ouverture de Planifier : Étapes, plutôt que Schéma ? [Étapes]
-9. « Premiers pas » rangé dans Plus, avec une pastille, au lieu du panneau ? [oui]
-10. Commencer par MB1 et MB2, utiles tout de suite et sans dépendre de A / B ? MB1 corrige aussi le débordement d'une fenêtre étroite (761 à 1 045 px environ) d'ordinateur. [oui]
-11. Quel téléphone et quel navigateur as-tu pour les essais (§ 2) ? [Chrome Android et Safari iPhone si possible]
+1. **Navigation B, dock.** Boutons du plan dans l'ordre **Usine, Schéma, Étapes, Bilan**, puis Menu.
+2. **Tablette : version mobile**, en portrait comme en paysage (rail à gauche, panneau à droite). Critère de
+   bascule du § 3 remplacé : largeur < 900 px, ou pointeur grossier à toute largeur.
+3. Menu de B (Planifier, Recettes, Bac à sable, Ma partie, Contribuer, Plus). **Contribuer devient une interface à
+   part** avec ses boutons en bas : Postes, Bâtiments, Valeurs (à vérifier), Envois.
+4. Schéma : proposition acceptée.
+5. Schéma de haut en bas, accepté ; **deux liens ne se superposent jamais** (sortie, couloir et entrée propres,
+   liseré aux croisements). S'appuie sur `graph-route.ts`.
+6. Bac à sable : viseur et deux touches ; **menu de pose en arbre** (T1 › Pipes › Fluid pipes › Short), en miettes
+   qu'on retouche ; annuler / rétablir dans un coin du dessin ; affichage, réglages, exemples, schémas et vider derrière « ⋯ ».
+7. **Éditeur de bâtiments fonctionnel** au téléphone (remplace la lecture seule du § 3 et du § 5).
+8. Ouverture : réponse « en Q.3 », comprise comme **Usine**, le premier bouton.
+9. « Premiers pas » dans Plus avec pastille, et **un bouton « Y aller » par ligne**, qui ouvre l'endroit et le montre.
+10. MB1 et MB2 : accord.
+11. Essais sur **Chrome Android** ; Safari iPhone hors périmètre.
+
+Maquette v2 : B seule, avec tout ce qui précède. Dans l'arbre de pose, les tiers, catégories et pièces viennent des
+données du site (bâtiments de taille connue).
+Les tailles de l'éditeur et les postes sont des exemples.
+
+### Reste à confirmer
+
+- **« Postes »** : compris comme les propositions des joueurs (lire, voter, envoyer une remarque) ? [oui]
+- Maquette v2 acceptée, et MB3 (ossature) peut commencer ? [oui]
+
+## 8. Bilans
+
+- **MB1** (2026-11-25) : plus de débordement aux six largeurs mesurées ; en-tête à la ligne de 761 à 1 060 px ; champs à
+  16 px au toucher ; « Premiers pas » repliée en une ligne de 185 × 46 px (non montrée dans le bac à sable) ; aides sans
+  « molette » au toucher. Les bulles (`title`) et l'aide « ? » gardent leur texte : MB3 et suivants.
+- **MB2** (2026-11-25) : pincement dans `PanZoom` (`pinchStep`, testé) : schéma 55 → 155 → 52, usine 36 → 109 → 36,
+  arbre 100 → 183 → 61, éditeur 73 → 219 → 73. Un nœud saisi au début d'un pincement reste à sa place.
+  Vérifié au toucher émulé ; à essayer sur Chrome Android.

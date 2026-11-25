@@ -1,5 +1,6 @@
 // Textes fixes de la page (index.html), traduits sur place (S30) :
 //   data-i18n="clé"             le texte de l'élément (il ne doit pas contenir d'autres éléments)
+//   data-i18n-touch="clé"       remplace data-i18n quand on touche l'écran (pas de molette, MB1)
 //   data-i18n-html="clé"        son contenu, balises comprises (clés en « .html » du catalogue)
 //   data-i18n-attr="title=clé;aria-label=clé;placeholder=clé"   des attributs
 //   data-ic="nom"               une icône devant le contenu (S41), remise après chaque traduction
@@ -11,8 +12,9 @@ import { icon, isIcon, noIcons, withIcons } from "../ui/icons.ts";
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 export function applyStatic(root: ParentNode): void {
+  const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   for (const el of root.querySelectorAll<HTMLElement>("[data-i18n]")) {
-    const s = t(el.dataset.i18n as Key);
+    const s = t(((touch && el.dataset.i18nTouch) || el.dataset.i18n) as Key);
     if (s.includes("{i:")) el.innerHTML = withIcons(esc(s));
     else el.textContent = s;
   }
