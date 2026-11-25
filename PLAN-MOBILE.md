@@ -183,3 +183,6 @@ Les tailles de l'éditeur et les postes sont des exemples.
 - **MB2** (2026-11-25) : pincement dans `PanZoom` (`pinchStep`, testé) : schéma 55 → 155 → 52, usine 36 → 109 → 36,
   arbre 100 → 183 → 61, éditeur 73 → 219 → 73. Un nœud saisi au début d'un pincement reste à sa place.
   Vérifié au toucher émulé ; à essayer sur Chrome Android.
+- **Essai en ligne** (2026-11-25, demandé par l'utilisateur : pas de mise en ligne du site) : MB1 et MB2 (`83b1812`) sous
+  `https://industrialist.myprisme.fr/v/essai-mobile/`, dans `/srv/industrialist/v/essai-mobile` (non indexé, stockage
+  du navigateur séparé). À supprimer après l'essai. « Postes » = propositions : confirmé. MB3 : pas commencé.
