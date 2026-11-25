@@ -103,6 +103,15 @@ body.wide .top-in, body.wide main { max-width: 1480px; }
 .u-busy { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; width: min(420px, 90%); background: var(--surface); border: 1px solid var(--accent); border-radius: 0; padding: 8px 12px; box-shadow: none; }
 .u-busy p { margin: 0 0 6px; }
 .u-cut { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; background: var(--surface); border-top: 1px solid var(--line); padding: 4px 10px; font-size: .82rem; display: flex; gap: 4px 10px; align-items: center; flex-wrap: wrap; }
+/* Plan abrégé : la relance du calcul est l'action mise en avant de l'onglet Usine. */
+#pose-cut { padding: 10px 12px; border-top: 2px solid var(--accent); color: var(--ink); justify-content: space-between; flex-wrap: nowrap; gap: 14px; }
+#pose-cut[hidden] { display: none; }
+#pose-cut .u-cut-t { display: block; min-width: 0; }
+#pose-cut .u-cut-t b { color: var(--accent); margin-right: 6px; }
+#pose-cut button { flex: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 0; font-size: .95rem; padding: 9px 16px; }
+@media (max-width: 640px) { #pose-cut { flex-direction: column; align-items: stretch; gap: 8px; } #pose-cut button { justify-content: center; } }
+.cmd-cat.cmd-cut { background: var(--accent); color: var(--on-accent); }
+.cmd-cat.cmd-cut :is(.cmd-n, span, .ic) { color: inherit; }
 .u-busy .progress { margin: 0; }
 .u-evac-t { font: 600 9px var(--f-body); paint-order: stroke; stroke: var(--cv-bg); stroke-width: 3px; pointer-events: none; }
 .u-evaclist { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: .86rem; }
@@ -1437,6 +1446,17 @@ table.rh-log td.num { white-space: nowrap; }
 .pal-tabs button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .pal-grid { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; padding: 10px; align-content: start; }
 .pal-it { display: flex; align-items: center; gap: 8px; padding: 6px; text-align: left; font-size: .8rem; background: var(--bg); border-radius: 7px; min-width: 0; }
+.pal-note { display: block; color: var(--warn); font-size: .7rem; }
+.no-plan { max-width: 560px; margin: 12vh auto 0; padding: 16px 20px; border: 1px solid var(--warn); background: var(--surface); display: grid; gap: 10px; }
+.no-plan[hidden] { display: none; }
+.no-plan > .ic { width: 28px; height: 28px; color: var(--warn); }
+.no-plan .answer { border: 0; background: none; padding: 0; box-shadow: none; }
+.no-plan h2 { font-size: 1.05rem; margin: 0 0 6px; }
+.no-plan p { margin: 0; }
+.no-plan.nopick > p { display: none; }
+.gbar .gbar-x { margin-left: auto; align-self: flex-start; }
+.gbar.folded { padding: 0; }
+.gbar .gbar-open { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 5px 10px; font-size: .8rem; }
 .pal-it span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .pal-it.cur { border-color: var(--line); color: var(--accent); }
 .pal-it.f, .pal-it:hover { border-color: var(--accent); background: var(--accent-soft); }
@@ -1720,7 +1740,8 @@ table.rh-log td.num { white-space: nowrap; }
 .u-bad circle { opacity: .9; }
 /* Alertes cliquables dans la bulle. */
 .cmd-alerts { display: flex; flex-direction: column; margin: 6px -10px; border-top: 1px solid var(--line); }
-.cmd-alerts .cmd-li { font-size: .78rem; }
+.cmd-alerts .cmd-li { font-size: .78rem; align-items: flex-start; }
+.cmd-alerts .cmd-li .nm { white-space: normal; overflow: visible; }
 .cmd-alerts span.cmd-li { cursor: default; }
 @media (min-width: 900px) {
   #pose-focus:not(.full) #focus-head > .cmd-alerts { display: flex !important; }
@@ -1935,6 +1956,8 @@ table.me-ex tr.me-v1 th, table.me-ex tr.me-v1 td { color: var(--muted); border-t
 .gn-col.i .gn-port { left: -15px; } .gn-col.o .gn-port { right: -15px; background: var(--gv-out); }
 /* Vue allégée (sous 28 %) : machine, nombre et produit ; pas d'étiquettes sur les liaisons. */
 .gv.far .gn-io, .gv.far .ge-lab { display: none; }
+.gv.far .gn { height: var(--gn-h); }
+.gv.far .ge-line { stroke-width: 6; }
 .gv.far .gn-m { border-bottom: 0; }
 .gv.far .gn-hd b, .gv.far .gn-n { font-size: 22px; }
 .gv.far .gn-m { font-size: 18px; } .gv.far .gn-m span + span { display: none; }

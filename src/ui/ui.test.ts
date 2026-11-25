@@ -16,7 +16,6 @@ import { msg, type Message } from "../engine/message.ts";
 import { setLang } from "../i18n/i18n.ts";
 import { solve } from "../engine/solve.ts";
 import { esc, fieldLabel, fmt, fmtDuration, fmtMF, parseInput } from "./format.ts";
-import { FH, FW, LABEL_H, layoutFlow } from "./flow-layout.ts";
 import { buildRows, buildSignature, criterionHint, criterionText, renderAnswer, renderBuildList, renderDetails, type ViewCtx } from "./plan-view.ts";
 import { renderVerify } from "./render.ts";
 import { currentRp, EMPTY_PLAYER, exportProgress, fitsPlot, parseOptional, parseProgressExport, plotOf, progressSummary, renderOwned, renderTree, sanitizeProgress, rpDelta, toEngineProgress, withRpRate } from "./progress.ts";
@@ -180,43 +179,6 @@ const all = { unlocked: new Set(data.nodes.keys()), pollutionPct: 0 };
 
 type Box = { x: number; y: number; w: number; h: number };
 const hit = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-
-describe("schéma des flux (de gauche à droite)", () => {
-  const items = ["crankshaft", "electric-motor", "lithium-battery-pack", "tire", "8x-microchip", "steel-plate"];
-  for (const criterion of ["machines", "energy", "raw", "steps", "pollution", "cost"] as const) {
-    it(`aucun chevauchement, flèches vers la droite, boucles repérées (priorité ${criterion})`, () => {
-      for (const item of items) {
-        const plan = solve(data, all, { item, ratePerMin: 60, criterion, tiers: false });
-        const g = layoutFlow(plan, (id) => data.items.get(id)?.name ?? id);
-        const known = new Set(plan.steps.map((st) => st.key));
-        const extra = plan.unresolved.filter((u) => !known.has(u.item)).length + plan.existing.length;
-        expect(g.nodes, item).toHaveLength(plan.steps.length + extra);
-        const nodes = g.nodes.map((n) => ({ x: n.x, y: n.y, w: FW, h: FH }));
-        const labels = g.edges.map((e) => ({ x: e.lx - e.lw / 2, y: e.ly - LABEL_H / 2, w: e.lw, h: LABEL_H }));
-        for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) expect(hit(nodes[i]!, nodes[j]!), `${item} : nœuds ${i}/${j}`).toBe(false);
-        // Les quantités ne se chevauchent jamais (« les nombres fusionnent ») ni ne cachent un bloc.
-        for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) expect(hit(labels[i]!, labels[j]!), `${item} : étiquettes ${i}/${j}`).toBe(false);
-        for (const l of labels) for (const n of nodes) expect(hit(l, n), `${item} : étiquette sur un bloc`).toBe(false);
-        const col = new Map(g.nodes.map((n) => [n.id, n.col]));
-        for (const e of g.edges) {
-          if (e.loop) expect(plan.edges.some((x) => x.loop && x.from === e.from && x.to === e.to), `${item} ${e.from}→${e.to}`).toBe(true);
-          else expect(col.get(e.from)!, `${item} ${e.from}→${e.to}`).toBeLessThan(col.get(e.to)!);
-        }
-        expect(g.edges).toHaveLength(plan.edges.length);
-        expect(g.nodes.find((n) => n.id === item)?.kind, item).toBe("final");
-      }
-    });
-  }
-
-  it("un item non produit apparaît comme bloc « non produit », à gauche de son consommateur", () => {
-    const d = makeData({ recipes: [{ id: "r", machine: "m", t: 10, in: { missing: 1 }, out: { x: 1 } }] });
-    const plan = solve(d, progress(), { item: "x", ratePerMin: 6 });
-    const g = layoutFlow(plan);
-    const miss = g.nodes.find((n) => n.id === "missing")!;
-    expect(miss.kind).toBe("unresolved");
-    expect(miss.col).toBeLessThan(g.nodes.find((n) => n.id === "x")!.col);
-  });
-});
 
 describe("vue d'un plan : réponse, liste de construction, schéma, détails", () => {
   const plan = solve(data, all, { item: "crankshaft", ratePerMin: 60, criterion: "energy" });

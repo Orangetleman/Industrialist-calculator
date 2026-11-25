@@ -20,7 +20,7 @@
   <meta property="og:title" content="Industrialist Production Planner (unofficial)">
   <meta property="og:description" content="Full production chains for Roblox Industrialist: machines, power, floor space and a build plan for every module, based on what you have unlocked.">
   <meta property="og:url" content="https://industrialist.myprisme.fr/">
-  <meta property="og:image" content="https://industrialist.myprisme.fr/og-image.png">
+  <meta property="og:image" content="https://industrialist.myprisme.fr/og-image.png?v=2">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Industrialist Production Planner, an unofficial fan tool for Roblox Industrialist">
@@ -221,6 +221,7 @@
       <span class="cmd-help" id="plan-help" tabindex="0" role="note" data-i18n-attr="title=plan.help;aria-label=plan.help" title="" aria-label="">?</span>
     </div>
     <!-- G4 : le graphe édité (onglet Schéma) et le plan du site : tiré du graphe, à recalculer, objectif changé. -->
+    <div id="no-plan" class="no-plan" role="alert" hidden></div>
     <div id="graph-bar" class="gbar" role="status" aria-live="polite" hidden></div>
     <div class="rpanel" role="tabpanel" id="rpanel-liste" aria-labelledby="rtab-liste"><div id="build"></div></div>
     <div class="rpanel" role="tabpanel" id="rpanel-schema" aria-labelledby="rtab-schema" hidden>
@@ -231,7 +232,6 @@
           <button type="button" data-fzoom="in" aria-label="Zoomer" data-i18n-attr="aria-label=zoom.in">+</button>
           <button type="button" data-fzoom="out" aria-label="Dézoomer" data-i18n-attr="aria-label=zoom.out">−</button>
           <button type="button" data-fzoom="fit" aria-label="Tout voir" title="Tout voir : toute la chaîne" data-i18n-attr="aria-label=zoom.fit;title=zoom.fit.chain" data-ic="fit"></button>
-          <button type="button" data-fzoom="arrange" aria-label="Ranger" title="Ranger : de l'extraction à l'objectif, sans chevauchement" data-i18n-attr="aria-label=gv.arrange;title=gv.arrange" data-ic="tiles"></button>
         </div>
       </div>
       <p class="hint" data-i18n="flow.hint">De gauche (extraction) à droite (objectif) : chaque nœud est une recette, entrées en bleu à gauche, sorties en mauve à droite. Clique un nœud pour sa bulle et sa fiche, une ligne d'entrée pour les recettes qui la produisent ; tire une prise vers une autre pour les relier. Alt + clic supprime, Maj + clic marque la cible, Ctrl Z annule.</p>
@@ -302,7 +302,7 @@
             <button type="button" class="cmd-cat" data-pane="io" id="cat-io" hidden><span data-ic="in"></span><span data-i18n="plan.cat.io">Entrées / sorties</span><span class="cmd-n" id="cat-io-n"></span><span data-ic="chevR"></span></button>
             <button type="button" class="cmd-cat" data-pane="notes" id="cat-notes" hidden><span data-ic="info"></span><span data-i18n="plan.cat.notes">Notes</span><span></span><span data-ic="chevR"></span></button>
             <button type="button" class="cmd-cat" data-pane="warn" id="cat-warn" hidden><span data-ic="warn"></span><span data-i18n="plan.cat.warn">À régler</span><span class="cmd-n" id="cat-warn-n"></span><span data-ic="chevR"></span></button>
-            <button type="button" class="cmd-cat cmd-cut" id="cat-cut" hidden><span data-ic="clock"></span><span data-i18n="uf.cut.more">Continuer le calcul</span><span class="cmd-n" id="cat-cut-n"></span><span data-ic="chevR"></span></button>
+            <button type="button" class="cmd-cat cmd-cut" id="cat-cut" hidden><span data-ic="clock"></span><span data-i18n="uf.cut.more">Chercher un meilleur plan</span><span class="cmd-n" id="cat-cut-n"></span><span data-ic="chevR"></span></button>
             <button type="button" class="cmd-cat" data-pane="plan"><span data-ic="settings"></span><span data-i18n="plan.cat.plan">Ton plan</span><span class="cmd-n" id="cat-plan-n"></span><span data-ic="chevR"></span></button>
             <button type="button" class="cmd-cat" data-pane="pose" id="cat-pose"><span data-ic="home"></span><span data-i18n="plan.set.pose">Plan de pose</span><span class="cmd-tag" data-i18n="plan.proposal" data-i18n-attr="title=plan.help">proposition</span><span data-ic="chevR"></span></button>
             <section class="cmd-share" id="plan-share" aria-labelledby="plan-share-h">

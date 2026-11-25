@@ -53,6 +53,7 @@ import { bindHistoryHover, chartDomain, renderHistory, renderPlay, type Names } 
 import { dependentsOf, isNodeUnlocked, missingNodes, rpCost, unlockUpTo } from "../engine/unlock.ts";
 import { colon, esc, fmt, fmtMF, fmtDate, fmtDuration, fmtMoney, fmtMoneyShort, fmtPct, fmtRP, fmtShort, parseEnergy, parseInput, parseNum } from "./format.ts";
 import { icon, iconAt, withIcons } from "./icons.ts";
+import { craftableItems } from "../engine/craftable.ts";
 import { createItemPalette, itemTile, type PalItem } from "./item-palette.ts";
 import { applyStatic } from "../i18n/dom.ts";
 import { joinList, KEY_LANG, lang, setLang, startLang, t, type Key, type Lang } from "../i18n/i18n.ts";
@@ -1295,7 +1296,14 @@ const blankPrompt = (g: Goal): string => (g === "recherche" ? "" : t(`plan.blank
 
 /** Objets de la palette (S61) : nom du jeu et vignette du wiki ou du joueur. */
 const palItems = (): PalItem[] =>
-  [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name)).map((it) => ({ id: it.id, name: it.name, pic: pictureOf("objet", it.id)?.src ?? null }));
+  [...data.items.values()].sort((a, b) => a.name.localeCompare(b.name)).map((it) => ({ id: it.id, name: it.name, pic: pictureOf("objet", it.id)?.src ?? null, ...(craftable().has(it.id) ? {} : { note: t("pal.noRecipe") }) }));
+/** Objets qu'au moins une recette complète (durée et quantités connues) fabrique ; les autres portent un avertissement. */
+let craftCache: { data: GameData; ids: Set<string> } | null = null;
+function craftable(): Set<string> {
+  const pd = planData();
+  if (craftCache?.data !== pd) craftCache = { data: pd, ids: craftableItems(pd) };
+  return craftCache.ids;
+}
 const itemPal = createItemPalette({
   items: palItems,
   current: () => settings.item,
@@ -1367,6 +1375,12 @@ function syncForm(): void {
   input("unverified").checked = settings.useUnverified;
 }
 
+/** Explication d'un objectif impossible ; sans recette connue, ce n'est pas la progression du joueur qui manque. */
+function noPlanAnswer(v: ViewCtx): string {
+  const html = renderAnswer(v);
+  if (v.goal !== "objet" || craftable().has(settings.item)) return html;
+  return html.replace(/<h2>[^]*?<\/h2>/, () => `<h2>${esc(t("noplan.noRecipe", { item: itemName(settings.item) }))}</h2>`);
+}
 function renderPlanPage(): void {
   const v = viewCtx();
   const goal = settings.goal;
@@ -1428,6 +1442,11 @@ function renderPlanPage(): void {
   const blank = isBlank(goal);
   const noResult = blank || (goal === "recherche" && !rpView?.best && !rpView?.timelineNow?.length);
   $("answer").innerHTML = blank ? `<p class="hint blank-prompt">${esc(blankPrompt(goal))}</p>` : renderAnswer(v);
+  // Rien à produire (aucune recette utilisable, tout verrouillé…) : le pourquoi au milieu de la page, pas une page vide.
+  const impossible = !noResult && goal !== "recherche" && v.plan.status === "impossible" && !v.plan.steps.length;
+  $("no-plan").hidden = !impossible;
+  $("no-plan").innerHTML = impossible ? `${icon("warn")}${noPlanAnswer(v)}<p><button type="button" class="primary" data-no-plan-pick>${esc(t("noplan.pick"))}</button></p>` : "";
+  $("no-plan").classList.toggle("nopick", goal !== "objet");
   renderIoPane();
   const fixBar = $("fix-bar");
   fixBar.innerHTML = blank ? "" : renderFixBar(v);
@@ -1438,10 +1457,10 @@ function renderPlanPage(): void {
   planBar.innerHTML = noResult ? "" : renderPlanBar(v, planBarInput(adv));
   planBar.hidden = noResult;
   if (openWarn) planBar.querySelector<HTMLDetailsElement>(".pb-warn")?.setAttribute("open", "");
-  $("rtabs-result").hidden = noResult;
+  $("rtabs-result").hidden = noResult || impossible;
   if (!noResult) syncGraphDoc(v.plan);
   renderGraphBar();
-  if (noResult) {
+  if (noResult || impossible) {
     // Rien à poser : les étapes du plan précédent (design quitté) ne restent pas dans le rail.
     railSteps = [];
     renderStepRail();
@@ -1642,7 +1661,7 @@ function renderFlowCanvas(): void {
   Object.assign((graphView as unknown as { opts: GraphViewOptions }).opts, { data: planData(), text: graphText() });
   const keep = signature === flowKey && doc.arranged;
   graphLoad = false;
-  graphView.show(canvas, doc.g, keep);
+  graphView.show(canvas, doc.g, keep, !doc.arranged && frame.clientWidth > 0);
   // « Ranger » d'entrée, avec les vraies hauteurs des nœuds (le cadre doit être affiché pour les mesurer).
   if (!doc.arranged && frame.clientWidth > 0) {
     doc.arranged = true;
@@ -1758,6 +1777,8 @@ function graphGoalLabel(g: Graph): string | null {
 }
 
 /** Bandeau au-dessus du résultat : plan tiré du graphe, graphe à recalculer, ou objectif changé. */
+/** Bandeau réduit par le joueur : reste réduit tant que sa situation ne change pas (« à recalculer », objectif changé…). */
+let graphBarFolded: string | null = null;
 function renderGraphBar(): void {
   const bar = $("graph-bar");
   const ge = gedit;
@@ -1782,7 +1803,12 @@ function renderGraphBar(): void {
       html = `<p>${esc(t("gbar.solved"))}</p><span class="gbar-b">${b('data-gbar="back"', t("gbar.back"))}</span>`;
     }
   }
-  bar.className = `gbar${cls ? ` ${cls}` : ""}`;
+  const state = cls || "solved";
+  if (graphBarFolded !== null && graphBarFolded !== state) graphBarFolded = null;
+  const folded = !!html && graphBarFolded !== null;
+  if (folded) html = `<button type="button" class="gbar-open" data-gbar-fold="0" aria-expanded="false">${icon(cls ? "warn" : "info")} ${esc(t(`gbar.short.${state}` as Key))} ${icon("chevR")}</button>`;
+  else if (html) html += `<button type="button" class="icon-btn gbar-x" data-gbar-fold="${state}" title="${esc(t("gbar.fold"))}" aria-label="${esc(t("gbar.fold"))}">${icon("close")}</button>`;
+  bar.className = `gbar${cls ? ` ${cls}` : ""}${folded ? " folded" : ""}`;
   bar.innerHTML = html;
   bar.hidden = !html;
   graphView?.setStale(cls === "due");
@@ -1973,7 +1999,9 @@ let poseFitAll = false;
  * Calculs de toute l'usine, en arrière-plan (Web Worker) : un par réglage de calcul (recalculée, module par
  * module, collée), gardé tant que le plan, les priorités, les relevés et la parcelle ne changent pas.
  */
-type FactoryState = { key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean; since?: number };
+type FactoryState = {
+  /** Plan abrégé d'avant « Chercher un meilleur plan » : repris si le joueur arrête la recherche. */
+  prev?: FactoryState; key: string; plan: FactoryPlan | null; ms: number; job: FactoryJob | null; done: number; label: Text; error: string | null; cancelled: boolean; flows: FactoryArrow[] | null; cached?: boolean; since?: number };
 const factories = new Map<string, FactoryState>();
 /** Module ouvert dans le panneau à côté de l'usine (adresse #…/pose/usine-entiere/<étape>). */
 let poseFocus: string | null = null;
@@ -3249,7 +3277,9 @@ function startFactory(complete = false): void {
     }
   const key = factoryKey();
   const input = factoryInputNow(complete);
+  const was = factories.get(key);
   const st: FactoryState = { key, plan: null, ms: 0, job: null, done: 0, label: t("m.f.lookup"), error: null, cancelled: false, flows: null };
+  if (complete && was?.plan) st.prev = was;
   factories.set(key, st);
   const showing = () => factories.get(factoryKey()) === st && !$("rpanel-pose").hidden && poseStep === USINE;
   const refresh = () => {
@@ -3394,7 +3424,7 @@ function renderFactory(): void {
   cut.hidden = $("cat-cut").hidden = !st.plan.cut;
   // Le même bouton dans « Ce plan » (volet droit), avec la durée déjà passée.
   $("cat-cut-n").textContent = st.plan.cut ? t("m.f.sec", { s: fmt(st.ms / 1000, 0) }) : "";
-  cut.innerHTML = st.plan.cut ? `<span>${t("uf.cut", { s: fmt(st.ms / 1000, 0) })}</span> <button type="button" class="small" data-usine="complete">${t("uf.cut.more")}</button>` : "";
+  cut.innerHTML = st.plan.cut ? `<span class="u-cut-t"><b>${t("uf.cut.title")}</b> <span>${t("uf.cut", { s: fmt(st.ms / 1000, 0) })}</span></span> <button type="button" class="primary" data-usine="complete">${icon("rotate")} ${t("uf.cut.more")}</button>` : "";
   const plot = plotOf(player);
   const info = renderFactoryInfo(st.plan, anyName, plot, tierOf, st.ms, !settings.usine.full && settings.usine.glue, st.cached);
   $("pose-head").innerHTML = info.head;
@@ -3507,12 +3537,16 @@ function followBubble(key: string): void {
     if (box && host.width) {
       const r = box.getBoundingClientRect();
       w0 ||= r.width || 1;
-      const sc = Math.max(0.75, Math.min(1.6, r.width / w0));
+      // Jamais sous les onglets ni sous le bandeau du graphe (son ✕ y disparaissait), ni plus haute que le plan.
+      const bar = $("graph-bar");
+      const top = Math.max(48, bar.hidden ? 0 : bar.getBoundingClientRect().bottom - host.top + 8);
+      const room = (host.height - top - 8) / Math.max(1, panel.offsetHeight);
+      const sc = Math.max(0.6, Math.min(1.6, Math.max(0.75, r.width / w0), room));
       const pw = panel.offsetWidth * sc, ph = panel.offsetHeight * sc;
       let x = r.left - host.left, y = r.bottom - host.top + 10;
       if (y + ph > host.height) y = r.top - host.top - ph - 10; // pas la place dessous : au-dessus
       x = Math.max(6, Math.min(x, host.width - pw - 6));
-      y = Math.max(48, Math.min(y, host.height - ph - 6)); // sous le groupe d'onglets posé sur le plan
+      y = Math.max(top, Math.min(y, host.height - ph - 6));
       panel.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) scale(${sc.toFixed(3)})`;
     }
     bubbleRaf = requestAnimationFrame(tick);
@@ -4826,6 +4860,14 @@ function bindPlan(): void {
     const st = currentFactory();
     if (u.dataset.usine === "cancel" && st) {
       st.job?.cancel();
+      if (st.prev) {
+        // Recherche d'un meilleur plan arrêtée : le plan d'avant revient tel quel.
+        st.cancelled = true;
+        factories.set(st.key, st.prev);
+        renderPose();
+        $("pose-cut").querySelector<HTMLElement>("[data-usine]")?.focus();
+        return true;
+      }
       Object.assign(st, { job: null, cancelled: true });
       renderPose();
       $("pose-busy").querySelector<HTMLElement>("[data-usine]")?.focus();
@@ -4840,6 +4882,9 @@ function bindPlan(): void {
     } else return false;
     return true;
   };
+  $("no-plan").addEventListener("click", (e) => {
+    if ((e.target as Element).closest("[data-no-plan-pick]")) itemPal.open();
+  });
   $("cat-cut").addEventListener("click", () => {
     startFactory(true);
     poseStep = USINE;
@@ -4920,6 +4965,13 @@ function bindPlan(): void {
   bindRails();
   // Bandeau du graphe édité (G4).
   $("graph-bar").addEventListener("click", (e) => {
+    const fold = (e.target as Element).closest<HTMLElement>("[data-gbar-fold]");
+    if (fold) {
+      graphBarFolded = fold.dataset.gbarFold === "0" ? null : fold.dataset.gbarFold!;
+      renderGraphBar();
+      $("graph-bar").querySelector<HTMLElement>("[data-gbar-fold]")?.focus();
+      return;
+    }
     const a = (e.target as Element).closest<HTMLElement>("[data-gbar]")?.dataset.gbar;
     if (a === "recalc") void recalcGraph();
     else if (a === "rate") void recalcGraph(settings.rate);
@@ -5201,7 +5253,6 @@ function bindPlan(): void {
       const z = b.dataset.fzoom;
       if (z === "in") graphView?.zoom(1.25);
       else if (z === "out") graphView?.zoom(1 / 1.25);
-      else if (z === "arrange") graphView?.arrange(); // « Ranger » : de l'extraction à l'objectif
       else graphView?.fit(); // ⤢ : toute la chaîne, comme la vue de départ (S28)
     });
   }

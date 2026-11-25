@@ -5,7 +5,7 @@
 import { t } from "../i18n/i18n.ts";
 import { esc } from "./format.ts";
 
-export type PalItem = { id: string; name: string; pic: string | null };
+export type PalItem = { id: string; name: string; pic: string | null; note?: string };
 
 const KEY_RECENT = "ind-calc:v1:recent-items";
 const MAX_SHOWN = 160;
@@ -84,7 +84,7 @@ export function createItemPalette(opts: { items: () => PalItem[]; current: () =>
     for (const b of el.querySelectorAll<HTMLElement>("[data-pal-tab]")) b.setAttribute("aria-pressed", String(b.dataset.palTab === tab));
     grid.innerHTML = shown.length
       ? shown
-          .map((it, i) => `<button type="button" role="option" class="pal-it${i === focus ? " f" : ""}${it.id === cur ? " cur" : ""}" id="pal-${uid}-${i}" data-pal="${esc(it.id)}" aria-selected="${i === focus}" tabindex="-1">${itemTile(it)}<span>${esc(it.name)}</span></button>`)
+          .map((it, i) => `<button type="button" role="option" class="pal-it${i === focus ? " f" : ""}${it.id === cur ? " cur" : ""}" id="pal-${uid}-${i}" data-pal="${esc(it.id)}" aria-selected="${i === focus}" tabindex="-1">${itemTile(it)}<span>${esc(it.name)}${it.note ? `<small class="pal-note">⚠ ${esc(it.note)}</small>` : ""}</span></button>`)
           .join("") + (list.length > MAX_SHOWN ? `<p class="pal-more">${esc(t("pal.more", { n: list.length - MAX_SHOWN }))}</p>` : "")
       : `<p class="pal-more">${esc(t(tab === "recent" && !needle ? "pal.noRecent" : "pal.empty"))}</p>`;
     q.setAttribute("aria-activedescendant", shown.length ? `pal-${uid}-${focus}` : "");

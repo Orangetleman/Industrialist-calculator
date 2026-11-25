@@ -1,35 +1,70 @@
 <!doctype html>
-<!-- Image d'aperçu des liens (og:image, 1200 × 630), S33 : en anglais, comme l'aperçu Discord (décision S16 Public).
+<!-- Image d'aperçu des liens (og:image, 1200 × 630) : en anglais, comme l'aperçu Discord (décision S16 Public).
+     Refaite aux couleurs actuelles du site (violet sombre, orange, lilas, vert ; titre Audiowide) avec un mini-graphe de chaîne.
      Rendu par Chrome sans fenêtre, depuis la racine du dépôt :
-       chrome --headless --hide-scrollbars --window-size=1200,630 --screenshot=public/og-image.png scripts/og-image.html -->
+       chrome --headless --hide-scrollbars --window-size=1200,630 --virtual-time-budget=5000 --screenshot=public/og-image.png scripts/og-image.html -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Condensed:wght@700&family=IBM+Plex+Sans:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;600&display=swap">
 <style>
-  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  :root { --bg:#0e0a18; --surface:#160f25; --panel2:#201733; --ink:#f0ecfa; --muted:#a99cc8; --line:#392a5a; --accent:#ff6a1a; --steel:#c4a1ff; --acc2:#b6f23a; }
+  html, body { margin:0; width:1200px; height:630px; overflow:hidden; }
   body {
     background:
-      linear-gradient(rgba(143, 184, 214, .06) 1px, transparent 1px) 0 0 / 40px 40px,
-      linear-gradient(90deg, rgba(143, 184, 214, .06) 1px, transparent 1px) 0 0 / 40px 40px,
-      linear-gradient(180deg, #1f3d52 0%, #12171c 100%);
-    color: #e6ebf0; font-family: "IBM Plex Sans", sans-serif;
-    display: flex; align-items: center; gap: 56px; padding: 0 70px; box-sizing: border-box;
+      linear-gradient(rgba(196,161,255,.05) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgba(196,161,255,.05) 1px, transparent 1px) 0 0 / 40px 40px,
+      radial-gradient(ellipse 70% 90% at 85% 50%, #2a1b48 0%, transparent 70%),
+      var(--bg);
+    color:var(--ink); font-family:"IBM Plex Sans", sans-serif; position:relative;
   }
-  .logo { width: 280px; height: 280px; flex: none; border-radius: 56px; filter: drop-shadow(0 10px 30px rgba(0, 0, 0, .35)); }
-  .eyebrow { font: 500 26px "IBM Plex Mono", monospace; letter-spacing: .04em; color: #f0913a; }
-  h1 { font: 700 74px/1.04 "IBM Plex Sans Condensed", sans-serif; margin: 14px 0 18px; letter-spacing: -.01em; }
-  p { font-size: 30px; line-height: 1.35; color: #c4ced8; margin: 0; }
-  .url { margin-top: 34px; font: 500 26px "IBM Plex Mono", monospace; color: #8fb8d6; }
+  .left { position:absolute; left:72px; top:-30px; bottom:30px; width:520px; display:flex; flex-direction:column; justify-content:center; }
+  .brand { display:flex; align-items:center; gap:16px; }
+  .brand img { width:56px; height:56px; border-radius:13px; }
+  .eyebrow { font:500 20px "IBM Plex Mono", monospace; letter-spacing:.06em; color:var(--accent); }
+  h1 { font:400 62px/1.08 Audiowide, sans-serif; margin:30px 0 22px; letter-spacing:.01em; }
+  h1 em { font-style:normal; color:var(--accent); }
+  p { font-size:27px; line-height:1.38; color:var(--muted); margin:0; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:28px; }
+  .chip { font:600 17px "IBM Plex Sans", sans-serif; padding:6px 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink); }
+  .chip b { color:var(--accent); margin-right:6px; }
+  .url { position:absolute; left:72px; bottom:36px; font:500 22px "IBM Plex Mono", monospace; color:var(--steel); }
+  /* mini-graphe */
+  .graph { position:absolute; right:56px; top:70px; width:520px; height:490px; border:1px solid var(--line); border-radius:18px; background:rgba(22,15,37,.85); box-shadow:0 20px 60px rgba(0,0,0,.5); overflow:hidden; }
+  .bar { height:40px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; padding:0 16px; font:500 14px "IBM Plex Mono", monospace; color:var(--muted); }
+  .bar i { width:10px; height:10px; border-radius:50%; background:var(--line); }
+  svg { position:absolute; left:0; top:70px; }
+  .n { position:absolute; width:130px; box-sizing:border-box; height:50px; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); font:600 16px "IBM Plex Sans Condensed", sans-serif; }
+  .n small { display:block; font:400 12px "IBM Plex Sans", sans-serif; color:var(--muted); margin-top:2px; }
+  .n.raw { border-color:#4b6b1f; } .n.raw small { color:var(--acc2); }
+  .n.goal { border-color:var(--accent); background:#33190c; } .n.goal small { color:var(--accent); }
+  .n.m { border-color:#5a3f93; } .n.m small { color:var(--steel); }
 </style>
 </head>
 <body>
-  <img class="logo" src="../public/favicon.svg" alt="">
-  <div>
-    <div class="eyebrow">INDUSTRIALIST · ROBLOX · UNOFFICIAL</div>
-    <h1>Industrialist<br>Production Planner</h1>
-    <p>Full production chains, power and build plans,<br>based on what you have unlocked.</p>
-    <div class="url">industrialist.myprisme.fr</div>
+  <div class="left">
+    <div class="brand"><img src="../public/favicon.svg" alt=""><span class="eyebrow">ROBLOX INDUSTRIALIST · UNOFFICIAL</span></div>
+    <h1>Industrialist<br><em>Production</em><br>Planner</h1>
+    <p>Pick an item. Get the full chain, the power and a build plan, based on what you have unlocked.</p>
+    <div class="chips"><span class="chip"><b>■</b>Floor space</span><span class="chip"><b>■</b>Machines</span><span class="chip"><b>■</b>Power</span><span class="chip"><b>■</b>Pollution</span></div>
+  </div>
+  <div class="url">industrialist.myprisme.fr</div>
+
+  <div class="graph">
+    <div class="bar"><i></i><i></i><i></i><span style="margin-left:8px">Production chain</span></div>
+    <svg width="520" height="450" viewBox="0 0 520 450" fill="none" stroke-width="2.5" stroke-linecap="round">
+      <path d="M148 75 C175 75 170 130 195 130" stroke="#b6f23a" opacity=".7"/>
+      <path d="M148 185 C175 185 170 130 195 130" stroke="#b6f23a" opacity=".7"/>
+      <path d="M148 295 C175 295 170 240 195 240" stroke="#b6f23a" opacity=".7"/>
+      <path d="M325 130 C350 130 345 185 372 185" stroke="#c4a1ff" opacity=".8"/>
+      <path d="M325 240 C350 240 345 185 372 185" stroke="#c4a1ff" opacity=".8"/>
+    </svg>
+    <div class="n raw" style="left:18px;top:120px">Raw input<small>extracted</small></div>
+    <div class="n raw" style="left:18px;top:230px">Raw input<small>extracted</small></div>
+    <div class="n raw" style="left:18px;top:340px">Raw input<small>extracted</small></div>
+    <div class="n m" style="left:195px;top:175px">Machine<small>refine</small></div>
+    <div class="n m" style="left:195px;top:285px">Machine<small>assemble</small></div>
+    <div class="n goal" style="left:372px;top:230px">Your item<small>target</small></div>
   </div>
 </body>
 </html>
