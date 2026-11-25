@@ -21,6 +21,7 @@ import { remarquesFr } from "./vues/remarques.fr.ts";
 import { propositionsFr } from "./vues/propositions.fr.ts";
 import { methodesFr } from "./vues/methodes.fr.ts";
 import { bacFr } from "./vues/bac.fr.ts";
+import { mobileFr } from "./vues/mobile.fr.ts";
 
 export const fr = {
   // ------------------------------------------------------------ commun
@@ -649,4 +650,5 @@ export const fr = {
   ...methodesFr,
   // B3 : page Bac à sable
   ...bacFr,
+  ...mobileFr,
 } satisfies Record<string, Msg>;

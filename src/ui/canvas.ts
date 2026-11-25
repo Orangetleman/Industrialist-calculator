@@ -29,6 +29,10 @@ export function pinchStep(a0: Pt, b0: Pt, a1: Pt, b1: Pt): { factor: number; fro
   return { factor: d0 > 0 && d1 > 0 ? d1 / d0 : 1, from, dx: (a1.x + b1.x) / 2 - from.x, dy: (a1.y + b1.y) / 2 - from.y };
 }
 
+/** Le déplacement d'un cadre, pour qui n'en est pas propriétaire (panneaux mobiles). */
+const frames = new WeakMap<HTMLElement, PanZoom>();
+export const panZoomOf = (frame: HTMLElement): PanZoom | undefined => frames.get(frame);
+
 export class PanZoom {
   private readonly frame: HTMLElement;
   private readonly opts: PanZoomOptions;
@@ -51,6 +55,7 @@ export class PanZoom {
 
   constructor(frame: HTMLElement, opts: PanZoomOptions = {}) {
     this.frame = frame;
+    frames.set(frame, this);
     this.opts = opts;
     frame.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
     // En capture, avant les gestes propres au cadre : un second doigt fait un pincement, même posé sur un nœud.
@@ -172,6 +177,13 @@ export class PanZoom {
     const w = Math.min(maxW, Math.max(minW, this.vb.w / factor));
     const k = w / this.vb.w;
     this.vb = { x: px - (px - this.vb.x) * k, y: py - (py - this.vb.y) * k, w, h: this.vb.h * k };
+    this.apply();
+  }
+
+  /** Glisse le dessin de `dx`, `dy` pixels d'écran. */
+  panBy(dx: number, dy: number): void {
+    const s = this.scale();
+    this.vb = { ...this.vb, x: this.vb.x - dx * s, y: this.vb.y - dy * s };
     this.apply();
   }
 

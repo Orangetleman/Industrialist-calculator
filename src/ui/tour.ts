@@ -97,6 +97,9 @@ export type TourHooks = {
   onStart(): void;
   /** À chaque parcours lancé, avec son mode : la page peut simuler une progression pour le premier. */
   onStartMode?(mode: TourMode): void;
+  /** Mobile : l'élément montré à la place de la cible, et le volet à ouvrir avant de la montrer. */
+  target?(sel: string): string;
+  reveal?(sel: string | undefined): void;
   /** Ouvrir une adresse du site. */
   go(hash: string): void;
   /** À la fin (ou si on passe) : la liste « Premiers pas » apparaît. */
@@ -235,6 +238,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
     const p = s.indexOf(st.i);
     if (navigate && step.hash && location.hash !== step.hash) hooks.go(step.hash);
     hooks.onReach?.(st.mode, st.i);
+    hooks.reveal?.(step.target);
     bubble.style.display = "block";
     const last = p === s.length - 1;
     // Étape guidée par l'action : pas de « Suivant » tant que l'action n'est pas faite (sauf si elle l'est déjà).
@@ -316,7 +320,7 @@ export function createTour(steps: readonly TourStep[], hooks: TourHooks) {
       st.hole = null;
       return;
     }
-    const el = !step.center && step.target ? document.querySelector<HTMLElement>(step.target) : null;
+    const el = !step.center && step.target ? document.querySelector<HTMLElement>(hooks.target?.(step.target) ?? step.target) : null;
     const near = st.bubble === "suit";
     bubble.classList.toggle("near", near && !!el);
     if (!el || !el.getClientRects().length) {

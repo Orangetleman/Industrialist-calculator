@@ -186,3 +186,21 @@ Les tailles de l'éditeur et les postes sont des exemples.
 - **Essai en ligne** (2026-11-25, demandé par l'utilisateur : pas de mise en ligne du site) : MB1 et MB2 (`83b1812`) sous
   `https://industrialist.myprisme.fr/v/essai-mobile/`, dans `/srv/industrialist/v/essai-mobile` (non indexé, stockage
   du navigateur séparé). À supprimer après l'essai. « Postes » = propositions : confirmé. MB3 : pas commencé.
+
+### Feuille blanche (2026-11-25)
+
+Consigne : « on part d'une feuille blanche et des éléments qu'on a dans le site version pc pour avoir la version
+mobile ». Conséquence : en mode mobile (`body.mob`), les anciennes règles de petit écran et celles de grand écran sont
+neutralisées (`unifyMedia`) ; `mobile.css` et `mobile-shell.ts` disposent les éléments du site PC, sans les dupliquer ni
+toucher aux calculs. L'ordinateur ne lit rien de cela.
+
+- **MB3 + MB4** (2026-11-25) : dock (Usine, Schéma, Étapes, Bilan, Menu ; Postes, Bâtiments, Valeurs, Envois dans
+  Contribuer), en-tête avec l'objectif, panneaux (objectif, menu, réglages, partage, premiers pas), choix d'objet plein
+  écran, panneaux à crans (module, fiche), « Retour » ferme le panneau, élément touché gardé visible, rail en paysage,
+  clavier (`visualViewport`), visite guidée raccordée. 893 tests ; 12 captures ordinateur identiques avant / après.
+  Aucun débordement en 390, 360, 844, 768, 1024. Liste et Détails : depuis Bilan.
+- **Pas encore refaits** : disposition verticale du schéma (MB5), dessin de l'usine et étapes détaillées (MB6), bac à
+  sable en arbre (MB7), Recettes, Ma partie, Arbre (MB8), éditeur de bâtiments et Contribuer (MB9), textes de la visite
+  propres au mobile (« à droite », « Ctrl+K ») (MB10). Ces pages gardent leur contenu, posé dans le nouveau cadre.
+- Écart avec la maquette : le petit panneau « 82 machines » sous Usine et Schéma n'est pas repris (le dessin gagne la
+  place, Bilan est à une touche) ; une entrée Arbre à la place de « Plus », dont le contenu est en bas du menu.

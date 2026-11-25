@@ -16,6 +16,7 @@ import { remarquesEn } from "./vues/remarques.en.ts";
 import { propositionsEn } from "./vues/propositions.en.ts";
 import { methodesEn } from "./vues/methodes.en.ts";
 import { bacEn } from "./vues/bac.en.ts";
+import { mobileEn } from "./vues/mobile.en.ts";
 
 export const en: { [K in keyof typeof fr]: Msg } = {
   // ------------------------------------------------------------ commun
@@ -639,4 +640,5 @@ export const en: { [K in keyof typeof fr]: Msg } = {
   ...propositionsEn,
   ...methodesEn,
   ...bacEn,
+  ...mobileEn,
 };
