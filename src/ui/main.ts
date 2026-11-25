@@ -21,12 +21,12 @@ import powerJson from "../../data/power.json";
 import relevesJson from "../../data/releves.json";
 import imagesJson from "../../data/images.json";
 import { buildCatalog, pipeFor } from "../engine/build/catalog.ts";
-import { factoryInput, type FactoryInput, type FactoryPlan } from "../engine/build/factory.ts";
+import { type AsmEnd, factoryInput, type FactoryInput, type FactoryPlan } from "../engine/build/factory.ts";
 import { factoryFlows, type FactoryArrow } from "../engine/build/flow.ts";
 import { designModule, passageOptions, requestFromStep, type ModulePlan, type ModuleRequest, type PassageOption, type PoseCriterion } from "../engine/build/module.ts";
 import type { Step } from "../engine/solve.ts";
 import { renderModuleInfo, renderModuleSvg, renderPassagePick } from "./module-view.ts";
-import { designDiesel, designFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
+import { designDiesel, designFarm, farmPipes, turnFarm, type DieselPlan, type FarmSet } from "../engine/build/assembly.ts";
 import { dieselConfigs, type DieselConfig, type DieselReading } from "../engine/modular-calc.ts";
 import { DEFAULT_DIESEL, dieselRecipeFor, loadDieselReadings, renderDieselHud, saveDieselReadings, type DieselChoice } from "./diesel.ts";
 import { rangesButton, renderDieselInfo, renderDieselSvg, renderFarmInfo, renderFarmSvg } from "./assembly-view.ts";
@@ -3130,7 +3130,7 @@ function renderPose(): void {
 
 /** Plan de pose d'un ensemble modulaire : ferme d'arbres (portées) ou moteurs diesel (contact). */
 type Assembly =
-  | { kind: "ferme"; farm: FarmSet; loadMFps: number; perHarvester: number; width: number; height: number; label: string }
+  | { kind: "ferme"; farm: FarmSet; pipes: ReturnType<typeof farmPipes>; water: string; loadMFps: number; perHarvester: number; width: number; height: number; label: string }
   | { kind: "moteur"; diesel: DieselPlan; config: DieselConfig | null; todo: string[]; width: number; height: number; label: string };
 /** Poteau choisi pour une ferme (par étape) ; portées affichées. */
 const asmPole = new Map<string, string>();
@@ -3151,7 +3151,9 @@ function assemblyOf(key: string): Assembly | null {
   if (kind === "ferme" && r?.farm?.geometry) {
     const farm = designFarm(r.farm.geometry, st.machines, st.energyAvg ?? 0, asmPole.get(key));
     const total = farm.trees.reduce((x, y) => x + y, 0);
-    a = { kind, farm, loadMFps: st.energyAvg ?? 0, perHarvester: r.farm.geometry.perHarvester, width: farm.width, height: farm.height, label: farm.farms > 1 ? t("m.asm.farms", { n: String(farm.farms), t: String(total) }) : t("m.asm.farm", { t: String(total) }) };
+    const water = r.farm.waterItem;
+    const pipes = farmPipes(farm, CATALOG, (st.ratePerMachine * st.machines) / 60, (st.inputs.find((i) => i.item === water)?.perMin ?? 0) / 60, settings.tier3Only);
+    a = { kind, farm, pipes, water, loadMFps: st.energyAvg ?? 0, perHarvester: r.farm.geometry.perHarvester, width: farm.width, height: farm.height, label: farm.farms > 1 ? t("m.asm.farms", { n: String(farm.farms), t: String(total) }) : t("m.asm.farm", { t: String(total) }) };
   } else if (kind === "moteur" && r?.parts) {
     const config = dieselConfigs(REPO_MODULAR, dieselReadings).find((c) => c.id === r.id) ?? null;
     // Moteur à 32 cylindres : nombres de blocs à relever (MOD-14), posés au minimum du wiki.
@@ -3168,14 +3170,14 @@ function assemblyOf(key: string): Assembly | null {
 }
 
 /** Texte et dessin d'un ensemble (plan de pose ou panneau de l'usine). */
-function assemblyView(key: string, a: Assembly): { title: string; head: string; legend: string; details: string; svg: { svg: string; width: number; height: number }; bar: string } {
+function assemblyView(key: string, a: Assembly, rot = 0): { title: string; head: string; legend: string; details: string; svg: { svg: string; width: number; height: number }; bar: string } {
   const price = (id: string) => data.machines.get(id)?.cost ?? null;
   if (a.kind === "ferme") {
-    const info = renderFarmInfo(a.farm, { name: anyName, price, loadMFps: a.loadMFps, capacity: a.farm.capacity || null, perHarvester: a.perHarvester });
+    const info = renderFarmInfo(a.farm, { name: anyName, price, loadMFps: a.loadMFps, capacity: a.farm.capacity || null, perHarvester: a.perHarvester, pipes: a.pipes });
     return {
       title: a.label,
       ...info,
-      svg: renderFarmSvg(a.farm, anyName),
+      svg: renderFarmSvg(turnFarm(a.farm, rot), anyName),
       bar: `<div class="u-bar">${rangesButton(asmRanges)}<span class="hint">${t(asmRanges ? "m.asm.ranges.on" : "m.asm.ranges.off")}</span></div>`,
     };
   }
@@ -3329,7 +3331,14 @@ function factoryInputNow(complete = false): FactoryInput {
       // Ensembles modulaires (S14) : leur place réservée a la taille de leur plan de pose.
       reserve: (key) => {
         const a = assemblyOf(key);
-        return a ? { w: a.width, h: a.height, label: a.label } : null;
+        if (!a) return null;
+        const base = { w: a.width, h: a.height, label: a.label };
+        if (a.kind !== "ferme") return base;
+        const item = plan!.steps.find((s) => s.key === key)!.item;
+        const ends: AsmEnd[] = [];
+        if (a.farm.exit) ends.push({ item, role: "sortie", x: a.farm.exit.x, y: a.farm.exit.y, dir: "E" });
+        if (a.farm.entry) ends.push({ item: a.water, role: "entrée", x: a.farm.entry.x, y: a.farm.entry.y, dir: "W" });
+        return { ...base, ends, pipes: a.pipes.count, pipesCost: a.pipes.cost };
       },
       sb: sandboxCatalog(),
       outOrder,
@@ -3432,9 +3441,9 @@ function renderFactory(): void {
   $("pose-details").innerHTML = info.details;
   // Le panneau d'abord : il change la largeur du cadre de l'usine.
   showFocus(poseFocus);
-  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st), (k) => {
+  showPoseSvg(renderFactorySvg(st.plan, anyName, plot, tierOf, flowsOf(st), (k, rot) => {
     const asm = assemblyOf(k);
-    return asm ? assemblyView(k, asm).svg : null;
+    return asm ? assemblyView(k, asm, rot).svg : null;
   }), `${st.key}|${USINE}`, true);
   setFrameClasses($("pose-frame"), factoryFrameClasses(settings.usine, st.plan.full));
   markFocused();
@@ -3591,7 +3600,7 @@ function showFocus(key: string | null): void {
 
 /** Panneau à côté de l'usine pour un ensemble modulaire : son plan de pose (la même disposition). */
 function showAssemblyFocus(key: string, a: Assembly): void {
-  const v = assemblyView(key, a);
+  const v = assemblyView(key, a, currentFactory()?.plan?.boxes.find((b) => b.key === key)?.rot ?? 0);
   $("pose-focus").hidden = false;
   $("pose-split").classList.add("focus");
   document.body.classList.add("usine-wide");

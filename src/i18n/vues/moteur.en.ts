@@ -95,6 +95,7 @@ export const moteurEn: { [K in keyof typeof moteurFr]: Msg } = {
   "eng.fac.wider": " (wider module)",
 
   // ------------------------------------------------------------ ensembles modulaires (assembly.ts, modular-calc.ts)
+  "eng.asm.farmUnlinked": "One of the farms couldn't be linked to the others (logs or water): connect it by hand.",
   "eng.asm.farmNoPole": "No known pole carries the power of a farm: the controller isn't powered in this plan.",
   "eng.asm.farmLost": { one: "A farm of {trees} trees doesn't fit whole ({n} tree without a harvester, output or tank).", other: "A farm of {trees} trees doesn't fit whole ({n} trees without a harvester, output or tank)." },
   "eng.asm.noOutputPort": "Output port not recorded: no passage kept for the Oak Logs pipe.",

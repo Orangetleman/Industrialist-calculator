@@ -554,6 +554,8 @@ wiki, prix, descriptions).
   - un seul Controller par ferme (plusieurs à portée la cassent) ;
   - tout doit être à portée : arroseurs → arbres → récolteurs → sortie.
 
+**À prévoir avec la turbine modulaire et la centrale nucléaire (demande du 2026-11-25) :** gros tuyaux de tier IV (Large Fluid Pipe, 12 000 L/s) et leur conversion, pour remplacer plusieurs tuyaux de tier III côte à côte. Avant, l'usine double les tuyaux de tier III.
+
 **Turbine modulaire (Tier IV).** La chaîne est : Turbine Input → High Pressure (plusieurs) →
 Intermediate (une) → Low Pressure (plusieurs) → Turbine Generator → Turbine Output.
 
@@ -1735,6 +1737,8 @@ Les réponses détaillées de l'utilisateur sont aussi au § 4, sous chaque ques
 - **2026-11-25** : éditeur de graphe : « Aligner » (L), grille (Alt = libre), liaisons séparées, groupes repliés (§ 7 de PLAN-GRAPHE.md). Usine : la relance du calcul mise en avant (« Chercher un meilleur plan » : bandeau et bouton orange sur le plan, ligne orange dans « Ce plan ») ; l'arrêter rend le plan d'avant. Essayé sur Electric Motor en usine entière.
 - **2026-11-25, deux bugs signalés** : le bandeau du graphe (`#graph-bar`) couvrait le ✕ de la bulle d'un module ; il se réduit (✕, rouvert par sa pastille), la bulle reste dessous et tient dans le plan à tout zoom ; avertissements du module entiers et réécrits. Objectif impossible : page vide remplacée par une explication (`#no-plan`), et la palette marque les objets qu'aucune recette complète ne fabrique (`src/engine/craftable.ts`, 19 objets dont tous les Microchip sauf 8x).
 - **2026-11-24** : groupes d'Industrialist Calculator importés et exportés (format relevé dans leur dépôt) ; export avec un groupe replié chargé dans leur site, leur sauvegarde relue chez nous (détail au § 7 de PLAN-GRAPHE.md, GRA-02).
+
+- **2026-11-25, remarque 15 (suite)** : ferme d'arbres : toutes les sorties rejoignent un départ unique, tous les réservoirs une arrivée d'eau unique (`src/engine/build/assembly.ts`, maquette `maquette/ferme-collecteur.html`) ; l'usine s'y branche dans les deux modes et tourne la ferme ; tuyaux comptés (pièces, prix). Clic sur un bloc de la ferme dans l'usine : ouvre la bulle. Une ferme tient 549 arbres (607 avant), accepté. Reste : tuyaux doublés quand le débit dépasse (steam de 60 Chair/min : 375 L/s dans un réseau de 120), maquette d'abord.
 
 ## 7. Gestion des sessions
 

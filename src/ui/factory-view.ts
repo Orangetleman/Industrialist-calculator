@@ -128,7 +128,7 @@ function contacts(f: FactoryPlan, name: Name, color: Map<string, string>): strin
 
 /** Dessin de l'usine (SVG), à placer dans un cadre navigable. La parcelle du joueur est tracée si connue. */
 /** R15 : dessin de l'intérieur d'un ensemble modulaire (ferme, moteur), posé à sa place dans l'usine. */
-export type InnerSvg = (key: string) => { svg: string; width: number; height: number } | null;
+export type InnerSvg = (key: string, rot: number) => { svg: string; width: number; height: number } | null;
 /** R15 : vrai si l'intérieur de cet ensemble est dessiné (ce n'est alors plus une place seulement réservée). */
 let drawnInside: (key: string) => boolean = () => false;
 export function setDrawnInside(fn: (key: string) => boolean): void {
@@ -167,8 +167,8 @@ export function renderFactorySvg(f: FactoryPlan, name: Name, plot: Plot, tierOf:
       }
       s += `</g>`;
     } else {
-      const v = inner?.(b.key);
-      if (v) s += `<g class="u-detail u-inner">${nestSvg(v.svg, b.x * C + 2, b.y * C + 2, b.w * C - 4, b.h * C - 4)}</g>`;
+      const v = inner?.(b.key, b.rot);
+      if (v) s += `<g class="u-detail u-inner">${nestSvg(v.svg, (b.x - 1) * C, (b.y - 1) * C, (b.w + 2) * C, (b.h + 2) * C)}</g>`;
     }
     const fs = Math.max(5, Math.min(20, ((b.w * C) / Math.max(b.sub.length, b.label.length * 0.62)) * 1.25, (b.h * C) / 4.2));
     const cx = (b.x + b.w / 2) * C;

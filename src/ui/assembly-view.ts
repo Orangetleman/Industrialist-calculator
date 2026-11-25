@@ -3,7 +3,7 @@
 // Un clic sur un bloc l'éclaire avec son cercle et ce qu'il dessert (sélection « b:<bloc> ») ;
 // « Afficher les portées » montre tous les cercles.
 
-import type { AsmBlock, DieselPlan, FarmSet } from "../engine/build/assembly.ts";
+import type { AsmBlock, DieselPlan, FarmSet, farmPipes } from "../engine/build/assembly.ts";
 import { STEP, type Dir } from "../engine/build/geometry.ts";
 import { esc, fmt, fmtMoney, fmtPct } from "./format.ts";
 import { icon, withIcons } from "./icons.ts";
@@ -64,6 +64,11 @@ function blockG(b: AsmBlock, ox: number, oy: number, color: string, label: strin
 
 // ---------------------------------------------------------------- ferme
 
+/** Bord de l'ensemble où se trouve un bout. */
+export function edgeDir(f: FarmSet, c: { x: number; y: number }): Dir {
+  return c.x === f.width - 1 ? "E" : c.x === 0 ? "W" : c.y === 0 ? "N" : "S";
+}
+
 /** Dessin de la ferme (vue de dessus) ; chaque bloc se sélectionne. */
 export function renderFarmSvg(f: FarmSet, name: (id: string) => string): { svg: string; width: number; height: number } {
   const ox = C;
@@ -75,13 +80,18 @@ export function renderFarmSvg(f: FarmSet, name: (id: string) => string): { svg: 
   for (let x = 0; x <= f.width; x += 4) s += `<line x1="${ox + x * C}" y1="${oy}" x2="${ox + x * C}" y2="${oy + f.height * C}"/>`;
   for (let y = 0; y <= f.height; y += 4) s += `<line x1="${ox}" y1="${oy + y * C}" x2="${ox + f.width * C}" y2="${oy + y * C}"/>`;
   s += `</g>`;
-  // Passages des tuyaux (sorties, réservoirs), en pointillés jusqu'au bord de la ferme.
-  for (const c of f.corridors) {
-    const d = STEP[c.dir];
-    const x1 = ox + (c.x + 0.5) * C;
-    const y1 = oy + (c.y + 0.5) * C;
-    const water = f.blocks.find((b) => b.id === c.block)?.kind === "tank";
-    s += `<line class="a-lane" x1="${x1}" y1="${y1}" x2="${x1 + d.x * (c.len - 0.5) * C}" y2="${y1 + d.y * (c.len - 0.5) * C}" stroke="${water ? "#5fd4d4" : "#d77fd0"}"><title>${esc(t(water ? "as.lane.water" : "as.lane.logs"))}</title></line>`;
+  // Tuyaux : bûches vers leur départ unique, eau depuis son arrivée unique.
+  for (const [cells, end, out, color, key] of [[f.pipes, f.exit, true, "#d77fd0", "as.lane.logs"], [f.water, f.entry, false, "#5fd4d4", "as.lane.water"]] as const) {
+    const set = new Set(cells.map((c) => `${c.x},${c.y}`));
+    let d = "";
+    for (const c of cells) for (const [a, b] of [[1, 0], [0, 1]] as const) if (set.has(`${c.x + a},${c.y + b}`)) d += `M${ox + (c.x + 0.5) * C},${oy + (c.y + 0.5) * C}l${a * C},${b * C}`;
+    if (end) {
+      // Le bout touche le bord de l'ensemble : le tuyau de l'usine se branche là.
+      const dir = STEP[edgeDir(f, end)];
+      d += `M${ox + (end.x + 0.5) * C},${oy + (end.y + 0.5) * C}l${(dir.x * C) / 2},${(dir.y * C) / 2}`;
+    }
+    s += `<path class="a-pipe" d="${d}" stroke="${color}"><title>${esc(t(key))}</title></path>`;
+    if (end) s += `<circle class="a-end" cx="${ox + (end.x + 0.5) * C}" cy="${oy + (end.y + 0.5) * C}" r="${C * 0.7}" fill="${color}" data-tip="${esc(t(out ? "as.end.logs" : "as.end.water"))}"/>`;
   }
   // Portées (cachées tant que « Afficher les portées » est éteint ou que le bloc n'est pas choisi).
   for (const b of f.blocks)
@@ -124,6 +134,8 @@ export type FarmInfoCtx = {
   capacity: number | null;
   /** Arbres suivis par un récolteur au plus (modular.json). */
   perHarvester: number;
+  /** Tuyaux des bûches et de l'eau (pièces et prix). */
+  pipes: ReturnType<typeof farmPipes>;
 };
 
 /** Texte autour du dessin de la ferme : résumé, poteaux, légende, ordre de pose, pièces, hypothèses. */
@@ -132,8 +144,9 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
   const ids = { tree: "tree", sprinkler: "tree-farm-sprinkler", tank: "tree-farm-water-tank", harvester: "farm-harvester", output: "tree-farm-output", controller: "tree-farm-controller" };
   const parts = [...Object.values(ids).map((id) => ({ id, count: c(id) })), ...Object.entries(f.poleCounts).map(([id, count]) => ({ id, count }))].filter((p) => p.count);
   const unit = (id: string) => (f.pole && id === f.pole.id ? f.pole.price : ctx.price(id));
-  const unknown = parts.filter((p) => unit(p.id) === null).length;
-  const cost = parts.reduce((s, p) => s + (unit(p.id) ?? 0) * p.count, 0);
+  const pipeParts = ctx.pipes.parts;
+  const unknown = [...parts.map((p) => unit(p.id)), ...pipeParts.map((p) => p.price)].filter((p) => p === null).length;
+  const cost = parts.reduce((s, p) => s + (unit(p.id) ?? 0) * p.count, 0) + ctx.pipes.cost;
   const total = f.trees.reduce((a, b) => a + b, 0);
   const what = [count("sprinkler", c(ids.sprinkler)), count("tank", c(ids.tank)), count("harvester", c(ids.harvester)), count("output", c(ids.output)), count("controller", c(ids.controller))].join(", ");
   const title = f.farms > 1 ? t("as.farms", { n: String(f.farms), list: f.trees.join(" + ") }) : t("as.farm", { trees: count("tree", total) });
@@ -146,13 +159,14 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
     const used = Object.values(f.poleCounts).reduce((a, b) => a + b, 0);
     head += `<div class="pose-via"><label class="pose-pick" for="asm-pole">${t("as.poles.label")} <select id="asm-pole">${opts}</select></label><p class="hint">${t("as.poles.hint", { kmf: esc(fmt(ctx.loadMFps / 1000, 1)), used: t("as.poles.link", { n: used }) })}</p></div>`;
   }
+  if (!ctx.pipes.ok) head += `<ul class="notices"><li>${esc(t("as.pipes.tooFast"))}</li></ul>`;
   if (f.problems.length) head += `<ul class="notices">${f.problems.map((p) => `<li>${txtHtml(p)}</li>`).join("")}</ul>`;
   const sw = (kind: string) => `<i style="background:${FARM[kind]!.color}"></i>`;
   const legend = `<ul class="mod-legend"><li>${sw("tree")}${t("as.lg.tree")}</li><li>${sw("sprinkler")}${t("as.lg.sprinkler")}</li><li>${sw("harvester")}${t("as.lg.harvester")}</li><li>${sw("output")}${t("as.lg.output")}</li><li>${sw("tank")}${t("as.lg.tank")}</li><li>${sw("controller")}${t("as.lg.controller")}</li><li><i class="sw-plug"></i>${t("mv.lg.plug")}</li><li><i class="sw-pole"></i>${t("mv.lg.pole")}</li><li><i class="sw-cable"></i>${t("as.lg.cable")}</li><li><i class="sw-lane"></i>${t("as.lg.lane")}</li></ul>`;
-  const rows = parts
+  const rows = [...parts.map((p) => ({ ...p, u: unit(p.id), label: ctx.name(p.id) })), ...pipeParts.map((p) => ({ ...p, u: p.price, label: p.name }))]
     .map((p) => {
-      const u = unit(p.id);
-      return `<tr><td>${esc(ctx.name(p.id))}</td><td class="num">${p.count}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u))}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u * p.count))}</td></tr>`;
+      const u = p.u;
+      return `<tr><td>${esc(p.label)}</td><td class="num">${p.count}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u))}</td><td class="num">${u === null ? "?" : esc(fmtMoney(u * p.count))}</td></tr>`;
     })
     .join("");
   const steps = [
@@ -171,7 +185,7 @@ export function renderFarmInfo(f: FarmSet, ctx: FarmInfoCtx): { head: string; le
     t("as.hyp.list"),
   ];
   const details = `<details class="more" open><summary>${t("mv.order")}</summary><ol class="steps-list">${steps.map((o) => `<li>${esc(o)}</li>`).join("")}</ol></details>
-    <details class="more"><summary>${t("mv.parts", { n: parts.reduce((s, p) => s + p.count, 0) })}</summary><div class="tablewrap"><table class="mini"><thead><tr><th>${t("mv.th.piece")}</th><th>${t("mv.th.n")}</th><th>${t("mv.th.price")}</th><th>${t("mv.th.total")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+    <details class="more"><summary>${t("mv.parts", { n: [...parts, ...pipeParts].reduce((s, p) => s + p.count, 0) })}</summary><div class="tablewrap"><table class="mini"><thead><tr><th>${t("mv.th.piece")}</th><th>${t("mv.th.n")}</th><th>${t("mv.th.price")}</th><th>${t("mv.th.total")}</th></tr></thead><tbody>${rows}</tbody></table></div></details>
     <details class="more"><summary>${t("mv.assumptions", { n: assumptions.length })}</summary><ul class="notes">${assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
   return { head, legend, details };
 }
