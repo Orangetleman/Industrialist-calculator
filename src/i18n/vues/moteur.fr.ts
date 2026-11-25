@@ -98,6 +98,7 @@ export const moteurFr = {
   "eng.fac.wider": " (module élargi)",
 
   // ------------------------------------------------------------ ensembles modulaires (assembly.ts, modular-calc.ts)
+  "eng.asm.farmUnlinked": "Une des fermes n'a pas pu être reliée aux autres (bûches ou eau) : raccorde-la à la main.",
   "eng.asm.farmNoPole": "Aucun poteau connu ne porte l'électricité d'une ferme : le contrôleur n'est pas alimenté dans ce plan.",
   "eng.asm.farmLost": { one: "Une ferme de {trees} arbres ne se place pas en entier ({n} arbre sans récolteur, sortie ou réservoir).", other: "Une ferme de {trees} arbres ne se place pas en entier ({n} arbres sans récolteur, sortie ou réservoir)." },
   "eng.asm.noOutputPort": "Port de la sortie non relevé : pas de passage réservé pour le tuyau des Oak Logs.",

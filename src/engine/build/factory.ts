@@ -47,7 +47,7 @@ export type FactoryStep = {
   entry: PortsEntry | null;
   size: { w: number; l: number } | null;
   /** Place réservée d'une étape sans module : taille de son plan de pose (ferme, moteurs, S14) ; sinon 12 × 12. */
-  reserve?: { w: number; h: number; label: string } | null;
+  reserve?: Reserve | null;
 };
 export type FactoryEdge = { from: string; to: string; item: string; perMin: number; loop?: boolean };
 /** Bord de l'usine où sort un produit à évacuer (S27). */
@@ -88,6 +88,11 @@ export type FactoryInput = {
 };
 /** Avancement : part faite (0 à 1) et étape en cours, en mots de joueur. */
 export type FactoryProgress = (done: number, label: Message) => void;
+
+/** Bout d'un ensemble modulaire (départ ou arrivée d'une ressource) : la case du bord et le sens vers l'extérieur. */
+export type AsmEnd = { item: string; role: "entrée" | "sortie"; x: number; y: number; dir: Dir };
+/** Place d'un ensemble modulaire : sa taille, ses bouts, et les tuyaux de son plan de pose (nombre, prix). */
+export type Reserve = { w: number; h: number; label: string; ends?: AsmEnd[]; pipes?: number; pipesCost?: number };
 
 type Pole = Catalog["poles"][number];
 type Pt = { x: number; y: number };
@@ -182,6 +187,16 @@ function turnCell(p: Pt, w: number, h: number, r: number): Pt {
   return q;
 }
 
+/** Un ensemble modulaire dans ses 4 rotations. */
+function asmTurns(w: number, h: number, ends: AsmEnd[]): { w: number; h: number; ends: AsmEnd[] }[] {
+  const out = [{ w, h, ends }];
+  for (let r = 1; r < 4; r++) {
+    const p = out[r - 1]!;
+    out.push({ w: p.h, h: p.w, ends: p.ends.map((e) => ({ ...e, x: p.h - 1 - e.y, y: e.x, dir: TURN[e.dir] })) });
+  }
+  return out;
+}
+
 /** Ce qu'il faut savoir d'une étape du plan (champs de `Step`). */
 type PlanStep = Parameters<typeof requestFromStep>[0] & { key: string; depth: number; recipeId?: string };
 
@@ -197,7 +212,7 @@ export function factoryInput(
     machine: (id: string) => { cost: number | null; size: { w: number; l: number } | null } | null;
     ports: Record<string, PortsEntry>;
     /** Taille réelle d'une étape sans module (ensemble modulaire posé, S14). */
-    reserve?: (key: string) => { w: number; h: number; label: string } | null;
+    reserve?: (key: string) => Reserve | null;
     /** S56 : catalogue du bac à sable, pour vérifier les plans de pose. */
     sb?: SbCatalog | null;
     /** Produits d'une recette dans l'ordre (ports de sortie, comme le bac à sable). */
@@ -232,7 +247,7 @@ export function factoryInput(
   return { steps, edges, evac, names, cat, plot, options, ...(look.sb ? { sb: look.sb } : {}) };
 }
 
-type Box = FactoryBox & { placed: boolean; variants: ModulePlan[]; req: ModuleRequest | null; entry: PortsEntry | null; size: { w: number; l: number } | null };
+type Box = FactoryBox & { /** Ensemble modulaire à bouts connus : sa taille et ses bouts, dans les 4 rotations. */ asm?: { w: number; h: number; ends: AsmEnd[] }[]; placed: boolean; variants: ModulePlan[]; req: ModuleRequest | null; entry: PortsEntry | null; size: { w: number; l: number } | null };
 type Rect = { x0: number; y0: number; x1: number; y1: number };
 
 /** Plan de toute l'usine. `progress` est appelé de temps en temps (pour une barre d'avancement). */
@@ -257,10 +272,11 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   const maxD = Math.max(0, ...input.steps.map((s) => s.depth));
   const boxes: Box[] = input.steps.map((s) => {
     const mod = s.req ? designModule(s.req, s.entry, s.size, cat, name, input.sb ?? null) : null;
-    return { key: s.key, machine: s.machine, label: s.label, sub: s.sub, w: mod?.width ?? s.reserve?.w ?? 12, h: mod?.height ?? s.reserve?.h ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: s.power, variants: mod ? fourTurns(mod) : [], rot: 0, req: s.req, entry: s.entry, size: s.size, ...(!mod && s.reserve ? { assembly: true } : {}) };
+    return { key: s.key, machine: s.machine, label: s.label, sub: s.sub, w: mod?.width ?? s.reserve?.w ?? 12, h: mod?.height ?? s.reserve?.h ?? 12, x: 0, y: 0, col: maxD - s.depth, mod, placed: false, power: s.power, variants: mod ? fourTurns(mod) : [], rot: 0, req: s.req, entry: s.entry, size: s.size, ...(!mod && s.reserve ? { assembly: true } : {}), ...(!mod && s.reserve?.ends?.length ? { asm: asmTurns(s.reserve.w, s.reserve.h, s.reserve.ends) } : {}) };
   });
   const byKey = new Map(boxes.map((b) => [b.key, b]));
-  const endOf = (b: Box, item: string, role: "entrée" | "sortie") => b.mod?.nets.find((n) => n.role === role && name(n.item) === name(item))?.end ?? null;
+  const endOf = (b: Box, item: string, role: "entrée" | "sortie") =>
+    (b.asm ? b.asm[b.rot]!.ends.find((n) => n.role === role && name(n.item) === name(item)) : b.mod?.nets.find((n) => n.role === role && name(n.item) === name(item))?.end) ?? null;
   const anchorAbs = (b: Box, end: { x: number; y: number; dir: Dir }) => ({ x: b.x + end.x + STEP[end.dir].x, y: b.y + end.y + STEP[end.dir].y });
   const producers = (k: string) => edgesAll.filter((e) => e.to === k && !e.loop).map((e) => ({ e, p: byKey.get(e.from)! }));
 
@@ -288,6 +304,11 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
 
   // ------------------------------------------------------------ placement serré
   const setRot = (b: Box, r: number) => {
+    if (b.asm) {
+      b.rot = r;
+      [b.w, b.h] = [b.asm[r]!.w, b.asm[r]!.h];
+      return;
+    }
     if (!b.variants.length) return;
     b.rot = r;
     b.mod = b.variants[r]!;
@@ -299,6 +320,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   let useCollectors = false;
   const rectGap = (a: Rect, b: Rect) => Math.max(0, a.x0 - b.x1, b.x0 - a.x1) + Math.max(0, a.y0 - b.y1, b.y0 - a.y1);
   const collRect = (b: Box, item: string, role: "entrée" | "sortie"): Rect => {
+    const end = b.asm ? endOf(b, item, role) : null;
+    if (end) return { x0: b.x + end.x, y0: b.y + end.y, x1: b.x + end.x, y1: b.y + end.y };
     const base = b.variants[0];
     const n = base?.nets.find((x) => x.role === role && x.item === item);
     if (!base || !n) return { x0: b.x + b.w / 2, y0: b.y + b.h / 2, x1: b.x + b.w / 2, y1: b.y + b.h / 2 };
@@ -422,7 +445,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
         let best = start;
         const curW = Math.max(0, oW);
         const curH = Math.max(0, oH);
-        for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
+        for (const r of b.variants.length || b.asm ? [0, 1, 2, 3] : [0]) {
           setRot(b, r);
           prepare();
           const ok = freeMap(
@@ -567,7 +590,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       const fixed = links.map((l) => portAt(l.other, l.e.item, l.mine === "entrée" ? "sortie" : "entrée"));
       let best: [number, number, number] = [0, 0, 0];
       let bestScore = Infinity;
-      for (const r of b.variants.length ? [0, 1, 2, 3] : [0]) {
+      for (const r of b.variants.length || b.asm ? [0, 1, 2, 3] : [0]) {
         setRot(b, r);
         // S42 : décalage du port de chaque liaison, calculé une fois par rotation (plus d'objet par case).
         const offs = links.map((l) => {
@@ -858,6 +881,16 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     }
     return out;
   };
+  /** Ensemble modulaire : la case devant son bout, prise par la liaison (vide : pas de bout, ou case déjà prise). */
+  const asmTap = (b: Box, item: string, role: "entrée" | "sortie", id: string): Set<string> => {
+    const end = b.asm ? endOf(b, item, role) : null;
+    if (!end) return new Set();
+    const a = anchorAbs(b, end);
+    const o = grid.cells.get(`${a.x},${a.y}`);
+    if (o && !(o.kind === "tuyau" && o.net === id)) return new Set();
+    if (!o) grid.link(a, OPPOSITE[end.dir], id);
+    return new Set([`${a.x},${a.y}`]);
+  };
   const routeTaps = (edges0: FactoryEdge[], bounds: Rect) => {
     const k0 = (e: FactoryEdge) => `${e.from}>${e.to}:${e.item}`;
     const edges = [...edges0.filter((e) => firstEdges.includes(k0(e))), ...edges0.filter((e) => !firstEdges.includes(k0(e)))];
@@ -865,6 +898,11 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
     tapLog = [];
     inside = { w: W, cells: new Uint8Array(W * H) };
     for (const b of boxes) for (let i = 0; i < b.w; i++) for (let j = 0; j < b.h; j++) if (b.x + i < W && b.y + j < H) inside.cells[(b.y + j) * W + b.x + i] = 1;
+    // Les cases devant les bouts des ensembles modulaires sont prises d'avance : aucun autre tuyau n'y passe.
+    for (const e of edges) {
+      asmTap(byKey.get(e.from)!, e.item, "sortie", `${e.from}:${e.item}`);
+      asmTap(byKey.get(e.to)!, e.item, "entrée", `${e.from}:${e.item}`);
+    }
     const exits = new Map<string, Set<string>>(); // liaison → cases où un nouveau client peut se brancher
     for (const e of edges) {
       const id = `${e.from}:${e.item}`;
@@ -877,8 +915,8 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       let target = exits.get(id);
       if (!target) {
         // Premier client : on se raccorde au collecteur du fournisseur (une seule prise).
-        target = p.mod ? collector(p, e.item, "sortie", id) : new Set<string>();
-        if (!p.mod) {
+        target = p.mod ? collector(p, e.item, "sortie", id) : asmTap(p, e.item, "sortie", id);
+        if (!p.mod && !p.asm) {
           // Arbres (pas encore dessinés) : un départ sur une case libre au bord de leur emplacement.
           const around: { c: Pt; d: Dir }[] = [];
           for (let i = 0; i < p.w; i++) around.push({ c: { x: p.x + i, y: p.y - 1 }, d: "S" }, { c: { x: p.x + i, y: p.y + p.h }, d: "N" });
@@ -890,7 +928,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
           }
         }
       }
-      const from = c.mod ? collector(c, e.item, "entrée", id) : new Set<string>();
+      const from = c.mod ? collector(c, e.item, "entrée", id) : asmTap(c, e.item, "entrée", id);
       const path = from.size && target.size ? connect(id, from, target, bounds) : null;
       if (!path) {
         problems.push(msg("fac.unrouted", { item: name(e.item), from: e.from, to: e.to }));
@@ -1320,7 +1358,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
         if (r < 0.45) {
           b.x += Math.round((rand() - 0.5) * 20);
           b.y += Math.round((rand() - 0.5) * 20);
-        } else if (r < 0.7 && b.variants.length) {
+        } else if (r < 0.7 && (b.variants.length || b.asm)) {
           const cx = b.x + b.w / 2;
           const cy = b.y + b.h / 2;
           setRot(b, Math.floor(rand() * 4));
@@ -1480,11 +1518,12 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
   }
   progress(0.95, msg("fac.step.power"));
   const modulePipeCells = boxes.reduce((t, b) => t + (b.mod?.pieces.length ?? 0), 0);
+  const asmPipeCells = input.steps.reduce((t, s) => t + (byKey.get(s.key)?.mod ? 0 : (s.reserve?.pipes ?? 0)), 0);
   const moduleCrossings = boxes.reduce((t, b) => t + (b.mod?.pieces.filter((pc) => pc.role === "croisement").length ?? 0), 0);
   const interIds = new Set(nets.map((n) => n.id));
   const isInter = (o: { net: string; cross?: { net: string } }) => interIds.has(o.net) || (!!o.cross && interIds.has(o.cross.net));
   const pipeList = [...grid.cells.values()].filter((o) => o.kind === "tuyau");
-  const allPipeCells = pipeList.length + (through ? 0 : modulePipeCells);
+  const allPipeCells = pipeList.length + (through ? 0 : modulePipeCells) + asmPipeCells;
   const crossings = pipeList.filter((o) => o.kind === "tuyau" && o.cross && isInter(o)).length;
   const pipeCells = pipeList.filter((o) => o.kind === "tuyau" && isInter(o)).length;
   const netCells: Record<string, number> = {};
@@ -1687,7 +1726,7 @@ export function designFactory(input: FactoryInput, progress: FactoryProgress = (
       upgraded,
       overloaded: links.filter((l) => l.lines > 1).length,
       polesCost: poleNodes.reduce((s, p) => s + price(p.type), 0) + links.reduce((s, l) => s + l.relays * price(l.relayType), 0),
-      modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0),
+      modulesCost: boxes.reduce((s, b) => s + (b.mod?.cost ?? 0), 0) + input.steps.reduce((t, s) => t + (byKey.get(s.key)?.mod ? 0 : (s.reserve?.pipesCost ?? 0)), 0),
       keptPoles,
       newPoles,
       pruned,

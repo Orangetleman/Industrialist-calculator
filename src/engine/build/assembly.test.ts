@@ -18,7 +18,7 @@ import { dieselConfigs, farmGeometry } from "../modular-calc.ts";
 import type { ModularFile } from "../modular.ts";
 import { solve } from "../solve.ts";
 import type { OverridesFile } from "../types.ts";
-import { crankshaftsFor, designDiesel, designFarm, DIESEL_IDS, farmCapacity, FARM_IDS, sprinklerOffsets, type AsmBlock, type FarmGeometry, type FarmSet } from "./assembly.ts";
+import { crankshaftsFor, designDiesel, designFarm, DIESEL_IDS, farmCapacity, FARM_IDS, pipeRoles, sprinklerOffsets, turnFarm, type AsmBlock, type FarmGeometry, type FarmSet } from "./assembly.ts";
 import { buildCatalog } from "./catalog.ts";
 import { STEP } from "./geometry.ts";
 
@@ -74,10 +74,30 @@ function checkFarm(f: FarmSet, geo: FarmGeometry) {
     expect(harvOf.has(t.id), `${t.id} sans récolteur`).toBe(true);
     expect(of("sprinkler").some((s) => s.unit === t.unit && rdist(...center(s), rect(t)) <= geo.reach.sprinkler + 1e-9)).toBe(true);
   }
-  // Passages : de la case du port jusqu'au bord, aucune case occupée.
+  // Bûches : toutes les sorties sur un seul réseau, jusqu'au départ du bord droit ; eau : tous les réservoirs, depuis
+  // l'arrivée du bord gauche. Aucun tuyau sur un bloc ou un poteau, jamais les deux sur une case.
   const blocked = (x: number, y: number) => f.blocks.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) || f.poles.some((p) => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
-  expect(f.corridors).toHaveLength(of("output").length + of("tank").length);
-  for (const c of f.corridors) for (let n = 0; n < c.len; n++) expect(blocked(c.x + STEP[c.dir].x * n, c.y + STEP[c.dir].y * n), `passage de ${c.block}`).toBe(false);
+  const k = (c: { x: number; y: number }) => `${c.x},${c.y}`;
+  expect(new Set([...f.pipes, ...f.water].map(k)).size).toBe(f.pipes.length + f.water.length);
+  for (const [cells, end, kind] of [[f.pipes, f.exit, "output"], [f.water, f.entry, "tank"]] as const) {
+    const set = new Set(cells.map(k));
+    for (const c of cells) expect(blocked(c.x, c.y), `tuyau ${k(c)}`).toBe(false);
+    const got = new Set([k(end!)]);
+    const todo = [end!];
+    while (todo.length) {
+      const c = todo.pop()!;
+      for (const d of Object.values(STEP)) {
+        const n = { x: c.x + d.x, y: c.y + d.y };
+        if (!set.has(k(n)) || got.has(k(n))) continue;
+        got.add(k(n));
+        todo.push(n);
+      }
+    }
+    expect(got.size).toBe(set.size);
+    for (const b of of(kind)) expect(got.has(k(b.port!)), `${b.id} relié`).toBe(true);
+  }
+  expect(f.exit!.x).toBe(f.width - 1);
+  expect(f.entry!.x).toBe(0);
   // Câbles : de la prise au bord, chaque portée tenue.
   if (f.pole) for (const c of f.cables) expect(Math.hypot(c.x2 - c.x1, c.y2 - c.y1)).toBeLessThanOrEqual(f.pole.rangeCells + 1e-9);
 }
@@ -104,6 +124,7 @@ describe("ferme d'arbres : plan de pose", () => {
   it("Oak Log 30/min (91 arbres) : règles tenues, poteaux du bord jusqu'au contrôleur", () => {
     const f = designFarm(g, 91, 50_200);
     expect(f.counts[FARM_IDS.sprinkler]).toBe(3);
+    expect(f.counts[FARM_IDS.output]).toBe(1);
     expect(f.counts[FARM_IDS.harvester]).toBe(5);
     expect(f.pole?.id).toBe("mv-pole"); // le moins cher qui porte 50 kMF/s
     expect(f.cables.length).toBeGreaterThan(0);
@@ -121,6 +142,18 @@ describe("ferme d'arbres : plan de pose", () => {
     expect(two.trees.reduce((a, b) => a + b, 0)).toBe(cap + 1);
     expect(two.counts[FARM_IDS.controller]).toBe(2);
     checkFarm(two, g);
+  });
+
+  it("tournée : toutes les règles gardées, départ et arrivée sur d'autres bords", () => {
+    const f = designFarm(g, 91, 50_200);
+    const r = turnFarm(f, 1);
+    expect([r.width, r.height]).toEqual([f.height, f.width]);
+    expect(r.exit!.y).toBe(r.height - 1);
+    expect(r.entry!.y).toBe(0);
+    for (const b of r.blocks) if (b.kind === "output") expect(r.pipes.some((c) => c.x === b.port!.x && c.y === b.port!.y)).toBe(true);
+    expect(turnFarm(r, 3)).toEqual(f);
+    const n = pipeRoles(f.pipes, [], f.exit);
+    expect(n.droit + n.coude + n.té + n.croix).toBe(f.pipes.length);
   });
 
   it("un poteau de plus grande portée saute des places réservées", () => {
