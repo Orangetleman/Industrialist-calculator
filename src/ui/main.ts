@@ -1217,7 +1217,12 @@ function update(): void {
   planDirty = true;
   saveSettings(settings);
   // Téléphone : pendant qu'on règle l'objectif ou les réglages, le calcul attend la fermeture du panneau (écran d'attente).
-  if (holdCalc(render)) return syncForm(); // le formulaire montre tout de suite le choix ; seul le calcul attend
+  if (holdCalc(render)) {
+    // Le formulaire et les priorités montrent tout de suite le choix ; seul le calcul attend.
+    syncForm();
+    renderCriteria();
+    return;
+  }
   render();
 }
 

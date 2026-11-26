@@ -32,7 +32,7 @@ body.mob .m-dock { position: fixed; z-index: 45; left: 0; right: 0; bottom: 0; d
 body.mob .m-scrim:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 58; background: rgb(5 3 8 / .7); }
 body.mob .m-panel:not([hidden]) { display: block; }
 body.mob .m-panel, body.mob[data-mpanel="goal"] #page-plan .cmd-goal, body.mob .cmd-drawer:not([hidden]) {
-  position: fixed; z-index: 59; left: 0; right: 0; top: auto; bottom: var(--m-kb, 0px); width: auto; max-width: none; max-height: calc(92dvh - var(--m-kb, 0px)); overflow: auto; overscroll-behavior: contain; margin: 0; border: 0; border-top: 3px solid var(--accent); border-radius: 0; background: var(--surface); padding: 0 0 env(safe-area-inset-bottom, 0px); }
+  position: fixed; z-index: 59; left: 0; right: 0; top: auto; bottom: var(--m-kb, 0px); width: auto; max-width: none; max-height: calc(min(92dvh, 100dvh - var(--m-coach, 0px)) - var(--m-kb, 0px)); overflow: auto; overscroll-behavior: contain; margin: 0; border: 0; border-top: 3px solid var(--accent); border-radius: 0; background: var(--surface); padding: 0 0 env(safe-area-inset-bottom, 0px); }
 .m-ph { display: flex; align-items: center; position: sticky; top: 0; background: var(--surface); z-index: 2; }
 .m-ph h2 { flex: 1; padding-left: 16px; font: 16px var(--f-display); }
 .m-x { width: 56px; height: 56px; display: grid; place-items: center; border: 0; background: none; color: var(--ink); border-radius: 0; }
@@ -313,7 +313,7 @@ body.mob .corrections-panel { padding: 16px !important; } body.mob .corrections-
 body.mob[data-mcontrib="envois"] #dpanel-verifier > .m-sent { display: block; border-top: 1px solid var(--line); } body.mob .m-sent h2 { padding: 16px 16px 10px; } body.mob .m-sent-b { padding: 0 16px 16px; }
 /* postes, méthodes, remarque */
 body.mob .pr-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 0; } body.mob .pr-tools .pr-q { grid-column: 1 / -1; } body.mob .pr-tools input { height: 52px; border-width: 0 0 1px !important; padding: 0 16px; } body.mob .pr-tools select { border-width: 0 0 1px !important; padding: 0 12px; min-width: 0; } body.mob .pr-tools button { grid-column: 1 / -1; min-height: 52px; border-radius: 0; background: var(--accent); color: var(--on-accent); justify-content: center; } body.mob #page-propositions > .lead { display: none; } body.mob .pr-list { gap: 0; } body.mob .pr-list > * { border-radius: 0; border-width: 0 0 1px; background: none; padding: 14px 16px; } body.mob .pr-list button { min-height: 44px; min-width: 44px; border-radius: 0; }
-body.mob[data-mpage="methodes"] #page-methodes { padding: 0 16px; } body.mob .me-body :is(table) { display: block; overflow-x: auto; } body.mob #page-methodes { font-size: 16px; }
+body.mob[data-mpage="methodes"] #page-methodes { padding: 16px 16px 0; } body.mob .me-body :is(table) { display: block; overflow-x: auto; } body.mob #page-methodes { font-size: 16px; }
 body.mob dialog.rm-dialog { border-radius: 0; border-top: 3px solid var(--accent); margin: auto 0 0; width: 100vw; max-width: none; } body.mob dialog.rm-dialog :is(button, label) { min-height: 44px; }
 
 /* ------------------------------------------------------------ MB6 : usine, barre d'étape */

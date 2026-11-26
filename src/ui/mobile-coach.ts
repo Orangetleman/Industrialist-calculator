@@ -111,6 +111,8 @@ export function createCoach(bar: HTMLElement, hooks: CoachHooks) {
   }
   function draw(): void {
     bar.hidden = !cur && !after;
+    // Les panneaux du bas s'arrêtent sous la consigne : elle reste lisible pendant le geste.
+    requestAnimationFrame(() => document.body.style.setProperty("--m-coach", bar.hidden ? "0px" : `${Math.ceil(bar.getBoundingClientRect().bottom)}px`));
     if (after) {
       const nx = nextLesson(after, done);
       bar.innerHTML = `<small>${esc(t("coach.done", { n: done.size, total: LESSONS.length }))}</small><b>${esc(nx ? t("coach.next", { name: t(`coach.${nx}` as Key) }) : t("coach.all"))}</b>${nx ? `<button type="button" class="go" data-coach="start" data-id="${nx}">${esc(t("coach.go"))} ${icon("chevR")}</button>` : ""}<button type="button" class="x" data-coach="later" aria-label="${esc(t("coach.later"))}">${icon("close")}</button>`;
