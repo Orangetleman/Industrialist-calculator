@@ -255,7 +255,10 @@ function apply(): void {
   if (panel === "lessons") drawLessons();
   const blank = $("rtabs-result").hidden;
   empty.hidden = !(page === "plan" && blank && (view === "pose" || view === "schema" || view === "liste" || view === "details"));
-  empty.innerHTML = `<p>${esc($("no-plan").hidden ? ($("answer").textContent ?? "").trim() || ($("plan-title").textContent ?? "") : "")}</p><button type="button" class="primary" data-m="goal">${esc(t("mob.pickgoal"))}</button>`;
+  const said = $("no-plan").hidden ? ($("answer").textContent ?? "").trim() || ($("plan-title").textContent ?? "") : "";
+  // Rien à dire et un objet déjà choisi : la partie n'a pas de quoi le fabriquer (souvent une partie neuve, sans recherche cochée).
+  const nores = !said && !!($("item") as HTMLInputElement).value.trim();
+  empty.innerHTML = `<p>${esc(nores ? t("mob.nores") : said)}</p>${nores ? `<button type="button" class="primary" data-href="#usine/recherche">${esc(t("mob.nores.go"))}</button><button type="button" data-m="goal">${esc(t("mob.pickgoal"))}</button>` : `<button type="button" class="primary" data-m="goal">${esc(t("mob.pickgoal"))}</button>`}`;
   more.innerHTML = (["liste", "details"] as const).map((x) => `<button type="button" data-dock="${x}">${icon("list")}<span>${esc(t(x === "liste" ? "tab.liste" : "tab.details"))}</span>${icon("chevR")}</button>`).join("");
   more.hidden = blank;
   fiche.textContent = t("mob.card");
@@ -792,7 +795,7 @@ function enable(active: boolean): void {
 }
 
 /** À appeler une fois, après le premier affichage de la page. */
-export function initMobile(title: () => string, sandbox: MobileBac, tour: Pick<CoachHooks, "begin" | "end">): void {
+export function initMobile(title: () => string, sandbox: MobileBac, tour: Pick<CoachHooks, "begin" | "end" | "leave">): void {
   pageTitle = title;
   bac = sandbox;
   bac.listen(() => {

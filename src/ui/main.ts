@@ -1851,6 +1851,8 @@ function renderGraphBar(): void {
 
 /** Oublie le graphe édité : l'onglet Schéma revient à la proposition (après accord si `confirm`). */
 let coachHadGraph = true;
+/** Réglages d'avant le tutoriel mobile : à sa sortie, le joueur les garde ou y revient. */
+let coachBefore: string | null = null;
 async function dropGraphEdit(confirm: boolean): Promise<void> {
   if (confirm) {
     const ok = await ask(t("gbar.drop.title"), t("gbar.drop.html"), [
@@ -6053,7 +6055,10 @@ showPage();
 initMobile(() => { const p = currentPage(); return t(p === "propositions" || p === "donnees" ? "page.donnees" : (`page.${p}` as Key)); }, sandbox.mobile, {
   // Une leçon qui a besoin d'un plan, sur une partie neuve : tout est supposé débloqué le temps de la leçon (comme le tutoriel du PC).
   begin(id) {
-    coachHadGraph = !!gedit;
+    if (coachBefore === null) {
+      coachHadGraph = !!gedit;
+      coachBefore = JSON.stringify(settings);
+    }
     if (["plan", "usine", "vues", "schema", "regler"].includes(id) && !prog.unlocked.length && !simulated) {
       simulated = prog;
       prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
@@ -6061,15 +6066,28 @@ initMobile(() => { const p = currentPage(); return t(p === "propositions" || p =
       render();
     }
   },
+  async leave() {
+    const before = coachBefore;
+    coachBefore = null;
+    const graphMade = !coachHadGraph && !!gedit;
+    coachHadGraph = true;
+    if (!before || (before === JSON.stringify(settings) && !graphMade)) return;
+    const r = await ask(t("coach.leave.title"), t("coach.leave.html"), [
+      { value: "keep", label: t("coach.leave.keep"), primary: true },
+      { value: "reset", label: t("coach.leave.reset") },
+    ]);
+    if (r !== "reset") return;
+    settings = JSON.parse(before) as typeof settings;
+    // Le graphe retouché pendant la leçon « Modifier le schéma » part aussi.
+    if (graphMade) return void dropGraphEdit(false);
+    update();
+  },
   end() {
     try {
       localStorage.setItem(KEY_TOUR, "1");
     } catch {
       // stockage indisponible
     }
-    // Le graphe retouché pendant la leçon « Modifier le schéma » ne reste pas : le plan repart de l'objectif.
-    if (!coachHadGraph && gedit) void dropGraphEdit(false);
-    coachHadGraph = true;
     if (!simulated) return;
     prog = simulated;
     simulated = null;

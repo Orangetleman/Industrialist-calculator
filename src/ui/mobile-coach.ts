@@ -86,7 +86,7 @@ export function nextLesson(id: string | null, done: Set<string>): string | null 
   return [...ids.slice(from), ...ids.slice(0, from)].find((x) => x !== id && !done.has(x)) ?? null;
 }
 
-export type CoachHooks = { begin(id: string): void; end(): void; changed(): void };
+export type CoachHooks = { begin(id: string): void; end(): void; changed(): void; /** Le joueur quitte le tutoriel (×, « Plus tard », Retour). */ leave(): void };
 
 export function createCoach(bar: HTMLElement, hooks: CoachHooks) {
   const done = loadDone();
@@ -178,11 +178,14 @@ export function createCoach(bar: HTMLElement, hooks: CoachHooks) {
     if (!b) return;
     const a = b.dataset.coach;
     if (a === "start") start(b.dataset.id!);
-    else if (a === "quit") finish(false);
-    else if (a === "later") {
+    else if (a === "quit") {
+      finish(false);
+      hooks.leave();
+    } else if (a === "later") {
       after = null;
       hooks.end();
       draw();
+      hooks.leave();
     }
   });
   return {
@@ -196,6 +199,7 @@ export function createCoach(bar: HTMLElement, hooks: CoachHooks) {
         hooks.end();
         draw();
       }
+      hooks.leave();
     },
     /** Les leçons et leur état, pour la liste « Premiers pas ». */
     list: () => LESSONS.map((l) => ({ id: l.id, done: done.has(l.id), n: l.steps.length })),
