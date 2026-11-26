@@ -5,6 +5,7 @@
 import { t, type Key } from "../i18n/i18n.ts";
 import { panZoomOf } from "./canvas.ts";
 import { icon, type IconName } from "./icons.ts";
+import { createCoach, type CoachHooks } from "./mobile-coach.ts";
 import { createGen } from "./mobile-gen.ts";
 import { closePop, popEl } from "./popmenu.ts";
 
@@ -13,7 +14,7 @@ const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;",
 
 /** Vue montrée dans Planifier : un onglet du résultat, ou un volet (étapes, bilan). */
 export type MView = "pose" | "schema" | "etapes" | "bilan" | "liste" | "details";
-type Panel = "" | "goal" | "menu" | "bac";
+type Panel = "" | "goal" | "menu" | "bac" | "lessons";
 /** Ce que le bac à sable offre à la coquille (MB7). */
 export type MobileBac = { tool(): string; setTool(x: never): void; pinned(): boolean; canBack(): boolean; back(): void; listen(f: () => void): void; reset(): void; rows(): { id: string; ic: string; label: string; on?: boolean }[]; act(id: string): void };
 type DockItem = { id: string; ic: IconName; label: Key };
@@ -165,8 +166,21 @@ function goalText(): string {
   return `<b>${esc($("plan-title").textContent ?? "")}</b>`;
 }
 
+/** Tutoriel au téléphone (MB10) : la ligne du coach sous l'en-tête. */
+let coach: ReturnType<typeof createCoach> | null = null;
+/** Lance une leçon du tutoriel mobile (première visite : « plan »). */
+export const coachStart = (id: string): void => coach?.start(id);
+function drawLessons(): void {
+  menu.querySelector("h2")!.textContent = t("steps.title");
+  menu.querySelector(".m-grid")!.innerHTML = "";
+  menu.querySelector(".m-rows")!.innerHTML = coach!
+    .list()
+    .map((l) => `<button type="button" data-lesson="${l.id}"><span class="chk${l.done ? " on" : ""}">${l.done ? icon("check") : ""}</span><span>${esc(t(`coach.${l.id}` as Key))}<small>${esc(t("coach.steps", { n: l.n }))}</small></span><i class="go">${esc(t(l.done ? "coach.again" : "coach.goto"))} ›</i></button>`)
+    .join("");
+}
 const DOT = '<span class="m-dot"></span>';
 function stepsLeft(): string {
+  if (coach) return coach.left() ? String(coach.left()) : "";
   const n = document.querySelector("#steps-box .steps-n")?.textContent ?? "";
   const [a, b] = n.split("/").map((x) => parseInt(x, 10));
   return a !== undefined && b !== undefined && a < b ? n : "";
@@ -237,7 +251,8 @@ function apply(): void {
   if (panel) b.dataset.mpanel = panel;
   else delete b.dataset.mpanel;
   scrim.hidden = !panel;
-  menu.hidden = panel !== "menu" && panel !== "bac";
+  menu.hidden = panel !== "menu" && panel !== "bac" && panel !== "lessons";
+  if (panel === "lessons") drawLessons();
   const blank = $("rtabs-result").hidden;
   empty.hidden = !(page === "plan" && blank && (view === "pose" || view === "schema" || view === "liste" || view === "details"));
   empty.innerHTML = `<p>${esc($("no-plan").hidden ? ($("answer").textContent ?? "").trim() || ($("plan-title").textContent ?? "") : "")}</p><button type="button" class="primary" data-m="goal">${esc(t("mob.pickgoal"))}</button>`;
@@ -333,6 +348,7 @@ function overlays(): { close(): void }[] {
     add(view === "pose" && stepAt(rows) > 0, () => rows[0]!.querySelector<HTMLElement>(".cmd-step")?.click());
   }
   add(has("m-opts"), closeOpts);
+  // La leçon elle-même se quitte par « × » : « Retour » sert à ses gestes (fermer un module…).
   add(has("m-node"), closeNode);
   if (page === "donnees") {
     const bb = $("bld-bubble");
@@ -474,8 +490,12 @@ function setContrib(id: string): void {
 }
 
 function onClick(e: Event): void {
-  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac], [data-bt]");
+  const el = (e.target as Element).closest<HTMLElement>("[data-m], [data-dock], [data-href], [data-bac], [data-bt], [data-lesson]");
   if (!el) return;
+  if (el.dataset.lesson) {
+    setPanel("");
+    return coach?.start(el.dataset.lesson);
+  }
   if (el.dataset.bt) return setBldTab(el.dataset.bt as typeof bldTab);
   if (el.dataset.href) return nav(el.dataset.href);
   if (el.dataset.bac) {
@@ -555,10 +575,8 @@ function onClick(e: Event): void {
     document.body.classList.add("m-about");
     document.querySelector("footer.src")?.scrollIntoView();
   } else if (m === "first") {
-    setPanel("");
-    $("help").click();
-    document.body.classList.add("m-steps");
-    syncHistory();
+    panel = "";
+    setPanel("lessons");
   }
 }
 
@@ -774,7 +792,7 @@ function enable(active: boolean): void {
 }
 
 /** À appeler une fois, après le premier affichage de la page. */
-export function initMobile(title: () => string, sandbox: MobileBac): void {
+export function initMobile(title: () => string, sandbox: MobileBac, tour: Pick<CoachHooks, "begin" | "end">): void {
   pageTitle = title;
   bac = sandbox;
   bac.listen(() => {
@@ -783,6 +801,10 @@ export function initMobile(title: () => string, sandbox: MobileBac): void {
     syncHistory();
   });
   build();
+  const bar = Object.assign(document.createElement("div"), { className: "m-coach", hidden: true });
+  bar.setAttribute("role", "status");
+  head.after(bar);
+  coach = createCoach(bar, { ...tour, changed: () => on && (drawDock(), syncHistory()) });
   const mq = matchMedia("(max-width: 899px), (pointer: coarse)");
   const size = new ResizeObserver(() => {
     const r = document.documentElement.style;

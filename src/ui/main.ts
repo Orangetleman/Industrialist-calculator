@@ -92,7 +92,7 @@ import { layoutResearch, RN_H, RN_W, type ResearchLayout } from "./research-layo
 import { renderNodeBubble, renderNodeDetail, renderResearchSvg } from "./research-view.ts";
 import { createTour, SITE_TOUR, type CheckItem } from "./tour.ts";
 import { createChecklist, reachedItem } from "./checklist.ts";
-import { heavy, holdCalc, initMobile, mobileOn, tourReveal, tourTarget } from "./mobile-shell.ts";
+import { coachStart, heavy, holdCalc, initMobile, mobileOn, tourReveal, tourTarget } from "./mobile-shell.ts";
 import {
   defaultDir,
   draftFrom,
@@ -6044,7 +6044,29 @@ const cameByLink = !!readShareHash(location.hash); // avant showPage, qui ouvre 
 void bootDesigns();
 showPage();
 // MB3 : interface mobile (dock, panneaux), après le premier affichage.
-initMobile(() => { const p = currentPage(); return t(p === "propositions" || p === "donnees" ? "page.donnees" : (`page.${p}` as Key)); }, sandbox.mobile);
+initMobile(() => { const p = currentPage(); return t(p === "propositions" || p === "donnees" ? "page.donnees" : (`page.${p}` as Key)); }, sandbox.mobile, {
+  // Une leçon qui a besoin d'un plan, sur une partie neuve : tout est supposé débloqué le temps de la leçon (comme le tutoriel du PC).
+  begin(id) {
+    if (["plan", "usine", "vues", "schema", "regler"].includes(id) && !prog.unlocked.length && !simulated) {
+      simulated = prog;
+      prog = { ...prog, unlocked: [...data.nodes.values()].filter((n) => !n.isRoot).map((n) => n.id) };
+      planDirty = true;
+      render();
+    }
+  },
+  end() {
+    try {
+      localStorage.setItem(KEY_TOUR, "1");
+    } catch {
+      // stockage indisponible
+    }
+    if (!simulated) return;
+    prog = simulated;
+    simulated = null;
+    planDirty = true;
+    render();
+  },
+});
 // Tutoriel (remarque n° 14) : la carte d'accueil seule à la toute première visite ; « ? Tutoriel » rouvre la liste « Premiers pas ».
 $("help").addEventListener("click", () => checklist.show(true));
 {
@@ -6055,7 +6077,7 @@ $("help").addEventListener("click", () => checklist.show(true));
     // stockage indisponible : pas de visite automatique
   }
   if (!seen && isFresh()) {
-    if (!cameByLink) tour.start("first"); // arrivé par un lien : on montre le design reçu, la visite attendra
+    if (!cameByLink) mobileOn() ? coachStart("plan") : tour.start("first"); // arrivé par un lien : on montre le design reçu, la visite attendra
   } else if (seen) checklist.render(); // la liste reste là d'une visite à l'autre, tant qu'elle n'est pas masquée
 }
 window.setInterval(tickRp, 5000);

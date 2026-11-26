@@ -196,6 +196,7 @@ function portFacing(B: Board, x: number, y: number, d: Dir, kind: Kind): boolean
  * grand tuyau, ou tuyau de l'autre type traversé autrement que tout droit). `lenMax` : longueur auto décochée.
  */
 export function pipePlan(cat: SbCatalog, layout: Layout, path: [number, number][], fam: Fam, lenMax = Infinity, axis: "V" | "H" = "V"): Plan | null {
+  if (!path.length) return null; // viseur pas encore posé (téléphone) : rien à tracer
   const B = board(cat, layout), kind = kindOf(fam), cells = new Map<string, Cell>(), remove = new Set<number>(), onPath = new Set(path.map(([x, y]) => K(x, y)));
   path.forEach(([x, y], i) => {
     const open = new Set<Dir>();
